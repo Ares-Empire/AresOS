@@ -3,7 +3,10 @@ package dev.aresos.test;
 import com.google.gson.JsonObject;
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.aresos.AresOs;
+import dev.aresos.client.AppsScreen;
 import dev.aresos.client.AresOsClient;
+import dev.aresos.client.AresOsMenuScreen;
+import dev.aresos.client.HomeCreateScreen;
 import dev.aresos.client.ShellFocusClient;
 import dev.aresos.client.WorldSearchScreen;
 import dev.aresos.client.launch.LinuxAppLauncher;
@@ -20,7 +23,9 @@ import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.AnvilScreen;
 import net.minecraft.client.gui.screens.inventory.BookEditScreen;
 import net.minecraft.client.gui.screens.inventory.BookSignScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
@@ -28,6 +33,7 @@ import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.inventory.AnvilMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.WritableBookContent;
@@ -121,6 +127,11 @@ public final class WorldSearchClientGameTest implements FabricClientGameTest {
                 // Review 1, round 1: last, so no earlier picture or check moves.
                 bookDraft(context, helper);
                 windowFocus(context, helper);
+                // Review 2, round 2: last again.
+                replacedScreens(context, helper);
+                keptScreens(context, helper);
+                newHomeDraft(context, helper);
+                smallBar(context, helper);
             } finally {
                 context.runOnClient(client -> {
                     AresOsClient.replaceLauncher(previousLauncher);
@@ -133,7 +144,8 @@ public final class WorldSearchClientGameTest implements FabricClientGameTest {
                     + "opens the framed best hit and a click any hit, both with open_app's screen \"world\", and the bar "
                     + "closes; a blank query and no hit leave Enter without effect; Escape returns to the world, from over "
                     + "the inventory too, which closes first; shell_search leaves chat and an open bar alone; the world "
-                    + "keeps moving");
+                    + "keeps moving; it replaces the game menu, AresOS's menu and the empty Apps screen, and leaves a "
+                    + "typed Apps search, an anvil with a name, an unlisted screen and the New home choice with its seed");
         } catch (Exception error) {
             throw new RuntimeException(error);
         } finally {
@@ -358,6 +370,159 @@ public final class WorldSearchClientGameTest implements FabricClientGameTest {
         context.waitTicks(5);
         context.runOnClient(client -> check(client.gui.screen() == null,
                 "The bar opened after the wait for the window's focus ran out: " + client.gui.screen()));
+    }
+
+    /** Review 2: the screens on Super's list, each replaced by the search (the world and the inventory are above). */
+    private static void replacedScreens(ClientGameTestContext context, FakeHelper helper) {
+        // The game's own menu: this test world is a desktop, not his home, where Esc opens AresOS's menu instead.
+        context.runOnClient(client -> client.gui.setScreen(new PauseScreen(true)));
+        context.waitForScreen(PauseScreen.class);
+        search(context, helper, "");
+        escape(context);
+
+        context.runOnClient(client -> client.gui.setScreen(new AresOsMenuScreen()));
+        context.waitForScreen(AresOsMenuScreen.class);
+        search(context, helper, "");
+        escape(context);
+
+        // The Apps screen with nothing typed in its search box.
+        context.runOnClient(client -> client.gui.setScreen(new AppsScreen(null)));
+        context.waitForScreen(AppsScreen.class);
+        context.waitTicks(2);
+        search(context, helper, "");
+        escape(context);
+    }
+
+    /** Review 2: whatever is not on the list stays, and a listed screen stays while a text box in it holds text. */
+    private static void keptScreens(ClientGameTestContext context, FakeHelper helper) {
+        // The Apps screen with a search typed.
+        context.runOnClient(client -> client.gui.setScreen(new AppsScreen(null)));
+        context.waitForScreen(AppsScreen.class);
+        context.getInput().typeChars("web");
+        context.waitTicks(2);
+        kept(context, helper, "web", "the Apps screen with a search typed");
+
+        // A container he types in: an anvil with a name in its box. Client-side only, its menu never reaches the server.
+        context.runOnClient(client -> {
+            var inventory = client.player.getInventory();
+            client.gui.setScreen(new AnvilScreen(new AnvilMenu(0, inventory), inventory, Component.literal("Anvil")));
+        });
+        context.waitForScreen(AnvilScreen.class);
+        context.runOnClient(client -> client.gui.screen().children().stream().filter(EditBox.class::isInstance)
+                .map(EditBox.class::cast).findFirst().orElseThrow(() -> new AssertionError("The anvil has no name box")).setValue("Draft"));
+        kept(context, helper, "Draft", "an anvil with a name typed");
+
+        // A screen nobody listed, with no text box at all.
+        context.runOnClient(client -> client.gui.setScreen(new Screen(Component.literal("Unlisted")) { }));
+        context.waitTicks(2);
+        kept(context, helper, null, "a screen that is not on the list");
+    }
+
+    /** Super with this screen open: it must still be the same screen, with the same text, ten ticks later. */
+    private static void kept(ClientGameTestContext context, FakeHelper helper, String text, String what) {
+        var open = context.computeOnClient(client -> client.gui.screen());
+        check(open != null && !(open instanceof WorldSearchScreen), what + " is not open: " + open);
+        check(java.util.Objects.equals(text, title(open)), what + " says " + title(open) + " before Super");
+        superPressed(helper);
+        context.waitTicks(10);
+        context.runOnClient(client -> {
+            check(client.gui.screen() == open, "shell_search replaced " + what + ": " + client.gui.screen());
+            check(java.util.Objects.equals(text, title(open)), what + " now says " + title(open));
+            check(!WorldSearchScreen.waitingForFocus(), "shell_search waits to replace " + what);
+            client.gui.setScreen(null);
+        });
+        context.waitFor(client -> client.gui.screen() == null);
+    }
+
+    /**
+     * Review 2, blocking 2: the New home choice. Nether is chosen, a seed of his own typed, and Tab moves the focus to
+     * a button, off the seed box. Super must leave the choice, its seed and its settings alone.
+     */
+    private static void newHomeDraft(ClientGameTestContext context, FakeHelper helper) {
+        var chooser = context.computeOnClient(client -> {
+            var screen = new HomeCreateScreen(null, (game, choice, plan) -> { throw new AssertionError("Create was pressed"); });
+            client.gui.setScreen(screen);
+            return screen;
+        });
+        context.waitForScreen(HomeCreateScreen.class);
+        click(context, "Home: Flat");
+        context.waitTicks(2);
+        context.runOnClient(client -> {
+            check(hasButton(chooser, "Home: Nether"), "The choice did not switch to the Nether home");
+            // The seed box, as a click on it would: what he types next goes there.
+            chooser.setFocused(chooser.children().stream().filter(EditBox.class::isInstance).findFirst()
+                    .orElseThrow(() -> new AssertionError("The Nether home has no seed box")));
+        });
+        context.getInput().typeChars("123");
+        context.waitTicks(2);
+        for (int press = 0; press < 12 && !context.computeOnClient(client -> chooser.getFocused() instanceof AbstractButton); press++) {
+            context.getInput().pressKey(InputConstants.KEY_TAB);
+            context.waitTicks(2);
+        }
+        context.runOnClient(client -> {
+            check(chooser.getFocused() instanceof AbstractButton, "Tab did not move the focus to a button: " + chooser.getFocused());
+            check("49123".equals(title(chooser)), "The seed box says " + title(chooser));
+            check(hasButton(chooser, "Placeholder hub: OFF"), "A seed of his own did not turn the placeholder off");
+        });
+        superPressed(helper);
+        context.waitTicks(10);
+        context.runOnClient(client -> {
+            check(client.gui.screen() == chooser, "shell_search replaced the New home choice: " + client.gui.screen());
+            check("49123".equals(title(chooser)), "The seed is now " + title(chooser));
+            check(hasButton(chooser, "Home: Nether") && hasButton(chooser, "Placeholder hub: OFF"), "The home's settings changed");
+            check(chooser.getFocused() instanceof AbstractButton, "The focus moved: " + chooser.getFocused());
+            client.gui.setScreen(null);
+        });
+        context.waitFor(client -> client.gui.screen() == null);
+    }
+
+    /**
+     * Review 2, finding 6: a bar with room for two lines pins nothing, so every hit can be scrolled to. The rule itself
+     * is held by SearchLinesTest; this is the screen following it, in a window as low as the game still lays out.
+     */
+    private static void smallBar(ClientGameTestContext context, FakeHelper helper) {
+        context.getInput().resizeWindow(480, 120);
+        context.waitTicks(5);
+        search(context, helper, "test");
+        int slots = context.computeOnClient(client -> bar(client).slots());
+        if (slots >= 4) {
+            // Not a failure of the bar: the rule is held by SearchLinesTest, and the report says which of the two ran.
+            AresOs.LOGGER.warn("53d: the test window could not be made low enough for a small bar ({} slots); the two-slot "
+                    + "layout was checked by SearchLinesTest only", slots);
+        } else {
+            context.runOnClient(client -> {
+                var bar = bar(client);
+                check(bar.pinned() == 0, "A bar with " + bar.slots() + " slots pins " + bar.pinned() + " lines");
+                check("cobweb-test".equals(bar.best()) && bar.middleOf("cobweb-test") != null, "The best hit is not shown first");
+            });
+            // A line on at a time, to the end: every hit comes into view, and the best hit scrolls away with the rest.
+            var seen = new java.util.HashSet<String>();
+            int last = -1;
+            for (int step = 0; step < 100; step++) {
+                seen.addAll(context.computeOnClient(client -> bar(client).found().stream()
+                        .filter(id -> bar(client).middleOf(id) != null).toList()));
+                int at = context.computeOnClient(client -> bar(client).scrolled());
+                if (at == last) break;
+                last = at;
+                context.getInput().pressKey(InputConstants.KEY_DOWN);
+                context.waitTick();
+            }
+            context.runOnClient(client -> {
+                var bar = bar(client);
+                check(seen.containsAll(bar.found()), "In a bar with " + bar.slots() + " slots only " + seen.size() + " of "
+                        + bar.found().size() + " hits can be scrolled to");
+                check(bar.middleOf("cobweb-test") == null && "cobweb-test".equals(bar.best()), "The small bar still pins the best hit");
+            });
+            AresOs.LOGGER.info("53d: a bar with {} slots pins nothing and scrolls to all {} hits", slots, seen.size());
+        }
+        escape(context);
+        context.getInput().resizeWindow(960, 540);
+        context.waitTicks(5);
+    }
+
+    private static boolean hasButton(Screen screen, String label) {
+        return screen.children().stream().anyMatch(child -> child instanceof AbstractButton button
+                && button.getMessage().getString().equals(label));
     }
 
     /** Clicks the button that says {@code label} on the open screen, as he would with the pointer. */

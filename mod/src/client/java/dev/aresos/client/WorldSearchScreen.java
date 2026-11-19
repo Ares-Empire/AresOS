@@ -1,6 +1,7 @@
 package dev.aresos.client;
 
 import dev.aresos.AresOs;
+import dev.aresos.client.mixin.RecipeBookSearchAccess;
 import dev.aresos.config.AppDefinition;
 import dev.aresos.config.AppSearch;
 import dev.aresos.item.AppItems;
@@ -14,18 +15,10 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.MultiLineEditBox;
 import net.minecraft.client.gui.components.events.ContainerEventHandler;
 import net.minecraft.client.gui.components.events.GuiEventListener;
-import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.inventory.AbstractCommandBlockEditScreen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.client.gui.screens.inventory.AbstractSignEditScreen;
-import net.minecraft.client.gui.screens.inventory.AnvilScreen;
-import net.minecraft.client.gui.screens.inventory.BookEditScreen;
-import net.minecraft.client.gui.screens.inventory.BookSignScreen;
-import net.minecraft.client.gui.screens.inventory.JigsawBlockEditScreen;
-import net.minecraft.client.gui.screens.inventory.StructureBlockEditScreen;
-import net.minecraft.client.gui.screens.inventory.TestBlockEditScreen;
-import net.minecraft.client.gui.screens.inventory.TestInstanceBlockEditScreen;
+import net.minecraft.client.gui.screens.recipebook.RecipeBookComponent;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -49,8 +42,9 @@ import java.util.function.Predicate;
  * until he types and it never pauses the world.
  *
  * <p>Which program is the best hit is {@link AppSearch#ranked}'s rule, not this screen's. The best hit stays at the
- * top of the list while the rest scrolls under it, so the program Enter opens is always in view. An app opened from here
- * opens on the screen that shows the world ({@link AresOsClient#launchOnWorldScreen}).
+ * top of the list while the rest scrolls under it, so the program Enter opens is always in view, wherever the bar has
+ * room for that ({@link SearchLines}). An app opened from here opens on the screen that shows the world
+ * ({@link AresOsClient#launchOnWorldScreen}).
  *
  * <p>Its look is the bar the owner chose from three drawn for him (board #382, 2026-11-19): a search box in the upper
  * part of the sharp world, its hits on a dark plate under it.
@@ -90,8 +84,8 @@ public final class WorldSearchScreen extends Screen {
     private List<Line> lines = List.of();
     // The program Enter opens: the first hit of a query that is not blank.
     private String best;
-    // The first lines, up to the best hit, stay at the top while the rest scrolls: Enter's program stays in view.
-    private int pinned;
+    // Which line stands in which slot: the first lines, up to the best hit, stay at the top where there is room.
+    private SearchLines view = SearchLines.of(0, -1, 1);
     // How many of the lines after the pinned ones are scrolled past.
     private int scroll;
     // What the lines were last built from; see AppsScreen.
@@ -102,12 +96,15 @@ public final class WorldSearchScreen extends Screen {
 
     /**
      * Opens the search over the world. An open container closes the normal way first, as when the Apps screen opens a
-     * program from the inventory, so the server knows it is closed and a carried item goes back.
+     * program from the inventory, so the server knows it is closed and a carried item goes back; so does the inventory
+     * the Apps screen was opened from.
      *
      * <p>It does not decide whether now is a good moment: {@link #requested} does.
      */
     public static void open(Minecraft client) {
-        if (client.gui.screen() instanceof AbstractContainerScreen<?> && client.player != null) client.player.closeContainer();
+        var screen = client.gui.screen();
+        boolean container = screen instanceof AbstractContainerScreen<?> || screen instanceof AppsScreen apps && apps.overContainer();
+        if (container && client.player != null) client.player.closeContainer();
         client.gui.setScreen(new WorldSearchScreen());
     }
 
@@ -125,9 +122,7 @@ public final class WorldSearchScreen extends Screen {
     }
 
     private static SearchMoment moment(Minecraft client) {
-        var screen = client.gui.screen();
-        return SearchMoment.of(ShellFocusClient.readyWorld(client) != null, screen instanceof WorldSearchScreen,
-                typing(screen), screen instanceof AbstractContainerScreen<?>, windowFocus.test(client));
+        return SearchMoment.of(ShellFocusClient.readyWorld(client) != null, opened(client.gui.screen()), windowFocus.test(client));
     }
 
     /** Whether Super's request waits for the window's focus now. For the client test. */
@@ -150,23 +145,35 @@ public final class WorldSearchScreen extends Screen {
     }
 
     /**
-     * A screen he types in, whatever has its focus: the game's chat, sign, book and book-signing, anvil, and command,
-     * structure, jigsaw and test block screens. A draft there lives only in the screen: replacing it with the search
-     * would throw it away (review 1: a book's title and unsaved pages, with the focus on "Sign and Close"). And any
-     * screen whose focus is in a text box (the Apps screen's search, the creative inventory's).
+     * What is open, for Super's rule. Review 2: an allowlist, after two rounds of listing the screens to keep each
+     * missed one (a book being signed, then the New home choice with its seed). The search replaces only screens known
+     * to hold nothing typed: the inventory and other containers, the game menu (the game's own class exactly, or
+     * AresOS's) and the Apps screen, and each of them only while no text box in it holds text: an anvil's name, the
+     * creative inventory's search, the recipe book's, the Apps screen's own. Every other screen is
+     * {@link SearchMoment.Open#OTHER} and stays, the game's, another mod's and AresOS's own: nobody has said what would
+     * be lost with it.
      */
-    static boolean typing(Screen screen) {
-        if (screen == null) return false;
-        if (screen instanceof ChatScreen || screen instanceof AbstractSignEditScreen || screen instanceof BookEditScreen
-                || screen instanceof BookSignScreen || screen instanceof AnvilScreen
-                || screen instanceof AbstractCommandBlockEditScreen || screen instanceof StructureBlockEditScreen
-                || screen instanceof JigsawBlockEditScreen || screen instanceof TestBlockEditScreen
-                || screen instanceof TestInstanceBlockEditScreen) return true;
-        // The focus can sit in a list or a tab inside the screen: follow it down, a few levels at most.
-        GuiEventListener focused = screen.getFocused();
-        for (int depth = 0; focused != null && depth < 8; depth++) {
-            if (focused instanceof EditBox || focused instanceof MultiLineEditBox) return true;
-            focused = focused instanceof ContainerEventHandler inner ? inner.getFocused() : null;
+    static SearchMoment.Open opened(Screen screen) {
+        if (screen == null) return SearchMoment.Open.NOTHING;
+        if (screen instanceof WorldSearchScreen) return SearchMoment.Open.SEARCH;
+        SearchMoment.Open kind = screen instanceof AbstractContainerScreen<?> ? SearchMoment.Open.CONTAINER
+                : screen.getClass() == PauseScreen.class || screen instanceof AresOsMenuScreen ? SearchMoment.Open.MENU
+                : screen instanceof AppsScreen ? SearchMoment.Open.APPS : SearchMoment.Open.OTHER;
+        return kind != SearchMoment.Open.OTHER && holdsText(screen, 0) ? SearchMoment.Open.OTHER : kind;
+    }
+
+    /** Whether a text box in there holds text, typed or put there (an anvil shows the item's name): either way it stays. */
+    private static boolean holdsText(ContainerEventHandler parent, int depth) {
+        for (GuiEventListener child : parent.children()) {
+            if (child instanceof EditBox box && !box.getValue().isEmpty()) return true;
+            if (child instanceof MultiLineEditBox box && !box.getValue().isEmpty()) return true;
+            if (child instanceof RecipeBookComponent<?> book) {
+                // What he typed there shows only while the book is open.
+                EditBox search = ((RecipeBookSearchAccess) book).aresos$searchBox();
+                if (book.isVisible() && search != null && !search.getValue().isEmpty()) return true;
+            }
+            // A text box can sit in a list or a tab inside the screen: a few levels at most.
+            if (child instanceof ContainerEventHandler inner && depth < 8 && holdsText(inner, depth + 1)) return true;
         }
         return false;
     }
@@ -224,10 +231,12 @@ public final class WorldSearchScreen extends Screen {
             }
         }
         lines = built;
-        // The best hit and its heading stand at the top whatever is scrolled (review 1: Enter's program stays in view).
-        pinned = 0;
-        for (int at = 0; best != null && at < built.size(); at++)
-            if (built.get(at) instanceof Row) { pinned = at + 1; break; }
+        // The best hit and its heading stand at the top whatever is scrolled (review 1: Enter's program stays in view),
+        // where the bar has the room (SearchLines).
+        int bestLine = -1;
+        for (int at = 0; best != null && bestLine < 0 && at < built.size(); at++)
+            if (built.get(at) instanceof Row) bestLine = at;
+        view = SearchLines.of(built.size(), bestLine, frame.rows);
         scroll = keepPlace ? Math.clamp(scroll, 0, maxScroll()) : 0;
     }
 
@@ -235,18 +244,12 @@ public final class WorldSearchScreen extends Screen {
         return new Heading(Component.literal(name).append(Component.literal("  " + count).withStyle(ChatFormatting.GRAY)));
     }
 
-    /** How many of the pinned lines are shown: all of them, unless the bar has room for fewer lines (then the best hit). */
-    private int pinnedShown() { return Math.min(pinned, frame.rows); }
+    private int maxScroll() { return view.maxScroll(); }
 
-    private int maxScroll() { return Math.max(0, lines.size() - pinned - (frame.rows - pinnedShown())); }
-
-    private int shownLines() { return Math.min(lines.size(), frame.rows); }
+    private int shownLines() { return view.shown(); }
 
     /** The line at shown place {@code place}: the pinned ones first, then the rest from where it is scrolled to. */
-    private Line shown(int place) {
-        int top = pinnedShown();
-        return lines.get(place < top ? pinned - top + place : pinned + scroll + place - top);
-    }
+    private Line shown(int place) { return lines.get(view.line(place, scroll)); }
 
     /** The top of the shown line {@code place} (0 is the first one shown). */
     private int lineY(int place) { return frame.top + place * ROW; }
@@ -345,7 +348,7 @@ public final class WorldSearchScreen extends Screen {
             }
         }
         // Beside the lines that scroll, not beside the pinned best hit.
-        int scrolling = lineY(pinnedShown());
+        int scrolling = lineY(view.pinned());
         if (maxScroll() > 0 && listBottom > scrolling)
             scroller(graphics, frame.x + frame.width - SCROLLER_WIDTH, scrolling, listBottom - scrolling);
     }
@@ -391,7 +394,7 @@ public final class WorldSearchScreen extends Screen {
 
     /** The game's own scroll bar, beside the lines. */
     private void scroller(GuiGraphicsExtractor graphics, int x, int top, int span) {
-        int handle = Math.max(8, span * (frame.rows - pinnedShown()) / (lines.size() - pinned));
+        int handle = Math.max(8, span * (frame.rows - view.pinned()) / (lines.size() - view.pinned()));
         int travel = (span - handle) * scroll / maxScroll();
         graphics.blitSprite(RenderPipelines.GUI_TEXTURED, SCROLLER_BACKGROUND, x, top, SCROLLER_WIDTH, span);
         graphics.blitSprite(RenderPipelines.GUI_TEXTURED, SCROLLER, x, top + travel, SCROLLER_WIDTH, handle);
@@ -425,6 +428,11 @@ public final class WorldSearchScreen extends Screen {
 
     /** How many lines under the pinned best hit are scrolled past. */
     public int scrolled() { return scroll; }
+
+    /** How many lines the bar has room for, and how many of the first ones stay at the top. */
+    public int slots() { return frame.rows; }
+
+    public int pinned() { return view.pinned(); }
 
     /** The middle of a program's line in the screen's pixels, or null while it is not in view. */
     public int[] middleOf(String id) {

@@ -3,50 +3,55 @@ package dev.aresos.client;
 import static dev.aresos.client.SearchMoment.*;
 import static org.junit.jupiter.api.Assertions.*;
 
+import dev.aresos.client.SearchMoment.Open;
 import org.junit.jupiter.api.Test;
+
+import java.util.EnumSet;
 
 /** Package 53d: when Super's shell_search opens the search over the world, and when it is ignored. */
 class SearchMomentTest {
-    @Test void opensOverTheWorldAndOverAnyOtherScreen() {
-        assertEquals(OPEN, of(true, false, false, false, true));
+    @Test void opensOverTheWorldTheMenuAndTheEmptyAppsScreen() {
+        for (Open open : new Open[] {Open.NOTHING, Open.MENU, Open.APPS}) assertEquals(OPEN, of(true, open, true), open.name());
         assertTrue(OPEN.opens());
     }
 
     @Test void anOpenContainerClosesFirst() {
-        assertEquals(CLOSE_CONTAINER_THEN_OPEN, of(true, false, false, true, true));
+        assertEquals(CLOSE_CONTAINER_THEN_OPEN, of(true, Open.CONTAINER, true));
         assertTrue(CLOSE_CONTAINER_THEN_OPEN.opens());
     }
 
+    @Test void onlyTheListedKindsAreReplaced() {
+        // Review 2: an allowlist. Whatever is not one of these four stays, with or without the window's focus.
+        var replaced = EnumSet.of(Open.NOTHING, Open.CONTAINER, Open.MENU, Open.APPS);
+        for (Open open : Open.values())
+            for (boolean focused : new boolean[] {true, false}) {
+                var moment = of(true, open, focused);
+                assertEquals(focused && replaced.contains(open), moment.opens(), open + " focused " + focused);
+                if (!replaced.contains(open)) assertNotEquals(NO_FOCUS, moment, open + " must not wait to be replaced");
+            }
+        assertEquals(OTHER_SCREEN, of(true, Open.OTHER, true));
+        assertFalse(OTHER_SCREEN.opens());
+    }
+
     @Test void ignoredWithoutAReadyDesktopWorldWhateverIsOpen() {
-        for (boolean open : new boolean[] {false, true})
-            for (boolean typing : new boolean[] {false, true})
-                for (boolean container : new boolean[] {false, true}) {
-                    assertEquals(NO_WORLD, of(false, open, typing, container, true));
-                }
+        for (Open open : Open.values())
+            for (boolean focused : new boolean[] {true, false}) assertEquals(NO_WORLD, of(false, open, focused));
         assertFalse(NO_WORLD.opens());
     }
 
-    @Test void ignoredWhileHeTypes() {
-        assertEquals(TYPING, of(true, false, true, false, true));
-        // An anvil is a container he types in: his typing wins, nothing closes.
-        assertEquals(TYPING, of(true, false, true, true, true));
-        assertFalse(TYPING.opens());
-    }
-
     @Test void ignoredWhileTheSearchIsOpenAlready() {
-        // The search's own box has the focus: it counts as open, not as typing elsewhere.
-        assertEquals(ALREADY_OPEN, of(true, true, true, false, true));
+        assertEquals(ALREADY_OPEN, of(true, Open.SEARCH, true));
         assertFalse(ALREADY_OPEN.opens());
     }
 
     @Test void withoutTheWindowsFocusItWaitsInsteadOfOpening() {
-        assertEquals(NO_FOCUS, of(true, false, false, false, false));
-        assertEquals(NO_FOCUS, of(true, false, false, true, false));
+        for (Open open : new Open[] {Open.NOTHING, Open.CONTAINER, Open.MENU, Open.APPS})
+            assertEquals(NO_FOCUS, of(true, open, false), open.name());
         assertFalse(NO_FOCUS.opens());
         // The other reasons not to open come first: nothing waits for them.
-        assertEquals(NO_WORLD, of(false, false, false, false, false));
-        assertEquals(ALREADY_OPEN, of(true, true, false, false, false));
-        assertEquals(TYPING, of(true, false, true, false, false));
+        assertEquals(NO_WORLD, of(false, Open.NOTHING, false));
+        assertEquals(ALREADY_OPEN, of(true, Open.SEARCH, false));
+        assertEquals(OTHER_SCREEN, of(true, Open.OTHER, false));
     }
 
     @Test void theWaitOpensOnceTheWindowHasTheKeyboard() {
