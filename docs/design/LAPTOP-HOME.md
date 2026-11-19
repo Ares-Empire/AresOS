@@ -329,7 +329,7 @@ houses and 47 programs, the study's fonts; five fresh runs, each sampled at rest
 | 53e's native prototype (the control, same session) | 15 s after one redraw, 5 runs | 64,075 KiB (62.6 MiB) | 63,778–64,179 KiB | 31,144 KiB | 2 |
 
 The limit is a median of at most 60 MiB (61,440 KiB) at rest **after a redraw**; the native home is 918 KiB over it
-in set-up S. Two of its 60.9 MiB are the window's two 8,100 KiB pictures: from its second frame on, GTK keeps the
+in set-up S. 15.8 of its 60.9 MiB are the window's two 8,100 KiB pictures: from its second frame on, GTK keeps the
 picture on screen and one spare, because the headless compositor's software renderer reads the shown picture in
 place. A compositor that draws on the graphics chip copies each picture as it arrives and gives it back at once,
 so GTK reuses one; that is the 52.2 MiB of the first-draw row, and what the laptop trial (set-up I) measures.
