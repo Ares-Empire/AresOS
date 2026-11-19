@@ -11,7 +11,7 @@ The detail behind every line is in `~/codex-queue/linux-tools/QUEUE.md` (newest 
 list). Shell watchers started by the old session are gone: start new ones with `gh run watch <id> -R
 Ares-Empire/AresOS --interval 300` in a background shell.
 
-1. **R28 (cut 12:00 today; `linux-aresos`' conditions, 06:00; met):** #111 and #122 ride R28 if merged by 10:00 and
+1. **R28: cut taken 12:05 (main `fba94b25` with #111 and #122, merged into pkg/42 as `7f896b62`).** #111 and #122 ride R28 if merged by 10:00 and
    Control CI is green **on main's merge commit**; send `linux-aresos` that commit and the results. If either goes
    red, revert it before 11:30 and it rides R29.
    - **Both merged.** #111: main `c496035629e10f84887a01f2923ecedc72fcb48d`. #122 (07:27): main
@@ -42,10 +42,14 @@ Ares-Empire/AresOS --interval 300` in a background shell.
      Deduplicating `item_fields` against `form` changes the frozen asking path: a later item with its own review
      (known limit: a form about a quarter bigger than F4 refuses with `asking_input_too_large`). The old F4
      comparator's extra `chrome_old_find` stays: brief 20 needs a fresh find after fills.
-   - Next: one Codex Sol step puts those decisions into the test, PROGRESS and KNOWN-LIMITS, then the browser
-     coverage gaps part 2 lists; then step 2 (HARNESS-MAP), step 3 (removal; CONTROL.md section 6 needs
-     `chrome_show`'s focus exception; `response_checks.check_responses` in the Chrome tests, #122's NIT 2), step 4
-     (full validation twice), the package and security reviews.
+   - **11:30: Codex Sol `28a-1d2-fix2` done** (`4fb4821b`, `18fadda2`, PROGRESS `d42d1890`): the F4 pin (at most
+     14,000, under ASK_LIMIT, whole options refused) and its known limit are in; latency (plain)'s cause was the F3
+     find at 218.5/291.4 ms against a 207.3 ms median ceiling, so the fingerprint hashing got cheaper; recheck2's
+     empty-owner-page fixture fixed. **Read Chrome 44505065741 and qualification 44505070907** (dispatched on the
+     fix; nobody watches them now). Green: dispatch base, Mail and privacy on the head too, then the browser coverage
+     gaps part 2 lists; then step 2 (HARNESS-MAP), step 3 (removal; CONTROL.md section 6 needs `chrome_show`'s focus
+     exception; `response_checks.check_responses` in the Chrome tests, #122's NIT 2), step 4 (full validation
+     twice), the package and security reviews. Red: one Codex Sol fix step that pushes, dispatches once and stops.
 3. **18c-b** (`pkg/18c-b-chrome`, `~/AresOS-18c-b-build`, draft PR #76; rides R29).
    - Step 4 done (`8bcb9504`; `linux-aresos` read its `os/` diff: OK). Step 4b pushed `3cb3687d` (C3, the rest of
      C6, C10, C11) and `1b263438` (fixes); control runs 44452254488 and 44462912726 red, 44468856359 queued. That is
