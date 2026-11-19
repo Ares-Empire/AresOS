@@ -62,6 +62,9 @@ def run(path):
                                                    renderer={'gsk': window.get_renderer().__gtype__.name},
                                                    layer=layer_state(window, layer))))
                 pending.rename(parent)
+                if setup.get('redraw'):
+                    # 53f's measurement rests after one redraw; the control draws a second frame the same way.
+                    GLib.timeout_add(500, lambda: area.queue_draw() and False)
 
         area.set_draw_func(draw)
         window.set_child(area)
