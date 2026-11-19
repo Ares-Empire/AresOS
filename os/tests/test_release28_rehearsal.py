@@ -67,8 +67,8 @@ class LedgerTest(unittest.TestCase):
         self.assertEqual(LEDGER['titles'][MODE], 'Two-disk rehearsal (release-28)')
         self.assertIn('adds the rehearsal kind release-28', LEDGER['budget'])
         self.assertIn("with cap 0: step 6 raises it, with the lead's OK", LEDGER['budget'])
-        # The publish gate is untouched (review 1, B1).
-        self.assertEqual((LEDGER['dispatch_caps']['publish-28'], LEDGER['publish_cap']), (0, 0))
+        # The publish gate: shut until step 5 opened it for one publish (review 1, B1; board #388).
+        self.assertEqual((LEDGER['dispatch_caps']['publish-28'], LEDGER['publish_cap']), (1, 1))
 
     def test_cap_0_stops_the_first_dispatch(self):
         run = dict(event='workflow_dispatch', head_sha='a' * 40, run_attempt=1, status='completed', conclusion='failure',

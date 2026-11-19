@@ -1911,11 +1911,13 @@ class Guard42Test(unittest.TestCase):
         self.assertIn('42', guard.TITLED_PACKAGES)
         self.assertEqual(set(ledger['titles']), set(ledger['dispatch_caps']))
         self.assertEqual(set(ledger['job_bounds']), set(ledger['dispatch_caps']))
-        # Review 1, B1: publishing stays shut until the owner's OK; step 5 raises both caps to 1 after it.
-        self.assertEqual(ledger['publish_cap'], 0)
-        self.assertEqual(ledger['dispatch_caps']['publish-28'], 0)
-        self.assertIn("owner's OK", ledger['publish_gate'])
-        self.assertIn('Step 5 raises both to 1 only after his OK', ledger['publish_gate'])
+        # Review 1, B1: publishing stayed shut until the owner's OK; step 5 raised both caps to 1 under his standing
+        # rule (board #388, 2026-11-19), for exactly one publishing dispatch.
+        self.assertEqual(ledger['publish_cap'], 1)
+        self.assertEqual(ledger['dispatch_caps']['publish-28'], 1)
+        self.assertIn("the owner's standing rule (board #388, 2026-11-19", ledger['publish_gate'])
+        self.assertIn('nothing is pinned for the laptop until it passes', ledger['publish_gate'])
+        self.assertIn('Step 5 (2026-11-19): publish-28 and publish_cap from 0 to 1', ledger['budget'])
         self.assertEqual(ledger['job_bounds']['publish-28'], int(WORKFLOW['jobs']['release-28']['timeout-minutes']))
         self.assertEqual(ledger['job_bounds']['dry-run-28'], int(WORKFLOW['jobs']['release-28-dry-run']['timeout-minutes']))
         # The check-build job's limit depends on its mode since 18c (131 for control, 120 otherwise); the ledger
@@ -1947,9 +1949,13 @@ class Guard42Test(unittest.TestCase):
             with self.assertRaisesRegex(AssertionError, r"^STOP: run 99 is titled 'Two-disk rehearsal \(tools-local\)', "
                                                         "which package 42's ledger does not know"):
                 guard.budget(0)
+            # The one publishing dispatch counts; a second stops.
             runs[-1]['display_title'] = titles['publish-28']
+            self.assertEqual(guard.budget(0)['dispatch_counts']['publish-28'], 1)
+            runs.append(dict(runs[-1], id=101))
             with self.assertRaisesRegex(AssertionError, 'STOP: publish-28 dispatch allowance exhausted'):
                 guard.budget(0)
+            runs.pop()
             runs[-1]['display_title'] = titles['resolve']
             self.assertEqual(guard.budget(0)['dispatch_counts']['resolve'], 2)
             runs.append(dict(runs[-1], id=100))
@@ -1972,7 +1978,12 @@ class Guard42Test(unittest.TestCase):
             return sorted(path.name for path in pathlib.Path('evidence').iterdir())
 
     def test_a_publish_dispatch_stops_at_its_first_guard_until_the_owners_ok(self):
-        # Review 1, B1, with the branch's history today: run 43828756952 (resolve), dry runs 1 to 3.
+        # Review 1, B1, with the branch's history then: run 43828756952 (resolve), dry runs 1 to 3; the gate as it was
+        # before step 5 opened it (both caps 0).
+        with patch.dict(guard.PACKAGES['42']['dispatch_caps'], {'publish-28': 0}), patch.dict(guard.PACKAGES['42'], publish_cap=0):
+            self.shut_gate()
+
+    def shut_gate(self):
         titles = guard.PACKAGES['42']['titles']
         today = [titles['resolve'], titles['dry-run-28'], titles['dry-run-28'], titles['dry-run-28']]
         # The cut's dry run, the cut's resolve and the checks-only run still pass their guards.
@@ -1990,12 +2001,22 @@ class Guard42Test(unittest.TestCase):
         with patch.dict(guard.PACKAGES['42']['dispatch_caps'], {'publish-28': 1}), \
                 self.assertRaisesRegex(AssertionError, 'STOP: the ledger allows no publish'):
             self.run_main('publish-ci', 'publish-28', today)
-        # After the owner's OK step 5 raises both to 1: then only the publishing kind passes the publish gate.
-        with patch.dict(guard.PACKAGES['42']['dispatch_caps'], {'publish-28': 1}), patch.dict(guard.PACKAGES['42'], publish_cap=1):
-            self.assertIn('publish-authorization.json', self.run_main('publish-ci', 'publish-28', today))
-            with self.assertRaises(AssertionError):
-                self.run_main('publish-ci', 'dry-run-28', today)
         self.assertEqual(guard.PUBLISH_KINDS, ('release-13', 'release-27', 'publish-28'))
+
+    def test_the_opened_gate_passes_one_publish_and_only_the_publishing_kind(self):
+        # Step 5 raised both caps to 1 (board #388): the release_28 dispatch passes its job's guard and publish.sh's.
+        titles = guard.PACKAGES['42']['titles']
+        today = [titles['resolve'], titles['dry-run-28'], titles['dry-run-28'], titles['dry-run-28']]
+        for mode in ('ci', 'publish-ci'):
+            with self.subTest(mode=mode):
+                self.assertIn('42-dispatch-authorization.json', self.run_main(mode, 'publish-28', today))
+        self.assertIn('publish-authorization.json', self.run_main('publish-ci', 'publish-28', today))
+        # Only the publishing kind passes the publish gate.
+        with self.assertRaises(AssertionError):
+            self.run_main('publish-ci', 'dry-run-28', today)
+        # A second release_28 dispatch stops at its first guard.
+        with self.assertRaisesRegex(AssertionError, 'STOP: publish-28 dispatch allowance exhausted'):
+            self.run_main('ci', 'publish-28', today + [titles['publish-28']])
 
     def test_resolve_and_checks_runs_stop_at_their_own_guard(self):
         # Review 1, S3: the job's guard counts the run itself.
