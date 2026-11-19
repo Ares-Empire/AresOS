@@ -14,6 +14,7 @@ import io
 import json
 import os
 import pathlib
+import py_compile
 import re
 import shutil
 import stat
@@ -28,6 +29,9 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('labwc_stage', ROOT / 'labwc/stage.py')
 stage = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(stage)
+spec = importlib.util.spec_from_file_location('labwc_loaded_image', ROOT / 'labwc/loaded_image.py')
+loaded_image = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(loaded_image)
 
 RESULT = 'labwc-0.9.6-1.fc44.aresos1.x86_64'
 FEDORA = 'labwc-0.9.6-1.fc44.x86_64'
@@ -210,6 +214,14 @@ def normalized(data):
         return stage.normalized_sha256(path)
 
 
+@functools.lru_cache
+def loaded(data):
+    with tempfile.TemporaryDirectory() as folder:
+        path = pathlib.Path(folder) / 'binary'
+        path.write_bytes(data)
+        return loaded_image.loaded_sha256(path)
+
+
 LABWC_ELF = elf_file(_text=b'\x90' * 16 + b'\xc3')
 LABNAG_ELF = elf_file(_text=b'\x90' * 8 + b'\xc3')
 
@@ -242,7 +254,8 @@ class StageCase(unittest.TestCase):
             patch=dict(file='fix.patch', sha256=digest(self.patch_bytes)),
             result=dict(nevra=RESULT, replaces=FEDORA,
                         normalized_sha256={'/usr/bin/labnag': normalized(LABNAG_ELF),
-                                           '/usr/bin/labwc': normalized(LABWC_ELF)}),
+                                           '/usr/bin/labwc': normalized(LABWC_ELF)},
+                        loaded_sha256={'/usr/bin/labnag': loaded(LABNAG_ELF), '/usr/bin/labwc': loaded(LABWC_ELF)}),
             build_dependencies=[dict(nevra=nevra, url=self.dep_url(nevra), sha256=digest(data))
                                 for nevra, data in sorted(self.dependencies.items())])
         self.write_lock()
@@ -594,6 +607,216 @@ class NormalizedHashTest(unittest.TestCase):
                 stage.normalized_sha256(path)
 
 
+PT_NULL, PT_LOAD, PT_INTERP, PT_NOTE, PT_GNU_RELRO = 0, 1, 3, 4, 0x6474e552
+P_TYPE, P_OFFSET, P_FILESZ, P_ALIGN = 0, 8, 32, 48
+INTERP, FIRST_LOAD, SECOND_LOAD, PROPERTY_NOTES, BUILD_ID_NOTES, RELRO = range(6)
+HEADER_COUNT = 6
+INTERPRETER = b'/lib64/ld-linux-x86-64.so.2\0'
+BUILD_ID = bytes(range(20))
+
+
+def elf_note(kind, descriptor, alignment=4, name=b'GNU\0'):
+    def padded(data):
+        return data + bytes(-len(data) % alignment)
+    return padded(padded(struct.pack('<III', len(name), len(descriptor), kind) + name) + descriptor)
+
+
+BUILD_ID_NOTE = elf_note(3, BUILD_ID)
+PROPERTY_NOTE = elf_note(5, bytes(16), 8)
+GAP = 48
+
+
+def mapped_file(notes=BUILD_ID_NOTE, note_alignment=4, section_table=0x9000, after_end=b'labwc.debug\0\xfd7zXZ symbols',
+                code=b'\x90' * 32 + b'\xc3'):
+    """An x86-64 file laid out like a real labwc: mapped headers and notes, a gap, code, then bytes nothing maps."""
+    interpreter_at = 64 + HEADER_COUNT * 56
+    property_at = interpreter_at + len(INTERPRETER) + (-(interpreter_at + len(INTERPRETER)) % 8)
+    notes_at = property_at + len(PROPERTY_NOTE)
+    first_end = notes_at + len(notes)
+    code_at = first_end + GAP
+    end = code_at + len(code)
+
+    def header(kind, offset, size, alignment):
+        return struct.pack('<IIQQQQQQ', kind, 4, offset, offset, offset, size, size, alignment)
+
+    table = (header(PT_INTERP, interpreter_at, len(INTERPRETER), 1) + header(PT_LOAD, 0, first_end, 0x1000) +
+             header(PT_LOAD, code_at, len(code), 0x1000) + header(PT_NOTE, property_at, len(PROPERTY_NOTE), 8) +
+             header(PT_NOTE, notes_at, len(notes), note_alignment) + header(PT_GNU_RELRO, 0, 64, 1))
+    identity = b'\x7fELF\x02\x01\x01' + bytes(9)
+    elf_header = identity + struct.pack('<HHIQQQIHHHHHH', 3, 62, 1, code_at, 64, section_table, 0, 64, 56, HEADER_COUNT,
+                                        64, 0, 0)
+    middle = INTERPRETER + bytes(property_at - interpreter_at - len(INTERPRETER)) + PROPERTY_NOTE + notes
+    return elf_header + table + middle + bytes(GAP) + code + after_end
+
+
+MAPPED = mapped_file()
+
+
+def header_field(index, field):
+    return 64 + index * 56 + field
+
+
+def with_field(data, offset, layout, value):
+    changed = bytearray(data)
+    struct.pack_into(layout, changed, offset, value)
+    return bytes(changed)
+
+
+def field_of(data, offset, layout):
+    return struct.unpack_from(layout, data, offset)[0]
+
+
+class LoadedImageTest(unittest.TestCase):
+    """311e: the bytes the loader maps, measured on the real os/labwc/loaded_image.py."""
+    def assert_refused(self, data, pattern):
+        with self.assertRaisesRegex(loaded_image.LoadedImageRefused, pattern):
+            loaded(data)
+
+    def test_the_fixture_is_accepted(self):
+        self.assertRegex(loaded(MAPPED), '^[0-9a-f]{64}$')
+
+    def test_the_hash_is_the_defined_image(self):
+        end = field_of(MAPPED, header_field(SECOND_LOAD, P_OFFSET), '<Q') + \
+            field_of(MAPPED, header_field(SECOND_LOAD, P_FILESZ), '<Q')
+        notes_at = field_of(MAPPED, header_field(BUILD_ID_NOTES, P_OFFSET), '<Q')
+        image = bytearray(MAPPED[:end])
+        image[0x28:0x30] = bytes(8)
+        image[notes_at + 16:notes_at + 36] = bytes(20)
+        self.assertEqual(loaded(MAPPED), hashlib.sha256(image).hexdigest())
+
+    def test_a_change_the_loader_would_see_gives_another_hash(self):
+        end_of_code = MAPPED.index(b'\xc3', 64 + HEADER_COUNT * 56)
+        interpreter_at = field_of(MAPPED, header_field(INTERP, P_OFFSET), '<Q')
+        gap_at = field_of(MAPPED, header_field(SECOND_LOAD, P_OFFSET), '<Q') - 1
+        other = b'/tmp/other-loader.so\0'
+        appended = with_field(with_field(MAPPED + other, header_field(INTERP, P_OFFSET), '<Q', len(MAPPED)),
+                              header_field(INTERP, P_FILESZ), '<Q', len(other))
+        flipped = lambda offset: MAPPED[:offset] + bytes([MAPPED[offset] ^ 1]) + MAPPED[offset + 1:]
+        cases = {
+            'a code byte': flipped(end_of_code),
+            "PT_INTERP's offset": with_field(MAPPED, header_field(INTERP, P_OFFSET), '<Q', interpreter_at + 1),
+            'PT_GNU_RELRO made PT_NULL': with_field(MAPPED, header_field(RELRO, P_TYPE), '<I', PT_NULL),
+            'a lower e_phnum': with_field(MAPPED, 0x38, '<H', HEADER_COUNT - 1),
+            'an interpreter appended and pointed at': appended,
+            'a byte between segments': flipped(gap_at),
+        }
+        for name, changed in cases.items():
+            with self.subTest(name):
+                self.assertNotEqual(changed, MAPPED)
+                self.assertNotEqual(loaded(changed), loaded(MAPPED))
+
+    def test_what_differs_between_builds_of_the_same_code_keeps_the_hash(self):
+        cases = {
+            'another build id': mapped_file(notes=elf_note(3, bytes(range(100, 120)))),
+            'another e_shoff': mapped_file(section_table=0x123456),
+            'an e_shoff outside the file': mapped_file(section_table=2 ** 64 - 1),
+            'other bytes after the end': mapped_file(after_end=b'other.debug\0\xfd7zXZ other symbols, and more of them'),
+            'nothing after the end': mapped_file(after_end=b''),
+        }
+        for name, changed in cases.items():
+            with self.subTest(name):
+                self.assertNotEqual(changed, MAPPED)
+                self.assertEqual(loaded(changed), loaded(MAPPED))
+
+    def test_notes_are_walked_with_their_segments_alignment(self):
+        # A 20-byte descriptor needs padding at alignment 8 and none at 4: a walk with 4 would misread what follows.
+        first = elf_note(5, bytes(20), 8) + elf_note(3, BUILD_ID, 8)
+        second = elf_note(5, bytes(20), 8) + elf_note(3, bytes(range(100, 120)), 8)
+        self.assertEqual(loaded(mapped_file(first, 8)), loaded(mapped_file(second, 8)))
+
+    def test_a_build_id_outside_the_gnu_name_is_not_the_build_id(self):
+        self.assert_refused(mapped_file(elf_note(3, BUILD_ID, name=b'XYZ\0')), '0 GNU build-id notes')
+
+    def test_each_refusal_fires(self):
+        size = len(MAPPED)
+        same_note_twice = MAPPED
+        for field, value in ((P_OFFSET, field_of(MAPPED, header_field(BUILD_ID_NOTES, P_OFFSET), '<Q')),
+                             (P_FILESZ, len(BUILD_ID_NOTE)), (P_ALIGN, 4)):
+            same_note_twice = with_field(same_note_twice, header_field(PROPERTY_NOTES, field), '<Q', value)
+        # Every segment ends at byte 32, inside the ELF header.
+        short_image = MAPPED
+        for index in range(HEADER_COUNT):
+            short_image = with_field(with_field(short_image, header_field(index, P_OFFSET), '<Q', 0),
+                                     header_field(index, P_FILESZ), '<Q', 32 if index == FIRST_LOAD else 0)
+        cases = {
+            'not an ELF file': (b'not an ELF file' + bytes(64), 'not an ELF file'),
+            'shorter than the ELF header': (MAPPED[:63], 'not an ELF file'),
+            'wrong class': (MAPPED[:4] + b'\x01' + MAPPED[5:], 'not ELF64'),
+            'wrong byte order': (MAPPED[:5] + b'\x02' + MAPPED[6:], 'not little-endian'),
+            'wrong machine': (with_field(MAPPED, 0x12, '<H', 183), 'machine is 183'),
+            'wrong e_phentsize': (with_field(MAPPED, 0x36, '<H', 64), 'e_phentsize is 64'),
+            'no program headers': (with_field(MAPPED, 0x38, '<H', 0), 'e_phnum is 0'),
+            'too many program headers': (with_field(MAPPED, 0x38, '<H', 0xffff), 'e_phnum is 65535'),
+            'the table outside the file': (with_field(MAPPED, 0x20, '<Q', size - 55), 'table lies outside the file'),
+            'an offset outside the file': (with_field(MAPPED, header_field(RELRO, P_OFFSET), '<Q', size), 'program header 5'),
+            'a size outside the file': (with_field(MAPPED, header_field(RELRO, P_FILESZ), '<Q', size + 1), 'program header 5'),
+            'a huge size': (with_field(MAPPED, header_field(RELRO, P_FILESZ), '<Q', 2 ** 64 - 1), 'program header 5'),
+            'the headers outside the image': (short_image, 'outside the loaded image'),
+            'no build-id note': (mapped_file(elf_note(1, bytes(4))), '0 GNU build-id notes'),
+            'two build-id notes': (mapped_file(BUILD_ID_NOTE + BUILD_ID_NOTE), '2 GNU build-id notes'),
+            'one note in two segments': (same_note_twice, '2 GNU build-id notes'),
+            'a descriptor that overruns': (mapped_file(struct.pack('<III', 4, 1000, 3) + b'GNU\0'), 'overruns its segment'),
+            'a name that overruns': (mapped_file(struct.pack('<III', 1000, 0, 3) + b'GNU\0'), 'overruns its segment'),
+            'a cut note header': (mapped_file(BUILD_ID_NOTE + bytes(4)), 'overruns its segment'),
+            'a segment cut inside the note': (with_field(MAPPED, header_field(BUILD_ID_NOTES, P_FILESZ), '<Q', 20),
+                                              'overruns its segment'),
+            'another note alignment': (mapped_file(note_alignment=2), 'alignment 2'),
+        }
+        for name, (data, pattern) in cases.items():
+            with self.subTest(name):
+                self.assert_refused(data, pattern)
+
+    def test_a_file_that_cannot_be_read_is_the_same_refusal(self):
+        with tempfile.TemporaryDirectory() as folder:
+            with self.assertRaisesRegex(loaded_image.LoadedImageRefused, 'cannot be read'):
+                loaded_image.loaded_sha256(pathlib.Path(folder) / 'missing')
+
+    def test_running_the_file_prints_the_hash_or_refuses(self):
+        with tempfile.TemporaryDirectory() as folder:
+            good, bad = pathlib.Path(folder) / 'good', pathlib.Path(folder) / 'bad'
+            good.write_bytes(MAPPED)
+            bad.write_bytes(MAPPED[:4] + b'\x01' + MAPPED[5:])
+            command = [sys.executable, '-I', str(ROOT / 'labwc/loaded_image.py')]
+            result = subprocess.run([*command, str(good)], capture_output=True, text=True)
+            self.assertEqual((result.returncode, result.stdout, result.stderr), (0, f'{loaded(MAPPED)}\n', ''))
+            result = subprocess.run([*command, str(bad)], capture_output=True, text=True)
+            self.assertEqual((result.returncode, result.stdout), (1, ''))
+            self.assertRegex(result.stderr, r'^LOADED_IMAGE_REFUSED .*not ELF64\n$')
+            self.assertEqual(subprocess.run(command, capture_output=True).returncode, 2)
+
+    def test_the_stage_compiles_the_function_from_its_source(self):
+        real = (ROOT / 'labwc/loaded_image.py').read_bytes()
+        stand_in = b"def loaded_sha256(path):\n    return 'stand-in'\n"
+        with tempfile.TemporaryDirectory() as folder:
+            source = pathlib.Path(folder) / 'loaded_image.py'
+            shutil.copy(ROOT / 'labwc/stage.py', folder)
+            source.write_bytes(stand_in.ljust(len(real), b'#'))
+            os.utime(source, (1_000_000_000, 1_000_000_000))
+            py_compile.compile(str(source), doraise=True, invalidation_mode=py_compile.PycInvalidationMode.TIMESTAMP)
+            source.write_bytes(real)
+            os.utime(source, (1_000_000_000, 1_000_000_000))
+            # A normal import takes the planted bytecode: this is the trap the stage must not fall into.
+            planted = importlib.util.spec_from_file_location('planted', source)
+            module = importlib.util.module_from_spec(planted)
+            planted.loader.exec_module(module)
+            self.assertEqual(module.loaded_sha256('anything'), 'stand-in')
+            copied = importlib.util.spec_from_file_location('copied_stage', pathlib.Path(folder) / 'stage.py')
+            copy_of_stage = importlib.util.module_from_spec(copied)
+            copied.loader.exec_module(copy_of_stage)
+            binary = pathlib.Path(folder) / 'binary'
+            binary.write_bytes(MAPPED)
+            self.assertEqual(copy_of_stage.loaded_image_module().loaded_sha256(binary), loaded(MAPPED))
+
+    def test_it_uses_the_standard_library_and_never_section_headers(self):
+        text = (ROOT / 'labwc/loaded_image.py').read_text()
+        self.assertEqual(sorted(re.findall(r'^import (\S+)$', text, re.M)), ['hashlib', 'pathlib', 'struct', 'sys'])
+        self.assertEqual(re.findall(r'^from ', text, re.M), [])
+        # e_shoff is only ever zeroed; e_shentsize (0x3a), e_shnum (0x3c) and e_shstrndx (0x3e) are never read.
+        for offset in ('0x3a', '0x3c', '0x3e'):
+            self.assertNotIn(offset, text)
+        self.assertNotIn('unpack_from(\'<Q\', data, E_SHOFF', text)
+
+
 class PinnedBinariesTest(StageCase):
     """311d: the labwc stage stops unless the RPM's own binaries match the lock."""
     def setUp(self):
@@ -608,6 +831,18 @@ class PinnedBinariesTest(StageCase):
         self.assertEqual([path.name for path in self.out.iterdir()], [f'{RESULT}.rpm'])
         self.assertIn(f'LABWC_NORMALIZED /usr/bin/labwc {normalized(LABWC_ELF)}\n', self.stdout)
         self.assertIn(f'LABWC_NORMALIZED /usr/bin/labnag {normalized(LABNAG_ELF)}\n', self.stdout)
+        self.assertIn(f'LABWC_LOADED /usr/bin/labwc {loaded(LABWC_ELF)}\n', self.stdout)
+        self.assertIn(f'LABWC_LOADED /usr/bin/labnag {loaded(LABNAG_ELF)}\n', self.stdout)
+
+    def test_the_stage_finds_the_function_under_python_I(self):
+        state_file = self.tmp / 'state.json'
+        state_file.write_text(json.dumps(self.state))
+        environment = dict(PATH=str(self.tools), FAKE_STATE=str(state_file), TMPDIR=str(self.tmp))
+        result = subprocess.run([sys.executable, '-I', str(ROOT / 'labwc/stage.py'), 'build', str(self.lock_dir),
+                                 str(self.inputs), str(self.out)], env=environment, cwd=self.tmp, capture_output=True,
+                                text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(f'LABWC_LOADED /usr/bin/labwc {loaded(LABWC_ELF)}\n', result.stdout)
 
     def test_the_hashes_come_from_the_rpm_that_was_built(self):
         self.assertEqual(self.build(), 0, self.stderr)
@@ -633,6 +868,49 @@ class PinnedBinariesTest(StageCase):
                                                   f'the lock says {"a" * 64}$')
                 self.assert_no_rpm_handed_over()
                 self.assertIn(f'LABWC_NORMALIZED {path} {normalized(elf)}\n', self.stdout)
+
+    def test_a_wrong_loaded_pin_stops_the_build(self):
+        for path, elf in (('/usr/bin/labwc', LABWC_ELF), ('/usr/bin/labnag', LABNAG_ELF)):
+            with self.subTest(path):
+                lock = copy.deepcopy(self.lock)
+                lock['result']['loaded_sha256'][path] = 'a' * 64
+                (self.lock_dir / 'labwc.lock.json').write_text(json.dumps(lock))
+                self.assert_refused(self.build(), f'^LABWC_REFUSED the loaded SHA-256 of {path} is {loaded(elf)}, '
+                                                  f'the lock says {"a" * 64}$')
+                self.assert_no_rpm_handed_over()
+                self.assertIn(f'LABWC_LOADED {path} {loaded(elf)}\n', self.stdout)
+
+    def test_a_wrong_pin_of_each_kind_is_one_line_that_names_both(self):
+        self.lock['result']['normalized_sha256']['/usr/bin/labwc'] = 'a' * 64
+        self.lock['result']['loaded_sha256']['/usr/bin/labnag'] = 'b' * 64
+        self.write_lock()
+        self.assert_refused(self.build(), 'the normalized SHA-256 of /usr/bin/labwc is .*; '
+                                          'the loaded SHA-256 of /usr/bin/labnag is ')
+        self.assert_no_rpm_handed_over()
+
+    def test_a_mapped_byte_the_normalized_pin_cannot_see_stops_the_build(self):
+        # The gap 311e closes: objcopy writes sections, so padding inside a segment never reaches the normalized hash.
+        padding = (field_of(LABWC_ELF, header_field(1, P_OFFSET), '<Q') +
+                   field_of(LABWC_ELF, header_field(1, P_FILESZ), '<Q'))
+        self.assertEqual(LABWC_ELF[padding], 0)
+        edited = with_field(LABWC_ELF, padding, '<B', 0xcc)
+        self.assertEqual(normalized(edited), normalized(LABWC_ELF))
+        self.state['payload']['usr/bin/labwc'] = edited.hex()
+        self.assert_refused(self.build(), f'^LABWC_REFUSED the loaded SHA-256 of /usr/bin/labwc is {loaded(edited)}, ')
+        self.assert_no_rpm_handed_over()
+
+    def test_a_file_the_function_refuses_stops_the_build(self):
+        # PT_NOTE made PT_NULL: objcopy still reads the file, and the build-id note is gone from the program headers.
+        no_note = with_field(LABWC_ELF, header_field(1, P_TYPE), '<I', PT_NULL)
+        self.state['payload']['usr/bin/labwc'] = no_note.hex()
+        self.assert_refused(self.build(), '^LABWC_REFUSED the loaded image of /usr/bin/labwc cannot be pinned: '
+                                          'it holds 0 GNU build-id notes')
+        self.assert_no_rpm_handed_over()
+
+    def test_a_missing_function_stops_the_build(self):
+        with mock.patch.object(stage, 'LOADED_IMAGE', 'no-such-file.py'):
+            self.assert_refused(self.build(), 'no-such-file.py cannot be read')
+        self.assert_no_rpm_handed_over()
 
     def test_two_wrong_pins_are_one_line_that_names_both(self):
         self.lock['result']['normalized_sha256'] = {'/usr/bin/labnag': 'a' * 64, '/usr/bin/labwc': 'b' * 64}
@@ -833,7 +1111,8 @@ class ResolveTest(StageCase):
         lines = self.stdout.splitlines()
         self.assertEqual(lines[-2], stage.PIN_RENEWAL)
         self.assertEqual(lines[-1], 'LABWC_LOCK_DIFFERS')
-        for words in ('--no-cache --target labwc', 'twice', 'LABWC_NORMALIZED', 'by hand'):
+        for words in ('--no-cache --target labwc', 'twice', 'LABWC_NORMALIZED', 'LABWC_LOADED', 'by hand',
+                      'result.normalized_sha256', 'result.loaded_sha256', 'no build ever writes either'):
             self.assertIn(words, stage.PIN_RENEWAL)
 
     def test_a_changed_base_is_reported_and_recorded(self):
@@ -925,6 +1204,15 @@ class LockShapeTest(StageCase):
                                     'not a SHA-256'),
             'pins of another type': (lambda lock: lock['result'].update(normalized_sha256=['a' * 64]),
                                      'normalized_sha256 needs exactly'),
+            'no loaded pins': (lambda lock: lock['result'].pop('loaded_sha256'), 'result needs exactly'),
+            'loaded pins of one binary': (lambda lock: lock['result']['loaded_sha256'].pop('/usr/bin/labnag'),
+                                          'loaded_sha256 needs exactly'),
+            'a loaded pin too many': (lambda lock: lock['result']['loaded_sha256'].update({'/usr/bin/other': 'a' * 64}),
+                                      'loaded_sha256 needs exactly'),
+            'loaded pin that is no hash': (lambda lock: lock['result']['loaded_sha256'].update({'/usr/bin/labwc': 'abc'}),
+                                           'loaded_sha256 holds something'),
+            'loaded pins of another type': (lambda lock: lock['result'].update(loaded_sha256=['a' * 64]),
+                                            'loaded_sha256 needs exactly'),
             'no dependencies': (lambda lock: lock.update(build_dependencies=[]), 'must list every'),
             'dependency key': (lambda lock: first(lock).update(extra=1), 'needs exactly nevra'),
             'loose name': (lambda lock: first(lock).update(nevra='gcc'), 'not an exact NEVRA'),
@@ -959,6 +1247,7 @@ class ReviewedLockTest(unittest.TestCase):
 
     def test_it_pins_both_binaries_of_the_package(self):
         self.assertEqual(sorted(self.lock['result']['normalized_sha256']), ['/usr/bin/labnag', '/usr/bin/labwc'])
+        self.assertEqual(sorted(self.lock['result']['loaded_sha256']), ['/usr/bin/labnag', '/usr/bin/labwc'])
 
     def test_the_patch_is_its_pin(self):
         patch = self.folder / self.lock['patch']['file']

@@ -3,7 +3,7 @@
 
   stage.py fetch <lock folder> <inputs>             labwc-inputs stage: download every input and check it
   stage.py build <lock folder> <inputs> <out>       labwc stage, on the locked fedora:44: the RPM and nothing else,
-                                                    once its binaries match the lock's normalized pins
+                                                    once its binaries match the lock's normalized and loaded pins
   stage.py install <rpm folder> <lock folder>       final stage: our RPM replaces Fedora's labwc
   stage.py resolve <lock folder> <resolved> <out>   check_build=resolve: a candidate from resolve-download.sh's folder
 
@@ -18,6 +18,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import types
 
 LOCK_NAME = 'labwc.lock.json'
 CONTAINERFILE = 'Containerfile'
@@ -41,10 +42,14 @@ WLROOTS, WLROOTS_DEVEL = 'wlroots0.19', 'wlroots0.19-devel'
 # builds of the same inputs. Everything that stays in the file is pinned: never add a section here to make a pin hold.
 VARYING_SECTIONS = ('.note.gnu.build-id', '.gnu_debuglink', '.gnu_debugdata')
 PINNED_BINARIES = ('/usr/bin/labnag', '/usr/bin/labwc')
-PIN_RENEWAL = ('LABWC_PINS_KEPT a candidate keeps the lock\'s result.normalized_sha256 and no build ever writes it. '
-               'After a change to the patch or the locked build environment, run podman build --no-cache --target labwc '
-               'twice: each run prints LABWC_NORMALIZED lines and stops with LABWC_REFUSED. If both runs print the same '
-               'hashes, review the change and write them into result.normalized_sha256 by hand.')
+# 311e: the normalized pins cover the sections, the loaded pins the bytes the loader maps (loaded_image.py).
+PIN_KINDS = ('normalized_sha256', 'loaded_sha256')
+LOADED_IMAGE = 'loaded_image.py'
+PIN_RENEWAL = ('LABWC_PINS_KEPT a candidate keeps the lock\'s result.normalized_sha256 and result.loaded_sha256, and no '
+               'build ever writes either. After a change to the patch or the locked build environment, run podman build '
+               '--no-cache --target labwc twice: each run prints LABWC_NORMALIZED and LABWC_LOADED lines and stops with '
+               'LABWC_REFUSED. If both runs print the same hashes, review the change and write them into '
+               'result.normalized_sha256 and result.loaded_sha256 by hand.')
 
 
 class Refusal(Exception):
@@ -123,15 +128,16 @@ def validate_lock(lock):
     need(isinstance(patch['file'], str) and re.fullmatch(r'[0-9A-Za-z][0-9A-Za-z.-]*\.patch', patch['file']),
          'patch.file must be a plain .patch file name')
     need(isinstance(patch['sha256'], str) and SHA256.fullmatch(patch['sha256']), 'patch.sha256 is not a SHA-256')
-    need(isinstance(result, dict) and set(result) == {'nevra', 'replaces', 'normalized_sha256'},
-         'result needs exactly nevra, replaces and normalized_sha256')
+    need(isinstance(result, dict) and set(result) == {'nevra', 'replaces', *PIN_KINDS},
+         'result needs exactly nevra, replaces, normalized_sha256 and loaded_sha256')
     need(result['nevra'] == 'labwc-0.9.6-1.fc44.aresos1.x86_64', 'result.nevra is not the reviewed build')
     need(result['replaces'] == 'labwc-0.9.6-1.fc44.x86_64', "result.replaces is not Fedora's labwc")
-    pins = result['normalized_sha256']
-    need(isinstance(pins, dict) and set(pins) == set(PINNED_BINARIES),
-         f'result.normalized_sha256 needs exactly {", ".join(PINNED_BINARIES)}')
-    need(all(isinstance(pin, str) and SHA256.fullmatch(pin) for pin in pins.values()),
-         'result.normalized_sha256 holds something that is not a SHA-256')
+    for kind in PIN_KINDS:
+        pins = result[kind]
+        need(isinstance(pins, dict) and set(pins) == set(PINNED_BINARIES),
+             f'result.{kind} needs exactly {", ".join(PINNED_BINARIES)}')
+        need(all(isinstance(pin, str) and SHA256.fullmatch(pin) for pin in pins.values()),
+             f'result.{kind} holds something that is not a SHA-256')
     need(isinstance(dependencies, list) and dependencies, 'build_dependencies must list every build dependency')
     names = []
     for entry in dependencies:
@@ -267,6 +273,21 @@ def normalized_sha256(binary):
         return sha256(copy)
 
 
+def loaded_image_module():
+    """loaded_image.py from beside this file: python3 -I keeps this folder off the import path.
+
+    It is compiled from its source here, so a __pycache__ that came along in the build context cannot stand in for it.
+    """
+    path = pathlib.Path(__file__).with_name(LOADED_IMAGE)
+    try:
+        source = path.read_bytes()
+    except OSError as error:
+        raise Refusal(f'{LOADED_IMAGE} cannot be read: {error}') from error
+    module = types.ModuleType(path.stem)
+    exec(compile(source, str(path), 'exec'), module.__dict__)
+    return module
+
+
 def unpack_pinned_binaries(rpm, folder):
     """The pinned binaries from the RPM's own payload, under folder."""
     members = [f'.{path}' for path in PINNED_BINARIES]
@@ -280,22 +301,33 @@ def unpack_pinned_binaries(rpm, folder):
 
 
 def require_pinned_binaries(rpm, lock):
-    """The code in this RPM is the reviewed code: its binaries match the lock once the varying sections are gone."""
-    pins = lock['result']['normalized_sha256']
-    actual = {}
+    """The code in this RPM is the reviewed code: its sections and the bytes the loader maps both match the lock."""
+    image = loaded_image_module()
+    normalized, loaded = {}, {}
     with tempfile.TemporaryDirectory(prefix='aresos-labwc-payload-') as folder:
         unpack_pinned_binaries(rpm, folder)
         for path in PINNED_BINARIES:
             binary = pathlib.Path(folder) / path.lstrip('/')
             if binary.is_symlink() or not binary.is_file():
                 raise Refusal(f'the RPM holds no file {path}')
-            actual[path] = normalized_sha256(binary)
+            normalized[path] = normalized_sha256(binary)
+            try:
+                loaded[path] = image.loaded_sha256(binary)
+            except image.LoadedImageRefused as refusal:
+                raise Refusal(f'the loaded image of {path} cannot be pinned: {refusal}') from refusal
     for path in PINNED_BINARIES:
-        print(f'LABWC_NORMALIZED {path} {actual[path]}', flush=True)
-    wrong = [f'{path} is {actual[path]}, the lock says {pins[path]}'
-             for path in PINNED_BINARIES if actual[path] != pins[path]]
+        print(f'LABWC_NORMALIZED {path} {normalized[path]}', flush=True)
+    for path in PINNED_BINARIES:
+        print(f'LABWC_LOADED {path} {loaded[path]}', flush=True)
+    wrong = []
+    for name, actual, pins in (('normalized', normalized, lock['result']['normalized_sha256']),
+                               ('loaded', loaded, lock['result']['loaded_sha256'])):
+        differing = [f'{path} is {actual[path]}, the lock says {pins[path]}'
+                     for path in PINNED_BINARIES if actual[path] != pins[path]]
+        if differing:
+            wrong.append(f'the {name} SHA-256 of {"; ".join(differing)}')
     if wrong:
-        raise Refusal(f'the normalized SHA-256 of {"; ".join(wrong)}')
+        raise Refusal('; '.join(wrong))
 
 
 def build(lock_folder, inputs, out):

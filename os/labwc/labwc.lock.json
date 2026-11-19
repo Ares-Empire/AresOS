@@ -164,6 +164,10 @@
     "normalized_sha256": {
       "/usr/bin/labnag": "7c6896e938198e7922105e01b52118e2bfd75d16c431ea9c9a615127b7cc1f6d",
       "/usr/bin/labwc": "89cd0e901a5cc9f6a7df0d6337d38d817a753318cbdca8b8e620a7cfc0dd71c4"
+    },
+    "loaded_sha256": {
+      "/usr/bin/labnag": "789da84fb23e482434c84e300d1a95c90f5cec5ffc1b9a156d2f6b5cdcff47d2",
+      "/usr/bin/labwc": "92b42d5f5174a91adab883a3f6196500483ac08e37adff7928568284d70422f2"
     }
   },
   "build_dependencies": [
