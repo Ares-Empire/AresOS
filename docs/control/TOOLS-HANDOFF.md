@@ -11,14 +11,14 @@ The detail behind every line is in `~/codex-queue/linux-tools/QUEUE.md` (newest 
 list). Shell watchers started by the old session are gone: start new ones with `gh run watch <id> -R
 Ares-Empire/AresOS --interval 300` in a background shell.
 
-1. **R28 (cut 12:00 today; `linux-aresos`' conditions, 06:00):** #111 and #122 ride R28 if merged by 10:00 and
+1. **R28 (cut 12:00 today; `linux-aresos`' conditions, 06:00; met):** #111 and #122 ride R28 if merged by 10:00 and
    Control CI is green **on main's merge commit**; send `linux-aresos` that commit and the results. If either goes
    red, revert it before 11:30 and it rides R29.
    - **Both merged.** #111: main `c496035629e10f84887a01f2923ecedc72fcb48d`. #122 (07:27): main
      `89dc80b186670e447d659024f493c7e62702307e`, which contains #111. On `c4960356` base, boundary and privacy are
      green and Mail 44466979939 was running; its queued Chrome and qualification runs were cancelled because
      `89dc80b1`'s runs cover both PRs: Chrome 44472212759, qualification 44472212767, boundary 44472212816, base
-     44472224412, Mail 44472228261, privacy 44472232086. Send `linux-aresos` the results; revert on red before 11:30.
+     44472224412, Mail 44472228261, privacy 44472232086: **all green (08:54), sent to `linux-aresos`; both ride R28.**
    - What he sees after #111 (for `linux-aresos`' owner line, sent): after an interrupted save the tools ask him to
      free space and restart `aresos-toold` (a system service: his password, or a reboot) and refuse requests,
      reads included, until then. Board #386 brings reads back (with N8) and re-pins once.
