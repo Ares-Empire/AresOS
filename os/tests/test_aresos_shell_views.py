@@ -711,7 +711,10 @@ class WindowViewsTest(ViewBase):
                 self.activations.clear()
                 helper = self.start(tracked=True)
                 desktop = self.desktop(helper, minor)
-                wayland = shell.ForeignToplevels(mock.Mock(), helper.windows)
+                # A stand-in socket that takes every request whole: 53d's queued writes read send()'s byte count.
+                sock = mock.Mock()
+                sock.send.side_effect = len
+                wayland = shell.ForeignToplevels(sock, helper.windows)
                 wayland.kinds[50] = 'manager'
                 wayland.feed(wire_toplevel(world, GAME, False) + wire_toplevel(terminal, TERMINAL, False)
                              + wire_toplevel(editor, app_id, True))
