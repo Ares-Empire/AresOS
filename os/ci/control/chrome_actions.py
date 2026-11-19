@@ -874,6 +874,516 @@ def sites_after_reboot(request):
         'chrome/c6-after-reboot.json': summary, 'chrome/chrome-after-reboot.txt': chrome_log(chrome)}))
 
 
+# --- C3 host ------------------------------------------------------------------------------------------------------
+
+# Chrome's answer to an extension the host's manifest doesn't name (install proof, case 2).
+REFUSED_ORIGIN = 'Access to the specified native messaging host is forbidden.'
+# The page server's page in his tab, opened after the reboot (sites_after_reboot); C3 reads it, C6 tries to.
+PAGE_STEP = 'his-tab-after-reboot'
+
+
+def socket_holders():
+    """Socket inode -> the processes holding it (root reads every process's descriptors)."""
+    holders = {}
+    for entry in pathlib.Path('/proc').iterdir():
+        if not entry.name.isdigit():
+            continue
+        try:
+            for descriptor in os.listdir(entry / 'fd'):
+                target = os.readlink(entry / 'fd' / descriptor)
+                if target.startswith('socket:[') and target.endswith(']'):
+                    holders.setdefault(int(target[8:-1]), set()).add(int(entry.name))
+        except OSError:
+            continue
+    return holders
+
+
+def connection_inodes(lines):
+    """(service end, peer end) of ss -x's established lines: `u_str ESTAB 0 0 <path> <inode> * <peer inode>`."""
+    pairs = []
+    for line in lines:
+        fields = line.split()
+        expect(len(fields) >= 8 and fields[6] == '*', f'an established unix socket line of ss: {line}')
+        pairs.append((int(fields[5]), int(fields[7])))
+    return pairs
+
+
+def connection_ends():
+    """Who holds each end of chrome.sock's connections, and the peer end's user (what SO_PEERCRED gives the service)."""
+    holders, rows = socket_holders(), {row['pid']: row for row in processes()}
+    ends = []
+    for service_end, peer_end in connection_inodes(service_peers()):
+        peer = sorted(holders.get(peer_end, ()))
+        ends.append(dict(service=sorted(holders.get(service_end, ())), peer=peer,
+                         peer_uids=sorted({rows[pid]['uid'] for pid in peer if pid in rows})))
+    return ends
+
+
+def page_tab():
+    """His tab showing the page server's page: its tab number, and the listing it came from."""
+    try:
+        listed = eventually(tabs_listed, 'tabs lists his tabs', 60, interval=1)
+    except Failure as error:
+        raise Failure(f'{error}; the last answer: {STATE.get("last_tabs")}') from error
+    items = [item for item in listed['data']['items'] if f'step={PAGE_STEP}' in str(item.get('url'))]
+    expect(len(items) == 1, f'one tab of his shows the page server: {[item.get("url") for item in listed["data"]["items"]]}')
+    return items[0]['tab'], listed
+
+
+def probe_refused(link):
+    """The probe's own connection to our host: Chrome refuses it, and no second host or service peer appears while it
+    tries (install proof, case 2's `refused`)."""
+    before = sorted(row['pid'] for row in host_processes())
+    box = {}
+
+    def attempt():
+        try:
+            box['reply'] = link.call('connectNative', timeout=20, name='org.aresos.chrome', wait=3000)
+        except Failure as error:
+            box['reply'] = str(error)
+    thread = threading.Thread(target=attempt)
+    thread.start()
+    samples, end = [], None
+    while True:
+        samples.append((sorted(row['pid'] for row in host_processes()), len(service_peers())))
+        if not thread.is_alive():
+            end = end or time.monotonic() + 1.5
+            if time.monotonic() > end:
+                break
+        time.sleep(0.05)
+    thread.join()
+    reply = box.get('reply')
+    expect(isinstance(reply, dict) and reply.get('ok') and reply['value'] == {
+        'connected': False, 'error': REFUSED_ORIGIN, 'messages': []}, f"Chrome refuses the probe's connection: {reply}")
+    changed = [sample for sample in samples if sample != (before, 1)]
+    expect(not changed, f'no second host and no second peer while the probe tried: {changed[:5]}')
+    return dict(reply=reply['value'], samples=len(samples))
+
+
+def native_host(request):
+    """C3: ours connects through the installed host to the real service as `ares`; tabs lists his tabs; one page of
+    the page server is read; the probe is refused; chrome.sock shows exactly one host."""
+    _, link, pages = fixtures()
+    chrome = STATE['chrome']
+    ours = json.loads(RECORD.read_text())['chrome_extension']['id']
+    manifest = json.loads((HOSTS / 'org.aresos.chrome.json').read_text())
+    expect(manifest['path'] == str(CODE / 'chrome/host') and manifest['allowed_origins'] == [f'chrome-extension://{ours}/'],
+           f'the installed host manifest names the launcher and ours alone: {manifest}')
+    host = one_host(chrome)
+    unit = control().show('MainPID', 'User')
+    ends = connection_ends()
+    uid = owner_ids()[0]
+    expect(unit['User'] == 'aresos-tools' and ends == [dict(service=[int(unit['MainPID'])], peer=[host['pid']],
+                                                            peer_uids=[uid])],
+           f"chrome.sock's one connection joins the service ({unit}) and the host as {OWNER} ({host['pid']}): {ends}")
+    tab, listed = page_tab()
+    arrived = len(pages.seen(f'step={PAGE_STEP}'))
+    # A read needs the tab in the Claude group (the extension's requireTab); taking an owner tab keeps its document.
+    taken = control().answered(tool('take_tab', {'tab': tab})).get('data')
+    result = tool('read', {'tab': tab})
+    page = control().answered(result)['data']
+    content = page['untrusted_content']
+    expect(content.get('url') == f'{ADDRESS}/browse?step={PAGE_STEP}' and content.get('title') == 'Chrome pass'
+           and 'An ordinary page.' in json.dumps(content), f"the page server's page is read: {content}")
+    refusal = probe_refused(link)
+    after = one_host(chrome)
+    expect(after['pid'] == host['pid'], f'the same host is still the only one: {host} {after}')
+    expect(tabs_listed(), f'ours still answers after the probe was refused: {STATE.get("last_tabs")}')
+    summary = dict(peer_uid=uid, host=dict(pid=host['pid'], in_chrome_scope=host['in_chrome_scope']),
+                   service=dict(pid=int(unit['MainPID']), user=unit['User']), tabs=len(listed['data']['items']),
+                   read=dict(tab=tab, characters=page.get('characters'), title=content.get('title')),
+                   page_server_requests_by_read=len(pages.seen(f'step={PAGE_STEP}')) - arrived, probe=refusal)
+    return dict(returncode=0, summary=summary, files=control().files_out({'chrome/c3-host.json': dict(
+        summary, connections=ends, manifest=manifest, taken=taken, tree=content.get('tree', '')[:4000])}))
+
+
+# --- C6 sites, the later part -------------------------------------------------------------------------------------
+
+# A made-up host his list can hold: Chrome sends every *.localhost name to the loopback, so an open that wasn't
+# refused would arrive at the page server.
+TEST_HOST = 'excluded.localhost'
+TEST_LIST = b'{"format":1,"hosts":["' + TEST_HOST.encode() + b'"]}\n'
+HOLD = pathlib.Path('/var/lib/aresos-ci-c6')  # root 0700 on /var: the list while it is missing
+VALID = pathlib.Path('/var/lib/aresos-ci-c6-valid/list.json')  # root-owned, readable: the link's valid target
+PROBE_NAME = 'aresos-ci-probe'
+# Tries the list and its folder as whoever runs it: read the list, open it for writing (nothing written), create a
+# file in the folder. Prints each answer: a length, 'opened', or the errno's name.
+WRITE_PROBE = '''import errno, json, os, sys
+listing, folder = sys.argv[1], sys.argv[2]
+
+
+def tried(opening):
+    try:
+        os.close(opening())
+        return 'opened'
+    except OSError as error:
+        return errno.errorcode.get(error.errno, str(error.errno))
+
+
+try:
+    with open(listing, 'rb') as stream:
+        read = len(stream.read())
+except OSError as error:
+    read = errno.errorcode.get(error.errno, str(error.errno))
+print(json.dumps(dict(read=read, write=tried(lambda: os.open(listing, os.O_WRONLY | os.O_APPEND)),
+                      create=tried(lambda: os.open(os.path.join(folder, 'aresos-ci-probe'),
+                                                   os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)))))
+'''
+# The installed validator on one file, as whoever runs it.
+VALIDATE = '''import json, sys
+sys.dont_write_bytecode = True
+sys.path.extend(['/usr/libexec/aresos-control', '/usr/lib/aresos-control/vendor'])
+from aresos_control.chrome.exclusions import owner_hosts
+from aresos_control.common import Refused
+try:
+    print(json.dumps(dict(hosts=owner_hosts(sys.argv[1]))))
+except Refused as error:
+    print(json.dumps(dict(refused=error.code)))
+'''
+
+
+def service_env(unit_text):
+    """The unit's ExecStart up to its program (`/usr/bin/env -i PATH=… LANG=…`): a command after it runs with the
+    service's own environment."""
+    for line in unit_text.splitlines():
+        if line.startswith('ExecStart='):
+            prefix = []
+            for word in line.removeprefix('ExecStart=').split():
+                if word not in ('/usr/bin/env', '-i') and not re.fullmatch(r'[A-Z_]+=\S*', word):
+                    break
+                prefix.append(word)
+            expect(prefix[:2] == ['/usr/bin/env', '-i'] and len(prefix) > 2, f'the unit starts with env -i: {line}')
+            return prefix
+    raise Failure('the unit has no ExecStart')
+
+
+def sandboxed(name, argv, timeout=120):
+    """argv as the service's user under the unit's sandbox, with the service's environment; stdin is /dev/null, as
+    systemd-run --pipe hands it on."""
+    command = as_service(name, [*service_env(UNIT_FILE.read_text()), *argv])
+    done = subprocess.run(command, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=timeout)
+    return dict(argv=command, returncode=done.returncode, stdout=done.stdout, stderr=done.stderr)
+
+
+def last_json(text):
+    lines = [line for line in text.splitlines() if line.startswith('{')]
+    expect(lines, f'a JSON answer: {text[-500:]!r}')
+    return json.loads(lines[-1])
+
+
+def fixed_hosts(source):
+    """policy.py's FIXED_HOSTS, read from the installed file, never copied."""
+    for node in ast.parse(source).body:
+        if isinstance(node, ast.Assign) and [ast.unparse(target) for target in node.targets] == ['FIXED_HOSTS']:
+            return ast.literal_eval(node.value)
+    raise Failure('policy.py has no FIXED_HOSTS')
+
+
+def tee(data):
+    """Root writes the list his way (`sudo tee`): into the existing file, so owner, group and mode stay."""
+    written = subprocess.run(['/usr/bin/tee', str(LIST)], input=data, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+                             timeout=30)
+    expect(written.returncode == 0, f'tee: {written.stderr[-300:]!r}')
+
+
+def refuses_reads(tab, message):
+    """Every read refuses chrome_settings_unavailable with the adapter's message: tabs and a read of his page."""
+    for name, value in (('tabs', {}), ('read', {'tab': tab})):
+        result = tool(name, value)
+        control().refused(result, 'chrome_settings_unavailable')
+        expect(result['json']['error']['message'] == message, f'{name}: the message: {result["json"]}')
+    return 'chrome_settings_unavailable'
+
+
+def put_back():
+    """Whatever a part left in the list's place goes and the held list returns; else the empty list his way. Owner,
+    group and mode as tmpfiles makes them."""
+    held = HOLD / 'list'
+    if os.path.lexists(held):
+        if os.path.lexists(LIST):
+            LIST.unlink()
+        os.rename(held, LIST)
+    if LIST.is_symlink():
+        LIST.unlink()
+    if not LIST.exists():
+        tee(EMPTY_LIST)
+    os.chown(LIST, 0, grp.getgrnam('aresos-tools').gr_gid)
+    os.chmod(LIST, 0o640)
+    if LIST.read_bytes() != EMPTY_LIST:
+        tee(EMPTY_LIST)
+    (LIST_FOLDER / PROBE_NAME).unlink(missing_ok=True)
+
+
+def sites_later(request):
+    """C6, the later part: `ares` can neither read nor write the list; the service's user under the unit's sandbox can
+    write neither the list nor its folder; the FIXED_HOSTS addresses, one test host and its subdomain are refused;
+    with the list group-writable, missing, a link to a valid list, or the placeholder again, every read refuses.
+    Restored each time, its hash equal to the one before."""
+    _, _, pages = fixtures()
+    message = settings_message((CODE / 'aresos_control/chrome/exclusions.py').read_text())
+    before = list_state()
+    expect(before == request['list'] and LIST.read_bytes() == EMPTY_LIST,
+           f'the list is as the reboot left it: {request["list"]} {before}')
+    tab, _ = page_tab()
+    restored, states = [], {}
+
+    def restore(label):
+        after = list_state()
+        expect(after == before, f'{label}: restored, the hash equal to the one before: {before} {after}')
+        listed = eventually(tabs_listed, f'{label}: tabs lists his tabs again', 60, interval=1)
+        restored.append(dict(part=label, sha256=after['sha256'], tabs=len(listed['data']['items'])))
+    try:
+        owner = control().run([*control().as_user(OWNER), '/usr/bin/python3', '-I', '-S', '-c', WRITE_PROBE, str(LIST),
+                               str(LIST_FOLDER)], timeout=60)
+        his = last_json(owner['stdout'])
+        expect(his == dict(read='EACCES', write='EACCES', create='EACCES'),
+               f'{OWNER} can neither read nor write the list, nor add to its folder: {his}')
+        service = sandboxed('aresos-ci-c6-sandbox', ['/usr/bin/python3', '-I', '-S', '-c', WRITE_PROBE, str(LIST),
+                                                     str(LIST_FOLDER)])
+        theirs = last_json(service['stdout'])
+        # The read shows the sandbox is the service's own: its group reads the list it may not change.
+        expect(theirs['read'] == len(EMPTY_LIST) and theirs['write'] in ('EROFS', 'EACCES')
+               and theirs['create'] in ('EROFS', 'EACCES'),
+               f"the service's user writes neither the list nor its folder: {theirs} {service['stderr'][-500:]}")
+        restore('write attempts')
+        fixed = fixed_hosts((CODE / 'aresos_control/chrome/policy.py').read_text())
+        opened = {}
+        for host in fixed:
+            result = tool('open', {'url': f'https://{host}/'})
+            opened[host] = control().refused(result, 'refused')
+        tee(TEST_LIST)
+        state = list_state()
+        expect((state['uid'], state['gid'], state['mode']) == (before['uid'], before['gid'], before['mode']),
+               f'the test host is written his way: {state}')
+        for name in (TEST_HOST, f'sub.{TEST_HOST}'):
+            result = tool('open', {'url': f'http://{name}:{PORT}/browse?step=c6-excluded'})
+            opened[name] = control().refused(result, 'refused')
+        time.sleep(2)
+        expect(not pages.seen('step=c6-excluded'), f'the page server received nothing: {pages.seen("step=c6-excluded")}')
+        listed = eventually(tabs_listed, 'tabs lists his tabs with the test host on the list', 60, interval=1)
+        hosts = [str(item.get('url')) for item in listed['data']['items']]
+        expect(not [url for url in hosts if any(host in url for host in [*fixed, TEST_HOST])],
+               f'no tab opened on a refused host: {hosts}')
+        tee(EMPTY_LIST)
+        restore('test host')
+        os.chmod(LIST, 0o660)
+        states['group_writable'] = refuses_reads(tab, message)
+        os.chmod(LIST, 0o640)
+        restore('group-writable')
+        HOLD.mkdir()
+        os.chmod(HOLD, 0o700)
+        os.rename(LIST, HOLD / 'list')
+        expect(not os.path.lexists(LIST), 'the list is missing')
+        states['missing'] = refuses_reads(tab, message)
+        os.rename(HOLD / 'list', LIST)
+        restore('missing')
+        VALID.parent.mkdir()
+        os.chmod(VALID.parent, 0o755)
+        VALID.write_bytes(EMPTY_LIST)
+        os.chmod(VALID, 0o644)
+        valid = last_json(sandboxed('aresos-ci-c6-valid', ['/usr/bin/python3', '-I', '-S', '-c', VALIDATE,
+                                                           str(VALID)])['stdout'])
+        expect(valid == dict(hosts=[]), f"the link's target is a list the service's user reads as valid: {valid}")
+        os.rename(LIST, HOLD / 'list')
+        os.symlink(VALID, LIST)
+        states['link_to_a_valid_list'] = refuses_reads(tab, message)
+        LIST.unlink()
+        os.rename(HOLD / 'list', LIST)
+        restore('link')
+        tee(placeholder(TMPFILES.read_text()))
+        states['placeholder'] = refuses_reads(tab, message)
+        tee(EMPTY_LIST)
+        restore('placeholder')
+    finally:
+        put_back()
+        shutil.rmtree(HOLD, ignore_errors=True)
+        shutil.rmtree(VALID.parent, ignore_errors=True)
+    summary = dict(owner=his, service_user=theirs, opens_refused=opened, every_read_refuses=states,
+                   restored=[part['part'] for part in restored], list=list_state())
+    return dict(returncode=0, summary=summary, files=control().files_out({'chrome/c6-later.json': dict(
+        summary, restored=restored, sandbox=service['argv'], valid_target=valid)}))
+
+
+# --- C10 gh -------------------------------------------------------------------------------------------------------
+
+GH = pathlib.Path('/usr/bin/gh')
+STATE_DIR = pathlib.Path('/var/lib/aresos-tools')
+# Where qualification.verify points gh's cache and config (XDG_CACHE_HOME, XDG_CONFIG_HOME): beside its record.
+VERIFIER = STATE_DIR / 'qualification-verifier-cache'
+TOKEN = re.compile(rb'gh[pousr]_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{22,}')
+TOKEN_VARIABLES = ('GH_TOKEN', 'GITHUB_TOKEN', 'GH_ENTERPRISE_TOKEN', 'GITHUB_ENTERPRISE_TOKEN')
+
+
+def pinned_gh(lock):
+    match = re.fullmatch(r'gh-(\d+\.\d+\.\d+)-\d+\.x86_64', lock['nevra'])
+    expect(match, f"the lock's NEVRA: {lock['nevra']}")
+    return match[1]
+
+
+def reported_gh(output):
+    match = re.search(r'^gh version (\d+\.\d+\.\d+) ', output, re.M)
+    return match[1] if match else None
+
+
+def credentials_in(folder):
+    """Files under folder that hold a GitHub login (gh's hosts.yml) or something of a token's form."""
+    found = []
+    for path in sorted(folder.rglob('*')) if folder.is_dir() else ():
+        if not path.is_symlink() and path.is_file() and (path.name == 'hosts.yml' or TOKEN.search(path.read_bytes())):
+            found.append(str(path.relative_to(folder)))
+    return found
+
+
+def gh(request):
+    """C10: /usr/bin/gh --version equals the lock, as `ares` and as `aresos-tools` under the unit's own sandbox; the
+    binary's hash equals control.json; no login or token in the verifier's folders."""
+    lock = json.loads(GH_LOCK.read_text())
+    expect(sha256(GH_LOCK) == request['gh_lock_sha256'], "gh's lock is the checkout's")
+    pinned = pinned_gh(lock)
+    record = json.loads(RECORD.read_text())['gh']
+    binary = sha256(GH)
+    expect(record['version'] == pinned and binary == record['binary_sha256'] == lock['binary_sha256'],
+           f'gh is its pin: {record} {binary}')
+    owner = control().run([*control().as_user(OWNER), str(GH), '--version'], timeout=60)
+    service = sandboxed('aresos-ci-gh-version', [str(GH), '--version'])
+    versions = {OWNER: reported_gh(owner['stdout']), 'aresos-tools': reported_gh(service['stdout'])}
+    expect(owner['returncode'] == 0 and service['returncode'] == 0 and set(versions.values()) == {pinned},
+           f'gh --version is the lock\'s {pinned}: {versions} {owner["stderr"][-300:]} {service["stderr"][-300:]}')
+    # As qualification.verify runs it: the service's environment and the verifier's two folders.
+    existed, before = VERIFIER.is_dir(), tree(VERIFIER) if VERIFIER.is_dir() else []
+    auth = sandboxed('aresos-ci-gh-auth', [f'XDG_CACHE_HOME={VERIFIER}', f'XDG_CONFIG_HOME={VERIFIER / "config"}',
+                                           str(GH), 'auth', 'status'])
+    said = auth['stdout'] + auth['stderr']
+    expect(auth['returncode'] != 0 and re.search('not logged in', said, re.I), f'gh has no login there: {said[-500:]}')
+    found = credentials_in(VERIFIER)
+    expect(not found, f"no login or token in the verifier's folders: {found}")
+    main = control().show('MainPID')['MainPID']
+    variables = sorted(item.split(b'=', 1)[0].decode() for item in
+                       pathlib.Path(f'/proc/{main}/environ').read_bytes().split(b'\0') if item)
+    expect(not set(variables) & set(TOKEN_VARIABLES), f"the service's environment holds no token: {variables}")
+    home = pathlib.Path(pwd.getpwnam('aresos-tools').pw_dir)
+    expect(not (home / '.config/gh/hosts.yml').exists(), f"no login in the service user's home {home}")
+    summary = dict(version=pinned, binary_sha256=binary, versions=versions, auth_status_exit=auth['returncode'],
+                   verifier_folder_existed=existed, credentials=found, service_environment=variables,
+                   service_home=str(home))
+    return dict(returncode=0, summary=summary, files=control().files_out({'chrome/c10-gh.json': dict(
+        summary, outputs=dict(owner=owner['stdout'], service=service['stdout'], auth=said[-2000:]),
+        sandbox=service['argv'], verifier_before=before, verifier_after=tree(VERIFIER) if VERIFIER.is_dir() else [])}))
+
+
+# --- C11 records --------------------------------------------------------------------------------------------------
+
+# The service's result lines (qualification.py, Qualification.refresh) and its hold of a verified record.
+ACCEPTED = 'Verified record accepted.'
+HELD = 'Verified append-only Chrome qualification update'
+RESULTS = (re.compile(re.escape(ACCEPTED)), re.compile(r'Qualification refresh refused \(\w+\); held record retained\.'),
+           re.compile(r'Qualification refresh failed after verification \(\w+\); the held record may have been updated\.'))
+# On a refusal only, to say why: the published record verified under the unit's sandbox with the installed
+# verifier, for the right signer and for a wrong one (the service keeps its reasons out of his log).
+VERIFY = '''import json, pathlib, subprocess, sys, tempfile, urllib.request
+sys.dont_write_bytecode = True
+sys.path.extend(['/usr/libexec/aresos-control', '/usr/lib/aresos-control/vendor'])
+from aresos_control.chrome import qualification
+from aresos_control.common import Refused
+path = pathlib.Path(tempfile.mkdtemp()) / 'qualification.json'
+address = ('https://raw.githubusercontent.com/' + qualification.REPOSITORY
+           + '/refs/heads/chrome-qualification/control/chrome/qualification.json')
+answers = {}
+try:
+    with urllib.request.urlopen(address, timeout=10) as stream:
+        path.write_bytes(stream.read(qualification.DELIVERY_LIMIT + 1))
+except Exception as error:
+    answers['fetch'] = type(error).__name__ + ': ' + str(error)[:300]
+for name, workflow in (('signer', qualification.WORKFLOW), ('wrong_signer', '.github/workflows/os-image.yml')):
+    if 'fetch' in answers:
+        break
+    try:
+        qualification.verify(path, workflow=workflow)
+        answers[name] = 'accepted'
+    except subprocess.CalledProcessError as error:
+        answers[name] = 'gh exit ' + str(error.returncode) + ': ' + (error.stderr or b'').decode(errors='replace')[-600:]
+    except Refused as error:
+        answers[name] = 'refused ' + error.code + ': ' + str(error)
+    except Exception as error:
+        answers[name] = type(error).__name__ + ': ' + str(error)[:300]
+print(json.dumps(answers))
+'''
+
+
+def booted():
+    return int(re.search(r'^btime (\d+)$', pathlib.Path('/proc/stat').read_text(), re.M)[1])
+
+
+def log_entries():
+    """Today's log as `aresos control log` gives it to him, every page; a page that changed starts it again."""
+    entries, cursor = [], None
+    for _ in range(500):
+        data = control().answered(control().cli(OWNER, 'control', 'log', value=dict(
+            limit=10, **({'cursor': cursor} if cursor else {}))))['data']
+        entries = list(data['items']) if data.get('page_changed') else entries + data['items']
+        cursor = data.get('cursor')
+        if not cursor:
+            return entries
+    raise Failure('the log did not end within 500 pages')
+
+
+def refreshes(entries, since):
+    """The record refresh's lines in the log since `since` (epoch seconds), in order, and which of them are results."""
+    texts = [str((entry.get('untrusted_content') or {}).get('summary')) for entry in entries
+             if entry.get('action') == 'chrome_qualification' and entry.get('time', 0) >= since]
+    return texts, [text for text in texts if any(pattern.fullmatch(text) for pattern in RESULTS)]
+
+
+def tree(folder):
+    return [dict(path=str(path.relative_to(folder)), size=path.lstat().st_size) for path in sorted(folder.rglob('*'))
+            if not path.is_dir()]
+
+
+def records(request):
+    """C11: Chrome's record refresh under the real aresos-toold.service. With ours connected since the reboot (one
+    host, the same one), the service fetched once and wrote its result line, read with `aresos control log`; an
+    attested record is published, so the result is "Verified record accepted."; the service stayed active with no
+    AVC denial; the verifier's cache is under /var/lib/aresos-tools."""
+    actions = control()
+    actions.wait_active()
+    unit = actions.show('MainPID', 'NRestarts', 'ActiveState', 'SubState', 'User')
+    host = one_host(STATE['chrome'])
+    expect(host['pid'] == request['host_pid'], f'the host connected after the reboot is still the one: {host}')
+    since = booted()
+    entries = log_entries()
+    texts, results = refreshes(entries, since)
+    journal = actions.run(['journalctl', '-b', '-u', 'aresos-toold.service', '--no-pager', '-o', 'short-iso-precise'],
+                          timeout=120)['stdout'][-200_000:]
+    files = {'chrome/c11-log.json': dict(boot=since, refresh_lines=texts, log_entries=len(entries)),
+             'chrome/c11-journal.txt': journal}
+    if len(results) == 1 and results[0] != ACCEPTED:
+        # An attested record is published (the brief's first path), so a refusal fails; the installed verifier
+        # under the unit's sandbox says why.
+        check = sandboxed('aresos-ci-records-verify', ['/usr/bin/python3', '-I', '-S', '-c', VERIFY], timeout=180)
+        files['chrome/c11-verify.json'] = check
+        return dict(returncode=1, summary=dict(path='refused', result=results[0], refresh_lines=texts),
+                    files=control().files_out(files), stderr=f'the service refused the published, attested record: '
+                    f'{results[0]}; under its sandbox: {check["stdout"][-1500:]} {check["stderr"][-500:]}')
+    expect(texts == [HELD, ACCEPTED], f'one refresh this boot, verified and held: {texts}')
+    expect((unit['ActiveState'], unit['SubState'], unit['NRestarts']) == ('active', 'running', '0'),
+           f'the service stays active: {unit}')
+    every, ours = actions.denials(int(unit['MainPID']), host['pid'])
+    named = [line for line in every if 'comm="gh"' in line or '/usr/bin/gh' in line]
+    expect(not ours and not named, f'no AVC denial naming the service or gh: {ours + named}')
+    folder = VERIFIER.is_dir() and not VERIFIER.is_symlink()
+    cache = tree(VERIFIER) if folder else []
+    owner = VERIFIER.lstat().st_uid if folder else None
+    # gh's own cache, not only the config folder C10's `gh auth status` was pointed at.
+    expect(folder and owner == pwd.getpwnam(unit['User']).pw_uid
+           and [entry for entry in cache if not entry['path'].startswith('config/')],
+           f"the verifier's cache is under {STATE_DIR}, the service's: {owner} {cache[:10]}")
+    summary = dict(path='accepted', result=ACCEPTED, refresh_lines=texts, service=dict(
+        pid=int(unit['MainPID']), restarts=int(unit['NRestarts'])), avc_denials_in_boot=len(every),
+        verifier_cache=dict(folder=str(VERIFIER), files=len(cache)))
+    files['chrome/c11-records.json'] = dict(summary, cache=cache)
+    return dict(returncode=0, summary=summary, files=control().files_out(files))
+
+
 def selinux(request):
     """18c's SELinux scan again at the end of this pass; a denial naming Chrome's host, the service, gh or pkcheck
     fails it."""
@@ -895,4 +1405,5 @@ def selinux(request):
 ACTIONS = {'chrome-session': session, 'chrome-polkit-start': polkit_start, 'chrome-polkit-finish': polkit_finish, 'chrome-files': files,
            'chrome-hand-loaded': hand_loaded, 'chrome-install': install, 'chrome-his-tab': his_tab,
            'chrome-sites-first-use': sites_first_use, 'chrome-sites-after-reboot': sites_after_reboot,
+           'chrome-host': native_host, 'chrome-sites-later': sites_later, 'chrome-gh': gh, 'chrome-records': records,
            'chrome-selinux': selinux}

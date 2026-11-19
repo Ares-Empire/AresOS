@@ -11,6 +11,7 @@ import pwd
 import py_compile
 import re
 import shutil
+import socket
 import subprocess
 import sys
 import tarfile
@@ -111,7 +112,8 @@ class ChromePassTest(unittest.TestCase):
         self.assertEqual([step[1] for step in acts], names)
         lines = [step[2] for step in steps if step[2]]
         self.assertEqual(len(set(lines)), len(lines))
-        self.assertTrue(all(re.fullmatch('CONTROL_CHROME_[A-Z_]+', line) for line in lines))
+        # The brief's table names C10's line CONTROL_GH_PASS; every other line is Chrome's.
+        self.assertTrue(all(re.fullmatch('CONTROL_(CHROME|GH)_[A-Z_]+', line) for line in lines))
         # The probe comes first and the last step carries a line, so no step is left outside a check.
         self.assertEqual([step[1] for step in acts[:2]], ['chrome-session', 'chrome-polkit-start'])
         self.assertTrue(steps[-1][2])
@@ -165,7 +167,7 @@ class ChromePassTest(unittest.TestCase):
     def run_pass(self, failing=()):
         """chrome_main against a stand-in guest: every action answers, except those named, which fail."""
         runner = load(CONTROL_CI / 'control_vm.py', f'control_vm_pass_{id(self)}_{len(failing)}')
-        work = self.folder / f'pass-{len(failing)}'
+        work = self.folder / ('pass-' + ('-'.join(failing) or 'all'))
         (work / 'os').mkdir(parents=True)
         shutil.copy(ROOT / 'os/gh.lock.json', work / 'os/gh.lock.json')
         asked = []
@@ -176,16 +178,21 @@ class ChromePassTest(unittest.TestCase):
 
             def act(self, request):
                 asked.append(request['action'])
+                # A failed step still answers with what later steps take from it, so they run and only the lines
+                # decide.
+                summary = dict(list={'sha256': 'x'}, host={'pid': 1})
                 if request['action'] in failing:
-                    return dict(returncode=1, stderr='made to fail')
-                return dict(returncode=0, summary=dict(list={'sha256': 'x'}))
+                    return dict(returncode=1, stderr='made to fail', summary=summary)
+                return dict(returncode=0, summary=summary)
 
             create = poweroff = close = keys = screenshot = lambda *arguments: None
             boot = lambda self: 1.0
         output = io.StringIO()
+        self.slept = []
         with mock.patch.object(runner, 'Guest', Guest), \
                 mock.patch.object(runner, 'expected_record', return_value={}), \
                 mock.patch.object(runner, 'screen_difference', return_value=(runner.DIALOG_PIXELS, (0, 0, 1, 1))), \
+                mock.patch.object(runner.time, 'sleep', self.slept.append), \
                 contextlib.chdir(work), contextlib.redirect_stdout(output):
             try:
                 runner.chrome_main()
@@ -193,7 +200,7 @@ class ChromePassTest(unittest.TestCase):
             except SystemExit as error:
                 code = error.code
         printed = [line.split()[0] for line in output.getvalue().splitlines()
-                   if line.startswith(('CONTROL_CHROME_', 'CONTROL_CHECK_FAILED'))]
+                   if line.startswith(('CONTROL_CHROME_', 'CONTROL_GH_', 'CONTROL_CHECK_FAILED'))]
         return runner, asked, printed, code
 
     def test_the_pass_prints_every_line_in_order_when_every_step_succeeds(self):
@@ -203,6 +210,12 @@ class ChromePassTest(unittest.TestCase):
         lines = [step[2] for step in runner.CHROME_STEPS if step[2]]
         self.assertEqual([line for line in printed if line != 'CONTROL_CHROME_REBOOTED'],
                          lines + ['CONTROL_CHROME_VM_POWEROFF_CLEAN'])
+        # Each key press gets its settle before the next step (the managed note's screenshot follows Alt+F).
+        keys = [step for step in runner.CHROME_STEPS if step[0] == 'keys']
+        self.assertEqual(self.slept, [runner.KEYS_SETTLE] * len(keys))
+        self.assertGreaterEqual(runner.KEYS_SETTLE, 1)
+        managed = [step[1] for step in runner.CHROME_STEPS].index('c2-managed')
+        self.assertEqual(runner.CHROME_STEPS[managed - 1], ('keys', ['alt', 'f'], None))
 
     def test_a_failed_part_hides_only_its_own_checks_line(self):
         runner, asked, printed, code = self.run_pass(failing=('chrome-hand-loaded',))
@@ -212,6 +225,179 @@ class ChromePassTest(unittest.TestCase):
         self.assertIn('CONTROL_CHECK_FAILED', printed)
         for line in ('CONTROL_CHROME_FILES_PASS', 'CONTROL_CHROME_SITES_FIRST_USE_PASS', 'CONTROL_CHROME_SELINUX_PASS'):
             self.assertIn(line, printed)
+
+    def test_4b_checks_follow_the_reboot_and_come_before_the_selinux_scan(self):
+        runner = load(CONTROL_CI / 'control_vm.py', 'control_vm_for_4b')
+        steps = runner.CHROME_STEPS
+        start = steps.index(('act', 'chrome-sites-after-reboot', 'CONTROL_CHROME_SITES_REBOOT_PASS'))
+        self.assertEqual(steps[start + 1:], [
+            ('act', 'chrome-host', 'CONTROL_CHROME_NATIVE_HOST_PASS'),
+            ('act', 'chrome-sites-later', 'CONTROL_CHROME_SITES_PASS'),
+            ('act', 'chrome-gh', 'CONTROL_GH_PASS'),
+            ('act', 'chrome-records', 'CONTROL_CHROME_RECORDS_PASS'),
+            ('act', 'chrome-selinux', 'CONTROL_CHROME_SELINUX_PASS')])
+        self.assertEqual(runner.CHROME_JOINS, {'CONTROL_CHROME_SITES_PASS': (
+            'CONTROL_CHROME_SITES_FIRST_USE_PASS', 'CONTROL_CHROME_SITES_REBOOT_PASS')})
+        # C11 names the path it took on its line.
+        self.assertIn('chrome-records', runner.CHROME_WITH_SUMMARY)
+
+    def test_c6s_line_needs_its_first_use_and_its_reboot(self):
+        for failing, kept in ((('chrome-sites-first-use',), 'CONTROL_CHROME_SITES_REBOOT_PASS'),
+                              (('chrome-sites-after-reboot',), 'CONTROL_CHROME_SITES_FIRST_USE_PASS')):
+            with self.subTest(failing=failing):
+                runner, asked, printed, code = self.run_pass(failing=failing)
+                self.assertNotEqual(code, 0)
+                self.assertIn('chrome-sites-later', asked)
+                self.assertNotIn('CONTROL_CHROME_SITES_PASS', printed)
+                self.assertIn(kept, printed)
+                for line in ('CONTROL_CHROME_INSTALL_PASS', 'CONTROL_CHROME_NATIVE_HOST_PASS', 'CONTROL_GH_PASS',
+                             'CONTROL_CHROME_SELINUX_PASS'):
+                    self.assertIn(line, printed)
+        runner, asked, printed, code = self.run_pass(failing=('chrome-sites-later',))
+        self.assertNotEqual(code, 0)
+        self.assertNotIn('CONTROL_CHROME_SITES_PASS', printed)
+        for line in ('CONTROL_CHROME_SITES_FIRST_USE_PASS', 'CONTROL_CHROME_SITES_REBOOT_PASS', 'CONTROL_GH_PASS',
+                     'CONTROL_CHROME_RECORDS_PASS'):
+            self.assertIn(line, printed)
+
+    def test_c3_finds_both_ends_of_chrome_sock(self):
+        chrome = self.actions()
+        lines = ['u_str ESTAB 0      0      /run/aresos-tools/chrome.sock 41234            * 41233',
+                 'u_str ESTAB 0 0 /run/aresos-tools/.chrome.sock.new 7 * 8']
+        self.assertEqual(chrome.connection_inodes(lines), [(41234, 41233), (7, 8)])
+        with self.assertRaises(chrome.Failure):
+            chrome.connection_inodes(['u_str ESTAB 0 0 /run/aresos-tools/chrome.sock 41234'])
+        rows = [dict(pid=10, uid=250), dict(pid=20, uid=1001)]
+        with mock.patch.object(chrome, 'service_peers', return_value=lines[:1]), \
+                mock.patch.object(chrome, 'socket_holders', return_value={41234: {10}, 41233: {20}}), \
+                mock.patch.object(chrome, 'processes', return_value=rows):
+            self.assertEqual(chrome.connection_ends(), [dict(service=[10], peer=[20], peer_uids=[1001])])
+        if sys.platform.startswith('linux'):
+            # The holders come from /proc: both ends of a pair this process holds name it.
+            left, right = socket.socketpair()
+            self.addCleanup(left.close)
+            self.addCleanup(right.close)
+            holders = chrome.socket_holders()
+            for end in (left, right):
+                self.assertIn(os.getpid(), holders[os.fstat(end.fileno()).st_ino])
+
+    def test_c6_runs_its_writes_with_the_units_own_environment_and_sandbox(self):
+        chrome = self.actions()
+        unit = ROOT / 'control/packaging/aresos-toold.service'
+        self.assertEqual(chrome.service_env(unit.read_text()), ['/usr/bin/env', '-i', 'PATH=/usr/bin:/bin', 'LANG=C.UTF-8'])
+        with self.assertRaises(chrome.Failure):
+            chrome.service_env('[Service]\nExecStart=/usr/bin/python3 service\n')
+        with mock.patch.object(chrome, 'UNIT_FILE', unit), mock.patch.object(chrome.subprocess, 'run') as run:
+            run.return_value = mock.Mock(returncode=0, stdout='{"read": 1}\n', stderr='')
+            done = chrome.sandboxed('name', ['/usr/bin/python3', '-c', 'x'])
+        command = run.call_args.args[0]
+        self.assertEqual(command[:2], ['systemd-run', '--unit=name'])
+        self.assertIn('--property=ProtectSystem=strict', command)
+        self.assertEqual(command[command.index('--') + 1:],
+                         ['/usr/bin/env', '-i', 'PATH=/usr/bin:/bin', 'LANG=C.UTF-8', '/usr/bin/python3', '-c', 'x'])
+        self.assertIs(run.call_args.kwargs['stdin'], subprocess.DEVNULL)
+        self.assertEqual(chrome.last_json(done['stdout']), {'read': 1})
+
+    def test_c6s_write_probe_names_what_each_attempt_got_and_writes_nothing(self):
+        chrome = self.actions()
+        listing = self.folder / 'list.json'
+        listing.write_bytes(chrome.EMPTY_LIST)
+
+        def probe(path, folder):
+            done = subprocess.run([sys.executable, '-I', '-S', '-c', chrome.WRITE_PROBE, str(path), str(folder)],
+                                  capture_output=True, text=True, check=True)
+            return chrome.last_json(done.stdout)
+        self.assertEqual(probe(listing, self.folder / 'missing'),
+                         dict(read=len(chrome.EMPTY_LIST), write='opened', create='ENOENT'))
+        self.assertEqual(listing.read_bytes(), chrome.EMPTY_LIST)
+        self.assertEqual(probe(listing, self.folder), dict(read=len(chrome.EMPTY_LIST), write='opened', create='opened'))
+        self.assertEqual((self.folder / chrome.PROBE_NAME).read_bytes(), b'')
+        self.assertEqual(probe(listing, self.folder)['create'], 'EEXIST')
+        self.assertEqual(probe(self.folder / 'absent.json', self.folder)['read'], 'ENOENT')
+
+    def test_c6s_hosts_are_the_installed_policys(self):
+        chrome = self.actions()
+        sys.path.insert(0, str(ROOT / 'control'))
+        self.addCleanup(sys.path.remove, str(ROOT / 'control'))
+        from aresos_control.common import Refused
+        from aresos_control.chrome import exclusions, policy
+        source = (ROOT / 'control/aresos_control/chrome/policy.py').read_text()
+        self.assertEqual(chrome.fixed_hosts(source), policy.FIXED_HOSTS)
+        # The test host passes the installed validator; it and a subdomain are refused, the page server is not.
+        with mock.patch.object(exclusions.Boundary, 'read', return_value=json.loads(chrome.TEST_LIST)):
+            hosts = exclusions.owner_hosts()
+        self.assertEqual(hosts, [chrome.TEST_HOST])
+        self.assertTrue(chrome.TEST_HOST.endswith('.localhost'))
+        for address in (f'http://{chrome.TEST_HOST}:{chrome.PORT}/', f'http://sub.{chrome.TEST_HOST}:{chrome.PORT}/',
+                        *[f'https://{host}/' for host in policy.FIXED_HOSTS]):
+            with self.subTest(address=address), self.assertRaises(Refused) as refusal:
+                policy.allowed_url(address, hosts)
+            self.assertEqual(refusal.exception.code, 'refused')
+        self.assertEqual(policy.allowed_url(f'{chrome.ADDRESS}/browse?step=x', hosts), f'{chrome.ADDRESS}/browse?step=x')
+        # The link's target, the validator's script: both compile; the placeholder stays refused.
+        compile(chrome.VALIDATE, 'validate', 'exec')
+        compile(chrome.VERIFY, 'verify', 'exec')
+        with mock.patch.object(exclusions.Boundary, 'read', return_value=json.loads(b'{"format":0,"hosts":[]}')), \
+                self.assertRaises(Refused):
+            exclusions.owner_hosts()
+
+    def test_c10_reads_gh_against_its_lock_and_finds_a_login_or_a_token(self):
+        chrome = self.actions()
+        lock = json.loads((ROOT / 'os/gh.lock.json').read_text())
+        self.assertEqual(chrome.pinned_gh(lock), '2.103.3')
+        with self.assertRaises(chrome.Failure):
+            chrome.pinned_gh(dict(lock, nevra='gh-2.103-1.x86_64'))
+        output = 'gh version 2.103.3 (2026-10-28)\nhttps://github.com/cli/cli/releases/tag/v2.103.3\n'
+        self.assertEqual(chrome.reported_gh(output), '2.103.3')
+        self.assertIsNone(chrome.reported_gh('Running as unit: x\n'))
+        cache = self.folder / 'qualification-verifier-cache'
+        self.assertEqual(chrome.credentials_in(cache), [])
+        (cache / 'gh/.sigstore/root').mkdir(parents=True)
+        (cache / 'gh/.sigstore/root/root.json').write_text('{"signed": {}}')
+        self.assertEqual(chrome.credentials_in(cache), [])
+        (cache / 'config/gh').mkdir(parents=True)
+        (cache / 'config/gh/hosts.yml').write_text('github.com:\n')
+        made_up = 'gh' + 'p_' + 'A1' * 18
+        (cache / 'gh/state').write_text(f'x {made_up} y')
+        self.assertEqual(chrome.credentials_in(cache), ['config/gh/hosts.yml', 'gh/state'])
+        self.assertEqual([entry['path'] for entry in chrome.tree(cache)],
+                         ['config/gh/hosts.yml', 'gh/.sigstore/root/root.json', 'gh/state'])
+
+    def test_c11_takes_the_services_own_result_lines_from_the_log(self):
+        chrome = self.actions()
+        source = (ROOT / 'control/aresos_control/chrome/qualification.py').read_text()
+        self.assertIn(f"result = '{chrome.ACCEPTED}'", source)
+        self.assertIn(f"'chrome_qualification', '{chrome.HELD}'", source)
+        self.assertIn("result = f'Qualification refresh refused ({reason}); held record retained.'", source)
+        self.assertIn("result = f'Qualification refresh failed after verification ({reason}); the held record may "
+                      "have been updated.'", source)
+        self.assertIn("cache = Path(path).resolve().parent/'qualification-verifier-cache'", source)
+        config = json.loads((ROOT / 'control/settings/service.json').read_text())
+        self.assertEqual(chrome.VERIFIER, pathlib.Path(config['state_dir']) / 'qualification-verifier-cache')
+
+        def row(time, summary, action='chrome_qualification'):
+            return dict(time=time, action=action, summary='Chrome audit event', untrusted_content=dict(summary=summary))
+        refused = 'Qualification refresh refused (URLError); held record retained.'
+        entries = [row(90, chrome.HELD), row(91, chrome.ACCEPTED), row(100, chrome.HELD), row(101, chrome.ACCEPTED),
+                   row(102, 'Chrome tab opened', action='chrome_open'), row(150, refused)]
+        self.assertEqual(chrome.refreshes(entries, 100), ([chrome.HELD, chrome.ACCEPTED, refused],
+                                                          [chrome.ACCEPTED, refused]))
+        self.assertEqual(chrome.refreshes(entries[:5], 100), ([chrome.HELD, chrome.ACCEPTED], [chrome.ACCEPTED]))
+        self.assertEqual(chrome.refreshes([row(100, 'Qualification refresh refused (a b); held')], 0)[1], [])
+
+    def test_c11_reads_every_page_of_his_log_and_starts_again_when_it_changed(self):
+        chrome = self.actions()
+        pages = iter([dict(items=[1, 2], cursor='c1'), dict(items=[3], cursor='c2'),
+                      dict(items=[1, 2], cursor='c3', page_changed='Page changed; restarted from the first page.'),
+                      dict(items=[3, 4], cursor=None)])
+        asked = []
+        stand_in = types.SimpleNamespace(
+            cli=lambda *argv, value=None: asked.append((argv, value)) or {'page': next(pages)},
+            answered=lambda result: {'data': result['page']})
+        with mock.patch.object(chrome, 'control', return_value=stand_in):
+            self.assertEqual(chrome.log_entries(), [1, 2, 3, 4])
+        self.assertEqual(asked[0], ((chrome.OWNER, 'control', 'log'), {'limit': 10}))
+        self.assertEqual(asked[1][1], {'limit': 10, 'cursor': 'c1'})
 
     def setUp(self):
         self.folder = pathlib.Path(tempfile.mkdtemp())

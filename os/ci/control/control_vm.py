@@ -60,8 +60,10 @@ WITH_SUMMARY = {'control-idle', 'control-ordinary', 'control-storage-tests'}
 
 # Brief 18c-b, item 5 (steps 4, 4b and 5 fill it in): (kind, argument, PASS line or None), where kind is 'act' (a
 # guest action), 'screen' (a screenshot's name), 'keys' (qcodes pressed together) or 'reboot'. A check is the run of
-# steps up to the one that carries its line: the line is printed only when every step of that run succeeded. The
-# polkit probe comes first; C6's first use right after C2; the pass's one reboot after it; the SELinux scan last.
+# steps up to the one that carries its line: the line is printed only when every step of that run succeeded (and,
+# for a line of CHROME_JOINS, when its parts' lines were printed). The polkit probe comes first; C6's first use right
+# after C2; the pass's one reboot after it; then, with Chrome started again and his list written, C3, the rest of C6,
+# C10 and C11; the SELinux scan last.
 CHROME_STEPS = [
     ('act', 'chrome-session', None),
     ('screen', 'polkit-before', None),
@@ -82,9 +84,19 @@ CHROME_STEPS = [
     ('act', 'chrome-sites-first-use', 'CONTROL_CHROME_SITES_FIRST_USE_PASS'),
     ('reboot', None, None),
     ('act', 'chrome-sites-after-reboot', 'CONTROL_CHROME_SITES_REBOOT_PASS'),
+    ('act', 'chrome-host', 'CONTROL_CHROME_NATIVE_HOST_PASS'),
+    ('act', 'chrome-sites-later', 'CONTROL_CHROME_SITES_PASS'),
+    ('act', 'chrome-gh', 'CONTROL_GH_PASS'),
+    ('act', 'chrome-records', 'CONTROL_CHROME_RECORDS_PASS'),
     ('act', 'chrome-selinux', 'CONTROL_CHROME_SELINUX_PASS'),
 ]
-CHROME_WITH_SUMMARY = {'chrome-polkit-finish', 'chrome-files', 'chrome-sites-first-use', 'chrome-sites-after-reboot'}
+CHROME_WITH_SUMMARY = {'chrome-polkit-finish', 'chrome-files', 'chrome-sites-first-use', 'chrome-sites-after-reboot',
+                       'chrome-host', 'chrome-gh', 'chrome-records'}
+# C6 is one check in three parts around the reboot: its table line also needs the lines of its first two parts.
+CHROME_JOINS = {'CONTROL_CHROME_SITES_PASS': ('CONTROL_CHROME_SITES_FIRST_USE_PASS', 'CONTROL_CHROME_SITES_REBOOT_PASS')}
+# QMP's send-key returns before the guest has drawn its answer (run 44435868192's menu screenshot, 0.0 s after Alt+F,
+# showed no menu): the screen gets this long before the next step.
+KEYS_SETTLE = 1.0
 
 
 def install_step(readme):
@@ -350,10 +362,17 @@ def chrome_main():
     vm_evidence = chrome_evidence / 'vm'
     vm_evidence.mkdir(parents=True, exist_ok=True)
     results = {}
-    # The runner's inputs: what the commit installs (as check 1 computes it) and the reviewed gh lock.
-    arguments = {'chrome-files': lambda: dict(expected=expected_record(), gh_lock_sha256=hashlib.sha256(
-                     pathlib.Path('os/gh.lock.json').read_bytes()).hexdigest()),
-                 'chrome-sites-after-reboot': lambda: dict(list=results['chrome-sites-first-use']['summary']['list'])}
+
+    def gh_lock():
+        return hashlib.sha256(pathlib.Path('os/gh.lock.json').read_bytes()).hexdigest()
+    # The runner's inputs: what the commit installs (as check 1 computes it), the reviewed gh lock, and what earlier
+    # steps found (the written list's state, the host connected after the reboot).
+    arguments = {'chrome-files': lambda: dict(expected=expected_record(), gh_lock_sha256=gh_lock()),
+                 'chrome-sites-after-reboot': lambda: dict(list=results['chrome-sites-first-use']['summary']['list']),
+                 'chrome-sites-later': lambda: dict(list=results['chrome-sites-after-reboot']['summary']['list']),
+                 'chrome-gh': lambda: dict(gh_lock_sha256=gh_lock()),
+                 'chrome-records': lambda: dict(
+                     host_pid=results['chrome-sites-after-reboot']['summary']['host']['pid'])}
     guest = Guest(work, vm_evidence, 'chrome')
 
     def dialog_shown(result):
@@ -368,7 +387,7 @@ def chrome_main():
     verify = {'chrome-polkit-finish': dialog_shown}
     guest.create()
     started = time.monotonic()
-    failed, timings, check_failed, summaries = [], {}, False, {}
+    failed, timings, check_failed, summaries, printed = [], {}, False, {}, set()
     try:
         timings['boot_to_channel'] = guest.boot()
         for kind, argument, line in CHROME_STEPS:
@@ -380,6 +399,7 @@ def chrome_main():
                     guest.screenshot(chrome_evidence / f'{argument}.png')
                 elif kind == 'keys':
                     guest.keys(argument)
+                    time.sleep(KEYS_SETTLE)
                 elif kind == 'reboot':
                     guest.poweroff()
                     timings['reboot_to_channel'] = guest.boot()
@@ -408,9 +428,10 @@ def chrome_main():
                     check_failed = True
                     print(f'CONTROL_CHECK_FAILED {argument}\n{result.get("stderr", "")[-6000:]}', flush=True)
             if line:
-                if not check_failed:
+                if not check_failed and all(part in printed for part in CHROME_JOINS.get(line, ())):
                     shown = summaries.get(argument) if kind == 'act' and argument in CHROME_WITH_SUMMARY else None
                     print(f'{line} {shown}' if shown else line, flush=True)
+                    printed.add(line)
                 check_failed = False
         guest.poweroff()
         timings['total'] = round(time.monotonic() - started, 1)
