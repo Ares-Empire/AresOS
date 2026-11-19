@@ -54,7 +54,10 @@ Ares-Empire/AresOS --interval 300` in a background shell.
      shape). **Done 19:44** (`e3da3a8d` product fix: `background.js` applies the input deadline during frame setup
      and rechecks it after pointer hit testing; `df24623d` the four cases; PROGRESS `1511707e`). **Read Chrome
      44590799388 and qualification 44590799642** on `df24623d` (shell watcher). The package reviews must look at
-     `e3da3a8d`. Then step 2
+     `e3da3a8d`.
+   - **20:52: red in one case only** (the owner typing with real keys: his keys never reached the field). Fix
+     `a28720dd` (CI harness: a native click focuses the field first; assertions kept). **Read Chrome 44604152322
+     and qualification 44604152624** on `a28720dd` (shell watcher). Green: step 2. Then step 2
      (HARNESS-MAP), step 3 (removal; CONTROL.md section 6 needs `chrome_show`'s focus exception;
      `response_checks.check_responses` in the Chrome tests, #122's NIT 2), step 4 (full validation twice), the
      package and security reviews. Red: one Codex Sol fix step that pushes, dispatches once and stops.
