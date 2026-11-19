@@ -276,9 +276,6 @@ class BranchRefTest(unittest.TestCase):
                 self.assertIn('Refusing to publish without a branch ref', done.stderr)
 
 
-if __name__ == '__main__':
-    unittest.main()
-
 
 class ControlBuildBytecodeTest(unittest.TestCase):
     """R28's fifth dry run (44514249982): the Control install's Python ran as root without -B and rewrote 353 of the
@@ -302,3 +299,7 @@ class ControlBuildBytecodeTest(unittest.TestCase):
         branch = self.control_branch()
         self.assertIn('runuser -u nobody -- /usr/bin/aresos --help > /tmp/ares-control/help.txt\n', branch)
         self.assertNotRegex(branch, r'\n\s+/usr/bin/aresos --help')
+
+
+if __name__ == '__main__':
+    unittest.main()
