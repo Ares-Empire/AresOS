@@ -286,8 +286,8 @@ pub fn spawn(
 ///
 /// The pointer crossing such an edge is only moving to the next screen, so a
 /// barrier there would capture on every move between the user's own screens.
-/// The portal specification rejects these, and clients count on it: Deskflow
-/// asks for all four edges of every zone and expects the inner ones to fail.
+/// The portal specification says so too: "A pointer barrier must be situated
+/// at the outside boundary of the union of all zones."
 fn faces_another_output(
     edge: Edge,
     line: i32,
@@ -337,8 +337,13 @@ fn place_one(
     for (index, (name, (ox, oy), (ow, oh))) in outputs.iter().enumerate() {
         let (ox, oy, ow, oh) = (*ox, *oy, *ow, *oh);
 
+        // The specification counts a barrier's last pixel in ("a barrier spanning
+        // x1=0, x2=1 is exactly two pixels wide"): the right edge of a 1080-high
+        // zone is y1=0, y2=1079. So the span ends one past the larger coordinate.
+        // A client that gives the zone's full height instead is cut to the output
+        // just below, as before.
         if b.is_vertical() {
-            let (lo, hi) = (b.y1.min(b.y2), b.y1.max(b.y2));
+            let (lo, hi) = (b.y1.min(b.y2), b.y1.max(b.y2).saturating_add(1));
             // Clip the barrier to this output's vertical extent.
             let (top, bottom) = (lo.max(oy), hi.min(oy + oh));
             if top >= bottom {
@@ -374,7 +379,7 @@ fn place_one(
         }
 
         if b.is_horizontal() {
-            let (lo, hi) = (b.x1.min(b.x2), b.x1.max(b.x2));
+            let (lo, hi) = (b.x1.min(b.x2), b.x1.max(b.x2).saturating_add(1));
             let (left, right) = (lo.max(ox), hi.min(ox + ow));
             if left >= right {
                 continue;
@@ -490,6 +495,42 @@ mod tests {
         let p = &placed[0];
         assert_eq!(p.release_hint(-5000.0).1, 0.0);
         assert_eq!(p.release_hint(99999.0).1, 1065.0);
+    }
+
+    #[test]
+    fn a_barrier_covers_its_last_pixel() {
+        // The specification's own example: two 1920x1080 zones side by side,
+        // and the six barriers it permits there.
+        let side_by_side: Vec<(String, (i32, i32), (i32, i32))> = vec![
+            ("A".into(), (0, 0), (1920, 1080)),
+            ("B".into(), (1920, 0), (1920, 1080)),
+        ];
+        let permitted = [
+            Barrier { id: 1, x1: 0, y1: 0, x2: 1919, y2: 0 },
+            Barrier { id: 2, x1: 0, y1: 1080, x2: 1919, y2: 1080 },
+            Barrier { id: 3, x1: 1920, y1: 0, x2: 3839, y2: 0 },
+            Barrier { id: 4, x1: 1920, y1: 1080, x2: 3839, y2: 1080 },
+            Barrier { id: 5, x1: 0, y1: 0, x2: 0, y2: 1079 },
+            Barrier { id: 6, x1: 3840, y1: 0, x2: 3840, y2: 1079 },
+        ];
+        let (placed, rejected) = place(&permitted, &side_by_side);
+        assert!(rejected.is_empty());
+        let got: Vec<(u32, &str, Edge, (u32, u32))> =
+            placed.iter().map(|p| (p.id, p.output.as_str(), p.edge, p.size)).collect();
+        assert_eq!(
+            got,
+            [
+                (1, "A", Edge::Top, (1920, BARRIER_DEPTH)),
+                (2, "A", Edge::Bottom, (1920, BARRIER_DEPTH)),
+                (3, "B", Edge::Top, (1920, BARRIER_DEPTH)),
+                (4, "B", Edge::Bottom, (1920, BARRIER_DEPTH)),
+                (5, "A", Edge::Left, (BARRIER_DEPTH, 1080)),
+                (6, "B", Edge::Right, (BARRIER_DEPTH, 1080)),
+            ]
+        );
+        // A single pixel is a barrier one pixel long.
+        let dot = Barrier { id: 7, x1: 0, y1: 500, x2: 0, y2: 500 };
+        assert_eq!(place(&[dot], &side_by_side).0[0].size, (BARRIER_DEPTH, 1));
     }
 
     #[test]
