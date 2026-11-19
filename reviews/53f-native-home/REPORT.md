@@ -426,3 +426,11 @@ Nothing is over 500 MB.
   keys and runs no input-method program), instant hover and match changes instead of 53c's 0.12 s and 0.15 s fades,
   and the three process-wide memory settings.
 - The page folder's deletion landed in commit 9c562c9e, whose message does not say so.
+
+## Review 3 (recheck of fix round 2): SAFE at 414215cd
+
+Two nonblocking leftovers, Known limits:
+- An icon callback delivered between Escape and the next draw can still cache one icon and ask for one extra redraw
+  (icon cache only).
+- With the layer library present but its typelib missing from the configured folder, the opt-in memory tests' setup
+  raises `FileNotFoundError` instead of failing with a named reason (opt-in harness only).
