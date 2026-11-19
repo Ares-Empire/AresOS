@@ -52,12 +52,24 @@ user only. The wrapper sends jvm_start, jvm_started, and how Java ended
 the same facts to ~/.local/state/aresos/desktop-exit.json first. The owner's
 commands (`aresos-desktop status|retry|forget-hub|reset-instance`) use status,
 retry and forget_hub.
+
+The lifecycle channel (package 25; OS-BASE B1, `save_world`): the game gets
+ARESOS_DESKTOP_LIFECYCLE=1, and its mod then connects to the same socket with
+`lifecycle_hello`. The hello is accepted only from the JVM the wrapper
+reported, with this session's instance and the launch's nonce. After it the
+supervisor sends `save_world` and reads `world_saved`. A save counts only
+when the game says the active world (the home the helper last reported
+ready, else the locked world) reached the disk, with the request's id and on
+the connection the request went out on. `aresos-desktop save` (socket op
+`save`) asks for one and exits 0 only then. No reply blocks the loop: a peer
+that does not take its line at once is dropped.
 """
 import argparse
 import dataclasses
 import errno
 import gzip
 import hashlib
+import hmac
 import json
 import logging
 import logging.handlers
@@ -109,7 +121,7 @@ SYSTEM_PATH = '/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin'
 # Never handed to Prism, the helper's apps or the views; only the game gets them, from the wrapper.
 PRIVATE_ENVIRONMENT = ('ARESOS_LAUNCH_NONCE', 'ARESOS_DESKTOP_INSTANCE', 'ARESOS_SHELL_STATUS_FD',
                        'ARESOS_SHELL_SOCKET', 'NOTIFY_SOCKET', 'LISTEN_FDS', 'LISTEN_PID', 'LISTEN_FDNAMES',
-                       'WATCHDOG_PID', 'WATCHDOG_USEC')
+                       'WATCHDOG_PID', 'WATCHDOG_USEC', 'ARESOS_DESKTOP_LIFECYCLE')
 # switcheroo-control's set for NVIDIA: render this one process on NVIDIA (OS-BASE section 2).
 NVIDIA_OFFLOAD = {'__NV_PRIME_RENDER_OFFLOAD': '1', '__GLX_VENDOR_LIBRARY_NAME': 'nvidia',
                   '__VK_LAYER_NV_optimus': 'NVIDIA_only'}
@@ -164,6 +176,18 @@ RENDER_DISTANCE = 8
 SIMULATION_DISTANCE = 5
 MAX_LINE = 64 * 1024
 KEEPER_BUDGET = (5, 600.0)
+# The lifecycle channel (package 25; OS-BASE B1, `save_world`). The gate opens the mod's end (LifecycleClient.GATE):
+# only the game gets it, from the wrapper.
+LIFECYCLE_GATE = 'ARESOS_DESKTOP_LIFECYCLE'
+LIFECYCLE_MAJOR = 1
+SAVE_REASONS = ('shutdown', 'backup', 'update', 'manual')
+# Every reason the mod gives for a refused save (LifecycleClient.REASONS; a test keeps them equal).
+SAVE_REFUSALS = ('no_world', 'not_desktop_world', 'server_stopping', 'error')
+# How long one caller waits for its save, on the supervisor's clock; and a command's one deadline for all of it,
+# connecting and waiting included.
+SAVE_WAIT = 60.0
+COMMAND_WAIT = 70.0
+REQUEST_WAIT = 10.0
 
 SETUP, STARTING, IN_WORLD, AUTH_REQUIRED, RECOVERY = 'SETUP', 'STARTING', 'IN_WORLD', 'AUTH_REQUIRED', 'RECOVERY'
 SIGKILL = 9  # signal.SIGKILL, spelled out so the tests also load this file on Windows
@@ -699,14 +723,14 @@ def check_home(path):
                 raise NbtError(f'home {name} is not a number')
 
 
-def check_world(paths, lock):
+def check_world(paths, lock, name=None):
     """('missing' | 'damaged' | 'ok', detail). Only reads; a damaged world is reported, never repaired.
 
     'ok' means exactly what the mod needs for the hub: a readable level, the desktop marker switched on, the saved
     Nether home and a finished hub build. Without the home data the mod opens the world but disables home arrival,
-    so that is damage too.
+    so that is damage too. `name` is another folder in the worlds folder (a dated home), checked the same way.
     """
-    world = os.path.join(paths.worlds, lock['world'])
+    world = os.path.join(paths.worlds, lock['world'] if name is None else name)
     if not os.path.lexists(world):
         return 'missing', world
     if os.path.islink(world) or not os.path.isdir(world):
@@ -804,7 +828,8 @@ def session_environment(environ):
 
 def game_environment(instance, nonce, nvidia):
     """What the wrapper adds to the game's environment (B1's launch identity, the GPU choice)."""
-    env = {'ARESOS_DESKTOP_INSTANCE': instance, 'ARESOS_LAUNCH_NONCE': nonce, 'PATH': SYSTEM_PATH}
+    env = {'ARESOS_DESKTOP_INSTANCE': instance, 'ARESOS_LAUNCH_NONCE': nonce, LIFECYCLE_GATE: '1',
+           'PATH': SYSTEM_PATH}
     if nvidia:
         env.update(NVIDIA_OFFLOAD)
     return env
@@ -904,6 +929,8 @@ class Launch:
     wrapper_gone: float = None  # the wrapper's connection closed before its JVM was reported
     # The wrapper's jvm_failed report (an End) after this supervisor accepted the JVM.
     end_facts: object = None
+    # The folder the helper last reported ready and the home checks passed (package 25, 1.3); None: none yet.
+    active_world: str = None
 
 
 @dataclasses.dataclass(frozen=True)
@@ -955,6 +982,82 @@ def parent_pid(pid, proc='/proc'):
     with open(f'{proc}/{pid}/stat', 'rb') as source:
         data = source.read()
     return int(data[data.rindex(b')') + 2:].split()[1])
+
+
+# ---------------------------------------------------------------- saves (package 25, brief section 1)
+
+
+@dataclasses.dataclass(frozen=True)
+class SaveResult:
+    """What one save request came to (1.3). Only `saved` is a save; everything else is not."""
+    result: str         # saved, wrong_world, refused, timeout, lost, no_channel or invalid
+    world: str          # the active world the request was about
+    reason: str = None  # the game's own reason when it refused (SAVE_REFUSALS)
+    ms: int = None      # the save's own time in the game
+    detail: str = ''
+
+    @property
+    def saved(self):
+        return self.result == 'saved'
+
+
+@dataclasses.dataclass
+class SaveCaller:
+    deadline: float  # the caller's own, on the supervisor's clock
+    done: object     # called once with the SaveResult
+
+
+@dataclasses.dataclass
+class SaveRequest:
+    """One save_world request and every caller that waits for its answer."""
+    reason: str
+    callers: list
+    id: int = None       # set when it is sent
+    world: str = None    # the active world when it was sent
+    peer: object = None  # the connection it went out on
+
+
+def tell_caller(caller, result):
+    try:
+        caller.done(result)
+    except Exception:  # one caller's failure must never take the supervision or another caller's answer down
+        LOG.exception('a save\'s caller failed')
+
+
+def clip(text, limit=48):
+    """A peer's text for a log line or a message: printable ASCII, and short."""
+    clean = ''.join(char if ' ' <= char <= '~' else '?' for char in str(text))
+    return clean if len(clean) <= limit else clean[:limit]
+
+
+def plain_world_name(name):
+    """A world's folder name as the mod reports it: one path component, never a way out of the worlds folder."""
+    return (isinstance(name, str) and 0 < len(name) <= 255 and name not in ('.', '..') and '/' not in name
+            and '\0' not in name)
+
+
+def save_text(result):
+    """One line for whoever asked for the save."""
+    if result.saved:
+        return f'Saved: {result.world} is on the disk.'
+    if result.result == 'refused':
+        why = {'no_world': 'no home is open in Minecraft right now (it is loading, switching homes or closing)',
+               'not_desktop_world': 'the world open in Minecraft is not an AresOS home',
+               'server_stopping': 'Minecraft is closing the world right now',
+               'error': f'Minecraft could not write {result.world} to the disk; its log says why'}[result.reason]
+    else:
+        why = {'wrong_world': result.detail,
+               'timeout': 'Minecraft did not answer in time',
+               'lost': 'the connection to Minecraft closed before it answered',
+               'no_channel': 'Minecraft is not running, or has not connected to AresOS yet',
+               'invalid': f'Minecraft\'s answer could not be used ({result.detail})'}[result.result]
+    return f'Not saved: {why}.'
+
+
+def save_reply(result):
+    """The reply to the socket op `save`: `ok` only for a save, and always the world it was about."""
+    return dict(ok=result.saved, result=result.result, world=result.world, reason=result.reason, ms=result.ms,
+                message=save_text(result))
 
 
 # ---------------------------------------------------------------- messages
@@ -1066,6 +1169,13 @@ class Supervisor:
         self.pressure_clear_since = None
         self.pressure_checked = None
         self.unresolved_checked = None
+        # The lifecycle channel (package 25): the accepted connection and the launch it was accepted for, the
+        # save request in flight and the one that waits behind it.
+        self.lifecycle = None
+        self.lifecycle_launch = None
+        self.save_ids = 0
+        self.save_flight = None
+        self.save_waiting = None
 
     # -- persistence
 
@@ -1427,9 +1537,11 @@ class Supervisor:
     def ready(self, world, now):
         launch = self.launch
         self.last_heartbeat = now
+        checked = False
         if world == self.lock['world'] and not launch.ready:
             # A damaged hub is never declared ready, however the mod sees it (the game is left alone).
             state, detail = check_world(self.paths, self.lock)
+            checked = state == 'ok'
             if state != 'ok':
                 launch.ready = False
                 if not (self.persisted.latched and self.persisted.reason == 'world_damaged'):
@@ -1439,6 +1551,7 @@ class Supervisor:
         if self.healthy_since is None:
             self.healthy_since = now
         launch.ready = launch.ever_ready = True
+        self.note_ready_world(world, checked)
         if world == self.lock['world'] and not self.persisted.hub_seen:
             self.persisted.hub_seen = True
             self.save()
@@ -1658,6 +1771,7 @@ class Supervisor:
             before the other), so no restart is ever decided from who sent a signal (review 5, finding 1);
           - no facts at all: `killed` too, and saved as unresolved until a late report or the record explains it;
           - any other status: a crash (or a failed start), counted once."""
+        self.close_lifecycle('the game ended')
         launch = self.launch
         accepted = launch.reported
         pid, ticks = launch.jvm_pid, launch.jvm_ticks
@@ -1777,6 +1891,9 @@ class Supervisor:
             items.append(((self.last_heartbeat or self.clock()) + HEARTBEAT_GAP, self.heartbeats_stopped))
         if self.healthy_since is not None and (self.persisted.consecutive or self.persisted.failures):
             items.append((self.healthy_since + HEALTHY_RESET, self.healthy_reset))
+        for request in (self.save_flight, self.save_waiting):
+            if request is not None:
+                items += [(caller.deadline, self.save_timed_out) for caller in request.callers]
         return items
 
     def tick(self):
@@ -1889,7 +2006,208 @@ class Supervisor:
                     hub_seen=self.persisted.hub_seen, instance=self.instance,
                     launch=launch.id if launch else None, jvm_pid=launch.jvm_pid if launch else None,
                     ready=bool(launch and launch.ready), nvidia=self.nvidia,
-                    helper=self.runner.helper_running(), cover=self.cover, message=self.message() if self.state else '')
+                    helper=self.runner.helper_running(), cover=self.cover,
+                    # Whether the game's lifecycle hello is accepted (package 25, 1.2): saves can be asked for.
+                    lifecycle=self.lifecycle_peer() is not None,
+                    message=self.message() if self.state else '')
+
+    # -- the lifecycle channel (package 25, brief section 1)
+
+    def active_world(self):
+        """The folder a save is about (1.3): the one the helper last reported ready and the home checks passed, or
+        the locked world while none was reported, so a dead helper never stops saving."""
+        launch = self.launch
+        return (launch.active_world if launch is not None else None) or self.lock['world']
+
+    def note_ready_world(self, world, checked=False):
+        """ready(): the helper reported `world` ready. It becomes the active world only as a plain folder inside the
+        worlds folder that passes the home checks (`checked`: ready() has just checked it)."""
+        launch = self.launch
+        if world == launch.active_world:
+            return
+        if not checked and (not plain_world_name(world) or check_world(self.paths, self.lock, world)[0] != 'ok'):
+            return
+        LOG.info('launch %s: the active world is %s', launch.id, world)
+        launch.active_world = world
+
+    def lifecycle_peer(self):
+        """The accepted lifecycle connection of the running launch's game, or None."""
+        launch = self.launch
+        if (self.lifecycle is None or launch is None or launch.id != self.lifecycle_launch
+                or launch.jvm_pid is None):
+            return None
+        return self.lifecycle
+
+    def lifecycle_refusal(self, peer, request):
+        """Why a lifecycle_hello is not accepted (1.2), or None. The text goes to the log: never the nonce."""
+        launch = self.launch
+        if peer.uid != os.getuid():
+            return 'the peer is another user'
+        if launch is None or launch.jvm_pid is None or launch.jvm_ended is not None:
+            return 'no game is running that its launcher wrapper reported'
+        if peer.pid != launch.jvm_pid:
+            return f'the peer is not the game (pid {launch.jvm_pid})'
+        if not self.runner.alive(launch.jvm_pid, launch.jvm_ticks):
+            return 'the game is no longer running'
+        if request.get('instance') != self.instance:
+            return 'the hello names another desktop session'
+        nonce = request.get('nonce')
+        if not isinstance(nonce, str) or not hmac.compare_digest(nonce.encode('utf-8', 'backslashreplace'),
+                                                                 launch.nonce.encode('utf-8', 'backslashreplace')):
+            return 'the hello does not carry this launch\'s nonce'
+        major = request.get('major')
+        if type(major) is not int or major != LIFECYCLE_MAJOR:
+            return f'the hello speaks another protocol version (major {clip(repr(major))})'
+        capabilities = request.get('capabilities')
+        if not isinstance(capabilities, list) or 'save_world' not in capabilities:
+            return 'the hello does not offer save_world'
+        return None
+
+    def on_lifecycle_hello(self, peer, request):
+        """The mod's first line on a new connection. True: accepted, with no reply (the mod expects none). False:
+        the caller closes the connection; the mod tries again, which also covers a hello before jvm_started."""
+        refusal = self.lifecycle_refusal(peer, request)
+        if refusal is not None:
+            LOG.warning('refused a lifecycle hello from pid %s: %s', peer.pid, refusal)
+            return False
+        old, self.lifecycle, self.lifecycle_launch = self.lifecycle, peer, self.launch.id
+        LOG.info('launch %s: the game opened the lifecycle channel', self.launch.id)
+        if old is not None and old is not peer:
+            # One peer per launch: the newer hello replaces the older. What went out on the older connection can no
+            # longer be answered (the mod drops the answer for a connection that ended); what waited goes out on
+            # the new one.
+            self.lifecycle_lost(old, 'a newer hello replaced its connection')
+            old.close()
+        return True
+
+    def on_lifecycle_gone(self, peer):
+        """A lifecycle peer's connection closed, or a line could not be sent to it."""
+        if peer is self.lifecycle:
+            self.lifecycle = None
+            LOG.info('the game\'s lifecycle channel closed')
+        self.lifecycle_lost(peer, 'the connection closed before the answer')
+
+    def lifecycle_lost(self, peer, why):
+        request = self.save_flight
+        if request is not None and request.peer is peer:
+            self.conclude_save(self.save_result('lost', request, detail=why))
+
+    def close_lifecycle(self, why):
+        """The launch ended: its channel ends with it, and nothing asked on it is a save."""
+        peer, self.lifecycle = self.lifecycle, None
+        if peer is not None:
+            self.lifecycle_lost(peer, why)
+            peer.close()
+
+    def on_lifecycle_message(self, peer, message):
+        """A line from an accepted lifecycle peer. Only world_saved is read (1.2); anything else is dropped."""
+        if not isinstance(message, dict) or message.get('op') != 'world_saved':
+            return
+        request = self.save_flight
+        ident = message.get('id')
+        if (peer is not self.lifecycle or request is None or request.peer is not peer
+                or type(ident) is not int or ident != request.id):
+            # A late answer (every caller's deadline has passed), one on an older connection, or an id never asked.
+            LOG.warning('dropped a world_saved answer that belongs to no request in flight (id %s)',
+                        clip(repr(ident)))
+            return
+        self.conclude_save(self.judge_save(request, message))
+
+    def judge_save(self, request, message):
+        """What the answer to the request in flight means (1.3). `saved` only if the game says ok for the world that
+        was active when the request went out and still is."""
+        ok = message.get('ok')
+        if ok is True:
+            answered = message.get('world')
+            if not isinstance(answered, dict) or not isinstance(answered.get('id'), str):
+                return self.save_result('invalid', request, detail='the answer names no world')
+            if self.active_world() != request.world:
+                return self.save_result('wrong_world', request, detail=(
+                    f'the home changed from {request.world} to {self.active_world()} while it was saved'))
+            if answered['id'] != request.world or answered.get('desktop') is not True:
+                return self.save_result('wrong_world', request, detail=(
+                    f'Minecraft saved {clip(answered["id"])}, which is not the home {request.world}'))
+            ms = message.get('ms')
+            return self.save_result('saved', request, ms=ms if type(ms) is int and ms >= 0 else None)
+        if ok is False and message.get('reason') in SAVE_REFUSALS:
+            return self.save_result('refused', request, reason=message['reason'])
+        return self.save_result('invalid', request, detail='the answer is neither a save nor a known refusal')
+
+    def save_result(self, result, request=None, **fields):
+        world = request.world if request is not None and request.world else self.active_world()
+        return SaveResult(result, world, **fields)
+
+    def request_save(self, reason, done, wait=None):
+        """Ask the game to flush-save the active world for one caller (1.3 to 1.5). `done(SaveResult)` is called
+        exactly once: when the answer is in or at the caller's own deadline (`wait` seconds on the supervisor's
+        clock, SAVE_WAIT by default), whichever comes first. With no accepted hello it is called before this
+        returns (`no_channel`).
+
+        `done` may run from inside conclude() (a launch's end closes the channel first) or from tick(): it must
+        only note the result, never start or end a launch itself.
+
+        One request is in flight and at most one waits (1.4). A caller that arrives while a request is in flight
+        does not join it, because that save may have begun before the caller asked: it gets one follow-up request,
+        sent when the first is answered, and later callers join that one."""
+        caller = SaveCaller(self.clock() + (SAVE_WAIT if wait is None else wait), done)
+        if self.save_flight is None:
+            self.send_save(SaveRequest(reason, [caller]))
+            return
+        if self.save_waiting is None:
+            self.save_waiting = SaveRequest(reason, [])
+        self.save_waiting.callers.append(caller)
+
+    def send_save(self, request):
+        peer = self.lifecycle_peer()
+        if peer is None:
+            self.answer_callers(request, self.save_result('no_channel'))
+            return
+        self.save_ids += 1
+        request.id, request.world, request.peer = self.save_ids, self.active_world(), peer
+        self.save_flight = request
+        LOG.info('save_world %d (%s): asked the game to save %s', request.id, request.reason, request.world)
+        if not peer.send({'op': 'save_world', 'id': request.id, 'reason': request.reason}):
+            self.on_lifecycle_gone(peer)  # changes nothing when the loop has said so already
+
+    def conclude_save(self, result):
+        """The request in flight is over (answered, lost or given up): the waiting one goes out, then its callers
+        hear the result."""
+        request, self.save_flight = self.save_flight, None
+        LOG.info('save_world %d: %s%s', request.id, result.result,
+                 f' ({result.reason or result.detail})' if result.reason or result.detail else '')
+        self.send_waiting()
+        self.answer_callers(request, result)
+
+    def send_waiting(self):
+        waiting, self.save_waiting = self.save_waiting, None
+        if waiting is not None and waiting.callers:
+            self.send_save(waiting)
+
+    @staticmethod
+    def answer_callers(request, result):
+        callers, request.callers = request.callers, []
+        for caller in callers:
+            tell_caller(caller, result)
+
+    def save_timed_out(self):
+        """Callers whose own deadline has passed hear `timeout`. A request nobody waits for any more is given up:
+        a late answer to it is logged and dropped, and the waiting request goes out."""
+        now = self.clock()
+        late = []
+        for request in (self.save_flight, self.save_waiting):
+            if request is not None:
+                due = [caller for caller in request.callers if caller.deadline <= now]
+                request.callers = [caller for caller in request.callers if caller.deadline > now]
+                late += [(caller, self.save_result('timeout', request)) for caller in due]
+        if self.save_waiting is not None and not self.save_waiting.callers:
+            self.save_waiting = None
+        flight = self.save_flight
+        if flight is not None and not flight.callers:
+            LOG.warning('save_world %d was not answered in time; a late answer is dropped', flight.id)
+            self.save_flight = None
+            self.send_waiting()
+        for caller, result in late:
+            tell_caller(caller, result)
 
 
 # ---------------------------------------------------------------- processes and the event loop
@@ -2107,13 +2425,23 @@ class Runner:
 
 
 class Peer:
-    def __init__(self, sock, pid, uid):
+    def __init__(self, sock, pid, uid, loop=None):
+        self.loop = loop
         self.sock = sock
         self.pid = pid
         self.uid = uid
         self.buffer = b''
         self.wrapper = False
         self.launch = None
+        self.lifecycle = False  # the game's accepted lifecycle connection (package 25)
+        self.closed = False
+
+    def send(self, message):
+        """One line to this peer, never waited for. False: it did not take the line and is dropped."""
+        return self.loop.reply(self, message)
+
+    def close(self):
+        self.loop.drop(self)
 
 
 class Loop:
@@ -2213,7 +2541,7 @@ class Loop:
             sock.close()
             return
         sock.setblocking(False)
-        self.selector.register(sock, selectors.EVENT_READ, ('peer', Peer(sock, pid, uid)))
+        self.selector.register(sock, selectors.EVENT_READ, ('peer', Peer(sock, pid, uid, self)))
 
     def on_peer(self, key, peer):
         try:
@@ -2226,14 +2554,18 @@ class Loop:
             self.drop(peer)
             return
         peer.buffer += data
-        while b'\n' in peer.buffer:
+        while b'\n' in peer.buffer and not peer.closed:
             line, peer.buffer = peer.buffer.split(b'\n', 1)
+            lifecycle = peer.lifecycle
             try:
-                answer = self.handle(peer, line)
+                answer = self.on_lifecycle_line(peer, line) if lifecycle else self.handle(peer, line)
             except Exception:  # one bad request must never take the desktop's supervision down
                 LOG.exception('a request failed')
-                answer = {'ok': False, 'error': 'internal', 'message': 'the request failed; see desktop.log'}
-            self.reply(peer, answer)
+                answer = None if lifecycle else {'ok': False, 'error': 'internal',
+                                                 'message': 'the request failed; see desktop.log'}
+            # No answer: a lifecycle line (the mod expects none), or a reply that comes later (`save`).
+            if answer is not None:
+                self.reply(peer, answer)
         if len(peer.buffer) > MAX_LINE:
             self.drop(peer)
 
@@ -2243,17 +2575,24 @@ class Loop:
         except (KeyError, ValueError):
             return
         peer.sock.close()
+        peer.closed = True
         if peer.wrapper:
             self.supervisor.on_wrapper_gone(peer.launch)
+        if peer.lifecycle:
+            self.supervisor.on_lifecycle_gone(peer)
 
     def reply(self, peer, message):
+        """One line to a peer. It never blocks the loop (package 25, 1.5): a peer that does not take its whole
+        line at once is dropped. True: the line was taken."""
+        data = (json.dumps(message) + '\n').encode('utf-8')
         try:
-            peer.sock.setblocking(True)
-            peer.sock.settimeout(2)
-            peer.sock.sendall((json.dumps(message) + '\n').encode('utf-8'))
-            peer.sock.setblocking(False)
-        except OSError:
+            taken = peer.sock.send(data)  # the socket is non-blocking
+        except OSError:  # a full buffer (BlockingIOError), a closed peer
+            taken = -1
+        if taken != len(data):
             self.drop(peer)
+            return False
+        return True
 
     def handle(self, peer, line):
         try:
@@ -2283,6 +2622,10 @@ class Loop:
             # Only the game this supervisor watches can be reported, so any same-user peer may report it.
             supervisor.on_jvm_report(request['pid'], request.get('status'), request.get('launch'))
             return {'ok': True}
+        if op == 'lifecycle_hello':
+            return self.lifecycle_hello(peer, request)
+        if op == 'save':
+            return self.save_op(peer, request)
         if op == 'status':
             return dict(ok=True, **supervisor.status())
         if op == 'retry':
@@ -2294,6 +2637,32 @@ class Loop:
         if op == 'hide_cover':
             return {'ok': True, 'message': supervisor.owner_hides_cover()}
         return {'ok': False, 'error': 'unknown_operation', 'message': f'unknown op {op!r}'}
+
+    # the lifecycle channel and saves (package 25, brief section 1)
+    def lifecycle_hello(self, peer, request):
+        """Accepted: no reply, and from now on only world_saved is read on this connection. Refused: it closes."""
+        if self.supervisor.on_lifecycle_hello(peer, request):
+            peer.lifecycle = True
+        else:
+            self.drop(peer)
+        return None
+
+    def on_lifecycle_line(self, peer, line):
+        try:
+            message = json.loads(line.decode('utf-8'))
+        except (ValueError, UnicodeError):
+            return None  # dropped, like every line that is no world_saved
+        self.supervisor.on_lifecycle_message(peer, message)
+        return None
+
+    def save_op(self, peer, request):
+        """Socket op `save` (1.5): the reply comes when the result is in, so nothing waits here."""
+        reason = request.get('reason', 'manual')
+        if reason not in SAVE_REASONS:
+            return {'ok': False, 'error': 'bad_reason',
+                    'message': 'a save\'s reason is one of: ' + ', '.join(SAVE_REASONS)}
+        self.supervisor.request_save(reason, lambda result: self.reply(peer, save_reply(result)))
+        return None
 
     def reap(self, key, process):
         self.forget_fd(key.fd)
@@ -2389,14 +2758,26 @@ class Loop:
 # ---------------------------------------------------------------- command line
 
 
-def request(paths, message, timeout=10):
+def request(paths, message, timeout=REQUEST_WAIT):
+    """One request and its reply, inside one deadline for all of it: connecting, sending and waiting (package 25,
+    1.5). Past it: TimeoutError (an OSError)."""
+    deadline = time.monotonic() + timeout
+
+    def left():
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError(f'no reply within {timeout:.0f} s')
+        return remaining
+
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    sock.settimeout(timeout)
     try:
+        sock.settimeout(left())
         sock.connect(paths.socket)
+        sock.settimeout(left())
         sock.sendall((json.dumps(message) + '\n').encode('utf-8'))
         data = b''
         while not data.endswith(b'\n'):
+            sock.settimeout(left())
             chunk = sock.recv(65536)
             if not chunk:
                 break
@@ -2481,6 +2862,18 @@ def session(paths):
     return 0
 
 
+def save_command(paths, reason):
+    """`aresos-desktop save` (package 25, 1.5): exit 0 only when the game answered that the active world is saved."""
+    try:
+        reply = request(paths, {'op': 'save', 'reason': reason}, timeout=COMMAND_WAIT)
+    except (OSError, ValueError) as error:
+        print(f'Not saved: the AresOS desktop supervisor did not answer ({error}).', file=sys.stderr)
+        return 1
+    saved = reply.get('ok') is True and reply.get('result') == 'saved'
+    print(reply.get('message', ''), file=sys.stdout if saved else sys.stderr)
+    return 0 if saved else 1
+
+
 def reset_instance(paths):
     lock = load_lock(paths.share)
     runner = Runner(paths, None)
@@ -2504,7 +2897,9 @@ def reset_instance(paths):
 def main(argv=None):
     parser = argparse.ArgumentParser(prog='aresos-desktop', description='AresOS desktop supervisor (package 23)')
     parser.add_argument('command', choices=['session', 'supervise', 'status', 'retry', 'forget-hub',
-                                            'reset-instance', 'explain', 'hide-cover'])
+                                            'reset-instance', 'explain', 'hide-cover', 'save'])
+    parser.add_argument('--reason', choices=SAVE_REASONS, default='manual',
+                        help='save: why the world is saved (it is only logged)')
     args = parser.parse_args(argv)
     paths = Paths.from_environ()
     if args.command == 'session':
@@ -2513,6 +2908,8 @@ def main(argv=None):
         return supervise(paths)
     if args.command == 'reset-instance':
         return reset_instance(paths)
+    if args.command == 'save':
+        return save_command(paths, args.reason)
     op = {'status': 'status', 'explain': 'status', 'retry': 'retry', 'forget-hub': 'forget_hub',
           'hide-cover': 'hide_cover'}[args.command]
     try:

@@ -766,6 +766,7 @@ class LaunchTest(unittest.TestCase):
     def test_the_game_runs_on_nvidia_only_when_its_driver_is_there(self):
         env = desktop.game_environment('desk-1', 'n' * 32, nvidia=True)
         self.assertEqual(env, {'ARESOS_DESKTOP_INSTANCE': 'desk-1', 'ARESOS_LAUNCH_NONCE': 'n' * 32,
+                               'ARESOS_DESKTOP_LIFECYCLE': '1',  # package 25: the mod's lifecycle channel
                                'PATH': '/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin',
                                '__NV_PRIME_RENDER_OFFLOAD': '1', '__GLX_VENDOR_LIBRARY_NAME': 'nvidia',
                                '__VK_LAYER_NV_optimus': 'NVIDIA_only'})
