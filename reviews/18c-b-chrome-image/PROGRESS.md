@@ -3,6 +3,183 @@
 Brief: `briefs/18c-b-chrome-image.md` (on `main` since PR #73).
 Branch `pkg/18c-b-chrome`, one builder at a time. Each step is a fresh agent; this file is the handoff.
 
+## Step 4 (2026-11-19, Claude Opus 5.5): the VM's first half, split at 4b
+
+**Split at 4b.** The polkit probe, the Chrome pass with its layer and workflow step, C1, C2 and C6's first use with
+its reboot are green on `478056d7` (run 44435868192). Four of the twelve `check_build=control` runs are used (one
+of them with one infrastructure rerun), and the token budget is past half, so this step stops here as the brief's
+split point says. **4b** takes C3, the rest of C6, C10 and C11.
+
+### Done
+
+- `os/ci/control/chrome_actions.py` (new; the layer installs it as `actions.d/chrome.py`): the Chrome pass's guest
+  actions. Chrome runs as `ares` in his session through **aresos-shell's own launch line and environment**: the
+  shell file is loaded and its `ScopeLauncher` builds `systemd-run --user --scope --quiet --collect
+  --slice=app.slice --unit=app-aresos-browser-<id>.scope … --expand-environment=no -- /usr/bin/google-chrome`, with
+  the environment of the helper running in his session minus the shell's private values. CI flags:
+  `--no-first-run --no-default-browser-check --password-store=basic` only; one test-only start adds the DevTools
+  pipe and `--enable-unsafe-extension-debugging` with a throw-away profile (lead's decision 5). Every action waits
+  for his session first (helper and polkit agent), returns its evidence as files, and reuses 18c's helpers
+  (`actions.d/control.py`: `cli`, `refused`, `denials`, `files_out`, …).
+- `os/ci/control/chrome_layer.py` (new; run once by the layer's `Containerfile`): packs the install proof's probe
+  under its own fresh key with its own policy file (`ExtensionInstallForcelist` alone) and its own host (the
+  proof's `probe_host.py`, its two paths moved to `/run/aresos-install-test/`), lays out an extension as he would
+  load one by hand, and packs **bundles B and C** (for step 5's C4 and C5), each key inside one `pack.py` call.
+  Only IDs, versions and hashes are written down (`/usr/share/aresos-install-test/layer.json`).
+- `os/ci/control/control_vm.py`: 18c's pass now runs through a shared `Guest` (boot, act, screenshot, keys, clean
+  poweroff); its sequence, file names and printed lines are unchanged (green in runs 2 to 4). `control_vm.py
+  chrome` is the second pass: a fresh overlay `chrome.qcow2` on the same disk, `CHROME_STEPS` with QMP screenshots
+  and keys between actions and the pass's one reboot (clean power-key poweroff, then a new QEMU on the same overlay
+  and firmware variables). A check's PASS line sits on its last step and is printed only when every step since the
+  previous line succeeded. Evidence: `evidence/control/chrome/`.
+- `os/ci/check-build.sh`: mode `control-chrome-pass`, ending `CHECK_BUILD_CONTROL_CHROME_PASSED`.
+- `os/ci/control/Containerfile`: the action file, `cdp.py` and `netlog.py`, and one `chrome_layer.py` run.
+- `.github/workflows/os-image.yml`: the step "Control Chrome VM pass (check_build=control only)" (25 minutes), the
+  job's control limit 131 → 156 with its comment's sum; its own commit (`11dc4a52`).
+- `os/tests/test_control_vm.py`: six new tests (68 in the module): the layer installs the actions and the runner
+  asks each once in order; pkcheck's properties are the unit's own sandbox; the placeholder and the refusal message
+  are read from the installed files; the probe host's two moved paths; and `chrome_main` against a stand-in guest
+  (every line in order; a failed part hides only its own check's line; this test fails on run 3's bug).
+- `os/manifest/ci/16/pending-rebind.json`: five notes, each from `rebind.py pending`.
+
+Commits: `5eed178b` (the pass), `11dc4a52` (workflow), `4affd0ec` (wait for his session), `c54aa6bf` (the probe's
+verdict, the menu), `478056d7` (a line on a keys step; the stand-in-guest tests).
+
+### The polkit probe (run 44435868192, attempt 1; also run 44431963530)
+
+A `sleep 900` started with the shell's line (cgroup `/user.slice/user-1001.slice/user@1001.service/app.slice/
+app-aresos-polkit\x2dprobe-<id>.scope`) is the subject of `confirm.command`'s exact `pkcheck --action-id
+org.aresos.control.chrome-loosen --process <pid>,<start>,1001 --allow-user-interaction --detail change <text>`,
+run as `aresos-tools` with every `[Service]` property of the installed unit except how it starts and restarts
+(`systemd-run --wait --pipe --property=User=aresos-tools … --property=ReadWritePaths=…`).
+
+- **polkit asked his agent:** pkcheck was still waiting 8 s after its start; KDE's dialog "Authentication
+  Required" showed the action's message with the change text, "Authenticating as AresOS daily session (ares)"
+  (`evidence/control/chrome/polkit-dialog.png`; before and after: `polkit-before.png`, `polkit-after.png`; the
+  dialog's area, 59412 pixels in the box 315,51–961,749, changed between the dialog and after Escape).
+- **Escape cancelled it:** pkcheck exited **1** ("Not authorized."; `systemd-run` reports `code=exited,
+  status=1/FAILURE`), `polkit-probe-output.txt`.
+- **The journal** (`polkit-journal.txt`): `polkitd[925]: Operator of unix-session:1 FAILED to authenticate to gain
+  authorization for action org.aresos.control.chrome-loosen for unix-process:2433:3348 [/usr/bin/sleep 900] (owned
+  by unix-user:ares)`. Session 1 is his greetd session (`Type=wayland`, `Class=user`, active, `session-1.scope`).
+- `CONTROL_CHROME_POLKIT_PROBE_PASS` at log line 4421 (run 3: 4378). Not a stop: polkit counted the
+  `app.slice` process as his active session and asked his agent.
+
+### Checks (run 44435868192 on `478056d7`, full `gh run view --log` line numbers)
+
+| Check | Result | Line |
+|---|---|---|
+| polkit probe | `CONTROL_CHROME_POLKIT_PROBE_PASS` (above) | 4421 |
+| C1 files | `CONTROL_CHROME_FILES_PASS`: 16 paths with owner, mode and hash as `control.json` records and as the checkout installs; both links root-owned links equal to `/usr/etc`'s, parents 0755; the policy folder holds `aresos-install-probe.json` (`ExtensionInstallForcelist` alone) and `aresos.json`; `gh` 2.103.3, its licence and lock; `/var/lib/aresos-control` `root:root` 0755 holding only the list, `root:aresos-tools` 0640, bytes exactly `{"format":0,"hosts":[]}` from the tmpfiles line; nothing at `/etc/aresos/control/chrome-excluded-sites.json` | 4423 |
+| C2 install (parts: hand-loaded, install, pinned screen, his tab, menu screen) | `CONTROL_CHROME_INSTALL_PASS`: his profile had no `Default` (its folder held only `Crash Reports`); ours installed 1.01 s and its host on `chrome.sock` 1.32 s after Chrome's start; `installType` admin, enabled, `mayDisable` false, `updateUrl` the `file:` address; `uninstall` refused ("cannot be modified by user"); no forbidden flag, no listening port; Chrome and the host in `app.slice/app-aresos-browser-<id>.scope`; the host with exactly `PATH` and `LANG`. Hand-loaded (pipe, throw-away profile): `installType` development, `setEnabled(ours, false)` refused, ours still enabled, admin, not disableable | 4427 |
+| C6 first use | `CONTROL_CHROME_SITES_FIRST_USE_PASS`: with the placeholder `tabs`, `read {"tab":1}`, `open` of a page-server address and `take_tab {"tab":1}` each refused `chrome_settings_unavailable` with exclusions.py's message; the page server received 0 requests for that address; root's `tee` wrote `{"format":1,"hosts":[]}` + newline, owner 0, group 250, mode 0640 unchanged; `tabs` listed his 2 tabs | 4429 |
+| C6 reboot | `CONTROL_CHROME_REBOOTED` (4430), `CONTROL_CHROME_SITES_REBOOT_PASS`: hash `9ef58307…a6ce`, owner, group, mode unchanged; Chrome started again, connected, `tabs` listed 2 tabs | 4432 |
+| SELinux scan | `CONTROL_CHROME_SELINUX_PASS`: Enforcing, 10 denials in the boot (the base's `tuned`/`chcon`), none naming the host, the service, `gh` or `pkcheck` | 4434 |
+| end | `CONTROL_CHROME_VM_POWEROFF_CLEAN` 4435, `CHECK_BUILD_CONTROL_CHROME_PASSED` 4437 | |
+
+18c's pass on the same run: `CHECK_BUILD_CONTROL_PASSED` 4410; the image checks' `CONTROL_CHROME_BUNDLE_PASS` 2998,
+`KEY_SCAN` 2999, `CHECKOUT` 3657, `BUILD_LOG` 3661. The Chrome pass took 99.1 s inside its step (1 min 39 s;
+boot 27.9 s, reboot 21.7 s); the job 1 h 5 min, of which the image build 52 min on this runner.
+
+### Runs
+
+| Run | Head | Result |
+|---|---|---|
+| 44421776687 attempt 1 | `11dc4a52` | Infrastructure: "Install pinned tools" failed on an Ubuntu snapshot package's hash mismatch (apt exit 100). Rerun once. |
+| 44421776687 attempt 2 | `11dc4a52` | FAIL: the pass reached the guest 25 s after boot, before his session's helper ran; every Chrome start failed. `CONTROL_CHROME_FILES_PASS` green. |
+| 44427301872 | `4affd0ec` | FAIL only in the probe's verdict (it required exit 3; KDE gives 1). Files, install, first use, reboot and SELinux green (lines 4376–4388). |
+| 44431963530 | `c54aa6bf` | FAIL: probe and C1 green (4378, 4380); then the runner stopped on a line placed on a keys step (`TypeError`). |
+| 44435868192 | `478056d7` | **PASS**, every step; lines above. |
+| 44445214116 | `478056d7` | checks_only **PASS**: "Ran 1811 tests" (log 3854), "OK (skipped=4)" (3856). |
+
+### Left, in order
+
+1. **4b** (a fresh Opus agent): C3, the rest of C6 (with C6's full `CONTROL_CHROME_SITES_PASS` line), C10, C11
+   (`aresos control log`, not `aresos log`, since PR #109). Add them as steps after `chrome-sites-after-reboot`
+   (Chrome runs there, connected, list written) and before `chrome-selinux`, which stays last. Also: the
+   **managed-note screenshot** isn't there yet: `c2-managed.png` shows his tab without Chrome's menu (Alt+F through
+   QMP showed nothing at the instant of the screenshot, taken 0.0 s after the keys). Try a pause of about 1 s
+   before the screenshot, or F10 / Alt+E; C2's PASS doesn't depend on it.
+2. **5:** C4, C5 (bundles B and C are in the layer at `/usr/share/aresos-install-test/bundles/{b,c}`), C9, then C7
+   and C8.
+3. **6:** the rehearsal checks, the two greens on the final head, README lines, the report text.
+
+### What the code doesn't show
+
+- **SELinux context:** the pass starts Chrome from the CI service, so Chrome, its host and the probe's subject
+  run as `system_u:system_r:unconfined_service_t:s0`; from his helper they would be `unconfined_t` (his agent is,
+  `sessions-at-start.json`). The cgroup, user and environment are the shell's; the context is not.
+- **polkit and the manager session:** logind lists two sessions for `ares`, 1 (greetd, wayland, active) and 2
+  (`Class=manager`, `user@1001.service`). polkit still maps an `app.slice` process to session 1.
+- **KDE's agent reports Escape as a failed authentication (1), not a dismissed dialog (3).** The service would tell
+  Chrome's details page "the password was wrong or the request was denied" (`confirm.py`'s `REFUSALS[1]`) when he
+  cancels. C7 (step 5) sees this with the details page; the text is the service's, out of this package's scope.
+- polkitd 127 writes no journal line when an agent registers; only the probe's "Operator of …" line shows which
+  session's agent was asked.
+- **The pinned button:** `c2-pinned.png` shows an "A" button right of the address bar, beside the extensions
+  button. The guest doesn't compare it with an unpinned start; the container's case 1 did (pixels).
+- Chrome doesn't open a `chrome://` page handed over from a command line; each hand-over of an ordinary page opened
+  a tab (2 tabs at first use).
+- The guest has a network (QEMU's user NAT); Chrome's starts are not offline as in the container. C9 (step 5)
+  needs to account for it.
+- Chrome's log in the guest holds VA-API and portal errors (no GPU video, no desktop portal); nothing blocks.
+- His profile folder held `Crash Reports` before his first start; **assumed** to come from the throw-away start's
+  crash reporter (not checked). C2 requires only that no `Default` profile existed.
+
+### JUDGMENT-CALLs
+
+1. **How Chrome starts:** the shell's own `ScopeLauncher` line and the helper's environment, not the shell's launch
+   request. The request is the desktop's (instance and launch nonce) and the guest's desktop is at its first
+   start; posing as the desktop would tell the supervisor a desktop connected. The brief's fallback ("the same
+   `systemd-run --user --scope` line with the session's environment"), with the shell's code building it.
+2. **C2 leaves out case 1's `setEnabled(false)` by the policy-installed probe and its restart, and the pixel
+   comparison of the pin.** Decision 1 after step 2 accepted the first as Chrome's behaviour; the guest asks the
+   hand-loaded extension instead (decision 5) and screenshots the pin.
+3. **C6's line in two parts for now:** `CONTROL_CHROME_SITES_FIRST_USE_PASS` and `CONTROL_CHROME_SITES_REBOOT_PASS`;
+   4b adds the later part and the table's `CONTROL_CHROME_SITES_PASS`.
+4. **The probe's verdict** accepts exit 1 or 3 after Escape, together with polkitd's line naming his session and
+   the subject and the dialog's area changing; it prints `CONTROL_CHROME_POLKIT_PROBE_PASS`, a line the brief's
+   table doesn't have.
+5. `CHECK_BUILD_CONTROL_CHROME_PASSED` is printed when every step of the pass passed; in step 4 that is the probe,
+   C1, C2, C6's first use and reboot, and the SELinux scan.
+6. The workflow step runs like 18c's pass step (`if: inputs.check_build == 'control'`): when 18c's pass fails, the
+   Chrome pass is skipped.
+7. The list is written with a trailing newline, as `tee` gets it when he presses Enter.
+
+### PLAN-GAPs
+
+- The brief's probe expected "cancel" to give pkcheck's "dismissed"; with KDE's agent it gives "not authorized".
+- Chrome's "managed" note can't be opened as `chrome://management` from a command line; the menu is the way, and its
+  screenshot is still missing (Left, 1).
+- The pass must wait for his session after every boot (`chrome-session` took 10.3 s after the channel, 5 s of it a
+  fixed pause; the first attempt reached the guest 25 s after boot, before his helper ran).
+
+### checks_only
+
+Run 44445214116 on `478056d7`: success, "Ran 1811 tests" at log line 3854 and "OK (skipped=4)" at 3856 (3b had
+1805; the six new tests here). Locally: `test_control_vm.py` 68 tests OK, and `test_ci_step_environment`,
+`test_ci_api_permissions`, `test_build_tools`, `test_rehearsal_budget` OK after the workflow change.
+
+### The os/ and os-image.yml diff for linux-aresos
+
+Net from `7df9cfbc`:
+
+- `os/ci/control/chrome_actions.py` (new), `os/ci/control/chrome_layer.py` (new): the Chrome pass's guest actions
+  and the test layer's probe, hand-loaded extension and bundles B and C; test layer only.
+- `os/ci/control/Containerfile`: installs them (`actions.d/chrome.py`, `cdp.py`, `netlog.py`, one `chrome_layer.py`
+  run).
+- `os/ci/control/control_vm.py`: a shared `Guest`; the Chrome sequence (`control_vm.py chrome`).
+- `os/ci/check-build.sh`: mode `control-chrome-pass`.
+- `os/tests/test_control_vm.py`: six tests.
+- `os/manifest/ci/16/pending-rebind.json`: five generated pending notes.
+- `.github/workflows/os-image.yml` (`11dc4a52`, its own commit): the step "Control Chrome VM pass (check_build=control
+  only)", `timeout-minutes: 25`, `run: bash os/ci/check-build.sh control-chrome-pass`, after 18c's pass and before
+  the fixture servers stop; the job's control limit 131 → 156, comment "tools 20 + build 80 + Control VM pass 16 +
+  Control Chrome VM pass 25 + 15". Nothing else in the file.
+
+No image content, release file, base, lock or unit changes. Scratch: `.work/18c-b-4/` (logs and two evidence
+artifacts, about 15 MB); nothing over 500 MB.
+
 ## Step 3b: the lead's runs on 5a027074 (2026-11-19)
 
 The lead dispatched and watched these from the shell (the builder pushes and stops):
