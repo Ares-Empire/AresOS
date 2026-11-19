@@ -103,6 +103,8 @@ test('an outline line and its reference are found by the words the line starts w
   const outline='h1 "Steps"\nform → POST fixture.test kqtvm1\n  textbox "Alpha" = "x" kqtvm2\n  textbox "Alpha two" kqtvm3\n  button "Send" kqtvm40';
   assert.equal(refOf(outline,'textbox "Alpha"'),'kqtvm2');assert.equal(refOf(outline,'button "Send"'),'kqtvm40');
   assert.equal(lineOf(outline,'form'),'form → POST fixture.test kqtvm1');
+  assert.equal(refOf('button "Delete" kqtvm41 · in list "Archive"','button "Delete"'),'kqtvm41');
+  assert.equal(refOf('button "Send" kqtvm42 · in form','button "Send"'),'kqtvm42');
   assert.throws(()=>refOf(outline,'h1 "Steps"'),/a reference on/);assert.throws(()=>lineOf(outline,'link'),/a line starting with link/);
 });
 
