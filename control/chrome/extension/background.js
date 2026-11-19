@@ -1199,6 +1199,14 @@ async function dispatch(command,expires=null) {
     assertControl(tab);const selected=await chrome.tabs.get(tab);assertControl(tab);
     if(!selected.active){effectStarted=true;await chrome.tabs.update(tab,{active:true});}
   }
+  // Brief 28a, item 5 ("On screen first"): the target of a pointer input is
+  // scrolled into view by its reader, here inside the armed hold, so what the
+  // page does on that scroll is held like after any input. The last facts
+  // read, the binding comparison and brief 20's hit test follow and decide.
+  // A scroll is no input: a refusal after it still dispatched nothing.
+  if(command.name==='input'&&!target.password&&(['click','scroll'].includes(command.input.verb)||command.input.verb==='check'&&target.states.checked!==command.input.checked)){
+    assertControl(tab);await content(tab,reference.frame,'reveal',{element:reference.element,generation:dispatchEpoch});
+  }
   if(recording&&command.fixture_arm_delay){respond({event:'fixture_arm_wait',operation:command.operation});await new Promise(resolve=>setTimeout(resolve,command.fixture_arm_delay));}
   // Arming other frames may take time. Compare again at the actual input boundary.
   snapshot=await facts(tab,reference);

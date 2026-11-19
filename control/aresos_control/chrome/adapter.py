@@ -407,6 +407,67 @@ class Chrome:
             raise Refused('stale_reference', 'Document, frame or element changed; read again.')
         return facts, frame
 
+    def acting(self, tab, ref):
+        """Brief 28a, item 2: an action's short reference, resolved and checked.
+
+        The reference resolves through the table to brief 20's internal
+        reference (session, tab, frame, document, element; no `view`), and the
+        action then runs brief 20's path unchanged. Returns the facts, the
+        target's frame and that reference. Refused with `stale_reference` when
+        the table refuses it, when the document, the frame or the element is
+        gone (the extension's own checks), when another reader instance
+        answers, and when the target's fingerprint differs from the one Claude
+        last saw: then with the element's present line (`present`).
+        """
+        entry = self.references.acting(ref, tab, self.bridge.session)
+        reference = {'session': self.bridge.session, 'tab': tab, 'frame': entry.frame, 'document': entry.document,
+                     'element': 'e%d' % entry.target}
+        facts, frame = self.facts(reference)
+        if frame.get('reader') != entry.reader:
+            raise Stale()
+        if entry.fingerprint is None or frame.get('fingerprint') != entry.fingerprint:
+            raise self.present(tab, entry)
+        return facts, frame, reference
+
+    def present(self, tab, entry):
+        """The refusal of a reference whose element changed: its line as a fresh outline shows it, where it has one."""
+        try:
+            _, view = self.outline_view(tab)
+        except Refused:
+            return Stale()
+        self.references.connect(view.session)
+        document = view.frames.get(entry.frame)
+        if document is None or document.document != entry.document or document.reader != entry.reader:
+            return Stale()
+        return outline_view.stale(view, self.references, document.nodes.get(entry.target))
+
+    def stale_shown(self, tab, exc):
+        """Give Claude a stale refusal's present line: it goes in `untrusted_content.now` and counts as shown."""
+        if getattr(exc, 'line', None):
+            self.references.returned(tab, exc.shown)
+            exc.untrusted_content = {'now': exc.line}
+        else:
+            self.references.trim(tab)
+        return exc
+
+    def act(self, verb, args):
+        """Brief 28a, item 2, before item 8's step 1d offers it: one input step named by `tab` and `ref`.
+
+        Not in the public catalogue. The payload, the classification, the
+        question and the dispatch are brief 20's; after a free input the
+        fingerprint moves to what the reader observed of the element acted on.
+        """
+        try:
+            payload, _ = self.payload(verb, args)
+        except Stale as exc:
+            raise self.stale_shown(args.get('tab'), exc) from None
+        if payload['kind']:
+            return self.engine.reserve('chrome', 'submit', payload)
+        result = self.free(verb, payload)
+        page = result['untrusted_content'].get('page') if isinstance(result['untrusted_content'], dict) else None
+        self.references.acted(args['tab'], args['ref'], page.get('change') if isinstance(page, dict) else None)
+        return result
+
     def read(self, verb, args):
         mode = self.mode()
         facts = self.bridge.call('read', tab=args['tab'])
@@ -874,9 +935,14 @@ class Chrome:
         mode = self.mode(acting=True)
         if verb == 'press':
             args = {**args, 'key':canonical_key(args['key']), 'key_input':key_input(args['key'])}
-        facts, frame = self.facts(args['reference'])
-        if args.get('expected') is not None and args['expected'] != visible(frame['target']):
-            raise Refused('stale_reference', 'Element no longer holds its expected state; read again.')
+        if 'ref' in args:
+            # Brief 28a, item 2: a short reference, checked against its fingerprint, not a caller's expected.
+            facts, frame, reference = self.acting(args['tab'], args['ref'])
+            args = {**{key: value for key, value in args.items() if key not in {'tab', 'ref'}}, 'reference': reference}
+        else:
+            facts, frame = self.facts(args['reference'])
+            if args.get('expected') is not None and args['expected'] != visible(frame['target']):
+                raise Refused('stale_reference', 'Element no longer holds its expected state; read again.')
         readonly = any(self.store.get('chrome:readonly:' + hostname(url), False) for url in [facts['url'],frame.get('effective_url',frame['url'])])
         href=frame['target'].get('href')
         if href and not href.startswith('javascript:') and (verb=='click' or verb=='press' and args.get('key','').split('+')[-1] in {'Enter','Space'}):

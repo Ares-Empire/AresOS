@@ -39,12 +39,19 @@
   // Chrome reads the base target only from the first HTML <base> that has one;
   // a <base> in SVG or another namespace is an ordinary element to it.
   const htmlBase=node=>isElement(node)&&node.namespaceURI==='http://www.w3.org/1999/xhtml'&&node.localName==='base';
+  // While `outline` fingerprints every node (brief 28a, item 2), the base
+  // target and each form's implicit submitter are looked up once, not once
+  // for each link and field: each lookup walks the whole page.
+  let outlineMemo=null;
   function documentBaseTarget(){
+    if(outlineMemo&&'base' in outlineMemo)return outlineMemo.base;
+    let found=null;
     for(const base of documentQueryAll?documentQueryAll.call(document,'base[target]'):document.querySelectorAll?.('base[target]')||[]){
       const target=htmlBase(base)?elementAttribute.call(base,'target'):null;
-      if(target!==null)return target;
+      if(target!==null){found=target;break;}
     }
-    return null;
+    if(outlineMemo)outlineMemo.base=found;
+    return found;
   }
   function browsingTarget(element,attribute,explicit=element.getAttribute(attribute)) {
     if(attribute==='target'&&svgLink(element)){
@@ -425,10 +432,42 @@
     }
     return input||tag==='img'||tag==='progress'||tag==='meter';
   }
+  // Brief 28a, items 0 and 2: page text as the native wire repairs it (lone
+  // surrogates become U+FFFD, valid pairs stay), for the fingerprint's hash only.
+  const wellFormed=value=>typeof value.toWellFormed==='function'?value.toWellFormed():Array.from(value,c=>c.length===1&&c.charCodeAt(0)>=0xd800&&c.charCodeAt(0)<=0xdfff?'\ufffd':c).join('');
+  // Brief 28a, item 2: what an element means, for the check before an action.
+  // `outline` (every node), `facts` (the target) and `observe` (the element
+  // acted on) all take it from here, so the read and the check can't drift
+  // apart. It is taken from the element, not from a line: a name or value a
+  // line cut, and a link's whole address, count whole. Left out on purpose:
+  // where the element sits (its box, on screen or not) and the states
+  // disabled, required and invalid. A password-kind field means only that it
+  // is one, and an unread field only that it is unread: nothing the password
+  // rule keeps out is read for it.
+  function meaning(element){
+    if(password(element))return ['password'];
+    const tag=element.localName,kind=outlineRole(element,tag),aria=key=>element.getAttribute('aria-'+key),native=element.namespaceURI===XHTML;
+    const dialog=element.closest('dialog,[role=dialog],[role=alertdialog]');
+    let value=null;
+    if(html(element,HTMLInputElement,'input')&&element.type==='file')value=['files',[...element.files].map(file=>String(file.name))];
+    else{const safe=safeValue(element,false);if(safe.password)value=['password'];else if(safe.unknown_history)value=['unread'];else if('value' in safe)value=['value',safe.value];}
+    return [kind,name(element,contentNamed.has(kind)),element.labels?.length?squeeze([...element.labels].map(node=>text(node,true)).join(' ')):'',element.getAttribute('title')||'',
+      hyperlinkAddress(element),hyperlink(element)?browsingTarget(element,'target'):null,submitsForm(element),!!implicitSubmitter(element),editableTarget(element),searchTarget(element),
+      dialog?[id(dialog),role(dialog)]:null,
+      native&&tag==='input'&&['checkbox','radio'].includes(element.type)?element.checked===true:aria('checked'),
+      native&&tag==='option'?element.selected===true:aria('selected'),
+      native&&tag==='details'?element.open===true:aria('expanded'),
+      html(element,HTMLSelectElement,'select')?[...element.options].map(option=>{const facts=optionFacts(option);return [facts.label,facts.value,facts.chosen];}):null,
+      value];
+  }
+  // Its short digest: 128 bits of SHA-256 over the repaired JSON of `meaning`.
+  // The service only stores and compares these.
+  const fingerprint=element=>sha256(new TextEncoder().encode(JSON.stringify(meaning(element),(key,value)=>typeof value==='string'?wellFormed(value):value))).slice(0,32);
   function outline(budget){
     // The background passes what is left of the tab's nodes; a frame never gets more than the limit.
     const limit=Number.isInteger(budget)&&budget>=0?Math.min(budget,NODE_LIMIT):NODE_LIMIT;
     const mark=traces.length;
+    outlineMemo={forms:new Map()};
     try{
       let modal=null;const errors=new Set();
       for(const element of all()){
@@ -467,7 +506,7 @@
       // Document order: a parent stands before its children.
       function emit(record,parent){
         if(nodes.length>=limit){lost(record);return false;}
-        const out={id:number(record.element),parent,...record.out};nodes.push(out);
+        const out={id:number(record.element),parent,...record.out,fingerprint:fingerprint(record.element)};nodes.push(out);
         const parts=[];
         for(const part of record.parts){
           if(typeof part==='string')parts.push(part);
@@ -482,7 +521,7 @@
       for(const part of top.parts)if(typeof part!=='string')emit(part,null);
       return {document:documentId,reader:readerInstance,watched,origin:globalThis.origin,url:location.href,title:document.title,
         scroll:Math.max(0,Math.round(scrollY)||0),height:Math.max(0,Math.round(document.documentElement?.scrollHeight)||0),omitted,nodes};
-    }finally{traces.length=mark;}
+    }finally{traces.length=mark;outlineMemo=null;}
   }
   // Every option of one list field, for a read of that field by its reference.
   // A number names an element only for the reader instance that gave it: a
@@ -537,7 +576,11 @@
   }
   function implicitSubmitter(element) {
     if(!(html(element,HTMLInputElement,'input')) || !element.form || ['button','submit','image','checkbox','radio','file','hidden','range','color'].includes(element.type))return null;
-    return [...element.getRootNode().querySelectorAll('button,input')].find(control=>control.form===element.form&&['submit','image'].includes(control.type)) || null;
+    const root=element.getRootNode(),forms=outlineMemo?.forms.get(root);
+    if(forms?.has(element.form))return forms.get(element.form);
+    const found=[...root.querySelectorAll('button,input')].find(control=>control.form===element.form&&['submit','image'].includes(control.type)) || null;
+    if(outlineMemo){if(!forms)outlineMemo.forms.set(root,new Map());outlineMemo.forms.get(root).set(element.form,found);}
+    return found;
   }
   function mappedImage(area){
     if(area.tagName!=='AREA')return null;
@@ -553,7 +596,8 @@
     if(shape==='poly'&&coords.length>=6&&coords.length%2===0){let inside=false;for(let i=0,j=coords.length-2;i<coords.length;j=i,i+=2)if((coords[i+1]>y)!==(coords[j+1]>y)&&x<(coords[j]-coords[i])*(y-coords[i+1])/(coords[j+1]-coords[i+1])+coords[i])inside=!inside;return inside;}
     return false;
   }
-  function targetFacts(element) {
+  // Where an element is on the screen; an image map's area lies inside its image.
+  function elementBox(element) {
     let box = element.getBoundingClientRect();
     const image=mappedImage(element);
     if(image){
@@ -567,10 +611,20 @@
       left=Math.max(0,left);top=Math.max(0,top);right=Math.min(bounds.width,right);bottom=Math.min(bounds.height,bottom);
       box={x:bounds.x+left,y:bounds.y+top,width:Math.max(0,right-left),height:Math.max(0,bottom-top),top:bounds.y+top,left:bounds.x+left,right:bounds.x+right,bottom:bounds.y+bottom};
     }
-    const value = safeValue(element);
-    const clickControl=['BUTTON','A','AREA','SUMMARY'].includes(element.tagName) || hyperlink(element) ||
+    return box;
+  }
+  // Brief 20's three kinds of a target, for its facts and its fingerprint alike.
+  function clickControl(element) {
+    return ['BUTTON','A','AREA','SUMMARY'].includes(element.tagName) || hyperlink(element) ||
       html(element,HTMLInputElement,'input') && ['button','submit','image','checkbox','radio','range','color','file','reset'].includes(element.type) ||
       (element.getAttribute('role')||'').toLowerCase().split(/\s+/).some(role=>['button','link','menuitem','menuitemcheckbox','menuitemradio','checkbox','radio','switch','option','tab','treeitem'].includes(role));
+  }
+  const editableTarget=element=>!clickControl(element) && (html(element,HTMLInputElement,'input') && !['button','submit','image','checkbox','radio','file','hidden'].includes(element.type) || html(element,HTMLTextAreaElement,'textarea') || element.isContentEditable);
+  const searchTarget=element=>element.type === 'search' || element.getAttribute('role') === 'searchbox';
+  const submitsForm=element=>!!element.form && (element.type === 'submit' || element.type === 'image');
+  function targetFacts(element) {
+    const box = elementBox(element);
+    const value = safeValue(element);
     const dialog=element.closest('dialog,[role=dialog],[role=alertdialog]');
     const page_dialog=dialog ? {element:id(dialog),kind:role(dialog),text:text(dialog).replace(/\s+/g,' ').trim(),button:name(element),fields:[...dialog.querySelectorAll('input,textarea,select,[contenteditable]')].map(field)} : null;
     return {element: id(element), role: role(element), page_dialog, name: name(element), label:element.labels?.length?[...element.labels].map(node=>text(node,true)).join(' ').replace(/\s+/g,' ').trim():name(element), title: element.getAttribute('title') || '', ...value,
@@ -578,8 +632,8 @@
       ...(implicitSubmitter(element) ? {implicit_submitter:id(implicitSubmitter(element))}:{}),
       href: hyperlinkAddress(element),
       ...(hyperlink(element)?{browsing_target:browsingTarget(element,'target')}:{}),
-      editable: !clickControl && (html(element,HTMLInputElement,'input') && !['button','submit','image','checkbox','radio','file','hidden'].includes(element.type) || html(element,HTMLTextAreaElement,'textarea') || element.isContentEditable),
-      search: element.type === 'search' || element.getAttribute('role') === 'searchbox', submit: !!element.form && (element.type === 'submit' || element.type === 'image'),
+      editable: editableTarget(element),
+      search: searchTarget(element), submit: submitsForm(element),
       states: {checked: !!element.checked, selected: !!element.selected, disabled: !!element.disabled, required: !!element.required, invalid: element.getAttribute('aria-invalid') === 'true', expanded: element.getAttribute('aria-expanded')},
       box: {x:box.x,y:box.y,width:box.width,height:box.height}, onscreen: box.bottom > 0 && box.right > 0 && box.top < innerHeight && box.left < innerWidth && box.width > 0 && box.height > 0};
   }
@@ -708,8 +762,10 @@
       return {...facts, text: ['textbox','combobox','button','link','iframe'].includes(facts.role) ? '' : text(node).replace(/\s+/g, ' ').trim()};
     }).filter(Boolean);
     const editable = nodes.filter(node => node.matches('input,textarea,select,[contenteditable]') && !['hidden','button','submit','reset','image','file'].includes(node.type)).map(field);
-    return {document: documentId, revision, url: location.href, origin:globalThis.origin, title: document.title, scroll: {x:scrollX,y:scrollY}, rows,
-      target: element ? targetFacts(element) : null, form: element ? formFacts(element.form || (element.tagName === 'FORM' ? element : null), implicitSubmitter(element) || element) : null,
+    // Brief 28a, item 2: `facts` also says which reader instance numbered the
+    // element, and gives the target's fingerprint beside its facts.
+    return {document: documentId, reader: readerInstance, revision, url: location.href, origin:globalThis.origin, title: document.title, scroll: {x:scrollX,y:scrollY}, rows,
+      target: element ? targetFacts(element) : null, ...(element ? {fingerprint: fingerprint(element)} : {}), form: element ? formFacts(element.form || (element.tagName === 'FORM' ? element : null), implicitSubmitter(element) || element) : null,
       editable, typed_fields:typedFields(), compose:element?composeText(element,nodes):null, selected_files:nodes.filter(node=>html(node,HTMLInputElement,'input')&&node.type==='file').map(field), embeds:nodes.filter(node=>node.tagName==='IFRAME').map(embedding), item: element ? itemText(element) : '', item_fields:element?itemFields(element,nodes):[], adapter: adapterRead(nodes, element), trace: traces.splice(0)};
   }
   function adapterRead(nodes, target) {
@@ -819,7 +875,7 @@
       else if (message.command === 'finish_input') { guard.finish(message.generation,message.dispatch_nonce).then(()=>reply({ok:true,data:{finished:true}})); return true; }
       else if (message.command === 'resume') { if(message.generation!==controlGeneration)throw Error('stale_reference: control ended'); value=guard.resume(message.hold,message.operation,message.element,message.form); }
       else if (message.command === 'set_control') { controlGeneration=message.generation;guard.control?.(message.generation); value={controlled:true}; }
-      else if (['focus','select','check','stage_file','install_file'].includes(message.command) && message.generation !== controlGeneration) throw Error('stale_reference: control ended');
+      else if (['focus','select','check','stage_file','install_file','reveal'].includes(message.command) && message.generation !== controlGeneration) throw Error('stale_reference: control ended');
       if (message.command === 'install_file') {
         const staged=files.get(message.token),element=elements.get(message.element);
         if(!staged?.ready || !element?.isConnected || element.type !== 'file')throw Error('stale_reference: upload field or staged bytes changed');
@@ -846,11 +902,25 @@
       else if (message.command === 'dispose') {value={disposed:true,restored:guard.dispose(),document:documentId}; }
       else if (['set_control','arm','resume'].includes(message.command)) {}
       else if (message.command === 'hit') value={hit:hit(elements.get(message.element),message.x,message.y)};
+      else if (message.command === 'reveal') {
+        // Brief 28a, item 5 ("On screen first"): inside the armed hold, a
+        // pointer input's target whose centre isn't on screen is scrolled to
+        // the centre at once. Brief 20's facts read and hit test follow.
+        const element=elements.get(message.element);
+        if(!element?.isConnected)throw Error('stale_reference: read again');
+        if(password(element))throw Error('owner_signin: password fields belong to the owner');
+        const box=elementBox(element),x=box.x+box.width/2,y=box.y+box.height/2,shown=box.width>0&&box.height>0&&x>=0&&y>=0&&x<innerWidth&&y<innerHeight;
+        if(!shown)(mappedImage(element)||element).scrollIntoView({block:'center',inline:'center',behavior:'instant'});
+        value={revealed:!shown};
+      }
       else if(message.command==='observe'){
         const node=elements.get(message.element);
         const actual=node?.isConnected?safeValue(node):{},observed=typeof actual.value==='string'?{value:actual.value.slice(0,2048),value_more:Math.max(0,actual.value.length-2048)}:Array.isArray(actual.value)?{value:actual.value.slice(0,3),value_more:Math.max(0,actual.value.length-3)}:actual;
         const clipboard=guard.clipboard?.();
-        value={url:location.href,title:document.title,...(clipboard?{clipboard}:{}),notices:all().filter(element=>element.matches('[role=status],[role=alert],dialog[open],[role=dialog],[role=alertdialog]')).slice(0,5).map(element=>text(element).slice(0,2048)),change:node?.isConnected?{element:id(node),name:name(node),checked:!!node.checked,selected:!!node.selected,...observed}: {element_present:false}};
+        // Brief 28a, item 2: the fingerprint of the element acted on, with the
+        // document and reader instance that numbered it, so the service moves
+        // the fingerprint only for that element.
+        value={url:location.href,title:document.title,...(clipboard?{clipboard}:{}),notices:all().filter(element=>element.matches('[role=status],[role=alert],dialog[open],[role=dialog],[role=alertdialog]')).slice(0,5).map(element=>text(element).slice(0,2048)),change:node?.isConnected?{element:id(node),name:name(node),checked:!!node.checked,selected:!!node.selected,...observed,document:documentId,reader:readerInstance,fingerprint:fingerprint(node)}: {element_present:false}};
         if(clipboard)guard.clipboard(true);
       }
       else if (message.command === 'reload_state') value=reloadState();

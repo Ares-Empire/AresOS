@@ -45,7 +45,7 @@ function fixture(fields,{subtle=true,NativeBlob=Blob,protectedPeer=()=>false,wat
   const context=vm.createContext({document,chrome,Blob:NativeBlob,crypto:{subtle:subtle?webcrypto.subtle:undefined,getRandomValues:array=>array.fill(++fileSequence)},MutationObserver,
     Element,SVGAElement,SVGAnimatedString,HTMLElement:Element,HTMLInputElement,HTMLTextAreaElement,HTMLSelectElement,HTMLButtonElement,HTMLAnchorElement:Element,HTMLAreaElement:Element,Node:NativeNode,CustomEvent:class{},Event:class{constructor(type){this.type=type;}},
     atob:value=>Buffer.from(value,'base64').toString('binary'),setTimeout:fn=>timers.push(fn),
-    URL,getComputedStyle:element=>({display:['DIV','P','PRE'].includes(element.tagName)?'block':'inline',visibility:element.visibility||'visible',webkitTextSecurity:element.mask || 'none',whiteSpace:element.whiteSpace||(element.tagName==='PRE'?'pre':undefined)}),
+    URL,TextEncoder,getComputedStyle:element=>({display:['DIV','P','PRE'].includes(element.tagName)?'block':'inline',visibility:element.visibility||'visible',webkitTextSecurity:element.mask || 'none',whiteSpace:element.whiteSpace||(element.tagName==='PRE'?'pre':undefined)}),
     [Symbol.for('aresos.chrome.document-start.v1')]:watched,
     [Symbol.for('aresos.chrome.guard.v2')]:{protectedPeer,clipboard(take){const value=clipboardInfo;if(take)clipboardInfo=null;return value;},watch(){},reader(value){readerAPI=value;},arm(){},clear(){},resume(){return {resumed:'native_submit'};},steps(){return [];},
       // guard.js's typing record; without one, input since load is unknown.

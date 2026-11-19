@@ -5,7 +5,7 @@ import vm from 'node:vm';
 export const XHTML='http://www.w3.org/1999/xhtml',BASE='https://fixture.test/';
 // nodes.py: ROLES and the keys a node may hold.
 const ROLES=new Set('main navigation banner contentinfo complementary region search form article group list listitem table row cell columnheader rowheader figure img separator toolbar dialog alertdialog alert status tooltip progressbar frame h1 h2 h3 h4 h5 h6 p text link button textbox searchbox combobox listbox option checkbox radio radiogroup switch slider spinbutton tab tablist tabpanel menu menubar menuitem menuitemcheckbox menuitemradio tree treeitem grid gridcell password'.split(' '));
-const KEYS=new Set('id parent role name text value unread filled error states href method action hidden option_count chosen options title frame'.split(' '));
+const KEYS=new Set('id parent role name text value unread filled error states href method action hidden option_count chosen options title frame fingerprint'.split(' '));
 
 export function page(build,{watched=true}={}){
   class NativeNode{get baseURI(){return BASE;}}
@@ -49,6 +49,17 @@ export function page(build,{watched=true}={}){
       return false;
     }
     querySelectorAll(selector){return select(this,selector);}
+    querySelector(selector){return select(this,selector)[0]||null;}
+    // A box from $box (brief 28a's reveal and facts), else a small one on screen.
+    getBoundingClientRect(){const {x=1,y=1,width=10,height=10}=this.box||{};return {x,y,width,height,top:y,left:x,right:x+width,bottom:y+height};}
+    scrollIntoView(options){(this.scrolled??=[]).push(options);}
+    contains(node){for(let ancestor=node;ancestor;ancestor=ancestor.parentElement)if(ancestor===this)return true;return false;}
+    // Tags and [attribute=value] parts, as the reader asks for a page dialog.
+    closest(selector){
+      const parts=selector.split(',').map(part=>part.match(/^\[([\w-]+)=([\w-]+)\]$/)||part);
+      for(let node=this;node;node=node.parentElement)if(parts.some(part=>typeof part==='string'?node.localName===part:node.attrs[part[1]]===part[2]))return node;
+      return null;
+    }
   }
   class HTMLInputElement extends Element{}
   class HTMLTextAreaElement extends Element{}
@@ -94,7 +105,11 @@ export function page(build,{watched=true}={}){
       assert.ok(ROLES.has(node.role),String(node.role));
       for(const part of node.text||[])assert.ok(typeof part==='string'||result.data.nodes.some(child=>child.id===part&&child.parent===node.id));
       if(node.unread||node.role==='password'){assert.deepEqual(['value','text','chosen','options'].filter(key=>key in node),[]);assert.ok(!result.data.nodes.some(child=>child.parent===node.id));}
+      // Brief 28a, item 2: every node carries its fingerprint. Its own tests
+      // are in fingerprint.test.mjs; the shapes below are brief 28's.
+      assert.match(node.fingerprint,/^[0-9a-f]{32}$/);
     }
+    for(const node of result.data.nodes)delete node.fingerprint;
     return result.data;
   };
   return {run,outline,body,h};
