@@ -14,14 +14,11 @@ Ares-Empire/AresOS --interval 300` in a background shell.
 1. **R28 (cut 12:00 today; `linux-aresos`' conditions, 06:00):** #111 and #122 ride R28 if merged by 10:00 and
    Control CI is green **on main's merge commit**; send `linux-aresos` that commit and the results. If either goes
    red, revert it before 11:30 and it rides R29.
-   - **#111 merged:** main `c496035629e10f84887a01f2923ecedc72fcb48d`. Its CI on main: Chrome 44466955545,
-     qualification 44466955539, boundary 44466955478 (push), base 44466976680, Mail 44466979939, privacy
-     44466983207 (dispatched). Results not yet seen at this writing.
-   - **#122** (Chrome: declare the re-ask replies' `approval` and `state`; `~/AresOS-reask-schema`; head
-     `18d77b5c690bc25a23a58fa800346a2c2704be00`, review SAFE in `reviews/122-chrome-reask-schema/`): its CI on
-     `0eecff25`: base, boundary, privacy green; Chrome 44459995398, qualification 44459995374, Mail 44459995422
-     running. Merge (squash, `--match-head-commit` the full head SHA) when green, then dispatch base, Mail and privacy
-     on main (Chrome, qualification and boundary start on the push) and check them as above.
+   - **Both merged.** #111: main `c496035629e10f84887a01f2923ecedc72fcb48d`. #122 (07:27): main
+     `89dc80b186670e447d659024f493c7e62702307e`, which contains #111. On `c4960356` base, boundary and privacy are
+     green and Mail 44466979939 was running; its queued Chrome and qualification runs were cancelled because
+     `89dc80b1`'s runs cover both PRs: Chrome 44472212759, qualification 44472212767, boundary 44472212816, base
+     44472224412, Mail 44472228261, privacy 44472232086. Send `linux-aresos` the results; revert on red before 11:30.
    - What he sees after #111 (for `linux-aresos`' owner line, sent): after an interrupted save the tools ask him to
      free space and restart `aresos-toold` (a system service: his password, or a reboot) and refuse requests,
      reads included, until then. Board #386 brings reads back (with N8) and re-pins once.
