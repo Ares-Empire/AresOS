@@ -70,11 +70,12 @@ class ChecksTest(unittest.TestCase):
         self.unit = f'pkg25-game-test-{os.getpid()}-{time.monotonic_ns()}.scope'
         self.wrapper = None
         self.addCleanup(self.clean)
-        self.place, self.on_disk = check.place, check.on_disk
-        check.place, check.on_disk = (lambda rig, number: time.monotonic_ns()), (lambda rig, number: True)
+        self.real = check.absent, check.put, check.on_disk
+        check.absent, check.put = (lambda rig, number: None), (lambda rig, number: time.monotonic_ns())
+        check.on_disk = lambda rig, number: True
 
     def clean(self):
-        check.place, check.on_disk = self.place, self.on_disk
+        check.absent, check.put, check.on_disk = self.real
         subprocess.run(['systemctl', '--user', 'stop', self.unit], capture_output=True, timeout=30, check=False)
         if self.wrapper is not None:
             self.wrapper.stdin.close()

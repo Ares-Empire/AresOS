@@ -6,8 +6,8 @@
 #
 #   MODE=create   no AresHub yet: the game makes the first home (a session with no home makes the flat one at once),
 #                 its window is closed as he would, and the rig's probe data pack goes into the save
-#   MODE=close    the close alone: probe block PROBE, no save asked, SIGTERM to the rig's own game, Java's exit
-#   MODE=stop     the path: the real supervisor adopts the game; block PROBE, `save`, block PROBE+1, `stop`
+#   MODE=close    the close alone: blocks PROBE and PROBE+1, no save asked, SIGTERM to the rig's own game, Java's exit
+#   MODE=stop     the path: the real supervisor adopts the game; blocks PROBE and PROBE+1, `save`, block PROBE+2, `stop`
 #   MODE=verify   reopen the world, look, and quit by closing the window
 #   VERIFY=n,n    blocks of the launch before: the reopened game is asked whether each is there (every mode but create)
 #
@@ -32,7 +32,7 @@ for setting; do
 done
 case $MODE in create|close|stop|verify) ;; *) echo "MODE: create, close, stop or verify" >&2; exit 2 ;; esac
 [[ $PROBE =~ ^[0-9]+$ && $VERIFY =~ ^([0-9]+(,[0-9]+)*)?$ ]] || { echo "PROBE: a number; VERIFY: numbers" >&2; exit 2; }
-case $MODE in close) ((PROBE >= 1 && PROBE <= 56)) || exit 2 ;; stop) ((PROBE >= 1 && PROBE <= 55)) || exit 2 ;; esac
+case $MODE in close) ((PROBE >= 1 && PROBE <= 55)) || exit 2 ;; stop) ((PROBE >= 1 && PROBE <= 54)) || exit 2 ;; esac
 [[ ${PKG25_LOCK_HELD:-0} == 1 ]] || { echo "run through run.sh under the shared lock" >&2; exit 2; }
 JDK=${JAVA_HOME:-$HOME/.local/opt/jdk-25}
 WORK=$WT/.work/pkg25

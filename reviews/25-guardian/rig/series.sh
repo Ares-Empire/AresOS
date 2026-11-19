@@ -11,13 +11,20 @@ set -u
 here=$(cd -- "$(dirname -- "$0")" && pwd)
 WT=$(cd -- "$here/../../.." && pwd)
 tag=${1:?usage: series.sh <tag> [first block]}
-n=${2:-1}  # nine blocks from here on; a new series on the same home takes blocks no earlier one set
-launch() { "$here/retry.sh" "$here/run.sh" "$@" || exit $?; sleep 30; }
+n=${2:-1}  # fifteen blocks from here on; a new series on the same home takes blocks no earlier one set
+lock=$HOME/.cache/aresos-dev/client-test.lock
+launch() {
+    # First wait, as the dev scripts do, until no other game run holds the laptop's lock (taken and let go at once):
+    # while one runs, its game has the memory this run needs, and every try would only be refused.
+    [[ ! -e $lock ]] || /usr/bin/flock "$lock" /usr/bin/true
+    "$here/retry.sh" "$here/run.sh" "$@" || exit $?
+    sleep 30
+}
 [[ -d $WT/.work/pkg25/home/.local/share/aresos/worlds/AresHub ]] || launch "create-$tag" MODE=create
 launch "close-1-$tag" MODE=close PROBE=$n
-launch "stop-1-$tag" MODE=stop PROBE=$((n + 1)) VERIFY=$n
-launch "close-2-$tag" MODE=close PROBE=$((n + 3)) VERIFY=$((n + 1)),$((n + 2))
-launch "stop-2-$tag" MODE=stop PROBE=$((n + 4)) VERIFY=$((n + 3))
-launch "close-3-$tag" MODE=close PROBE=$((n + 6)) VERIFY=$((n + 4)),$((n + 5))
-launch "stop-3-$tag" MODE=stop PROBE=$((n + 7)) VERIFY=$((n + 6))
-launch "verify-$tag" MODE=verify VERIFY=$((n + 7)),$((n + 8))
+launch "stop-1-$tag" MODE=stop PROBE=$((n + 2)) VERIFY=$n,$((n + 1))
+launch "close-2-$tag" MODE=close PROBE=$((n + 5)) VERIFY=$((n + 2)),$((n + 3)),$((n + 4))
+launch "stop-2-$tag" MODE=stop PROBE=$((n + 7)) VERIFY=$((n + 5)),$((n + 6))
+launch "close-3-$tag" MODE=close PROBE=$((n + 10)) VERIFY=$((n + 7)),$((n + 8)),$((n + 9))
+launch "stop-3-$tag" MODE=stop PROBE=$((n + 12)) VERIFY=$((n + 10)),$((n + 11))
+launch "verify-$tag" MODE=verify VERIFY=$((n + 12)),$((n + 13)),$((n + 14))

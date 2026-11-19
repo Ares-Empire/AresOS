@@ -39,7 +39,7 @@ PINS = WT / 'os/minecraft/desktop.lock.json'
 WINDOW_TOOL = WT / 'reviews/40-real-home/rig/tl.py'
 WORLD, PACK = 'AresHub', 'pkg25-probe'
 PROBE_BLOCK, PROBES = 'minecraft:glass', 56
-HOME_BLOCK = ((0, 63, 0), 'minecraft:gold_block')  # the pad's centre (mod/README.md, "The flat home")
+HOME_BLOCK = (0, 63, 0)  # the pad's centre, a gold block (mod/README.md, "The flat home")
 SYSTEM_PATH = 'PATH=/usr/bin:/bin'
 # What the game's log says while the server stops (the brief asks for these lines), and nothing else of the log.
 STOP_LINES = re.compile(r'Stopping server|Saving players|Saving worlds|Saving chunks for level|All chunks are saved|'
@@ -191,15 +191,35 @@ def spot(number):
     return 1 + (number - 1) % 14, 90, 2 + (number - 1) // 14
 
 
-def place(rig, number):
-    """A glass block set by the rig's data pack on the host's /trigger, where the game says there was none before.
-    The moment the game answered that it is there."""
+def absent(rig, number):
+    """The game's own word that probe block `number` is not there yet (asked before anything is set)."""
     before = chat(rig, f'trigger pkg25 set {100 + number}', rf'pkg25 probe {number} (present|absent)')
     if not before or before.group(1) != 'absent':
         raise Unshown(f'block {number} is there already, or the game did not say; take another PROBE')
+
+
+def put(rig, number):
+    """A glass block set by the rig's data pack on the host's /trigger. The moment the game answered that it is
+    there.
+
+    The game writes a changed chunk to its region file within a tick by itself, but the same chunk at most once in
+    ten seconds (seen in the first runs: a lone block was on the disk before anything was asked). So every check
+    sets a first block (the chunk goes to the disk and its ten seconds begin) and then, at once, the block it is
+    about: that one reaches the disk only if a save writes it."""
     if not chat(rig, f'trigger pkg25 set {number}', rf'pkg25 probe {number} placed'):
         raise Unshown(f'the rig could not set its block {number} (no answer in the game\'s log)')
     return time.monotonic_ns()
+
+
+def rewritten(rig, since):
+    """Which of the save's own files were written after `since` (wall clock): the level, and the player's data."""
+    def after(paths):
+        return any(path.is_file() and path.stat().st_mtime > since - 0.01 for path in paths)
+    try:
+        return {'level.dat': after([rig.world / 'level.dat']),
+                'player data': after([*rig.world.glob('players/**/*.dat'), *rig.world.glob('playerdata/*.dat')])}
+    except OSError:
+        return None
 
 
 def on_disk(rig, number):
@@ -272,39 +292,45 @@ def create(rig, game, health):
     desktop = load('aresos_desktop', SUPERVISOR)
     paths = desktop.Paths(str(rig.home), str(rig.runtime), str(rig.rig / 'share'))
     state, _ = desktop.check_world(paths, json.loads(PINS.read_text()))
-    place_, name = HOME_BLOCK
+    # The rig's reader, tried on the real save: the block he stands on at home, and the air where the probes go.
+    pad, air = region.block(rig.world, *HOME_BLOCK), region.block(rig.world, *spot(1))
     rig.note(home={'made_by': 'the real game with the real mod (the first start of a session with no AresHub)',
-                   'supervisor_home_check': state,
-                   'reader_finds_the_pad': region.block(rig.world, *place_) == name})
-    if state != 'ok' or not rig.result['home']['reader_finds_the_pad']:
+                   'supervisor_home_check': state, 'reader_finds_at_the_pad': pad, 'reader_finds_at_block_1': air})
+    if state != 'ok' or pad in (None, 'minecraft:air') or air != 'minecraft:air':
         raise Unshown('the home the game made does not pass the supervisor\'s checks, or the rig cannot read it')
 
 
 def close_alone(rig, game, number, health):
-    """The close alone: a block, no save asked by anyone, SIGTERM to the rig's own game, Java's exit, the disk."""
+    """The close alone: no save is asked by anyone. A first block, then block number + 1 within the chunk's ten
+    seconds, SIGTERM to the rig's own game at once, Java's exit, and what the disk holds then."""
     descriptor = os.pidfd_open(game['pid'])
-    placed = place(rig, number)
-    before = on_disk(rig, number)
+    absent(rig, number)
+    absent(rig, number + 1)
+    put(rig, number)
+    placed = put(rig, number + 1)
+    before = on_disk(rig, number + 1)
     offset = log_size(rig)
     if start_ticks(game['pid']) != game['ticks'] or not mine(rig, game['pid']):
         raise Unshown('the game is no longer the process this run started')
     end_health(health)
-    sent = time.monotonic_ns()
+    wall, sent = time.time(), time.monotonic_ns()
     signal.pidfd_send_signal(descriptor, signal.SIGTERM)
     rig.note(close={'signal': 'SIGTERM through a pidfd, by the rig, to its own game', 'save_asked_before': False,
-                    'block': number, 'seconds_from_block_to_sigterm': round((sent - placed) / 1e9, 2),
+                    'first_block': number, 'block': number + 1,
+                    'ms_from_the_blocks_answer_to_sigterm': round((sent - placed) / 1e6),
                     'block_on_disk_before_sigterm': before})
     ended = wait_exit(rig, descriptor, 90)
     os.close(descriptor)
     close = rig.result['close']
     if ended is None:
         close['exited'] = False
-        rig.note(close=close, verdict='the game did not exit within 90 s of SIGTERM')
+        rig.note(close=close)
         return
     seen, exit_note = ended
     close.update(exited=True, seconds_to_exit=round((seen - sent) / 1e9, 2),
                  exit_status=exit_note.get('status') if exit_note else None,
-                 block_on_disk_after_exit=on_disk(rig, number), server_stop_lines=stop_lines(rig, offset))
+                 block_on_disk_after_exit=on_disk(rig, number + 1), first_block_on_disk_after_exit=on_disk(rig, number),
+                 written_after_sigterm=rewritten(rig, wall), server_stop_lines=stop_lines(rig, offset))
     rig.note(close=close)
 
 
@@ -385,20 +411,26 @@ def stop_path(rig, game, number, health):
         rig.note(path=path)
         if not ready or not path['adopted']:
             raise Unshown('the supervisor did not adopt the game with an accepted hello and the home ready')
-        # A block, then `save`: what the mod calls saved is on the disk when it says so.
-        place(rig, number)
+        for block in (number, number + 1, number + 2):
+            absent(rig, block)
+        # A first block (the chunk goes to the disk by itself), then at once the block `save` is about: what the mod
+        # calls saved is on the disk when it says so, and was not before.
+        put(rig, number)
+        put(rig, number + 1)
+        path['blocks'] = {'first': number, 'before_save': number + 1, 'before_stop': number + 2}
+        path['save_block_on_disk_before_save'] = on_disk(rig, number + 1)
         path['save'] = command(rig, 'save')
-        path['first_block_on_disk_after_saved'] = on_disk(rig, number)
+        path['save_block_on_disk_after_saved'] = on_disk(rig, number + 1)
         rig.note(path=path)
-        # A second block after that save, then the stop: its own save, SIGTERM through the pidfd, Java's exit.
-        placed = place(rig, number + 1)
-        path['second_block_on_disk_before_stop'] = on_disk(rig, number + 1)
+        # Another block after that save, then the stop: its own save, SIGTERM through the pidfd, Java's exit.
+        placed = put(rig, number + 2)
+        path['stop_block_on_disk_before_stop'] = on_disk(rig, number + 2)
         offset = log_size(rig)
         descriptor = os.pidfd_open(game['pid'])
         end_health(health)
-        asked = time.monotonic_ns()
+        wall, asked = time.time(), time.monotonic_ns()
         path['stop'] = command(rig, 'stop')
-        path['seconds_from_second_block_to_stop'] = round((asked - placed) / 1e9, 2)
+        path['ms_from_the_stop_blocks_answer_to_stop'] = round((asked - placed) / 1e6)
         ended = wait_exit(rig, descriptor, 5)
         os.close(descriptor)
         record = status().get('stop') or {}
@@ -406,7 +438,8 @@ def stop_path(rig, game, number, health):
                                                                 'status')}
         path['java_exited'] = ended is not None
         path['exit_status'] = ended[1].get('status') if ended and ended[1] else None
-        path['blocks_on_disk_after_exit'] = [on_disk(rig, number), on_disk(rig, number + 1)]
+        path['blocks_on_disk_after_exit'] = [on_disk(rig, block) for block in (number, number + 1, number + 2)]
+        path['written_after_stop_began'] = rewritten(rig, wall)
         path['server_stop_lines'] = stop_lines(rig, offset)
         said = (rig.rig / 'supervisor.txt').read_text(errors='replace')
         path['stop_phases'] = [PATHS.sub('<path>', line[line.index('stop ('):])[:240]
