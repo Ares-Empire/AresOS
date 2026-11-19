@@ -58,24 +58,24 @@ CHECKS = [
 # Lines whose summary is printed with them: the numbers the owner is asked about and the recorded PermissionRequest.
 WITH_SUMMARY = {'control-idle', 'control-ordinary', 'control-storage-tests'}
 
-# Brief 18c-b, item 5 (steps 4, 4b and 5 fill it in): ('act', action, PASS line or None), ('screen', name),
-# ('keys', [qcode, ...]) or ('reboot',). An action without a line is one part of the next line's check: that line is
-# printed only when every part since the previous line passed. The polkit probe comes first; C6's first use right
-# after C2; the pass's one reboot after it; the SELinux scan last.
+# Brief 18c-b, item 5 (steps 4, 4b and 5 fill it in): (kind, argument, PASS line or None), where kind is 'act' (a
+# guest action), 'screen' (a screenshot's name), 'keys' (qcodes pressed together) or 'reboot'. A check is the run of
+# steps up to the one that carries its line: the line is printed only when every step of that run succeeded. The
+# polkit probe comes first; C6's first use right after C2; the pass's one reboot after it; the SELinux scan last.
 CHROME_STEPS = [
-    ('screen', 'polkit-before'),
+    ('screen', 'polkit-before', None),
     ('act', 'chrome-polkit-start', None),
-    ('screen', 'polkit-dialog'),
-    ('keys', ['esc']),
+    ('screen', 'polkit-dialog', None),
+    ('keys', ['esc'], None),
     ('act', 'chrome-polkit-finish', 'CONTROL_CHROME_POLKIT_PROBE_PASS'),
     ('act', 'chrome-files', 'CONTROL_CHROME_FILES_PASS'),
     ('act', 'chrome-hand-loaded', None),
     ('act', 'chrome-install', None),
-    ('screen', 'c2-pinned'),
-    ('act', 'chrome-managed-page', 'CONTROL_CHROME_INSTALL_PASS'),
-    ('screen', 'c2-managed'),
+    ('screen', 'c2-pinned', None),
+    ('act', 'chrome-managed-page', None),
+    ('screen', 'c2-managed', 'CONTROL_CHROME_INSTALL_PASS'),
     ('act', 'chrome-sites-first-use', 'CONTROL_CHROME_SITES_FIRST_USE_PASS'),
-    ('reboot',),
+    ('reboot', None, None),
     ('act', 'chrome-sites-after-reboot', 'CONTROL_CHROME_SITES_REBOOT_PASS'),
     ('act', 'chrome-selinux', 'CONTROL_CHROME_SELINUX_PASS'),
 ]
@@ -349,54 +349,50 @@ def chrome_main():
     guest = Guest(work, vm_evidence, 'chrome')
     guest.create()
     started = time.monotonic()
-    failed, timings, parts_failed = [], {}, False
+    failed, timings, check_failed, summaries = [], {}, False, {}
     try:
         timings['boot_to_channel'] = guest.boot()
-        for step in CHROME_STEPS:
+        for kind, argument, line in CHROME_STEPS:
             began = time.monotonic()
-            kind = step[0]
+            label = argument if kind in ('act', 'screen') else kind
+            result = None
             try:
                 if kind == 'screen':
-                    guest.screenshot(chrome_evidence / f'{step[1]}.png')
-                    continue
-                if kind == 'keys':
-                    guest.keys(step[1])
-                    continue
-                if kind == 'reboot':
+                    guest.screenshot(chrome_evidence / f'{argument}.png')
+                elif kind == 'keys':
+                    guest.keys(argument)
+                elif kind == 'reboot':
                     guest.poweroff()
                     timings['reboot_to_channel'] = guest.boot()
                     print('CONTROL_CHROME_REBOOTED', flush=True)
-                    continue
-                _, action, line = step
-                result = guest.act(dict(action=action, **arguments.get(action, dict)()))
+                else:
+                    result = guest.act(dict(action=argument, **arguments.get(argument, dict)()))
             except Exception:
-                label = step[1] if kind == 'act' else ' '.join(map(str, step))
                 failed.append(label)
-                parts_failed = True
+                check_failed = True
                 print(f'CONTROL_CHECK_FAILED {label} (runner side)\n{traceback.format_exc()[-4000:]}', flush=True)
-                continue
-            finally:
-                timings[step[1] if len(step) > 1 and isinstance(step[1], str) else kind] = round(
-                    time.monotonic() - began, 1)
-            keep_files(result, evidence)
-            if result.get('returncode') == 0 and action in verify:
-                try:
-                    verify[action](result)
-                except Exception:
-                    result.update(returncode=1, stderr=traceback.format_exc())
-            results[action] = result
-            (vm_evidence / f'{action}-result.json').write_text(json.dumps(result, indent=2) + '\n')
-            summary = json.dumps(result.get('summary', {}), sort_keys=True)
-            if result.get('returncode') != 0:
-                failed.append(action)
-                parts_failed = True
-                print(f'CONTROL_CHECK_FAILED {action}\n{result.get("stderr", "")[-6000:]}', flush=True)
-            if line and not parts_failed:
-                print(f'{line} {summary}' if action in CHROME_WITH_SUMMARY else line, flush=True)
-            if result.get('returncode') == 0:
-                print(f'  {action}: {summary[:3000]}', flush=True)
+            timings[label] = round(time.monotonic() - began, 1)
+            if result is not None:
+                keep_files(result, evidence)
+                if result.get('returncode') == 0 and argument in verify:
+                    try:
+                        verify[argument](result)
+                    except Exception:
+                        result.update(returncode=1, stderr=traceback.format_exc())
+                results[argument] = result
+                (vm_evidence / f'{argument}-result.json').write_text(json.dumps(result, indent=2) + '\n')
+                summaries[argument] = json.dumps(result.get('summary', {}), sort_keys=True)
+                if result.get('returncode') == 0:
+                    print(f'  {argument}: {summaries[argument][:3000]}', flush=True)
+                else:
+                    failed.append(argument)
+                    check_failed = True
+                    print(f'CONTROL_CHECK_FAILED {argument}\n{result.get("stderr", "")[-6000:]}', flush=True)
             if line:
-                parts_failed = False
+                if not check_failed:
+                    shown = summaries.get(argument) if argument in CHROME_WITH_SUMMARY else None
+                    print(f'{line} {shown}' if shown else line, flush=True)
+                check_failed = False
         guest.poweroff()
         timings['total'] = round(time.monotonic() - started, 1)
         print('CONTROL_CHROME_VM_POWEROFF_CLEAN', flush=True)

@@ -70,6 +70,7 @@ OWNER = 'ares'
 CI_FLAGS = ['--no-first-run', '--no-default-browser-check', '--password-store=basic']
 NEVER = ('--no-sandbox', '--remote-debugging', '--load-extension', '--disable-extensions-except')
 LOADING = '--enable-unsafe-extension-debugging'
+AGENT = '/usr/libexec/kf6/polkit-kde-authentication-agent-1'
 CANNOT_MODIFY = 'cannot be modified by user'
 CHANGE = 'polkit probe of brief 18c-b: allow editing on probe.invalid'
 # The unit's [Service] lines that are not its sandbox; every other line is passed to systemd-run as a property.
@@ -264,18 +265,41 @@ def prepare_run():
 
 # --- the shell's launch line --------------------------------------------------------------------------------------
 
+def helpers():
+    uid = owner_ids()[0]
+    return [row for row in processes() if row['uid'] == uid and row['cmdline'][1:2] == [str(SHELL)]]
+
+
+def wait_session():
+    """His session is up after boot: the app helper and his polkit agent run, and polkit has registered the agent
+    (a fresh boot reaches the CI channel well before greetd's auto-login has started them; run 44421776687)."""
+    uid = owner_ids()[0]
+    eventually(lambda: len(helpers()) == 1, 'the app helper runs in his session', 240, interval=1)
+    agent = eventually(lambda: [row for row in processes() if row['uid'] == uid and AGENT in row['cmdline'][:2]],
+                       'his polkit agent runs', 120, interval=1)
+
+    def registered():
+        journal = control().run(['journalctl', '-b', '--no-pager', '-o', 'cat', '-g', 'Registered Authentication Agent'])
+        return [line for line in journal['stdout'].splitlines() if 'Registered Authentication Agent' in line]
+    try:
+        lines = eventually(registered, 'polkit registered his agent', 60, interval=1)
+    except Failure as error:
+        lines = [f'not seen: {error}']
+    return dict(agent=[dict(pid=row['pid'], cgroup=row['cgroup']) for row in agent], registered=lines)
+
+
 def shell_launcher():
     """aresos-shell's own ScopeLauncher, with the environment of the helper running in his session."""
-    uid = owner_ids()[0]
-    helpers = [row for row in processes() if row['uid'] == uid and row['cmdline'][1:2] == [str(SHELL)]]
-    expect(len(helpers) == 1, f'one app helper runs in his session: {helpers}')
-    raw = pathlib.Path(f'/proc/{helpers[0]["pid"]}/environ').read_bytes().split(b'\0')
+    found = helpers()
+    expect(len(found) == 1, f'one app helper runs in his session: {found}')
+    helpers_ = found
+    raw = pathlib.Path(f'/proc/{helpers_[0]["pid"]}/environ').read_bytes().split(b'\0')
     environ = {key.decode(): value.decode() for key, _, value in (item.partition(b'=') for item in raw if b'=' in item)}
     shell = STATE.get('shell') or STATE.setdefault('shell', load('aresos_shell_for_ci', SHELL))
     launcher = shell.ScopeLauncher(environ=environ)
     expect({'XDG_RUNTIME_DIR', 'WAYLAND_DISPLAY', 'DBUS_SESSION_BUS_ADDRESS'} <= set(launcher.environment()),
            f'the session environment reaches the app: {sorted(launcher.environment())}')
-    return launcher, helpers[0]['pid']
+    return launcher, helpers_[0]['pid']
 
 
 def app(identity, name):
@@ -419,6 +443,7 @@ class Chrome:
 
     def __init__(self, label, extra=(), devtools=None):
         self.label = label
+        self.session = wait_session()
         argv, _ = browser_argv(extra)
         expect(not any(argument.startswith(NEVER) for argument in argv), f'a forbidden Chrome flag: {argv}')
         kept, self.devtools = (), None
@@ -498,6 +523,7 @@ def chrome_log(chrome):
 def polkit_start(request):
     """A process started with the shell's line is pkcheck's subject, run as the service runs it; its dialog waits."""
     prepare_run()
+    ready = wait_session()
     view = sessions()
     session = his_session(view)
     confirm = load('aresos_confirm_for_ci', CODE / 'aresos_control/chrome/confirm.py')
@@ -515,7 +541,7 @@ def polkit_start(request):
     output.close()
     time.sleep(8)
     STATE['polkit'] = dict(subject=subject, probe=probe, began=began, session=session, command=command, peer=peer)
-    summary = dict(session=session, subject=dict(pid=subject.pid, cgroup=cgroup, launch=launched['command'],
+    summary = dict(session=session, ready=ready, subject=dict(pid=subject.pid, cgroup=cgroup, launch=launched['command'],
                                                  label=label(subject.pid)),
                    pkcheck=argv, systemd_run=command, waiting_after_8s=probe.poll() is None)
     files = {'chrome/polkit-sessions.json': view, 'chrome/polkit-start.json': summary}

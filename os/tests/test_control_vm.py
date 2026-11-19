@@ -105,15 +105,17 @@ class ChromePassTest(unittest.TestCase):
                        and [target.id for target in node.targets] == ['ACTIONS'])
         names = [key.value for key in actions.keys]
         runner = load(CONTROL_CI / 'control_vm.py', 'control_vm_for_chrome')
-        acts = [step for step in runner.CHROME_STEPS if step[0] == 'act']
+        steps = runner.CHROME_STEPS
+        self.assertTrue(all(len(step) == 3 and step[0] in ('act', 'screen', 'keys', 'reboot') for step in steps))
+        acts = [step for step in steps if step[0] == 'act']
         self.assertEqual([step[1] for step in acts], names)
-        lines = [step[2] for step in acts if step[2]]
+        lines = [step[2] for step in steps if step[2]]
         self.assertEqual(len(set(lines)), len(lines))
         self.assertTrue(all(re.fullmatch('CONTROL_CHROME_[A-Z_]+', line) for line in lines))
-        # The probe comes first and the last step carries a line, so no part is left without one.
+        # The probe comes first and the last step carries a line, so no step is left outside a check.
         self.assertEqual(acts[0][1], 'chrome-polkit-start')
-        self.assertTrue(acts[-1][2])
-        self.assertEqual([step for step in runner.CHROME_STEPS if step[0] == 'reboot'], [('reboot',)])
+        self.assertTrue(steps[-1][2])
+        self.assertEqual([step for step in steps if step[0] == 'reboot'], [('reboot', None, None)])
         self.assertFalse(set(names) & {action for action, _ in runner.CHECKS})
         script = (ROOT / 'os/ci/check-build.sh').read_text()
         self.assertIn('sudo -E python3 os/ci/control/control_vm.py chrome\n        echo CHECK_BUILD_CONTROL_CHROME_PASSED',
