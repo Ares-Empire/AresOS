@@ -1,0 +1,29 @@
+[
+  {
+    "scenario": "standing",
+    "exit": 1,
+    "seconds": 0.164,
+    "all_owned_processes_exited": true,
+    "scopes_gone": true,
+    "lock_free": true,
+    "reason": "VINPUT_PID exited"
+  },
+  {
+    "scenario": "flight",
+    "exit": 1,
+    "seconds": 0.114,
+    "all_owned_processes_exited": true,
+    "scopes_gone": true,
+    "lock_free": true,
+    "reason": "VINPUT_PID exited"
+  },
+  {
+    "scenario": "compositor",
+    "exit": 1,
+    "seconds": 0.114,
+    "all_owned_processes_exited": true,
+    "scopes_gone": true,
+    "lock_free": true,
+    "reason": "rig launcher exited"
+  }
+]

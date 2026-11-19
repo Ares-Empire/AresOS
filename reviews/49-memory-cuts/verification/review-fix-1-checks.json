@@ -1,0 +1,50 @@
+{
+  "starting_head": "54f4d0dfca0782757a9b51d8300cbc24d3260f1a",
+  "origin_main": "774d79540ba0909acb5959c2d8ca585136d4989f",
+  "verification_scope": "Report, timestamp excerpts and screenshot cleanup only; no rig scripts, game, client tests or Gradle executed.",
+  "privacy": {
+    "workflow": ".github/workflows/repo-privacy.yml",
+    "invocation": "bash -c <exact dedented workflow run body>; RUNNER_TEMP=.work/pkg49/review-fix-1",
+    "script_sha256": "4d27506147621805a484abd6eefcada9ff00428392ca74ab561a82730cc6d1f0",
+    "exit": 0,
+    "stdout": "No file holds a home path with a real user name.\n",
+    "stderr": ""
+  },
+  "shell_scripts_changed": [],
+  "storage": {
+    "command": "Inline Python: recursively list regular files over 500,000,000 bytes under .work/",
+    "files_over_500000000_bytes": []
+  },
+  "json_parse": {
+    "command": "Inline Python: json.loads on every changed JSON file",
+    "files": [
+      "reviews/49-memory-cuts/verification/decisive-frame-timestamps.json",
+      "reviews/49-memory-cuts/verification/review-fix-1-checks.json"
+    ],
+    "exit": 0
+  },
+  "local_links": {
+    "command": "Inline Python: resolve Markdown links in REPORT.md and verification/decisive-frames.md",
+    "checked": 46,
+    "missing": [],
+    "exit": 0
+  },
+  "whitespace": {
+    "command": "git diff --check origin/main",
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "scope": {
+    "changed_files": [
+      "reviews/49-memory-cuts/REPORT.md",
+      "reviews/49-memory-cuts/screenshots/ferrite-client-2-home.png",
+      "reviews/49-memory-cuts/screenshots/interrupted-nether-control-after-glide.png",
+      "reviews/49-memory-cuts/verification/decisive-frame-timestamps.json",
+      "reviews/49-memory-cuts/verification/decisive-frames.md",
+      "reviews/49-memory-cuts/verification/review-fix-1-checks.json",
+      "reviews/49-memory-cuts/verification/review-fix-1-frame-check.txt"
+    ],
+    "rig_tables_summaries_and_failure_data_unchanged": true
+  }
+}

@@ -1,0 +1,6 @@
+> Task :runGameTest
+[09:26:14] [Server thread/INFO] (Minecraft) All 104 required tests passed :)
+> Task :testClasses UP-TO-DATE
+> Task :test UP-TO-DATE
+BUILD SUCCESSFUL in 2m 47s
+2026-11-18T09:26:42+01:00 attempt=0 exit=0

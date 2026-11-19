@@ -1,0 +1,10 @@
+{
+  "observed_utc": "2026-11-18T04:19:45.100149+00:00",
+  "threshold_bytes": 500000000,
+  "files_over_threshold": [],
+  "total_regular_bytes_in_work": 502129417,
+  "largest_regular_file": {
+    "path": ".work/pkg49/client-tests-4-raw.txt",
+    "bytes": 14108102
+  }
+}

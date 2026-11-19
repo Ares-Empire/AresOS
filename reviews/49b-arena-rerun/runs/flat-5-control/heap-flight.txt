@@ -1,0 +1,3 @@
+1095516:
+garbage-first heap   total reserved 1048576K, committed 371712K, used 337483K [0x00000000c0000000, 0x0000000100000000)
+ region size 1024K, 20 young (20480K), 2 survivors (2048K)

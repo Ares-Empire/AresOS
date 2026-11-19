@@ -1,0 +1,35 @@
+{
+  "pid": 1052041,
+  "flags": [
+    "-XX:NativeMemoryTracking=summary",
+    "-XX:MaxHeapFreeRatio=30",
+    "-XX:MinHeapFreeRatio=10",
+    "-XX:StackShadowPages=32",
+    "-Xms256m",
+    "-Xmx1024m"
+  ],
+  "environment": {
+    "MALLOC_ARENA_MAX": "",
+    "GLIBC_TUNABLES": "",
+    "JE_MALLOC_CONF": "",
+    "__NV_PRIME_RENDER_OFFLOAD": "1",
+    "__GLX_VENDOR_LIBRARY_NAME": "nvidia",
+    "__VK_LAYER_NV_optimus": "NVIDIA_only",
+    "ALSOFT_DRIVERS": "null",
+    "DISPLAY": ":1",
+    "WAYLAND_DISPLAY": "wayland-1"
+  },
+  "cgroup": "0::/user.slice/user-1001.slice/user@1001.service/app.slice/pkg49b-game-flat-1-control-1051575.scope",
+  "executable_sha256": "1bf1aaef01e4f8d7c85d913c60fb2ee4624cbe54d4053254c59657b7ea913b25",
+  "jars_sha256": {
+    "aresos-0.1.0-sources.jar": "87e0437736a2e11f417949851a030df0154cb415e66955837e5091ab073e3f6a",
+    "aresos-0.1.0.jar": "e88194c52e956e5c098477d02cc5debc7ce3b3d4c234c05ca676235152f45b48",
+    "pkg41-frames.jar": "057fb099ae8e395a0c38cb74fd2dce93f48306ea7e5de6effa82d0f025ba77d0"
+  },
+  "git_objects": {
+    "revision": "32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be",
+    "mod_tree": "09a77ad94e74f4c5c8e51c71a418d23048792cb3",
+    "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+    "labwc_blob": "6ea557a97357f3336b267f371126c25e43403974"
+  }
+}

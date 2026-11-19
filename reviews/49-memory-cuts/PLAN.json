@@ -1,0 +1,71 @@
+{
+  "baseline": {
+    "HEAP": 1024,
+    "MIN_HEAP": 256,
+    "MEMHIGH": "2560M",
+    "RD": 8,
+    "SD": 5,
+    "GC": [
+      "-XX:MaxHeapFreeRatio=30",
+      "-XX:MinHeapFreeRatio=10"
+    ]
+  },
+  "order": [
+    "FerriteCore full build/client suite twice",
+    "setup flat base",
+    "step0 probe, covered 300s",
+    "step0 visible idle 20min",
+    "paired factors (A/B then B/A)",
+    "covered variants twice",
+    "select winners from evidence",
+    "winner validation",
+    "merge origin/main before hosted checks"
+  ],
+  "native_gate": "Skip trim interval/system allocator/arena limit if both direct and post-GC trims return under 30 MiB at every probe snapshot.",
+  "pass_line": [
+    "no OOM",
+    "GC pauses after joining <=50ms",
+    "no cgroup memory.events high",
+    "frames no worse than adjacent fresh v1 baselines"
+  ],
+  "stop_line": "Exit 75: five-minute wait, at most six retries; stop the measurement schedule if still refused. Other failures stop immediately.",
+  "noise": "Record host load, free memory, selected executable counts each snapshot. Pause 30s between games to release the lock.",
+  "scope": "Only reviews/49-memory-cuts changes. Measurement jars/worlds/logs local. No shipping settings or mods.",
+  "source_refresh": {
+    "observed_main": "58d2ae1b",
+    "reason": "Main moved during the factor/covered matrix and includes changes to mod/. Preserve that matrix on its original tree, then merge and repeat full client qualification before winner validation.",
+    "winner_controls": "Fresh paired v1 flat controls x3 (A/B, B/A, A/B), current v1 first creation, and current v1 Nether glide. Group frame ranges by source mod tree.",
+    "planned_valid_runs": 54,
+    "count_note": "28 factor/control runs, 2 step-0 runs, 10 covered runs, 7 required winner runs, 2 setup runs, and 5 current-source controls. Failed/retired evidence is excluded."
+  },
+  "candidate_revision": {
+    "reason": "Initial compact-header/native combination failed its first-creation frame comparison (GC-linked 21.9 ms standing /26.3 ms flight frames). Retain both sides, omit optional compact headers, and restart with fresh creation controls.",
+    "retained": "candidates/compact-headers-native/candidate.json",
+    "revised_settings": "winners.json: native interval + game-only arena cap; no compact headers",
+    "nether_setup": "Completed utility fixture from initial candidate, not a qualification of revised flags. Final control/trial glides use identical fresh copies and their own runtime settings.",
+    "expected_actual_attempts_if_remaining_complete": 58,
+    "count_note": "52 final valid runs including utility setups, two failed freeze attempts, the rejected two-run creation pair, and the earlier retired/partial FerriteCore pair."
+  },
+  "arena_only_revision": {
+    "reason": "Trim+arena candidate failed second flat paired frame comparison, retained6measurements under candidates/native-interval-arena. Causeunknown, no thresholdrelaxed.",
+    "settings": "Baseline JVM arguments unchanged; game-only MALLOC_ARENA_MAX=2",
+    "full_fresh_schedule": "12 measurements plus previously completed Nether utility; fresh controls for creation, flatx3 and Nether",
+    "expected_actual_attempts_if_complete": 64,
+    "count_note": "52 completed measurements, 2 failed freeze attempts, 2 retired/partial FerriteCore attempts, 2 rejected header creation measurements and6rejected native-combination measurements."
+  },
+  "interrupted_nether_control": {
+    "status": "Unknown SIGTERM at return, completed glide but incomplete wake; preserve and repeat whole baseline unchanged once.",
+    "expected_attempt_count_if_remaining_complete": 65,
+    "evidence": "failures/nether-control-interrupted/failure.json"
+  },
+  "final_record": {
+    "actual_measurement_attempts": 65,
+    "completed_measurements": 52,
+    "rejected_candidate_measurements": 8,
+    "failed_or_retired_records": 5,
+    "required_final_protocol_runs_complete": 12,
+    "full_pass_line_met": false,
+    "shipping_recommendation": "Retain current product settings; arena cap remains a follow-up candidate.",
+    "note": "Four refused pre-launch low-memory attempts and four full build/client qualifications are recorded separately."
+  }
+}

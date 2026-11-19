@@ -285,7 +285,7 @@ class ReviewFixes(MailCase):
                 raw = subprocess.run(['setpriv','--reuid',str(owner),'--regid',str(owner),'--clear-groups',sys.executable,'-c',code,str(sockets / 'act.sock'),json.dumps({'operation_id':approval['operation_id']})], capture_output=True, text=True, timeout=20)
                 self.assertEqual(raw.returncode, 0, raw.stderr)
                 results.append(json.loads(raw.stdout))
-                code = 'import json,sys; from aresos_control.cli import main; raise SystemExit(main(json.loads(sys.argv[1]),["log","--input","{\\"limit\\":10}","--json"]))'
+                code = 'import json,sys; from aresos_control.cli import main; raise SystemExit(main(json.loads(sys.argv[1]),["control","log","--input","{\\"limit\\":10}","--json"]))'
                 cli = subprocess.run(['setpriv','--reuid',str(owner),'--regid',str(owner),'--clear-groups',sys.executable,'-c',code,json.dumps(proxy_config)], capture_output=True, text=True, timeout=20)
                 self.assertEqual(cli.returncode, 0, cli.stderr)
                 results.append(json.loads(cli.stdout))

@@ -1,0 +1,2 @@
+home-paths	No real username in a macOS or Windows home path	2026-11-18T13:16:03.2523194Z ^[[36;1m  1) echo "No file holds a home path with a real user name." ;;^[[0m
+home-paths	No real username in a macOS or Windows home path	2026-11-18T13:16:04.6288316Z No file holds a home path with a real user name.

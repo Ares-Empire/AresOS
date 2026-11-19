@@ -1,0 +1,447 @@
+{
+  "source_head": "5716bb2a4e0a25e835a95b0e56cdd8f00d4d259a",
+  "scope": "Eight new keys in the part-1 to part-2 compact sample; not a whole-pin classification",
+  "sample_delta": {
+    "closed": 825,
+    "changed": 147,
+    "new": 8,
+    "identical": 1373
+  },
+  "repin_expectation": "Item 3 removes the false marked/applied row discrepancy; independent remaining defects must retain their own classification",
+  "cause": "Applied mail_send at sequence 17 changes the projected operation from submitting to done/checked. A later read tries to register a fresh Sent-copy check, is refused at latch check 0 with no fresh physical fault, and discloses an unchecked notice. Oracle.expected only infers failed_recheck from the fresh fault trace, so it omits that notice.",
+  "matrix_note": "M14 is the generic count-only label from gaps.checker; these are not M14 hidden rows under restore and are not new startup or restore-lock gaps.",
+  "entries": [
+    {
+      "key": "send/persistent/873/0/exhausted/control_pending.notice-count",
+      "classification": "M07/C01: live Sent-copy recheck refused by the surviving write latch",
+      "sample_artifact": false,
+      "expected_count": 0,
+      "actual_count": 1,
+      "recorded_matrix_row": "M14",
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#5",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#5",
+                "count",
+                "",
+                "0"
+              ]
+            ],
+            "pages": [
+              0
+            ]
+          }
+        ]
+      },
+      "evidence": {
+        "applied_sequence": 17,
+        "marked_sequence": 16,
+        "producing_action": "mail_send",
+        "ordinary_tail_visible": true,
+        "sqlite_state": "done",
+        "projected_state": "done",
+        "sent_copy_check": {
+          "clean": true,
+          "state": "checked"
+        },
+        "read_action": "control_pending",
+        "write_attempted": true,
+        "latch_checks": [
+          0
+        ],
+        "raw_fault_trace": [],
+        "refusal": "journal_incomplete",
+        "public_notice_check": "sent_copies"
+      }
+    },
+    {
+      "key": "send/persistent/873/0/exhausted/mail catalogue.total",
+      "classification": "M07/C01: live Sent-copy recheck refused by the surviving write latch",
+      "sample_artifact": false,
+      "expected_count": 0,
+      "actual_count": 1,
+      "recorded_matrix_row": "M14",
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#5",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#5",
+                "count",
+                "",
+                "0"
+              ]
+            ],
+            "pages": [
+              0
+            ]
+          }
+        ]
+      },
+      "evidence": {
+        "applied_sequence": 17,
+        "marked_sequence": 16,
+        "producing_action": "mail_send",
+        "ordinary_tail_visible": true,
+        "sqlite_state": "done",
+        "projected_state": "done",
+        "sent_copy_check": {
+          "clean": true,
+          "state": "checked"
+        },
+        "read_action": "mail_filing_notices",
+        "write_attempted": true,
+        "latch_checks": [
+          0
+        ],
+        "raw_fault_trace": [],
+        "refusal": "journal_incomplete",
+        "public_notice_check": "sent_copies"
+      }
+    },
+    {
+      "key": "send/persistent/873/0/live-restored/control_pending.notice-count",
+      "classification": "M07/C01: live Sent-copy recheck refused by the surviving write latch",
+      "sample_artifact": false,
+      "expected_count": 0,
+      "actual_count": 1,
+      "recorded_matrix_row": "M14",
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#5",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#5",
+                "count",
+                "",
+                "0"
+              ]
+            ],
+            "pages": [
+              0
+            ]
+          }
+        ]
+      },
+      "evidence": {
+        "applied_sequence": 17,
+        "marked_sequence": 16,
+        "producing_action": "mail_send",
+        "ordinary_tail_visible": true,
+        "sqlite_state": "done",
+        "projected_state": "done",
+        "sent_copy_check": {
+          "clean": true,
+          "state": "checked"
+        },
+        "read_action": "control_pending",
+        "write_attempted": true,
+        "latch_checks": [
+          0
+        ],
+        "raw_fault_trace": [],
+        "refusal": "journal_incomplete",
+        "public_notice_check": "sent_copies"
+      }
+    },
+    {
+      "key": "send/persistent/873/0/live-restored/mail catalogue.total",
+      "classification": "M07/C01: live Sent-copy recheck refused by the surviving write latch",
+      "sample_artifact": false,
+      "expected_count": 0,
+      "actual_count": 1,
+      "recorded_matrix_row": "M14",
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#5",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#5",
+                "count",
+                "",
+                "0"
+              ]
+            ],
+            "pages": [
+              0
+            ]
+          }
+        ]
+      },
+      "evidence": {
+        "applied_sequence": 17,
+        "marked_sequence": 16,
+        "producing_action": "mail_send",
+        "ordinary_tail_visible": true,
+        "sqlite_state": "done",
+        "projected_state": "done",
+        "sent_copy_check": {
+          "clean": true,
+          "state": "checked"
+        },
+        "read_action": "mail_filing_notices",
+        "write_attempted": true,
+        "latch_checks": [
+          0
+        ],
+        "raw_fault_trace": [],
+        "refusal": "journal_incomplete",
+        "public_notice_check": "sent_copies"
+      }
+    },
+    {
+      "key": "send/single/873/0/live-restored/control_pending.notice-count",
+      "classification": "M07/C01: live Sent-copy recheck refused by the surviving write latch",
+      "sample_artifact": false,
+      "expected_count": 0,
+      "actual_count": 1,
+      "recorded_matrix_row": "M14",
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#5",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#5",
+                "count",
+                "",
+                "0"
+              ]
+            ],
+            "pages": [
+              0
+            ]
+          }
+        ]
+      },
+      "evidence": {
+        "applied_sequence": 17,
+        "marked_sequence": 16,
+        "producing_action": "mail_send",
+        "ordinary_tail_visible": true,
+        "sqlite_state": "done",
+        "projected_state": "done",
+        "sent_copy_check": {
+          "clean": true,
+          "state": "checked"
+        },
+        "read_action": "control_pending",
+        "write_attempted": true,
+        "latch_checks": [
+          0
+        ],
+        "raw_fault_trace": [],
+        "refusal": "journal_incomplete",
+        "public_notice_check": "sent_copies"
+      }
+    },
+    {
+      "key": "send/single/873/0/live-restored/mail catalogue.total",
+      "classification": "M07/C01: live Sent-copy recheck refused by the surviving write latch",
+      "sample_artifact": false,
+      "expected_count": 0,
+      "actual_count": 1,
+      "recorded_matrix_row": "M14",
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#5",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#5",
+                "count",
+                "",
+                "0"
+              ]
+            ],
+            "pages": [
+              0
+            ]
+          }
+        ]
+      },
+      "evidence": {
+        "applied_sequence": 17,
+        "marked_sequence": 16,
+        "producing_action": "mail_send",
+        "ordinary_tail_visible": true,
+        "sqlite_state": "done",
+        "projected_state": "done",
+        "sent_copy_check": {
+          "clean": true,
+          "state": "checked"
+        },
+        "read_action": "mail_filing_notices",
+        "write_attempted": true,
+        "latch_checks": [
+          0
+        ],
+        "raw_fault_trace": [],
+        "refusal": "journal_incomplete",
+        "public_notice_check": "sent_copies"
+      }
+    },
+    {
+      "key": "send/single/874/0/live-restored/control_pending.notice-count",
+      "classification": "M07/C01: live Sent-copy recheck refused by the surviving write latch",
+      "sample_artifact": false,
+      "expected_count": 0,
+      "actual_count": 1,
+      "recorded_matrix_row": "M14",
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#5",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#5",
+                "count",
+                "",
+                "0"
+              ]
+            ],
+            "pages": [
+              0
+            ]
+          }
+        ]
+      },
+      "evidence": {
+        "applied_sequence": 17,
+        "marked_sequence": 16,
+        "producing_action": "mail_send",
+        "ordinary_tail_visible": true,
+        "sqlite_state": "done",
+        "projected_state": "done",
+        "sent_copy_check": {
+          "clean": true,
+          "state": "checked"
+        },
+        "read_action": "control_pending",
+        "write_attempted": true,
+        "latch_checks": [
+          0
+        ],
+        "raw_fault_trace": [],
+        "refusal": "journal_incomplete",
+        "public_notice_check": "sent_copies"
+      }
+    },
+    {
+      "key": "send/single/874/0/live-restored/mail catalogue.total",
+      "classification": "M07/C01: live Sent-copy recheck refused by the surviving write latch",
+      "sample_artifact": false,
+      "expected_count": 0,
+      "actual_count": 1,
+      "recorded_matrix_row": "M14",
+      "delta": {
+        "calls": 1,
+        "failures": [
+          {
+            "extra": [
+              [
+                "catalogue:#5",
+                "count",
+                "",
+                "1"
+              ]
+            ],
+            "missing": [
+              [
+                "catalogue:#5",
+                "count",
+                "",
+                "0"
+              ]
+            ],
+            "pages": [
+              0
+            ]
+          }
+        ]
+      },
+      "evidence": {
+        "applied_sequence": 17,
+        "marked_sequence": 16,
+        "producing_action": "mail_send",
+        "ordinary_tail_visible": true,
+        "sqlite_state": "done",
+        "projected_state": "done",
+        "sent_copy_check": {
+          "clean": true,
+          "state": "checked"
+        },
+        "read_action": "mail_filing_notices",
+        "write_attempted": true,
+        "latch_checks": [
+          0
+        ],
+        "raw_fault_trace": [],
+        "refusal": "journal_incomplete",
+        "public_notice_check": "sent_copies"
+      }
+    }
+  ]
+}

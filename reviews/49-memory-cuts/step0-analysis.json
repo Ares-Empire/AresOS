@@ -1,0 +1,128 @@
+{
+  "probe": {
+    "covered0": {
+      "rss": 1227,
+      "heap_committed": 369,
+      "probe_trim_rss_delta_mib": 28,
+      "probe_gc_trim_rss_delta_mib": 11
+    },
+    "covered1m": {
+      "rss": 1212,
+      "heap_committed": 369,
+      "probe_trim_rss_delta_mib": 58,
+      "probe_gc_trim_rss_delta_mib": 5
+    },
+    "covered2m": {
+      "rss": 1158,
+      "heap_committed": 369,
+      "probe_trim_rss_delta_mib": 29,
+      "probe_gc_trim_rss_delta_mib": 2
+    },
+    "covered3m": {
+      "rss": 1134,
+      "heap_committed": 369,
+      "probe_trim_rss_delta_mib": 3,
+      "probe_gc_trim_rss_delta_mib": 2
+    },
+    "covered4m": {
+      "rss": 1139,
+      "heap_committed": 369,
+      "probe_trim_rss_delta_mib": 11,
+      "probe_gc_trim_rss_delta_mib": 2
+    },
+    "covered5m": {
+      "rss": 1132,
+      "heap_committed": 369,
+      "probe_trim_rss_delta_mib": 4,
+      "probe_gc_trim_rss_delta_mib": 2
+    },
+    "flight": {
+      "rss": 1270,
+      "heap_committed": 369,
+      "probe_trim_rss_delta_mib": 107,
+      "probe_gc_trim_rss_delta_mib": 3
+    },
+    "settled": {
+      "rss": 1266,
+      "heap_committed": 345,
+      "probe_trim_rss_delta_mib": 187,
+      "probe_gc_trim_rss_delta_mib": 4
+    },
+    "stand": {
+      "rss": 1139,
+      "heap_committed": 345,
+      "probe_trim_rss_delta_mib": 46,
+      "probe_gc_trim_rss_delta_mib": 2
+    },
+    "wake": {
+      "rss": 1154,
+      "heap_committed": 369,
+      "probe_trim_rss_delta_mib": 25,
+      "probe_gc_trim_rss_delta_mib": 2
+    }
+  },
+  "native_gate": {
+    "skip_native_factors": false,
+    "reason": "Direct trims returned 187 MiB settled, 46 MiB standing and 107 MiB post-flight, exceeding 30 MiB."
+  },
+  "probe_wake_control": "30 fps inactivity cap; retain diagnostic data; all paired comparison runs use active-v2 input.",
+  "long": {
+    "settled": {
+      "rss": 1245,
+      "rss_anon": 1043,
+      "heap_committed": 341,
+      "nmt_total": 672,
+      "cgroup_swap": 0,
+      "majflt": 1
+    },
+    "idle1m": {
+      "rss": 1275,
+      "rss_anon": 1073,
+      "heap_committed": 341,
+      "nmt_total": 668,
+      "cgroup_swap": 0,
+      "majflt": 1
+    },
+    "idle6m": {
+      "rss": 1283,
+      "rss_anon": 1082,
+      "heap_committed": 341,
+      "nmt_total": 664,
+      "cgroup_swap": 0,
+      "majflt": 1
+    },
+    "idle7m": {
+      "rss": 1318,
+      "rss_anon": 1116,
+      "heap_committed": 341,
+      "nmt_total": 665,
+      "cgroup_swap": 0,
+      "majflt": 1
+    },
+    "idle10m": {
+      "rss": 1317,
+      "rss_anon": 1115,
+      "heap_committed": 341,
+      "nmt_total": 660,
+      "cgroup_swap": 0,
+      "majflt": 1
+    },
+    "idle15m": {
+      "rss": 1337,
+      "rss_anon": 1136,
+      "heap_committed": 341,
+      "nmt_total": 661,
+      "cgroup_swap": 0,
+      "majflt": 1
+    },
+    "idle20m": {
+      "rss": 1364,
+      "rss_anon": 1162,
+      "heap_committed": 341,
+      "nmt_total": 664,
+      "cgroup_swap": 0,
+      "majflt": 1
+    }
+  },
+  "long_observation": "No 250 MiB RSS step at 10 minutes. A roughly 35 MiB rise near that point and gradual total growth of 119 MiB from settled to idle20m were observed. Anonymous memory outside NMT grew; its allocator and cause are unproven."
+}

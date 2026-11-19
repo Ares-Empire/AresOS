@@ -19,7 +19,8 @@
     "MusicManagerTestAccess",
     "ScreenLogMixin",
     "SavingTextTestMixin",
-    "AutosaveTestAccess"
+    "AutosaveTestAccess",
+    "IntegratedServerTestMixin"
   ],
   "injectors": {
     "defaultRequire": 1

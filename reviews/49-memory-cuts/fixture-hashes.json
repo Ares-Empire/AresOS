@@ -1,0 +1,59 @@
+{
+  "flat": {
+    "utility_source": "runs/setup-flat",
+    "manifest": {
+      "home": "flat",
+      "seed": "0",
+      "version": "1",
+      "x": "0",
+      "y": "63",
+      "yaw": "180.0",
+      "z": "0"
+    },
+    "input_files": {
+      "aresos-home.properties": {
+        "sha256": "488406e7342bbb88d752dca5659b7acfaa061d5451a6c957d106ee698dca54b5",
+        "bytes": 135
+      },
+      "level.dat": {
+        "sha256": "dadf2c2bcfd92a6610827638213c41ad53ace7c971b63f65529c0de9bfef13a2",
+        "bytes": 364
+      }
+    },
+    "aggregate_tree_sha256": "5dd342e826fa480393f388da68659525dc521dbf4220ee0a7b08bdd13b23f59d",
+    "aggregate_method": "Sorted relative filename, NUL, SHA256(file), LF; aggregate SHA256. Identifies this saved input, not a promise of byte-identical world recreation from its seed.",
+    "file_count": 47,
+    "total_bytes": 7860291,
+    "home_kind": "flat",
+    "verified_unchanged_after_all_measurements": true
+  },
+  "nether": {
+    "utility_source": "runs/setup-nether",
+    "manifest": {
+      "placeholder": "true",
+      "seed": "49",
+      "version": "1",
+      "x": "-64",
+      "y": "56",
+      "yaw": "0.0",
+      "z": "32"
+    },
+    "input_files": {
+      "aresos-home.properties": {
+        "sha256": "4d5be193d2ddb8cfac5b7d8a7379a390c13a2e9838ea8a1b6603f2a918136583",
+        "bytes": 146
+      },
+      "level.dat": {
+        "sha256": "d4ef2f9dc170585e784d54e872e4f052c87762521cda9e290565ad9607facf49",
+        "bytes": 468
+      }
+    },
+    "aggregate_tree_sha256": "341b5bef327db6d596dbd645bd09cc0177f8d1d1080ce97b3d5218602d2cf73d",
+    "aggregate_method": "Sorted relative filename, NUL, SHA256(file), LF; aggregate SHA256. Identifies this saved input, not a promise of byte-identical world recreation from its seed.",
+    "file_count": 57,
+    "total_bytes": 11876635,
+    "prepared_changes": "Disposable base only: allowCommands enabled and rig/glide installed for the1200tick route; source utility used the earlier rejected candidate flags. Both final measurement JVMs load fresh copies with their own actual flags.",
+    "home_kind": "nether",
+    "verified_unchanged_after_all_measurements": true
+  }
+}

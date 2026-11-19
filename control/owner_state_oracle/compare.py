@@ -2,7 +2,7 @@
 import json
 import re
 from .model import Fact
-from .records import canonical, fingerprint, visible
+from .records import canonical, fingerprint, visible, visible_history
 
 
 def compare_proofs(oracle, record, check, after_sequence=0, context=True):
@@ -137,7 +137,7 @@ def pages(read, action, arguments=None, section='data'):
 
 
 def source_order(record, source):
-    known = next(((event['time'], event['seq']) for event in record.events if event['set'].get(source) is not None), None)
+    known = next(((event['time'], event['seq']) for event in visible_history(record) if event['set'].get(source) is not None), None)
     if known is None and source.startswith('op:'):
         known = next(((fence['time'], fence['seq']) for fence in record.fences if any(op['id'] == source[3:] for op in fence.get('operations', []))), None)
     return known or (0, 0)
@@ -338,11 +338,11 @@ def compare_views(read, oracle, snapshot, check, ordinary='mail_accounts'):
                 check(view + '.duplicates', set(), {Fact('pending', 'duplicate', detail=repr(f)) for f in actual if f in seen})
                 seen.extend(actual)
             else:
-                # Audit inclusion is determined by the test clock and committed
-                # events, independent of the service's iterator/filter.
+                # Audit inclusion is determined by the test clock and visible
+                # local history, independent of the service's iterator/filter.
                 import time
                 day = time.strftime('%Y-%m-%d', time.localtime())
-                audit = sorted((e for e in record.events if e['seq'] in record.working_sequences and time.strftime('%Y-%m-%d', time.localtime(e['time'])) == day), key=lambda e: (e['time'], e['seq']))
+                audit = sorted((e for e in visible_history(record) if e['seq'] in record.working_sequences and time.strftime('%Y-%m-%d', time.localtime(e['time'])) == day), key=lambda e: (e['time'], e['seq']))
                 wanted = [audit_fact(e, expected=True) for e in audit]
                 actual = [audit_fact(e) for e in page.get('items', [])]
                 check(view + '.page', set(wanted[offset:offset + 5]), set(actual))

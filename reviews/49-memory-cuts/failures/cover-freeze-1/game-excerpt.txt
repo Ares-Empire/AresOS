@@ -1,0 +1,20 @@
+[23:36:17] [Server thread/WARN] (Minecraft) Can't keep up! Is the server overloaded? Running 267501ms or 5350 ticks behind
+WARNING: AresOS app helper stopped answering; reconnecting
+WARNING: AresOS app helper stopped answering; reconnecting
+WARNING: AresOS app helper stopped answering; reconnecting
+WARNING: AresOS app helper stopped answering; reconnecting
+WARNING: AresOS app helper stopped answering; reconnecting
+WARNING: AresOS app helper stopped answering; reconnecting
+WARNING: AresOS app helper stopped answering; reconnecting
+WARNING: AresOS app helper stopped answering; reconnecting
+WARNING: AresOS app helper stopped answering; reconnecting
+WARNING: AresOS app helper stopped answering; reconnecting
+WARNING: AresOS app helper stopped answering; reconnecting
+WARNING: AresOS app helper stopped answering; reconnecting
+WARNING: AresOS app helper stopped answering; reconnecting
+WARNING: AresOS app helper stopped answering; reconnecting
+WARNING: AresOS app helper stopped answering; reconnecting
+WARNING: AresOS app helper connection lost: null
+WARNING: AresOS app helper stopped answering; reconnecting
+WARNING: AresOS app helper: UNAVAILABLE (lost the connection to the app helper)
+> Process 'command '<worktree>/.work/pkg49/rigs/cover-freeze-1/jdk/bin/java'' finished with non-zero exit value 137 (this value may indicate that the process was terminated with the SIGKILL signal, which is often caused by the system running out of memory)

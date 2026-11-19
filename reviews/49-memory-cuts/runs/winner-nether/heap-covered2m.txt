@@ -1,0 +1,3 @@
+897155:
+garbage-first heap   total reserved 1048576K, committed 603136K, used 527433K [0x00000000c0000000, 0x0000000100000000)
+ region size 1024K, 148 young (151552K), 3 survivors (3072K)

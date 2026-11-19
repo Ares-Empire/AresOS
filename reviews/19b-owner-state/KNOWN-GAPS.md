@@ -9,14 +9,12 @@ the final fix round: **1,966,234 keys / 2,010 groups**. Correctly disclosed Tras
 roles no longer count as missing; the separate `G22-rename` pin is unchanged.
 
 **Current executable pin:** the last section, "Re-pin after
-20-restore-lock-followups": **2,576,083 keys / 1,930 groups / 892,234 bytes**,
-SHA-256 `8b27b1161505ac19eeaa41a6f1a69c95886de5da338249801963a96a083b74b1`.
-It replaces the 2,622,072-key pin of board #185 (the section before it), which
-replaced the 1,966,234-key pin above, which includes the final escaped-role
-correction below; earlier sections retain their historical conversion and
-verification evidence.
+20-store-oracle-followups (brief 302)": **2,420,003 keys / 1,860 groups / 860,653 bytes**,
+SHA-256 `1b21f564533df6cdc1c99a5c4068d87538047f54a5243b6d0ed930d378ca2295`.
+It replaces the 2,576,083-key pin from 20-restore-lock-followups; earlier sections
+retain their historical conversion and verification evidence.
 
-The list starts with Mail review 22's three blocking cases. They remain failures in production; stage 1 exposes them without changing their assertions.
+The original list started with Mail review 22's three blocking cases. G22-latch now passes its healthy-retry assertion (brief 302); G22-rename and G22-evidence remain pinned. The table retains their original failure descriptions.
 
 | Named assertion | Matrix row | Closing stage | Expected / observed |
 | --- | --- | --- | --- |
@@ -657,3 +655,123 @@ the test process as the container's PID 1, which a hook never takes as its sessi
 the hooks found no mark; it now runs under `docker run --init`. The final proof's ledger
 job passes.
 
+
+## Re-pin after 20-store-oracle-followups (brief 302)
+
+Capture **44375098965**, attempt 1, source `6a818646`: all 48 sweep/onboarding
+jobs fail only the final strict old-pin comparison after emitting full lists;
+the ledger and all 12 alteration shards pass (**2,096,041 candidates, slipped=0**).
+No closed-database restart error, corpus assertion, other test error or timeout.
+The historical proof **43972005458**'s 53 lists reproduce its pin byte for byte
+(2,576,083 keys, 1,930 groups, 892,234 bytes, SHA-256 `8b27b116…`).
+
+The capture has **52** actual lists: the passing G22-latch regression no longer
+writes a known-gap list. No placeholder list was added. They merge without
+conflicts (495 identical shared occurrences). Format 3 and strict exact-delta
+checking remain. The new pin has **2,420,003 keys / 1,860 groups / 860,653 bytes**,
+all stage 3, SHA-256
+`1b21f564533df6cdc1c99a5c4068d87538047f54a5243b6d0ed930d378ca2295`.
+Keys: 1,068,637 cleanup-free sweep keys, 1,350,990 cleanup-pair keys and 376
+contract, `G22-*` and channel keys (the previous pin: 1,136,793, 1,438,913 and 377),
+at 51,987 cases and 10,143 failing points. 1,079 cases and 104 points closed
+entirely; none appeared. Source: the
+[classification check](../20-store-oracle-followups/CLASSIFICATION-CHECK.md).
+
+Against the historical full list: **303,001 closed, 108,155 semantic changes,
+8,159 bijective alias-only changes, 146,921 new, 2,156,768 identical**. Full
+per-job evidence, item/phase/cause counts, all computed row transitions and
+flow-point counts are in
+[`Build part 7`](../20-store-oracle-followups/PROGRESS.md#build-part-7-the-re-pin).
+All 34 hosted point counts agree; no unrelated main drift was folded in.
+
+G22-latch closes by a passing healthy next write; the other 376 fixed keys
+are exact. No startup-replay or restore-lock failure is pinned. N7's exact
+6,949 historical keys: 4,100 closed, 928 semantically changed, 365 alias-only,
+1,556 identical. Its false marked/applied component is gone; residuals are
+pending omissions, notice/count and saved-envelope disclosure gaps. Its 544
+saved pre-crash envelopes: 440 closed, 32 changed, 72 identical. The 84 part-4
+M07/C01 sample targets are absent (76 historical closures, eight avoided
+additions). All 544,801 crash-locked deltas retain their semantics (528 change
+only aliases). There are zero label-only or stage changes. Ordinary staged
+call attribution also corrects post-start lifecycle/pending projections outside
+H and exposes retained recovery notices (N8 below); those broader deltas are
+classified explicitly in the progress record, not counted as N7 or extra store
+fixes.
+
+The two classes below come from the independent
+[classification check](../20-store-oracle-followups/CLASSIFICATION-CHECK.md)
+(2026-11-19, CONFIRMED), and every number in them is the check's. The check numbers
+its own classes N1 to N7 and C1 to C5; its N7 is not the N7 above.
+
+**Named class: notices left after a finished replay (N8; N1 of the check).**
+After a crash between staging a call's last event and marking it, the restart
+finishes the event. The store still shows a recovery notice for it: state
+`unknown`, "outcome unknown, inspect", although the log records the work as
+finished. The model no longer expects that notice. **124,173 keys** of the 146,921
+new ones, all `crash-restart`, at 7,941 case-phases in 24 flows: 64,973 notice keys
+and their 59,200 counts. The finished event removed an intent (2,716 case-phases) or
+an export (2,155), completed an operation (2,474, and 241 with two operations),
+failed one (214) or closed an account's setup (141). Each flow has one window of
+points (`delete_permanent` 374 to 415 and 417, of 420). Example:
+`attachment_export/persistent/147/0/crash-restart/aresos log.notice-head`, the store
+shows a recovery notice for `intent:#1`, the model expects none.
+
+Why it appears now: the store did not change. This package leaves start-up code
+untouched: start-up queues the notice before it replays the staged event, and drops
+it only for Chrome (check, N1). The old pin hid the notices behind 12,517 wrong
+`lifecycle-proof` keys: the model rejected the event start-up had finished, kept the
+work as unfinished and so expected the notice. Item 3's staged call ranges bind the
+event to its call, those objections closed, and the notice became a gap. It is a
+caution too many, not a hidden harm. Deciding which side should change is outside
+this package; for `linux-tools`, as a follow-up: the store drops the queued notice
+once the replay finishes its source (as it does for Chrome), or the model expects
+the notice. Either way, one re-pin.
+
+**Named class: reads refused while a notice stays queued (N9; N3 and C3 of the
+check).** Item 1.2's request barrier stops a read before it runs. When a request's
+flush of a queued notice meets a storage refusal, `recorded_write` sets the barrier
+(`results.py:188-190`; it does so for every storage refusal in a request), and
+`_admitted_request` refuses before dispatch (`engine.py:776`). The reply is the
+refusal with the passive pending section and no page. Before this package such a
+read was answered, with the error attached. **46,680 keys** in 2,457 case-phases:
+N3's 11,095 new keys (`exhausted` 1,628, `live-restored` 9,467; audit 7,140,
+notices 2,170, operation views 893, pending 886, locations 6) and C3's 35,585
+changed keys, where the page shows less or nothing. They are in the five flows that
+leave a notice queued in memory: `filing_copy` 903, `filing_move` 903,
+`filing_rename` 341, `expiry` 300 and `maintenance` 10 case-phases. On top come
+refused reads in flows with no audit events of the day: 1,056 of the check's N4
+keys, the background-storage notice missing from a refused read's page. Example:
+`expiry/single/10/0/live-restored/aresos log.total`, the model counts 5 events,
+the reply 0.
+
+This reaches beyond the first-append case. After a fully undone first append, reads
+are refused only while the fault lasts. But while a latch survives and a notice is
+queued, every later request, reads included, is refused until the service restarts,
+with the restart advice and the passive pending section.
+`test_failed_predispatch_flush_blocks_reads_and_cancellation_until_next_request`
+pins the barrier. The brief asks for it, so the check does not call it a regression.
+The brief also says "Successful reads keep their replies" (item 1.5), and the owner's
+question spoke of "continuing to show changes already saved locally". Whether this
+reach is wanted was the owner's decision: board #385, answered 2026-11-19 "Merge, fix
+reads later". So N9 stays pinned for now, and the follow-up (board #386, with N8)
+brings reads back while a latch survives, then re-pins once.
+
+Regenerate from this capture's actual lists, using the same converter as above:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control python3 -m owner_state_oracle.gaps $(rg --files --hidden --no-ignore .work/302/capture-44375098965/artifacts -g 'owner-gaps-*.json.gz' | sort) --full --output .work/302/repin/new-full.json
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control python3 -m owner_state_oracle.gaps .work/302/repin/new-full.json --output .work/302/repin/new-compact.json
+python3 - <<'PY'
+import json
+from pathlib import Path
+p = Path('.work/302/repin/new-compact.json')
+p.write_text(json.dumps(json.loads(p.read_text()), sort_keys=True, indent=1) + '\n')
+PY
+diff -u reviews/19b-owner-state/KNOWN-GAPS.json .work/302/repin/new-compact.json
+```
+
+**Proof:** 44395635207 on the committed pin: all 61 jobs green, its 52 fresh
+lists byte-identical to the pin, every alteration shard slipped=0. The package
+and security cross-review (REVIEW-1, SAFE) and the independent classification
+check (CLASSIFICATION-CHECK, CONFIRMED, every count matched) are in
+`reviews/20-store-oracle-followups/`. N8's follow-up is board #386.

@@ -1,0 +1,8 @@
+HEADLESS-1 "Headless output 1"
+  Enabled: yes
+  Modes:
+    1920x1080 px, 144.000000 Hz (current)
+  Position: 0,0
+  Transform: normal
+  Scale: 1.000000
+  Adaptive Sync: disabled

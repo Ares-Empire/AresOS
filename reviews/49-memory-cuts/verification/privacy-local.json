@@ -1,0 +1,8 @@
+{
+  "workflow": ".github/workflows/repo-privacy.yml",
+  "script_sha256": "4d27506147621805a484abd6eefcada9ff00428392ca74ab561a82730cc6d1f0",
+  "checked_head": "897764e9912b7b388586c6318030fb756d1c2876",
+  "exit": 0,
+  "stdout": "No file holds a home path with a real user name.\n",
+  "stderr": ""
+}
