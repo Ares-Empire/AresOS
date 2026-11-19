@@ -280,8 +280,14 @@
       for(let index=0;index<16;index++){let word=0;for(let part=0;part<4;part++){const position=offset+index*4+part;let byte=position<bytes.length?bytes[position]:position===bytes.length?128:0;if(position>=size-8)byte=Number((BigInt(bytes.length)*8n>>BigInt((size-1-position)*8))&255n);word=(word<<8)|byte;}words[index]=word;}
       for(let index=16;index<64;index++){const x=words[index-15],y=words[index-2];words[index]=(words[index-16]+(rotate(x,7)^rotate(x,18)^(x>>>3))+words[index-7]+(rotate(y,17)^rotate(y,19)^(y>>>10)))>>>0;}
       let[a,b,c,d,e,f,g,h]=hash;
-      for(let index=0;index<64;index++){const first=(h+(rotate(e,6)^rotate(e,11)^rotate(e,25))+((e&f)^(~e&g))+constants[index]+words[index])>>>0,second=((rotate(a,2)^rotate(a,13)^rotate(a,22))+((a&b)^(a&c)^(b&c)))>>>0;[a,b,c,d,e,f,g,h]=[(first+second)>>>0,a,b,c,(d+first)>>>0,e,f,g];}
-      for(const[index,value]of[a,b,c,d,e,f,g,h].entries())hash[index]=(hash[index]+value)>>>0;
+      // An outline hashes every node. Keep the rounds scalar rather than
+      // allocating and unpacking 64 arrays for each block of each node.
+      for(let index=0;index<64;index++){
+        const first=(h+(rotate(e,6)^rotate(e,11)^rotate(e,25))+((e&f)^(~e&g))+constants[index]+words[index])>>>0,second=((rotate(a,2)^rotate(a,13)^rotate(a,22))+((a&b)^(a&c)^(b&c)))>>>0;
+        h=g;g=f;f=e;e=(d+first)>>>0;d=c;c=b;b=a;a=(first+second)>>>0;
+      }
+      hash[0]=(hash[0]+a)>>>0;hash[1]=(hash[1]+b)>>>0;hash[2]=(hash[2]+c)>>>0;hash[3]=(hash[3]+d)>>>0;
+      hash[4]=(hash[4]+e)>>>0;hash[5]=(hash[5]+f)>>>0;hash[6]=(hash[6]+g)>>>0;hash[7]=(hash[7]+h)>>>0;
     }
     return hash.map(value=>value.toString(16).padStart(8,'0')).join('');
   }
@@ -462,12 +468,22 @@
   }
   // Its short digest: 128 bits of SHA-256 over the repaired JSON of `meaning`.
   // The service only stores and compares these.
-  const fingerprint=element=>sha256(new TextEncoder().encode(JSON.stringify(meaning(element),(key,value)=>typeof value==='string'?wellFormed(value):value))).slice(0,32);
+  let fingerprintEncoder;
+  function fingerprint(element){
+    const text=JSON.stringify(meaning(element),(key,value)=>typeof value==='string'?wellFormed(value):value);
+    // Sibling containers often have identical meanings. Read every element
+    // freshly, but hash each distinct byte string only once in this outline.
+    const known=outlineMemo?.digests.get(text);
+    if(known!==undefined)return known;
+    const digest=sha256((fingerprintEncoder??=new TextEncoder()).encode(text)).slice(0,32);
+    outlineMemo?.digests.set(text,digest);
+    return digest;
+  }
   function outline(budget){
     // The background passes what is left of the tab's nodes; a frame never gets more than the limit.
     const limit=Number.isInteger(budget)&&budget>=0?Math.min(budget,NODE_LIMIT):NODE_LIMIT;
     const mark=traces.length;
-    outlineMemo={forms:new Map()};
+    outlineMemo={forms:new Map(),digests:new Map()};
     try{
       let modal=null;const errors=new Set();
       for(const element of all()){
