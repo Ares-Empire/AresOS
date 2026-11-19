@@ -194,6 +194,15 @@ All of it ran in rootless podman containers of the pinned image, with no host fo
 
 ### Step 3, the harness and tests 1 to 7 (next)
 
+**First, REVIEW-1's fixes (Codex gpt-6.2-astra high, static review of steps 1 and 2; the lead's triage by the bar, 2026-11-19).** Fix these before the harness, and give each a test in the harness (or a unit test where the harness can't reach it):
+- **Finding 1:** give each arming and each crossing a unique token, check it when EIS is attached, and make disarming a session discard its pending capture and buffered input. Test: close a session while its crossing is queued, then a new session with the same path and barrier ID receives nothing.
+- **Finding 2:** when the frontend watch ends for any reason (including losing the bus), treat it as frontend loss and tear down every session; if the bus is gone, release any capture and exit. Test: kill the private bus while a capture is armed and while one is active; the next crossing stays local.
+- **Finding 3:** report `Activated` only after labwc confirms the lock (`locked`) and, for a keyboard grant, the barrier has keyboard focus. If the lock fails or doesn't come within a short timeout, restore local input and drop the pending events. Test: tests 2 and 3 check the order.
+- **Finding 4:** send `Activated`, `Deactivated`, `ZonesChanged` and the clipboard signals only to the frontend's unique bus name. Test: a second bus connection subscribed to them receives none.
+- **Finding 5:** when the active layer closes or the pointer capability goes away, report `CaptureLost` the same way an unlock does, so EIS stops and the frontend gets `Deactivated`.
+
+Into `KNOWN-LIMITS.md`, not fixed (low harm): finding 6 (a clipboard read racing its own session's teardown can hand that same allowed client a pipe for a newer selection), finding 7 (a dependency's error-path warning can log scroll axis values, never keys or text), finding 8 (with overlapping outputs a barrier on an inner edge is accepted; Deskflow sets barriers on outer edges), finding 9 (an allowed receiver can get extra devices within its grant).
+
 - `main` is merged in (`32050773`). The binary: `dev/container.sh build <dir>` leaves `<dir>/aresos-input-portal`
   and `<dir>/data/` (the portal file, the service file, `allowed-apps`).
 - **The allow-list** is read from `/usr/share/aresos/input-portal/allowed-apps` and nowhere else. In the harness
