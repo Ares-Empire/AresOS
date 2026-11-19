@@ -468,18 +468,29 @@ helper that does not know them works as today.
     the serving loop acts, and signals within 300 ms count as one. It acts only for a desktop on minor 2 that
     offered `shell_search` and has sent `world_ready` (and no heartbeat with `"ready": false` since), with window
     tracking on and the world's window known; otherwise Super does nothing.
-  - It requests the world's activation as a click would, and sends the event only once the compositor reports the
-    world activated (so typing never reaches the window that had the keyboard), after the usual `shell_focus`
-    `desktop_activated`; no `shell_focus` of the helper's own. No activation within 1 s: nothing is sent (logged).
-    The conditions above are checked again when the activation comes. That activation `uncover()`s
-    (`covering(known_screen=True)`): a maximized or fullscreen window that hides the world on its screen is
-    minimized; smaller windows and windows on the other screen stay. With the world reported active already it
-    uncovers and sends at once; the last active window alone never counts as the world being active.
-  - The mod ignores it with no ready desktop world, while a screen he types in is open, whatever its focus (chat, a
-    sign, a book or its signing screen, an anvil, a command, structure, jigsaw or test block), or any screen whose
-    focus is in a text box, and while the search is open already. It opens the search only while the game's window
-    has the keyboard; an event that comes before the focus waits up to 500 ms for it, then is dropped. An open
-    container closes first, the normal way.
+  - It always asks the compositor to activate the world, as a click would, also when the world looks active already
+    (what the helper last read can be half of a change of focus). It sends the event only once the world's window
+    is the **only** activated toplevel the compositor reports (so typing never reaches the window that had the
+    keyboard), after the usual `shell_focus` `desktop_activated`; no `shell_focus` of the helper's own. While
+    another window is still reported active beside the world it waits for the compositor's next news. If the world
+    is the only active window when Super comes, the event goes out at once. Not within 1 s: nothing is sent
+    (logged). The last active window alone never counts as the world being active.
+  - Only then is the world uncovered (`covering(known_screen=True)`): a maximized or fullscreen window that hides it
+    on its screen is minimized; smaller windows and windows on the other screen stay.
+  - A search is called off by a heartbeat with `"ready": false` (for good, also if the world is ready again within
+    the second), by a new desktop connection, by the 1 s bound, and when the conditions above no longer hold as the
+    world gets the keyboard. The activation Super asked for is marked: for a search that was called off it uncovers
+    nothing, so the world simply has the focus and no window is minimized. The mark lasts 5 s (`SEARCH_MARK`), so a
+    request the compositor never answered does not keep a later Alt+Tab to the world from uncovering it.
+  - The mod ignores it with no ready desktop world and while the search is open already. It replaces only what is
+    known to hold nothing typed (an allowlist): no screen, the inventory or another container (closed first, the
+    normal way), the game menu (the game's own or AresOS's) and the Apps screen, and each of these only while no
+    text box in it holds text (an anvil's name, the creative inventory's or the recipe book's search, the Apps
+    screen's search). Every other screen stays as it is and the event is ignored: the game's (chat, a sign, a book
+    and its signing, command and structure blocks, settings), another mod's, and AresOS's own (the New home choice
+    with its seed, the recovery and working screens).
+  - It opens the search only while the game's window has the keyboard; an event that comes before the focus waits
+    up to 500 ms for it, then is dropped.
 - **`open_app`'s `"screen": "world"`** (minor-2 desktop to helper). The app opens on the screen that shows the
   world (the search's Enter). From a view or a desktop below minor 2 the key is `malformed`, and so is any value
   but `"world"`. The hint is kept in the launch's journal entry, through a pending check, duplicate requests and a
