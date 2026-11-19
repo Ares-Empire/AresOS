@@ -1,7 +1,9 @@
 """Disposable aresos-shell/1.2 server shared by the laptop-home tests."""
 
+import hashlib
 import json
 import math
+from pathlib import Path
 import socket
 import socketserver
 import struct
@@ -188,3 +190,50 @@ class StandIn:
         with self.lock:
             self.running = sorted(ids)
             self.event('apps_running', apps=self.running)
+
+
+# The study's fixture town: generated logos and test apps, from 53c's page tests.
+ROOT = Path(__file__).resolve().parents[2]
+IMAGE_FONTS = ROOT / 'os/config/usr/share/fonts/aresos'
+STUDY_FONTS = ROOT / 'reviews/44-laptop-home/prototypes/shared/fonts'
+STUDY_PALETTE = dict(zip('abcdefghijklmno', ('#e6e8e6', '#8f918a', '#3b3e44', '#131419', '#a32a2a',
+    '#e06c10', '#f0b41e', '#66b120', '#4b6428', '#19828f', '#2c92d0', '#31369c', '#6d27a8', '#b43da8', '#d96e97')))
+
+
+def generated_cells(app_id):
+    """Give the headless town varied block logos without loading artwork from the laptop."""
+    shape, mark, fg, bg = hashlib.sha256(app_id.encode()).digest()[:4]
+    colours = tuple(STUDY_PALETTE)
+    plate = colours[bg % len(colours)]
+    figure = colours[(bg + 3 + fg % 6) % len(colours)]
+    cells = []
+    for y in range(12):
+        for x in range(12):
+            dx, dy = abs(x - 5.5), abs(y - 5.5)
+            solid = (True, dx * dx + dy * dy < 39, dx + dy < 8, max(dx, dy) < 5 or dx + dy < 6)[shape % 4]
+            ink = (dx < 1.5 or dy < 1.5, abs(dx - dy) < 1, 2 < dx + dy < 5,
+                   6 < dx * dx + dy * dy < 16, (x // 2 + y // 2) % 2 == 0)[mark % 5]
+            block = (figure if ink and max(dx, dy) < 4.5 else plate) if solid else '.'
+            cells.append('d' if y >= 9 and 4 <= x <= 7 else block)
+    return ''.join(cells)
+
+
+def generated_town(streets, icon, *, holes=()):
+    homes, programs = town(0, streets=streets, holes=holes)
+    slots = ['test-web-1', 'test-web-2', 'test-game-1', 'test-work-1', 'test-tool-1', 'test-tool-2', 'test-work-2']
+    for home in homes:
+        app_id = home['id']
+        kind, number = app_id.removeprefix('test-').split('-')
+        home['short'], home['cells'] = kind + number, generated_cells(app_id)
+        home.pop('slot', None)
+        if app_id in slots:
+            home['slot'] = slots.index(app_id)
+    for app in programs:
+        if app['id'] == 'test-work-3':
+            app['name'] = 'Test Media Workbench'
+    programs.extend([
+        dict(id='test-paint', name='Test Paint', generic_name='Image Editor', keywords=['drawing'], icon=str(icon)),
+        dict(id='test-viewer', name='Test Viewer', generic_name='Document Viewer', keywords=['pdf'], icon=str(icon)),
+        dict(id='test-archive', name='Test Archive', generic_name='Archive Manager', keywords=['pdf']),
+    ])
+    return homes, programs

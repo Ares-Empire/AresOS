@@ -1,32 +1,39 @@
 #!/usr/bin/python3
-"""The laptop-screen home and its aresos-shell/1.2 view connection."""
+"""The laptop-screen home, drawn with GTK 4 and Cairo, and its aresos-shell/1.2 view connection."""
 
-import asyncio
-from contextlib import ExitStack
+import sys
+
+# The home talks to its helper over a Unix socket and never uses TLS. asyncio imports ssl only to offer it, and that
+# import initialises OpenSSL (about 2 MiB at rest); a None entry makes the import fail, and asyncio goes without TLS.
+sys.modules.setdefault('ssl', None)
+
+import asyncio  # noqa: E402 (after the ssl entry above)
+from collections import namedtuple
 import json
 import math
+import random
 import os
 from pathlib import Path
 import re
-import secrets
+import selectors
 import signal
 import stat
 import string
 import struct
-import sys
+import subprocess
 import tempfile
 import threading
-from urllib.parse import unquote, urlsplit
+import time
+import unicodedata
+from datetime import datetime
 
 APP_ID = 'aresos.laptop-home'
-PAGE_ROOT = Path('/usr/share/aresos/laptop-home')
-SCHEME = 'aresos-home'
-PAGE = f'{SCHEME}://page/index.html'
 PROTOCOL = 'aresos-shell/1.2'
 CAPABILITIES = ['views', 'home_state', 'apps_running', 'apps_changed', 'app_state', 'list_apps', 'list_paging',
                 'app_details', 'open_app']
 MAX_MESSAGE = 64 * 1024
 MAX_ICON = 1024 * 1024
+MAX_ICON_SIDE = 512
 MAX_HOME_APPS = 200
 PNG_HEADER = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR'
 ID = re.compile(r'[a-z0-9_-]{1,64}')
@@ -47,47 +54,6 @@ MAX_HOME_BYTES = len(encode_home({
 NO_BATTERY = {'battery': None}
 UNAVAILABLE = {'state': 'failed', 'message': 'Opening is back in a moment'}
 FILE_FLAGS = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
-MIME = {
-    '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css',
-    '.json': 'application/json', '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.otf': 'font/otf',
-    '.png': 'image/png', '.svg': 'image/svg+xml', '.webp': 'image/webp', '.jpeg': 'image/jpeg',
-    '.jpg': 'image/jpeg', '.gif': 'image/gif', '.avif': 'image/avif', '.ico': 'image/x-icon',
-}
-# CSS may set inline styles for layout. Executable code and fetched data come from the packaged origins.
-CSP = ("default-src 'none'; script-src aresos-home://page; style-src aresos-home://page 'unsafe-inline'; "
-       "connect-src aresos-home://page aresos-home://icon; font-src aresos-home://page; "
-       "img-src aresos-home://page aresos-home://icon; frame-src 'none'; worker-src 'none'; "
-       "base-uri 'none'; form-action 'none'; frame-ancestors 'none'")
-FILTER = [
-    {'trigger': {'url-filter': '.*'}, 'action': {'type': 'block'}},
-    {'trigger': {'url-filter': '^aresos-home:'}, 'action': {'type': 'ignore-previous-rules'}},
-]
-BRIDGE = r"""
-(() => {
-  if (window !== window.top || location.href !== PAGE) return;
-  const post = window.webkit.messageHandlers.laptopHome.postMessage.bind(window.webkit.messageHandlers.laptopHome);
-  const events = new EventTarget();
-  let current = INITIAL;
-  const copy = value => structuredClone(value);
-  Object.defineProperty(window, 'aresosHome', {value: Object.freeze({
-    home: () => copy(current.home),
-    programs: () => copy(current.programs),
-    status: () => copy(current.status),
-    open: id => typeof id === 'string' ? post({key: KEY, op: 'open', id})
-                                      : Promise.resolve({state: 'failed', message: 'No such app'}),
-    addEventListener: events.addEventListener.bind(events),
-    removeEventListener: events.removeEventListener.bind(events)
-  })});
-  window.addEventListener(KEY, ({detail: [state, changed]}) => {
-    current = state;
-    for (const name of changed)
-      events.dispatchEvent(new CustomEvent(name, {detail: name === 'home' ? null : copy(state[name])}));
-  });
-  document.addEventListener('DOMContentLoaded', () => post({key: KEY, op: 'ready'}), {once: true});
-})();
-"""
-
-
 def take_token():
     token = os.environ.get('ARESOS_VIEW_TOKEN', '')
     # os.unsetenv also clears entries inherited by libc that Python may never have recorded.
@@ -113,37 +79,203 @@ def read_regular(path, *, dir_fd=None, limit=None):
         return data
 
 
-class Resources:
-    def __init__(self, root):
-        self.root = root
-        self.icons = {}
+def read_icon(path):
+    """53c's checks on a catalogue icon, on the opened file: an absolute path to a regular file (not a symlink) of at
+    most 1 MiB, holding a PNG of at most 512 x 512. Returns the bytes; the decoder never sees the path."""
+    if not isinstance(path, str) or not os.path.isabs(path):
+        raise ValueError('icon refused')
+    png = read_regular(path, limit=MAX_ICON)
+    if not png.startswith(PNG_HEADER) or len(png) < 24:
+        raise ValueError('icon refused')
+    width, height = struct.unpack_from('>II', png, 16)
+    if not (0 < width <= MAX_ICON_SIDE and 0 < height <= MAX_ICON_SIDE):
+        raise ValueError('icon refused')
+    return png
 
-    def read(self, uri):
-        url = urlsplit(uri)
-        if url.scheme != SCHEME:
-            raise ValueError('resource refused')
-        parts = unquote(url.path, errors='strict').removeprefix('/').split('/')
-        if url.netloc == 'icon' and len(parts) == 1 and valid_id(parts[0]):
-            path = self.icons.get(parts[0])
-            if path and os.path.isabs(path):
-                png = read_regular(path, limit=MAX_ICON)
-                if png.startswith(PNG_HEADER) and len(png) >= 24:
-                    width, height = struct.unpack_from('>II', png, 16)
-                    if 0 < width <= 512 and 0 < height <= 512:
-                        return 'image/png', png
-            raise ValueError('icon refused')
-        if url.netloc != 'page' or any(part in ('', '.', '..') or '\x00' in part for part in parts):
-            raise ValueError('resource refused')
-        mime = MIME.get(Path(parts[-1]).suffix)
-        if mime is None:
-            raise ValueError('resource refused')
-        # Open relative to directory descriptors, so a rename or a symlink swap cannot redirect a later open.
-        with ExitStack() as opened:
-            folder = None
-            for component in (self.root, *parts[:-1]):
-                folder = os.open(component, FILE_FLAGS | os.O_DIRECTORY, dir_fd=folder)
-                opened.callback(os.close, folder)
-            return mime, read_regular(parts[-1], dir_fd=folder)
+
+# The decoder runs in a short-lived child (python3 -I -S -c in bubblewrap, below), outside the process that holds the
+# view credential. It reads a PNG's bytes from stdin and writes width, height and RGBA rows; PNG only, non-interlaced,
+# at most 512 x 512.
+PNG_DECODER = r"""
+import struct, sys, zlib
+
+
+def main():
+    data = sys.stdin.buffer.read((1 << 20) + 1)
+    if len(data) > 1 << 20 or data[:8] != b'\x89PNG\r\n\x1a\n':
+        return 1
+    at, header, palette, alpha, idat = 8, None, b'', b'', bytearray()
+    while True:
+        if at + 12 > len(data):
+            return 1
+        size, kind = struct.unpack_from('>I4s', data, at)
+        if at + 12 + size > len(data):
+            return 1
+        body = data[at + 8:at + 8 + size]
+        if zlib.crc32(kind + body) != struct.unpack_from('>I', data, at + 8 + size)[0]:
+            return 1
+        at += 12 + size
+        if header is None and kind != b'IHDR':
+            return 1
+        if kind == b'IHDR':
+            header = struct.unpack('>IIBBBBB', body)
+        elif kind == b'PLTE':
+            palette = body
+        elif kind == b'tRNS':
+            alpha = body
+        elif kind == b'IDAT':
+            idat += body
+        elif kind == b'IEND':
+            break
+    width, height, depth, colour, compression, filtering, interlace = header
+    channels = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}.get(colour)
+    if (not 0 < width <= 512 or not 0 < height <= 512 or channels is None or compression or filtering or interlace
+            or depth not in ((1, 2, 4, 8) if colour == 3 else (1, 2, 4, 8, 16) if colour == 0 else (8, 16))
+            or (colour == 3 and not palette)):
+        return 1
+    bits = channels * depth
+    stride, step = (width * bits + 7) // 8, max(1, bits // 8)
+    raw = zlib.decompressobj().decompress(bytes(idat), height * (stride + 1) + 1)
+    if len(raw) != height * (stride + 1):
+        return 1
+    if colour == 3:
+        table = [palette[3 * i:3 * i + 3] + (alpha[i:i + 1] or b'\xff') for i in range(len(palette) // 3)]
+    out, previous = bytearray(), bytearray(stride)
+    for y in range(height):
+        kind, line = raw[y * (stride + 1)], bytearray(raw[y * (stride + 1) + 1:(y + 1) * (stride + 1)])
+        if kind == 1:
+            for i in range(step, stride):
+                line[i] = (line[i] + line[i - step]) & 255
+        elif kind == 2:
+            for i in range(stride):
+                line[i] = (line[i] + previous[i]) & 255
+        elif kind == 3:
+            for i in range(stride):
+                line[i] = (line[i] + ((line[i - step] if i >= step else 0) + previous[i]) // 2) & 255
+        elif kind == 4:
+            for i in range(stride):
+                a, b = (line[i - step] if i >= step else 0), previous[i]
+                c = previous[i - step] if i >= step else 0
+                p = a + b - c
+                pa, pb, pc = abs(p - a), abs(p - b), abs(p - c)
+                line[i] = (line[i] + (a if pa <= pb and pa <= pc else b if pb <= pc else c)) & 255
+        elif kind:
+            return 1
+        previous = line
+        samples = line[0::2] if depth == 16 else bytes(line)
+        if depth < 8:
+            mask, per = (1 << depth) - 1, 8 // depth
+            samples = bytes((byte >> (8 - depth * (k + 1))) & mask for byte in samples for k in range(per))[:width]
+            if colour == 0:
+                samples = bytes(value * 255 // mask for value in samples)
+        pixels = bytearray(width * 4)
+        if colour == 6:
+            pixels[:] = samples
+        elif colour == 2:
+            pixels[0::4], pixels[1::4], pixels[2::4] = samples[0::3], samples[1::3], samples[2::3]
+            pixels[3::4] = b'\xff' * width
+        elif colour == 0:
+            pixels[0::4] = pixels[1::4] = pixels[2::4] = samples
+            pixels[3::4] = b'\xff' * width
+        elif colour == 4:
+            pixels[0::4] = pixels[1::4] = pixels[2::4] = samples[0::2]
+            pixels[3::4] = samples[1::2]
+        else:
+            for x, index in enumerate(samples):
+                if index >= len(table):
+                    return 1
+                pixels[4 * x:4 * x + 4] = table[index]
+        out += pixels
+    sys.stdout.buffer.write(struct.pack('>II', width, height) + out)
+    return 0
+
+
+sys.exit(main())
+"""
+
+
+BWRAP = '/usr/bin/bwrap'
+# What the decoder may write back: its 8-byte size and at most 512 x 512 RGBA. Checked while reading, so a wrong child
+# never makes the home buffer more.
+MAX_DECODED = 8 + MAX_ICON_SIDE * MAX_ICON_SIDE * 4
+
+
+def decoder_runtime():
+    """The folders the decoder's Python needs, read-only: its standard library and the shared libraries. Fedora keeps
+    both in /usr/lib64 (as the helper's icon worker mounts it); Debian keeps the library in /usr/lib."""
+    library = os.path.realpath(os.path.dirname(os.__file__))
+    folders = [folder for folder in ('/usr/lib64', '/usr/lib') if os.path.isdir(folder)
+               and (folder == '/usr/lib64' or library.startswith(folder + '/'))]
+    if not any(library.startswith(folder + '/') for folder in folders):
+        folders.append(os.path.realpath(sys.base_prefix))   # a Python of its own, outside /usr
+    return folders
+
+
+def decoder_command(script, *arguments, bwrap=BWRAP):
+    """script run by this Python in bubblewrap, as the helper runs its icon converter: no network, no other
+    process, no host runtime folder, home or /proc; only the runtime above, a private /dev and an empty /tmp."""
+    python = os.path.realpath(sys.executable or '/usr/bin/python3')
+    command = [bwrap, '--unshare-all', '--die-with-parent', '--new-session', '--cap-drop', 'ALL']
+    for folder in decoder_runtime():
+        command += ['--ro-bind', folder, folder]
+        if folder in ('/usr/lib64', '/usr/lib'):
+            command += ['--symlink', folder[1:], folder[4:]]
+    return [*command, '--ro-bind', python, python, '--dev', '/dev', '--dir', '/tmp', '--chdir', '/', '--clearenv',
+            '--setenv', 'PATH', '/usr/bin', '--setenv', 'LC_ALL', 'C', '--', python, '-I', '-S', '-c', script,
+            *arguments]
+
+
+def run_sandboxed(command, data, limit, timeout):
+    """The command's output for data on its stdin, read under the limit and the deadline; its whole process group
+    ends after. Without the sandbox tool nothing runs: the caller shows no icon rather than decode unsandboxed."""
+    if not os.access(command[0], os.X_OK):
+        raise FileNotFoundError(f'sandbox not found: {command[0]}')
+    # The input comes from a memory file, so the child never waits on the home to write while the home waits to read.
+    source = os.memfd_create('aresos-icon', os.MFD_CLOEXEC)
+    try:
+        os.write(source, data)
+        os.lseek(source, 0, os.SEEK_SET)
+        proc = subprocess.Popen(command, stdin=source, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                                env={'PATH': '/usr/bin', 'LC_ALL': 'C'}, close_fds=True, start_new_session=True)
+    finally:
+        os.close(source)
+    output, deadline = bytearray(), time.monotonic() + timeout
+    try:
+        with selectors.DefaultSelector() as selector:
+            selector.register(proc.stdout, selectors.EVENT_READ)
+            while True:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise subprocess.TimeoutExpired(command[:1], timeout)
+                if not selector.select(remaining):
+                    continue
+                chunk = os.read(proc.stdout.fileno(), 65536)
+                if not chunk:
+                    break
+                if len(output) + len(chunk) > limit:
+                    raise ValueError('icon decoder output too large')
+                output += chunk
+        if proc.wait(timeout=max(0.001, deadline - time.monotonic())):
+            raise ValueError('icon decoder failed')
+        return bytes(output)
+    finally:
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        proc.wait()
+        proc.stdout.close()
+
+
+def decode_png(png, timeout=5, bwrap=BWRAP):
+    """(width, height, RGBA) from the decoder child in its sandbox. It gets the PNG's bytes on stdin, never the path."""
+    output = run_sandboxed(decoder_command(PNG_DECODER, bwrap=bwrap), png, MAX_DECODED, timeout)
+    if len(output) < 8:
+        raise ValueError('icon decoder failed')
+    width, height = struct.unpack_from('>II', output)
+    if not (0 < width <= MAX_ICON_SIDE and 0 < height <= MAX_ICON_SIDE) or len(output) != 8 + width * height * 4:
+        raise ValueError('icon decoder failed')
+    return width, height, output[8:]
 
 
 def page_home(palette, rows, names):
@@ -219,7 +351,7 @@ def launch_result(reply):
 class HelperPeer:
     def __init__(self, reader, writer):
         self.reader, self.writer = reader, writer
-        self.prefix = secrets.token_hex(8)
+        self.prefix = os.urandom(8).hex()
         self.serial = 0
         self.requests = {}
         self.authenticated = False
@@ -478,11 +610,1730 @@ def place_window(window, monitor, layer):
     layer.set_keyboard_mode(window, layer.KeyboardMode.ON_DEMAND)
 
 
+# ---------------------------------------------------------------------------------------------------------------
+# The layout model. Pure Python without GTK: explicit inputs in, where everything goes out. Every number and rule
+# comes from 53c's page (street.js, home.js, logo.js and home.css), which this replaces.
+
+LOOK = 'day'
+WIDTH, HEIGHT = 1920, 1080
+MID, ROAD, EDGE, FLOOR = WIDTH // 2, 16, 40, 948
+TREAD, LIP = 14, 4
+GROUPS = (
+    dict(key='internet', name='Internet', direction='north', colour='#3AB3DA', block='#2a8fce'),
+    dict(key='games', name='Games', direction='east', colour='#FF6257', block='#b3302c'),
+    dict(key='work_media', name='Work & Media', direction='west', colour='#C774F2', block='#7a2cb8'),
+    dict(key='system_tools', name='System & Tools', direction='south', colour='#FED83D', block='#e9ae1d'),
+)
+OFFLINE = UNAVAILABLE['message']
+HINT = 'Click opens · 1 to 9 the hotbar · type to find'
+ARROWS = {'ArrowLeft': (-1, 0), 'ArrowRight': (1, 0), 'ArrowUp': (0, -1), 'ArrowDown': (0, 1)}
+WEEKDAYS = ('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')
+MONTHS = ('January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October',
+          'November', 'December')
+PLACE = re.compile(r'([NEWS])(0|[1-9][0-9]?)([LR])(0|[1-9][0-9]?)')
+SLOT, SLOT_GAP, BAR_PAD = 64, 6, 6
+BAR_WIDTH, BAR_HEIGHT = 9 * SLOT + 8 * SLOT_GAP + 2 * BAR_PAD + 2, SLOT + 2 * BAR_PAD + 2
+BAR_LEFT, BAR_TOP = MID - BAR_WIDTH // 2, 966
+FINDER_LEFT, FINDER_WIDTH, FINDER_BOTTOM, LINE_HEIGHT = 50, 480, HEIGHT - 30, 44
+ROW_HEIGHT, LIST_HEAD = 36, 24
+# The end signs hold monospaced text (JetBrains Mono advances 0.6 em, less body's -0.01 em spacing).
+MONO_ADVANCE = 0.59
+
+
+# Text whose painted width sets a hit box or a column: (family, size, weight, letter spacing in em, upper case). The
+# fonts are named here because the model asks the painter's measure for these widths.
+TEXT, MONO = 'Space Grotesk,sans-serif', 'JetBrains Mono,monospace'
+STREET_NAME, STREET_DETAIL, SHORT = (TEXT, 13, 600, 0.16, True), (MONO, 12, 400, -0.01, False), (MONO, 12, 400, -0.01,
+                                                                                                   False)
+# Night's cut ends fade into the wall over 120 px, solid for the first 15 %: nothing shows there.
+NIGHT_FADE, NIGHT_SOLID = 120, 18
+
+
+def house_name_style(size):
+    return (TEXT, size, 500, -0.01, False)
+
+
+def estimate_width(text, style):
+    """A text's width without the painter (the model's own tests): monospace advances 0.6 em, the rest about 0.62."""
+    family, size, _weight, spacing, _upper = style
+    return len(text) * size * ((0.6 if family == MONO else 0.62) + spacing)
+
+
+def row_columns(name_width, kind_width, room):
+    """53c's finder row is a flex line: when its name and kind do not fit, both shrink in proportion to their widths
+    and are ellipsized there."""
+    if name_width + kind_width <= room:
+        return name_width, kind_width
+    share = max(0, room) / (name_width + kind_width)
+    return name_width * share, kind_width * share
+
+
+def js_round(value):
+    """JavaScript's Math.round: halves go up."""
+    return math.floor(value + 0.5)
+
+
+def street_frame(day):
+    """The top of the first street and the height of each."""
+    return (126, 202) if day else (150, 196)
+
+
+def place_index(place, letter):
+    # Each row adds one place per side. Interleave the sides to assign temporary places in the world's order.
+    fields = PLACE.fullmatch(place) if isinstance(place, str) else None
+    if not fields or fields[1] != letter:
+        return -1
+    row, side, column = int(fields[2]), fields[3], int(fields[4])
+    # The world's Place supports rows 0-63, with columns 0 through the row number.
+    return row * (row + 1) + 2 * column + (side == 'R') if row < 64 and column <= row else -1
+
+
+def decode_cells(code, palette):
+    """The wire starts at the top of the face; the logo is drawn from the ground up (row 0 is the bottom)."""
+    return [['door' if row < 3 and column in (5, 6) else palette.get(code[(11 - row) * 12 + column])
+             for column in range(12)] for row in range(12)]
+
+
+def town_grid(houses, day):
+    streets = []
+    for group in GROUPS:
+        placed = [(app, place_index(app.get('place'), group['direction'][0].upper()))
+                  for app in houses if app['group'] == group['key']]
+        following = max([-1] + [index for _, index in placed]) + 1
+        spots = []
+        for app, index in placed:
+            if index < 0:
+                index, following = following, following + 1
+            spots.append(dict(app=app, side='R' if index % 2 else 'L', slot=index // 2))
+        streets.append(spots)
+    slots = max([1] + [spot['slot'] + 1 for spots in streets for spot in spots])
+    fit = (MID - EDGE) / (14 * slots + 13) if day else (MID - 100 - EDGE) / (14.6 * slots)
+    cell = max(7, min(10, math.floor(fit)))
+    pitch, gap = (14 * cell, 30 * cell) if day else (js_round(14.6 * cell), 200)
+    size, depth = 12 * cell, js_round(cell * 0.9)
+    cols = math.floor(((MID - EDGE) / cell - 13) / 14)
+    for spots in streets:
+        for spot in spots:
+            spot['x'] = (MID - gap // 2 - spot['slot'] * pitch - size if spot['side'] == 'L'
+                         else MID + gap // 2 + spot['slot'] * pitch)
+    return dict(streets=streets, cell=cell, pitch=pitch, gap=gap, size=size, depth=depth, cols=cols)
+
+
+def snap(offset, pitch, day):
+    """By day a street rests on the grid: whole columns only."""
+    if not day or offset == 0:
+        return offset
+    return int(math.copysign(math.ceil(abs(offset) / pitch) * pitch, offset))
+
+
+def street_range(xs, size, pitch, day):
+    return (snap(min(0, WIDTH - EDGE - max([MID] + [x + size for x in xs])), pitch, day),
+            snap(max(0, EDGE - min([MID] + xs)), pitch, day))
+
+
+def clamp(value, bounds):
+    return max(bounds[0], min(bounds[1], js_round(value)))
+
+
+def follow(spots, size, pitch, day, bounds, offset, by_hand, framed):
+    """Where a street slides to show the framed house; without one it stays where the hand left it, or comes home."""
+    spot = next((spot for spot in spots if spot['app']['id'] == framed), None)
+    if spot is None:
+        return clamp(offset if by_hand else 0, bounds)
+    # Snap into the visible interval. Rounding away from zero alone can overshoot after a hand slide.
+    low, high = EDGE - spot['x'], WIDTH - EDGE - size - spot['x']
+    if not day:
+        value = min(max(offset, low), high)
+    elif offset < low:
+        value = math.ceil(low / pitch) * pitch
+    elif offset > high:
+        value = math.floor(high / pitch) * pitch
+    else:
+        value = offset
+    return clamp(value, bounds)
+
+
+def hidden(spots, size, offset, side):
+    if side == 'L':
+        return [spot for spot in spots if spot['x'] + offset < EDGE / 2]
+    return [spot for spot in spots if spot['x'] + offset + size > WIDTH - EDGE / 2]
+
+
+def squeeze(text):
+    return ''.join(c for c in text.casefold() if unicodedata.category(c)[0] in 'LN')
+
+
+def word_starts(text, needle):
+    if not text:
+        return False
+    words = re.split(r'[^\w]+|_+', text.casefold())
+    return any(word.startswith(needle) for word in words if word)
+
+
+def score(app, needle):
+    # The order follows the seven kinds of hits in the Apps screen.
+    short = squeeze(app['short']) if app.get('short') else None
+    name = squeeze(app['name'])
+    if short == needle:
+        return 7
+    if short is not None and short.startswith(needle):
+        return 6
+    if name.startswith(needle):
+        return 5
+    if word_starts(app['name'], needle):
+        return 4
+    if needle in name:
+        return 3
+    if word_starts(app.get('generic_name'), needle):
+        return 2
+    if any(squeeze(word).startswith(needle) for word in app.get('keywords') or () if isinstance(word, str)):
+        return 1
+    return 0
+
+
+def number_weight(digits):
+    """A number's primary weight from its digit values: fewer significant digits first, then the digits themselves.
+    The same order as by value, without int(), which refuses runs past 4,300 digits."""
+    significant = ''.join(str(unicodedata.digit(digit)) for digit in digits).lstrip('0')
+    return (1, len(significant), significant)
+
+
+def natural(name):
+    """localeCompare('en', {numeric: true}) closely enough for ties: first by base letters, with runs of decimal
+    digits by value and spaces, punctuation and symbols before digits before letters; then accents; then case, lower
+    first; then the name itself. Only decimal digits (Unicode Nd) are numbers, as in ICU: '²' is a symbol.
+
+    Case folding can turn one character into several ('ß' into 'ss', 'ﬁ' into 'fi', 'İ' into 'i' and a combining
+    dot), so each folded letter is weighed on its own and keeps its character's case, and a folded accent joins the
+    accents: 'Strasse', 'Straße', 'STRASSE', as ICU orders them."""
+    primary, accents, case = [], [], []
+    for part in re.split(r'(\d+)', unicodedata.normalize('NFD', name)):
+        if not part:
+            continue
+        if part.isdecimal():
+            primary.append(number_weight(part))
+            continue
+        for character in part:
+            upper = 0 if character == character.lower() else 1
+            for folded in unicodedata.normalize('NFD', character.casefold()):
+                if unicodedata.combining(folded):
+                    if accents:
+                        accents[-1] += folded
+                    continue
+                accents.append('')
+                case.append(upper)
+                if unicodedata.digit(folded, None) is not None:
+                    primary.append(number_weight(folded))   # '²' weighs as a 2, never as part of a number run
+                else:
+                    primary.append((2, 0, folded) if folded.isalnum() else (0, 0, folded))
+    return primary, accents, case, name
+
+
+def search(by_id, query):
+    """The ranked ids for a query, or None while nothing is typed."""
+    if not query:
+        return None
+    needle = squeeze(query)
+    if not needle:
+        return []
+    ranked = [(score(app, needle), app) for app in by_id.values()]
+    ranked = [(hit, app) for hit, app in ranked if hit]
+    ranked.sort(key=lambda item: (-item[0], -bool(item[1].get('mine')), natural(item[1]['name'])))
+    return [app['id'] for _, app in ranked]
+
+
+def catalogue_index(programs, houses):
+    by_id = {app['id']: dict(app) for app in programs}
+    for app in houses:
+        by_id[app['id']] = {**by_id.get(app['id'], {}), **app}
+    return by_id
+
+
+def star_field():
+    """53c's 90 stars: a fixed generator, so the sky is the same every night."""
+    seed, stars = 44, []
+
+    def following():
+        nonlocal seed
+        seed = (seed * 1664525 + 1013904223) & 0xffffffff
+        return seed / 4294967296
+
+    for _ in range(90):
+        x = js_round(following() * 1916)
+        y = js_round(following() * 900)
+        stars.append([x, y, round(0.1 + following() * 0.35, 2)])
+    return stars
+
+
+STARS = star_field()
+
+
+def hint_text(online, error, target, query):
+    if not online:
+        return OFFLINE
+    if error:
+        return error
+    if target:
+        return f'Enter opens {target["name"]}'
+    return 'Nothing with that name' if query else 'Type a name to find an app'
+
+
+def inside(rect, x, y):
+    left, top, width, height = rect
+    return left <= x < left + width and top <= y < top + height
+
+
+def in_polygon(corners, x, y):
+    """Whether a point lies in a polygon, half-open as inside() is: its left and top edges in, its right and bottom
+    ones out."""
+    result = False
+    for (x1, y1), (x2, y2) in zip(corners, corners[1:] + corners[:1]):
+        if (y1 > y) != (y2 > y) and x < x1 + (y - y1) * (x2 - x1) / (y2 - y1):
+            result = not result
+    return result
+
+
+def inside_rounded(rect, radius, x, y):
+    """Whether a point lies in a box with rounded corners, as Painter.rounded draws it."""
+    left, top, width, height = rect
+    if not inside(rect, x, y):
+        return False
+    radius = min(radius, width / 2, height / 2)
+    nearest_x = min(max(x, left + radius), left + width - radius)
+    nearest_y = min(max(y, top + radius), top + height - radius)
+    return (x - nearest_x) ** 2 + (y - nearest_y) ** 2 <= radius ** 2
+
+
+def logo_shapes(cells, cell, depth):
+    """logo.js's painted parts in painting order, in the logo picture's own coordinates: the face from the ground up
+    (row 0 is the bottom), each block's top and side reaching back by depth where no block stands on or beside it,
+    drawn before every face. Yields (part, u, v, corners). The painter fills exactly these, and a click or hover
+    counts only inside them: the picture's corners and empty cells are transparent."""
+    def solid(u, v):
+        return 0 <= u < 12 and 0 <= v < 12 and cells[v][u] is not None
+
+    blocks = [(u, v, u * cell, depth + (11 - v) * cell) for v in range(12) for u in range(12) if solid(u, v)]
+    if depth:
+        for u, v, x, y in blocks:
+            if not solid(u, v + 1):
+                yield 'top', u, v, ((x, y), (x + cell, y), (x + cell + depth, y - depth), (x + depth, y - depth))
+            if not solid(u + 1, v):
+                yield 'side', u, v, ((x + cell, y), (x + cell, y + cell), (x + cell + depth, y + cell - depth),
+                                     (x + cell + depth, y - depth))
+    for u, v, x, y in blocks:
+        yield 'face', u, v, ((x, y), (x + cell, y), (x + cell, y + cell), (x, y + cell))
+
+
+def frame_band(frame, day):
+    """The framed house's painted ring as Painter.frame draws it: (outer box, its radius, hole, its radius). By day
+    a 2 px shadow outside the box, a 3 px gold border and a 1 px line inside it; by night a 2 px gold border."""
+    x, y, w, h = frame
+    if day:
+        return [x - 2, y - 2, w + 4, h + 4], 7, [x + 4, y + 4, w - 8, h - 8], 1
+    return [x, y, w, h], 5, [x + 2, y + 2, w - 4, h - 4], 3
+
+
+def build_scene(inputs):
+    """The whole home for one set of inputs. Coordinates are on the 1920 x 1080 stage; 'fit' maps it to the window."""
+    look = inputs['look']
+    day = look == 'day'
+    measure = inputs.get('measure') or estimate_width
+    width, height = inputs['size']
+    scale = min(width / WIDTH, height / HEIGHT)
+    fit = dict(scale=scale, left=(width - WIDTH * scale) / 2, top=(height - HEIGHT * scale) / 2)
+    home = inputs['home']
+    houses = [dict(app, mine=True, cells=decode_cells(app['cells'], home['palette'])) for app in home['apps']]
+    by_id = catalogue_index(inputs['programs'], houses)
+    query = inputs['query']
+    order = search(by_id, query)
+    matches = None if order is None else set(order)
+    best = None if inputs.get('best_cleared') or not order else order[0]
+    selected = inputs.get('selected')
+    if selected not in by_id or (matches is not None and selected not in matches):
+        selected = None
+    framed = selected or best
+    running, opening, hover = set(inputs['running']), set(inputs['opening']), inputs.get('hover')
+    online = inputs['online']
+    grid = town_grid(houses, day)
+    cell, pitch, gap, size, depth = (grid[key] for key in ('cell', 'pitch', 'gap', 'size', 'depth'))
+    top, street_height = street_frame(day)
+    streets = []
+    for index, (group, spots) in enumerate(zip(GROUPS, grid['streets'])):
+        key = group['key']
+        street_top = top + index * street_height
+        base = street_top + street_height - ROAD
+        xs = [spot['x'] for spot in spots]
+        bounds = street_range(xs, size, pitch, day)
+        by_hand = bool(inputs['by_hand'].get(key))
+        offset = clamp(inputs['offsets'].get(key, 0), bounds)
+        # The street is drawn where its glide has got to; its rules (ends, frame, target) use where it comes to rest.
+        shift = (inputs.get('current') or {}).get(key, offset)
+        far = {side: max([-1] + [spot['slot'] for spot in spots if spot['side'] == side]) for side in 'LR'}
+        margin = cell // 2
+        plots = []
+        if day:
+            # A plot for every column, so a free place is a free plot and all streets are equally long.
+            for side in 'LR':
+                count = max(grid['cols'], far[side] + 1)
+                first = MID - gap // 2 - (count - 1) * pitch - size if side == 'L' else MID + gap // 2
+                left = first - margin + shift
+                plots.append(dict(side=side, count=count, left=left, width=(count - 1) * pitch + size + 2 * margin,
+                                  slab=size + 2 * margin, slabs=[left + k * pitch for k in range(count)]))
+            # The road runs from edge to edge and stands still when its street slides.
+            road = dict(rect=[0, base, WIDTH, ROAD], joint=(MID - gap // 2) % (2 * cell), slides=False)
+        else:
+            start = MID - gap // 2 - (0 if far['L'] < 0 else far['L'] * pitch + size + 2 * cell)
+            end = MID + gap // 2 + (0 if far['R'] < 0 else far['R'] * pitch + size + 2 * cell)
+            road = dict(rect=[start + shift, base, end - start, ROAD], joint=start + shift, slides=True)
+        sign_bottom = base - js_round(size * 0.42)
+        detail = f'{group["direction"]} · {len(spots)}'
+        # The sign is as wide as its text (by day with its plate's 12 px each side), and only that takes a click.
+        sign_width = max(measure(group['name'], STREET_NAME), measure(detail, STREET_DETAIL)) + (24 if day else 0)
+        sign = dict(centre=MID + shift, bottom=sign_bottom, name=group['name'], detail=detail,
+                    rect=[MID + shift - sign_width / 2, sign_bottom - (51 if day else 38), sign_width,
+                          51 if day else 38])
+        ends, view = {}, [0, WIDTH]
+        for side in 'LR':
+            gone = hidden(spots, size, offset, side)
+            count = len([spot for spot in gone if spot['app']['id'] in matches]) if matches is not None else len(gone)
+            label = f'‹ {count}' if side == 'L' else f'{count} ›'
+            box = max(46, js_round(MONO_ADVANCE * 14 * len(label)) + 22)
+            ends[side] = dict(cut=bool(gone), count=count, hidden=len(gone), label=label,
+                              hover=hover == f'end:{key}:{side}',
+                              title=(f'{count} matching out of {len(gone)} hidden houses' if matches is not None
+                                     else f'{count} hidden houses'),
+                              rect=[10 if side == 'L' else WIDTH - 10 - box, base + ROAD - js_round(size / 2) - 32,
+                                    box, 32])
+            if gone:
+                # Where a cut end hides houses: by day the view's mask is clear up to EDGE / 2, at night the wall.
+                hide = EDGE / 2 if day else NIGHT_SOLID
+                view[0 if side == 'L' else 1] = hide if side == 'L' else WIDTH - hide
+        drawn = []
+        puffs = inputs.get('puffs') or {}
+        for spot in spots:
+            app = spot['app']
+            app_id, left = app['id'], spot['x'] + shift
+            puff = puffs.get(app_id)
+            name_size = 14 if cell >= 9 else 13
+            # The sign's painted width: the plate shrinks to its text (by day with 6 px each side), up to the sign.
+            painted = min(max(measure(app['name'], house_name_style(name_size)), measure('/' + app['short'], SHORT))
+                          + (12 if day else 0), pitch - 6)
+            states = dict(running=app_id in running, opening=app_id in opening,
+                          dim=matches is not None and app_id not in matches,
+                          match=matches is not None and app_id in matches, framed=app_id == framed,
+                          hover=hover == f'house:{app_id}')
+            drawn.append(dict(
+                id=app_id, name=app['name'], short='/' + app['short'], side=spot['side'], slot=spot['slot'],
+                x=spot['x'], left=left, base=base, cell=cell, size=size, depth=depth,
+                box=[left, base - (size + depth + 54), size, size + depth + 54],
+                logo=[left, base - size - depth, size + depth],
+                door=[left + 5 * cell, base - 3 * cell, 2 * cell, 3 * cell],
+                mat=[left + 5 * cell, base, 2 * cell, (16 if states['running'] else 6) if day else 3],
+                frame=[left - 7, base - size - 7, size + 14, size + 14],
+                sign=dict(centre=left + size / 2, bottom=base - (size + depth + 3), width=pitch - 6,
+                          name_size=name_size, painted=painted),
+                lit=states['hover'] or states['running'] or states['framed'] or states['match'] or states['opening'],
+                # 53c's purple puff: 5 px squares from the door, rising and fading over 0.6 s.
+                puff=[[left + (4.5 + across * 2) * cell + dx * puff['progress'],
+                       base - (1 + up * 2) * cell - 5 + dy * puff['progress'], 1 - puff['progress']]
+                      for across, up, dx, dy in puff['particles']] if puff else [],
+                **states))
+        streets.append(dict(
+            key=key, name=group['name'], colour=group['colour'], block=group['block'], top=street_top,
+            height=street_height, base=base, offset=offset, shift=shift, by_hand=by_hand, range=list(bounds),
+            target=follow(spots, size, pitch, day, bounds, offset, by_hand, framed), plots=plots, road=road,
+            sign=sign, ends=ends, view=view, houses=drawn, visible=[spot['app']['id'] for spot in spots
+                                                        if EDGE <= spot['x'] + offset <= WIDTH - EDGE - size]))
+    pinned = {}
+    for app in houses:
+        if isinstance(app.get('slot'), int):
+            pinned[app['slot']] = app
+    slots = []
+    for index in range(9):
+        app = pinned.get(index)
+        app_id = app['id'] if app else None
+        slots.append(dict(index=index, id=app_id, name=app['name'] if app else None,
+                          rect=[BAR_LEFT + 1 + BAR_PAD + index * (SLOT + SLOT_GAP), BAR_TOP + 1 + BAR_PAD, SLOT, SLOT],
+                          running=app_id in running, opening=app_id in opening,
+                          dim=bool(app) and matches is not None and app_id not in matches,
+                          hover=bool(app) and hover == f'slot:{index}'))
+    others = [by_id[app_id] for app_id in order or () if not by_id[app_id].get('mine')]
+    rows = []
+    list_rect = None
+    if query and others:
+        shown = others[:5]
+        list_height = 2 + 16 + LIST_HEAD + len(shown) * (ROW_HEIGHT + 2)
+        list_top = FINDER_BOTTOM - LINE_HEIGHT - 8 - list_height
+        list_rect = [FINDER_LEFT, list_top, FINDER_WIDTH, list_height]
+        for index, app in enumerate(shown):
+            rows.append(dict(id=app['id'], name=app['name'], kind=app.get('generic_name') or '',
+                             has_icon=bool(app.get('has_icon')), framed=app['id'] == framed,
+                             hover=hover == f'row:{app["id"]}',
+                             rect=[FINDER_LEFT + 9, list_top + 9 + LIST_HEAD + 2 + index * (ROW_HEIGHT + 2),
+                                   FINDER_WIDTH - 18, ROW_HEIGHT]))
+    target = by_id.get(framed)
+    error = inputs.get('error') or ''
+    finder = dict(query=query, typing=bool(query), caret=bool(query) and inputs.get('caret', True),
+                  hint=hint_text(online, error, target, query),
+                  message=not online or bool(error), rect=[FINDER_LEFT, FINDER_BOTTOM - LINE_HEIGHT, FINDER_WIDTH,
+                                                          LINE_HEIGHT],
+                  list=list_rect, heading=(f'All programs · {len(others)}' if len(others) > 5 else 'All programs')
+                  if rows else None, rows=rows)
+    now = inputs['clock']
+    # Hits in stacking order, top first: the finder (z 40) with its rows over its own plates, the end signs (z 6),
+    # the hotbar, then each street's houses and its sign. A plate takes the click and opens nothing.
+    hits = [dict(kind='row', id=row['id'], rect=row['rect']) for row in rows]
+    if list_rect:
+        hits.append(dict(kind='chrome', rect=list_rect))
+    if day or finder['typing'] or finder['message']:
+        hits.append(dict(kind='chrome', rect=finder['rect']))
+    for street in streets:
+        hits += [dict(kind='end', key=street['key'], side=side, rect=end['rect'])
+                 for side, end in street['ends'].items() if end['cut']]
+    hits += [dict(kind='slot', id=slot['id'], index=slot['index'], rect=slot['rect']) for slot in slots if slot['id']]
+    hits.append(dict(kind='chrome', rect=[BAR_LEFT, BAR_TOP, BAR_WIDTH, BAR_HEIGHT]))
+    for street in reversed(streets):
+        low, high = street['view']
+        for house in reversed(street['houses']):
+            sign, (logo_left, logo_top, logo_size) = house['sign'], house['logo']
+            # The painted parts: the logo's blocks with their tops and sides (logo_shapes), the mat, the sign's
+            # plate (or text) and, while framed, the frame's ring. The transparent rest of the house's column, the
+            # logo picture's empty corners and cells, and the inside of the frame take no click. Each rect bounds
+            # its part; a 'logo' or 'band' narrows it to the painted shape.
+            parts = [([logo_left, logo_top, logo_size, logo_size],
+                      dict(logo=[logo_left, logo_top, house['cell'], house['depth']])),
+                     (house['mat'], {}),
+                     ([sign['centre'] - sign['painted'] / 2, house['box'][1], sign['painted'],
+                       sign['bottom'] - house['box'][1]], {})]
+            if house['framed']:
+                band = frame_band(house['frame'], day)
+                parts.append((band[0], dict(band=band)))
+            for (part_left, part_top, part_width, part_height), shape in parts:
+                # Only the part the view shows: a cut end's mask or wall hides the rest.
+                right, part_left = min(part_left + part_width, high), max(part_left, low)
+                if right > part_left:
+                    hits.append(dict(kind='house', id=house['id'], rect=[part_left, part_top, right - part_left,
+                                                                          part_height], **shape))
+        hits.append(dict(kind='sign', key=street['key'], rect=street['sign']['rect']))
+    return dict(
+        look=look, size=[width, height], fit=fit, grid={key: grid[key] for key in ('cell', 'pitch', 'gap', 'size',
+                                                                                     'depth', 'cols')},
+        online=online, query=query, best=best, selected=selected, framed=framed,
+        matches=order, streets=streets, slots=slots, finder=finder,
+        logos={app['id']: app['cells'] for app in houses},
+        clock=dict(time=f'{now.hour:02}:{now.minute:02}',
+                   date=f'{WEEKDAYS[now.weekday()]} {now.day} {MONTHS[now.month - 1]}'),
+        battery=inputs.get('battery'),
+        stars=[[x, y, opacity] for (x, y, _), opacity in zip(STARS, inputs.get('stars') or [s[2] for s in STARS])]
+        if not day else [],
+        hits=hits)
+
+
+def hover_key(hit):
+    """The hover input for a hit: house:<id>, slot:<index>, row:<id>, end:<street>:<side> or sign:<street>."""
+    if hit is None or hit['kind'] == 'chrome':
+        return None
+    if hit['kind'] == 'slot':
+        return f'slot:{hit["index"]}'
+    if hit['kind'] == 'end':
+        return f'end:{hit["key"]}:{hit["side"]}'
+    if hit['kind'] == 'sign':
+        return f'sign:{hit["key"]}'
+    return f'{hit["kind"]}:{hit["id"]}'
+
+
+def ease_out(progress):
+    """CSS ease-out, cubic-bezier(0, 0, 0.58, 1), at a progress from 0 to 1."""
+    if progress <= 0:
+        return 0.0
+    if progress >= 1:
+        return 1.0
+    low, high = 0.0, 1.0
+    for _ in range(30):   # solve x(t) = progress; x is monotonic in t
+        t = (low + high) / 2
+        x = 3 * (1 - t) * t * t * 0.58 + t ** 3
+        low, high = (t, high) if x < progress else (low, t)
+    t = (low + high) / 2
+    return 3 * (1 - t) * t * t + t ** 3
+
+
+def hit_test(scene, x, y):
+    """The topmost painted thing under a window point, or None. The painter clips to the stage, so a point in the
+    window's margin around it hits nothing; a 'chrome' hit is a plate that takes the click and does nothing."""
+    fit = scene['fit']
+    x, y = (x - fit['left']) / fit['scale'], (y - fit['top']) / fit['scale']
+    if not inside((0, 0, WIDTH, HEIGHT), x, y):
+        return None
+    return next((hit for hit in scene['hits'] if painted(hit, scene['logos'], x, y)), None)
+
+
+def painted(hit, logos, x, y):
+    """Whether a hit region holds a stage point: inside its rect, and for a logo or a frame inside its painted
+    shape. logos: the scene's cells by house id."""
+    if not inside(hit['rect'], x, y):
+        return False
+    if 'logo' in hit:
+        left, top, cell, depth = hit['logo']
+        return any(in_polygon(corners, x - left, y - top)
+                   for *_, corners in logo_shapes(logos[hit['id']], cell, depth))
+    if 'band' in hit:
+        outer, outer_radius, hole, hole_radius = hit['band']
+        return inside_rounded(outer, outer_radius, x, y) and not inside_rounded(hole, hole_radius, x, y)
+    return True
+
+
+class Town:
+    """The home's state between helper updates and input, as 53c's home.js kept it. No GTK here: timers, opening
+    and redraws come in as callables."""
+
+    GLIDE, PUFF, BLINK, BLINKS = 0.3, 0.6, 550, 10
+
+    def __init__(self, look, home, *, now=datetime.now, schedule=None, cancel=None, opener=None, changed=None,
+                 motion=None, clock=time.monotonic, measure=None):
+        self.look, self.home, self.measure = look, home, measure
+        self.programs, self.running, self.online, self.battery = [], [], False, None
+        self.query, self.selected, self.best_cleared, self.error, self.hover = '', None, False, '', None
+        self.opening, self.offsets, self.by_hand = set(), {}, {}
+        self.stars = [star[2] for star in STARS]
+        self.input_revision = self.launch_revision = 0
+        self.error_timer = None
+        self.now = now
+        self.schedule = schedule or (lambda _ms, _callback: None)
+        self.cancel = cancel or (lambda _handle: None)
+        self.opener = opener or (lambda _app_id, callback: callback(UNAVAILABLE))
+        self.changed = changed or (lambda _reason='state': None)
+        self.size = (WIDTH, HEIGHT)
+        # Motion: each street's drawn offset glides to its resting one; motion() asks for frames, and without it
+        # (the model's own tests) everything jumps to its end. clock() shares the frame clock's time base.
+        self.motion, self.clock = motion, clock
+        self.current, self.glides, self.puffs = {}, {}, {}
+        self.caret, self.caret_timer = True, None
+
+    def inputs(self, size=None):
+        return dict(look=self.look, size=list(size or self.size), home=self.home, programs=self.programs,
+                    running=list(self.running), online=self.online, query=self.query, selected=self.selected,
+                    best_cleared=self.best_cleared, offsets=dict(self.offsets), by_hand=dict(self.by_hand),
+                    hover=self.hover, opening=sorted(self.opening), error=self.error, clock=self.now(),
+                    battery=self.battery, stars=list(self.stars), current=dict(self.current),
+                    puffs={app_id: dict(progress=ease_out(puff['progress']), particles=puff['particles'])
+                           for app_id, puff in self.puffs.items()}, caret=self.caret, measure=self.measure)
+
+    def scene(self, size=None):
+        if size is not None:
+            self.size = tuple(size)
+        return build_scene(self.inputs())
+
+    def apply(self, state, events):
+        """Take the helper's state, as the page's apply() did."""
+        if 'home' in events:
+            # A street slid by hand keeps its place in whole columns (by day) or pixels (by night).
+            pitch = self.scene()['grid']['pitch']
+            columns = {key: offset / pitch for key, offset in self.offsets.items() if self.by_hand.get(key)}
+            self.home = state['home']
+            pitch = self.scene()['grid']['pitch']
+            self.offsets = {key: value * pitch if self.look == 'day' else self.offsets[key]
+                            for key, value in columns.items()}
+            self.by_hand = {key: True for key in columns}
+        if 'programs' in events:
+            self.programs = state['programs']
+        if 'home' in events or 'programs' in events:
+            self.search()
+        if 'running' in events:
+            self.running = list(state['running'])
+        if 'status' in events:
+            self.battery = state['status'].get('battery')
+        if 'helper' in events:
+            was_online, self.online = self.online, state['helper']
+            if self.online and not was_online:
+                self.clear_error()
+        self.refresh()
+
+    def search(self):
+        self.best_cleared = False
+        scene = self.scene()
+        by_id = {house['id'] for street in scene['streets'] for house in street['houses']}
+        known = by_id | {app['id'] for app in self.programs}
+        if self.selected not in known or (scene['matches'] is not None and self.selected not in scene['matches']):
+            self.selected = None
+
+    def refresh(self):
+        scene = self.scene()
+        for street in scene['streets']:
+            self.offsets[street['key']] = street['target']
+        self.glide()
+        self.changed()
+
+    def glide(self):
+        """53c's .slide transition: 0.3 s ease-out from where the street is drawn to where it now rests."""
+        started = False
+        for key, value in self.offsets.items():
+            shown = self.current.get(key, 0)
+            if self.motion is None:
+                self.current[key] = value
+                self.glides.pop(key, None)
+            elif key in self.glides and self.glides[key]['to'] == value:
+                continue
+            elif shown == value:
+                self.glides.pop(key, None)
+            else:
+                self.current[key] = shown   # drawn where it is until the first frame moves it
+                self.glides[key] = dict(start=self.clock(), origin=shown, to=value)
+                started = True
+        if started:
+            self.motion()
+
+    def advance(self, now):
+        """Move every glide and puff to the time now; True while something still moves."""
+        for key, glide in list(self.glides.items()):
+            progress = (now - glide['start']) / self.GLIDE
+            if progress >= 1:
+                self.current[key] = glide['to']
+                del self.glides[key]
+            else:
+                eased = ease_out(progress)
+                self.current[key] = glide['origin'] + (glide['to'] - glide['origin']) * eased
+        for app_id, puff in list(self.puffs.items()):
+            puff['progress'] = max(0.0, (now - puff['start']) / self.PUFF)
+            if puff['progress'] >= 1:
+                del self.puffs[app_id]
+        return bool(self.glides or self.puffs)
+
+    def blink(self):
+        """53c's caret: five blinks in 1.1 s steps from each keystroke, then it stays. Timed redraws, no frames."""
+        if self.caret_timer is not None:
+            self.cancel(self.caret_timer)
+        self.caret, self.caret_timer = True, None
+        if not self.query:
+            return
+
+        def toggle(count):
+            def fire():
+                self.caret = not self.caret
+                self.caret_timer = self.schedule(self.BLINK, toggle(count + 1)) if count + 1 < self.BLINKS else None
+                self.changed('caret')
+            return fire
+
+        self.caret_timer = self.schedule(self.BLINK, toggle(0))
+
+    def clear_error(self):
+        if self.error_timer is not None:
+            self.cancel(self.error_timer)
+            self.error_timer = None
+        self.error = ''
+
+    def set_query(self, text):
+        self.input_revision += 1
+        self.clear_error()
+        self.query = text.removeprefix('/')[:128]
+        self.selected = None
+        self.blink()
+        self.search()
+        self.refresh()
+
+    def reset(self):
+        self.by_hand = {}
+
+    def blur(self):
+        self.reset()
+        self.set_query('')
+
+    def pan(self, key, value, manual):
+        """A click on an end sign slides its street by hand; a click on the street's name brings it home."""
+        self.by_hand[key] = manual
+        scene = self.scene()
+        street = next(street for street in scene['streets'] if street['key'] == key)
+        self.offsets[key] = clamp(value, street['range'])
+        scene = self.scene()
+        street = next(street for street in scene['streets'] if street['key'] == key)
+        visible = street['visible']
+        framed = scene['framed']
+        own = {house['id'] for house in street['houses']}
+        if framed in own and framed not in visible:
+            choices = scene['matches'] if scene['matches'] is not None else visible
+            self.selected = next((app_id for app_id in choices if app_id in visible), None)
+            if not self.selected:
+                self.best_cleared = True
+        self.refresh()
+
+    def step(self, dx, dy):
+        scene = self.scene()
+        centre = {}
+        for street in scene['streets']:
+            for house in street['houses']:
+                if not house['dim']:
+                    left, top, width, height = house['box']
+                    centre[house['id']] = (left + width / 2, top + height / 2)
+        for row in scene['finder']['rows']:
+            left, top, width, height = row['rect']
+            centre[row['id']] = (left + width / 2, top + height / 2)
+        if not centre:
+            return
+        current = scene['framed']
+        if current not in centre:
+            self.selected = next(iter(centre))
+        else:
+            x0, y0 = centre[current]
+            least = math.inf
+            for app_id, (x, y) in centre.items():
+                along = (x - x0) * dx + (y - y0) * dy
+                cost = along + 2.5 * abs((x - x0) * dy + (y - y0) * dx)
+                if along > 4 and cost < least:
+                    least, self.selected = cost, app_id
+        self.refresh()
+
+    def key(self, key, *, repeat=False):
+        """One key as the page's keydown handler took it. Returns whether the home used it."""
+        if key == 'Escape':
+            self.reset()
+            self.set_query('')
+        elif key == 'Backspace':
+            self.set_query(self.query[:-1])
+        elif key == 'Enter':
+            app_id = self.scene()['framed']
+            if not app_id:
+                return False
+            if not repeat:
+                self.open(app_id)
+        elif key in ARROWS:
+            self.step(*ARROWS[key])
+        elif not self.query and len(key) == 1 and key in '123456789':
+            if not repeat:
+                slot = self.scene()['slots'][int(key) - 1]
+                self.open(slot['id'])
+        elif len(key) == 1 and (self.query or key == '/' or unicodedata.category(key)[0] in 'LN'):
+            self.set_query(self.query + key)
+        else:
+            return False
+        return True
+
+    def click(self, x, y):
+        hit = hit_test(self.scene(), x, y)
+        if hit is None or hit['kind'] == 'chrome':
+            return hit
+        if hit['kind'] in ('house', 'slot', 'row'):
+            self.open(hit['id'])
+        elif hit['kind'] == 'end':
+            street = next(street for street in self.scene()['streets'] if street['key'] == hit['key'])
+            self.pan(hit['key'], street['range'][1] if hit['side'] == 'L' else street['range'][0], True)
+        elif hit['kind'] == 'sign':
+            self.pan(hit['key'], 0, False)
+        return hit
+
+    def set_hover(self, hover):
+        if hover != self.hover:
+            self.hover = hover
+            self.changed()
+
+    def open(self, app_id):
+        scene = self.scene()
+        names = {house['id']: house['name'] for street in scene['streets'] for house in street['houses']}
+        names.update((app['id'], app['name']) for app in self.programs if app['id'] not in names)
+        if app_id not in names or not self.online or app_id in self.opening:
+            return
+        self.launch_revision += 1
+        request, input_at_launch = self.launch_revision, self.input_revision
+        self.clear_error()
+        self.opening.add(app_id)
+
+        def opened():
+            self.opening.discard(app_id)
+            self.refresh()
+
+        self.schedule(600, opened)
+        if self.motion is not None and app_id in {house['id'] for street in scene['streets']
+                                                  for house in street['houses']}:
+            self.puffs[app_id] = dict(start=self.clock(), progress=0.0, particles=[
+                (random.random(), random.random(), (random.random() - 0.5) * 70, -30 - random.random() * 60)
+                for _ in range(9)])
+            self.motion()
+        self.refresh()
+
+        def finish(result):
+            if request != self.launch_revision:
+                return
+            if result.get('state') == 'failed':
+                message = result.get('message')
+                self.error = OFFLINE if message == OFFLINE else f"Couldn't open {names[app_id]}: {message}"
+
+                def expire():
+                    self.error_timer = None
+                    self.error = ''
+                    self.changed('error')
+
+                self.error_timer = self.schedule(5000, expire)
+                self.changed()
+            elif input_at_launch == self.input_revision:
+                self.set_query('')
+
+        self.opener(app_id, finish)
+
+    def twinkle(self, choose=random.randrange):
+        index = choose(len(self.stars))
+        self.stars[index] = 0.12 if self.stars[index] > 0.24 else 0.38
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# The painter: draws one scene with Cairo and Pango, and nothing else. Colours and sizes are 53c's CSS.
+
+WALL, INK, INK_2, INK_3, LINE = '#0d0d10', '#f3f1ea', '#a6a39a', '#6f6b62', '#262420'
+GOLD, GOLD_HI, GOLD_EDGE = '#cfa24f', '#edca77', '#615640'
+DAY = dict(sky='#6f9df0', sky_low='#aecbf8', turf='#8ab254', bank_edge='#36502a', bank_top='#44642e', bank='#5f8442',
+           paving='#2b2832', plot='#b9c7a2', sign_name='#dedcd4', sign_short='#c3a364', hidden=0.16)
+NIGHT = dict(sign_name=INK_2, sign_short='#9c7c40', hidden=0.13, road='#18181c')
+SHADOW = (13 / 255, 13 / 255, 16 / 255)
+
+
+def rgb(colour):
+    value = int(colour[1:], 16)
+    return (value >> 16) / 255, ((value >> 8) & 255) / 255, (value & 255) / 255
+
+
+def mix(first, second, amount):
+    """amount of second in first, as CSS color-mix and canvas blending do in sRGB."""
+    return tuple(a + (b - a) * amount for a, b in zip(first, second))
+
+
+def shade(colour, amount):
+    """logo.js's shade: towards white for the tops, towards black for the sides."""
+    target = 0 if amount < 0 else 255
+    return tuple(js_round(c * 255 + (target - c * 255) * abs(amount)) / 255 for c in rgb(colour))
+
+
+def idle_colour(colour, look):
+    """The CSS filter of a house whose app is not open: night brightness(0.62) saturate(0.82); day saturate(0.45)
+    contrast(0.8) brightness(0.93). Each step clamps, as the filter primitives do."""
+    def saturate(c, s):
+        r, g, b = c
+        return (min(1, max(0, (0.213 + 0.787 * s) * r + (0.715 - 0.715 * s) * g + (0.072 - 0.072 * s) * b)),
+                min(1, max(0, (0.213 - 0.213 * s) * r + (0.715 + 0.285 * s) * g + (0.072 - 0.072 * s) * b)),
+                min(1, max(0, (0.213 - 0.213 * s) * r + (0.715 - 0.715 * s) * g + (0.072 + 0.928 * s) * b)))
+
+    def brightness(c, a):
+        return tuple(min(1, max(0, v * a)) for v in c)
+
+    def contrast(c, a):
+        return tuple(min(1, max(0, (v - 0.5) * a + 0.5)) for v in c)
+
+    if look == 'day':
+        return brightness(contrast(saturate(colour, 0.45), 0.8), 0.93)
+    return saturate(brightness(colour, 0.62), 0.82)
+
+
+ICON_SIZE = 48   # a finder icon is kept at twice its 24 px, for scaled screens
+
+
+def icon_surface(cairo, width, height, rgba):
+    """The decoded icon contained and centred in ICON_SIZE (object-fit: contain). Cairo premultiplies it: the colour
+    goes in as RGB24 and the alpha as an A8 mask."""
+    colour = bytearray(width * height * 4)
+    if sys.byteorder == 'little':
+        colour[0::4], colour[1::4], colour[2::4] = rgba[2::4], rgba[1::4], rgba[0::4]
+    else:
+        colour[1::4], colour[2::4], colour[3::4] = rgba[0::4], rgba[1::4], rgba[2::4]
+    stride = cairo.ImageSurface.format_stride_for_width(cairo.FORMAT_A8, width)
+    alpha = bytearray(stride * height)
+    for row in range(height):
+        alpha[row * stride:row * stride + width] = rgba[row * width * 4 + 3:(row + 1) * width * 4:4]
+    source = cairo.SurfacePattern(cairo.ImageSurface.create_for_data(colour, cairo.FORMAT_RGB24, width, height,
+                                                                     width * 4))
+    mask = cairo.SurfacePattern(cairo.ImageSurface.create_for_data(alpha, cairo.FORMAT_A8, width, height, stride))
+    icon = cairo.ImageSurface(cairo.FORMAT_ARGB32, ICON_SIZE, ICON_SIZE)
+    cr = cairo.Context(icon)
+    scale = min(ICON_SIZE / width, ICON_SIZE / height)
+    cr.translate((ICON_SIZE - width * scale) / 2, (ICON_SIZE - height * scale) / 2)
+    cr.scale(scale, scale)
+    # Smooth scaling that stops at the icon's own edges, as a browser's: padded, then clipped to the icon.
+    for pattern in (source, mask):
+        pattern.set_filter(cairo.FILTER_GOOD)
+        pattern.set_extend(cairo.EXTEND_PAD)
+    cr.rectangle(0, 0, width, height)
+    cr.clip()
+    cr.set_source(source)
+    cr.mask(mask)
+    icon.flush()
+    return icon
+
+
+class Painter:
+    """Draws a scene. It keeps one surface per house logo (and per hotbar logo) and small shadow masks, never a
+    full-screen picture."""
+
+    def __init__(self, cairo, Pango, PangoCairo):
+        self.cairo, self.Pango, self.PangoCairo = cairo, Pango, PangoCairo
+        self.logos, self.slot_logos, self.shadows, self.icons = {}, {}, {}, {}
+        self.options = cairo.FontOptions()
+        self.options.set_antialias(cairo.ANTIALIAS_GRAY)
+        self.options.set_hint_style(cairo.HINT_STYLE_NONE)
+        self.options.set_hint_metrics(cairo.HINT_METRICS_OFF)
+        self.weights = {400: Pango.Weight.NORMAL, 500: Pango.Weight.MEDIUM, 600: Pango.Weight.SEMIBOLD}
+        self.context, self.widths = None, {}
+
+    def measure(self, text, style):
+        """A text's painted width in a style (see STREET_NAME), for the model's hit boxes: the same layout the
+        painter draws with, on a context of its own."""
+        key = (text, style)
+        width = self.widths.get(key)
+        if width is None:
+            if self.context is None:
+                self.context = self.PangoCairo.FontMap.get_default().create_context()
+                self.PangoCairo.context_set_font_options(self.context, self.options)
+            family, size, weight, spacing, upper = style
+            layout = self.Pango.Layout.new(self.context)
+            self.style(layout, text, family, size, weight, spacing, upper)
+            if len(self.widths) >= 1024:
+                self.widths.clear()   # the names of up to 200 houses and the signs, with room
+            width = self.widths[key] = self.extent(layout)[0]
+        return width
+
+    # -- small tools ------------------------------------------------------------------------------------------
+    @staticmethod
+    def colour(cr, colour, alpha=1.0):
+        if isinstance(colour, str):
+            colour = rgb(colour)
+        cr.set_source_rgba(*colour[:3], alpha if len(colour) == 3 else colour[3] * alpha)
+
+    def fill(self, cr, rect, colour, alpha=1.0, radius=0):
+        self.rounded(cr, rect, radius)
+        self.colour(cr, colour, alpha)
+        cr.fill()
+
+    @staticmethod
+    def rounded(cr, rect, radius):
+        x, y, w, h = rect
+        if not radius:
+            cr.rectangle(x, y, w, h)
+            return
+        radius = min(radius, w / 2, h / 2)
+        cr.new_sub_path()
+        cr.arc(x + w - radius, y + radius, radius, -math.pi / 2, 0)
+        cr.arc(x + w - radius, y + h - radius, radius, 0, math.pi / 2)
+        cr.arc(x + radius, y + h - radius, radius, math.pi / 2, math.pi)
+        cr.arc(x + radius, y + radius, radius, math.pi, 3 * math.pi / 2)
+        cr.close_path()
+
+    def ring(self, cr, rect, radius, width, colour, alpha=1.0, outside=True):
+        """A box-shadow spread with no blur (outside) or a border (inside the box)."""
+        x, y, w, h = rect
+        cr.save()
+        cr.set_fill_rule(self.cairo.FILL_RULE_EVEN_ODD)
+        if outside:
+            self.rounded(cr, (x - width, y - width, w + 2 * width, h + 2 * width), radius + width if radius else 0)
+            self.rounded(cr, rect, radius)
+        else:
+            self.rounded(cr, rect, radius)
+            self.rounded(cr, (x + width, y + width, w - 2 * width, h - 2 * width), max(0, radius - width))
+        self.colour(cr, colour, alpha)
+        cr.fill()
+        cr.restore()
+
+    def layout(self, cr, text, family, size, weight=400, spacing=-0.01, upper=False, width=None, lines=None,
+               align=None):
+        """Plain text only: names, keywords and failure words are untrusted, so never markup."""
+        Pango = self.Pango
+        layout = self.PangoCairo.create_layout(cr)
+        self.PangoCairo.context_set_font_options(layout.get_context(), self.options)
+        layout.context_changed()
+        self.style(layout, text, family, size, weight, spacing, upper)
+        if width is not None:
+            layout.set_width(int(width * Pango.SCALE))
+            layout.set_wrap(Pango.WrapMode.WORD_CHAR)
+            layout.set_ellipsize(Pango.EllipsizeMode.END)
+            if lines:
+                layout.set_height(-lines)
+        if align == 'center':
+            layout.set_alignment(Pango.Alignment.CENTER)
+        elif align == 'right':
+            layout.set_alignment(Pango.Alignment.RIGHT)
+        return layout
+
+    def style(self, layout, text, family, size, weight, spacing, upper):
+        Pango = self.Pango
+        font = Pango.FontDescription()
+        font.set_family(family)
+        font.set_weight(self.weights[weight])
+        font.set_absolute_size(size * Pango.SCALE)
+        layout.set_font_description(font)
+        if spacing:
+            attributes = Pango.AttrList()
+            attributes.insert(Pango.attr_letter_spacing_new(int(spacing * size * Pango.SCALE)))
+            layout.set_attributes(attributes)
+        layout.set_text(text.upper() if upper else text, -1)
+
+    @staticmethod
+    def extent(layout):
+        logical = layout.get_pixel_extents()[1]
+        return logical.width, logical.height
+
+    def show(self, cr, layout, x, y, colour, shadow=None):
+        if shadow:
+            dx, dy, alpha = shadow
+            cr.move_to(x + dx, y + dy)
+            cr.set_source_rgba(*SHADOW, alpha)
+            self.PangoCairo.show_layout(cr, layout)
+        cr.move_to(x, y)
+        self.colour(cr, colour)
+        self.PangoCairo.show_layout(cr, layout)
+
+    def shadow_mask(self, width, height, blur, spread):
+        """A box-shadow's blurred rectangle: CSS blurs with a Gaussian of deviation blur / 2, which is separable."""
+        key = (width, height, blur, spread)
+        if key not in self.shadows:
+            cairo = self.cairo
+            sigma = blur / 2
+            reach = math.ceil(blur * 1.5) + spread
+            mask_width, mask_height = int(width + 2 * reach), int(height + 2 * reach)
+            k = 1 / (sigma * math.sqrt(2))
+
+            def profile(count, length):
+                low, high = reach - spread, reach + length + spread
+                return [0.5 * (math.erf((i + 0.5 - low) * k) - math.erf((i + 0.5 - high) * k)) for i in range(count)]
+
+            across, down = profile(mask_width, width), profile(mask_height, height)
+            stride = cairo.ImageSurface.format_stride_for_width(cairo.FORMAT_A8, mask_width)
+            data = bytearray(stride * mask_height)
+            for row, factor in enumerate(down):
+                data[row * stride:row * stride + mask_width] = bytes(min(255, int(255 * factor * v + 0.5))
+                                                                     for v in across)
+            surface = cairo.ImageSurface.create_for_data(data, cairo.FORMAT_A8, mask_width, mask_height, stride)
+            self.shadows[key] = (surface, reach, data)
+        return self.shadows[key]
+
+    def glow(self, cr, rect, blur, spread, colour, alpha, dy=0):
+        x, y, w, h = rect
+        surface, reach, _ = self.shadow_mask(int(w), int(h), blur, spread)
+        self.colour(cr, colour, alpha)
+        cr.mask_surface(surface, x - reach, y + dy - reach)
+
+    def logo_surface(self, cells, cell, depth, ink):
+        """logo.js: the face from the ground up, with its top and side reaching back by depth."""
+        cairo = self.cairo
+        size = 12 * cell + depth
+        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, size, size)
+        cr = cairo.Context(surface)
+        # The same shapes the hit regions use (logo_shapes): tops and sides first, then the faces.
+        for part, u, v, corners in logo_shapes(cells, cell, depth):
+            colour = '#050506' if cells[v][u] == 'door' else cells[v][u]
+            if part != 'face':
+                cr.set_source_rgb(*ink(shade(colour, 0.22 if part == 'top' else -0.45)))
+                cr.move_to(*corners[0])
+                for corner in corners[1:]:
+                    cr.line_to(*corner)
+                cr.fill()
+                continue
+            (x, y), c = corners[0], rgb(colour)
+            cr.set_source_rgb(*ink(c))
+            cr.rectangle(x, y, cell, cell)
+            cr.fill()
+            if cell >= 6 and cells[v][u] != 'door':   # a hint of single blocks
+                cr.set_source_rgb(*ink(mix(c, (1, 1, 1), 0.09)))
+                cr.rectangle(x, y, cell, 1)
+                cr.fill()
+                cr.set_source_rgb(*ink(mix(c, (0, 0, 0), 0.16)))
+                cr.rectangle(x, y + cell - 1, cell, 1)
+                cr.fill()
+        surface.flush()
+        return surface
+
+    def house_logo(self, scene, house):
+        cells = scene['logos'][house['id']]
+        look = scene['look']
+        lit = house['lit']
+        key = (tuple(map(tuple, cells)), house['cell'], house['depth'], look, lit)
+        cached = self.logos.get(house['id'])
+        if cached is None or cached[0] != key:
+            def ink(c):
+                c = rgb(c) if isinstance(c, str) else c
+                return c if lit else idle_colour(c, look)
+
+            cached = self.logos[house['id']] = (key, self.logo_surface(cells, house['cell'], house['depth'], ink))
+        return cached[1]
+
+    def slot_logo(self, scene, app_id):
+        cells = scene['logos'][app_id]
+        key = tuple(map(tuple, cells))
+        cached = self.slot_logos.get(app_id)
+        if cached is None or cached[0] != key:
+            cached = self.slot_logos[app_id] = (key, self.logo_surface(
+                cells, 4, 0, lambda c: rgb(c) if isinstance(c, str) else c))
+        return cached[1]
+
+    def blit(self, cr, surface, x, y, alpha=1.0):
+        cr.set_source_surface(surface, x, y)
+        cr.get_source().set_filter(self.cairo.FILTER_NEAREST)   # image-rendering: pixelated
+        if alpha < 1:
+            cr.paint_with_alpha(alpha)
+        else:
+            cr.paint()
+
+    # -- the scene --------------------------------------------------------------------------------------------
+    def paint(self, cr, scene):
+        # One logo picture per house and per pinned slot of this town only: a house that left, or a slot unpinned,
+        # takes its picture with it.
+        for gone in self.logos.keys() - scene['logos'].keys():
+            del self.logos[gone]
+        for gone in self.slot_logos.keys() - {slot['id'] for slot in scene['slots'] if slot['id']}:
+            del self.slot_logos[gone]
+        cr.save()
+        self.colour(cr, WALL)
+        cr.paint()
+        fit = scene['fit']
+        cr.translate(fit['left'], fit['top'])
+        cr.scale(fit['scale'], fit['scale'])
+        cr.rectangle(0, 0, WIDTH, HEIGHT)
+        cr.clip()
+        day = scene['look'] == 'day'
+        self.cell, self.depth = scene['grid']['cell'], scene['grid']['depth']
+        # Stacking as on the page: the ground, then everything without a z-index in document order, then the
+        # night's fades (z 5), the end signs (z 6) and the typing line (z 40).
+        self.background(cr, scene, day)
+        self.clock(cr, scene, day)
+        self.battery(cr, scene, day)
+        for street in scene['streets']:
+            self.street(cr, scene, street, day)
+        self.pad(cr, day)
+        self.hotbar(cr, scene, day)
+        self.hint(cr, day)
+        for street in scene['streets']:
+            if not day:
+                self.fades(cr, street)
+        for street in scene['streets']:
+            self.street_ends(cr, street)
+        self.finder(cr, scene, day)
+        cr.restore()
+
+    def background(self, cr, scene, day):
+        cairo = self.cairo
+        if day:
+            # The terraces: one gradient down the stage, as street.js's paintTerraces.
+            bases = [street['base'] for street in scene['streets']]
+            gradient = cairo.LinearGradient(0, 0, 0, HEIGHT)
+
+            def stop(at, colour):
+                gradient.add_color_stop_rgb(at / HEIGHT, *rgb(DAY[colour]))
+
+            stop(0, 'sky')
+            stop(bases[0] - TREAD, 'sky_low')
+            for index, base in enumerate(bases):
+                lip = base + ROAD + LIP
+                bank_end = bases[index + 1] - TREAD if index + 1 < len(bases) else HEIGHT
+                stop(base - TREAD, 'turf')
+                stop(lip, 'turf')
+                stop(lip, 'bank_edge')
+                stop(lip + 2, 'bank_edge')
+                stop(lip + 2, 'bank_top')
+                stop(bank_end, 'bank')
+            cr.set_source(gradient)
+            cr.paint()
+            return
+        self.colour(cr, WALL)
+        cr.paint()
+        for (cx, cy, rx, ry, colour) in ((0.04 * WIDTH, HEIGHT, 900, 520, (201 / 255, 55 / 255, 44 / 255, 0.10)),
+                                         (WIDTH, 0, 1000, 560, (93 / 255, 134 / 255, 179 / 255, 0.11))):
+            gradient = cairo.RadialGradient(0, 0, 0, 0, 0, 1)
+            gradient.add_color_stop_rgba(0, *colour)
+            gradient.add_color_stop_rgba(0.7, *colour[:3], 0)
+            matrix = cairo.Matrix(xx=1 / rx, yy=1 / ry, x0=-cx / rx, y0=-cy / ry)
+            gradient.set_matrix(matrix)
+            cr.set_source(gradient)
+            cr.paint()
+        for x, y, opacity in scene['stars']:
+            self.fill(cr, (x, y, 2, 2), INK, opacity)
+
+    def clock(self, cr, scene, day):
+        time_layout = self.layout(cr, scene['clock']['time'], MONO, 64, 500, spacing=-0.04)
+        _, height = self.extent(time_layout)
+        self.show(cr, time_layout, 64, 40 + (64 - height) / 2, INK, (3, 3, 0.42) if day else None)
+        date = self.layout(cr, scene['clock']['date'], TEXT, 13, 600, spacing=0.16, upper=True)
+        self.show(cr, date, 64, 114, '#ffffff' if day else INK_3, (1, 1, 0.62) if day else None)
+
+    def battery(self, cr, scene, day):
+        power = scene['battery']
+        if not power:
+            return
+        text = self.layout(cr, f'{power["level"]}%', MONO, 14)
+        text_width, text_height = self.extent(text)
+        box = max(14, text_height)
+        right = WIDTH - 64
+        self.show(cr, text, right - text_width, 48 + (box - text_height) / 2, '#ffffff' if day else INK_2,
+                  (1, 1, 0.62) if day else None)
+        shell = (right - text_width - 10 - 30, 48 + (box - 14) / 2, 30, 14)
+        x, y, w, h = shell
+        line = '#ffffff' if day else INK_3
+        if day:
+            cr.save()
+            cr.set_fill_rule(self.cairo.FILL_RULE_EVEN_ODD)
+            self.rounded(cr, (x + 1, y + 1, w, h), 3)
+            self.rounded(cr, shell, 3)
+            cr.set_source_rgba(*SHADOW, 0.5)
+            cr.fill()
+            cr.restore()
+        self.ring(cr, shell, 3, 1.5, line, outside=False)
+        self.fill(cr, (x + 31, y + 4.5, 2.5, 5), line, radius=0.5)
+        self.fill(cr, (x + 3, y + 3, 24 * power['level'] / 100, 8), '#ffffff' if day else INK_2, radius=1)
+        if power['charging']:
+            bolt = self.layout(cr, 'ϟ', TEXT, 12)
+            bolt_width, bolt_height = self.extent(bolt)
+            self.show(cr, bolt, x + (w - bolt_width) / 2, y + (h - bolt_height) / 2, GOLD_HI, (1, 1, 1))
+
+    def street(self, cr, scene, street, day):
+        if day:
+            self.road(cr, street, day)
+        masked = day and (street['ends']['L']['cut'] or street['ends']['R']['cut'])
+        cr.save()
+        if masked:
+            # By day the houses themselves fade out at a cut end: from EDGE / 2 to EDGE, as the view's mask.
+            cr.rectangle(0, street['top'], WIDTH, street['height'])
+            cr.clip()
+            cr.push_group()
+        if day:
+            for plots in street['plots']:
+                self.plots(cr, street, plots)
+        else:
+            self.road(cr, street, day)
+        self.street_sign(cr, street, day)
+        for house in street['houses']:
+            self.house(cr, scene, house, day, street['colour'])
+        if masked:
+            cr.pop_group_to_source()
+            self.view_mask(cr, street)
+        cr.restore()
+
+    def view_mask(self, cr, street):
+        mask = self.cairo.LinearGradient(0, 0, WIDTH, 0)
+        cut_left = 0 if street['ends']['L']['cut'] else 1
+        cut_right = 0 if street['ends']['R']['cut'] else 1
+        for at, alpha in ((0, cut_left), (EDGE / 2, cut_left), (EDGE, 1), (WIDTH - EDGE, 1),
+                          (WIDTH - EDGE / 2, cut_right), (WIDTH, cut_right)):
+            mask.add_color_stop_rgba(at / WIDTH, 0, 0, 0, alpha)
+        cr.mask(mask)
+
+    def road(self, cr, street, day):
+        x, y, w, h = street['road']['rect']
+        step = 2 * self.cell
+        if day:
+            self.fill(cr, (x, y, w, h), DAY['paving'])
+            joint = street['road']['joint']
+            first = joint + step - 1 - math.ceil((joint + step - 1) / step) * step
+            cr.set_source_rgba(0, 0, 0, 0.4)
+            position = first
+            while position < WIDTH:
+                if position >= 0:
+                    cr.rectangle(position, y, 1, h)
+                position += step
+            cr.fill()
+            self.fill(cr, (x, y + 6, w, 4), street['block'])
+            return
+        if w <= 0:
+            return
+        self.fill(cr, (x, y, w, h), NIGHT['road'])
+        cr.set_source_rgb(*rgb(WALL))
+        position = x + step - 1
+        while position < x + w:
+            cr.rectangle(position, y, 1, h)
+            position += step
+        cr.fill()
+        self.fill(cr, (x, y, w, 3), mix(rgb(street['block']), rgb(WALL), 0.38))
+
+    def plots(self, cr, street, plots):
+        depth = self.depth
+        base = street['base']
+        self.colour(cr, DAY['plot'])
+        for left in plots['slabs']:
+            # A plot lies on the ground: its slab is skewed back by the logo's depth.
+            cr.move_to(left, base)
+            cr.line_to(left + plots['slab'], base)
+            cr.line_to(left + plots['slab'] + depth, base - depth)
+            cr.line_to(left + depth, base - depth)
+            cr.close_path()
+        cr.fill()
+
+    def street_sign(self, cr, street, day):
+        sign = street['sign']
+        name = self.layout(cr, sign['name'], TEXT, 13, 600, spacing=0.16, upper=True)
+        detail = self.layout(cr, sign['detail'], MONO, 12)
+        (name_width, name_height), (detail_width, detail_height) = self.extent(name), self.extent(detail)
+        block = name_height + 5 + detail_height
+        if day:
+            # The plate is the model's sign box, which the model measured with this painter's text.
+            left, _, width, _ = sign['rect']
+            top = sign['bottom'] - block - 13
+            self.fill(cr, (left, top, width, block + 13), SHADOW + (0.76,), radius=3)
+            top += 6
+        else:
+            top = sign['bottom'] - block
+        self.show(cr, name, sign['centre'] - name_width / 2, top, street['colour'])
+        self.show(cr, detail, sign['centre'] - detail_width / 2, top + name_height + 5,
+                  '#c9c6bd' if day else INK_3)
+
+    def house(self, cr, scene, house, day, colour):
+        look = DAY if day else NIGHT
+        cr.save()
+        if house['dim']:
+            left, top, width, height = house['box']
+            cr.rectangle(left - 60, top - 20, width + 120, height + 80)
+            cr.clip()
+            cr.push_group()
+        logo_x, logo_y, _ = house['logo']
+        self.blit(cr, self.house_logo(scene, house), logo_x, logo_y)
+        door, mat = house['door'], house['mat']
+        if house['opening']:
+            if day:
+                self.glow(cr, door, 22, 6, (182 / 255, 107 / 255, 1), 0.6)
+                self.ring(cr, door, 0, 2, '#131419')
+            else:
+                self.glow(cr, door, 26, 8, (182 / 255, 107 / 255, 1), 0.55)
+            self.fill(cr, door, '#b66bff')
+        elif house['running']:
+            if day:
+                self.ring(cr, door, 0, 2, '#131419')
+            else:
+                self.glow(cr, door, 22, 5, rgb(GOLD_HI), 0.42)
+            self.gold_door(cr, door)
+        if house['running']:
+            if day:
+                self.ring(cr, mat, 0, 1, SHADOW, 0.55)
+            else:
+                self.glow(cr, mat, 14, 2, rgb(GOLD_HI), 0.5)
+            self.fill(cr, mat, GOLD_HI)
+        else:
+            self.fill(cr, mat, colour)
+        if house['framed']:
+            self.frame(cr, house['frame'], day)
+        self.house_sign(cr, house, day, look)
+        for x, y, alpha in house['puff']:
+            self.fill(cr, (x, y, 5, 5), '#c58bff', alpha)
+        if house['dim']:
+            cr.pop_group_to_source()
+            cr.paint_with_alpha(look['hidden'])
+        cr.restore()
+
+    def frame(self, cr, frame, day):
+        # frame_band in the model is the union of these rings: change both together.
+        if day:
+            self.ring(cr, frame, 5, 2, SHADOW, 0.82)
+            self.ring(cr, frame, 5, 3, GOLD_HI, outside=False)
+            x, y, w, h = frame
+            self.ring(cr, (x + 3, y + 3, w - 6, h - 6), 2, 1, SHADOW, 0.5, outside=False)
+        else:
+            self.ring(cr, frame, 5, 2, GOLD, outside=False)
+
+    def gold_door(self, cr, door):
+        x, y, w, h = door
+        gradient = self.cairo.LinearGradient(0, y, 0, y + h)
+        for at, colour in ((0, '#ffe7a6'), (0.55, '#e9b04a'), (1, '#b9791e')):
+            gradient.add_color_stop_rgb(at, *rgb(colour))
+        cr.rectangle(x, y, w, h)
+        cr.set_source(gradient)
+        cr.fill()
+
+    def house_sign(self, cr, house, day, look):
+        sign = house['sign']
+        lit = house['hover'] or house['running'] or house['framed'] or house['match']
+        size = sign['name_size']
+        inner = sign['width'] - 12 if day else sign['width']
+        name = self.layout(cr, house['name'], TEXT, size, 500, width=inner, lines=2, align='center')
+        single = self.layout(cr, 'X', TEXT, size, 500)
+        _, line = self.extent(single)
+        name.set_line_spacing(1.1 * size / line)
+        short = self.layout(cr, house['short'], MONO, 12)
+        lines = name.get_line_count()
+        short_width, short_height = self.extent(short)
+        block = lines * 1.1 * size + 1 + short_height
+        centre = sign['centre']
+        top = sign['bottom'] - block
+        if day:
+            bottom_pad = 4 if house['running'] else 2
+            top -= bottom_pad
+            # A plate shrinks to its text, up to the sign's width; a name that wraps takes the whole width. The model
+            # measured it (sign['painted']) for the sign's hit box.
+            width = sign['painted']
+            plate = (centre - width / 2, top, width, block + bottom_pad)
+            self.fill(cr, plate, SHADOW + ((0.88 if lit else 0.5),), radius=3)
+            if house['running']:
+                cr.save()
+                self.rounded(cr, plate, 3)
+                cr.clip()
+                self.fill(cr, (plate[0], plate[1] + plate[3] - 2, width, 2), GOLD_HI)
+                cr.restore()
+        self.show(cr, name, centre - inner / 2, top + (1.1 * size - line) / 2, INK if lit else look['sign_name'])
+        self.show(cr, short, centre - short_width / 2, top + lines * 1.1 * size + 1,
+                  GOLD_HI if lit else look['sign_short'])
+
+    def ink_width(self, layout):
+        """The widest wrapped line: a day plate is as wide as its text."""
+        widest = 0
+        iterator = layout.get_iter()
+        while True:
+            widest = max(widest, iterator.get_line_extents()[1].width / self.Pango.SCALE)
+            if not iterator.next_line():
+                break
+        return widest
+
+    def pad(self, cr, day):
+        if day:
+            self.fill(cr, (912, FLOOR - 9, 96, 18), DAY['paving'])
+        else:
+            self.fill(cr, (0, FLOOR, WIDTH, 1), LINE)
+        gradient = self.cairo.LinearGradient(953, FLOOR - 7, 967, FLOOR + 7)
+        for at, colour in ((0, GOLD_HI), (0.55, GOLD), (1, '#8c6a2c')):
+            gradient.add_color_stop_rgb(at, *rgb(colour))
+        cr.rectangle(953, FLOOR - 7, 14, 14)
+        cr.set_source(gradient)
+        cr.fill()
+
+    def hotbar(self, cr, scene, day):
+        bar = (BAR_LEFT, BAR_TOP, BAR_WIDTH, BAR_HEIGHT)
+        self.glow(cr, bar, 40, 0, (0, 0, 0), 0.5, dy=18)
+        gradient = self.cairo.LinearGradient(0, BAR_TOP, 0, BAR_TOP + BAR_HEIGHT)
+        gradient.add_color_stop_rgb(0, *rgb('#17161a'))
+        gradient.add_color_stop_rgb(1, *rgb('#101013'))
+        self.rounded(cr, bar, 12)
+        cr.set_source(gradient)
+        cr.fill()
+        self.ring(cr, bar, 12, 1, LINE, outside=False)
+        cr.save()
+        self.rounded(cr, (BAR_LEFT + 1, BAR_TOP + 1, BAR_WIDTH - 2, BAR_HEIGHT - 2), 11)
+        cr.clip()
+        self.fill(cr, (BAR_LEFT + 1, BAR_TOP + 1, BAR_WIDTH - 2, 1), (1, 1, 1), 0.05)
+        cr.restore()
+        for slot in scene['slots']:
+            x, y, w, h = slot['rect']
+            if slot['hover']:
+                y -= 2
+            self.fill(cr, (x, y, w, h), '#0a0a0c', radius=7)
+            border = GOLD_HI if slot['opening'] else GOLD if slot['hover'] else '#1f1e22'
+            self.ring(cr, (x, y, w, h), 7, 1, border, outside=False)
+            if slot['id']:
+                self.blit(cr, self.slot_logo(scene, slot['id']), x + 8, y + 8, 0.25 if slot['dim'] else 1)
+            if slot['running']:
+                mark = (x + 25, y + 59, 14, 2)
+                self.glow(cr, mark, 8, 0, rgb(GOLD), 1)
+                self.fill(cr, mark, GOLD_HI, radius=1)
+            number = self.layout(cr, str(slot['index'] + 1), MONO, 12)
+            number_width, number_height = self.extent(number)
+            self.show(cr, number, x + (w - number_width) / 2, slot['rect'][1] + h + 25 - number_height,
+                      '#ffffff' if day else INK_3, (1, 1, 0.62) if day else None)
+
+    def hint(self, cr, day):
+        hint = self.layout(cr, HINT, TEXT, 12, 600, spacing=0.16, upper=True)
+        width, height = self.extent(hint)
+        self.show(cr, hint, WIDTH - 64 - width, HEIGHT - 44 - height, '#ffffff' if day else INK_3,
+                  (1, 1, 0.62) if day else None)
+
+    def fades(self, cr, street):
+        # At night a cut end fades into the wall over 120 pixels, solid for the first 15 %.
+        for side in 'LR':
+            if not street['ends'][side]['cut']:
+                continue
+            left = 0 if side == 'L' else WIDTH - 120
+            gradient = self.cairo.LinearGradient(left, 0, left + 120, 0)
+            wall = rgb(WALL)
+            stops = ((0, 1), (0.15, 1), (1, 0)) if side == 'L' else ((0, 0), (0.85, 1), (1, 1))
+            for at, alpha in stops:
+                gradient.add_color_stop_rgba(at, *wall, alpha)
+            cr.rectangle(left, street['top'], 120, street['height'])
+            cr.set_source(gradient)
+            cr.fill()
+
+    def street_ends(self, cr, street):
+        for end in street['ends'].values():
+            if not end['cut']:
+                continue
+            rect = end['rect']
+            self.fill(cr, rect, (10 / 255, 10 / 255, 12 / 255, 0xf0 / 255), radius=6)
+            self.ring(cr, rect, 6, 1, street['colour'], 1 if end['hover'] else 0.45, outside=False)
+            label = self.layout(cr, end['label'], MONO, 14)
+            width, height = self.extent(label)
+            self.show(cr, label, rect[0] + (rect[2] - width) / 2, rect[1] + (rect[3] - height) / 2, street['colour'])
+
+    def finder(self, cr, scene, day):
+        finder = scene['finder']
+        x, y, w, h = finder['rect']
+        dark = finder['typing'] or finder['message']
+        if dark:
+            self.fill(cr, finder['rect'], (10 / 255, 10 / 255, 12 / 255, 0xf2 / 255), radius=8)
+            self.ring(cr, finder['rect'], 8, 1, GOLD_EDGE, outside=False)
+        elif day:
+            self.fill(cr, finder['rect'], SHADOW + (0.6,), radius=8)
+        middle = y + h / 2
+        left = x + 1 + 14
+        slash = self.layout(cr, '/', MONO, 18)
+        slash_width, slash_height = self.extent(slash)
+        self.show(cr, slash, left, middle - slash_height / 2, GOLD)
+        left += slash_width + 1
+        if finder['query']:
+            query = self.layout(cr, finder['query'], MONO, 18, width=0.45 * (w - 30), lines=1)
+            query.set_wrap(self.Pango.WrapMode.CHAR)
+            query_width, query_height = self.extent(query)
+            query_width = self.ink_width(query)
+            self.show(cr, query, left, middle - query_height / 2, INK)
+            left += query_width
+        left += 2
+        if finder['caret']:
+            self.fill(cr, (left, middle - 10, 9, 20), INK)
+        left += 9
+        colour = GOLD_HI if finder['message'] else GOLD if finder['typing'] else '#d6d3ca' if day else INK_3
+        right = x + w - 1 - 14
+        if finder['typing']:
+            room = right - left - 24
+            hint = self.layout(cr, finder['hint'], TEXT, 14, width=room, lines=1, align='right')
+            _, hint_height = self.extent(hint)
+            self.show(cr, hint, right - room, middle - hint_height / 2, colour)
+        else:
+            left += 14
+            hint = self.layout(cr, finder['hint'], TEXT, 14, width=right - left, lines=1)
+            _, hint_height = self.extent(hint)
+            self.show(cr, hint, left, middle - hint_height / 2, colour)
+        if not finder['list']:
+            return
+        self.fill(cr, finder['list'], (15 / 255, 15 / 255, 18 / 255, 0xf2 / 255), radius=10)
+        self.ring(cr, finder['list'], 10, 1, LINE, outside=False)
+        lx, ly, lw, _ = finder['list']
+        head = self.layout(cr, finder['heading'], TEXT, 11, 600, spacing=0.16, upper=True)
+        self.show(cr, head, lx + 9 + 8, ly + 9 + 4, INK_3)
+        for row in finder['rows']:
+            rx, ry, rw, rh = row['rect']
+            lit = row['framed'] or row['hover']
+            if lit:
+                self.fill(cr, row['rect'], '#2a2519', radius=6)
+            self.fill(cr, (rx + 8, ry + 6, 24, 24), LINE, radius=3)
+            icon = self.icons.get(row['id']) if row['has_icon'] else None
+            if icon is not None:
+                cr.save()
+                cr.translate(rx + 8, ry + 6)
+                cr.scale(24 / ICON_SIZE, 24 / ICON_SIZE)
+                cr.set_source_surface(icon, 0, 0)
+                cr.get_source().set_filter(self.cairo.FILTER_GOOD)
+                cr.paint()
+                cr.restore()
+            # Both columns are bounded: past the room, each shrinks with its width and ends in an ellipsis (53c).
+            name_width, kind_width = row_columns(self.extent(self.layout(cr, row['name'], TEXT, 15))[0],
+                                                 self.extent(self.layout(cr, row['kind'], TEXT, 12))[0],
+                                                 rw - 8 - 24 - 12 - 12 - 8)
+            kind = self.layout(cr, row['kind'], TEXT, 12, width=kind_width, lines=1)
+            _, kind_height = self.extent(kind)
+            self.show(cr, kind, rx + rw - 8 - kind_width, ry + (rh - kind_height) / 2, INK_3)
+            name = self.layout(cr, row['name'], TEXT, 15, width=name_width, lines=1)
+            _, name_height = self.extent(name)
+            self.show(cr, name, rx + 8 + 24 + 12, ry + (rh - name_height) / 2, '#fff4d4' if lit else INK)
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# The window program: GTK 4 draws the painter's picture on a layer surface (or a fullscreen window).
+
+Gui = namedtuple('Gui', 'Gdk Gio GLib Gtk Pango PangoCairo cairo layer')
+# GDK's key names for the keys 53c's keydown handler took by name; text comes through the input method.
+KEY_NAMES = {'Escape': 'Escape', 'BackSpace': 'Backspace', 'Return': 'Enter', 'KP_Enter': 'Enter',
+             'ISO_Enter': 'Enter', **{f'{pad}{arrow}': f'Arrow{arrow}' for pad in ('', 'KP_')
+                                      for arrow in ('Left', 'Right', 'Up', 'Down')}}
+ICONS_KEPT = 20
+SETTLE_MS = 2000
+# The redraws of a home at rest: the clock's minute and, at night, a star's twinkle every four seconds.
+IDLE_REDRAWS = frozenset({'clock', 'star'})
+
+
+class IconWorker:
+    """One thread decodes the finder's icons, one at a time. Only the rows shown now are wanted: each draw's rows
+    replace the queue (at most the five rows; none once the finder is cleared), a result for a row no longer shown
+    is dropped, and a failed icon is not tried again until the catalogue changes. Failures count per catalogue
+    generation: one that comes back from before a new catalogue is tried again against it."""
+
+    def __init__(self, decode, deliver, start=None):
+        # decode(path) -> surface, on the worker; deliver(callback) runs callback on the GTK thread.
+        self.decode, self.deliver = decode, deliver
+        self.start = start or (lambda target: threading.Thread(target=target, daemon=True).start())
+        self.condition = threading.Condition()
+        self.wanted, self.shown, self.pending, self.failed = [], {}, set(), set()
+        self.started, self.generation = False, 0
+
+    def show(self, rows, held):
+        """rows: (app id, icon path) for the rows shown now; held(app id, path) is whether its picture is kept."""
+        with self.condition:
+            self.shown = dict(rows)
+            self.wanted = [job for job in rows if job not in self.pending and job not in self.failed
+                           and not held(*job)]
+            if self.wanted:
+                if not self.started:
+                    self.started = True
+                    self.start(self.run)
+                self.condition.notify()
+
+    def forget_failures(self):
+        """A new catalogue: icons that failed may work now."""
+        with self.condition:
+            self.generation += 1
+            self.failed.clear()
+
+    def run(self):
+        while self.step():
+            pass
+
+    def step(self, block=True):
+        with self.condition:
+            while not self.wanted:
+                if not block:
+                    return False
+                self.condition.wait()
+            job = self.wanted.pop(0)
+            self.pending.add(job)
+            generation = self.generation
+        try:
+            surface = self.decode(job[1])
+        except (OSError, ValueError, subprocess.SubprocessError):
+            surface = None   # the row keeps its plain square
+        self.deliver(lambda: self.finish(job, surface, generation))
+        return True
+
+    def finish(self, job, surface, generation):
+        """On the GTK thread: (job, surface) to keep, or (None, None) for a failure or a row no longer shown
+        (dropped). A failure is remembered only against the catalogue it was tried with; one from an older
+        catalogue is queued again while its row is shown."""
+        with self.condition:
+            self.pending.discard(job)
+            shown = self.shown.get(job[0]) == job[1]
+            if surface is None:
+                if generation == self.generation:
+                    self.failed.add(job)
+                elif shown and job not in self.wanted:
+                    self.wanted.append(job)
+                    self.condition.notify()
+            elif shown:
+                return job, surface
+            return None, None
+
+
+class Allocator:
+    """glibc's allocator, set for a program that draws a full-screen picture now and then and rests in between."""
+
+    def __init__(self):
+        import ctypes
+
+        try:
+            self.libc = ctypes.CDLL('libc.so.6')
+            # GSK's Cairo renderer replays the drawing into a full-window temporary picture (about 8 MiB) every
+            # frame. glibc serves the first with mmap and, when it is freed, raises its mmap threshold to that size,
+            # so from the second frame on the temporary lands in the heap, which keeps the freed space for good. A
+            # fixed threshold (the default 128 KiB) turns that adjustment off: large temporaries come and go.
+            self.libc.mallopt(-3, 128 * 1024)   # M_MMAP_THRESHOLD
+        except (OSError, AttributeError):
+            self.libc = None   # not glibc: nothing to adjust
+
+    def trim(self):
+        """Give the heap's free pages back. Typing and the finder's rows leave free space in the heap that glibc
+        keeps; trimmed once the screen has settled, the resting number stays where it was (REVIEW-1 finding 4)."""
+        if self.libc is not None:
+            self.libc.malloc_trim(0)
+
+
 def load_gui():
+    # Draw with Cairo only, so the home opens no GPU device. An explicit outside choice still wins.
+    os.environ.setdefault('GDK_DISABLE', 'gl,vulkan')
+    os.environ.setdefault('GSK_RENDERER', 'cairo')
+    # The home opens no remote files, so GIO's local file system will do: gvfs's module and its D-Bus client stay out.
+    os.environ.setdefault('GIO_USE_VFS', 'local')
     import gi
 
-    for name, version in (('Gtk', '4.0'), ('Gdk', '4.0'), ('WebKit', '6.0'),
-                          ('JavaScriptCore', '6.0'), ('Soup', '3.0')):
+    for name, version in (('Gtk', '4.0'), ('Gdk', '4.0'), ('Pango', '1.0'), ('PangoCairo', '1.0')):
         gi.require_version(name, version)
     # Import the optional layer library before GTK/Wayland. The supervisor preloads it for the same ordering.
     try:
@@ -490,224 +2341,277 @@ def load_gui():
         from gi.repository import Gtk4LayerShell as layer
     except (ImportError, ValueError):
         layer = None
-    from gi.repository import Gdk, Gio, GLib, Gtk, JavaScriptCore, Soup, WebKit
+    from gi.repository import Gdk, Gio, GLib, Gtk, Pango, PangoCairo
+    import cairo
 
-    return Gdk, Gio, GLib, Gtk, JavaScriptCore, Soup, WebKit, layer
+    return Gui(Gdk, Gio, GLib, Gtk, Pango, PangoCairo, cairo, layer)
 
 
 class LaptopHome:
-    def __init__(self, gui, root, cached, helper, sample_power):
-        self.Gdk, self.Gio, self.GLib, self.Gtk, self.JSC, self.Soup, self.WebKit, self.layer = gui
-        self.resources = Resources(root)
+    def __init__(self, gui, cached, helper, sample_power, look=None):
+        self.gui = gui
         self.state = {'home': cached, 'programs': [], 'running': [], 'status': NO_BATTERY, 'helper': False}
         self.helper, self.sample_power = helper, sample_power
-        self.peer, self.key, self.ready = None, None, False
-        self.initial_lookup, self.filter_ready, self.shown = False, False, False
+        self.peer, self.icons, self.window, self.area = None, {}, None, None
+        self.initial_lookup, self.shown = False, False
+        self.painter = Painter(gui.cairo, gui.Pango, gui.PangoCairo)
+        self.town = Town(look or LOOK, cached, schedule=self.after, cancel=self.cancel_timer, opener=self.open_app,
+                         changed=lambda reason='state': self.redraw(reason), motion=self.start_motion,
+                         clock=lambda: gui.GLib.get_monotonic_time() / 1e6, measure=self.painter.measure)
+        self.ticking, self.held, self.repeat, self.cursor, self.hits = False, set(), False, None, None
+        self.trim, self.trim_timer = None, None   # set by run(): the allocator's trim
+        # The path each kept icon picture was decoded from.
+        self.icon_paths = {}
+        self.icon_worker = IconWorker(lambda path: icon_surface(gui.cairo, *decode_png(read_icon(path))),
+                                      lambda callback: gui.GLib.idle_add(lambda: self.icon_ready(callback)))
 
     def publish(self, peer, changed, icons):
         self.peer = peer
         if icons is not None:
-            self.resources.icons = icons
+            self.icons = icons
+            # A new catalogue: icons that failed may work now, and pictures of icons that left or changed go.
+            self.icon_worker.forget_failures()
+            for app_id, path in list(self.icon_paths.items()):
+                if icons.get(app_id) != path:
+                    del self.icon_paths[app_id]
+                    self.painter.icons.pop(app_id, None)
         self.update(changed)
         if 'helper' in changed:
             self.initial_lookup = True
-            if self.filter_ready:
-                self.show_page()
+            self.show()
 
     def update(self, changed):
         events = [name for name, value in changed.items() if self.state[name] != value]
         self.state.update(changed)
-        if self.ready and events:
-            self.emit(events)
+        if events:
+            self.town.apply(self.state, events)
 
-    def emit(self, events):
-        if self.view.get_uri() == PAGE:
-            details = json.dumps([self.state, events])
-            script = f'window.dispatchEvent(new CustomEvent({json.dumps(self.key)}, {{detail: {details}}}))'
-            self.view.evaluate_javascript(script, -1)
-
-    def message(self, _manager, value, reply):
-        def finish(result):
-            reply.return_value(self.JSC.Value.new_from_json(value.get_context(), json.dumps(result)))
-
-        try:
-            message = json.loads(value.to_json(0))
-        except (TypeError, ValueError):
-            message = None
-        if not isinstance(message, dict) or self.view.get_uri() != PAGE or message.get('key') != self.key:
-            reply.return_error_message('Bridge unavailable')
-        elif message.get('op') == 'ready':
-            self.ready = True
-            self.emit(['home', 'programs', 'running', 'status', 'helper'])
-            finish(None)
-        elif message.get('op') == 'open':
-            app_id = message.get('id')
-            if self.peer is None or not self.ready:
-                finish(UNAVAILABLE)
-            elif valid_id(app_id):
-                self.helper.open(self.peer, app_id, finish)
-            else:
-                finish({'state': 'failed', 'message': 'No such app'})
+    def open_app(self, app_id, callback):
+        if self.peer is None or not self.shown:
+            callback(UNAVAILABLE)
+        elif valid_id(app_id):
+            self.helper.open(self.peer, app_id, callback)
         else:
-            reply.return_error_message('Bridge unavailable')
-        return True
+            callback({'state': 'failed', 'message': 'No such app'})
 
-    def resource(self, request):
-        try:
-            mime, data = self.resources.read(request.get_uri())
-        except (OSError, ValueError):
-            request.finish_error(self.GLib.Error.new_literal(self.Gio.io_error_quark(), 'Resource refused',
-                                                             self.Gio.IOErrorEnum.PERMISSION_DENIED))
-            return
-        response = self.WebKit.URISchemeResponse.new(
-            self.Gio.MemoryInputStream.new_from_bytes(self.GLib.Bytes.new(data)), len(data))
-        headers = self.Soup.MessageHeaders.new(self.Soup.MessageHeadersType.RESPONSE)
-        headers.append('Content-Type', mime)
-        headers.append('X-Content-Type-Options', 'nosniff')
-        headers.append('Access-Control-Allow-Origin', f'{SCHEME}://page')
-        headers.append('Cache-Control', 'no-store')
-        response.set_http_headers(headers)
-        response.set_content_type(mime)
-        response.set_status(200, None)
-        request.finish_with_response(response)
+    def after(self, milliseconds, callback):
+        def once():
+            callback()
+            return False
 
-    def decide(self, _view, decision, kind):
-        if kind == self.WebKit.PolicyDecisionType.NAVIGATION_ACTION:
-            uri = decision.get_navigation_action().get_request().get_uri()
-            if uri == PAGE:
-                decision.use()
-                return True
-        elif kind == self.WebKit.PolicyDecisionType.RESPONSE:
-            if (decision.get_request().get_uri() == PAGE and decision.is_mime_type_supported()
-                    and decision.is_main_frame_main_resource()):
-                decision.use()
-                return True
-        decision.ignore()
-        return True
+        return self.gui.GLib.timeout_add(milliseconds, once)
 
-    def create_view(self):
-        WebKit = self.WebKit
-        context = WebKit.WebContext.new()
-        security = context.get_security_manager()
-        security.register_uri_scheme_as_secure(SCHEME)
-        security.register_uri_scheme_as_cors_enabled(SCHEME)
-        context.register_uri_scheme(SCHEME, self.resource)
-        session = WebKit.NetworkSession.new_ephemeral()
-        session.connect('download-started', lambda _session, download: download.cancel())
-        settings = WebKit.Settings(enable_developer_extras=False, javascript_can_open_windows_automatically=False,
-                                   enable_media_stream=False, enable_media=False,
-                                   enable_webrtc=False, allow_modal_dialogs=False)
-        features = settings.get_all_features()
-        for index in range(features.get_length()):
-            feature = features.get(index)
-            if feature.get_identifier() in ('LinkPreconnect', 'LinkPreconnectEarlyHints', 'LinkPrefetch',
-                                            'SpeculationRulesPrefetch', 'ServiceWorkers', 'WebShare', 'WebSocket',
-                                            'WebTransport'):
-                settings.set_feature_enabled(feature, False)
-        self.manager = WebKit.UserContentManager.new()
-        self.manager.connect('script-message-with-reply-received::laptopHome', self.message)
-        self.manager.register_script_message_handler_with_reply('laptopHome')
-        self.view = WebKit.WebView(web_context=context, network_session=session, settings=settings,
-                                   user_content_manager=self.manager, default_content_security_policy=CSP)
-        self.view.connect('decide-policy', self.decide)
-        self.view.connect('context-menu', lambda *_: True)
-        self.view.connect('permission-request', self.deny_permission)
-        self.view.connect('run-file-chooser', self.cancel_chooser)
-        self.view.connect('load-changed', self.load_changed)
-        self.view.connect('create', lambda *_: None)
+    def cancel_timer(self, handle):
+        self.gui.GLib.source_remove(handle)
 
-    @staticmethod
-    def deny_permission(_view, request):
-        request.deny()
-        return True
+    def redraw(self, reason):
+        # Every redraw goes through here with its reason, so the test channel can count them.
+        if self.area is not None:
+            self.area.queue_draw()
+        # Two seconds after the last redraw of a burst (input, helper news, a glide, an icon), the heap is trimmed
+        # once. The clock and the stars change a few pixels and never arm it, so at rest no timer waits beyond theirs.
+        if self.trim is not None and reason not in IDLE_REDRAWS:
+            if self.trim_timer is not None:
+                self.gui.GLib.source_remove(self.trim_timer)
+            self.trim_timer = self.after(SETTLE_MS, self.settled)
 
-    @staticmethod
-    def cancel_chooser(_view, request):
-        request.cancel()
-        return True
+    def settled(self):
+        self.trim_timer = None
+        self.trim()
 
-    def load_changed(self, _view, event):
-        if event == self.WebKit.LoadEvent.STARTED:
-            self.ready = False
+    def draw(self, _area, cr, width, height):
+        scene = self.town.scene((width, height))
+        self.painter.paint(cr, scene)
+        # Hover is tested against what was drawn; only the hit regions are kept.
+        self.hits = dict(fit=scene['fit'], hits=scene['hits'], logos=scene['logos'])
+        self.load_icons(scene)
 
-    def load_page(self, store, result):
-        try:
-            self.manager.add_filter(store.save_finish(result))
-        except self.GLib.Error:
-            print('aresos-laptop-home: could not install the resource filter', file=sys.stderr)
-            self.failed = True
-            self.app.quit()
-            return
-        self.filter_ready = True
-        if self.initial_lookup:
-            self.show_page()
-        else:
-            # Give the first running-app report a chance to reach the page before its first draw.
-            self.GLib.timeout_add(500, self.show_page)
+    # -- motion ---------------------------------------------------------------------------------------------
+    def start_motion(self):
+        """Frames only while something moves: the tick callback removes itself when every glide and puff is done."""
+        if self.area is None or not self.shown:
+            self.town.advance(math.inf)
+        elif not self.ticking:
+            self.ticking = True
+            self.area.add_tick_callback(self.tick)
 
-    def show_page(self):
-        if self.shown:
+    def tick(self, _area, frame_clock):
+        self.ticking = self.town.advance(frame_clock.get_frame_time() / 1e6)
+        self.redraw('motion')
+        return self.ticking
+
+    # -- input ----------------------------------------------------------------------------------------------
+    def connect_input(self):
+        Gtk, Gdk = self.gui.Gtk, self.gui.Gdk
+        self.modifiers = (Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.ALT_MASK | Gdk.ModifierType.SUPER_MASK
+                          | Gdk.ModifierType.META_MASK)
+        # Which keys are down, seen before the input method: GTK repeats a held key as more presses.
+        held = Gtk.EventControllerKey(propagation_phase=Gtk.PropagationPhase.CAPTURE)
+        held.connect('key-pressed', self.key_down)
+        held.connect('key-released', self.key_up)
+        # Text comes through GTK's own input method, so dead keys and compose work; the other keys come by name.
+        # Not the multicontext: on labwc it picks the Wayland text-input method, which composes nothing while no
+        # input method program runs (a dead key and then a gave a bare a in the headless test).
+        self.im = Gtk.IMContextSimple()
+        self.im.set_client_widget(self.area)
+        self.im.connect('commit', self.commit)
+        keys = Gtk.EventControllerKey()
+        keys.set_im_context(self.im)
+        keys.connect('key-pressed', self.key_pressed)
+        for controller in (held, keys):
+            self.window.add_controller(controller)
+        click = Gtk.GestureClick()
+        click.connect('released', self.clicked)
+        pointer = Gtk.EventControllerMotion()
+        pointer.connect('motion', self.pointer_moved)
+        pointer.connect('leave', self.pointer_left)
+        for controller in (click, pointer):
+            self.area.add_controller(controller)
+
+    def key_down(self, _controller, keyval, _code, _state):
+        self.repeat = keyval in self.held
+        self.held.add(keyval)
+        return False
+
+    def key_up(self, _controller, keyval, _code, _state):
+        self.held.discard(keyval)
+
+    def key_pressed(self, _controller, keyval, _code, state):
+        """A key the input method did not take, as 53c's keydown handler: none with Ctrl, Alt or Super."""
+        if state & self.modifiers:
+            return False
+        key = KEY_NAMES.get(self.gui.Gdk.keyval_name(keyval))
+        return key is not None and self.town.key(key, repeat=self.repeat)
+
+    def commit(self, _im, text):
+        for character in text:
+            self.town.key(character, repeat=self.repeat)
+
+    def clicked(self, _gesture, _presses, x, y):
+        self.town.click(x, y)
+
+    def pointer_moved(self, _controller, x, y):
+        hit = hit_test(self.hits or self.town.scene(), x, y)
+        self.town.set_hover(hover_key(hit))
+        cursor = 'pointer' if hit and hit['kind'] != 'chrome' else None
+        if cursor != self.cursor:
+            self.cursor = cursor
+            self.area.set_cursor_from_name(cursor)
+
+    def pointer_left(self, _controller):
+        self.town.set_hover(None)
+
+    # -- finder icons -----------------------------------------------------------------------------------------
+    def load_icons(self, scene):
+        """Ask for the icons of the finder's rows shown now; one worker decodes them off the GTK thread."""
+        rows = [(row['id'], self.icons[row['id']]) for row in scene['finder']['rows']
+                if row['has_icon'] and self.icons.get(row['id'])]
+        # Every draw, also with no rows: a cleared finder must drop the icon still being decoded.
+        self.icon_worker.show(rows, lambda app_id, path: self.icon_paths.get(app_id) == path)
+
+    def icon_ready(self, finish):
+        job, surface = finish()
+        if job is not None:
+            app_id, path = job
+            icons = self.painter.icons
+            icons.pop(app_id, None)
+            icons[app_id], self.icon_paths[app_id] = surface, path
+            while len(icons) > ICONS_KEPT:
+                oldest = next(iter(icons))
+                del icons[oldest]
+                self.icon_paths.pop(oldest, None)
+            self.redraw('icon')
+        return False
+
+    def create_area(self):
+        self.area = self.gui.Gtk.DrawingArea()
+        self.area.set_draw_func(self.draw)
+
+    def show(self):
+        if self.shown or self.window is None:
             return
         self.shown = True
-        self.key = secrets.token_hex(24)
-        js = (f'const PAGE = {json.dumps(PAGE)}, KEY = {json.dumps(self.key)}, '
-              f'INITIAL = {json.dumps(self.state)};\n{BRIDGE}')
-        # Keep the capability in the closure of this script, including its bootstrap constants.
-        js = '{\n' + js + '\n}'
-        self.manager.add_script(self.WebKit.UserScript.new(
-            js, self.WebKit.UserContentInjectedFrames.TOP_FRAME,
-            self.WebKit.UserScriptInjectionTime.START, [PAGE], None))
-        self.view.load_uri(PAGE)
         self.window.present()
 
     def start_power(self):
         def sample():
             result = self.sample_power()
-            self.GLib.idle_add(self.update, {'status': result})
+            self.gui.GLib.idle_add(self.update, {'status': result})
 
         def poll():
             threading.Thread(target=sample, daemon=True).start()
             return True
 
         poll()
-        self.GLib.timeout_add_seconds(30, poll)
+        self.gui.GLib.timeout_add_seconds(30, poll)
 
-    def activate(self, app, select_monitor, filter_dir):
-        display = self.Gdk.Display.get_default()
+    def start_clock(self):
+        def tick():
+            self.redraw('clock')
+            self.after(60000 - int(time.time() * 1000) % 60000 + 50, tick)
+
+        self.after(60000 - int(time.time() * 1000) % 60000 + 50, tick)
+
+    def start_stars(self):
+        # One star changes every four seconds, and none while the home is not on screen.
+        def twinkle():
+            if self.window.get_mapped():
+                self.town.twinkle()
+                self.redraw('star')
+            return True
+
+        self.gui.GLib.timeout_add(4000, twinkle)
+
+    def activate(self, app, select_monitor):
+        display = self.gui.Gdk.Display.get_default()
         monitor = select_monitor(display.get_monitors()) if display else None
         if monitor is None:
             print('aresos-laptop-home: laptop display unavailable', file=sys.stderr)
             self.failed = True
             app.quit()
             return
-        self.window = self.Gtk.ApplicationWindow(application=app)
-        place_window(self.window, monitor, self.layer)
-        self.create_view()
-        self.window.set_child(self.view)
+        self.window = self.gui.Gtk.ApplicationWindow(application=app)
+        place_window(self.window, monitor, self.gui.layer)
+        self.create_area()
+        self.window.set_child(self.area)
+        self.connect_input()
         self.helper.start()
         self.window.connect('notify::is-active', self.focus_changed)
         self.start_power()
-        store = self.WebKit.UserContentFilterStore.new(filter_dir)
-        store.save('laptop-home', self.GLib.Bytes.new(json.dumps(FILTER).encode()), None, self.load_page)
+        self.start_clock()
+        if self.town.look != 'day':
+            self.start_stars()
+        if self.initial_lookup:
+            self.show()
+        else:
+            # Give the first running-app report a chance to arrive before the first draw.
+            self.after(500, self.show)
 
     def focus_changed(self, window, _property):
-        self.helper.focus_changed(window.is_active())
+        active = window.is_active()
+        self.helper.focus_changed(active)
+        self.held.clear()
+        if active:
+            self.im.focus_in()
+        else:
+            self.im.focus_out()
+            self.town.blur()
 
-    def run(self, runtime, select_monitor=laptop_monitor):
+    def run(self, select_monitor=laptop_monitor):
         self.failed = False
-        self.app = self.Gtk.Application(application_id=APP_ID, flags=self.Gio.ApplicationFlags.NON_UNIQUE)
-        self.GLib.unix_signal_add(self.GLib.PRIORITY_DEFAULT, signal.SIGTERM, self.app.quit)
-        with tempfile.TemporaryDirectory(prefix='laptop-home-', dir=runtime) as filter_dir:
-            self.app.connect('activate', self.activate, select_monitor, filter_dir)
-            try:
-                result = self.app.run([])
-            finally:
-                if hasattr(self.helper, 'thread'):
-                    self.helper.stop()
+        Gtk, Gio, GLib = self.gui.Gtk, self.gui.Gio, self.gui.GLib
+        self.app = Gtk.Application(application_id=APP_ID, flags=Gio.ApplicationFlags.NON_UNIQUE)
+        GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, signal.SIGTERM, self.app.quit)
+        self.app.connect('activate', self.activate, select_monitor)
+        try:
+            result = self.app.run([])
+        finally:
+            if hasattr(self.helper, 'thread'):
+                self.helper.stop()
         return 1 if self.failed else result
 
 
-def run(token, *, root=PAGE_ROOT, select_monitor=laptop_monitor, sample_power=None):
+def run(token, *, select_monitor=laptop_monitor, sample_power=None, look=None):
     runtime = os.environ.get('XDG_RUNTIME_DIR', '')
     if not os.path.isabs(runtime):
         print('aresos-laptop-home: runtime directory unavailable', file=sys.stderr)
@@ -716,15 +2620,16 @@ def run(token, *, root=PAGE_ROOT, select_monitor=laptop_monitor, sample_power=No
     socket_path = os.environ.pop('ARESOS_SHELL_SOCKET', '') or os.path.join(runtime, 'aresos/shell.sock')
     instance = os.environ.pop('ARESOS_DESKTOP_INSTANCE', '')
     os.environ.pop('ARESOS_LAUNCH_NONCE', None)
+    allocator = Allocator()
     try:
         gui = load_gui()
     except (ImportError, ValueError):
-        print('aresos-laptop-home: GTK or WebKit unavailable', file=sys.stderr)
+        print('aresos-laptop-home: GTK, Pango or Cairo unavailable', file=sys.stderr)
         return 1
-    _, Gio, GLib, *_ = gui
-    home = LaptopHome(gui, root, load_home(path), None, sample_power or (lambda: power_status(Gio, GLib)))
-    home.helper = HelperView(socket_path, instance, token, path, home.publish, GLib.idle_add)
-    return home.run(runtime, select_monitor)
+    home = LaptopHome(gui, load_home(path), None, sample_power or (lambda: power_status(gui.Gio, gui.GLib)), look)
+    home.helper = HelperView(socket_path, instance, token, path, home.publish, gui.GLib.idle_add)
+    home.trim = allocator.trim
+    return home.run(select_monitor)
 
 
 if __name__ == '__main__':

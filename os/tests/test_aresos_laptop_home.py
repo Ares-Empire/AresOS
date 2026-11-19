@@ -10,40 +10,50 @@ from types import SimpleNamespace
 import unittest
 from unittest import mock
 
-from laptop_home_headless import load_program, scratch, wait_for
+from laptop_home_headless import cairo_available, load_program, needs, scratch, wait_for
 from laptop_home_helper import INSTANCE, TOKEN, StandIn, png, town
 
 
 home = load_program()
 
 
-class ResourcesTest(unittest.TestCase):
+SANDBOX_PROBE = r"""
+import json, os, socket, sys
+reached = {}
+for name, path in zip(('socket', 'file', 'parent'), sys.argv[1:]):
+    try:
+        if name == 'socket':
+            with socket.socket(socket.AF_UNIX) as client:
+                client.connect(path)
+        else:
+            os.close(os.open(path, os.O_RDONLY))
+        reached[name] = True
+    except OSError:
+        reached[name] = False
+print(json.dumps(dict(reached=reached, proc=os.path.exists('/proc/self'), root=sorted(os.listdir('/')),
+                      tmp=sorted(os.listdir('/tmp')), environment=sorted(os.environ))))
+"""
+
+
+def sandbox_runs():
+    try:
+        return home.run_sandboxed(home.decoder_command('print(1)'), b'', 16, 10) == b'1\n'
+    except (OSError, ValueError, home.subprocess.SubprocessError):
+        return False
+
+
+# The decoder never runs unsandboxed: where bubblewrap cannot start (no bwrap, no user namespaces) these skip.
+needs_sandbox = needs(sandbox_runs(), 'bubblewrap with user namespaces')
+
+
+class IconTest(unittest.TestCase):
+    """53c's icon limits, now on the native loader: the checks on the opened file, then the decoder child in its
+    sandbox."""
+
     def setUp(self):
         workspace = scratch()
         self.addCleanup(workspace.cleanup)
         self.root = Path(workspace.name)
-        page = self.root / 'page'
-        page.mkdir()
-        self.resources = home.Resources(page)
-
-    def test_packaged_types_and_containment(self):
-        root = self.resources.root
-        for filename, mime in (('index.html', 'text/html'), ('mod.js', 'text/javascript'), ('town.json', 'application/json'),
-                               ('home.css', 'text/css'), ('mono.woff2', 'font/woff2'), ('picture.svg', 'image/svg+xml')):
-            (root / filename).write_bytes(b'ok')
-            self.assertEqual(self.resources.read(f'aresos-home://page/{filename}'), (mime, b'ok'))
-
-        outside = self.root / 'outside'
-        outside.mkdir()
-        (outside / 'hidden.js').write_bytes(b'private')
-        (root / 'leak.js').symlink_to(outside / 'hidden.js')
-        (root / 'outside').symlink_to(outside, target_is_directory=True)
-        for uri in ('aresos-home://page/../outside/hidden.js', 'aresos-home://page/%2e%2e/outside/hidden.js',
-                    'aresos-home://page/%2findex.html', 'aresos-home://page/leak.js', 'aresos-home://page/outside/hidden.js',
-                    'aresos-home://other/index.html', 'aresos-home://page/BRIDGE.md',
-                    'https://page/index.html', 'http://page/index.html', 'file:///index.html', 'data:text/plain,x'):
-            with self.subTest(uri=uri), self.assertRaises((ValueError, OSError)):
-                self.resources.read(uri)
 
     def test_only_the_catalogue_icon_and_png_limits(self):
         valid = self.root / 'icon.png'
@@ -60,12 +70,115 @@ class ResourcesTest(unittest.TestCase):
         link.symlink_to(valid)
         fifo = self.root / 'fifo.png'
         os.mkfifo(fifo)
-        self.resources.icons = dict(ok=str(valid), svg=str(svg), wide=str(wide), tall=str(tall), large=str(large),
-                                    link=str(link), fifo=str(fifo), directory=str(self.root), relative='icon.png')
-        self.assertEqual(self.resources.read('aresos-home://icon/ok'), ('image/png', valid.read_bytes()))
-        for app_id in ('missing', 'ok/../ok', 'svg', 'wide', 'tall', 'large', 'link', 'fifo', 'directory', 'relative'):
-            with self.subTest(app_id=app_id), self.assertRaises((OSError, ValueError)):
-                self.resources.read(f'aresos-home://icon/{app_id}')
+        self.assertEqual(home.read_icon(str(valid)), valid.read_bytes())
+        for path in (self.root / 'missing.png', svg, wide, tall, large, link, fifo, self.root, 'icon.png', None):
+            with self.subTest(path=path), self.assertRaises((OSError, ValueError)):
+                home.read_icon(str(path) if isinstance(path, Path) else path)
+
+    @needs_sandbox
+    def test_decoder_child_gets_bytes_and_a_bare_environment(self):
+        width, height, rgba = home.decode_png(png(3, 2))
+        self.assertEqual((width, height, bytes(rgba)), (3, 2, b'\x99\x73\xc2\xff' * 6))
+        width, height, _ = home.decode_png(png(512, 512))
+        self.assertEqual((width, height), (512, 512))
+        with mock.patch.object(home.subprocess, 'Popen', wraps=home.subprocess.Popen) as popen:
+            home.decode_png(png())
+        command, options = popen.call_args.args[0], popen.call_args.kwargs
+        self.assertEqual(command[0], home.BWRAP)
+        self.assertEqual(command[1:6], ['--unshare-all', '--die-with-parent', '--new-session', '--cap-drop', 'ALL'])
+        python = command.index('--', 1) + 1
+        self.assertEqual(command[python + 1:python + 4], ['-I', '-S', '-c'])
+        self.assertIn('--clearenv', command)
+        self.assertNotIn('--proc', command)
+        self.assertEqual(options['env'], {'PATH': '/usr/bin', 'LC_ALL': 'C'})
+        self.assertTrue(options['close_fds'])
+        self.assertIsInstance(options['stdin'], int)
+        self.assertFalse(any(str(self.root) in part for part in command), 'the path never reaches the child')
+        good = png(4, 4)
+        broken = bytearray(good)
+        broken[40] ^= 0xff   # inside the IDAT chunk: its CRC no longer matches
+        for data in (bytes(broken), good[:30], b'GIF89a' + good[6:], png(600, 1), png(1, 600), b''):
+            with self.subTest(data=data[:12]), self.assertRaises((home.subprocess.SubprocessError, ValueError)):
+                home.decode_png(data)
+
+    @needs_sandbox
+    def test_decoder_sandbox_hides_the_helper_socket_runtime_folder_and_processes(self):
+        """REVIEW-1 finding 1: the child parsing the PNG reaches neither the helper's socket, a file in the runtime
+        folder, nor the home's process (its environment in /proc held the view credential)."""
+        import socket
+
+        runtime = self.root / 'run'
+        runtime.mkdir(mode=0o700)
+        token = runtime / 'token'
+        token.write_text('secret')
+        with socket.socket(socket.AF_UNIX) as listener:
+            listener.bind(str(runtime / 'shell.sock'))
+            listener.listen()
+            arguments = (str(runtime / 'shell.sock'), str(token), f'/proc/{os.getpid()}/environ')
+            # The probe works: run plainly, it reaches all three.
+            plain = home.run_sandboxed([home.sys.executable, '-I', '-S', '-c', SANDBOX_PROBE, *arguments], b'',
+                                       1 << 20, 10)
+            self.assertEqual(json.loads(plain)['reached'], dict(socket=True, file=True, parent=True))
+            seen = json.loads(home.run_sandboxed(home.decoder_command(SANDBOX_PROBE, *arguments), b'', 65536, 10))
+        self.assertEqual(seen['reached'], dict(socket=False, file=False, parent=False))
+        self.assertEqual(seen['proc'], False, 'no process view')
+        self.assertLessEqual(set(seen['root']), {'usr', 'lib64', 'lib', 'dev', 'tmp'}, 'only the decoder runtime')
+        self.assertNotIn('run', seen['root'])
+        self.assertEqual(seen['tmp'], [])
+        self.assertEqual(seen['environment'], ['LC_ALL', 'PATH', 'PWD'], 'bubblewrap sets PWD to /')
+
+    @needs_sandbox
+    def test_decoder_output_cap_holds_before_the_reply_is_kept(self):
+        flood = 'import sys\nsys.stdout.buffer.write(bytes(%d))' % (home.MAX_DECODED + 1)
+        with self.assertRaisesRegex(ValueError, 'too large'):
+            home.run_sandboxed(home.decoder_command(flood), b'', home.MAX_DECODED, 10)
+
+    def test_no_sandbox_tool_no_icon(self):
+        with mock.patch.object(home.subprocess, 'Popen') as popen, self.assertRaises(FileNotFoundError):
+            home.decode_png(png(), bwrap=str(self.root / 'missing-bwrap'))
+        popen.assert_not_called()
+
+    @needs_sandbox
+    def test_decoder_handles_filters_palettes_and_alpha(self):
+        import struct
+        import zlib
+
+        def chunk(name, data):
+            return struct.pack('>I', len(data)) + name + data + struct.pack('>I', zlib.crc32(name + data))
+
+        def picture(colour, depth, rows, extra=b''):
+            header = struct.pack('>IIBBBBB', 2, len(rows), depth, colour, 0, 0, 0)
+            return (b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', header) + extra
+                    + chunk(b'IDAT', zlib.compress(b''.join(rows))) + chunk(b'IEND', b''))
+
+        # RGBA with the Sub, Up, Average and Paeth filters: every row decodes to the same two pixels.
+        pixels = bytes([10, 20, 30, 40, 50, 60, 70, 80])
+        rows = [b'\0' + pixels, b'\2' + bytes(8), b'\1' + pixels[:4] + bytes(a - b & 255 for a, b in zip(pixels[4:],
+                                                                                                         pixels[:4])),
+                b'\4' + bytes(8)]
+        self.assertEqual(home.decode_png(picture(6, 8, rows)), (2, 4, pixels * 4))
+        # A palette of two with transparency, at two bits a pixel; grey at 16 bits keeps its high byte.
+        palette = chunk(b'PLTE', bytes([255, 0, 0, 0, 0, 255])) + chunk(b'tRNS', bytes([128]))
+        self.assertEqual(home.decode_png(picture(3, 2, [b'\0' + bytes([0b00010000])], palette)),
+                         (2, 1, bytes([255, 0, 0, 128, 0, 0, 255, 255])))
+        self.assertEqual(home.decode_png(picture(0, 16, [b'\0' + bytes([200, 1, 7, 255])])),
+                         (2, 1, bytes([200, 200, 200, 255, 7, 7, 7, 255])))
+
+    @needs(cairo_available(), 'pycairo')
+    def test_icon_surface_contains_and_premultiplies(self):
+        import cairo
+
+        surface = home.icon_surface(cairo, 2, 1, bytes([255, 0, 0, 255, 0, 0, 255, 0]))
+        self.assertEqual((surface.get_width(), surface.get_height()), (home.ICON_SIZE, home.ICON_SIZE))
+        data, stride = surface.get_data(), surface.get_stride()
+
+        def pixel(x, y):
+            blue, green, red, alpha = data[y * stride + 4 * x:y * stride + 4 * x + 4]
+            return red, green, blue, alpha
+
+        self.assertEqual(pixel(4, 24), (255, 0, 0, 255), 'the opaque red half')
+        self.assertEqual(pixel(44, 24)[3], 0, 'the transparent half')
+        self.assertEqual(pixel(24, 4), (0, 0, 0, 0), 'contained: nothing above a 2 x 1 icon')
 
 
 class WindowAndPowerTest(unittest.TestCase):
