@@ -21,6 +21,7 @@ import sys
 import tempfile
 import time
 import types
+import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 PROGRAM = ROOT / 'os/config/usr/libexec/aresos-laptop-home'
@@ -54,6 +55,38 @@ def scratch():
     return tempfile.TemporaryDirectory(prefix='lh-', dir=work)
 
 
+# GitHub's Ubuntu runner has no labwc, no GTK 4 typelibs and maybe no pycairo or bubblewrap: the tests that need them
+# skip there. On AresOS everything is present; LAPTOP_HOME_REQUIRE_HEADLESS=1 makes a missing piece fail instead.
+REQUIRE = bool(os.environ.get('LAPTOP_HOME_REQUIRE_HEADLESS'))
+
+
+def needs(available, what):
+    """A decorator for a test or test class: run it where available, else skip it (or fail it under REQUIRE)."""
+    if available:
+        return lambda test: test
+    if not REQUIRE:
+        return unittest.skip(f'needs {what}')
+
+    def fail(test):
+        def missing(case, *_args, **_fields):
+            case.fail(f'LAPTOP_HOME_REQUIRE_HEADLESS is set and {what} is missing')
+
+        if isinstance(test, type):
+            test.setUp = missing
+            return test
+        return missing
+
+    return fail
+
+
+def cairo_available():
+    try:
+        import cairo  # noqa: F401
+    except ImportError:
+        return False
+    return True
+
+
 def headless_available():
     try:
         import gi
@@ -62,11 +95,22 @@ def headless_available():
     try:
         for name, version in (('Gtk', '4.0'), ('Pango', '1.0'), ('PangoCairo', '1.0')):
             gi.require_version(name, version)
-        import cairo  # noqa: F401
-    except (ValueError, ImportError):
+    except ValueError:
         return False
-    return (all(shutil.which(name, path='/usr/bin') for name in ('labwc', 'dbus-run-session', 'bwrap', 'wlr-randr'))
+    return (cairo_available()
+            and all(shutil.which(name, path='/usr/bin') for name in ('labwc', 'dbus-run-session', 'bwrap', 'wlr-randr'))
             and all(Path(path).is_file() for path in VENDORS.values()))
+
+
+# The headless window tests: labwc, bubblewrap, wlr-randr, the Mesa pins, GTK 4, Pango and pycairo.
+needs_headless = needs(headless_available(), 'headless labwc, bwrap, wlr-randr, Mesa pins, GTK 4, Pango and Cairo')
+
+
+def layer_library():
+    """Whether the layer surface can be tested here: the configured extraction, or the installed library."""
+    layer_dir = os.environ.get('LAPTOP_HOME_TEST_LAYER_DIR')
+    lib_dir = Path(layer_dir) if layer_dir else Path('/usr/lib64')
+    return (lib_dir / 'libgtk4-layer-shell.so.0').is_file()
 
 
 def layer_state(window, layer):
@@ -83,7 +127,8 @@ def layer_state(window, layer):
 
 class Headless:
     def __init__(self, path, socket_path, *, look='day', size='1920x1080', font_dir=None, battery=True,
-                 program=PROGRAM, prototype=False, broken=None, clock=None, redraw=False):
+                 program=PROGRAM, prototype=False, broken=None, clock=None, redraw=False, layer=None):
+        """layer: True needs the layer surface, False runs the fallback window, None takes what is installed."""
         self.path = path
         self.runtime = path / 'run'
         self.runtime.mkdir(mode=0o700)
@@ -122,7 +167,7 @@ class Headless:
         if broken is not None and broken not in BREAKS:
             raise ValueError(f'unknown painter part {broken}')
         (path / 'setup.json').write_text(json.dumps(dict(size=size, battery=battery, look=look, broken=broken,
-                                                        clock=clock, redraw=redraw,
+                                                        clock=clock, redraw=redraw, layer=layer,
                                                         program=str(Path(program).resolve()))))
         layer_dir = os.environ.get('LAPTOP_HOME_TEST_LAYER_DIR')
         lib_dir = Path(layer_dir).resolve() if layer_dir else Path('/usr/lib64')
@@ -130,8 +175,12 @@ class Headless:
         typelib_dir = lib_dir / 'girepository-1.0'
         if layer_dir and not (lib.is_file() and (typelib_dir / 'Gtk4LayerShell-1.0.typelib').is_file()):
             raise FileNotFoundError('the configured layer library and typelib are required')
-        self.expect_layer = lib.is_file()
-        overrides = [f'GI_TYPELIB_PATH={typelib_dir}'] if layer_dir else []
+        if layer and not lib.is_file():
+            raise FileNotFoundError('the layer surface needs gtk4-layer-shell or LAPTOP_HOME_TEST_LAYER_DIR')
+        self.expect_layer = lib.is_file() and layer is not False
+        overrides = [f'GI_TYPELIB_PATH={typelib_dir}'] if layer_dir and self.expect_layer else []
+        # The fixture's own paths, bound back after the host's /run is hidden (in case one lies under it).
+        self.fixture_paths = [path, *([lib_dir] if layer_dir and self.expect_layer else [])]
         preload = f'LD_PRELOAD={lib if self.expect_layer else "libm.so.6"}'
         if prototype:
             # 53e's bare GTK 4 and Cairo block town, the control for memory measurements.
@@ -146,8 +195,13 @@ class Headless:
         self.log = (self.path / 'log').open('w+')
         # Mesa can inspect a DRM device even in software mode. Hide the host's devices before labwc starts, and
         # keep abstract sockets (labwc's Xwayland, D-Bus) in a network namespace of their own.
+        # The host's /run (the owner's Wayland and D-Bus sockets, the system bus) is hidden as well; only this test's
+        # own folders come back (REVIEW-1 finding 9).
         isolation = ['/usr/bin/bwrap', '--die-with-parent', '--unshare-net', '--ro-bind', '/', '/', '--dev', '/dev',
-                     '--proc', '/proc', '--tmpfs', '/tmp', '--bind', str(self.path), str(self.path), '--']
+                     '--proc', '/proc', '--tmpfs', '/tmp', '--tmpfs', '/run']
+        for folder in self.fixture_paths:
+            isolation += ['--bind' if folder == self.path else '--ro-bind', str(folder), str(folder)]
+        isolation.append('--')
         self.process = subprocess.Popen(
             [*isolation, '/usr/bin/dbus-run-session', f'--config-file={self.bus}', '--',
              '/usr/bin/labwc', '-C', str(self.config), '-S', shlex.join(self.command)],
@@ -303,8 +357,8 @@ def summary(scene):
 def install_channel(program, home, path, setup):
     """Answer the test's requests on the GTK thread, through the program's own handlers."""
     GLib, cairo, town = home.gui.GLib, home.gui.cairo, home.town
-    counters = dict(draws=0, frames=0, reasons={}, first=None)
-    original_draw, original_redraw = home.draw, home.redraw
+    counters = dict(draws=0, frames=0, ticks=0, reasons={}, first=None)
+    original_draw, original_redraw, original_tick = home.draw, home.redraw, home.tick
     other_window = None
     clock = None
 
@@ -318,7 +372,13 @@ def install_channel(program, home, path, setup):
         counters['reasons'][reason] = counters['reasons'].get(reason, 0) + 1
         original_redraw(reason)
 
+    def tick(area, frame_clock):
+        # The program's own tick callback: start_motion adds self.tick, which is this wrapper from here on.
+        counters['ticks'] += 1
+        return original_tick(area, frame_clock)
+
     home.redraw = redraw
+    home.tick = tick
     home.area.set_draw_func(draw)
 
     def write(**reply):
@@ -369,6 +429,8 @@ def install_channel(program, home, path, setup):
             return counters
         if op == 'renderer':
             return home.window.get_renderer().__gtype__.name
+        if op == 'surface':
+            return {'layer': layer_state(home.window, home.gui.layer), 'fullscreen': home.window.is_fullscreen()}
         if op == 'window':
             home.window.close()
             return {'fullscreen': home.window.is_fullscreen(), 'visible': home.window.get_visible()}
@@ -426,9 +488,15 @@ def fixture_main(path):
 
     before = unset()
     token = program.take_token()
+    runtime = Path(os.environ['XDG_RUNTIME_DIR'])
     parent = dict(pid=os.getpid(), before=before, after=unset(),
                   drm_hidden=not Path('/dev/dri').exists() and not any(Path('/dev').glob('nvidia*')),
-                  pins=[os.environ.get(key) for key in VENDORS])
+                  pins=[os.environ.get(key) for key in VENDORS],
+                  # What this process sees of /run: the host's is hidden, only the fixture's own folders remain.
+                  run=sorted(os.listdir('/run')), helper_socket=Path(os.environ['ARESOS_SHELL_SOCKET']).exists())
+    if setup['layer'] is False:
+        load_gui = program.load_gui
+        program.load_gui = lambda: load_gui()._replace(layer=None)   # as when the layer library is not installed
     if broken := setup['broken']:
         if broken == 'idle':
             program.idle_colour = lambda colour, _look: colour
@@ -445,6 +513,7 @@ def fixture_main(path):
             home.town.now = lambda: fixed
         parent['app_id'] = home.app.get_application_id()
         parent['display'] = os.environ['WAYLAND_DISPLAY']
+        parent['display_reachable'] = (runtime / parent['display']).exists()
         parent['environment'] = {key: os.environ.get(key) for key in ('GDK_DISABLE', 'GSK_RENDERER')}
         if layer := layer_state(home.window, home.gui.layer):
             parent['layer'] = layer

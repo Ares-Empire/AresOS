@@ -8,7 +8,7 @@ import threading
 import time
 import unittest
 
-from laptop_home_headless import ROOT, Headless, headless_available, load_program, scratch, wait_for
+from laptop_home_headless import ROOT, Headless, layer_library, load_program, needs, needs_headless, scratch, wait_for
 from laptop_home_helper import IMAGE_FONTS, STUDY_FONTS, STUDY_PALETTE, StandIn, generated_town, png, town
 
 program = load_program()
@@ -391,7 +391,7 @@ class FinderTextTest(unittest.TestCase):
         self.assertEqual((name, kind), (300, 100))
         self.assertEqual(program.row_columns(10, 10, -5), (0, 0))
 
-    @unittest.skipUnless(pango(), 'cairo, Pango and PangoCairo')
+    @needs(pango(), 'pycairo, Pango and PangoCairo')
     def test_long_names_paint_inside_their_row(self):
         cairo, Pango, PangoCairo = pango()
         painter = program.Painter(cairo, Pango, PangoCairo)
@@ -490,7 +490,6 @@ def gold_door(t):
             return blend(first, second, (t - a) / (b - a))
 
 
-@unittest.skipUnless(headless_available(), 'headless labwc, bwrap, wlr-randr, Mesa pins, GTK 4, Pango and Cairo')
 class MotionTest(unittest.TestCase):
     """The glide, the puff and the caret against a hand-driven clock and timers, as the frame clock would drive them."""
 
@@ -590,6 +589,7 @@ class MotionTest(unittest.TestCase):
         self.assertIsNone(program.hover_key(None))
 
 
+@needs_headless
 class WindowTest(unittest.TestCase):
     def setUp(self):
         workspace = scratch()
@@ -644,8 +644,14 @@ class WindowTest(unittest.TestCase):
         idle, lit = houses_of(scene)['test-game-1'], houses_of(scene)['test-web-2']
         photo = self.picture('check-houses')
         x, y, colour = self.cell_sample(idle)
-        expected = tuple(round(c * 255) for c in program.idle_colour(colour, self.look))
-        self.assertTrue(near(pixel(photo, x, y), expected, 2), ('idle house', pixel(photo, x, y), expected))
+        # REVIEW-1 finding 8: the oracle is 53c's own picture of the same town (WebKit's CSS filter), never the
+        # program's idle_colour.
+        from PIL import Image
+        with Image.open(ROOT / f'reviews/53c-laptop-home/pictures/{self.look}-home.png') as reference:
+            idle_reference = pixel(reference.convert('RGB'), x, y)
+        self.assertNotEqual(idle_reference, tuple(round(c * 255) for c in colour), 'the reference is filtered')
+        self.assertTrue(near(pixel(photo, x, y), idle_reference, 2), ('idle house', pixel(photo, x, y),
+                                                                      idle_reference))
         x, y, colour = self.cell_sample(lit)
         expected = tuple(round(c * 255) for c in colour)
         self.assertTrue(near(pixel(photo, x, y), expected, 2), ('lit house', pixel(photo, x, y), expected))
@@ -662,8 +668,7 @@ class WindowTest(unittest.TestCase):
         self.assertEqual(scene['framed'], 'test-tool-2')
         photo = self.picture('check-frame')
         x, y, colour = self.cell_sample(dimmed)
-        idle_colour = tuple(c * 255 for c in program.idle_colour(colour, self.look))
-        expected = blend(pixel(photo, 5, y), idle_colour, 0.16 if day else 0.13)
+        expected = blend(pixel(photo, 5, y), idle_reference, 0.16 if day else 0.13)
         self.assertTrue(near(pixel(photo, x, y), expected, 3), ('dimmed house', pixel(photo, x, y), expected))
         fx, fy, fw, fh = framed['frame']
         if day:
@@ -708,6 +713,37 @@ class WindowTest(unittest.TestCase):
         yellow = [pixel(photo, x, y) for x in range(end[0], end[0] + end[2]) for y in range(end[1], end[1] + end[3])]
         self.assertGreater(sum(near(p, (254, 216, 61), 50) for p in yellow), 10, 'end sign text')
 
+    def check_signs(self, photo):
+        """A click beside a short group sign opens nothing, and by day the plate is painted exactly where it takes
+        clicks: the program measured the sign with the painter's own text (REVIEW-1 finding 2)."""
+        scene = self.view.model()
+        games = street_of(scene, 'games')
+        left, top, width, height = games['sign']['rect']
+        self.assertLess(width, 150, 'a short sign')
+        launches = list(self.helper.opens)
+        for x in (left - 3, left + width + 3):
+            self.assertIsNone(self.view.click(x, top + height / 2))
+        self.assertEqual(self.view.click(left + width / 2, top + height / 2)['kind'], 'sign')
+        self.assertEqual(self.helper.opens, launches)
+        if self.look == 'day':
+            y = games['sign']['bottom'] - 6
+            for inner, outer in ((left + 1, left - 2), (left + width - 2, left + width + 1)):
+                self.assertTrue(near(pixel(photo, inner, y), blend(pixel(photo, outer, y), (13, 13, 16), 0.76), 3),
+                                ('sign plate edge', inner, pixel(photo, inner, y), pixel(photo, outer, y)))
+
+    def check_house_click(self):
+        """A real pointer click on a house: labwc, GTK's gesture, the town, and the stand-in helper gets its ID."""
+        house = houses_of(self.view.model())['test-game-1']
+        launches = list(self.helper.opens)
+        x, y, side = house['logo']
+        self.device.click(x + side / 2, y + side / 2)
+        wait_for(lambda: self.helper.opens == launches + ['test-game-1'])
+        self.view.until(lambda scene: not houses_of(scene)['test-game-1']['opening'])
+        # The pointer leaves the house (a click on the sky opens nothing), so later pictures show no hover.
+        self.device.click(960, 60)
+        self.view.until(lambda scene: not any(house['hover'] for house in houses_of(scene).values()))
+        self.assertEqual(self.helper.opens, launches + ['test-game-1'])
+
     def check_rest(self):
         before = self.view.request('counters')
         time.sleep(13)
@@ -717,6 +753,8 @@ class WindowTest(unittest.TestCase):
         self.assertEqual({name: count for name, count in reasons.items() if count}, {})
         self.assertLessEqual(clock, 2)
         self.assertIn(star, (0,) if self.look == 'day' else (3, 4))
+        # REVIEW-1 finding 8: the program's own tick callback, counted directly; nothing moves at rest.
+        self.assertEqual(after['ticks'] - before['ticks'], 0, 'tick callbacks at rest')
         self.assertLessEqual(after['draws'] - before['draws'], clock + star)
         self.assertLessEqual(after['frames'] - before['frames'], clock + star)
 
@@ -784,6 +822,7 @@ class WindowTest(unittest.TestCase):
             photo = self.picture('home')
             if look == 'day':
                 self.check_terraces(photo)
+            self.check_signs(photo)
             self.check_houses()
             # Real input through labwc: a click on the sky gives the layer surface the keyboard (and opens nothing),
             # a dead key composes through the input method on the German layout, Escape clears it.
@@ -805,6 +844,7 @@ class WindowTest(unittest.TestCase):
             self.picture('opened')
             self.helper.set_running([])
             self.view.until(lambda scene: not any(h['running'] for h in houses_of(scene).values()))
+            self.check_house_click()
             if look == 'day':
                 self.replace_town((1, 0, 0, 0))
                 self.check_empty_plots()
@@ -877,7 +917,7 @@ class WindowTest(unittest.TestCase):
             self.assertEqual(program.load_home(gui.home_path), cached)
 
 
-@unittest.skipUnless(headless_available(), 'headless labwc, bwrap, wlr-randr, Mesa pins, GTK 4, Pango and Cairo')
+@needs_headless
 class SurfaceTest(unittest.TestCase):
     def setUp(self):
         workspace = scratch()
@@ -887,18 +927,31 @@ class SurfaceTest(unittest.TestCase):
         icon.write_bytes(png())
         self.helper = StandIn(self.root / 'shell.sock', icon=icon, count=45,
                              holes=['test-web-2'], unpinned=['test-tool-1'])
-        self.chrome = Headless(self.root, self.helper.path)
 
-    def test_reports_real_surface_focus_and_replays_it_after_hello(self):
+    @property
+    def chrome(self):
+        if not hasattr(self, '_chrome'):
+            self._chrome = Headless(self.root, self.helper.path)
+        return self._chrome
+
+    def check_focus_and_reconnect(self, layer):
+        """Real GTK focus through labwc's pointer, reported to the helper and replayed after its hello, on the given
+        surface (REVIEW-1 finding 8: each mode explicitly, not whichever the machine has)."""
         def reports():
             with self.helper.lock:
                 return [request['focused'] for request in self.helper.requests if request['op'] == 'view_focus']
 
-        with self.helper, self.chrome as gui, gui.virtual_click() as click:
+        with self.helper, Headless(self.root, self.helper.path, layer=layer) as gui, gui.virtual_click() as click:
             gui.until(lambda scene: scene['online'])
-            self.assertIs(reports()[0], False)
+            surface = gui.request('surface')
+            if layer:
+                self.assertEqual(surface['layer'], dict(background=True, on_demand=True, anchored=True,
+                                                        output='HEADLESS-1'))
+                self.assertIs(reports()[0], False, 'a background layer starts without the keyboard')
+            else:
+                self.assertEqual(surface, {'layer': None, 'fullscreen': True})
             click()
-            wait_for(lambda: reports()[-1] is True)
+            wait_for(lambda: reports() and reports()[-1] is True)
             gui.request('other-window')
             wait_for(lambda: reports()[-1] is False)
             gui.request('close-other-window')
@@ -912,6 +965,18 @@ class SurfaceTest(unittest.TestCase):
             gui.until(lambda scene: scene['online'])
             hello, focus = self.helper.requests[before:before + 2]
             self.assertEqual((hello['op'], focus['op'], focus['focused']), ('hello', 'view_focus', True))
+            # The host's /run is hidden; the private display and the stand-in helper are reachable.
+            parent = gui.parent()
+            self.assertEqual(parent['run'], [])
+            self.assertTrue(parent['display_reachable'] and parent['helper_socket'])
+        self.assertTrue(os.listdir('/run'), 'the host has a /run to hide')
+
+    @needs(layer_library(), 'gtk4-layer-shell, or LAPTOP_HOME_TEST_LAYER_DIR pointing to its lib64')
+    def test_focus_and_reconnect_on_the_layer_surface(self):
+        self.check_focus_and_reconnect(layer=True)
+
+    def test_focus_and_reconnect_in_the_fallback_window(self):
+        self.check_focus_and_reconnect(layer=False)
 
     def test_surface_token_pins_renderer_and_opening(self):
         self.helper.running = ['test-web-1']
@@ -975,6 +1040,16 @@ class MemoryGuardTest(unittest.TestCase):
     """
 
     LIMIT_KIB = 64000
+
+    def test_rest_after_typing_sliding_and_finder_results_stays_within_two_percent(self):
+        """REVIEW-1 finding 4: typing, slides, rotating finder results (with their icons) and a cleared query leave
+        the resting number within 2 % of the first."""
+        from laptop_home_memory import measure
+
+        run = measure(used=True)
+        self.assertLessEqual(run['after_use']['Pss'], run['Pss'] * 1.02,
+                             dict(first=run['Pss'], after=run['after_use']['Pss'],
+                                  largest=run['after_use']['mappings']))
 
     def test_median_of_three_after_a_redraw(self):
         import statistics

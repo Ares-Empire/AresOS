@@ -64,7 +64,28 @@ def verify_fonts(gui):
             raise RuntimeError(f'fixture font {family} was not found by fontconfig')
 
 
-def measure(prototype=False, redraw=True):
+def use(gui):
+    """Type, slide, rotate the finder's results and clear the query, through the program's own handlers, then wait
+    for every glide to end. The finder decodes its icons in its sandbox meanwhile."""
+    def settled(scene):
+        return all(street['shift'] == street['offset'] for street in scene['streets'])
+
+    for query in ('t', 'te', 'test', 'pdf', 'paint', 'tool1', 'tool19', 'game', 'work', 'web'):
+        gui.key('Escape')
+        gui.type(query)
+        gui.until(settled)
+    gui.key('Escape')
+    scene = gui.until(lambda scene: settled(scene) and not scene['query'])
+    tools = next(street for street in scene['streets'] if street['key'] == 'system_tools')
+    end = tools['ends']['L']['rect']
+    gui.click(end[0] + end[2] / 2, end[1] + end[3] / 2)   # slide the long street by hand to its other end
+    gui.until(settled)
+    gui.key('ArrowRight', 'ArrowDown', 'Escape')
+    gui.until(lambda scene: settled(scene) and not scene['query'])
+
+
+def measure(prototype=False, redraw=True, used=False):
+    """One fresh run sampled at rest; with used, a second sample at rest after use() (REVIEW-1 finding 4)."""
     if not headless_available() or not shutil.which('fc-match', path='/usr/bin'):
         raise RuntimeError('need labwc, bwrap, wlr-randr, fontconfig, Mesa pins, GTK 4, Pango and Cairo')
     with scratch() as tmp:
@@ -104,6 +125,11 @@ def measure(prototype=False, redraw=True):
                           redrawn=redraw, **sample(parent['pid']))
             if not prototype:
                 result['draws_at_rest'] = gui.request('counters')['draws'] - draws
+            if used and not prototype:
+                use(gui)
+                gui.request('set', state={})
+                time.sleep(15)
+                result['after_use'] = sample(parent['pid'])
             return result
 
 
@@ -112,10 +138,11 @@ def main():
     parser.add_argument('--runs', type=int, default=5)
     parser.add_argument('--prototype', action='store_true', help="53e's native block town, the control")
     parser.add_argument('--first-draw', action='store_true', help="step A's method: sample without a redraw")
+    parser.add_argument('--used', action='store_true', help='sample again at rest after typing and sliding')
     args = parser.parse_args()
     runs = []
     for _ in range(args.runs):
-        runs.append(measure(args.prototype, redraw=not args.first_draw))
+        runs.append(measure(args.prototype, redraw=not args.first_draw, used=args.used))
         print(json.dumps(runs[-1]), flush=True)
     summary = defaultdict(dict)
     for field in (*FIELDS, 'buffers_kib', 'heap_kib'):

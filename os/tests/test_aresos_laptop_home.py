@@ -10,7 +10,7 @@ from types import SimpleNamespace
 import unittest
 from unittest import mock
 
-from laptop_home_headless import load_program, scratch, wait_for
+from laptop_home_headless import cairo_available, load_program, needs, scratch, wait_for
 from laptop_home_helper import INSTANCE, TOKEN, StandIn, png, town
 
 
@@ -42,7 +42,10 @@ def sandbox_runs():
         return False
 
 
-@unittest.skipUnless(sandbox_runs(), 'bubblewrap with user namespaces (the icon decoder never runs unsandboxed)')
+# The decoder never runs unsandboxed: where bubblewrap cannot start (no bwrap, no user namespaces) these skip.
+needs_sandbox = needs(sandbox_runs(), 'bubblewrap with user namespaces')
+
+
 class IconTest(unittest.TestCase):
     """53c's icon limits, now on the native loader: the checks on the opened file, then the decoder child in its
     sandbox."""
@@ -72,6 +75,7 @@ class IconTest(unittest.TestCase):
             with self.subTest(path=path), self.assertRaises((OSError, ValueError)):
                 home.read_icon(str(path) if isinstance(path, Path) else path)
 
+    @needs_sandbox
     def test_decoder_child_gets_bytes_and_a_bare_environment(self):
         width, height, rgba = home.decode_png(png(3, 2))
         self.assertEqual((width, height, bytes(rgba)), (3, 2, b'\x99\x73\xc2\xff' * 6))
@@ -97,6 +101,7 @@ class IconTest(unittest.TestCase):
             with self.subTest(data=data[:12]), self.assertRaises((home.subprocess.SubprocessError, ValueError)):
                 home.decode_png(data)
 
+    @needs_sandbox
     def test_decoder_sandbox_hides_the_helper_socket_runtime_folder_and_processes(self):
         """REVIEW-1 finding 1: the child parsing the PNG reaches neither the helper's socket, a file in the runtime
         folder, nor the home's process (its environment in /proc held the view credential)."""
@@ -122,6 +127,7 @@ class IconTest(unittest.TestCase):
         self.assertEqual(seen['tmp'], [])
         self.assertEqual(seen['environment'], ['LC_ALL', 'PATH', 'PWD'], 'bubblewrap sets PWD to /')
 
+    @needs_sandbox
     def test_decoder_output_cap_holds_before_the_reply_is_kept(self):
         flood = 'import sys\nsys.stdout.buffer.write(bytes(%d))' % (home.MAX_DECODED + 1)
         with self.assertRaisesRegex(ValueError, 'too large'):
@@ -132,6 +138,7 @@ class IconTest(unittest.TestCase):
             home.decode_png(png(), bwrap=str(self.root / 'missing-bwrap'))
         popen.assert_not_called()
 
+    @needs_sandbox
     def test_decoder_handles_filters_palettes_and_alpha(self):
         import struct
         import zlib
@@ -157,6 +164,7 @@ class IconTest(unittest.TestCase):
         self.assertEqual(home.decode_png(picture(0, 16, [b'\0' + bytes([200, 1, 7, 255])])),
                          (2, 1, bytes([200, 200, 200, 255, 7, 7, 7, 255])))
 
+    @needs(cairo_available(), 'pycairo')
     def test_icon_surface_contains_and_premultiplies(self):
         import cairo
 
