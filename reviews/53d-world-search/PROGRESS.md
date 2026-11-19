@@ -171,4 +171,6 @@ closes it first; Super during a home switch or loading does nothing.
 
 ## Hosted run
 
-HOSTED
+One hosted run of the OS checks was started after the last code push and not watched:
+`gh workflow run "OS image" --ref pkg/53d-world-search -f checks_only=true`, run **44434514723**
+(https://github.com/Ares-Empire/AresOS/actions/runs/44434514723). Its result is for the lead to read.
