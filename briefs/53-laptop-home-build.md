@@ -148,7 +148,12 @@ Only **package 25** is open (`pkg/25-guardian` at `e203e527`, worktree `~/AresOS
 `briefs/25-guardian.md`, `reviews/25-guardian/PROGRESS.md`; board #357 and #387).
 1. Its check build is **OS run 44533435611** (`check_build=build`, dispatched 14:30; `linux-aresos` said it need not
    wait for R28's last steps on pkg/42). Watch it from a shell (`gh run watch 44533435611 --exit-status --interval
-   300`), never from a Claude agent.
+   300`), never from a Claude agent. **It failed (14:41)** in "Throwaway image build and checks", before the VM:
+   `os/ci/image-checks.sh`'s old rule "no system unit starts the desktop" (`grep -rlE 'aresos-desktop|prismlauncher'`
+   over `/usr/lib/systemd/system` and `/etc/systemd/system`) finds 25's new `aresos-guardian.service`. Every image
+   check before it passed. Step 8's first fix: narrow that rule so it still catches a unit that starts the desktop
+   but allows the guardian (say why in the REPORT; `linux-aresos` reads it), then dispatch the check build again
+   for the VM part.
 2. **Step 8** with that run's ID, one fresh Opus agent (the budget rule; or Codex gpt-6.2-sol within its 12% a day):
    fix what the VM checks show, section 5's docs, the REPORT, the PR. PROGRESS.md lists what the check build must
    show. Rebase onto main before the PR (main moved a lot: R28 work, 53c/53d/53f in the helper).
