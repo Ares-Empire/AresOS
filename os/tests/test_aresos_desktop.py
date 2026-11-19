@@ -206,8 +206,8 @@ class FakeRunner:
         self.watched.append(pid)
         return True
 
-    def jvm_lock_held(self):
-        return self.lock_held
+    def jvm_lock_state(self):
+        return 'held' if self.lock_held else 'free'
 
     def scope_result(self, unit):
         self.scopes_asked.append(unit)
@@ -4166,7 +4166,7 @@ class LoopTest(Base):
         self.wait(lambda: launch.prism_ended is not None)
         # Nothing else may keep the lock once the launch's processes are gone (no child of the supervisor, the
         # cover among them, holds it across a fork).
-        self.assertFalse(self.loop.runner.jvm_lock_held(), 'the ended launch left the desktop lock held')
+        self.assertEqual(self.loop.runner.jvm_lock_state(), 'free', 'the ended launch left the desktop lock held')
 
     def covers(self):
         if not self.log.exists():
@@ -4603,7 +4603,7 @@ class LoopTest(Base):
                 except OSError:
                     return True
             self.wait(gone)
-            self.wait(lambda: not self.loop.runner.jvm_lock_held())
+            self.wait(lambda: self.loop.runner.jvm_lock_state() == 'free')
         return sup
 
     def test_prism_without_a_game_waits_in_auth_required(self):

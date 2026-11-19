@@ -1384,6 +1384,8 @@ def stop_text(stop, confirmed):
     logged_out = stop.logout in ('exited', 'ending')
     if stop.close == 'none':
         text = 'Logged out: Minecraft was not running.' if logged_out else 'Nothing to stop: Minecraft is not running.'
+    elif stop.save == 'lock_unknown':
+        text = f'Not a confirmed stop: {stop.why}'
     elif stop.close == 'called_off':
         lead = {'restart': 'Not restarted', 'logout': 'Not logged out'}.get(stop.kind, 'Not stopped')
         text = f'{lead}: Minecraft keeps running. {stop.why}'
@@ -1512,6 +1514,7 @@ def message(state, reason, detail, lock, persisted, homes=None):
         'state': f'The desktop\'s own state file could not be read ({detail}).\n\n{RETRY}',
         'locked': (f'Minecraft for the desktop is still running from before ({detail}).\n'
                    'Close it, then ' + RETRY.lower()),
+        'lock_unknown': f'AresOS could not check the desktop lock ({detail}).\n\n{RETRY}',
         'save_failed': not_saved('Minecraft was not stopped'),
         'save_failed_restart': not_saved('Minecraft was not restarted'),
         'save_failed_logout': not_saved('AresOS did not log out'),
@@ -1892,8 +1895,8 @@ class Supervisor:
         mode = runtime.get('mode') if runtime.get('mode') in ('setup', 'hub') else 'hub'
         self.launch = Launch(id=runtime['launch'], nonce=runtime.get('nonce') or new_token(), mode=mode,
                              started=now, accepted=True, authorized=now)
-        if self.record_facts(self.launch.id) is None and self.runner.jvm_lock_held():
-            # Its wrapper still runs. Its connection died with the previous supervisor, so the hand-off is lost as of
+        if self.record_facts(self.launch.id) is None and self.runner.jvm_lock_state() != 'free':
+            # Its wrapper may still run. Its connection died with the previous supervisor, so the hand-off is lost as of
             # now: it gets the whole stop-and-report window (one deadline rule) to say how the start ended.
             self.launch.wrapper_gone = now
             LOG.info('launch %s: waiting for the start the previous supervisor authorized', self.launch.id)
@@ -1960,9 +1963,12 @@ class Supervisor:
             self.save()
         if not self.guard_armed():
             return
-        if self.runner.jvm_lock_held():
-            # Something still holds the desktop's lock (a game this supervisor cannot see): never start a second.
-            self.enter(RECOVERY, 'locked', 'the desktop lock is held')
+        lock = self.runner.jvm_lock_state()
+        if lock != 'free':
+            if lock == 'held':
+                self.enter(RECOVERY, 'locked', 'the desktop lock is held')
+            else:
+                self.enter(RECOVERY, 'lock_unknown', lock)
             return
         problem, detail = self.preflight()
         if problem:
@@ -3209,8 +3215,8 @@ class Supervisor:
         launch = self.launch
         running = (launch is not None and not launch.failed
                    and (launch.jvm_pid is not None or (launch.accepted and not launch.reported)))
-        unseen = not running and self.runner.jvm_lock_held()
-        if not running and not unseen:
+        lock = self.runner.jvm_lock_state() if not running else None
+        if lock == 'free':
             # Positive evidence that nothing is running: no Java, none in hand-off, and the desktop lock is free.
             # Such a stop writes no record (2.9).
             stop.save, stop.close = 'nothing', 'none'
@@ -3229,9 +3235,11 @@ class Supervisor:
                 self.call_off('The stop could not be recorded on the disk.')
                 return
         self.enter(STOPPING, kind)
-        if unseen:
-            # A game this supervisor cannot see holds the desktop lock: it can be neither asked nor closed.
-            self.stop_unconfirmed('unseen', 'Not saved: a Minecraft that AresOS cannot see holds the desktop lock.')
+        if not running:
+            if lock == 'held':
+                self.stop_unconfirmed('unseen', 'Not saved: a Minecraft that AresOS cannot see holds the desktop lock.')
+            else:
+                self.stop_unconfirmed('lock_unknown', f'AresOS could not check the desktop lock ({lock}).')
             if self.stop is stop:
                 stop.close = 'failed'
                 if not self.record_stop(save=stop.save, why=stop.why, close='failed'):
@@ -3366,8 +3374,8 @@ class Supervisor:
             sent = self.runner.signal_jvm()
             self.log_phase(stop, 'SIGTERM sent to Java' if sent else 'SIGTERM could not be sent to Java (no pidfd)')
             return
-        if self.runner.jvm_lock_held():
-            stop.lock_at = now + STOP_LOCK_CHECK  # the wrapper has not let go of the desktop lock yet
+        if self.runner.jvm_lock_state() != 'free':
+            stop.lock_at = now + STOP_LOCK_CHECK  # wait for positive evidence the lock was released
             return
         self.after_close()
 
@@ -3839,19 +3847,8 @@ class Runner:
         self.loop.watch_jvm(fd)
         return True
 
-    def jvm_lock_held(self):
-        import fcntl
-        try:
-            fd = os.open(self.paths.jvm_lock, os.O_RDWR | os.O_CREAT | os.O_CLOEXEC, 0o600)
-        except OSError:
-            return False
-        try:
-            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            return False
-        except BlockingIOError:
-            return True
-        finally:
-            os.close(fd)
+    def jvm_lock_state(self):
+        return desktop_lock_state(self.paths)
 
     def signal_jvm(self):
         """SIGTERM to Java through the pidfd the loop watches (package 25, 2.5): never a PID from a file, never
@@ -4723,9 +4720,10 @@ def use_home_command(paths, folder):
 
 def reset_instance(paths):
     lock = load_lock(paths.share)
-    runner = Runner(paths, None)
-    if runner.jvm_lock_held():
-        print('The desktop is running. Close Minecraft first.', file=sys.stderr)
+    state = desktop_lock_state(paths)
+    if state != 'free':
+        print('The desktop is running. Close Minecraft first.' if state == 'held' else
+              f'Instance reset refused: AresOS could not check the desktop lock ({state}).', file=sys.stderr)
         return 1
     root = paths.instance(lock['instance'])
     if not os.path.lexists(root):

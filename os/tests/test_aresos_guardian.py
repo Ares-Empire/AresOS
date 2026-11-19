@@ -598,6 +598,36 @@ class StopBase(GuardianBase):
 
 
 class StopTest(StopBase):
+    def test_an_unknown_writer_lock_never_confirms_a_shutdown(self):
+        sup, pid = self.game()
+        self.end_game(sup, pid, 0)
+        probe = desktop.Runner(self.paths, None)
+        self.runner.jvm_lock_state = probe.jvm_lock_state
+        lock = pathlib.Path(self.paths.jvm_lock)
+        lock.mkdir()  # opening this as the wrapper's lock fails even when tests run as root
+        for failure in ('open', 'flock'):
+            with self.subTest(failure=failure):
+                if failure == 'flock':
+                    lock.rmdir()
+                with (mock.patch.object(fcntl, 'flock', side_effect=OSError('lock test failed'))
+                      if failure == 'flock' else contextlib.nullcontext()):
+                    reply, = self.stop(sup, 'shutdown')
+                self.assertEqual((reply['ok'], reply['result'], reply['close']), (False, 'unsaved', 'failed'))
+                self.assertIn('could not check the desktop lock', self.record()['why'])
+                self.assertIn(self.record()['why'], reply['message'])
+        self.assertEqual(self.next_session().reason, 'unsaved')
+
+    def test_an_unknown_lock_refuses_a_new_launch_and_instance_reset(self):
+        pathlib.Path(self.paths.jvm_lock).mkdir(parents=True)
+        self.runner.jvm_lock_state = desktop.Runner(self.paths, None).jvm_lock_state
+        sup = self.supervisor()
+        sup.start()
+        self.assertEqual((sup.reason, self.runner.prisms), ('lock_unknown', []))
+        with contextlib.redirect_stderr(io.StringIO()) as errors:
+            self.assertEqual(desktop.reset_instance(self.paths), 1)
+        self.assertIn('could not check the desktop lock', errors.getvalue())
+        self.assertTrue(pathlib.Path(self.paths.instance(self.lock['instance'])).is_dir())
+
     def test_a_stop_records_saves_closes_and_waits_for_the_exit_and_the_lock(self):
         sup, pid, peer = self.connected()  # the helper never reported a world (a dead helper): the locked one
         views = len(self.runner.views)
