@@ -46,12 +46,21 @@ Patrik isn't sure our own pixel art is the right call: "currently its just my pr
 
 **Drawing B's mockups during the study:** this laptop has no `AresDesktop` instance yet. Read B's textures and font read-only from the mod's development copy of the game: `~/.gradle/caches/fabric-loom/26.2/minecraft-client.jar` and the asset index and objects under `~/.gradle/caches/fabric-loom/assets/`. Extract only into the private folder. If those files aren't there, draw no B mockups: describe B in words and tell the lead. Never fall back to `~/.minecraft`, `~/.lunarclient`, another checkout, or a download of the game.
 
+## Patrik's decision after step 1 (board #409, Thursday 2026-11-19)
+
+His words: "the Minecraft designs are too good to pass over. We use those. But: we make a setting so that it's customizable to use either our own, Minecraft textures or Minecraft buttons (so A B or C). You can just build one for now but if it's not much work we do all. And place: also a setting. Default Top Centre but switchable. Same with size. I think most OS do it this way. Again: if making only 1 set option rn is much simpler we can do that and note the other things as to come later". He also said the designs were "so good".
+
+What this means for steps 2 to 4:
+- **Three looks, one setting.** B (the game's textures, step 1's plate-and-bar form `B-01`) is the default. C is the game's own buttons and slider (step 1's `B-02` form). A, our own art, stays both a choice and the fallback when the game's files are missing. Draw every remaining piece in A and B. Draw C wherever the game has its own control for it; elsewhere say that C uses B.
+- **Settings:** the look (A, B or C; default B), the indicator's place (default top centre, switchable), and its size (default medium, 3x). Design where these settings live, how he changes them, and how a change takes effect, as part of the function/look split. For each, say whether it is cheap to build with the first package or should come later, so the build can ship one default first and the rest after.
+- **Public and private still holds:** B and C contain the game's pixels, so their pictures stay private, and everything committed shows A.
+
 ## Function and look stay separate
 
 Patrik: "at some point we wanna add the completely diff look in ares app style (not necessarily prio but just a thing once functionality is there)" (relayed by `mac-capacity`, 2026-11-18).
 
 - Design every piece so its function is separate from its look. Colours, shapes, pixel art and fonts live in a replaceable theme layer, so the Ares-style look can come later without rebuilding the pieces.
-- Keep it simple: one theme today and no theme switcher. Do not design or build the Ares-style look now.
+- One look setting (A, B, C; see Patrik's decision above) replaces the earlier "no theme switcher" rule. Do not design or build the Ares-style look now; it would become one more value of the same setting later.
 - A and B should both fit this layer, as two sets of art for the same pieces.
 - Say what this separation costs, and where the theme layer lives for each kind of piece.
 
