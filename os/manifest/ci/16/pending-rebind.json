@@ -15,7 +15,8 @@
     "Package 18c's fix round 1, part 2 (linux-aresos, agreed change 15): the check-build job's limit for check_build=control goes from 127 to 131 minutes and its comment's sum follows the Control VM pass step's 16 minutes, so the job can't cut a slow pass before the step's own limit; every other mode unchanged; no tool, guide or image file changed",
     "22d and 22c on the laptop (2026-11-17)",
     "50: boot-only console keymap after Plymouth; vm.py requires boot-key and forced busy-VT repair evidence in the disposable check build",
-    "Package 18c's fix round X2 merged main at 04aef030 (packages 48, 50 and 51): bound files main changed wait for the next rehearsal; os/ci/check-build.sh keeps 18c's control|build split, with 50's console keymap check in the build branch"
+    "Package 18c's fix round X2 merged main at 04aef030 (packages 48, 50 and 51): bound files main changed wait for the next rehearsal; os/ci/check-build.sh keeps 18c's control|build split, with 50's console keymap check in the build branch",
+    "25: os/ci/vm.py arms the guardian fixture before the power key (guardian-arm), watches the shutdown (black pixels, Ctrl+Alt+F3 in pass 2) and reads the guard's order from the offline journal (guardian_host.py); harness only"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -24,7 +25,7 @@
       "path": ".github/workflows/os-image.yml"
     },
     {
-      "sha256": "8e13aa279047545915e430afa53ec8abde59e92db74b0b3451ef3cd3075ed148",
+      "sha256": "f47b5e87400a0bf4a86e79b380c1afa3c5598a4523cd3f73ccdfc77e121f1504",
       "path": "os/ci/vm.py"
     },
     {
