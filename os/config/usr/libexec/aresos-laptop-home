@@ -1,36 +1,38 @@
 #!/usr/bin/python3
 """The laptop-screen home, drawn with GTK 4 and Cairo, and its aresos-shell/1.2 view connection."""
 
-import asyncio
+import sys
+
+# The home talks to its helper over a Unix socket and never uses TLS. asyncio imports ssl only to offer it, and that
+# import initialises OpenSSL (about 2 MiB at rest); a None entry makes the import fail, and asyncio goes without TLS.
+sys.modules.setdefault('ssl', None)
+
+import asyncio  # noqa: E402 (after the ssl entry above)
 from collections import namedtuple
-from contextlib import ExitStack
 import json
 import math
 import random
 import os
 from pathlib import Path
 import re
-import secrets
 import signal
 import stat
 import string
 import struct
-import sys
+import subprocess
 import tempfile
 import threading
 import time
 import unicodedata
 from datetime import datetime
-from urllib.parse import unquote, urlsplit
 
 APP_ID = 'aresos.laptop-home'
-PAGE_ROOT = Path('/usr/share/aresos/laptop-home')
-SCHEME = 'aresos-home'
 PROTOCOL = 'aresos-shell/1.2'
 CAPABILITIES = ['views', 'home_state', 'apps_running', 'apps_changed', 'app_state', 'list_apps', 'list_paging',
                 'app_details', 'open_app']
 MAX_MESSAGE = 64 * 1024
 MAX_ICON = 1024 * 1024
+MAX_ICON_SIDE = 512
 MAX_HOME_APPS = 200
 PNG_HEADER = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR'
 ID = re.compile(r'[a-z0-9_-]{1,64}')
@@ -51,12 +53,6 @@ MAX_HOME_BYTES = len(encode_home({
 NO_BATTERY = {'battery': None}
 UNAVAILABLE = {'state': 'failed', 'message': 'Opening is back in a moment'}
 FILE_FLAGS = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
-MIME = {
-    '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css',
-    '.json': 'application/json', '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.otf': 'font/otf',
-    '.png': 'image/png', '.svg': 'image/svg+xml', '.webp': 'image/webp', '.jpeg': 'image/jpeg',
-    '.jpg': 'image/jpeg', '.gif': 'image/gif', '.avif': 'image/avif', '.ico': 'image/x-icon',
-}
 def take_token():
     token = os.environ.get('ARESOS_VIEW_TOKEN', '')
     # os.unsetenv also clears entries inherited by libc that Python may never have recorded.
@@ -82,37 +78,132 @@ def read_regular(path, *, dir_fd=None, limit=None):
         return data
 
 
-class Resources:
-    def __init__(self, root):
-        self.root = root
-        self.icons = {}
+def read_icon(path):
+    """53c's checks on a catalogue icon, on the opened file: an absolute path to a regular file (not a symlink) of at
+    most 1 MiB, holding a PNG of at most 512 x 512. Returns the bytes; the decoder never sees the path."""
+    if not isinstance(path, str) or not os.path.isabs(path):
+        raise ValueError('icon refused')
+    png = read_regular(path, limit=MAX_ICON)
+    if not png.startswith(PNG_HEADER) or len(png) < 24:
+        raise ValueError('icon refused')
+    width, height = struct.unpack_from('>II', png, 16)
+    if not (0 < width <= MAX_ICON_SIDE and 0 < height <= MAX_ICON_SIDE):
+        raise ValueError('icon refused')
+    return png
 
-    def read(self, uri):
-        url = urlsplit(uri)
-        if url.scheme != SCHEME:
-            raise ValueError('resource refused')
-        parts = unquote(url.path, errors='strict').removeprefix('/').split('/')
-        if url.netloc == 'icon' and len(parts) == 1 and valid_id(parts[0]):
-            path = self.icons.get(parts[0])
-            if path and os.path.isabs(path):
-                png = read_regular(path, limit=MAX_ICON)
-                if png.startswith(PNG_HEADER) and len(png) >= 24:
-                    width, height = struct.unpack_from('>II', png, 16)
-                    if 0 < width <= 512 and 0 < height <= 512:
-                        return 'image/png', png
-            raise ValueError('icon refused')
-        if url.netloc != 'page' or any(part in ('', '.', '..') or '\x00' in part for part in parts):
-            raise ValueError('resource refused')
-        mime = MIME.get(Path(parts[-1]).suffix)
-        if mime is None:
-            raise ValueError('resource refused')
-        # Open relative to directory descriptors, so a rename or a symlink swap cannot redirect a later open.
-        with ExitStack() as opened:
-            folder = None
-            for component in (self.root, *parts[:-1]):
-                folder = os.open(component, FILE_FLAGS | os.O_DIRECTORY, dir_fd=folder)
-                opened.callback(os.close, folder)
-            return mime, read_regular(parts[-1], dir_fd=folder)
+
+# The decoder runs in a short-lived child (python3 -I -S -c), outside the process that holds the view credential. It
+# reads a PNG's bytes from stdin and writes width, height and RGBA rows; PNG only, non-interlaced, at most 512 x 512.
+PNG_DECODER = r"""
+import struct, sys, zlib
+
+
+def main():
+    data = sys.stdin.buffer.read((1 << 20) + 1)
+    if len(data) > 1 << 20 or data[:8] != b'\x89PNG\r\n\x1a\n':
+        return 1
+    at, header, palette, alpha, idat = 8, None, b'', b'', bytearray()
+    while True:
+        if at + 12 > len(data):
+            return 1
+        size, kind = struct.unpack_from('>I4s', data, at)
+        if at + 12 + size > len(data):
+            return 1
+        body = data[at + 8:at + 8 + size]
+        if zlib.crc32(kind + body) != struct.unpack_from('>I', data, at + 8 + size)[0]:
+            return 1
+        at += 12 + size
+        if header is None and kind != b'IHDR':
+            return 1
+        if kind == b'IHDR':
+            header = struct.unpack('>IIBBBBB', body)
+        elif kind == b'PLTE':
+            palette = body
+        elif kind == b'tRNS':
+            alpha = body
+        elif kind == b'IDAT':
+            idat += body
+        elif kind == b'IEND':
+            break
+    width, height, depth, colour, compression, filtering, interlace = header
+    channels = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}.get(colour)
+    if (not 0 < width <= 512 or not 0 < height <= 512 or channels is None or compression or filtering or interlace
+            or depth not in ((1, 2, 4, 8) if colour == 3 else (1, 2, 4, 8, 16) if colour == 0 else (8, 16))
+            or (colour == 3 and not palette)):
+        return 1
+    bits = channels * depth
+    stride, step = (width * bits + 7) // 8, max(1, bits // 8)
+    raw = zlib.decompressobj().decompress(bytes(idat), height * (stride + 1) + 1)
+    if len(raw) != height * (stride + 1):
+        return 1
+    if colour == 3:
+        table = [palette[3 * i:3 * i + 3] + (alpha[i:i + 1] or b'\xff') for i in range(len(palette) // 3)]
+    out, previous = bytearray(), bytearray(stride)
+    for y in range(height):
+        kind, line = raw[y * (stride + 1)], bytearray(raw[y * (stride + 1) + 1:(y + 1) * (stride + 1)])
+        if kind == 1:
+            for i in range(step, stride):
+                line[i] = (line[i] + line[i - step]) & 255
+        elif kind == 2:
+            for i in range(stride):
+                line[i] = (line[i] + previous[i]) & 255
+        elif kind == 3:
+            for i in range(stride):
+                line[i] = (line[i] + ((line[i - step] if i >= step else 0) + previous[i]) // 2) & 255
+        elif kind == 4:
+            for i in range(stride):
+                a, b = (line[i - step] if i >= step else 0), previous[i]
+                c = previous[i - step] if i >= step else 0
+                p = a + b - c
+                pa, pb, pc = abs(p - a), abs(p - b), abs(p - c)
+                line[i] = (line[i] + (a if pa <= pb and pa <= pc else b if pb <= pc else c)) & 255
+        elif kind:
+            return 1
+        previous = line
+        samples = line[0::2] if depth == 16 else bytes(line)
+        if depth < 8:
+            mask, per = (1 << depth) - 1, 8 // depth
+            samples = bytes((byte >> (8 - depth * (k + 1))) & mask for byte in samples for k in range(per))[:width]
+            if colour == 0:
+                samples = bytes(value * 255 // mask for value in samples)
+        pixels = bytearray(width * 4)
+        if colour == 6:
+            pixels[:] = samples
+        elif colour == 2:
+            pixels[0::4], pixels[1::4], pixels[2::4] = samples[0::3], samples[1::3], samples[2::3]
+            pixels[3::4] = b'\xff' * width
+        elif colour == 0:
+            pixels[0::4] = pixels[1::4] = pixels[2::4] = samples
+            pixels[3::4] = b'\xff' * width
+        elif colour == 4:
+            pixels[0::4] = pixels[1::4] = pixels[2::4] = samples[0::2]
+            pixels[3::4] = samples[1::2]
+        else:
+            for x, index in enumerate(samples):
+                if index >= len(table):
+                    return 1
+                pixels[4 * x:4 * x + 4] = table[index]
+        out += pixels
+    sys.stdout.buffer.write(struct.pack('>II', width, height) + out)
+    return 0
+
+
+sys.exit(main())
+"""
+
+
+def decode_png(png, timeout=5):
+    """(width, height, RGBA) from the decoder child, which gets only PATH and LC_ALL, the PNG's bytes on its stdin and
+    no descriptor but its pipes."""
+    result = subprocess.run([sys.executable or '/usr/bin/python3', '-I', '-S', '-c', PNG_DECODER], input=png,
+                            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env={'PATH': '/usr/bin', 'LC_ALL': 'C'},
+                            close_fds=True, start_new_session=True, timeout=timeout, check=True)
+    if len(result.stdout) < 8:
+        raise ValueError('icon decoder failed')
+    width, height = struct.unpack_from('>II', result.stdout)
+    if not (0 < width <= MAX_ICON_SIDE and 0 < height <= MAX_ICON_SIDE) or len(result.stdout) != 8 + width * height * 4:
+        raise ValueError('icon decoder failed')
+    return width, height, result.stdout[8:]
 
 
 def page_home(palette, rows, names):
@@ -188,7 +279,7 @@ def launch_result(reply):
 class HelperPeer:
     def __init__(self, reader, writer):
         self.reader, self.writer = reader, writer
-        self.prefix = secrets.token_hex(8)
+        self.prefix = os.urandom(8).hex()
         self.serial = 0
         self.requests = {}
         self.authenticated = False
@@ -692,6 +783,8 @@ def build_scene(inputs):
         bounds = street_range(xs, size, pitch, day)
         by_hand = bool(inputs['by_hand'].get(key))
         offset = clamp(inputs['offsets'].get(key, 0), bounds)
+        # The street is drawn where its glide has got to; its rules (ends, frame, target) use where it comes to rest.
+        shift = (inputs.get('current') or {}).get(key, offset)
         far = {side: max([-1] + [spot['slot'] for spot in spots if spot['side'] == side]) for side in 'LR'}
         margin = cell // 2
         plots = []
@@ -700,7 +793,7 @@ def build_scene(inputs):
             for side in 'LR':
                 count = max(grid['cols'], far[side] + 1)
                 first = MID - gap // 2 - (count - 1) * pitch - size if side == 'L' else MID + gap // 2
-                left = first - margin + offset
+                left = first - margin + shift
                 plots.append(dict(side=side, count=count, left=left, width=(count - 1) * pitch + size + 2 * margin,
                                   slab=size + 2 * margin, slabs=[left + k * pitch for k in range(count)]))
             # The road runs from edge to edge and stands still when its street slides.
@@ -708,11 +801,11 @@ def build_scene(inputs):
         else:
             start = MID - gap // 2 - (0 if far['L'] < 0 else far['L'] * pitch + size + 2 * cell)
             end = MID + gap // 2 + (0 if far['R'] < 0 else far['R'] * pitch + size + 2 * cell)
-            road = dict(rect=[start + offset, base, end - start, ROAD], joint=start + offset, slides=True)
+            road = dict(rect=[start + shift, base, end - start, ROAD], joint=start + shift, slides=True)
         sign_bottom = base - js_round(size * 0.42)
-        sign = dict(centre=MID + offset, bottom=sign_bottom, name=group['name'],
+        sign = dict(centre=MID + shift, bottom=sign_bottom, name=group['name'],
                     detail=f'{group["direction"]} · {len(spots)}',
-                    rect=[MID - 100 + offset, sign_bottom - (51 if day else 38), 200, 51 if day else 38])
+                    rect=[MID - 100 + shift, sign_bottom - (51 if day else 38), 200, 51 if day else 38])
         ends = {}
         for side in 'LR':
             gone = hidden(spots, size, offset, side)
@@ -720,14 +813,17 @@ def build_scene(inputs):
             label = f'‹ {count}' if side == 'L' else f'{count} ›'
             box = max(46, js_round(MONO_ADVANCE * 14 * len(label)) + 22)
             ends[side] = dict(cut=bool(gone), count=count, hidden=len(gone), label=label,
+                              hover=hover == f'end:{key}:{side}',
                               title=(f'{count} matching out of {len(gone)} hidden houses' if matches is not None
                                      else f'{count} hidden houses'),
                               rect=[10 if side == 'L' else WIDTH - 10 - box, base + ROAD - js_round(size / 2) - 32,
                                     box, 32])
         drawn = []
+        puffs = inputs.get('puffs') or {}
         for spot in spots:
             app = spot['app']
-            app_id, left = app['id'], spot['x'] + offset
+            app_id, left = app['id'], spot['x'] + shift
+            puff = puffs.get(app_id)
             states = dict(running=app_id in running, opening=app_id in opening,
                           dim=matches is not None and app_id not in matches,
                           match=matches is not None and app_id in matches, framed=app_id == framed,
@@ -743,13 +839,17 @@ def build_scene(inputs):
                 sign=dict(centre=left + size / 2, bottom=base - (size + depth + 3), width=pitch - 6,
                           name_size=14 if cell >= 9 else 13),
                 lit=states['hover'] or states['running'] or states['framed'] or states['match'] or states['opening'],
+                # 53c's purple puff: 5 px squares from the door, rising and fading over 0.6 s.
+                puff=[[left + (4.5 + across * 2) * cell + dx * puff['progress'],
+                       base - (1 + up * 2) * cell - 5 + dy * puff['progress'], 1 - puff['progress']]
+                      for across, up, dx, dy in puff['particles']] if puff else [],
                 **states))
         streets.append(dict(
             key=key, name=group['name'], colour=group['colour'], block=group['block'], top=street_top,
-            height=street_height, base=base, offset=offset, by_hand=by_hand, range=list(bounds),
+            height=street_height, base=base, offset=offset, shift=shift, by_hand=by_hand, range=list(bounds),
             target=follow(spots, size, pitch, day, bounds, offset, by_hand, framed), plots=plots, road=road,
-            sign=sign, ends=ends, houses=drawn, visible=[house['id'] for house in drawn
-                                                        if house['left'] >= EDGE and house['left'] + size <= WIDTH - EDGE]))
+            sign=sign, ends=ends, houses=drawn, visible=[spot['app']['id'] for spot in spots
+                                                        if EDGE <= spot['x'] + offset <= WIDTH - EDGE - size]))
     pinned = {}
     for app in houses:
         if isinstance(app.get('slot'), int):
@@ -779,7 +879,8 @@ def build_scene(inputs):
                                    FINDER_WIDTH - 18, ROW_HEIGHT]))
     target = by_id.get(framed)
     error = inputs.get('error') or ''
-    finder = dict(query=query, typing=bool(query), hint=hint_text(online, error, target, query),
+    finder = dict(query=query, typing=bool(query), caret=bool(query) and inputs.get('caret', True),
+                  hint=hint_text(online, error, target, query),
                   message=not online or bool(error), rect=[FINDER_LEFT, FINDER_BOTTOM - LINE_HEIGHT, FINDER_WIDTH,
                                                           LINE_HEIGHT],
                   list=list_rect, heading=(f'All programs · {len(others)}' if len(others) > 5 else 'All programs')
@@ -811,6 +912,34 @@ def build_scene(inputs):
         hits=hits)
 
 
+def hover_key(hit):
+    """The hover input for a hit: house:<id>, slot:<index>, row:<id>, end:<street>:<side> or sign:<street>."""
+    if hit is None:
+        return None
+    if hit['kind'] == 'slot':
+        return f'slot:{hit["index"]}'
+    if hit['kind'] == 'end':
+        return f'end:{hit["key"]}:{hit["side"]}'
+    if hit['kind'] == 'sign':
+        return f'sign:{hit["key"]}'
+    return f'{hit["kind"]}:{hit["id"]}'
+
+
+def ease_out(progress):
+    """CSS ease-out, cubic-bezier(0, 0, 0.58, 1), at a progress from 0 to 1."""
+    if progress <= 0:
+        return 0.0
+    if progress >= 1:
+        return 1.0
+    low, high = 0.0, 1.0
+    for _ in range(30):   # solve x(t) = progress; x is monotonic in t
+        t = (low + high) / 2
+        x = 3 * (1 - t) * t * t * 0.58 + t ** 3
+        low, high = (t, high) if x < progress else (low, t)
+    t = (low + high) / 2
+    return 3 * (1 - t) * t * t + t ** 3
+
+
 def hit_test(scene, x, y):
     """The topmost clickable thing under a window point, or None."""
     fit = scene['fit']
@@ -822,7 +951,10 @@ class Town:
     """The home's state between helper updates and input, as 53c's home.js kept it. No GTK here: timers, opening
     and redraws come in as callables."""
 
-    def __init__(self, look, home, *, now=datetime.now, schedule=None, cancel=None, opener=None, changed=None):
+    GLIDE, PUFF, BLINK, BLINKS = 0.3, 0.6, 550, 10
+
+    def __init__(self, look, home, *, now=datetime.now, schedule=None, cancel=None, opener=None, changed=None,
+                 motion=None, clock=time.monotonic):
         self.look, self.home = look, home
         self.programs, self.running, self.online, self.battery = [], [], False, None
         self.query, self.selected, self.best_cleared, self.error, self.hover = '', None, False, '', None
@@ -834,15 +966,22 @@ class Town:
         self.schedule = schedule or (lambda _ms, _callback: None)
         self.cancel = cancel or (lambda _handle: None)
         self.opener = opener or (lambda _app_id, callback: callback(UNAVAILABLE))
-        self.changed = changed or (lambda: None)
+        self.changed = changed or (lambda _reason='state': None)
         self.size = (WIDTH, HEIGHT)
+        # Motion: each street's drawn offset glides to its resting one; motion() asks for frames, and without it
+        # (the model's own tests) everything jumps to its end. clock() shares the frame clock's time base.
+        self.motion, self.clock = motion, clock
+        self.current, self.glides, self.puffs = {}, {}, {}
+        self.caret, self.caret_timer = True, None
 
     def inputs(self, size=None):
         return dict(look=self.look, size=list(size or self.size), home=self.home, programs=self.programs,
                     running=list(self.running), online=self.online, query=self.query, selected=self.selected,
                     best_cleared=self.best_cleared, offsets=dict(self.offsets), by_hand=dict(self.by_hand),
                     hover=self.hover, opening=sorted(self.opening), error=self.error, clock=self.now(),
-                    battery=self.battery, stars=list(self.stars))
+                    battery=self.battery, stars=list(self.stars), current=dict(self.current),
+                    puffs={app_id: dict(progress=ease_out(puff['progress']), particles=puff['particles'])
+                           for app_id, puff in self.puffs.items()}, caret=self.caret)
 
     def scene(self, size=None):
         if size is not None:
@@ -886,7 +1025,60 @@ class Town:
         scene = self.scene()
         for street in scene['streets']:
             self.offsets[street['key']] = street['target']
+        self.glide()
         self.changed()
+
+    def glide(self):
+        """53c's .slide transition: 0.3 s ease-out from where the street is drawn to where it now rests."""
+        started = False
+        for key, value in self.offsets.items():
+            shown = self.current.get(key, 0)
+            if self.motion is None:
+                self.current[key] = value
+                self.glides.pop(key, None)
+            elif key in self.glides and self.glides[key]['to'] == value:
+                continue
+            elif shown == value:
+                self.glides.pop(key, None)
+            else:
+                self.current[key] = shown   # drawn where it is until the first frame moves it
+                self.glides[key] = dict(start=self.clock(), origin=shown, to=value)
+                started = True
+        if started:
+            self.motion()
+
+    def advance(self, now):
+        """Move every glide and puff to the time now; True while something still moves."""
+        for key, glide in list(self.glides.items()):
+            progress = (now - glide['start']) / self.GLIDE
+            if progress >= 1:
+                self.current[key] = glide['to']
+                del self.glides[key]
+            else:
+                eased = ease_out(progress)
+                self.current[key] = glide['origin'] + (glide['to'] - glide['origin']) * eased
+        for app_id, puff in list(self.puffs.items()):
+            puff['progress'] = max(0.0, (now - puff['start']) / self.PUFF)
+            if puff['progress'] >= 1:
+                del self.puffs[app_id]
+        return bool(self.glides or self.puffs)
+
+    def blink(self):
+        """53c's caret: five blinks in 1.1 s steps from each keystroke, then it stays. Timed redraws, no frames."""
+        if self.caret_timer is not None:
+            self.cancel(self.caret_timer)
+        self.caret, self.caret_timer = True, None
+        if not self.query:
+            return
+
+        def toggle(count):
+            def fire():
+                self.caret = not self.caret
+                self.caret_timer = self.schedule(self.BLINK, toggle(count + 1)) if count + 1 < self.BLINKS else None
+                self.changed('caret')
+            return fire
+
+        self.caret_timer = self.schedule(self.BLINK, toggle(0))
 
     def clear_error(self):
         if self.error_timer is not None:
@@ -899,6 +1091,7 @@ class Town:
         self.clear_error()
         self.query = text.removeprefix('/')[:128]
         self.selected = None
+        self.blink()
         self.search()
         self.refresh()
 
@@ -1012,6 +1205,12 @@ class Town:
             self.refresh()
 
         self.schedule(600, opened)
+        if self.motion is not None and app_id in {house['id'] for street in scene['streets']
+                                                  for house in street['houses']}:
+            self.puffs[app_id] = dict(start=self.clock(), progress=0.0, particles=[
+                (random.random(), random.random(), (random.random() - 0.5) * 70, -30 - random.random() * 60)
+                for _ in range(9)])
+            self.motion()
         self.refresh()
 
         def finish(result):
@@ -1024,7 +1223,7 @@ class Town:
                 def expire():
                     self.error_timer = None
                     self.error = ''
-                    self.changed()
+                    self.changed('error')
 
                 self.error_timer = self.schedule(5000, expire)
                 self.changed()
@@ -1086,13 +1285,48 @@ def idle_colour(colour, look):
     return saturate(brightness(colour, 0.62), 0.82)
 
 
+ICON_SIZE = 48   # a finder icon is kept at twice its 24 px, for scaled screens
+
+
+def icon_surface(cairo, width, height, rgba):
+    """The decoded icon contained and centred in ICON_SIZE (object-fit: contain). Cairo premultiplies it: the colour
+    goes in as RGB24 and the alpha as an A8 mask."""
+    colour = bytearray(width * height * 4)
+    if sys.byteorder == 'little':
+        colour[0::4], colour[1::4], colour[2::4] = rgba[2::4], rgba[1::4], rgba[0::4]
+    else:
+        colour[1::4], colour[2::4], colour[3::4] = rgba[0::4], rgba[1::4], rgba[2::4]
+    stride = cairo.ImageSurface.format_stride_for_width(cairo.FORMAT_A8, width)
+    alpha = bytearray(stride * height)
+    for row in range(height):
+        alpha[row * stride:row * stride + width] = rgba[row * width * 4 + 3:(row + 1) * width * 4:4]
+    source = cairo.SurfacePattern(cairo.ImageSurface.create_for_data(colour, cairo.FORMAT_RGB24, width, height,
+                                                                     width * 4))
+    mask = cairo.SurfacePattern(cairo.ImageSurface.create_for_data(alpha, cairo.FORMAT_A8, width, height, stride))
+    icon = cairo.ImageSurface(cairo.FORMAT_ARGB32, ICON_SIZE, ICON_SIZE)
+    cr = cairo.Context(icon)
+    scale = min(ICON_SIZE / width, ICON_SIZE / height)
+    cr.translate((ICON_SIZE - width * scale) / 2, (ICON_SIZE - height * scale) / 2)
+    cr.scale(scale, scale)
+    # Smooth scaling that stops at the icon's own edges, as a browser's: padded, then clipped to the icon.
+    for pattern in (source, mask):
+        pattern.set_filter(cairo.FILTER_GOOD)
+        pattern.set_extend(cairo.EXTEND_PAD)
+    cr.rectangle(0, 0, width, height)
+    cr.clip()
+    cr.set_source(source)
+    cr.mask(mask)
+    icon.flush()
+    return icon
+
+
 class Painter:
     """Draws a scene. It keeps one surface per house logo (and per hotbar logo) and small shadow masks, never a
     full-screen picture."""
 
     def __init__(self, cairo, Pango, PangoCairo):
         self.cairo, self.Pango, self.PangoCairo = cairo, Pango, PangoCairo
-        self.logos, self.slot_logos, self.shadows = {}, {}, {}
+        self.logos, self.slot_logos, self.shadows, self.icons = {}, {}, {}, {}
         self.options = cairo.FontOptions()
         self.options.set_antialias(cairo.ANTIALIAS_GRAY)
         self.options.set_hint_style(cairo.HINT_STYLE_NONE)
@@ -1524,6 +1758,8 @@ class Painter:
         if house['framed']:
             self.frame(cr, house['frame'], day)
         self.house_sign(cr, house, day, look)
+        for x, y, alpha in house['puff']:
+            self.fill(cr, (x, y, 5, 5), '#c58bff', alpha)
         if house['dim']:
             cr.pop_group_to_source()
             cr.paint_with_alpha(look['hidden'])
@@ -1662,7 +1898,7 @@ class Painter:
                 continue
             rect = end['rect']
             self.fill(cr, rect, (10 / 255, 10 / 255, 12 / 255, 0xf0 / 255), radius=6)
-            self.ring(cr, rect, 6, 1, street['colour'], 0.45, outside=False)
+            self.ring(cr, rect, 6, 1, street['colour'], 1 if end['hover'] else 0.45, outside=False)
             label = self.layout(cr, end['label'], MONO, 14)
             width, height = self.extent(label)
             self.show(cr, label, rect[0] + (rect[2] - width) / 2, rect[1] + (rect[3] - height) / 2, street['colour'])
@@ -1690,7 +1926,7 @@ class Painter:
             self.show(cr, query, left, middle - query_height / 2, INK)
             left += query_width
         left += 2
-        if finder['typing']:
+        if finder['caret']:
             self.fill(cr, (left, middle - 10, 9, 20), INK)
         left += 9
         colour = GOLD_HI if finder['message'] else GOLD if finder['typing'] else '#d6d3ca' if day else INK_3
@@ -1718,6 +1954,15 @@ class Painter:
             if lit:
                 self.fill(cr, row['rect'], '#2a2519', radius=6)
             self.fill(cr, (rx + 8, ry + 6, 24, 24), LINE, radius=3)
+            icon = self.icons.get(row['id']) if row['has_icon'] else None
+            if icon is not None:
+                cr.save()
+                cr.translate(rx + 8, ry + 6)
+                cr.scale(24 / ICON_SIZE, 24 / ICON_SIZE)
+                cr.set_source_surface(icon, 0, 0)
+                cr.get_source().set_filter(self.cairo.FILTER_GOOD)
+                cr.paint()
+                cr.restore()
             kind = self.layout(cr, row['kind'], TEXT, 12)
             kind_width, kind_height = self.extent(kind)
             self.show(cr, kind, rx + rw - 8 - kind_width, ry + (rh - kind_height) / 2, INK_3)
@@ -1730,12 +1975,36 @@ class Painter:
 # The window program: GTK 4 draws the painter's picture on a layer surface (or a fullscreen window).
 
 Gui = namedtuple('Gui', 'Gdk Gio GLib Gtk Pango PangoCairo cairo layer')
+# GDK's key names for the keys 53c's keydown handler took by name; text comes through the input method.
+KEY_NAMES = {'Escape': 'Escape', 'BackSpace': 'Backspace', 'Return': 'Enter', 'KP_Enter': 'Enter',
+             'ISO_Enter': 'Enter', **{f'{pad}{arrow}': f'Arrow{arrow}' for pad in ('', 'KP_')
+                                      for arrow in ('Left', 'Right', 'Up', 'Down')}}
+ICONS_KEPT = 20
+
+
+class Allocator:
+    """glibc's allocator, set for a program that draws a full-screen picture now and then and rests in between."""
+
+    def __init__(self):
+        import ctypes
+
+        try:
+            self.libc = ctypes.CDLL('libc.so.6')
+            # GSK's Cairo renderer replays the drawing into a full-window temporary picture (about 8 MiB) every
+            # frame. glibc serves the first with mmap and, when it is freed, raises its mmap threshold to that size,
+            # so from the second frame on the temporary lands in the heap, which keeps the freed space for good. A
+            # fixed threshold (the default 128 KiB) turns that adjustment off: large temporaries come and go.
+            self.libc.mallopt(-3, 128 * 1024)   # M_MMAP_THRESHOLD
+        except (OSError, AttributeError):
+            self.libc = None   # not glibc: nothing to adjust
 
 
 def load_gui():
     # Draw with Cairo only, so the home opens no GPU device. An explicit outside choice still wins.
     os.environ.setdefault('GDK_DISABLE', 'gl,vulkan')
     os.environ.setdefault('GSK_RENDERER', 'cairo')
+    # The home opens no remote files, so GIO's local file system will do: gvfs's module and its D-Bus client stay out.
+    os.environ.setdefault('GIO_USE_VFS', 'local')
     import gi
 
     for name, version in (('Gtk', '4.0'), ('Gdk', '4.0'), ('Pango', '1.0'), ('PangoCairo', '1.0')):
@@ -1760,7 +2029,10 @@ class LaptopHome:
         self.peer, self.icons, self.window, self.area = None, {}, None, None
         self.initial_lookup, self.shown = False, False
         self.town = Town(look or LOOK, cached, schedule=self.after, cancel=self.cancel_timer, opener=self.open_app,
-                         changed=lambda: self.redraw('state'))
+                         changed=lambda reason='state': self.redraw(reason), motion=self.start_motion,
+                         clock=lambda: gui.GLib.get_monotonic_time() / 1e6)
+        self.ticking, self.held, self.repeat, self.cursor, self.hits = False, set(), False, None, None
+        self.icon_jobs, self.icon_lock = {}, threading.Lock()
         self.painter = Painter(gui.cairo, gui.Pango, gui.PangoCairo)
 
     def publish(self, peer, changed, icons):
@@ -1802,7 +2074,116 @@ class LaptopHome:
             self.area.queue_draw()
 
     def draw(self, _area, cr, width, height):
-        self.painter.paint(cr, self.town.scene((width, height)))
+        scene = self.town.scene((width, height))
+        self.painter.paint(cr, scene)
+        # Hover is tested against what was drawn; only the hit regions are kept.
+        self.hits = dict(fit=scene['fit'], hits=scene['hits'])
+        self.load_icons(scene)
+
+    # -- motion ---------------------------------------------------------------------------------------------
+    def start_motion(self):
+        """Frames only while something moves: the tick callback removes itself when every glide and puff is done."""
+        if self.area is None or not self.shown:
+            self.town.advance(math.inf)
+        elif not self.ticking:
+            self.ticking = True
+            self.area.add_tick_callback(self.tick)
+
+    def tick(self, _area, frame_clock):
+        self.ticking = self.town.advance(frame_clock.get_frame_time() / 1e6)
+        self.redraw('motion')
+        return self.ticking
+
+    # -- input ----------------------------------------------------------------------------------------------
+    def connect_input(self):
+        Gtk, Gdk = self.gui.Gtk, self.gui.Gdk
+        self.modifiers = (Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.ALT_MASK | Gdk.ModifierType.SUPER_MASK
+                          | Gdk.ModifierType.META_MASK)
+        # Which keys are down, seen before the input method: GTK repeats a held key as more presses.
+        held = Gtk.EventControllerKey(propagation_phase=Gtk.PropagationPhase.CAPTURE)
+        held.connect('key-pressed', self.key_down)
+        held.connect('key-released', self.key_up)
+        # Text comes through GTK's own input method, so dead keys and compose work; the other keys come by name.
+        # Not the multicontext: on labwc it picks the Wayland text-input method, which composes nothing while no
+        # input method program runs (a dead key and then a gave a bare a in the headless test).
+        self.im = Gtk.IMContextSimple()
+        self.im.set_client_widget(self.area)
+        self.im.connect('commit', self.commit)
+        keys = Gtk.EventControllerKey()
+        keys.set_im_context(self.im)
+        keys.connect('key-pressed', self.key_pressed)
+        for controller in (held, keys):
+            self.window.add_controller(controller)
+        click = Gtk.GestureClick()
+        click.connect('released', self.clicked)
+        pointer = Gtk.EventControllerMotion()
+        pointer.connect('motion', self.pointer_moved)
+        pointer.connect('leave', self.pointer_left)
+        for controller in (click, pointer):
+            self.area.add_controller(controller)
+
+    def key_down(self, _controller, keyval, _code, _state):
+        self.repeat = keyval in self.held
+        self.held.add(keyval)
+        return False
+
+    def key_up(self, _controller, keyval, _code, _state):
+        self.held.discard(keyval)
+
+    def key_pressed(self, _controller, keyval, _code, state):
+        """A key the input method did not take, as 53c's keydown handler: none with Ctrl, Alt or Super."""
+        if state & self.modifiers:
+            return False
+        key = KEY_NAMES.get(self.gui.Gdk.keyval_name(keyval))
+        return key is not None and self.town.key(key, repeat=self.repeat)
+
+    def commit(self, _im, text):
+        for character in text:
+            self.town.key(character, repeat=self.repeat)
+
+    def clicked(self, _gesture, _presses, x, y):
+        self.town.click(x, y)
+
+    def pointer_moved(self, _controller, x, y):
+        hit = hit_test(self.hits or self.town.scene(), x, y)
+        self.town.set_hover(hover_key(hit))
+        cursor = 'pointer' if hit else None
+        if cursor != self.cursor:
+            self.cursor = cursor
+            self.area.set_cursor_from_name(cursor)
+
+    def pointer_left(self, _controller):
+        self.town.set_hover(None)
+
+    # -- finder icons -----------------------------------------------------------------------------------------
+    def load_icons(self, scene):
+        """Decode the icons of the finder's rows that have none yet, one child at a time, off the GTK thread."""
+        for row in scene['finder']['rows']:
+            path = self.icons.get(row['id']) if row['has_icon'] else None
+            if path and self.icon_jobs.get(row['id']) != path:
+                self.icon_jobs[row['id']] = path
+                threading.Thread(target=self.decode_icon, args=(row['id'], path), daemon=True).start()
+
+    def decode_icon(self, app_id, path):
+        with self.icon_lock:
+            try:
+                surface = icon_surface(self.gui.cairo, *decode_png(read_icon(path)))
+            except (OSError, ValueError, subprocess.SubprocessError):
+                surface = None   # on any failure the row keeps its plain square
+        self.gui.GLib.idle_add(self.icon_ready, app_id, path, surface)
+
+    def icon_ready(self, app_id, path, surface):
+        if self.icon_jobs.get(app_id) == path:
+            icons = self.painter.icons
+            icons.pop(app_id, None)
+            if surface is not None:
+                icons[app_id] = surface
+                while len(icons) > ICONS_KEPT:
+                    oldest = next(iter(icons))
+                    del icons[oldest]
+                    self.icon_jobs.pop(oldest, None)
+            self.redraw('icon')
+        return False
 
     def create_area(self):
         self.area = self.gui.Gtk.DrawingArea()
@@ -1855,6 +2236,7 @@ class LaptopHome:
         place_window(self.window, monitor, self.gui.layer)
         self.create_area()
         self.window.set_child(self.area)
+        self.connect_input()
         self.helper.start()
         self.window.connect('notify::is-active', self.focus_changed)
         self.start_power()
@@ -1870,7 +2252,11 @@ class LaptopHome:
     def focus_changed(self, window, _property):
         active = window.is_active()
         self.helper.focus_changed(active)
-        if not active:
+        self.held.clear()
+        if active:
+            self.im.focus_in()
+        else:
+            self.im.focus_out()
             self.town.blur()
 
     def run(self, select_monitor=laptop_monitor):
@@ -1896,6 +2282,7 @@ def run(token, *, select_monitor=laptop_monitor, sample_power=None, look=None):
     socket_path = os.environ.pop('ARESOS_SHELL_SOCKET', '') or os.path.join(runtime, 'aresos/shell.sock')
     instance = os.environ.pop('ARESOS_DESKTOP_INSTANCE', '')
     os.environ.pop('ARESOS_LAUNCH_NONCE', None)
+    Allocator()
     try:
         gui = load_gui()
     except (ImportError, ValueError):

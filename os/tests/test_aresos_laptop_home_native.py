@@ -223,7 +223,9 @@ class FinderTest(unittest.TestCase):
         self.assertTrue(houses_of(town.scene())['test-tool-1']['opening'])
         opened[-1][1]({'state': 'starting'})
         self.assertEqual(town.scene()['query'], '')
-        timers.pop(0)[1]()
+        opening = next(timer for timer in timers if timer[0] == 600)   # the caret's 550 ms blinks wait too
+        timers.remove(opening)
+        opening[1]()
         self.assertFalse(houses_of(town.scene())['test-tool-1']['opening'])
         town.key('1')
         self.assertEqual(opened[-1][0], 'test-web-1')
@@ -300,6 +302,105 @@ def gold_door(t):
 
 
 @unittest.skipUnless(headless_available(), 'headless labwc, bwrap, wlr-randr, Mesa pins, GTK 4, Pango and Cairo')
+class MotionTest(unittest.TestCase):
+    """The glide, the puff and the caret against a hand-driven clock and timers, as the frame clock would drive them."""
+
+    def motion_town(self, look='day'):
+        self.now, self.frames, self.timers = 100.0, [], []
+        town, _ = make_town(look, (9, 7, 9, 20), opener=lambda _app_id, _callback: None, timers=self.timers)
+        town.motion, town.clock = (lambda: self.frames.append(self.now)), (lambda: self.now)
+        return town
+
+    def test_glide_moves_the_street_and_keeps_its_rules_at_rest(self):
+        for look in ('day', 'night'):
+            with self.subTest(look=look):
+                town = self.motion_town(look)
+                before = street_of(town.scene(), 'system_tools')
+                town.set_query('tool19')
+                self.assertEqual(self.frames, [100.0], 'a glide asks for frames once')
+                target = street_of(town.scene(), 'system_tools')['offset']
+                self.assertNotEqual(target, 0)
+                self.assertEqual(street_of(town.scene(), 'system_tools')['shift'], 0, 'drawn at home until a frame')
+                self.assertTrue(town.advance(100.15))
+                scene = town.scene()
+                street, house = street_of(scene, 'system_tools'), houses_of(scene)['test-tool-19']
+                shift = target * program.ease_out(0.5)
+                self.assertAlmostEqual(street['shift'], shift)
+                self.assertTrue(0 < abs(shift) < abs(target))
+                # 53c's intermediate frame: the house, its sign, its plots or road move together with the street.
+                old = next(h for h in before['houses'] if h['id'] == 'test-tool-19')
+                self.assertAlmostEqual(house['left'] - old['left'], shift)
+                self.assertAlmostEqual(house['box'][0] - old['box'][0], shift)
+                self.assertAlmostEqual(house['sign']['centre'] - old['sign']['centre'], shift)
+                self.assertAlmostEqual(street['sign']['centre'] - before['sign']['centre'], shift)
+                if look == 'day':
+                    self.assertAlmostEqual(street['plots'][0]['left'] - before['plots'][0]['left'], shift)
+                    self.assertEqual(street['road'], before['road'], 'the day road stands still')
+                else:
+                    self.assertAlmostEqual(street['road']['rect'][0] - before['road']['rect'][0], shift)
+                # Where it comes to rest decides the ends and the frame, as 53c's layout did.
+                self.assertEqual(street['offset'], target)
+                self.assertEqual(street['target'], target)
+                self.assertFalse(town.advance(100.301))
+                self.assertEqual(street_of(town.scene(), 'system_tools')['shift'], target)
+                # Clearing the line glides it home from where it is drawn.
+                self.now = 100.301
+                town.set_query('')
+                self.assertTrue(town.advance(100.4))
+                self.assertTrue(0 < abs(street_of(town.scene(), 'system_tools')['shift']) < abs(target))
+                self.assertFalse(town.advance(100.61))
+                self.assertEqual(street_of(town.scene(), 'system_tools')['shift'], 0)
+
+    def test_puff_rises_and_fades_then_stops(self):
+        town = self.motion_town()
+        town.open('test-web-3')
+        house = houses_of(town.scene())['test-web-3']
+        self.assertEqual(len(house['puff']), 9)
+        self.assertTrue(all(alpha == 1 for _, _, alpha in house['puff']))
+        start = [(x, y) for x, y, _ in house['puff']]
+        self.assertTrue(town.advance(100.301))
+        moved = houses_of(town.scene())['test-web-3']['puff']
+        self.assertTrue(all(y1 < y0 for (_, y0), (_, y1, _) in zip(start, moved)), 'the puff rises')
+        self.assertTrue(all(0 < alpha < 1 for _, _, alpha in moved))
+        self.assertFalse(town.advance(100.601))
+        self.assertEqual(houses_of(town.scene())['test-web-3']['puff'], [])
+        town.open('test-other-1') if 'test-other-1' in {a['id'] for a in town.programs} else None
+        self.assertEqual(town.puffs, {}, 'a program without a house has no puff')
+
+    def test_caret_blinks_five_times_then_stays(self):
+        town = self.motion_town()
+        town.set_query('t')
+        blinks = []
+        for _ in range(12):
+            pending = [timer for timer in self.timers if timer[0] == 550]
+            if not pending:
+                break
+            self.timers.remove(pending[-1])
+            pending[-1][1]()
+            blinks.append(town.scene()['finder']['caret'])
+        self.assertEqual(blinks, [False, True] * 5)
+        self.assertTrue(town.scene()['finder']['caret'])
+        town.set_query('')
+        self.assertFalse(town.scene()['finder']['caret'], 'no caret on an empty line')
+
+    def test_hover_keys_and_the_end_sign_border(self):
+        town = self.motion_town()
+        scene = town.scene()
+        house = houses_of(scene)['test-web-1']
+        self.assertEqual(program.hover_key(program.hit_test(scene, *centre(house['box']))), 'house:test-web-1')
+        slot = scene['slots'][0]
+        self.assertEqual(program.hover_key(program.hit_test(scene, *centre(slot['rect']))), 'slot:0')
+        tools = street_of(scene, 'system_tools')
+        side, end = next((side, end) for side, end in tools['ends'].items() if end['cut'])
+        key = program.hover_key(program.hit_test(scene, *centre(end['rect'])))
+        self.assertEqual(key, f'end:system_tools:{side}')
+        self.assertEqual(program.hover_key(program.hit_test(scene, *centre(tools['sign']['rect']))),
+                         'sign:system_tools')
+        town.set_hover(key)
+        self.assertTrue(street_of(town.scene(), 'system_tools')['ends'][side]['hover'])
+        self.assertIsNone(program.hover_key(None))
+
+
 class WindowTest(unittest.TestCase):
     def setUp(self):
         workspace = scratch()
@@ -457,9 +558,30 @@ class WindowTest(unittest.TestCase):
         scene = self.view.until(lambda scene: not houses_of(scene))
         self.assertEqual([len(scene['slots']), [slot for slot in scene['slots'] if slot['id']]], [9, []])
 
+    def check_typing(self):
+        """53c's typing picture: tool19 typed on the real keyboard, the long street glided to frame it."""
+        self.device.type('tool19')
+        scene = self.view.until(lambda scene: scene['query'] == 'tool19' and scene['framed'] == 'test-tool-19'
+                                and all(street['shift'] == street['offset'] for street in scene['streets']))
+        tools = street_of(scene, 'system_tools')
+        self.assertNotEqual(tools['offset'], 0)
+        self.assertTrue(in_view(houses_of(scene)['test-tool-19']))
+        counters = self.view.request('counters')
+        self.assertGreater(counters['reasons'].get('motion', 0), 2, 'the glide drew frames')
+        photo = self.picture('typing', caret=True)
+        house = houses_of(scene)['test-tool-19']
+        x, y, colour = self.cell_sample(house)
+        expected = tuple(round(c * 255) for c in colour)
+        self.assertTrue(near(pixel(photo, x, y), expected, 2), ('the framed house, lit where the glide left it',
+                                                                pixel(photo, x, y), expected, house['left']))
+        # Escape clears the line, and the street glides home.
+        self.device.press('Escape')
+        scene = self.view.until(lambda scene: not scene['query'] and street_of(scene, 'system_tools')['shift'] == 0)
+        self.assertEqual(street_of(scene, 'system_tools')['offset'], 0)
+
     def play(self, look):
         self.look = look
-        with self.helper, self.gui(look) as self.view:
+        with self.helper, self.gui(look) as self.view, self.view.virtual_input() as self.device:
             scene = self.view.until(lambda scene: scene['online'] and len(houses_of(scene)) == 24)
             parent = self.view.parent()
             first = wait_for(lambda: self.view.request('counters')['first'])
@@ -474,8 +596,16 @@ class WindowTest(unittest.TestCase):
             if look == 'day':
                 self.check_terraces(photo)
             self.check_houses()
-            self.view.type('/tool')
-            self.view.key('Enter')
+            # Real input through labwc: a click on the sky gives the layer surface the keyboard (and opens nothing),
+            # a dead key composes through the input method on the German layout, Escape clears it.
+            self.device.click(960, 60)
+            self.device.press('dead_circumflex', 'a')
+            self.view.until(lambda scene: scene['query'] == 'â')
+            self.device.press('Escape')
+            self.view.until(lambda scene: scene['query'] == '')
+            self.device.type('tool')
+            self.view.until(lambda scene: scene['query'] == 'tool')
+            self.device.press('Return')
             wait_for(lambda: self.helper.opens == ['test-tool-1'])
             self.view.until(lambda scene: not scene['query'])
             self.helper.set_running(['test-tool-1'])
@@ -492,6 +622,7 @@ class WindowTest(unittest.TestCase):
             scene = self.replace_town((9, 7, 9, 20))
             self.picture('forty-five')
             self.check_cut_ends(scene)
+            self.check_typing()
             self.replace_town((9, 7, 9, 20), holes=('test-web-1',))
             self.check_rest()
             self.check_reconnect()
@@ -641,3 +772,20 @@ class SurfaceTest(unittest.TestCase):
             self.assertEqual(first, dict(houses=43, lit=[], online=False, hint='Opening is back in a moment'))
             self.assertEqual(gui.request('bridge-open', id='test-web-1'), program.UNAVAILABLE)
             self.assertEqual(self.helper.opens, [])
+
+
+@unittest.skipUnless(os.environ.get('LAPTOP_HOME_MEMORY_GUARD'), 'opt-in: three fresh measured runs, about 90 s')
+class MemoryGuardTest(unittest.TestCase):
+    """53f's limit in set-up S: a median of at most 60 MiB PSS at rest after a redraw (laptop_home_memory.py)."""
+
+    LIMIT_KIB = 61440
+
+    def test_median_of_three_after_a_redraw(self):
+        import statistics
+        from laptop_home_memory import measure
+
+        runs = [measure() for _ in range(3)]
+        self.assertTrue(all(run['redrawn'] and run['renderer'] == 'GskCairoRenderer' for run in runs))
+        median = statistics.median(run['Pss'] for run in runs)
+        self.assertLessEqual(median, self.LIMIT_KIB, dict(runs=[run['Pss'] for run in runs],
+                                                          largest=runs[0]['mappings']))
