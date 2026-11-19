@@ -3,6 +3,10 @@
 What needs a display runs in a headless labwc of its own (WLR_BACKENDS=headless, its own XDG_RUNTIME_DIR, the
 image's rc.xml), never on the session the tests run in; those tests are skipped where labwc, grim or GTK 4 are
 missing (the hosted runner). The rest needs nothing but Python.
+
+The black screen (package 25, `--black`) runs in the same kind of private compositor, with two headless outputs. The
+helper's own window reader (aresos-shell's ForeignToplevels) is connected to that compositor in this process, by an
+absolute socket path, so the test sees the black windows as the helper will: one on every output, and never an app.
 """
 import importlib.machinery
 import math
@@ -20,11 +24,13 @@ import unittest
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 COVER = ROOT / 'os/config/usr/libexec/aresos-cover'
 RC_XML = ROOT / 'os/config/usr/share/aresos/labwc/rc.xml'
+SHELL = ROOT / 'os/config/usr/libexec/aresos-shell'
 
 
-def load():
-    loader = importlib.machinery.SourceFileLoader('aresos_cover', str(COVER))
+def load(name='aresos_cover', path=COVER):
+    loader = importlib.machinery.SourceFileLoader(name, str(path))
     module = types.ModuleType(loader.name)
+    sys.modules[loader.name] = module  # the helper's dataclasses look their module up
     loader.exec_module(module)
     return module
 
@@ -42,6 +48,7 @@ def gtk4():
 
 HAS_GTK = sys.platform.startswith('linux') and gtk4()
 HEADLESS = HAS_GTK and all(shutil.which(name, path='/usr/bin') for name in ('labwc', 'grim'))
+FOOT = shutil.which('foot', path='/usr/bin')
 
 
 def colour(hex_colour):
@@ -98,6 +105,23 @@ class ProgramTest(unittest.TestCase):
         self.assertIn("window.connect('close-request', lambda _window: True)", text)
         self.assertNotIn('window.fullscreen()', text)
 
+    def test_black_is_a_face_of_its_own_with_its_own_window_rule(self):
+        import xml.etree.ElementTree as ET
+        self.assertFalse(cover.parse([]).black)
+        self.assertTrue(cover.parse(['--black']).black)
+        self.assertEqual(cover.parse(['--black', '--limit', '90']).limit, 90.0)
+        self.assertEqual(cover.BLACK_APP_ID, 'aresos.black')
+        root = ET.parse(RC_XML).getroot()
+        rules = [rule for rule in root.iter('windowRule') if rule.get('identifier') == 'aresos.black']
+        self.assertEqual(len(rules), 1)
+        self.assertEqual(rules[0].get('serverDecoration'), 'no')
+        # On top, and no ToggleFullscreen: each black window asks for its own output itself (brief 3.4).
+        self.assertEqual([action.get('name') for action in rules[0]], ['ToggleAlwaysOnTop'])
+        self.assertIn('window.fullscreen_on_monitor(monitor)', COVER.read_text())
+        # The startup cover's rule stays byte for byte as the image checks grep it.
+        self.assertIn('<windowRule identifier="aresos.cover" serverDecoration="no"><action name="ToggleFullscreen" />'
+                      '<action name="ToggleAlwaysOnTop" /></windowRule>\n', RC_XML.read_text())
+
 
 @unittest.skipUnless(HAS_GTK, 'GTK 4 through gi')
 class NoDisplayTest(unittest.TestCase):
@@ -111,9 +135,9 @@ class NoDisplayTest(unittest.TestCase):
         self.assertIn('no display', result.stderr)
 
 
-@unittest.skipUnless(HEADLESS, 'a headless labwc, grim and GTK 4 (AresOS; not the hosted runner)')
-class HeadlessLabwcTest(unittest.TestCase):
-    """The real cover under the image's rc.xml in a headless labwc of its own."""
+class Headless(unittest.TestCase):
+    """A headless labwc of its own under the image's rc.xml, with OUTPUTS screens."""
+    OUTPUTS = 1
 
     def setUp(self):
         folder = tempfile.TemporaryDirectory()
@@ -128,7 +152,8 @@ class HeadlessLabwcTest(unittest.TestCase):
         self.env = {'HOME': str(self.root), 'PATH': '/usr/bin:/bin', 'XDG_RUNTIME_DIR': str(runtime)}
         self.labwc = subprocess.Popen(['/usr/bin/labwc', '-C', str(config)],
                                       env=dict(self.env, WLR_BACKENDS='headless', WLR_RENDERER='pixman',
-                                               WLR_LIBINPUT_NO_DEVICES='1'),
+                                               WLR_LIBINPUT_NO_DEVICES='1',
+                                               WLR_HEADLESS_OUTPUTS=str(self.OUTPUTS)),
                                       stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                                       stderr=subprocess.DEVNULL, start_new_session=True)
         self.addCleanup(self.end, self.labwc)
@@ -158,6 +183,11 @@ class HeadlessLabwcTest(unittest.TestCase):
         subprocess.run(['/usr/bin/grim', '-t', 'ppm', str(path)], env=self.env, check=True, timeout=30,
                        stdin=subprocess.DEVNULL, capture_output=True)
         return Picture(path)
+
+
+@unittest.skipUnless(HEADLESS, 'a headless labwc, grim and GTK 4 (AresOS; not the hosted runner)')
+class HeadlessLabwcTest(Headless):
+    """The real cover under the image's rc.xml in a headless labwc of its own."""
 
     def covered(self, name):
         """The screen once the cover is up: both corners carry its gradient (fullscreen, nothing above)."""
@@ -221,6 +251,88 @@ class HeadlessLabwcTest(unittest.TestCase):
     def test_it_ends_by_itself_after_its_limit(self):
         process = self.start('--limit', '1.5')
         self.covered('limited')
+        self.assertEqual(process.wait(15), 0)
+
+
+@unittest.skipUnless(HEADLESS and FOOT, 'a headless labwc, grim, foot and GTK 4 (AresOS; not the hosted runner)')
+class BlackTest(Headless):
+    """`--black` (package 25, brief 3.4) on two screens, read through the helper's own window reader."""
+    OUTPUTS = 2
+
+    def setUp(self):
+        super().setUp()
+        self.shell = load('aresos_shell_for_cover', SHELL)
+        self.addCleanup(sys.modules.pop, 'aresos_shell_for_cover', None)
+        self.windows = self.shell.Windows()
+        # In this process, and only ever on the private compositor: its socket by absolute path.
+        self.client = self.shell.ForeignToplevels.connect(
+            self.windows, {'WAYLAND_DISPLAY': str(self.root / 'run' / 'wayland-0')})
+        self.addCleanup(self.client.sock.close)
+
+    def seen(self, condition, what, timeout=20):
+        deadline = time.monotonic() + timeout
+        while True:
+            self.client.readable()
+            if condition():
+                return
+            if time.monotonic() > deadline:
+                self.fail(f'{what}: the compositor shows '
+                          f'{[(t.app_id, t.fullscreen, sorted(t.outputs)) for t in self.windows.toplevels.values()]}')
+            time.sleep(0.05)
+
+    def blacks(self):
+        return [t for t in self.windows.toplevels.values() if t.ready and t.app_id == cover.BLACK_APP_ID]
+
+    def apps(self):
+        return sorted(t.app_id for t in self.windows.app_windows())
+
+    def foot(self):
+        process = subprocess.Popen([FOOT, '-o', 'colors.background=ff0000', 'sleep', '60'], env=self.env,
+                                   stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                   start_new_session=True)
+        self.addCleanup(self.end, process)
+        return process
+
+    def black(self, name, timeout=20):
+        """Whether every pixel of every screen is black, once the picture has had time to settle."""
+        deadline = time.monotonic() + timeout
+        while True:
+            picture = self.screenshot(name)
+            if picture.data.count(b'\0') == len(picture.data):
+                return picture
+            if time.monotonic() > deadline:
+                return None
+            time.sleep(0.2)
+
+    def test_plain_black_on_every_screen_never_an_app_and_sigterm_ends_it(self):
+        self.foot()
+        self.seen(lambda: self.apps() == ['foot'], 'an app window before the black screen')
+        before = self.screenshot('before')
+        self.assertNotEqual(before.data.count(b'\0'), len(before.data))  # there is something to hide
+        process = self.start('--black')
+        # One window on every screen, each fullscreen on a screen of its own.
+        self.seen(lambda: len(self.blacks()) == 2 and all(t.fullscreen and len(t.outputs) == 1 for t in self.blacks())
+                  and len(frozenset().union(*(t.outputs for t in self.blacks()))) == 2, 'a black window per screen')
+        picture = self.black('black')
+        self.assertIsNotNone(picture, 'the screens are not black')
+        self.assertGreater(picture.width, before.width // 2)  # the picture holds both screens
+        # The helper never counts it as an app window: counting it would take the black screen down again.
+        self.assertEqual(self.apps(), ['foot'])
+        # A window that opens later stays below it, and is counted.
+        self.foot()
+        self.seen(lambda: self.apps() == ['foot', 'foot'], 'the second app window')
+        time.sleep(1)
+        self.assertIsNotNone(self.black('black-with-foot', timeout=0), 'a later window shows above the black screen')
+        started = time.monotonic()
+        process.send_signal(signal.SIGTERM)
+        self.assertEqual(process.wait(5), 0)
+        self.assertLess(time.monotonic() - started, 2.0)
+        self.seen(lambda: not self.blacks(), 'the black windows are gone')
+        self.assertIsNone(self.black('after', timeout=1), 'the screens are still black')
+
+    def test_it_ends_by_itself_after_its_limit(self):
+        process = self.start('--black', '--limit', '1.5')
+        self.seen(lambda: len(self.blacks()) == 2, 'a black window per screen')
         self.assertEqual(process.wait(15), 0)
 
 

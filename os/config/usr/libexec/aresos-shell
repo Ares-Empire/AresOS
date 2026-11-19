@@ -59,6 +59,13 @@ every authenticated desktop event, and never reads from it:
   {"event": "desktop_connected"}
   {"event": "world_ready", "world": <save folder name>}
   {"event": "heartbeat", "ready": <bool>, "world": <save folder name or null>}
+and, whether or not a desktop is connected (package 25, the black screen and
+`logout`), how many app windows are open, once at start and at each change:
+  {"event": "windows", "count": <number, or null when it cannot tell>,
+   "names": [<up to 8 of their names>]}
+An app window is every window but the desktop's, the covers' and the
+supervisor's message window, minimized ones included. The count is null while
+window tracking is off, and once more when the compositor is lost.
 
 After the supervisor restarts a crashed desktop it sets
 ARESOS_SHELL_KEEP_FOREGROUND=1: when the new desktop window takes focus while
@@ -134,6 +141,16 @@ DESKTOP_APP_IDS = frozenset({'aresos-desktop'})
 # over the game's own loading screens until world_ready. It never counts as covering the world and is never minimized:
 # labwc activates the game's window under it, and minimizing it then would show those loading screens after all.
 STARTUP_COVER_APP_ID = 'aresos.cover'
+# Package 25's black screen (aresos-cover --black) while a shutdown, logout or restart saves the home: treated as the
+# start-up cover is, never an app, never covering, never minimized.
+BLACK_APP_ID = 'aresos.black'
+COVER_APP_IDS = frozenset({STARTUP_COVER_APP_ID, BLACK_APP_ID})
+# The supervisor's own message window (aresos-desktop's VIEW_COMMAND): no app window either.
+MESSAGE_WINDOW_APP_ID = 'aresos.desktop'
+# The `windows` report names at most this many windows, each this short: the line stays far below PIPE_BUF however
+# JSON escapes the names.
+WINDOW_NAMES = 8
+WINDOW_NAME_CHARS = 40
 BASE_CAPABILITIES = frozenset({'list_apps', 'open_app', 'app_state', 'world_ready', 'heartbeat'})
 DETAIL_CAPABILITIES = frozenset({'app_details', 'apps_changed', 'list_paging'})
 VIEW_CAPABILITIES = frozenset({'views', 'home_state', 'apps_running'})
@@ -167,7 +184,7 @@ LATER_CAPABILITIES = DETAIL_CAPABILITIES | {'shell_covered'}
 # nor the helper's own service plumbing.
 PRIVATE_ENVIRONMENT = ('ARESOS_LAUNCH_NONCE', 'ARESOS_VIEW_TOKEN', 'ARESOS_DESKTOP_INSTANCE', 'ARESOS_SHELL_STATUS_FD',
                        'ARESOS_SHELL_KEEP_FOREGROUND', 'NOTIFY_SOCKET', 'LISTEN_FDS', 'LISTEN_PID', 'LISTEN_FDNAMES',
-                       'WATCHDOG_PID', 'WATCHDOG_USEC')
+                       'WATCHDOG_PID', 'WATCHDOG_USEC', 'ARESOS_DESKTOP_LIFECYCLE')
 
 ENVELOPE = re.compile(r'aresos-shell/(\d{1,3})\.(\d{1,3})\Z')
 REQUEST_ID = re.compile(r'[A-Za-z0-9._:-]{1,128}\Z')
@@ -197,7 +214,8 @@ class StatusPipe:
     """One-way readiness lines to the desktop supervisor (package 23).
 
     Each line is far below PIPE_BUF, so it arrives whole. A full pipe drops the line (the next heartbeat repeats
-    the state); a closed pipe switches reporting off. Neither may ever stop the helper.
+    the state); a closed pipe switches reporting off. Neither may ever stop the helper. A call answers False only
+    for a dropped line, so a report that no heartbeat repeats (`windows`) can be written again.
     """
 
     def __init__(self, fd):
@@ -210,9 +228,10 @@ class StatusPipe:
         try:
             os.write(self.fd, (json.dumps(fields, sort_keys=True) + '\n').encode('utf-8'))
         except BlockingIOError:
-            pass
+            return False
         except OSError:
             self.fd = None
+        return True
 
 
 def no_status(**fields):
@@ -2638,7 +2657,7 @@ class Windows:
         An output list the compositor has not sent yet counts as the same screen, as with a single screen: for the
         pause that errs toward pausing. With known_screen only windows on a screen known to be the desktop's count:
         the ones uncovering minimizes, because hiding a window that may be on the other screen is not harmless
-        (package 40, review 1, finding 4). Package 23b's start-up cover never counts.
+        (package 40, review 1, finding 4). Package 23b's start-up cover and package 25's black screen never count.
         """
         desktop = self.of(self.SHELL)
         if not desktop:
@@ -2651,8 +2670,17 @@ class Windows:
             return not screens or not toplevel.outputs or bool(toplevel.outputs & screens)
 
         return [t for t in self.toplevels.values()
-                if t.ready and t.owner != self.SHELL and t.app_id != STARTUP_COVER_APP_ID and not t.minimized
+                if t.ready and t.owner != self.SHELL and t.app_id not in COVER_APP_IDS and not t.minimized
                 and (t.maximized or t.fullscreen) and on_its_screen(t)]
+
+    def app_windows(self):
+        """The app windows open right now (package 25, 3.4): every window but the desktop's, the covers' and the
+        supervisor's message window, minimized ones included, whoever owns them. A window counts once the
+        compositor has said what it is (its first done event): until then it could be a cover, and counting the
+        black screen itself would take it down again."""
+        return [t for t in self.toplevels.values()
+                if t.ready and t.owner != self.SHELL and t.app_id not in COVER_APP_IDS
+                and t.app_id != MESSAGE_WINDOW_APP_ID]
 
 
 class WaylandError(Exception):
@@ -2975,6 +3003,9 @@ class Helper:
         self.window_minor = int(any(client == DESKTOP and entry.get('discovered') and entry['state'] not in FINAL
                                     for (client, _), entry in self.journal.entries.items()))
         self.windows_pending = False
+        # What the supervisor was last told about the app windows (package 25): (count, names), or None before the
+        # first report.
+        self.windows_reported = None
         self.catalogue_windows = None
         if windows is not None:
             windows.set_registry(self.window_apps())
@@ -3012,6 +3043,8 @@ class Helper:
         if windows is not None:
             # The compositor has listed its windows by now: tie restarted launches to them, then take stock.
             self.windows_changed()
+        else:
+            self.report_windows()  # window tracking is off: the supervisor hears that the count is not known
 
     # -- restart reconciliation
 
@@ -3771,6 +3804,7 @@ class Helper:
         if self.windows is not None and (self.discovered_closing or self.view_closing or self.windows_pending):
             self.windows_changed()
         self.report_running()
+        self.report_windows()  # again here, for a line the full pipe dropped
 
     def windows_changed(self):
         """Apply the compositor's changes so far.
@@ -3781,6 +3815,29 @@ class Helper:
         """
         self.follow_windows()
         self.report_covered()
+        self.report_windows()
+
+    def report_windows(self):
+        """Package 25 (3.4): the supervisor hears how many app windows are open, at each change, coalesced as
+        apps_running is. It goes black for a shutdown, logout or restart only on a count of zero, and takes the
+        black screen away when a window appears, so the report goes out with the compositor's news, not at the
+        next heartbeat. Without window tracking the count is null: not known, which the supervisor reads as open."""
+        if self.windows is None:
+            report = (None, ())
+        else:
+            open_windows = self.windows.app_windows()
+            names = sorted(filter(None, (self.window_name(toplevel) for toplevel in open_windows)))
+            report = (len(open_windows), tuple(names[:WINDOW_NAMES]))
+        if report != self.windows_reported and self.status(event='windows', count=report[0],
+                                                           names=list(report[1])) is not False:
+            self.windows_reported = report
+
+    def window_name(self, toplevel):
+        """What an app window is called in the supervisor's messages: its program's name, else its app_id. The
+        app_id is the client's own text, so only printable characters are passed on."""
+        app = self.apps.get(toplevel.owner)
+        name = (app.name if app is not None else '') or toplevel.app_id
+        return ''.join(char for char in name if char.isprintable())[:WINDOW_NAME_CHARS].strip()
 
     def report_covered(self):
         """Package 40: the game pauses its world while a window hides it, and only then (owner, 2026-11-15)."""
@@ -4311,6 +4368,7 @@ def main(argv=None):
     except WaylandError as error:
         # Window tracking is part of the negotiated contract; restart rather than silently lose it.
         LOG.error('lost the compositor: %s', error)
+        status(event='windows', count=None, names=[])  # nobody tracks the app windows now (package 25)
         server.close()
         return 1
     return 0

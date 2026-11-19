@@ -101,14 +101,17 @@ class AuthenticationTest(ViewBase):
         self.assertEqual(helper.window_minor, 1)
         self.assertFalse(helper.windows_pending)
         self.assertEqual(helper.discovered_closing, {WEB.id: (self.clock() + shell.HANDOFF, True, 7)})
-        status.assert_called_once_with(event='desktop_connected')
+        # The helper's own `windows` report at its start (package 25) and the desktop's connection: the view
+        # added no line.
+        self.assertEqual(status.call_args_list, [mock.call(event='windows', count=0, names=[]),
+                                                 mock.call(event='desktop_connected')])
         for op in ('world_ready', 'heartbeat', 'publish_home', 'request_power', 'future_op'):
             reply = self.call(helper, view, op, instance=INSTANCE, nonce=NONCE, ready=True,
                               world={'desktop': True, 'id': 'world'})
             self.assertEqual(reply['error'], 'invalid_state')
         self.assertIsNone(helper.world)
         self.assertIsNone(helper.last_heartbeat)
-        status.assert_called_once()
+        self.assertEqual(status.call_count, 2)
         replacement = self.desktop(helper, minor=2)
         self.assertFalse(view.closing)
         self.assertTrue(desktop.closing)
