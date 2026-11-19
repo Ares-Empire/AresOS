@@ -113,7 +113,7 @@ class ChromePassTest(unittest.TestCase):
         self.assertEqual(len(set(lines)), len(lines))
         self.assertTrue(all(re.fullmatch('CONTROL_CHROME_[A-Z_]+', line) for line in lines))
         # The probe comes first and the last step carries a line, so no step is left outside a check.
-        self.assertEqual(acts[0][1], 'chrome-polkit-start')
+        self.assertEqual([step[1] for step in acts[:2]], ['chrome-session', 'chrome-polkit-start'])
         self.assertTrue(steps[-1][2])
         self.assertEqual([step for step in steps if step[0] == 'reboot'], [('reboot', None, None)])
         self.assertFalse(set(names) & {action for action, _ in runner.CHECKS})

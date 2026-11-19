@@ -271,21 +271,23 @@ def helpers():
 
 
 def wait_session():
-    """His session is up after boot: the app helper and his polkit agent run, and polkit has registered the agent
-    (a fresh boot reaches the CI channel well before greetd's auto-login has started them; run 44421776687)."""
+    """His session is up after boot: the app helper and his polkit agent run (a fresh boot reaches the CI channel
+    well before greetd's auto-login has started them; run 44421776687). polkitd 127 logs no line when an agent
+    registers (run 44427301872), so the probe's own journal line shows which session's agent was asked."""
     uid = owner_ids()[0]
     eventually(lambda: len(helpers()) == 1, 'the app helper runs in his session', 240, interval=1)
     agent = eventually(lambda: [row for row in processes() if row['uid'] == uid and AGENT in row['cmdline'][:2]],
                        'his polkit agent runs', 120, interval=1)
+    return dict(agent=[dict(pid=row['pid'], cgroup=row['cgroup'], label=label(row['pid'])) for row in agent])
 
-    def registered():
-        journal = control().run(['journalctl', '-b', '--no-pager', '-o', 'cat', '-g', 'Registered Authentication Agent'])
-        return [line for line in journal['stdout'].splitlines() if 'Registered Authentication Agent' in line]
-    try:
-        lines = eventually(registered, 'polkit registered his agent', 60, interval=1)
-    except Failure as error:
-        lines = [f'not seen: {error}']
-    return dict(agent=[dict(pid=row['pid'], cgroup=row['cgroup']) for row in agent], registered=lines)
+
+def session(request):
+    """Before the probe: his session is up; loginctl's view of it (the probe's screenshots start from here)."""
+    ready = wait_session()
+    time.sleep(5)  # the desktop's first windows settle before the runner's first screenshot
+    view = sessions()
+    summary = dict(ready, session=his_session(view))
+    return dict(returncode=0, summary=summary, files=control().files_out({'chrome/sessions-at-start.json': view}))
 
 
 def shell_launcher():
@@ -574,7 +576,7 @@ def polkit_finish(request):
     journal = control().run(['journalctl', '-b', '--no-pager', '-o', 'short-iso-precise',
                              f'--since=@{int(state["began"]) - 1}'], timeout=120)['stdout']
     lines = [line for line in journal.splitlines()
-             if 'polkit' in line or 'pkcheck' in line or 'chrome-loosen' in line or 'aresos-ci-polkit-probe' in line]
+             if ('polkit' in line or 'pkcheck' in line or 'chrome-loosen' in line) and 'Got message type=' not in line]
     operator = [line for line in lines if 'org.aresos.control.chrome-loosen' in line and 'Operator of' in line]
     summary = dict(exit=code, systemd_run_exit=probe.returncode, dismissed_by_escape=dismissed_by_escape,
                    session=state['session'], subject_pid=state['peer']['pid'], dismissed_detail='polkit.dismissed' in output,
@@ -582,10 +584,22 @@ def polkit_finish(request):
                        f'unix-session:{state["session"]} ' in line for line in operator))
     files = control().files_out({'chrome/polkit-probe-output.txt': output, 'chrome/polkit-journal.txt':
                                  '\n'.join(lines) + '\n', 'chrome/polkit-finish.json': summary})
-    # 3 is pkcheck's "the authentication dialog was dismissed": his agent showed it and Escape closed it.
-    if code != 3 or not dismissed_by_escape:
-        return dict(returncode=1, summary=summary, files=files, stderr=f'pkcheck did not end dismissed: {summary}')
+    # polkit asked his session's agent for this subject and only the operator's answer ended it: pkcheck waited (the
+    # start's 8 s), ended after Escape as not authorized, and polkitd's line names his session and the subject. KDE's
+    # agent reports a cancelled dialog as a failed authentication (1); 3 ("dismissed") would mean the same here.
+    subject_name = f'unix-process:{state["peer"]["pid"]}:{state["peer"]["start"]} '
+    named = [line for line in operator if f'unix-session:{state["session"]} ' in line and subject_name in line]
+    summary['service_would_say'] = confirm_refusal(code)
+    if code not in (1, 3) or not dismissed_by_escape or not named:
+        return dict(returncode=1, summary=summary, files=files,
+                    stderr=f'polkit did not ask his agent for the subject and end on his answer: {summary}')
     return dict(returncode=0, summary=summary, files=files)
+
+
+def confirm_refusal(code):
+    """What the service tells Chrome's details page for this exit code (confirm.py, REFUSALS)."""
+    confirm = load('aresos_confirm_for_ci', CODE / 'aresos_control/chrome/confirm.py')
+    return confirm.REFUSALS.get(code, 'polkit could not check the request')
 
 
 # --- C1 files -----------------------------------------------------------------------------------------------------
@@ -738,7 +752,8 @@ def install(request):
     """C2: item 2's case 1 on the shipped Chrome in his session, his own (fresh) profile, no debugging flag."""
     _, link, _ = fixtures()
     profile = pathlib.Path(pwd.getpwnam(OWNER).pw_dir) / '.config/google-chrome'
-    fresh = not profile.exists()
+    before = sorted(os.listdir(profile)) if profile.is_dir() else None
+    expect(not (profile / 'Default').exists(), f'his profile is fresh before its first start: {before}')
     chrome, record, info, times = start_his_chrome('his-profile')
     expect(info['name'] == 'AresOS Chrome' and info['version'] == record['version'], f'ours in its version: {info}')
     expect(info['installType'] == 'admin' and info['mayDisable'] is False, f'installed by policy, not disableable: {info}')
@@ -756,7 +771,7 @@ def install(request):
     after = installed(link, record['id'])
     expect(after and after['enabled'] is True, f'still installed and enabled after the uninstall attempt: {after}')
     view = sessions()
-    summary = dict(fresh_profile=fresh, seconds_after_start=times, management=info, uninstall=reply['error'],
+    summary = dict(profile_folder_before=before, seconds_after_start=times, management=info, uninstall=reply['error'],
                    host=host, launch=chrome.launch['command'], session=his_session(view),
                    chrome_main=[dict(pid=r['pid'], cgroup=r['cgroup']) for r in every if r['pid'] == chrome.process.pid])
     return dict(returncode=0, summary=summary, files=control().files_out({
@@ -783,14 +798,14 @@ def his_page(step):
     return opened
 
 
-def managed_page(request):
-    """C2's second screen: Chrome's own note that the browser is managed, opened in his running Chrome. An ordinary
-    page of his opens first, so his tabs hold a web page for C6."""
+def his_tab(request):
+    """An ordinary page of his in his Chrome, so his tabs hold a web page for C6; its window takes the focus for the
+    runner's Alt+F, which opens Chrome's menu with its "managed" note (C2's second screenshot). chrome://management
+    can't be opened this way: Chrome doesn't open chrome:// pages handed over from a command line (run 44427301872)."""
     chrome = STATE['chrome']
     page = his_page('his-tab')
-    management = hand_over('chrome://management', 'management')
     time.sleep(4)
-    summary = dict(his_page=page, management=management)
+    summary = dict(his_page=page)
     return dict(returncode=0, summary=summary, files=control().files_out({
         'chrome/chrome-his-profile.txt': chrome_log(chrome)}))
 
@@ -877,7 +892,7 @@ def selinux(request):
         'chrome/probe.jsonl': probe_log}))
 
 
-ACTIONS = {'chrome-polkit-start': polkit_start, 'chrome-polkit-finish': polkit_finish, 'chrome-files': files,
-           'chrome-hand-loaded': hand_loaded, 'chrome-install': install, 'chrome-managed-page': managed_page,
+ACTIONS = {'chrome-session': session, 'chrome-polkit-start': polkit_start, 'chrome-polkit-finish': polkit_finish, 'chrome-files': files,
+           'chrome-hand-loaded': hand_loaded, 'chrome-install': install, 'chrome-his-tab': his_tab,
            'chrome-sites-first-use': sites_first_use, 'chrome-sites-after-reboot': sites_after_reboot,
            'chrome-selinux': selinux}

@@ -63,17 +63,22 @@ WITH_SUMMARY = {'control-idle', 'control-ordinary', 'control-storage-tests'}
 # steps up to the one that carries its line: the line is printed only when every step of that run succeeded. The
 # polkit probe comes first; C6's first use right after C2; the pass's one reboot after it; the SELinux scan last.
 CHROME_STEPS = [
+    ('act', 'chrome-session', None),
     ('screen', 'polkit-before', None),
     ('act', 'chrome-polkit-start', None),
     ('screen', 'polkit-dialog', None),
     ('keys', ['esc'], None),
+    # Its runner check takes polkit-after.png and requires the dialog's area to change (screen_check below).
     ('act', 'chrome-polkit-finish', 'CONTROL_CHROME_POLKIT_PROBE_PASS'),
     ('act', 'chrome-files', 'CONTROL_CHROME_FILES_PASS'),
     ('act', 'chrome-hand-loaded', None),
     ('act', 'chrome-install', None),
     ('screen', 'c2-pinned', None),
-    ('act', 'chrome-managed-page', None),
-    ('screen', 'c2-managed', 'CONTROL_CHROME_INSTALL_PASS'),
+    ('act', 'chrome-his-tab', None),
+    # Alt+F opens Chrome's menu, whose last line says the browser is managed; Escape closes it again.
+    ('keys', ['alt', 'f'], None),
+    ('screen', 'c2-managed', None),
+    ('keys', ['esc'], 'CONTROL_CHROME_INSTALL_PASS'),
     ('act', 'chrome-sites-first-use', 'CONTROL_CHROME_SITES_FIRST_USE_PASS'),
     ('reboot', None, None),
     ('act', 'chrome-sites-after-reboot', 'CONTROL_CHROME_SITES_REBOOT_PASS'),
@@ -324,12 +329,17 @@ def main():
         raise SystemExit(f'Control checks failed: {", ".join(failed)}')
 
 
+# The KDE agent's dialog in run 44427301872 covered about 630 by 200 pixels of a 1280 by 800 screen.
+DIALOG_PIXELS = 20000
+
+
 def screen_difference(first, second):
-    """How many pixels differ between two screenshots of the same size (the polkit dialog's appearance)."""
+    """How many pixels differ between two screenshots of the same size, and the box around them."""
     from PIL import Image, ImageChops
     with Image.open(first) as a, Image.open(second) as b:
         difference = ImageChops.difference(a.convert('RGB'), b.convert('RGB')).convert('L')
-        return sum(count for value, count in enumerate(difference.histogram()) if value > 24)
+        changed = sum(count for value, count in enumerate(difference.histogram()) if value > 24)
+        return changed, difference.point(lambda value: 255 if value > 24 else 0).getbbox()
 
 
 def chrome_main():
@@ -344,9 +354,18 @@ def chrome_main():
     arguments = {'chrome-files': lambda: dict(expected=expected_record(), gh_lock_sha256=hashlib.sha256(
                      pathlib.Path('os/gh.lock.json').read_bytes()).hexdigest()),
                  'chrome-sites-after-reboot': lambda: dict(list=results['chrome-sites-first-use']['summary']['list'])}
-    verify = {'chrome-polkit-finish': lambda result: result['summary'].update(screen_pixels_changed=screen_difference(
-        chrome_evidence / 'polkit-before.png', chrome_evidence / 'polkit-dialog.png'))}
     guest = Guest(work, vm_evidence, 'chrome')
+
+    def dialog_shown(result):
+        """The dialog's screen against the screens before the probe and after Escape: the dialog came and went."""
+        guest.screenshot(chrome_evidence / 'polkit-after.png')
+        shown = dict(zip(('changed_pixels', 'box'), screen_difference(
+            chrome_evidence / 'polkit-dialog.png', chrome_evidence / 'polkit-after.png')))
+        result['summary'].update(dialog_against_after=shown, dialog_against_before=dict(zip(
+            ('changed_pixels', 'box'), screen_difference(chrome_evidence / 'polkit-before.png',
+                                                         chrome_evidence / 'polkit-dialog.png'))))
+        assert shown['changed_pixels'] >= DIALOG_PIXELS, f'the dialog did not show and go: {shown}'
+    verify = {'chrome-polkit-finish': dialog_shown}
     guest.create()
     started = time.monotonic()
     failed, timings, check_failed, summaries = [], {}, False, {}
