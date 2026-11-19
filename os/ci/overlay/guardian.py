@@ -42,6 +42,7 @@ STATE = f'{HOME}/.local/state/aresos'
 SOCKET = f'{RUNTIME}/aresos/desktop.sock'
 # The game writes this file when it is asked to save; the lid watcher waits for it.
 MARKER = f'{RUNTIME}/aresos-ci-guardian-save-asked'
+CAMERA_PORT = pathlib.Path('/dev/virtio-ports/org.aresos.guardian')
 SCENARIOS = ('save', 'hang')
 SAVE_MS = 5000  # boot 1: the save takes 5 s
 RECOVERY_TERMINAL = ['/usr/bin/foot', '--title=AresOS', '/usr/bin/bash', '--rcfile', '/usr/share/aresos/bashrc', '-i']
@@ -236,8 +237,10 @@ def arm(request):
         time.sleep(5)
     facts['retry_seconds'] = round(time.monotonic() - began, 1)
     pathlib.Path(MARKER).unlink(missing_ok=True)
+    assert CAMERA_PORT.is_char_device(), 'the VM has no guardian camera port'
+    os.chown(CAMERA_PORT, 1001, -1)  # only this disposable port, for the unprivileged fixture JVM
     detached('aresos-ci-game', 'aresos-ci-game', '/usr/libexec/aresos-desktop-java', java, str(GAME), scenario,
-             str(SAVE_MS), MARKER, user='ares',
+             str(SAVE_MS), MARKER, str(CAMERA_PORT), user='ares',
              properties=['--setenv=INST_ID=AresDesktop', f'--setenv=INST_DIR={INSTANCE}',
                          f'--working-directory={INSTANCE}/minecraft'])
     state = wait_status(lambda s: s.get('jvm_pid') and s.get('lifecycle') is True, 120,

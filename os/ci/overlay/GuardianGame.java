@@ -3,13 +3,15 @@
 // LifecycleClient does: only with the gate, a hello first, a new hello after a closed connection, and one
 // world_saved for a save_world.
 //
-//   GuardianGame.java save <ms> [marker]   answers each save after <ms>, and ends with 143 on SIGTERM, as the
+//   GuardianGame.java save <ms> [marker [port]]   answers each save after <ms>, and ends with 143 on SIGTERM, as the
 //                                          real game does (reviews/25-guardian, step 6)
-//   GuardianGame.java hang <ms> [marker]   never answers and ignores SIGTERM
+//   GuardianGame.java hang <ms> [marker [port]]   never answers and ignores SIGTERM
 //
 // It says what happens to it on its standard output, one line each, beginning GUARDIAN_GAME: never its nonce, its
-// instance or its environment. `marker` is a file it writes when a save is asked.
+// instance or its environment. The marker wakes the lid watcher. The optional virtio port tells the host when
+// to photograph the screen, even when the serial console is busy or its journal follower is gone.
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.StandardProtocolFamily;
 import java.net.UnixDomainSocketAddress;
 import java.nio.ByteBuffer;
@@ -17,6 +19,7 @@ import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -26,6 +29,15 @@ public class GuardianGame {
     private static void say(String text) {
         System.out.println("GUARDIAN_GAME " + text);
         System.out.flush();
+    }
+
+    private static void cue(OutputStream camera, String event) {
+        try {
+            camera.write((event + "\n").getBytes(StandardCharsets.US_ASCII));
+        } catch (IOException error) {
+            // The host fails a missing cue. The fixture still owes the supervisor its save response.
+            say("camera_failed");
+        }
     }
 
     public static void main(String[] args) throws Exception {
@@ -51,21 +63,26 @@ public class GuardianGame {
         byte[] hello = ("{\"op\":\"lifecycle_hello\",\"major\":1,\"minor\":0,\"instance\":\"" + instance
                 + "\",\"nonce\":\"" + nonce + "\",\"capabilities\":[\"save_world\"]}\n")
                 .getBytes(StandardCharsets.UTF_8);
-        while (true) {
-            try (SocketChannel channel = SocketChannel.open(StandardProtocolFamily.UNIX)) {
-                channel.connect(address);
-                channel.write(ByteBuffer.wrap(hello));
-                say("hello_sent");
-                serve(channel, mode, delay, marker);
-                say("connection_closed");
-            } catch (IOException error) {
-                // No supervisor yet, or it closed the connection (a hello before it knew this JVM): try again.
+        // Open once while the guest is up. No device lookup during teardown.
+        try (OutputStream camera = args.length > 3 ? Files.newOutputStream(Path.of(args[3]), StandardOpenOption.WRITE)
+                                                   : OutputStream.nullOutputStream()) {
+            cue(camera, "ready");
+            while (true) {
+                try (SocketChannel channel = SocketChannel.open(StandardProtocolFamily.UNIX)) {
+                    channel.connect(address);
+                    channel.write(ByteBuffer.wrap(hello));
+                    say("hello_sent");
+                    serve(channel, mode, delay, marker, camera);
+                    say("connection_closed");
+                } catch (IOException error) {
+                    // No supervisor yet, or it closed the connection (a hello before it knew this JVM): try again.
+                }
+                Thread.sleep(500);
             }
-            Thread.sleep(500);
         }
     }
 
-    private static void serve(SocketChannel channel, String mode, long delay, Path marker) throws Exception {
+    private static void serve(SocketChannel channel, String mode, long delay, Path marker, OutputStream camera) throws Exception {
         ByteBuffer buffer = ByteBuffer.allocate(65536);
         StringBuilder text = new StringBuilder();
         while (channel.read(buffer) >= 0) {
@@ -84,13 +101,18 @@ public class GuardianGame {
                 if (marker != null) {
                     Files.writeString(marker, id.group(1) + "\n");
                 }
+                cue(camera, "saving");
                 if (mode.equals("hang")) {
                     continue;
                 }
                 Thread.sleep(delay);
                 String answer = "{\"op\":\"world_saved\",\"id\":" + id.group(1) + ",\"ok\":true,\"ms\":" + delay
                         + ",\"world\":{\"id\":\"AresHub\",\"desktop\":true}}\n";
-                channel.write(ByteBuffer.wrap(answer.getBytes(StandardCharsets.UTF_8)));
+                cue(camera, "answering");
+                ByteBuffer reply = ByteBuffer.wrap(answer.getBytes(StandardCharsets.UTF_8));
+                while (reply.hasRemaining()) {
+                    channel.write(reply);
+                }
                 say("save_answered id=" + id.group(1));
             }
         }

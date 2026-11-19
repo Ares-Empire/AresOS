@@ -14,6 +14,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 import test_aresos_desktop as base
 
@@ -122,8 +123,11 @@ WATCHED = dict(black=True, black_lit_shares=[0.4, 0.0], save_asked_after=0.4, bl
 
 
 class HostCheckTest(base.Base):
-    def check(self, kind, journal, watched=WATCHED, seconds=None, before_lit=0.6):
+    def check(self, kind, journal, watched=WATCHED, seconds=None, before_lit=0.6, cues=None):
         journal.write(self.root)
+        if cues is None:
+            cues = {'save': b'ready\nsaving\nanswering\n', 'hang': b'ready\nsaving\n'}[kind]
+        (self.root / 'guardian-camera.log').write_bytes(cues)
         return host.check(self.root, kind, ARMED, watched, {'save': 12.0, 'hang': 82.0}[kind] if seconds is None
                           else seconds, before_lit)
 
@@ -138,6 +142,40 @@ class HostCheckTest(base.Base):
     def refused(self, kind, journal, **arguments):
         with self.assertRaises(AssertionError):
             self.check(kind, journal, **arguments)
+
+    def test_fixture_cues_the_frame_when_the_serial_follower_goes_silent(self):
+        (self.root / 'serial.log').write_text('ARESOS_POWER_KEY_ARMED\nStopped session-1.scope\n')
+        camera = self.root / 'guardian-camera.log'
+        camera.write_bytes(b'ready\n')
+        screenshot = mock.Mock()
+        with mock.patch.object(host.time, 'sleep', side_effect=lambda _: camera.write_bytes(b'ready\nsaving\n')), \
+                mock.patch.object(host, 'lit_share', return_value=0):
+            result = host.watch('save', camera, lambda: True, screenshot, self.fail, self.root)
+        screenshot.assert_called_once_with('guardian-black.png')
+        self.assertTrue(result['black'], result)
+        self.check('save', save_boot(), watched=result)
+
+    def test_missing_marker_preserves_the_guest_evidence_and_fails_the_boot(self):
+        camera = self.root / 'guardian-camera.log'
+        camera.write_bytes(b'ready\n')
+        result = host.watch('save', camera, lambda: False, self.fail, self.fail, self.root)
+        self.assertFalse(result['black'])
+        self.assertIn('saving marker', result['error'])
+        self.assertEqual(json.loads((self.root / 'guardian-watch.json').read_text()), result)
+        self.refused('save', save_boot(), watched=result, cues=camera.read_bytes())
+        self.assertEqual(json.loads((self.root / 'guardian.json').read_text())['record']['stop']['save'], 'saved')
+
+    def test_a_frame_captured_as_the_fixture_answers_is_too_late(self):
+        camera = self.root / 'guardian-camera.log'
+        camera.write_bytes(b'ready\nsaving\n')
+
+        def answer(_):
+            with camera.open('ab') as stream:
+                stream.write(b'answering\n')
+
+        result = host.watch('save', camera, lambda: True, answer, self.fail, self.root)
+        self.assertFalse(result['black'])
+        self.assertIn('save window ended', result['error'])
 
     def test_boot_1_the_power_key_with_a_save_that_takes_five_seconds(self):
         summary = self.check('save', save_boot())
@@ -189,10 +227,12 @@ class HostCheckTest(base.Base):
                                ('latched', '"latched": false', '"latched": true'),
                                ('Java still there', '"jvm_alive": false', '"jvm_alive": true'),
                                ('a save that took no time', 'GUARDIAN_GAME save_answered', 'GUARDIAN_GAME nothing'),
+                               ('another request answered', 'GUARDIAN_GAME save_answered id=1', 'GUARDIAN_GAME save_answered id=2'),
                                ('Java killed', '"EXIT_STATUS": "143"', '"EXIT_STATUS": "137"')):
             with self.subTest(name):
                 self.refused('save', self.changed(save_boot(), old, new))
         self.refused('save', save_boot(), watched=dict(WATCHED, black=False))
+        self.refused('save', save_boot(), cues=b'ready\nsaving\n')
         self.refused('save', save_boot(), before_lit=0.0)  # a frame that was black before proves nothing
         self.refused('save', save_boot(), seconds=121.0)
 
@@ -257,6 +297,7 @@ class GuestTest(base.Base):
         self.assertIn('COPY os/ci/overlay/guardian.py os/ci/overlay/GuardianGame.java /usr/libexec/aresos-ci/', container)
         self.assertIn("if action == 'guardian-arm':\n", (CI / 'overlay/checks.py').read_text())
         vm = (CI / 'vm.py').read_text()
+        self.assertIn(f'virtserialport,chardev=camera,name={guest.CAMERA_PORT.name}', vm)
         steps = ["request('guardian-arm', scenario=guardian)", "request('prepare-poweroff')",
                  "monitor.command('system_powerdown')", 'guardian_host.watch(', 'qemu.wait(timeout=',
                  'check_offline_poweroff(', 'guardian_host.check(']
@@ -266,6 +307,12 @@ class GuestTest(base.Base):
         self.assertEqual(host.scenario(2), 'hang')
         with self.assertRaises(KeyError):
             host.scenario('3')  # a third pass would need a scenario of its own
+
+    def test_the_check_build_requires_both_guardian_boots(self):
+        build = (CI / 'check-build.sh').read_text()
+        steps = [f'ARESOS_VM_PASS={number} python3 os/ci/vm.py' for number in host.SCENARIOS]
+        places = [build.index(step) for step in [*steps, 'echo CHECK_BUILD_VM_PASSED']]
+        self.assertEqual(places, sorted(places))
 
 
 class SystemUnitRuleTest(unittest.TestCase):

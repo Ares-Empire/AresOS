@@ -560,10 +560,11 @@ class GuardianLoopTest(base.Base):
         if not major or int(major.group(1)) < 16:
             self.skipTest(f'this Java is too old for Unix sockets: {version.splitlines()[:1]}')
         game = base.CONFIG.parent / 'ci/overlay/GuardianGame.java'
+        (self.control / 'camera').touch()
         (self.bin / 'java').write_text(textwrap.dedent(f'''\
             #!/bin/sh
             echo "$$ $PPID" >> "{self.control}/game.pids"
-            exec "{java}" "{game}" {mode} 400 "{self.control}/save-asked" >> "{self.control}/game.out" 2>&1
+            exec "{java}" "{game}" {mode} 400 "{self.control}/save-asked" "{self.control}/camera" >> "{self.control}/game.out" 2>&1
         '''))
         self.start(wait=False, **numbers)
         # A JVM that first compiles its one file takes a moment longer than the Python stand-in.
@@ -576,17 +577,22 @@ class GuardianLoopTest(base.Base):
         return json.loads((base.CONFIG.parent / 'minecraft/desktop.lock.json').read_text())['java']['path']
 
     def test_the_vm_fixture_game_saves_and_ends_with_143_as_the_real_game_does(self):
+        (self.control / 'system').write_text('stopping\n')
         pid = self.fixture('save')
         self.assertEqual(pathlib.Path(f'/proc/{pid}/comm').read_text().strip(), 'java')
+        camera = self.control / 'camera'
+        self.assertEqual(camera.read_text(), 'ready\n')
         began = time.monotonic()
         reply = self.save()
         self.assertEqual((reply['ok'], reply['result']), (True, 'saved'))
         self.assertGreaterEqual(time.monotonic() - began, 0.4)
         self.assertTrue((self.control / 'save-asked').exists())
-        code, out, err = self.command('stop')
+        code, out, err = self.command('stop', '--reason', 'shutdown')
         self.assertEqual((code, out, err), (0, 'Stopped: the home was saved first; Minecraft closed.\n', ''))
         stop = self.status()['stop']
+        self.assertEqual(stop['kind'], 'shutdown')
         self.assertEqual((stop['save'], stop['close'], stop['status']), ('saved', 'exited', 143))
+        self.assertEqual(camera.read_text().splitlines(), ['ready', 'saving', 'answering', 'saving', 'answering'])
         said = (self.control / 'game.out').read_text()
         for marker in ('GUARDIAN_GAME started mode=save', 'GUARDIAN_GAME save_asked id=1',
                        'GUARDIAN_GAME save_answered id=1', 'GUARDIAN_GAME save_asked id=2', 'GUARDIAN_GAME closing'):
@@ -610,6 +616,7 @@ class GuardianLoopTest(base.Base):
         self.assertIn('GUARDIAN_GAME save_asked id=1', said)
         self.assertIn('GUARDIAN_GAME sigterm_ignored', said)
         self.assertNotIn('save_answered', said)
+        self.assertEqual((self.control / 'camera').read_text().splitlines(), ['ready', 'saving'])
         self.assertFalse(os.path.exists(self.paths.guard_file))  # the supervisor answered and recorded: no fallback
 
     def test_a_stop_saves_closes_and_ends_at_the_quit_window(self):

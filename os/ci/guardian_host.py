@@ -8,6 +8,7 @@ offline_journal.py). Times are the journal's monotonic times; the probe's are th
 """
 import json
 import pathlib
+import re
 import time
 
 SCENARIOS = {'1': 'save', '2': 'hang'}
@@ -33,19 +34,25 @@ def lit_share(path):
     return extrema[255] / max(1, sum(extrema))
 
 
-def watch(kind, serial, start, running, screenshot, keys, evidence):
-    """After the power key: wait until the game says it was asked to save (the journal's follower writes that to the
-    serial console), then take the screen until it is black. In the `hang` boot, then press Ctrl+Alt+F3: a text
-    console still switches behind the black screen (linux-aresos's read checklist, 1)."""
-    def console():
-        with open(serial, 'rb') as stream:
-            stream.seek(start)
-            return stream.read().decode(errors='replace')
+def watch(kind, camera, running, screenshot, keys, evidence):
+    """Keep any live observation failure for check(), so the caller can always read the stopped guest's journal."""
+    try:
+        result = capture(kind, camera, running, screenshot, keys, evidence)
+    except Exception as error:
+        # This includes QMP disappearing mid-frame. A missing black frame fails the offline check.
+        result = dict(black=False, error=f'{type(error).__name__}: {error}')
+    (evidence / 'guardian-watch.json').write_text(json.dumps(result, indent=2) + '\n')
+    return result
 
+
+def capture(kind, camera, running, screenshot, keys, evidence):
+    """Photograph the screen between the fixture receiving save_world and sending its answer. The journal
+    follower and systemd share ttyS0, so only the fixture's dedicated virtio port cues the camera."""
     began = time.monotonic()
-    while 'GUARDIAN_GAME save_asked' not in console():
-        assert running(), 'the VM powered off before the game was asked to save'
-        assert time.monotonic() - began < 60, 'the game was not asked to save within 60 s of the power key'
+    saving = b'ready\nsaving\n'
+    while not camera.read_bytes().startswith(saving):
+        assert running(), 'the VM powered off before the host saw the fixture\'s saving marker'
+        assert time.monotonic() - began < 60, 'no saving marker within 60 s of the power key'
         time.sleep(0.1)
     asked = time.monotonic() - began
     # The save takes 5 s in the first boot and never ends in the second: the black screen must be up inside that.
@@ -53,11 +60,13 @@ def watch(kind, serial, start, running, screenshot, keys, evidence):
     shares = []
     while True:
         screenshot('guardian-black.png')
-        shares.append(round(lit_share(pathlib.Path(evidence) / 'guardian-black.png'), 5))
-        if shares[-1] <= BLACK_SHARE or time.monotonic() >= limit:
+        assert camera.read_bytes() == saving, 'the fixture save window ended before the frame was captured'
+        share = lit_share(evidence / 'guardian-black.png')
+        shares.append(round(share, 5))
+        if share <= BLACK_SHARE or time.monotonic() >= limit:
             break
         time.sleep(0.2)
-    result = dict(save_asked_after=round(asked, 2), black_lit_shares=shares, black=shares[-1] <= BLACK_SHARE,
+    result = dict(save_asked_after=round(asked, 2), black_lit_shares=shares, black=share <= BLACK_SHARE,
                   black_after=round(time.monotonic() - began, 2))
     if kind == 'hang' and running():
         keys(['ctrl', 'alt', 'f3'])
@@ -110,7 +119,8 @@ def check(evidence, kind, armed, watched, seconds, before_lit):
         return record.get('_PID') == '1' and record.get('UNIT') == unit
 
     def game(marker):
-        return lambda r: r.get('SYSLOG_IDENTIFIER') == 'aresos-ci-game' and text(r).startswith(f'GUARDIAN_GAME {marker}')
+        pattern = re.compile('GUARDIAN_GAME ' + marker)
+        return lambda r: r.get('SYSLOG_IDENTIFIER') == 'aresos-ci-game' and pattern.fullmatch(text(r))
 
     def began_to_stop(unit, after):
         return first(f'{unit} begins to stop', lambda r: systemd(r, unit) and text(r).startswith(
@@ -120,7 +130,10 @@ def check(evidence, kind, armed, watched, seconds, before_lit):
     guard_began = first('the guard\'s stop begins', lambda r: systemd(r, GUARD) and text(r).startswith('Stopping '), key)
     guard_ended = first('the guard\'s stop ends', lambda r: systemd(r, GUARD) and r.get('JOB_TYPE') == 'stop'
                         and 'JOB_RESULT' in r, guard_began)
-    asked = first('the game is asked to save', game('save_asked'), guard_began)
+    save_request = game(r'save_asked id=[0-9]+')
+    request = next((r for r in records if stamp(r) >= guard_began and save_request(r)), None)
+    assert request is not None, 'the offline journal has no fixture save request after the guard began to stop'
+    asked, request_id = stamp(request), text(request).rsplit('=', 1)[1]
     java_exit = first('the game\'s wrapper ends', lambda r: systemd(r, GAME_UNIT) and 'EXIT_STATUS' in r, guard_began)
     java_status = next(r['EXIT_STATUS'] for r in records if stamp(r) == java_exit and systemd(r, GAME_UNIT)
                        and 'EXIT_STATUS' in r)
@@ -171,6 +184,8 @@ def check(evidence, kind, armed, watched, seconds, before_lit):
         assert sample['stopping'], ('the supervisor answered that no stop runs', sample)
     # Black: the host's frame during the save, the black window, and the supervisor's own word; not before the key.
     assert watched['black'], ('the screen was not black during the save', watched)
+    expected_cues = b'ready\nsaving\n' + (b'answering\n' if kind == 'save' else b'')
+    assert (evidence / 'guardian-camera.log').read_bytes() == expected_cues, 'incomplete or unexpected fixture camera cues'
     assert before_lit > 0.01, ('the frame before the power key was black already, so black proves nothing', before_lit)
     assert any(sample['black'] and sample['black_window'] for sample in during), 'no black window during the stop'
     # The lid block, from the supervisor's own context: its word, and logind's list when the lid watcher ran.
@@ -180,7 +195,7 @@ def check(evidence, kind, armed, watched, seconds, before_lit):
         or (text(r).startswith('Reached target') and 'leep' in text(r)))], 'the machine began to sleep'
 
     if kind == 'save':
-        answered = first('the game answers the save', game('save_answered'), asked)
+        answered = first('the game answers the same save', game(f'save_answered id={request_id}'), asked)
         closing = first('the game closes on SIGTERM', game('closing'), answered)
         assert (answered - asked) / 1_000_000 >= SAVE_SECONDS - 0.5, ('the save did not take its 5 s', summary)
         assert answered < closing <= java_exit < guard_ended, summary
@@ -201,7 +216,7 @@ def check(evidence, kind, armed, watched, seconds, before_lit):
             # The brief (3.4): a lid block that fails is one log line and never fails the stop. Reported for step 8.
             print('REPORTED, NOT BLOCKING: logind did not list AresOS\'s lid block during the save', lids[0], flush=True)
     else:
-        assert first('an answer to the save', game('save_answered'), asked, required=False) is None, summary
+        assert first('an answer to the save', game(r'save_answered.*'), asked, required=False) is None, summary
         ignored = first('the game ignores SIGTERM', game('sigterm_ignored'), asked)
         assert 25 <= (ignored - asked) / 1_000_000 <= 35 and ignored < guard_ended, summary
         # The guard ends when the supervisor's one deadline does, inside its own limit; the game is still there.
