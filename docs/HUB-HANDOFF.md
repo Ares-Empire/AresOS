@@ -68,9 +68,9 @@ His guideline: "hub wise the main next step is make it a functional, usable home
 
 ## Board
 
-- **#335** (build the laptop home) is superseded: it is package 53, owned by `linux-laptop-home`.
-- **#361** (the Minecraft-look study) is now `linux-desktop`'s brief 312 (board #374). The hub's part is the review against the checklist above.
-- Drop both, and leave the study review as a hub item. The board refused writes until `name-me` applied.
+- **#335** (build the laptop home) was dropped: it is package 53, owned by `linux-laptop-home`.
+- **#361** (the Minecraft-look study) was dropped: it is `linux-desktop`'s brief 312 (board #374). The hub's part, the review against the checklist above, is **#410**.
+- `linux-laptop-home` has 56's jar hash (it confirmed at 13:55).
 
 ## Held
 
@@ -93,4 +93,5 @@ His guideline: "hub wise the main next step is make it a functional, usable home
 
 - **56:** the empty-slot, non-app and world clicks are tested through the game's mouse callbacks, not native compositor delivery (REVIEW-1 nit).
 - **40:** a stale press in `AppsScreen` (REVIEW-3 nit).
+- **09:** `ModeInventoriesClientGameTest.toggle` timed out once (line 196, from 140, 56 s in, on NVIDIA) in one of three local client suites for 53d's rebase. The other two runs passed all 28. It looks like a timing flake in its 50 G presses (`reviews/53d-world-search/REBASE.md`, Known limits). `linux-laptop-home` left it to the hub: if it shows again, judge it here.
 - **49b:** the rig's `bash -n` record checks only the first script (REVIEW-1 nit). The rig itself is repaired for reruns in `reviews/49b-arena-rerun/rig/`.
