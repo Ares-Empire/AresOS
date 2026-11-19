@@ -857,3 +857,27 @@ improvement for a later step, not a release blocker. `linux-tools` confirmed on 
 neither the record's `chrome_build` nor a builds.json entry: at runtime Control reads its build only from the
 image's `chrome/build-id.json` and qualification only from `chrome/qualification.json`, builds.json is read only by
 the CI qualification pipeline, and without the browser side R28's Chrome tools answer that Chrome is unavailable.
+
+## Step 5: the publish and release 28's record (2026-11-19, the lead)
+
+- **Order** (the lead, with the owner's yes): the owner's route in the VM (B) pulls the signed R28 image from the
+  registry, and `owner_vm.py` STOPs without `os/manifest/releases/28.json`, so the private publish comes before the
+  rehearsal; nothing is pinned for the laptop until the rehearsal passes (as R27 went). The release job publishes only
+  after its own build, image checks, first VM pass and the complete diff against R27. The owner's standing rule
+  (board #388) and his answer to board T415 (2026-11-19, "Yes, publish now") cover it.
+- **Gate:** `publish-28` and `publish_cap` 0 -> 1 (`9393cbcb`); review 12 (Codex gpt-6.2-sol high) SAFE, no findings
+  (`REVIEW-12.md`). `release_28` dispatched once on `7d5fbbf2`: run 44590446680.
+- **The record:** `python3 -B reviews/42-release-28/payload.py record <evidence/release.json> <run> "<line>"` writes only
+  `releases/28.json` (the job's record + `daily_wheel` + `owner_review`). Per the lead's decision 2 of 2026-11-17, the
+  rehearsal generates its stand-in announced commit from that record; the real payload commit follows the rehearsal.
+- **After the rehearsal passed (the pin step):** `payload.py announce` writes exactly `release28_walk.announced()`'s
+  eight files from the committed record and checks `bundle.py --refresh` agrees; then the walk's receipt must match
+  (`matches()`). Tried on a stand-in record (scratch, never committed): fingerprint and paths as announced. The same
+  stand-in run showed the tests the pin step must bring along (guides, INSTALL-STATUS and pins of R27/version 4):
+  `test_release28` (Release27SourceTest reads `release.json` as R27), `test_owner_walk` (update route, 2),
+  `test_ways_back_probe` (version 2's bundle, the local walk's order, RehearsalWalkTest setup),
+  `test_tools_local_wiring` (WalkTest setup), `test_owner_path` (4: the routine box, INSTALL-STATUS's 22c/22d row,
+  windows/tools/update order, historical results), `test_owner_equality` (4: bootstrap block, generated lines quoted,
+  typed commands), `test_ways_back_compatibility` (historical payload and unchanged history; version 2 reads; first
+  switch over single stock), `test_owner_sources` (older recovery code at cuts, version 2 stick). Each is a pin or a
+  guide quote to move, or a real compatibility question to answer before the pin; none was looked into yet.
