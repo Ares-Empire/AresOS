@@ -4,8 +4,13 @@ Step 1 covers section 1: the lifecycle channel's gate, the hello, what counts as
 one waiting, and each caller's own deadline. Step 2 covers section 2, the one stop routine, driven as the socket op
 `stop` drives it. Step 3 covers 3.2 and 3.3: the session ending under the supervisor (a signal, labwc), `restart`
 and `logout`. Step 4 covers 3.4: when the screens go black and when the black screen ends, and the lid block.
-Nothing here starts a process.
+Step 5 covers section 4, package 48's leftovers: world folders that are moved aside or named. Every folder a test
+makes, moves or reads is in its own temporary home; nothing here starts a process.
 """
+import ast
+import contextlib
+import fcntl
+import io
 import itertools
 import json
 import os
@@ -1746,7 +1751,664 @@ class BlackTest(SessionBase):
         self.assertEqual(sup.owner_hides_cover(), 'No startup cover is up.')
 
 
+class HomeBase(StopBase):
+    """Section 4, package 48's leftovers. A test starts with no home at all and makes the folders it needs, all of
+    them in its own temporary home."""
+    OLD = 'AresHub-2026-11-19_10-00-00-000'
+    NEW = 'AresHub-new-2026-11-19_10-00-00-250'
+
+    def setUp(self):
+        base.Base.setUp(self)  # not GuardianBase's: it makes the home
+        self.runner = StopRunner()
+        desktop.provision(self.paths, self.lock)
+        self.worlds = pathlib.Path(self.paths.worlds)
+
+    def world(self, name='AresHub', **changes):
+        return base.make_world(self.paths, dict(self.lock, world=name), **changes)
+
+    def listing(self):
+        """Every entry under the worlds folder with its inode and, for a file, its size. A move keeps every inode,
+        and nothing may ever vanish or change. Links are listed, never followed."""
+        found = []
+        for folder, folders, files in os.walk(self.worlds, followlinks=False):
+            for name in folders + files:
+                path = pathlib.Path(folder, name)
+                entry = path.lstat()
+                found.append((str(path.relative_to(self.worlds)), entry.st_ino,
+                              entry.st_size if path.is_file() and not path.is_symlink() else None))
+        return sorted(found)
+
+    @staticmethod
+    def renamed(listing, old, new):
+        """What a listing must be after the one folder `old` was renamed to `new`: nothing else differs."""
+        return sorted((new + name[len(old):] if name == old or name.startswith(old + '/') else name, *rest)
+                      for name, *rest in listing)
+
+    def logged(self, level):
+        desktop.LOG.disabled = False
+        self.addCleanup(setattr, desktop.LOG, 'disabled', True)
+        return self.assertLogs('aresos-desktop', level)
+
+    @contextlib.contextmanager
+    def lock_held(self):
+        """The desktop lock held as a game's wrapper holds it, by a descriptor of the test's own."""
+        os.makedirs(self.paths.run_dir, exist_ok=True)
+        fd = os.open(self.paths.jvm_lock, os.O_RDWR | os.O_CREAT, 0o600)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            yield
+        finally:
+            os.close(fd)
+
+    def setup_game(self):
+        """A first start with no home and no state yet: (the supervisor, the PID of its setup launch's game)."""
+        self.runner = StopRunner()
+        for path in (self.paths.runtime_file, self.paths.stop_block, self.paths.state_file):
+            pathlib.Path(path).unlink(missing_ok=True)
+        sup = self.supervisor()
+        sup.start()
+        self.assertEqual((sup.state, sup.reason), ('SETUP', 'setup'))
+        pid, _ = self.run_game(sup)
+        self.assertEqual(sup.launch.mode, 'setup')
+        return sup, pid
+
+    def missing(self):
+        """His home was there once and is gone: the supervisor at its `world_missing` window."""
+        desktop.Persisted(hub_seen=True).save(self.paths.state_file)
+        sup = self.next_session()
+        self.assertEqual((sup.state, sup.reason, sup.persisted.latched), ('RECOVERY', 'world_missing', True))
+        return sup
+
+
+class FirstHomeTest(HomeBase):
+    """4.1: the first home died while it was made."""
+    UNFINISHED = r'AresHub-unfinished-[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2}-[0-9]{2}-[0-9]{3}'
+
+    def died_while_made(self, heartbeat=True):
+        """The home's folder appears during a setup launch that started without one, and the game dies before the
+        home is finished: (the supervisor, the half-made folder)."""
+        sup, pid = self.setup_game()
+        self.assertIsNone(sup.persisted.first_home)
+        half = self.world(provisioned=None)  # the hub build never finished
+        if heartbeat:
+            self.heartbeat(sup, ready=False)
+        self.end_game(sup, pid, 1)
+        self.assertEqual((sup.state, sup.reason), ('SETUP', 'setup_crashed'))
+        return sup, half
+
+    def unfinished(self):
+        """A later session's start at the `setup_unfinished` window: (the supervisor, the half-made folder)."""
+        _, half = self.died_while_made()
+        sup = self.next_session()
+        self.assertEqual((sup.state, sup.reason, sup.persisted.latched), ('SETUP', 'setup_unfinished', False))
+        return sup, half
+
+    def test_a_first_home_that_died_while_it_was_made_is_moved_aside_by_retry_and_setup_starts_again(self):
+        sup, half = self.died_while_made()
+        found = half.lstat()
+        self.assertEqual(self.stored()['first_home'], {'launch': sup.launch.id, 'device': found.st_dev,
+                                                       'inode': found.st_ino, 'seen': self.wall[0]})
+        before, prisms, views = self.listing(), len(self.runner.prisms), len(self.runner.views)
+        self.assertEqual(sup.retry(), (True, 'State: SETUP'))  # a later start: it only says what it found
+        self.assertEqual((sup.state, sup.reason, sup.persisted.latched), ('SETUP', 'setup_unfinished', False))
+        self.assertEqual((len(self.runner.prisms), self.listing()), (prisms, before))  # nothing started or moved
+        self.assertEqual(len(self.runner.views), views + 1)
+        text = self.runner.views[-1]
+        self.assertEqual(text, sup.status()['message'])
+        for words in ('AresOS: your first home was not finished', 'this folder is only half made:',
+                      '  ~/.local/share/aresos/worlds/AresHub\n',
+                      '(the hub build has no completion record (aresos-home.provisioned))',
+                      'Type  retry  and press Enter: AresOS moves that folder aside, as\n'
+                      'AresHub-unfinished-<date> beside it (nothing is deleted), and makes your home again.'):
+            self.assertIn(words, text)
+        self.assertNotIn('damaged', text)
+        self.assertNotIn('backup', text)
+        self.assertLessEqual(max(len(line) for line in text.splitlines()), 104)  # the window's width
+        name = desktop.dated_names('AresHub-unfinished-', self.wall[0])[0]
+        self.assertRegex(name, rf'\A{self.UNFINISHED}\Z')
+        self.assertEqual(sup.retry(), (True, f'Moved the unfinished home to {name} (nothing was deleted). '
+                                             'State: SETUP'))
+        self.assertEqual(self.listing(), self.renamed(before, 'AresHub', name))  # every file, by its inode
+        self.assertFalse(os.path.lexists(self.worlds / 'AresHub'))
+        self.assertEqual((sup.state, sup.reason), ('SETUP', 'setup'))
+        self.assertEqual(len(self.runner.prisms), prisms + 1)  # setup starts again
+        self.assertNotIn('--world', self.runner.prisms[-1][0])
+        self.assertNotIn('first_home', self.stored())
+        self.assertIsNone(desktop.dated_home(name, 'AresHub'))  # never offered as a home, never a leftover
+        self.assertEqual(sup.status()['leftovers'], [])
+
+    def test_the_folder_is_looked_for_at_the_launchs_end_and_the_record_survives_a_reboot_and_r28(self):
+        sup, half = self.died_while_made(heartbeat=False)  # it appeared after the last heartbeat
+        self.assertEqual(self.stored()['first_home']['inode'], half.lstat().st_ino)
+        stored = self.stored()
+        self.assertEqual(stored['schema'], 1)
+        self.assertEqual(set(stored) - set(R28_KEYS), {'first_home'})  # the one new key, which R28 never reads
+        mine = desktop.Persisted.load(self.paths.state_file)
+        self.assertEqual(r28_load(stored), {key: getattr(mine, key) for key in R28_KEYS[1:]})
+        self.assertEqual(mine.first_home, stored['first_home'])
+        before = self.listing()
+        sup = self.next_session()
+        self.assertEqual((sup.state, sup.reason, sup.persisted.latched), ('SETUP', 'setup_unfinished', False))
+        self.assertEqual((self.runner.prisms, self.listing()), ([], before))
+        self.assertFalse(self.stored()['latched'])
+        # Prism started by hand gets no game either, and still nothing is latched.
+        ok, reply = sup.on_jvm_start(self.jvm_request())
+        self.assertEqual((ok, reply), (False, {'message': 'Your first home was not finished; the AresOS window '
+                                                          'says what to do.'}))
+        self.assertEqual((sup.state, sup.reason, sup.persisted.latched), ('SETUP', 'setup_unfinished', False))
+        # `restart` starts nothing and moves nothing: only the window's `retry` moves the folder.
+        self.stop(sup, 'restart')
+        sup.tick()
+        self.assertEqual((sup.state, sup.reason, self.runner.prisms, self.listing()),
+                         ('SETUP', 'setup_unfinished', [], before))
+
+    def test_a_replacement_supervisor_goes_on_looking(self):
+        first, pid = self.setup_game()
+        sup = self.supervisor()
+        sup.start()  # the game still runs: adopted, with the runtime file's word that it is a setup launch
+        self.assertEqual((sup.launch.adopted, sup.launch.mode, sup.launch.id), (True, 'setup', first.launch.id))
+        half = self.world(level=None)
+        self.heartbeat(sup, ready=False)
+        self.assertEqual(self.stored()['first_home']['inode'], half.lstat().st_ino)
+        self.end_game(sup, pid, 137)
+        self.assertEqual((sup.state, sup.reason), ('RECOVERY', 'killed'))  # a kill stays a kill
+        self.assertEqual(self.next_session().reason, 'killed')
+
+    def test_every_other_damaged_world_stays_exactly_as_today(self):
+        def damaged(sup, before):
+            self.assertEqual((sup.state, sup.reason, sup.persisted.latched), ('RECOVERY', 'world_damaged', True))
+            self.assertIn('Restore it from a backup', self.runner.views[-1])
+            sup.retry()  # moves nothing, starts nothing
+            self.assertEqual((sup.state, sup.reason, self.runner.prisms, self.listing()),
+                             ('RECOVERY', 'world_damaged', [], before))
+
+        with self.subTest('a half-made home the supervisor never saw appear'):
+            half = self.world(provisioned=None)
+            damaged(self.next_session(), self.listing())
+            half.rename(self.worlds / 'kept-1')
+        with self.subTest('a home that was seen ready once'):
+            sup, half = self.died_while_made()
+            sup.persisted.hub_seen = True
+            sup.save()
+            damaged(self.next_session(), self.listing())
+            half.rename(self.worlds / 'kept-2')
+        with self.subTest('another folder under the home\'s name'):
+            sup, half = self.died_while_made()
+            half.rename(self.worlds / 'kept-3')
+            self.world(marker=None)  # not the folder that was seen: another inode
+            damaged(self.next_session(), self.listing())
+            (self.worlds / 'AresHub').rename(self.worlds / 'kept-4')
+        with self.subTest('a link under the home\'s name'):
+            sup, half = self.died_while_made()
+            half.rename(self.worlds / 'kept-5')
+            os.symlink(self.worlds / 'kept-5', self.worlds / 'AresHub')
+            damaged(self.next_session(), self.listing())
+
+    def test_a_start_that_finds_the_first_home_sound_forgets_it_so_later_damage_is_damage(self):
+        sup, half = self.died_while_made()
+        (half / 'aresos-home.provisioned').write_text('complete\n')  # it was finished after all
+        sup = self.next_session()
+        self.assertEqual(sup.state, 'STARTING')
+        self.assertIn('--world', self.runner.prisms[-1][0])
+        self.assertNotIn('first_home', self.stored())
+        (half / 'data/aresos/desktop.dat').write_bytes(b'not a marker')  # damage, with hub_seen still false
+        before = self.listing()
+        sup = self.next_session()
+        self.assertEqual((sup.state, sup.reason, sup.persisted.latched), ('RECOVERY', 'world_damaged', True))
+        sup.retry()
+        self.assertEqual(self.listing(), before)
+
+    def test_a_first_home_that_was_finished_and_seen_ready_is_forgotten(self):
+        sup, pid = self.setup_game()
+        home = self.world()
+        self.heartbeat(sup, ready=False)
+        self.assertEqual(self.stored()['first_home']['inode'], home.lstat().st_ino)
+        self.ready(sup)
+        stored = self.stored()
+        self.assertEqual((stored['hub_seen'], 'first_home' in stored, sup.state), (True, False, 'IN_WORLD'))
+
+    def test_retry_moves_nothing_while_the_lock_is_held_the_rename_fails_or_the_folder_changed(self):
+        sup, half = self.unfinished()
+        before = self.listing()
+        with self.lock_held():  # a game this supervisor cannot see
+            ok, text = sup.retry()
+        self.assertEqual((ok, text), (False, 'The unfinished home was not moved: A Minecraft that AresOS cannot '
+                                             'see holds the desktop lock. Close it first. Nothing is changed. '
+                                             'Type retry to try again.'))
+        self.assertEqual((sup.state, sup.reason, self.runner.prisms, self.listing()),
+                         ('SETUP', 'setup_unfinished', [], before))
+        with mock.patch.object(desktop, 'rename_noreplace', side_effect=OSError(22, 'Invalid argument')):
+            ok, text = sup.retry()
+        self.assertEqual((ok, 'could not be moved ([Errno 22] Invalid argument)' in text), (False, True))
+        self.assertEqual((sup.state, sup.reason, self.runner.prisms, self.listing()),
+                         ('SETUP', 'setup_unfinished', [], before))
+        self.assertIn('first_home', self.stored())
+        # He put a sound home there himself: nothing is moved, and the start decides anew.
+        half.rename(self.worlds / 'kept-by-him')
+        self.world()
+        before = self.listing()
+        self.assertEqual(sup.retry(), (True, 'State: STARTING'))
+        self.assertEqual(self.listing(), before)
+        self.assertIn('--world', self.runner.prisms[-1][0])
+
+    def test_a_name_that_is_taken_gets_a_suffix_and_what_has_it_is_never_replaced(self):
+        sup, half = self.unfinished()
+        names = desktop.dated_names('AresHub-unfinished-', self.wall[0])
+        self.assertEqual(names[1:3], [names[0] + '-1', names[0] + '-2'])  # as HomeSwap.datedName counts
+        (self.worlds / names[0]).mkdir()  # an empty folder: os.rename would have replaced it
+        (self.worlds / names[1]).write_text('his')
+        before = self.listing()
+        self.assertEqual(sup.retry(), (True, f'Moved the unfinished home to {names[2]} (nothing was deleted). '
+                                             'State: SETUP'))
+        self.assertEqual(self.listing(), self.renamed(before, 'AresHub', names[2]))
+        self.assertEqual(((self.worlds / names[1]).read_text(), list((self.worlds / names[0]).iterdir())),
+                         ('his', []))
+
+
+class UseHomeTest(HomeBase):
+    """4.2: one way to move a home, and `aresos-desktop use-home <folder>`."""
+    MOVED = ' is your home AresHub now (the folder was renamed; nothing was deleted). Type retry.'
+
+    def test_use_home_makes_a_dated_home_the_home_and_retry_opens_it(self):
+        for name in (self.OLD, self.NEW, self.OLD + '-2'):
+            with self.subTest(name):
+                self.world(name)
+                sup = self.missing()
+                before = self.listing()
+                self.assertEqual(sup.use_home(name), (True, name + self.MOVED))
+                self.assertEqual(self.listing(), self.renamed(before, name, 'AresHub'))
+                self.assertEqual((sup.reason, self.runner.prisms), ('world_missing', []))  # nothing starts by itself
+                self.assertEqual(sup.retry(), (True, 'State: STARTING'))
+                self.assertIn('--world', self.runner.prisms[-1][0])
+                (self.worlds / 'AresHub').rename(self.worlds / f'kept-{name}')
+
+    def test_only_a_dated_home_that_passes_the_checks_and_only_while_no_home_exists(self):
+        self.world(self.OLD)
+        self.world('AresHub-unfinished-2026-11-19_10-00-00-000')
+        self.world('Other')
+        sup = self.missing()
+        before = self.listing()
+        for name in ('AresHub', 'Other', 'AresHub-unfinished-2026-11-19_10-00-00-000', '../' + self.OLD,
+                     self.OLD + '/', str(self.worlds / self.OLD), 'AresHub-2026-11-19', self.OLD + '-0',
+                     self.OLD + 'x', self.OLD.replace('2026', '२०२६'), '', '.', None, 7, [self.OLD]):
+            with self.subTest(name):
+                self.assertEqual(sup.use_home(name), (False, 'Not moved: use-home takes the name of a dated home in '
+                                 '~/.local/share/aresos/worlds: AresHub-<date> or AresHub-new-<date>.'))
+        self.assertEqual(sup.use_home(self.NEW), (False, f'Not moved: There is no folder {self.NEW} in '
+                                                         '~/.local/share/aresos/worlds.'))
+        damaged = 'AresHub-2026-11-20_10-00-00-000'
+        self.world(damaged, home=None)
+        self.assertEqual(sup.use_home(damaged), (False, f'Not moved: {damaged} does not pass AresOS\'s checks of a '
+                                                 'home (the saved Nether home (data/aresos/nether_home.dat) is '
+                                                 'missing).'))
+        link = 'AresHub-2026-11-21_10-00-00-000'
+        os.symlink(self.worlds / self.OLD, self.worlds / link)
+        self.assertEqual(sup.use_home(link), (False, f'Not moved: {link} is not a folder.'))
+        before = self.listing()
+        for what, make, remove in (('a home', self.world, lambda: (self.worlds / 'AresHub').rename(
+                                        self.worlds / 'kept')),
+                                   ('an empty folder', (self.worlds / 'AresHub').mkdir,
+                                    (self.worlds / 'AresHub').rmdir),
+                                   ('a file', (self.worlds / 'AresHub').touch, (self.worlds / 'AresHub').unlink),
+                                   ('a link to nothing', lambda: os.symlink('nowhere', self.worlds / 'AresHub'),
+                                    (self.worlds / 'AresHub').unlink)):
+            with self.subTest(what):
+                make()  # the test's own stand-in, taken away again below
+                there = self.listing()
+                self.assertEqual(sup.use_home(self.OLD), (False, 'Not moved: AresHub exists. use-home only fills '
+                                 'the place of a missing home and never replaces one.'))
+                self.assertEqual(self.listing(), there)
+                remove()
+        self.assertEqual(sup.use_home(self.OLD), (True, self.OLD + self.MOVED))
+
+    def test_no_home_is_moved_while_a_game_starts_runs_or_is_being_stopped(self):
+        starting = 'Not moved: Minecraft is starting right now. Try again once it runs or has closed.'
+        self.world(self.OLD)
+        before = self.listing()
+        sup = self.next_session()  # no home was ever seen: setup, and Prism is up
+        self.assertEqual((sup.state, len(self.runner.prisms)), ('SETUP', 1))
+        self.assertEqual(sup.use_home(self.OLD), (False, starting))
+        self.assertTrue(sup.on_jvm_start(self.jvm_request())[0])
+        self.assertTrue(sup.in_handoff())
+        self.assertEqual(sup.use_home(self.OLD), (False, starting))
+        sup, pid = self.setup_game()
+        self.assertEqual(sup.use_home(self.OLD), (False, 'Not moved: Minecraft is running. Stop it first '
+                                                         '(aresos-desktop stop), then try again.'))
+        self.runner.processes.pop(pid)  # gone, but its end is not accounted for yet
+        sup.on_jvm_gone()
+        self.assertEqual(sup.use_home(self.OLD)[0], False)
+        sup, pid = self.setup_game()
+        self.stop(sup)
+        self.assertIsNotNone(sup.stop)
+        self.assertEqual(sup.use_home(self.OLD), (False, 'Not moved: AresOS is stopping Minecraft right now. Try '
+                                                         'again when that is done.'))
+        self.assertEqual(self.listing(), before)
+        sup, pid = self.setup_game()
+        self.end_game(sup, pid, 0)  # the game is gone and accounted for
+        self.assertEqual(sup.use_home(self.OLD), (True, self.OLD + self.MOVED))
+
+    def test_no_home_is_moved_once_the_session_is_ending_or_while_the_lock_is_held_or_unknown(self):
+        self.world(self.OLD)
+        before = self.listing()
+        sup = self.missing()
+        with self.lock_held():
+            self.assertEqual(sup.use_home(self.OLD), (False, 'Not moved: A Minecraft that AresOS cannot see holds '
+                                                             'the desktop lock. Close it first.'))
+        with mock.patch.object(desktop, 'take_desktop_lock', side_effect=PermissionError(13, 'Permission denied')):
+            self.assertEqual(sup.use_home(self.OLD), (False, 'Not moved: AresOS cannot tell whether Minecraft is '
+                             'running (the desktop lock: [Errno 13] Permission denied).'))
+        self.stop(sup, 'shutdown')
+        sup.tick()
+        self.assertEqual((sup.stop, sup.blocked()), (None, True))
+        self.assertEqual(sup.use_home(self.OLD), (False, 'Not moved: AresOS is shutting down or logging out.'))
+        self.assertEqual(self.listing(), before)
+
+    def test_the_lock_is_held_from_the_checks_to_the_rename_and_free_again_afterwards(self):
+        self.world(self.OLD)
+        sup = self.missing()
+        seen = []
+
+        def proof(found):
+            seen.append(desktop.take_desktop_lock(self.paths))  # what a wrapper that starts right now would get
+            return None
+
+        self.assertEqual(sup.move_home(self.OLD, ['AresHub'], proof), ('AresHub', ''))
+        self.assertEqual(seen, [None])
+        for outcome in (sup.move_home('AresHub', [self.OLD], lambda found: 'no'),
+                        sup.move_home('none', [self.OLD], lambda found: None)):
+            self.assertIsNone(outcome[0])
+            fd = desktop.take_desktop_lock(self.paths)  # free again after a refusal too
+            self.assertIsNotNone(fd)
+            os.close(fd)
+
+    def test_a_name_that_is_taken_is_never_replaced_whatever_the_checks_said(self):
+        old = self.world(self.OLD)
+        sup = self.missing()
+        (self.worlds / 'AresHub').mkdir()  # it appeared after the checks: os.rename would replace an empty folder
+        before = self.listing()
+        self.assertEqual(sup.move_home(self.OLD, ['AresHub'], lambda found: None),
+                         (None, 'AresHub exists already.'))
+        self.assertEqual(self.listing(), before)
+        (self.worlds / 'AresHub').rmdir()
+
+        def swap(found):  # another folder took the name while it was checked
+            old.rename(self.worlds / 'aside')
+            self.world(self.OLD)
+            return None
+
+        self.assertEqual(sup.move_home(self.OLD, ['AresHub'], swap),
+                         (None, f'{self.OLD} changed while it was checked.'))
+        self.assertFalse(os.path.lexists(self.worlds / 'AresHub'))
+        for source, target in (('../' + self.OLD, 'AresHub'), (self.OLD, '../AresHub'), (self.OLD, 'a/b'),
+                               (self.OLD, '..'), ('', 'AresHub')):
+            self.assertEqual(sup.move_home(source, [target], lambda found: None),
+                             (None, 'A home is one folder inside the worlds folder.'))
+
+    def test_the_rename_itself_refuses_a_target_that_exists(self):
+        folder = os.open(self.worlds, os.O_RDONLY | os.O_DIRECTORY)
+        self.addCleanup(os.close, folder)
+        (self.worlds / 'a').mkdir()
+        (self.worlds / 'a/keep').write_text('a')
+        (self.worlds / 'b').mkdir()
+        (self.worlds / 'f').write_text('f')
+        for target in ('b', 'f', 'a'):
+            with self.assertRaises(FileExistsError):
+                desktop.rename_noreplace(folder, 'a', target)
+        with self.assertRaises(FileNotFoundError):
+            desktop.rename_noreplace(folder, 'none', 'c')
+        desktop.rename_noreplace(folder, 'a', 'c')
+        self.assertEqual(((self.worlds / 'c/keep').read_text(), list((self.worlds / 'b').iterdir()),
+                          (self.worlds / 'f').read_text(), (self.worlds / 'a').exists()), ('a', [], 'f', False))
+
+    def test_one_function_moves_a_world_folder_and_nothing_deletes_one(self):
+        source = (base.CONFIG / 'usr/libexec/aresos-desktop').read_text(encoding='utf-8')
+        callers = {}
+        for function in ast.walk(ast.parse(source)):
+            if isinstance(function, ast.FunctionDef):
+                for node in ast.walk(function):
+                    if isinstance(node, ast.Call):
+                        name = getattr(node.func, 'id', getattr(node.func, 'attr', None))
+                        callers.setdefault(name, set()).add(function.name)
+        self.assertEqual(callers['rename_noreplace'], {'move_home'})
+        self.assertEqual(callers['move_home'], {'move_unfinished', 'use_home'})
+        self.assertEqual(callers['renameat2'], {'rename_noreplace'})
+        self.assertEqual(desktop.RENAME_NOREPLACE, 1)
+        # Every other call that renames or removes anything, as before this package: the instance's staging copy,
+        # `reset-instance` (the instance, and its link to the worlds), and the supervisor's own small files.
+        self.assertEqual(re.findall(r'os\.rename\((.*?)\)', source), ['staging, target', 'root, aside'])
+        self.assertEqual(re.findall(r'os\.replace\((.*?)\)', source), ['temporary, path'])
+        self.assertEqual(re.findall(r'shutil\.\w+\((.*?)\)', source), ['staging'])
+        self.assertEqual(re.findall(r'os\.(?:unlink|remove)\((.*?)\)', source),
+                         ['temporary', 'self.paths.stop_block', 'path', 'self.paths.socket', 'saves'])
+        for call in ('os.rmdir(', 'os.removedirs(', 'os.renames(', '.rmtree(self', '.unlink()', '.rmdir()',
+                     'os.truncate(', 'os.system('):
+            self.assertNotIn(call, source)
+
+
+class MissingHomeTest(HomeBase):
+    """4.3: `world_missing` says where the home is."""
+
+    def test_the_names_and_the_date_pattern_equal_homeswaps(self):
+        swap = (ROOT / 'mod/src/main/java/dev/aresos/world/HomeSwap.java').read_text(encoding='utf-8')
+        nether = (ROOT / 'mod/src/main/java/dev/aresos/world/NetherHome.java').read_text(encoding='utf-8')
+        self.assertEqual(re.search(r'String SAVE_FOLDER = "([^"]+)";', nether).group(1), base.LOCK['world'])
+        self.assertEqual(re.search(r'String ARCHIVE_PREFIX = NetherHome\.SAVE_FOLDER \+ "([^"]+)";', swap).group(1),
+                         desktop.HOME_ARCHIVE)
+        self.assertEqual(re.search(r'String STAGING_PREFIX = NetherHome\.SAVE_FOLDER \+ "([^"]+)";', swap).group(1),
+                         desktop.HOME_STAGING)
+        pattern = re.search(r'DATE = DateTimeFormatter\.ofPattern\("([^"]+)"\);', swap).group(1)
+        self.assertEqual(re.sub('[A-Za-z]+', lambda run: f'[0-9]{{{len(run.group())}}}', pattern),
+                         desktop.HOME_DATE)
+        # Its -1, -2 suffix: counted from 1 behind the dated name, without leading zeros.
+        self.assertIn('for (int suffix = 1; Files.exists(target, LinkOption.NOFOLLOW_LINKS); suffix++) '
+                      'target = saves.resolve(name + "-" + suffix);', swap)
+        # The supervisor's own dated names are written the same way.
+        python = {'yyyy': '%Y', 'MM': '%m', 'dd': '%d', 'HH': '%H', 'mm': '%M', 'ss': '%S', 'SSS': '250'}
+        at = 1_800_000_000.25
+        stamp = desktop.time.strftime(re.sub('[A-Za-z]+', lambda run: python[run.group()], pattern),
+                                      desktop.time.localtime(at))
+        self.assertEqual(desktop.dated_names('AresHub-', at)[:3],
+                         [f'AresHub-{stamp}', f'AresHub-{stamp}-1', f'AresHub-{stamp}-2'])
+        for name, kind in ((f'AresHub-{stamp}', 'archive'), (f'AresHub-{stamp}-1', 'archive'),
+                           (f'AresHub-{stamp}-12', 'archive'), (f'AresHub-new-{stamp}', 'staging'),
+                           (f'AresHub-new-{stamp}-3', 'staging'), (f'AresHub-unfinished-{stamp}', None),
+                           (f'AresHub-{stamp}-0', None), (f'AresHub-{stamp}-01', None), (f'AresHub-{stamp}-', None),
+                           (f'AresHub-{stamp[:-4]}', None), (f'AresHub-new-new-{stamp}', None),
+                           (f'aresHub-{stamp}', None), (f'AresHub{stamp}', None), (f'AresHub-{stamp}\n', None),
+                           ('AresHub', None), ('AresHub-', None), ('AresHub-new-', None)):
+            with self.subTest(name):
+                found = desktop.dated_home(name, 'AresHub')
+                self.assertEqual(found and found[0], kind)
+
+    def test_world_missing_names_the_newest_dated_home_and_the_new_home_that_pass_the_checks(self):
+        newest, new = 'AresHub-2026-11-18_08-00-00-000-2', 'AresHub-new-2026-11-19_08-00-01-000'
+        self.world('AresHub-2026-11-17_08-00-00-000')
+        self.world('AresHub-2026-11-18_08-00-00-000')
+        self.world('AresHub-2026-11-18_08-00-00-000-1')
+        self.world(newest)  # the same moment, taken three times: the highest suffix is the newest
+        self.world('AresHub-2026-11-19_08-00-00-000', home=None)  # newer, but no home
+        os.symlink(self.worlds / newest, self.worlds / 'AresHub-2026-11-20_08-00-00-000')  # a link is no home
+        self.world('AresHub-new-2026-11-18_08-00-00-000')
+        self.world(new)
+        self.world('AresHub-new-2026-11-19_09-00-00-000', provisioned=None)  # never finished
+        self.world('AresHub-unfinished-2026-11-21_08-00-00-000')
+        self.world('AresHub-backup')
+        before = self.listing()
+        sup = self.missing()
+        text = self.runner.views[-1]
+        self.assertEqual(text, sup.status()['message'])
+        self.assertEqual(text, (
+            'AresOS: recovery\n\n'
+            'Your hub world is missing: ~/.local/share/aresos/worlds/AresHub\n'
+            'AresOS opened it before and never creates a replacement by itself.\n\n'
+            'In the same folder AresOS found (it moves nothing by itself):\n\n'
+            'The newest home under a dated name that passes its checks, most likely the home you had:\n'
+            f'  {newest}\n'
+            'To make it your home again (the folder is renamed, nothing else changes):\n'
+            f'  aresos-desktop use-home {newest}\n'
+            'then  retry\n\n'
+            'A new home that was still being made, and is complete:\n'
+            f'  {new}\n'
+            'To make that one your home instead:\n'
+            f'  aresos-desktop use-home {new}\n'
+            'then  retry\n\n'
+            'Or put the folder back (from a backup), then type  retry  and press enter to try again.\n'
+            'To start a new hub instead:  aresos-desktop forget-hub  then  retry\n'))
+        self.assertLessEqual(max(len(line) for line in text.splitlines()), 104)
+        self.assertLessEqual(len(text.splitlines()), 30)  # the window's 32 rows, with its prompt
+        self.assertEqual(sup.found_homes(), (newest, new))
+        sup.retry()
+        self.assertEqual((sup.reason, self.runner.prisms, self.listing()), ('world_missing', [], before))
+        # The window's line works as written, and the other home is then only a leftover.
+        self.assertTrue(sup.use_home(newest)[0])
+        self.assertEqual(sup.retry(), (True, 'State: STARTING'))
+
+    def test_world_missing_with_one_of_them_or_none(self):
+        sup = self.missing()
+        self.assertEqual(self.runner.views[-1], (
+            'AresOS: recovery\n\n'
+            'Your hub world is missing: ~/.local/share/aresos/worlds/AresHub\n'
+            'AresOS opened it before and never creates a replacement by itself.\n\n'
+            'Put the folder back (from a backup), then type  retry  and press enter to try again.\n'
+            'To start a new hub instead:  aresos-desktop forget-hub  then  retry\n'))  # as before this package
+        self.world(self.NEW)
+        self.world(self.OLD, level=None)
+        text = self.missing().message()
+        self.assertIn('In the same folder AresOS found (it moves nothing by itself):\n\n'
+                      'A new home that was still being made, and is complete:\n'
+                      f'  {self.NEW}\nTo make it your home:\n  aresos-desktop use-home {self.NEW}\nthen  retry\n\n'
+                      'Or put the folder back', text)
+        self.assertEqual(text.count('use-home'), 1)
+        self.assertNotIn(self.OLD, text)
+        # More dated folders than are ever read: the newest are read, and the folder is only listed.
+        for day in range(desktop.HOMES_CHECKED + 4):
+            self.world(f'AresHub-2026-12-{day + 1:02d}_08-00-00-000', marker=None)
+        with mock.patch.object(desktop, 'check_world', wraps=desktop.check_world) as checks:
+            self.assertEqual(self.missing().found_homes(), (None, self.NEW))
+        self.assertLessEqual(checks.call_count, 2 * (desktop.HOMES_CHECKED + 2))
+
+
+class DatedHomeReadyTest(HomeBase):
+    """4.4: a dated home reported ready."""
+
+    def test_a_dated_home_reported_ready_is_checked_becomes_the_active_world_and_sets_hub_seen(self):
+        self.world(self.OLD)
+        sup, pid = self.setup_game()  # no AresHub, and no home was ever seen
+        self.ready(sup, self.OLD)
+        self.assertEqual((sup.state, sup.launch.ready, sup.active_world()), ('IN_WORLD', True, self.OLD))
+        self.assertTrue(self.stored()['hub_seen'])
+        self.end_game(sup, pid, 0)
+        self.assertEqual((sup.state, sup.reason), ('RECOVERY', 'quit'))
+        prisms = len(self.runner.prisms)
+        sup = self.next_session()  # never a silent new setup beside his old home
+        self.assertEqual((sup.state, sup.reason, self.runner.prisms), ('RECOVERY', 'world_missing', []))
+        self.assertIn(f'  aresos-desktop use-home {self.OLD}\n', self.runner.views[-1])
+        self.assertEqual(prisms, 1)
+
+    def test_a_world_that_is_damaged_missing_or_outside_is_never_declared_ready(self):
+        self.world()
+        self.world('AresHub-damaged', marker=None)
+        outside = self.root / 'outside'
+        base.make_world(desktop.Paths(str(outside), self.paths.runtime, self.paths.share), self.lock)
+        real = pathlib.Path(outside, '.local/share/aresos/worlds/AresHub')
+        os.symlink(real, self.worlds / 'AresHub-link')
+        names = ('AresHub-damaged', 'AresHub-missing', 'AresHub-link', '../AresHub', str(real), '.', '..', '',
+                 'AresHub/../AresHub', 'a\0b')
+        sup, pid = self.game()
+        sup.persisted.hub_seen = False
+        with self.logged('ERROR') as logs:
+            for name in names:
+                with self.subTest(name):
+                    self.heartbeat(sup, world=name)
+                    self.heartbeat(sup, world=name)
+                    self.assertEqual((sup.state, sup.launch.ready, sup.launch.ever_ready, sup.healthy_since),
+                                     ('STARTING', False, False, None))
+                    self.assertEqual((sup.persisted.latched, sup.persisted.hub_seen, self.runner.views),
+                                     (False, False, []))
+        self.assertEqual(len(logs.output), len(names))  # each said once, not at every heartbeat
+        self.assertIn('the world AresHub-damaged reported ready, but it is damaged (the AresOS desktop marker '
+                      '(data/aresos/desktop.dat) is missing); it is not declared ready', logs.output[0])
+        # From a ready home straight to one that is not: no longer in a world, and the home stays what a save is
+        # about. Back in the home it is ready again.
+        self.ready(sup)
+        self.assertEqual((sup.state, sup.active_world()), ('IN_WORLD', 'AresHub'))
+        with self.logged('ERROR'):
+            self.heartbeat(sup, world='AresHub-damaged')
+        self.assertEqual((sup.state, sup.launch.ready, sup.active_world(), sup.persisted.latched),
+                         ('STARTING', False, 'AresHub', False))
+        self.heartbeat(sup)
+        self.assertEqual((sup.state, sup.launch.ready), ('IN_WORLD', True))
+
+    def test_the_home_is_checked_again_when_it_becomes_the_ready_world_after_another(self):
+        home = self.world()
+        self.world(self.OLD)
+        sup, pid = self.game()
+        self.ready(sup, self.OLD)
+        self.assertEqual((sup.state, sup.active_world()), ('IN_WORLD', self.OLD))
+        with mock.patch.object(desktop, 'check_world', wraps=desktop.check_world) as checks:
+            for _ in range(5):
+                self.heartbeat(sup, world=self.OLD)
+        self.assertEqual(checks.call_count, 0)  # checked when it became the ready world, not at every heartbeat
+        (home / 'data/aresos/nether_home.dat').write_bytes(b'cut off')
+        self.heartbeat(sup)  # straight from the dated home to the home, with no "not ready" in between
+        self.assertEqual((sup.state, sup.reason, sup.persisted.latched, sup.launch.ready),
+                         ('RECOVERY', 'world_damaged', True, False))
+
+
+class LeftoversTest(HomeBase):
+    """4.5: `AresHub-new-<date>` leftovers are counted and listed, never deleted."""
+
+    def test_leftovers_are_logged_once_at_start_listed_by_status_and_never_touched(self):
+        older, newer = 'AresHub-new-2026-11-18_08-00-00-000', 'AresHub-new-2026-11-19_08-00-00-000-1'
+        self.world()
+        half = self.world(older, provisioned=None)
+        self.world(newer)  # may be the home he just made
+        (half / 'region').mkdir()
+        (half / 'region/r.0.0.mca').write_bytes(b'x' * 300_000)
+        os.symlink(self.root / 'share', half / 'link')  # never followed
+        before = self.listing()
+        with self.logged('INFO') as logs:
+            sup = self.next_session()
+        lines = [line for line in logs.output if 'never became the home' in line]
+        self.assertEqual(len(lines), 1)
+        self.assertTrue(lines[0].endswith(f'2 new homes that never became the home are in the worlds folder '
+                                          f'(0.3 MB: {newer}, {older}); AresOS never deletes them'), lines[0])
+        self.assertEqual(sup.status()['leftovers'], [newer, older])
+        self.assertEqual(sup.state, 'STARTING')  # the home opens as ever
+        pid, _ = self.run_game(sup)
+        self.ready(sup)
+        self.stop(sup, 'shutdown')
+        sup.tick()
+        self.end_game(sup, pid, 143)
+        sup = self.next_session()
+        sup.retry()
+        self.assertEqual(self.listing(), before)
+        self.assertEqual(desktop.folder_size(str(half), limit=0), (0, False))  # past the limit: "at least"
+        self.assertEqual(desktop.folder_size(str(self.worlds / 'none')), (0, False))
+
+    def test_one_leftover_and_none(self):
+        self.world()
+        with self.logged('INFO') as logs:
+            sup = self.next_session()
+        self.assertEqual([line for line in logs.output if 'never became the home' in line], [])
+        self.assertEqual(sup.status()['leftovers'], [])
+        self.world(self.NEW)
+        with self.logged('INFO') as logs:
+            sup = self.next_session()
+        self.assertEqual(len([line for line in logs.output if '1 new home that never became the home is in the '
+                              'worlds folder (0.0 MB: ' + self.NEW in line]), 1)
+
+
 class CommandTest(unittest.TestCase):
+    def test_use_home_takes_one_folder_and_no_other_command_takes_one(self):
+        for words in (['use-home'], ['status', 'AresHub-2026-11-19_10-00-00-000'], ['use-home', 'a', 'b']):
+            with self.subTest(words), self.assertRaises(SystemExit) as stopped:
+                with contextlib.redirect_stderr(io.StringIO()):
+                    desktop.main(words)
+            self.assertEqual(stopped.exception.code, 2)
+        source = (base.CONFIG / 'usr/libexec/aresos-desktop').read_text(encoding='utf-8')
+        self.assertIn("request(paths, {'op': 'use_home', 'folder': folder.rstrip('/')})", source)
+
     def test_one_deadline_covers_connecting_and_waiting(self):
         self.assertEqual((desktop.SAVE_WAIT, desktop.COMMAND_WAIT), (60.0, 70.0))
         source = (base.CONFIG / 'usr/libexec/aresos-desktop').read_text(encoding='utf-8')

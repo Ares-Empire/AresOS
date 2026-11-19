@@ -51,7 +51,7 @@ user only. The wrapper sends jvm_start, jvm_started, and how Java ended
 (jvm_exited, or jvm_failed for a start that did not become a game); it writes
 the same facts to ~/.local/state/aresos/desktop-exit.json first. The owner's
 commands (`aresos-desktop status|retry|forget-hub|reset-instance`) use status,
-retry and forget_hub.
+retry and forget_hub; `use-home <folder>` (package 25, below) uses use_home.
 
 The lifecycle channel (package 25; OS-BASE B1, `save_world`): the game gets
 ARESOS_DESKTOP_LIFECYCLE=1, and its mod then connects to the same socket with
@@ -86,6 +86,20 @@ restart's startup cover has taken over, when labwc ends, or by its own limit;
 at a shutdown it stays until the session is torn down. For the length of every
 stop a `systemd-inhibit` child holds a logind block on the lid switch and on
 sleep; it is started and never waited for.
+
+World folders (package 25, brief section 4). Nothing here ever deletes a world
+folder, and one is moved in exactly one place, Supervisor.move_home: only while
+no launch is alive or being started, holding the desktop lock from the checks
+to the rename, with renameat2(RENAME_NOREPLACE), so a name that is taken is
+never replaced. Two things use it. A first home that died while it was made
+(the supervisor saw the folder appear during a setup launch that started with
+none, and no home was ever ready) shows SETUP `setup_unfinished` instead of the
+`world_damaged` latch, and `retry` moves it to AresHub-unfinished-<date> and
+starts setup again. And `aresos-desktop use-home <folder>` makes a dated folder
+that passes the home checks the home while no AresHub exists; `world_missing`
+names the folders it could be (the mod's AresHub-<date> and AresHub-new-<date>)
+and moves nothing by itself. A world reported ready is checked before it is
+declared ready, the home and any other alike.
 """
 import argparse
 import dataclasses
@@ -252,6 +266,19 @@ BLACK_HANDOVER = 2.0
 SYSTEMD_INHIBIT = '/usr/bin/systemd-inhibit'
 SLEEP = '/usr/bin/sleep'
 LID_BLOCK = 'handle-lid-switch:sleep'
+# Package 48's leftovers (package 25, brief section 4). The mod's HomeSwap keeps an old home as <world>-<date> and
+# builds a new one as <world>-new-<date>: the date is yyyy-MM-dd_HH-mm-ss-SSS in local time, with -1, -2, … behind it
+# when a name is taken (a test reads the Java constants). A first home that was never finished is moved to
+# <world>-unfinished-<date>, which reads as neither of them.
+HOME_ARCHIVE = '-'
+HOME_STAGING = '-new-'
+HOME_UNFINISHED = '-unfinished-'
+HOME_DATE = '[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2}-[0-9]{2}-[0-9]{3}'
+HOME_NAME_TRIES = 100
+HOMES_CHECKED = 16  # how many dated folders of a kind `world_missing` reads at most, newest first
+LEFTOVERS_SIZED = 32  # how many leftover folders the start's log line measures at most,
+LEFTOVER_FILES = 20000  # and how many files in each
+RENAME_NOREPLACE = 1  # renameat2(2): EEXIST instead of replacing the target
 
 SETUP, STARTING, IN_WORLD, AUTH_REQUIRED, RECOVERY = 'SETUP', 'STARTING', 'IN_WORLD', 'AUTH_REQUIRED', 'RECOVERY'
 STOPPING = 'STOPPING'  # a stop runs, or the session is ending: no message window, and nothing starts (section 2)
@@ -846,6 +873,105 @@ def check_world(paths, lock, name=None):
     return 'ok', world
 
 
+# ---------------------------------------------------------------- dated homes, and what moving a home needs
+
+
+def dated_home(name, world):
+    """('archive' | 'staging', sort key) for a folder name as the mod's HomeSwap makes them, else None: an old home
+    is <world>-<date>, a new home that is still being made <world>-new-<date>, each with -1, -2, … if taken."""
+    if not isinstance(name, str):
+        return None
+    match = re.fullmatch(f'{re.escape(world)}(?:({re.escape(HOME_STAGING)})|{re.escape(HOME_ARCHIVE)})'
+                         f'({HOME_DATE})(?:-([1-9][0-9]{{0,5}}))?', name)
+    if match is None:
+        return None
+    return 'staging' if match.group(1) else 'archive', (match.group(2), int(match.group(3) or 0))
+
+
+def dated_homes(paths, lock):
+    """The entries of the worlds folder that carry HomeSwap's dated names, newest first by the date in the name:
+    {'archive': [...], 'staging': [...]}. Reads the folder's listing and nothing else."""
+    found = {'archive': [], 'staging': []}
+    try:
+        with os.scandir(paths.worlds) as entries:
+            for entry in entries:
+                kind = dated_home(entry.name, lock['world'])
+                if kind is not None:
+                    found[kind[0]].append((kind[1], entry.name))
+    except OSError:
+        pass
+    return {kind: [name for _, name in sorted(names, reverse=True)] for kind, names in found.items()}
+
+
+def newest_home(paths, lock, names):
+    """The newest of `names` (newest first) that passes the home checks, or None."""
+    for name in names[:HOMES_CHECKED]:
+        if check_world(paths, lock, name)[0] == 'ok':
+            return name
+    return None
+
+
+def dated_names(prefix, now):
+    """The names a folder moved aside at `now` can get, as HomeSwap.datedName makes them: <prefix><date>, then
+    with -1, -2, … for a name that is taken."""
+    stamp = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime(now)) + f'-{int(now * 1000) % 1000:03d}'
+    return [prefix + stamp] + [f'{prefix}{stamp}-{suffix}' for suffix in range(1, HOME_NAME_TRIES)]
+
+
+def folder_size(path, limit=LEFTOVER_FILES):
+    """(bytes, whether everything was counted) of the regular files under a folder. Never follows a link."""
+    total, left, folders = 0, limit, [path]
+    while folders:
+        try:
+            with os.scandir(folders.pop()) as entries:
+                for entry in entries:
+                    if entry.is_dir(follow_symlinks=False):
+                        folders.append(entry.path)
+                    elif entry.is_file(follow_symlinks=False):
+                        if left <= 0:
+                            return total, False
+                        left -= 1
+                        total += entry.stat(follow_symlinks=False).st_size
+        except OSError:
+            return total, False
+    return total, True
+
+
+def take_desktop_lock(paths):
+    """The desktop's lock, taken as the game's wrapper takes it (flock, exclusive, without waiting): a descriptor
+    to close when done, or None while someone holds it. An error (OSError) means nobody can tell whether a game
+    holds it, which is never "free"."""
+    import fcntl
+    os.makedirs(paths.run_dir, mode=0o700, exist_ok=True)
+    fd = os.open(paths.jvm_lock, os.O_RDWR | os.O_CREAT | os.O_CLOEXEC, 0o600)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        os.close(fd)
+        return None
+    except BaseException:
+        os.close(fd)
+        raise
+    return fd
+
+
+def rename_noreplace(folder, source, target):
+    """renameat2(RENAME_NOREPLACE) of one name to another inside the open folder `folder`. The kernel itself refuses
+    a target that exists (FileExistsError), so nothing is ever replaced, whatever happens between a check and the
+    rename. Through ctypes: Python has no call for it, and os.rename replaces an empty folder. Its one caller is
+    Supervisor.move_home."""
+    import ctypes
+    try:
+        renameat2 = ctypes.CDLL(None, use_errno=True).renameat2
+    except AttributeError:
+        raise OSError(errno.ENOSYS, 'this system has no renameat2') from None
+    renameat2.argtypes = (ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint)
+    renameat2.restype = ctypes.c_int
+    if renameat2(folder, os.fsencode(source), folder, os.fsencode(target), RENAME_NOREPLACE) != 0:
+        code = ctypes.get_errno()
+        raise OSError(code, os.strerror(code), target)
+
+
 # ---------------------------------------------------------------- launch command and environment
 
 
@@ -946,6 +1072,10 @@ class Persisted:
     # `open` it names a launch that a stop is ending: that launch's end is `stopped`, whatever its status. Closed,
     # it stays as the last stop's outcome until the next stop.
     stop: dict = None
+    # The first home, seen while it was made (package 25, 4.1), an optional key: {launch, device, inode, seen}. The
+    # folder that appeared as the locked world during a setup launch that started without one. It ends when a
+    # home is seen ready, when a start finds the home sound, or when `retry` has moved the folder aside.
+    first_home: dict = None
 
     @classmethod
     def load(cls, path):
@@ -966,7 +1096,8 @@ class Persisted:
                    accounted=data.get('accounted') if isinstance(data.get('accounted'), str) else None,
                    disposition=data.get('disposition') if isinstance(data.get('disposition'), dict) else None,
                    unresolved=data.get('unresolved') if isinstance(data.get('unresolved'), dict) else None,
-                   stop=data.get('stop') if isinstance(data.get('stop'), dict) else None)
+                   stop=data.get('stop') if isinstance(data.get('stop'), dict) else None,
+                   first_home=data.get('first_home') if isinstance(data.get('first_home'), dict) else None)
 
     def save(self, path, durable=False):
         data = dict(schema=1, latched=self.latched, reason=self.reason, detail=self.detail,
@@ -974,6 +1105,8 @@ class Persisted:
                     accounted=self.accounted, disposition=self.disposition, unresolved=self.unresolved)
         if self.stop is not None:
             data['stop'] = self.stop  # schema 1 with an optional key: an older supervisor never reads it
+        if self.first_home is not None:
+            data['first_home'] = self.first_home  # optional as well
         (write_durable if durable else write_atomic)(path, json.dumps(data, indent=2) + '\n', 0o600)
 
     def record_failure(self, now):
@@ -1020,6 +1153,8 @@ class Launch:
     end_facts: object = None
     # The folder the helper last reported ready and the home checks passed (package 25, 1.3); None: none yet.
     active_world: str = None
+    # The last world that was reported ready and not declared ready (4.4), so the log says it once.
+    refused_world: str = None
 
 
 @dataclasses.dataclass(frozen=True)
@@ -1233,10 +1368,35 @@ def instance_logs(lock):
 RETRY = 'Type  retry  and press Enter to try again.'
 
 
-def message(state, reason, detail, lock, persisted):
+def found_homes_text(homes):
+    """The lines of `world_missing` that say where the home most likely is (package 25, 4.3): the newest dated
+    home and the newest new home that pass the home checks, each with its `use-home` line. Nothing is moved for
+    him."""
+    old, new = homes or (None, None)
+    if not old and not new:
+        return ''
+    text = 'In the same folder AresOS found (it moves nothing by itself):\n\n'
+    if old:
+        text += ('The newest home under a dated name that passes its checks, most likely the home you had:\n'
+                 f'  {old}\nTo make it your home again (the folder is renamed, nothing else changes):\n'
+                 f'  aresos-desktop use-home {old}\nthen  retry\n\n')
+    if new:
+        text += ('A new home that was still being made, and is complete:\n'
+                 f'  {new}\nTo make {"that one your home instead" if old else "it your home"}:\n'
+                 f'  aresos-desktop use-home {new}\nthen  retry\n\n')
+    return text
+
+
+def message(state, reason, detail, lock, persisted, homes=None):
     world = f'~/.local/share/aresos/worlds/{lock["world"]}'
     if state == STOPPING:
         return 'AresOS is stopping Minecraft.\n'  # no window shows it; `status` and `explain` do
+    if state == SETUP and reason == 'setup_unfinished':
+        return ('AresOS: your first home was not finished\n\n'
+                'Minecraft stopped while it was making your home, so this folder is only half made:\n'
+                f'  {world}\n  ({detail})\n\n'
+                'Type  retry  and press Enter: AresOS moves that folder aside, as\n'
+                f'{lock["world"]}{HOME_UNFINISHED}<date> beside it (nothing is deleted), and makes your home again.\n')
     if state == SETUP:
         steps = ('1. Prism Launcher opens. Sign in there with your own Microsoft account.\n'
                  '2. Minecraft is downloaded (a few minutes the first time) and starts.\n'
@@ -1291,7 +1451,9 @@ def message(state, reason, detail, lock, persisted):
                      'kept, nothing is deleted):\n  aresos-desktop reset-instance\nthen  retry'),
         'world_missing': (f'Your hub world is missing: {world}\n'
                           'AresOS opened it before and never creates a replacement by itself.\n\n'
-                          f'Put the folder back (from a backup), then {RETRY.lower()}\n'
+                          + found_homes_text(homes) +
+                          f'{"Or put" if homes and any(homes) else "Put"} the folder back (from a backup), then '
+                          f'{RETRY.lower()}\n'
                           'To start a new hub instead:  aresos-desktop forget-hub  then  retry'),
         'world_damaged': (f'Your hub world looks damaged: {detail}\n'
                           f'AresOS leaves {world} exactly as it is.\n\n'
@@ -1410,7 +1572,8 @@ class Supervisor:
             self.view = None
 
     def message(self):
-        return message(self.state, self.reason, self.detail, self.lock, self.persisted)
+        homes = self.found_homes() if self.reason == 'world_missing' else None
+        return message(self.state, self.reason, self.detail, self.lock, self.persisted, homes)
 
     def show_cover(self, again):
         """The startup cover over this start (package 23b). Best effort: if it does not start, the start goes on
@@ -1596,6 +1759,7 @@ class Supervisor:
         # hub launch gets the cover; a supervisor restarted in the middle of a session never covers his screen.
         first = not runtime.get('instance')
         self.instance = runtime.get('instance') or 'aresdesktop-' + secrets.token_hex(6)
+        self.log_leftovers()
         self.watch_session()
         if self.adopt(runtime):
             self.resume_stop()  # a stop the previous supervisor began on this game is called off or goes on (2.8)
@@ -1709,7 +1873,8 @@ class Supervisor:
             return 'instance', '\n'.join('- ' + p for p in problems)
         world, detail = check_world(self.paths, self.lock)
         if world == 'damaged':
-            return 'world_damaged', detail
+            # A first home that died while it was made is no damaged home of his (package 25, 4.1).
+            return ('setup_unfinished' if self.unfinished_home() else 'world_damaged'), detail
         if world == 'missing':
             return ('world_missing', detail) if self.persisted.hub_seen else (None, 'setup')
         return None, 'hub'
@@ -1744,11 +1909,13 @@ class Supervisor:
             return
         problem, detail = self.preflight()
         if problem:
-            self.latch(problem, detail)
+            self.refuse_start(problem, detail)
             return
         self.start_launch(detail, automatic, cover)
 
     def start_launch(self, mode, automatic=False, cover=None):
+        if mode == 'hub':
+            self.forget_first_home()
         self.launch = Launch(id=secrets.token_hex(6), nonce=new_token(), mode=mode, started=self.clock(),
                              automatic=automatic)
         self.save_runtime()
@@ -1825,6 +1992,7 @@ class Supervisor:
         launch = self.launch
         if launch is None or launch.jvm_pid is None:
             return
+        self.note_first_home()  # 4.1: looked for at each heartbeat
         now = self.clock()
         if event == 'world_ready' and isinstance(status.get('world'), str):
             self.ready(status['world'], now)
@@ -1869,23 +2037,42 @@ class Supervisor:
     def ready(self, world, now):
         launch = self.launch
         self.last_heartbeat = now
-        checked = False
-        if world == self.lock['world'] and not launch.ready:
-            # A damaged hub is never declared ready, however the mod sees it (the game is left alone).
-            state, detail = check_world(self.paths, self.lock)
-            checked = state == 'ok'
+        home = world == self.lock['world']
+        if not launch.ready or world != launch.active_world:
+            # Checked when a world becomes the ready one, never at every heartbeat. A damaged hub is never declared
+            # ready, however the mod sees it (the game is left alone). Any other world is checked the same way if it
+            # is a plain folder inside the worlds folder, and is never declared ready when damaged or outside
+            # (package 25, 4.4): before, a dated home opened unchecked.
+            if home or plain_world_name(world):
+                state, detail = check_world(self.paths, self.lock, None if home else world)
+            else:
+                state, detail = 'outside', 'its name is no folder inside the worlds folder'
             if state != 'ok':
                 launch.ready = False
-                if not (self.persisted.latched and self.persisted.reason == 'world_damaged'):
-                    LOG.error('the hub reported ready, but its saved data is not: %s', detail)
-                    self.latch('world_damaged', detail)
+                self.healthy_since = None
+                if home:
+                    if not (self.persisted.latched and self.persisted.reason == 'world_damaged'):
+                        LOG.error('the hub reported ready, but its saved data is not: %s', detail)
+                        self.latch('world_damaged', detail)
+                    return
+                if launch.refused_world != world:
+                    # No latch: the next start opens the home, which this world is not. The game is left alone.
+                    launch.refused_world = world
+                    LOG.error('the world %s reported ready, but it is %s (%s); it is not declared ready',
+                              clip(world), 'not there' if state == 'missing' else state, detail)
+                if self.state == IN_WORLD:
+                    self.enter(STARTING)  # he left a ready world for this one
                 return
         if self.healthy_since is None:
             self.healthy_since = now
         launch.ready = launch.ever_ready = True
-        self.note_ready_world(world, checked)
-        if world == self.lock['world'] and not self.persisted.hub_seen:
+        launch.refused_world = None
+        self.note_ready_world(world, checked=True)
+        if not self.persisted.hub_seen:
+            # Also for a dated home (4.4): a missing AresHub afterwards reads `world_missing`, never a silent new
+            # setup beside his old home. What 4.1 remembered of a first home is over with it.
             self.persisted.hub_seen = True
+            self.persisted.first_home = None
             self.save()
         if launch.mode == 'setup' and world == self.lock['world']:
             launch.mode = 'hub'
@@ -1939,8 +2126,12 @@ class Supervisor:
             return False, {'message': 'The AresOS desktop is already running.'}
         problem, mode = self.validate()
         if problem:
-            self.latch(problem, mode)
+            self.refuse_start(problem, mode)
+            if problem == 'setup_unfinished':
+                return False, {'message': 'Your first home was not finished; the AresOS window says what to do.'}
             return False, {'message': f'The AresOS desktop is in recovery ({problem}); see its window.'}
+        if mode == 'hub':
+            self.forget_first_home()
         if launch is None or launch.accepted:
             # Started from Prism by hand (not by this supervisor): a launch of its own, with a fresh nonce.
             self.launch = launch = Launch(id=secrets.token_hex(6), nonce=new_token(), mode=mode, started=self.clock())
@@ -2106,6 +2297,7 @@ class Supervisor:
           - no facts at all: `killed` too, and saved as unresolved until a late report or the record explains it;
           - any other status: a crash (or a failed start), counted once."""
         self.close_lifecycle('the game ended')
+        self.note_first_home()  # 4.1: looked for at the launch's end too
         launch = self.launch
         accepted = launch.reported
         pid, ticks = launch.jvm_pid, launch.jvm_ticks
@@ -2309,6 +2501,14 @@ class Supervisor:
             return False, 'AresOS is stopping Minecraft right now. Type retry again when that is done.'
         if self.blocked():
             return False, 'AresOS is shutting down or logging out, so nothing is started any more.'
+        moved = ''
+        if self.state == SETUP and self.reason == 'setup_unfinished' and self.unfinished_home():
+            # 4.1: the window said that `retry` moves the half-made first home aside. If it is no longer that
+            # folder, nothing is moved and the start below decides anew.
+            name, why = self.move_unfinished()
+            if name is None:
+                return False, why
+            moved = f'Moved the unfinished home to {name} (nothing was deleted). '
         if self.persisted.latched and self.persisted.reason == 'killed':
             value = self.sample_pressure()
             clear = 0.0 if self.pressure_clear_since is None else self.clock() - self.pressure_clear_since
@@ -2334,7 +2534,7 @@ class Supervisor:
         # AUTH_REQUIRED's retry is the moment Prism shows its sign-in ("Prism opens again"): it must be seen, so
         # that start is never covered (package 23b, review 1, finding 2). Every other retry says "Starting again…".
         self.begin(cover=None if self.state == AUTH_REQUIRED else COVER_AGAIN)
-        return True, f'State: {self.state}'
+        return True, moved + f'State: {self.state}'
 
     def forget_hub(self):
         world, _ = check_world(self.paths, self.lock)
@@ -2363,7 +2563,204 @@ class Supervisor:
                     # The open app windows by name (None: not known), whether this session's labwc is watched,
                     # and why the session is ending under this supervisor (3.2, 3.3).
                     windows=self.app_windows(), labwc=self.labwc_watched, session_over=self.session_over,
+                    # New homes that never became the home (4.5): listed, never deleted.
+                    leftovers=self.leftovers()[:MAX_WINDOWS],
                     message=self.message() if self.state else '')
+
+    # -- world folders: package 48's leftovers (package 25, brief section 4)
+
+    def note_first_home(self):
+        """4.1: while a setup launch that started with no home runs, remember the home's folder once it appears
+        (its device and inode), in desktop.json. Looked for at each heartbeat and at the launch's end."""
+        launch = self.launch
+        if (launch is None or launch.mode != 'setup' or not launch.accepted or launch.failed
+                or self.persisted.hub_seen):
+            return  # `setup` at its authorization means: validate() found no home then
+        try:
+            found = os.lstat(os.path.join(self.paths.worlds, self.lock['world']))
+        except OSError:
+            return
+        if not stat.S_ISDIR(found.st_mode):
+            return
+        kept = self.persisted.first_home
+        if (isinstance(kept, dict) and kept.get('launch') == launch.id
+                and (kept.get('device'), kept.get('inode')) == (found.st_dev, found.st_ino)):
+            return
+        self.persisted.first_home = dict(launch=launch.id, device=found.st_dev, inode=found.st_ino,
+                                         seen=self.wall())
+        LOG.info('launch %s: the first home\'s folder appeared; remembered until a home is ready', launch.id)
+        try:
+            # On the disk at once: it matters exactly when the game, or the power, dies in the next moments.
+            self.persisted.save(self.paths.state_file, durable=True)
+        except OSError as error:
+            LOG.warning('the first home\'s folder could not be remembered: %s', error)
+
+    def unfinished_home(self):
+        """4.1: whether the home's folder is the one this supervisor saw appear during a setup launch that started
+        without one (the same device and inode) and no home was ever ready. Whether it reads damaged is the
+        caller's check. Only reads."""
+        kept = self.persisted.first_home
+        if self.persisted.hub_seen or not isinstance(kept, dict):
+            return False
+        try:
+            found = os.lstat(os.path.join(self.paths.worlds, self.lock['world']))
+        except OSError:
+            return False
+        return (stat.S_ISDIR(found.st_mode) and type(kept.get('device')) is int and type(kept.get('inode')) is int
+                and (found.st_dev, found.st_ino) == (kept['device'], kept['inode']))
+
+    def forget_first_home(self):
+        """A start found the home sound: what 4.1 remembered is over, so damage that comes later is
+        `world_damaged` as ever."""
+        if self.persisted.first_home is not None:
+            self.persisted.first_home = None
+            self.save()
+
+    def refuse_start(self, problem, detail):
+        """validate() found a reason not to start: a latch, except for a first home that was never finished (4.1),
+        which waits in SETUP for the `retry` that moves it aside."""
+        if problem == 'setup_unfinished':
+            self.retry_at = None
+            self.enter(SETUP, 'setup_unfinished', detail)
+        else:
+            self.latch(problem, detail)
+
+    def home_busy(self):
+        """Why no home may be moved right now (4.2), or None: a stop runs, the session is ending, or a launch is
+        alive, in hand-off or still with Prism."""
+        if self.stop is not None:
+            return 'AresOS is stopping Minecraft right now. Try again when that is done.'
+        if self.blocked():
+            return 'AresOS is shutting down or logging out.'
+        launch = self.launch
+        if launch is None or launch.failed:
+            return None
+        if launch.jvm_pid is not None:
+            return 'Minecraft is running. Stop it first (aresos-desktop stop), then try again.'
+        if self.in_handoff() or (launch.prism is not None and launch.prism_exit is None and not launch.accepted):
+            return 'Minecraft is starting right now. Try again once it runs or has closed.'
+        return None
+
+    def move_home(self, source, targets, proof):
+        """The one way a world folder is ever moved (package 25, 4.2). `source` gets the first of the names
+        `targets` that nothing has, inside the worlds folder: (that name, '') or (None, why not).
+
+        Only while no launch is alive, none is in hand-off and no stop runs, and holding the desktop lock (flock,
+        as the game's wrapper takes it) from the checks to the rename, so no game starts in between. `proof(found)`
+        is the caller's check of the folder that is about to move (`found`: its lstat), run under the lock: None,
+        or why not. The rename is renameat2(RENAME_NOREPLACE): a name that is taken is never replaced. Nothing is
+        deleted, here or anywhere else in this file."""
+        busy = self.home_busy()
+        if busy:
+            return None, busy
+        if not all(plain_world_name(name) for name in (source, *targets)):
+            return None, 'A home is one folder inside the worlds folder.'
+        try:
+            lock = take_desktop_lock(self.paths)
+        except OSError as error:
+            return None, f'AresOS cannot tell whether Minecraft is running (the desktop lock: {error}).'
+        if lock is None:
+            return None, 'A Minecraft that AresOS cannot see holds the desktop lock. Close it first.'
+        try:
+            folder = os.open(self.paths.worlds, os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC)
+            try:
+                found = os.stat(source, dir_fd=folder, follow_symlinks=False)
+                if not stat.S_ISDIR(found.st_mode):
+                    return None, f'{source} is not a folder.'
+                why = proof(found)
+                if why:
+                    return None, why
+                # The checks read the folder by its path: it must still be the one that is about to move.
+                for again in (os.lstat(os.path.join(self.paths.worlds, source)),
+                              os.stat(source, dir_fd=folder, follow_symlinks=False)):
+                    if (again.st_dev, again.st_ino) != (found.st_dev, found.st_ino):
+                        return None, f'{source} changed while it was checked.'
+                for target in targets:
+                    try:
+                        rename_noreplace(folder, source, target)
+                    except FileExistsError:
+                        continue
+                    LOG.info('moved the world folder %s to %s (renamed in place; nothing was deleted)',
+                             source, target)
+                    try:
+                        os.fsync(folder)
+                    except OSError as error:
+                        LOG.warning('the worlds folder could not be synced after the move: %s', error)
+                    return target, ''
+                return None, (f'{targets[0]} exists already.' if len(targets) == 1
+                              else 'Every name it could get is taken.')
+            finally:
+                os.close(folder)
+        except FileNotFoundError:
+            return None, f'There is no folder {source} in ~/.local/share/aresos/worlds.'
+        except OSError as error:
+            return None, f'The folder could not be moved ({error}).'
+        finally:
+            os.close(lock)
+
+    def move_unfinished(self):
+        """4.1: the half-made first home goes to <world>-unfinished-<date>: (its new name, '') or (None, why not)."""
+        world = self.lock['world']
+
+        def proof(found):
+            kept = self.persisted.first_home
+            if not self.unfinished_home() or (found.st_dev, found.st_ino) != (kept['device'], kept['inode']):
+                return f'{world} is no longer the folder that was left unfinished.'
+            if check_world(self.paths, self.lock)[0] != 'damaged':
+                return f'{world} no longer reads as unfinished.'
+            return None
+
+        name, why = self.move_home(world, dated_names(world + HOME_UNFINISHED, self.wall()), proof)
+        if name is None:
+            return None, f'The unfinished home was not moved: {why} Nothing is changed. Type retry to try again.'
+        self.persisted.first_home = None
+        self.save()
+        return name, ''
+
+    def use_home(self, name):
+        """`aresos-desktop use-home <folder>` (4.2): a dated folder that passes the home checks becomes the home,
+        only while no home exists. (ok, message)."""
+        world = self.lock['world']
+        if dated_home(name, world) is None:
+            return False, ('Not moved: use-home takes the name of a dated home in ~/.local/share/aresos/worlds: '
+                           f'{world}-<date> or {world}-new-<date>.')
+
+        def proof(found):
+            if os.path.lexists(os.path.join(self.paths.worlds, world)):
+                return f'{world} exists. use-home only fills the place of a missing home and never replaces one.'
+            state, detail = check_world(self.paths, self.lock, name)
+            if state != 'ok':
+                return f'{name} does not pass AresOS\'s checks of a home ({detail}).'
+            return None
+
+        moved, why = self.move_home(name, [world], proof)
+        if moved is None:
+            return False, f'Not moved: {why}'
+        return True, f'{name} is your home {world} now (the folder was renamed; nothing was deleted). Type retry.'
+
+    def found_homes(self):
+        """4.3: where the home most likely is while it is missing: (the newest <world>-<date> that passes the home
+        checks, the newest <world>-new-<date> that does), None for one that is not there. Only reads."""
+        homes = dated_homes(self.paths, self.lock)
+        return (newest_home(self.paths, self.lock, homes['archive']),
+                newest_home(self.paths, self.lock, homes['staging']))
+
+    def leftovers(self):
+        """4.5: the new homes that never became the home (<world>-new-<date>), newest first. Never deleted: one may
+        be the home he just made."""
+        return dated_homes(self.paths, self.lock)['staging']
+
+    def log_leftovers(self):
+        """4.5: one log line at start with their count and size."""
+        names = self.leftovers()
+        if not names:
+            return
+        sizes = [folder_size(os.path.join(self.paths.worlds, name)) for name in names[:LEFTOVERS_SIZED]]
+        whole = len(names) <= LEFTOVERS_SIZED and all(counted for _, counted in sizes)
+        LOG.info('%d new home%s that never became the home %s in the worlds folder (%s%.1f MB: %s); AresOS never '
+                 'deletes them', len(names), '' if len(names) == 1 else 's', 'is' if len(names) == 1 else 'are',
+                 '' if whole else 'at least ', sum(size for size, _ in sizes) / 1e6,
+                 ', '.join(names[:8]) + (', …' if len(names) > 8 else ''))
 
     # -- the lifecycle channel (package 25, brief section 1)
 
@@ -3816,6 +4213,9 @@ class Loop:
         if op == 'forget_hub':
             ok, text = supervisor.forget_hub()
             return {'ok': ok, 'message': text}
+        if op == 'use_home':
+            ok, text = supervisor.use_home(request.get('folder'))
+            return {'ok': ok, 'message': text}
         if op == 'hide_cover':
             return {'ok': True, 'message': supervisor.owner_hides_cover()}
         return {'ok': False, 'error': 'unknown_operation', 'message': f'unknown op {op!r}'}
@@ -4095,6 +4495,19 @@ def stop_command(paths, word, reason=None):
     return 0 if done else 1
 
 
+def use_home_command(paths, folder):
+    """`aresos-desktop use-home <folder>` (package 25, 4.2). The running supervisor moves the folder: it alone knows
+    that no game is alive or being started. Exit 0 only when the folder is the home now."""
+    try:
+        reply = request(paths, {'op': 'use_home', 'folder': folder.rstrip('/')})
+    except (OSError, ValueError) as error:
+        print(f'Not moved: the AresOS desktop supervisor did not answer ({error}).', file=sys.stderr)
+        return 1
+    done = reply.get('ok') is True
+    print(reply.get('message', ''), file=sys.stdout if done else sys.stderr)
+    return 0 if done else 1
+
+
 def reset_instance(paths):
     lock = load_lock(paths.share)
     runner = Runner(paths, None)
@@ -4119,12 +4532,19 @@ def main(argv=None):
     parser = argparse.ArgumentParser(prog='aresos-desktop', description='AresOS desktop supervisor (package 23)')
     parser.add_argument('command', choices=['session', 'supervise', 'status', 'retry', 'forget-hub',
                                             'reset-instance', 'explain', 'hide-cover', 'save', 'stop',
-                                            'restart', 'logout'])
+                                            'restart', 'logout', 'use-home'])
+    parser.add_argument('folder', nargs='?',
+                        help='use-home: the dated folder in ~/.local/share/aresos/worlds that becomes the home, '
+                             'while no home exists (AresHub-<date> or AresHub-new-<date>)')
     parser.add_argument('--reason', choices=SAVE_REASONS, default='manual',
                         help='save: why the world is saved (it is only logged). stop: `shutdown` for a stop that '
                              'cannot be called off; anything else is a plain stop')
     args = parser.parse_args(argv)
+    if (args.command == 'use-home') != (args.folder is not None):
+        parser.error('use-home takes one folder name, and no other command takes one')
     paths = Paths.from_environ()
+    if args.command == 'use-home':
+        return use_home_command(paths, args.folder)
     if args.command == 'session':
         return session(paths)
     if args.command == 'supervise':

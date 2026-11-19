@@ -864,10 +864,14 @@ class FirstStartTest(Base):
         pid, env = self.run_game(sup)
         self.assertEqual(sup.state, 'SETUP')
         self.assertEqual((env['ARESOS_DESKTOP_INSTANCE'], env['ARESOS_LAUNCH_NONCE']), self.runner.helpers[-1][:2])
+        # A world that is no home in the worlds folder is never declared ready (package 25, 4.4); before, any
+        # world's report was taken as it came.
         self.ready(sup, 'SomeOtherDesktop')
-        self.assertEqual(sup.state, 'IN_WORLD')
+        self.assertEqual(sup.state, 'SETUP')
         self.assertFalse(sup.persisted.hub_seen)
+        make_world(self.paths, self.lock)  # the mod made the hub; its report is checked on the disk
         self.ready(sup, 'AresHub')
+        self.assertEqual(sup.state, 'IN_WORLD')
         self.assertTrue(self.stored()['hub_seen'])
         self.assertEqual(self.runner.closed_views, 1)
 

@@ -10,7 +10,8 @@ section 2 through `aresos-desktop stop`: a confirmed stop, saves that fail, and 
 covers 3.2 and 3.3: a signal (also through the keeper), the stand-in labwc's end, `logout` and `restart`. The only
 labwc ever signalled is the stand-in this test started, and only by the supervisor through its watched pidfd.
 Step 4 covers 3.4: the black screen and the lid block, as stand-ins that only note their start and their end. No
-test here takes a logind inhibitor or draws on a screen.
+test here takes a logind inhibitor or draws on a screen. Step 5 covers 4.2's `use-home` through the real command:
+the only world folders it touches are the ones this test made in its temporary home.
 """
 import json
 import os
@@ -791,6 +792,43 @@ class GuardianLoopTest(base.Base):
         code, out, err = self.command('save', runtime=empty)
         self.assertEqual((code, out), (1, ''))
         self.assertTrue(err.startswith('Not saved: the AresOS desktop supervisor did not answer'), err)
+
+    def test_use_home_is_refused_while_the_game_runs_and_moves_the_folder_once_nothing_runs(self):
+        old = 'AresHub-2026-11-19_10-00-00-000'
+        worlds = pathlib.Path(self.paths.worlds)
+        base.make_world(self.paths, dict(self.lock, world=old))
+        inode = (worlds / old).stat().st_ino
+
+        def folders():
+            return sorted((path.name, path.stat().st_ino) for path in worlds.iterdir())
+
+        before = folders()
+        code, out, err = self.command('use-home', old)  # no supervisor: nobody can tell whether a game runs
+        self.assertEqual((code, out), (1, ''))
+        self.assertTrue(err.startswith('Not moved: the AresOS desktop supervisor did not answer'), err)
+        self.start()
+        self.assertEqual(self.command('use-home', old), (
+            1, '', 'Not moved: Minecraft is running. Stop it first (aresos-desktop stop), then try again.\n'))
+        self.assertEqual(self.command('use-home', 'AresHub'), (
+            1, '', 'Not moved: use-home takes the name of a dated home in ~/.local/share/aresos/worlds: '
+                   'AresHub-<date> or AresHub-new-<date>.\n'))
+        self.assertEqual(self.command('stop')[0], 0)
+        self.assertEqual(self.command('use-home', old), (
+            1, '', 'Not moved: AresHub exists. use-home only fills the place of a missing home and never replaces '
+                   'one.\n'))
+        self.assertEqual(folders(), before)
+        os.rename(worlds / 'AresHub', worlds / 'kept-by-him')  # the test's own folder, as he would move his away
+        self.assertEqual(self.command('use-home', old + '/'), (  # as the shell completes the name
+            0, f'{old} is your home AresHub now (the folder was renamed; nothing was deleted). Type retry.\n', ''))
+        self.assertEqual(folders(), sorted([('AresHub', inode), ('kept-by-him', dict(before)['AresHub'])]))
+        self.assertTrue((worlds / 'kept-by-him/level.dat').is_file())
+        self.assertIn(f'moved the world folder {old} to AresHub', self.log())
+        self.assertEqual(self.status()['leftovers'], [])
+        self.assertEqual(self.command('retry')[0], 0)  # the home it became opens
+        self.wait(lambda: self.status()['state'] == 'IN_WORLD')
+        self.assertEqual(self.games(), 2)
+        fd = desktop.take_desktop_lock(self.paths)  # the new game's wrapper holds the lock the move had taken
+        self.assertIsNone(fd)
 
 
 if __name__ == '__main__':
