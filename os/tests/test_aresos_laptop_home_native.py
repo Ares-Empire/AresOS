@@ -377,6 +377,46 @@ class FinderTextTest(unittest.TestCase):
         self.assertEqual([by_id[app_id]['name'] for app_id in program.search(by_id, 'tool')],
                          ['Tool 2', 'Tool ²', 'Tool ٣', 'Tool 10'])
 
+    def test_names_whose_case_folding_expands_never_raise(self):
+        # REVIEW-2 finding 5: 'ß' casefolds to 'ss', and the sort key gave unicodedata.digit two characters.
+        names = ('Straße', 'Strasse', 'STRASSE', 'ß', 'ﬁ', 'fi', 'İ', 'I', 'i', '²', '2', '٣', '3', 'Ⅻ', 'ⅻ', 'XII')
+        by_id = apps(*names)
+        for query in ('Straße', 'ß', 'ﬁ', 'İ', '²', '٣', 'Ⅻ', 'str', 'i', 'x'):
+            with self.subTest(query=query):
+                found = program.search(by_id, query)
+                self.assertEqual(found, program.search(by_id, query))
+                if query in names:
+                    self.assertIn(query, [by_id[app_id]['name'] for app_id in found])
+        # ICU's order for the ties: 'ß' as 'ss' with a later tertiary weight, upper case after lower.
+        self.assertEqual([by_id[app_id]['name'] for app_id in program.search(by_id, 'str')],
+                         ['Strasse', 'Straße', 'STRASSE'])
+        self.assertEqual(program.natural('ﬁ')[0], program.natural('fi')[0])
+        self.assertEqual(program.natural('İ')[:2], program.natural('i\u0307')[:2])   # 'i' and a combining dot
+        self.assertEqual(program.natural('Tool ' + '9' * 5000)[0][-1], (1, 5000, '9' * 5000), 'no int() limit')
+
+    def test_every_letter_and_number_of_the_bmp_searches_the_same_twice(self):
+        """A property over the Basic Multilingual Plane: for each letter or number, a one-character name and a query
+        of it neither raise nor change the result's order between two calls."""
+        import unicodedata
+
+        checked = 0
+        for code in range(0x10000):
+            character = chr(code)
+            if unicodedata.category(character)[0] not in 'LN':
+                continue
+            checked += 1
+            by_id = apps(character, character * 2, 'Tool ' + character, character + ' 2', character + '²',
+                         character.upper(), character.lower())
+            try:
+                first, second = program.search(by_id, character), program.search(by_id, character)
+            except Exception as error:   # noqa: BLE001 - which character, not just the first traceback
+                self.fail(f'U+{code:04X} {unicodedata.name(character, "")}: {type(error).__name__}: {error}')
+            if first != second:
+                self.fail(f'U+{code:04X}: {first} then {second}')
+            if program.squeeze(character) and 'app-0' not in first:
+                self.fail(f'U+{code:04X}: the one-character name is not found by itself')
+        self.assertGreater(checked, 40000)
+
     def test_ties_sort_as_numeric_english_collation(self):
         # localeCompare('en', {numeric: true}): accents after base letters, lower case first, numbers by value.
         by_id = apps('Zap Tool', 'Eclipse Tool', 'Éclair Tool', 'Resume Tool', 'Résumé Tool', 'Tool A', 'tool a',

@@ -791,29 +791,41 @@ def score(app, needle):
     return 0
 
 
+def number_weight(digits):
+    """A number's primary weight from its digit values: fewer significant digits first, then the digits themselves.
+    The same order as by value, without int(), which refuses runs past 4,300 digits."""
+    significant = ''.join(str(unicodedata.digit(digit)) for digit in digits).lstrip('0')
+    return (1, len(significant), significant)
+
+
 def natural(name):
     """localeCompare('en', {numeric: true}) closely enough for ties: first by base letters, with runs of decimal
     digits by value and spaces, punctuation and symbols before digits before letters; then accents; then case, lower
-    first; then the name itself. Only decimal digits (Unicode Nd) are numbers, as in ICU: '²' is a symbol."""
+    first; then the name itself. Only decimal digits (Unicode Nd) are numbers, as in ICU: '²' is a symbol.
+
+    Case folding can turn one character into several ('ß' into 'ss', 'ﬁ' into 'fi', 'İ' into 'i' and a combining
+    dot), so each folded letter is weighed on its own and keeps its character's case, and a folded accent joins the
+    accents: 'Strasse', 'Straße', 'STRASSE', as ICU orders them."""
     primary, accents, case = [], [], []
     for part in re.split(r'(\d+)', unicodedata.normalize('NFD', name)):
         if not part:
             continue
         if part.isdecimal():
-            primary.append((1, int(part), ''))
+            primary.append(number_weight(part))
             continue
         for character in part:
-            if unicodedata.combining(character):
-                if accents:
-                    accents[-1] += character
-                continue
-            accents.append('')
-            case.append(0 if character == character.casefold() else 1)
-            folded = character.casefold()
-            if unicodedata.digit(folded, None) is not None:
-                primary.append((1, unicodedata.digit(folded), ''))   # '²' weighs as a 2, never as a number run
-            else:
-                primary.append((2, 0, folded) if folded.isalnum() else (0, 0, folded))
+            upper = 0 if character == character.lower() else 1
+            for folded in unicodedata.normalize('NFD', character.casefold()):
+                if unicodedata.combining(folded):
+                    if accents:
+                        accents[-1] += folded
+                    continue
+                accents.append('')
+                case.append(upper)
+                if unicodedata.digit(folded, None) is not None:
+                    primary.append(number_weight(folded))   # '²' weighs as a 2, never as part of a number run
+                else:
+                    primary.append((2, 0, folded) if folded.isalnum() else (0, 0, folded))
     return primary, accents, case, name
 
 
