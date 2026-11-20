@@ -134,12 +134,13 @@ Ares-Empire/AresOS --interval 300` in a background shell.
 5. **Board:** T386 (N8 and N9 follow-up, one re-pin): **B317 brief started Fri 08:44** by one Fable writer
    (`briefs/20-store-oracle-reads.md` on local branch `brief/317-store-oracle-reads`, worktree
    `~/AresOS-317-brief`). **On main at `29f79ee5`.** Codex astra review running (09:32, answer in the
-   scratchpad `317-BRIEF-REVIEW-1.md`, to be committed under `reviews/20-store-oracle-reads/`); the Claude review
-   (Opus) follows when the Claude slot is free; then build (the brief names Opus builders). T298 (live Chrome setup with him). #337 and #385 done.
+   scratchpad). **Review 1 NOT READY** (`reviews/20-store-oracle-reads/BRIEF-REVIEW-1.md`, four BLOCKERs on N8's
+   drop rule and N9's read/write line). Next: one fresh reviser (Fable if `mac-capacity` gives a go, asked Fri
+   10:00; else Opus or hold), then one Claude review (Opus) of the revision, then build. T298 (live Chrome setup with him). #337 and #385 done.
 6. **Budget (`mac-capacity`, Fri 09:55):** three Fable agents at once (08:44-09:30, ours was B317's writer) cost
    8% of the week. Until Sat 08:00: one Opus agent at a time per lead (R28 first). **Fable only after
-   `mac-capacity`'s go, one across all leads.** Order here: the running 28a latency agent, then B317's Claude
-   review (Opus), then 28a step 4 (Opus). Earlier (Fri 08:42 and 08:48): Claude week 41%, about 10% for all five leads until Sat
+   `mac-capacity`'s go, one across all leads.** Order here: the running 28a latency agent, then 28a step 4
+   (Opus), then B317's revision (model per `mac-capacity`) and its Claude review. Earlier (Fri 08:42 and 08:48): Claude week 41%, about 10% for all five leads until Sat
    08:00; one Claude agent at a time per lead; no Claude agent waiting on CI (shell watchers do that); Opus by
    default, Fable where the design needs it. **Codex ran at twice its fair pace:** keep it for cross-reviews and
    the builds that need it (each run pushes and stops), and give the rest to Claude Opus agents. So 28a step 4
