@@ -147,6 +147,9 @@ public final class AppsScreen extends Screen {
 
     @Override public void onClose() { minecraft.gui.setScreen(parent); }
 
+    /** The screen it was opened from and goes back to, or null: the search over the world replaces that one with it. */
+    Screen parent() { return parent; }
+
     /** Builds the rows again. {@code keepPlace}: the list changed under him; a new search starts at the top. */
     private void show(boolean keepPlace) {
         shownApps = AresOs.apps();

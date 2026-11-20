@@ -122,14 +122,17 @@ class AuthenticationTest(ViewBase):
         self.assertEqual(helper.window_minor, 1)
         self.assertFalse(helper.windows_pending)
         self.assertEqual(helper.discovered_closing, {WEB.id: (self.clock() + shell.HANDOFF, True, 7)})
-        status.assert_called_once_with(event='desktop_connected')
+        # The helper's own `windows` report at its start (package 25) and the desktop's connection: the view
+        # added no line.
+        self.assertEqual(status.call_args_list, [mock.call(event='windows', count=0, names=[]),
+                                                 mock.call(event='desktop_connected')])
         for op in ('world_ready', 'heartbeat', 'publish_home', 'request_power', 'future_op'):
             reply = self.call(helper, view, op, instance=INSTANCE, nonce=NONCE, ready=True,
                               world={'desktop': True, 'id': 'world'})
             self.assertEqual(reply['error'], 'invalid_state')
         self.assertIsNone(helper.world)
         self.assertIsNone(helper.last_heartbeat)
-        status.assert_called_once()
+        self.assertEqual(status.call_count, 2)
         replacement = self.desktop(helper, minor=2)
         self.assertFalse(view.closing)
         self.assertTrue(desktop.closing)
@@ -711,7 +714,10 @@ class WindowViewsTest(ViewBase):
                 self.activations.clear()
                 helper = self.start(tracked=True)
                 desktop = self.desktop(helper, minor)
-                wayland = shell.ForeignToplevels(mock.Mock(), helper.windows)
+                # A stand-in socket that takes every request whole: 53d's queued writes read send()'s byte count.
+                sock = mock.Mock()
+                sock.send.side_effect = len
+                wayland = shell.ForeignToplevels(sock, helper.windows)
                 wayland.kinds[50] = 'manager'
                 wayland.feed(wire_toplevel(world, GAME, False) + wire_toplevel(terminal, TERMINAL, False)
                              + wire_toplevel(editor, app_id, True))
@@ -849,6 +855,21 @@ class ContractExamplesTest(ViewBase):
         helper.windows_changed()
         helper.tick()
         self.assertEqual(view.events('apps_running')[-1], fixture('apps-running-event'))
+
+        # Package 53d: Super's search over the world and open_app's screen hint.
+        helper = self.start(tracked=True)
+        desktop = Conn()
+        helper.connected(desktop)
+        request(desktop, 'desktop-hello')
+        self.show(helper.windows, 1, GAME, active=True, outputs=(1,))
+        helper.windows_changed()
+        self.assertTrue(self.call(helper, desktop, 'world_ready', instance=INSTANCE, nonce=NONCE,
+                                  world={'desktop': True, 'id': 'world'})['ok'])
+        helper.search()
+        self.assertEqual(desktop.events(), [fixture('shell-search-event')])
+        with mock.patch.object(shell.secrets, 'token_hex', return_value='0123456789abcdef'):
+            request(desktop, 'open-app-world')
+        request(desktop, 'open-app-bad-screen')
         self.assertEqual(read, {path.name for path in EXAMPLES.glob('*.json')})
 
 

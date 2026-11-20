@@ -1,0 +1,21 @@
+{
+ "run": "create-a",
+ "source_revision": "3eee80eafe79d3e313af4fb91fef2a6d35dff6b7",
+ "started": "2026-11-19T04:05:08+01:00",
+ "game": "Minecraft 26.2 development client (Loom runClient) with the worktree's AresOS mod, headless in the rig's own labwc",
+ "mode": "create",
+ "shown": true,
+ "environment": {
+  "runtime_folder_is_the_runs_own": true,
+  "gate": false,
+  "gate_expected": false,
+  "checked": "before the supervisor started and before any save"
+ },
+ "home": {
+  "made_by": "the real game with the real mod (the first start of a session with no AresHub)",
+  "supervisor_home_check": "ok",
+  "reader_finds_at_the_pad": "minecraft:gold_block",
+  "reader_finds_at_block_1": "minecraft:air"
+ },
+ "gradle_saw_exit_value": 0
+}

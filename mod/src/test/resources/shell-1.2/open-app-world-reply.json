@@ -1,0 +1,9 @@
+{
+  "protocol": "aresos-shell/1.2",
+  "id": "o-1",
+  "ok": true,
+  "request_id": "o-1",
+  "launch_id": "0123456789abcdef",
+  "app_id": "notepad",
+  "state": "starting"
+}

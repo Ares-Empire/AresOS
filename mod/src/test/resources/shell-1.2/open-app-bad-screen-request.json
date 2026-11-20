@@ -1,0 +1,7 @@
+{
+  "protocol": "aresos-shell/1.2",
+  "id": "o-2",
+  "op": "open_app",
+  "app_id": "notepad",
+  "screen": "laptop"
+}

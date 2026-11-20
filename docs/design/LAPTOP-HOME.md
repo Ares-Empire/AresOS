@@ -459,6 +459,45 @@ helper that does not know them works as today.
   catalogue apps with at least one window, using the whole catalogue whether or not a desktop is connected.
   Without window tracking, the initial list is empty.
 - **Never sent to a view:** a command, arguments, an environment, a path other than `icon`.
+- **`shell_search`** (helper to a minor-2 desktop; package 53d, section 6 "The reserved key, Super").
+  `{"event": "shell_search"}`: Super was pressed, so the mod opens its search over the world.
+  - It is an optional event for the desktop only. The helper offers it only on minor 2 and only with window
+    tracking, and sends it only to a desktop that offered it on minor 2 (`emit_to` checks minor 2 for it; the
+    minor-1 gate `LATER_CAPABILITIES` does not cover it). A view is never offered it and never gets it.
+  - The supervisor's `aresos-desktop search` (package 23c) sends the helper SIGUSR1. The handler only records it;
+    the serving loop acts, and signals within 300 ms count as one. It acts only for a desktop on minor 2 that
+    offered `shell_search` and has sent `world_ready` (and no heartbeat with `"ready": false` since), with window
+    tracking on and the world's window known; otherwise Super does nothing.
+  - It always asks the compositor to activate the world, as a click would, also when the world looks active already
+    (what the helper last read can be half of a change of focus). It sends the event only once the world's window
+    is the **only** activated toplevel the compositor reports (so typing never reaches the window that had the
+    keyboard), after the usual `shell_focus` `desktop_activated`; no `shell_focus` of the helper's own. While
+    another window is still reported active beside the world it waits for the compositor's next news. If the world
+    is the only active window when Super comes, the event goes out at once. Not within 1 s: nothing is sent
+    (logged). The last active window alone never counts as the world being active.
+  - Only then is the world uncovered (`covering(known_screen=True)`): a maximized or fullscreen window that hides it
+    on its screen is minimized; smaller windows and windows on the other screen stay.
+  - A search is called off by a heartbeat with `"ready": false` (for good, also if the world is ready again within
+    the second), by a new desktop connection, by the 1 s bound, and when the conditions above no longer hold as the
+    world gets the keyboard. The activation Super asked for is marked: for a search that was called off it uncovers
+    nothing, so the world simply has the focus and no window is minimized. The mark never runs out on a timer: it
+    holds until the compositor reports the world as the only active window, however late, or another window's newer
+    activation, which ends the handoff with nothing done (a later activation of the world is then his own).
+  - The mod ignores it with no ready desktop world and while the search is open already. It replaces only what is
+    known to hold nothing typed (an allowlist): no screen, the inventory or another container (closed first, the
+    normal way), the game menu (the game's own or AresOS's) and the Apps screen, and each of these only while no
+    text box in it holds text, shown or hidden (an anvil's name, the creative inventory's search, the recipe
+    book's search also while the book is hidden, the Apps screen's search), and the Apps screen only if the screen
+    it was opened from could be replaced too. Every other screen stays as it is and the event is ignored: the game's (chat, a sign, a book
+    and its signing, command and structure blocks, settings), another mod's, and AresOS's own (the New home choice
+    with its seed, the recovery and working screens).
+  - It opens the search only while the game's window has the keyboard; an event that comes before the focus waits
+    up to 500 ms for it, then is dropped.
+- **`open_app`'s `"screen": "world"`** (minor-2 desktop to helper). The app opens on the screen that shows the
+  world (the search's Enter). From a view or a desktop below minor 2 the key is `malformed`, and so is any value
+  but `"world"`. The hint is kept in the launch's journal entry, through a pending check, duplicate requests and a
+  helper restart; placing the window there is package 23c's. A mod that agreed to less than minor 2 leaves the key
+  out, and the app opens where the pointer is.
 - **Example messages** go beside 1.1's (`mod/src/test/resources/shell-1.2/`), read by the tests of both sides.
 
 Why the mod publishes instead of the page reading the mod's file: one description of the town for every client, no

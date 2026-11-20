@@ -14,7 +14,14 @@ Written 2026-11-19 by `linux-hub` (Claude Opus 5.5), after package 56. The sessi
   - 49 and 49b: memory measurements, with the settings unchanged and the arena cap not qualified;
   - 54: the town arrives in one line;
   - 56: the world ignores the mouse behind apps, the hotbar opens apps, and flying is 1.5×.
-    Main `da441546` (#117); its jar hash from main's Mod run 44511397426 (both builds match) is `b72f91182faba3ed35750e6954deb23c622c76d1d9ef94fb7e2b857185a0c511`. `linux-laptop-home` needs it for PR 121's rebase (board #383).
+    Main `da441546` (#117); its jar hash from main's Mod run 44511397426 (both builds match) was `b72f91182faba3ed35750e6954deb23c622c76d1d9ef94fb7e2b857185a0c511`.
+- **53d** (`linux-laptop-home`, Super opens a search over the world) merged on top of 56 as `c576818b` (#121). Main's jar is now `4f7324f56ad943a80e892cdce1985dce526bdeee36ea6cc79796abb5ec98211c` (Mod run 44532278666, both builds match).
+  - **New in `mod/`:**
+    - `WorldSearchScreen`, `SearchCrosshairMixin` and `RecipeBookSearchAccess`;
+    - `ShellFocusClient.search()`;
+    - the four-argument `AresOsClient.launch(id, visit, worldScreen, opened)`.
+  - **Test order:** `WorldSearchClientGameTest` stays last in the gametest list.
+  - **Shared mod work:** `linux-laptop-home` has nothing more queued in `mod/` (14:25).
 
   STATE.md has a line for each.
 - **R28** is the first release with the home screen at boot (packages 23, 23b and 23d, plus 46, 48, 51, 54 and 53a/b inert). Package 56 rides **R29**, as `linux-aresos` asked.
@@ -22,6 +29,7 @@ Written 2026-11-19 by `linux-hub` (Claude Opus 5.5), after package 56. The sessi
   - Before `linux-aresos` publishes it (standing OK, board #388), it still needs the jar pin, the last dry run, the VM rehearsal and the final review. Installing it (`at update`) is Patrik's own step.
   - The hub waits for `linux-aresos` to say R28 is on the laptop.
 - **No hub worktree or Codex job is open.** `~/AresOS-try` is `hub-try`'s checkout: leave it alone, because `hub-try --update` moves it.
+- **B25** (the guardian, PR125, `61a66d78`, rides R29) doesn't change the jar. Its supervisor refuses to start a game while `aresos-guardian.service` isn't active. `hub-try` needs no stand-in for it, because `run-hub.sh` never starts the supervisor (`aresos-desktop`): it runs only the helper and the dev client, and the helper has no guardian check. A future tool that runs `aresos-desktop` outside the real system would need a stand-in `SYSTEMCTL`, as the guardian loop tests use.
 
 ## The owner's direction (2026-11-18)
 
@@ -68,9 +76,9 @@ His guideline: "hub wise the main next step is make it a functional, usable home
 
 ## Board
 
-- **#335** (build the laptop home) is superseded: it is package 53, owned by `linux-laptop-home`.
-- **#361** (the Minecraft-look study) is now `linux-desktop`'s brief 312 (board #374). The hub's part is the review against the checklist above.
-- Drop both, and leave the study review as a hub item. The board refused writes until `name-me` applied.
+- **#335** (build the laptop home) was dropped: it is package 53, owned by `linux-laptop-home`.
+- **#361** (the Minecraft-look study) was dropped: it is `linux-desktop`'s brief 312 (board #374). The hub's part, the review against the checklist above, is **#410**.
+- `linux-laptop-home` has 56's jar hash (it confirmed at 13:55).
 
 ## Held
 
@@ -93,4 +101,5 @@ His guideline: "hub wise the main next step is make it a functional, usable home
 
 - **56:** the empty-slot, non-app and world clicks are tested through the game's mouse callbacks, not native compositor delivery (REVIEW-1 nit).
 - **40:** a stale press in `AppsScreen` (REVIEW-3 nit).
+- **09:** `ModeInventoriesClientGameTest.toggle` timed out once (line 196, from 140, 56 s in, on NVIDIA) in one of three local client suites for 53d's rebase. The other two runs passed all 28. It looks like a timing flake in its 50 G presses (`reviews/53d-world-search/REBASE.md`, Known limits). `linux-laptop-home` left it to the hub: if it shows again, judge it here.
 - **49b:** the rig's `bash -n` record checks only the first script (REVIEW-1 nit). The rig itself is repaired for reruns in `reviews/49b-arena-rerun/rig/`.

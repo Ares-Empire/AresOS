@@ -129,3 +129,43 @@ Everything open is reviewed SAFE with green checks; nothing runs. STATE.md (pack
 at a time; fresh agents with short handoffs; Opus by default, Fable only for installs, rollback, credentials and
 security, so package 25's step 8 goes to Opus (or Codex Sol, within Codex's 12% a day). No agent waits on CI; shell
 watchers do.
+
+## Thu 2026-11-19 afternoon (the new linux-laptop-home, from 12:20)
+
+- **#114 (53c) merged** as `e01cd6a1` (OS run 44511583671 green). Board #359 done.
+- **#120 (53f) merged** as `3048b221`: rebased with `git rebase --onto origin/main 88d5afe6` (no conflicts), OS run
+  44515384290 green, `linux-aresos` read its os/ diff. Board #384 done. No mod files, so no jar line.
+- **#121 (53d) merged** as `c576818b` after OS run 44522704032 went green on attempt 3 (attempts 1 and 2 hit
+  Ubuntu mirror 503s before any test). Jar `4f7324f5…` (main's Mod run 44532278666) sent to `linux-aresos` and
+  `linux-hub`. Board #383 done. The 53c, 53d, 53e and 53f worktrees and local branches are removed (remote branches
+  kept).
+- **Package 53 is done on this side:** steps 1, 2, 3 and 5 are on main; step 4 is 23c (`linux-aresos`, after R28 is
+  published); step 6 (the laptop trial) waits for 23c. #358 stays open (53a's three low-harm follow-ups).
+
+## Where the next lead starts (Thu 2026-11-19 14:35)
+
+Only **package 25** is open (`pkg/25-guardian` at `e203e527`, worktree `~/AresOS-25-guardian`, brief
+`briefs/25-guardian.md`, `reviews/25-guardian/PROGRESS.md`; board #357 and #387).
+1. Its check build is **OS run 44533435611** (`check_build=build`, dispatched 14:30; `linux-aresos` said it need not
+   wait for R28's last steps on pkg/42). Watch it from a shell (`gh run watch 44533435611 --exit-status --interval
+   300`), never from a Claude agent. **It failed (14:41)** in "Throwaway image build and checks", before the VM:
+   `os/ci/image-checks.sh`'s old rule "no system unit starts the desktop" (`grep -rlE 'aresos-desktop|prismlauncher'`
+   over `/usr/lib/systemd/system` and `/etc/systemd/system`) finds 25's new `aresos-guardian.service`. Every image
+   check before it passed. Step 8's first fix: narrow that rule so it still catches a unit that starts the desktop
+   but allows the guardian (say why in the REPORT; `linux-aresos` reads it), then dispatch the check build again
+   for the VM part.
+2. **Step 8** with that run's ID, one fresh Opus agent (the budget rule; or Codex gpt-6.2-sol within its 12% a day):
+   fix what the VM checks show, section 5's docs, the REPORT, the PR. PROGRESS.md lists what the check build must
+   show. Rebase onto main before the PR (main moved a lot: R28 work, 53c/53d/53f in the helper).
+3. A fresh Codex gpt-6.2-astra `high` review with a data-safety pass (it guards the world through save and
+   shutdown), state decision 24's bar; then `linux-aresos` reads the os/ diff; merge on SAFE with green checks.
+4. Once 25 is on main, tell `linux-hub` that hub-try and `~/AresOS-try` need a stand-in SYSTEMCTL answering active.
+5. Then `board done 357 387`, this handoff and STATE.md, and "ready to clear" to `mac-capacity` (board #369).
+
+## Thu 2026-11-19 evening to Fri 00:05: package 25 merged
+
+PR #125 merged as `61a66d78` (details in STATE.md and `reviews/25-guardian/REPORT.md`). Board #357, #383, #384, #387 and
+#359 are done. **Nothing of this lead's is open** except #358 (53a's three low-harm follow-ups) and #369 (tell
+`mac-capacity` "ready to clear", done with this note). Package 53's step 4 and the laptop trial belong to 23c
+(`linux-aresos`). Worktree `~/AresOS-25-guardian` removed; the remote branch is kept.
+
