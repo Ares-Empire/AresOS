@@ -2,7 +2,11 @@
 
 Board T364 (the sleeping world), brief number from `board brief`. A follow-up of package 49 (`reviews/49-memory-cuts/REPORT.md`): its two cover-freeze trials held memory for five minutes, then both games died with SIGKILL (exit 137) on thaw. The report left the sender unknown. Patrik's sleeping-world idea (freeze or swap the world while it isn't needed, wake it early) can't go further until we know what kills a thawed game.
 
-**Builder:** a Claude Opus agent per step (Claude has room this week; this is a careful measurement with a known rig). **Review:** a fresh Codex `gpt-6.2-sol` `high` context (a measurement report, no product code).
+**Builder:** a Claude Opus agent per step (Claude has room this week; this is a careful measurement with a known rig).
+
+**Reviews:**
+- **This brief:** one Claude Opus review, and no Codex brief review: `mac-capacity` asked on 2026-11-20 to halve Codex use.
+- **The package:** a fresh Codex `gpt-6.2-sol` `high` context. It is a measurement report with no product code.
 
 ## What the lead already found (read-only, 2026-11-20)
 
@@ -23,7 +27,7 @@ One fresh agent per step. Each step commits, pushes `pkg/318-thaw-watchdog`, and
    - Allow 49's cover-freeze path again (`RECLAIM=600M FREEZE=1`, as 49 ran it), keeping 49b's bounded input, health watch and cleanup. Thaw on every exit path stays.
    - Add `RT=keep|demote` (default `keep`):
      - **Record, in both modes, before the freeze:** every thread of the game PID whose policy is `SCHED_FIFO` or `SCHED_RR`, with its tid, `comm`, policy and priority, and the game's `RLIMIT_RTTIME` soft and hard values from `/proc/<pid>/limits`.
-     - **`demote`:** set each recorded realtime thread to `SCHED_OTHER`, for example with `chrt --other --pid 0 <tid>`. First check that the tid's `Tgid` is the game PID. Record the result, and record the policy again just before the thaw, in case something promoted it back.
+     - **`demote`:** set each recorded realtime thread to `SCHED_OTHER`, for example with `chrt --other --pid 0 <tid>`. First check that the tid's `Tgid` is the game PID. Record the result, and record the policy again just before the thaw, in case something promoted it back. The owner's `RLIMIT_RTPRIO` is 0: an unprivileged thread may still switch to a normal policy, but only rtkit can make it realtime again.
    - Add a thaw sampler. From just before the thaw write until the game exits or 3 s pass, every 10 ms, record for each recorded realtime thread its `/proc/<pid>/task/<tid>/schedstat` first field (time on CPU, ns) and its state. Record how and when the game exits, with the signal.
    - After a surviving wake, keep 49b's wake window. Also record that the game is still alive 60 s after the return request, and any OpenAL or sound lines in its log after the wake.
    - **Tests without a game:** cover the realtime-thread parsing, the `Tgid` check (a tid of another process is refused), demotion of a stand-in thread, the sampler's stop at exit, and thaw on every exit path. Use stand-ins only. If a stand-in needs real realtime, rtkit's D-Bus `MakeThreadRealtime` is the user-level way, but plain-policy stand-ins are fine where they prove the logic.
