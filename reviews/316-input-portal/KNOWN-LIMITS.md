@@ -109,3 +109,7 @@ the wrong program, secrets in a log, a capture with no way out, a change to the 
 16 sessions, 64 barriers per session, 64 clipboard types of at most 255 bytes, 16 parked clipboard transfers.
 More is refused (or, for transfers, the oldest is dropped). Deskflow needs one session and four barriers per
 screen.
+
+## labwc aborts on an output off/on cycle with a custom mode (found in step 3, the lead's analysis 2026-11-20)
+
+The harness showed labwc 0.9.6 (wlroots 0.19.3) abort with `head_send_state: Assertion 'found' failed` when a headless output is switched off and on while any client is bound to `zwlr_output_manager_v1`; the backend is such a client, and so is a listen-only one. In wlroots 0.19.3's `types/wlr_output_management_v1.c`, `head_send_state` asserts that the client has a mode resource matching the head's current mode. For an output with a mode from its own mode list (every real monitor at an advertised mode, such as the laptop panel or the external monitor at 1920x1080 180 Hz) that resource was sent when the client bound, so it is found. The failing path is a custom mode (`mode == NULL`), which headless outputs always use and a real output uses only when set to a mode outside its list. So the risk is limited to custom modes; this package keeps the output manager. Package (c) proves it on the VM and on the laptop: monitor unplug and replug, and `wlr-randr --off`/`--on` on each output, with the backend running.

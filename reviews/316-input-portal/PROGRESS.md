@@ -360,3 +360,5 @@ Kept: the builder image and the two cache volumes, as after step 2; `localhost/a
 read); and one new image, `localhost/aresos-input-portal-harness:316` (the harness; remove it with
 `podman rmi localhost/aresos-input-portal-harness:316` when the package is merged). The two earlier builds of
 that image were removed by their IDs. No container is left (every run used `--rm`), and no `prune` was run.
+
+- **(c), from step 3's labwc abort (lead, 2026-11-20):** with the backend running, unplug and replug the external monitor and switch each output off and on with `wlr-randr`, in the VM and on the laptop; see `KNOWN-LIMITS.md`, "labwc aborts on an output off/on cycle". Never set a custom mode on his session with the backend running until this passes.
