@@ -680,7 +680,8 @@ allows once the flag is set, and puts the guarded reload before navigating a tak
 **Popups.** A popup or new tab that a Claude tab opens belongs to Claude while its opener does, and follows the same
 rule: one reload before the first input. A new tab joins the group. A popup window stays where it is: the opener's
 toolbar button shows **POP**, and the popup's list has a **Stop** for each such popup, which ends control without
-closing or reloading it. Nothing of ours ever opens a window or takes the focus (*brief 20*).
+closing or reloading it. Nothing of ours ever opens a window or takes the focus (*brief 20*), except `chrome_show`,
+which brings a tab and its window to the front for him (*brief 28a*).
 
 ### Reading a page
 
