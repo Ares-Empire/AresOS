@@ -136,9 +136,10 @@ Ares-Empire/AresOS --interval 300` in a background shell.
    `~/AresOS-317-brief`). **On main at `29f79ee5`.** Codex astra review running (09:32, answer in the
    scratchpad `317-BRIEF-REVIEW-1.md`, to be committed under `reviews/20-store-oracle-reads/`); the Claude review
    (Opus) follows when the Claude slot is free; then build (the brief names Opus builders). T298 (live Chrome setup with him). #337 and #385 done.
-6. **Budget: Fri 09:45 `mac-capacity` stopped new Claude agents** (the week went 41% to 49% in an hour, mostly
-   Fable; about 0.4%/h for everyone now). Running steps finish; B317's Claude review and 28a step 4 wait for its
-   word. Earlier (Fri 08:42 and 08:48): Claude week 41%, about 10% for all five leads until Sat
+6. **Budget (`mac-capacity`, Fri 09:55):** three Fable agents at once (08:44-09:30, ours was B317's writer) cost
+   8% of the week. Until Sat 08:00: one Opus agent at a time per lead (R28 first). **Fable only after
+   `mac-capacity`'s go, one across all leads.** Order here: the running 28a latency agent, then B317's Claude
+   review (Opus), then 28a step 4 (Opus). Earlier (Fri 08:42 and 08:48): Claude week 41%, about 10% for all five leads until Sat
    08:00; one Claude agent at a time per lead; no Claude agent waiting on CI (shell watchers do that); Opus by
    default, Fable where the design needs it. **Codex ran at twice its fair pace:** keep it for cross-reviews and
    the builds that need it (each run pushes and stops), and give the rest to Claude Opus agents. So 28a step 4
