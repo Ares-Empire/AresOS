@@ -432,7 +432,17 @@ Hosted, on `c2a20dcb` (the lead's record of results): Control Chrome 44705819383
 green. Qualification 44705823983, Control Base 44705828872, Control Mail 44705834097 and Repo privacy 44705838823
 green.
 
-Pass 1 on step 4's head: **[PASS 1: run IDs below, added after dispatch]**.
+Pass 1, dispatched once each on `faad16c8` (step 4's report commit; the code is `ffbb8c36`'s), verdicts
+**[PASS 1: placeholder, the lead's shell]**:
+
+- [Control Chrome 44741976446](https://github.com/Ares-Empire/AresOS/actions/runs/44741976446)
+- [Control Chrome qualification 44741981631](https://github.com/Ares-Empire/AresOS/actions/runs/44741981631)
+- [Control base 44741986552](https://github.com/Ares-Empire/AresOS/actions/runs/44741986552)
+- [Control Mail 44741991496](https://github.com/Ares-Empire/AresOS/actions/runs/44741991496)
+- [Repo privacy 44741996353](https://github.com/Ares-Empire/AresOS/actions/runs/44741996353)
+- [Control boundary 44742067884](https://github.com/Ares-Empire/AresOS/actions/runs/44742067884): dispatched by
+  hand. It runs on pull requests touching `control/`, but GitHub skips that when the pushed head's message says
+  `[skip ci]`, so it didn't start by itself.
 
 Local, step 4 (no browser ran locally):
 

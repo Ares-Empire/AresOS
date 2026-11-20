@@ -68,10 +68,17 @@ The full report is [REPORT.md](REPORT.md); step 4's known limits are at the top 
 
 ### Pass 1
 
-Dispatched once each on the report commit (the head after this step's push); the `linux-tools` lead's shell
-watches them and dispatches pass 2.
+Dispatched once each on `faad16c8`, the report commit; this commit only records them. The `linux-tools`
+lead's shell watches them and dispatches pass 2. Not watched here.
 
-Run IDs: added by the next commit (`[skip ci]`), after the dispatch.
+- [Control Chrome 44741976446](https://github.com/Ares-Empire/AresOS/actions/runs/44741976446)
+- [Control Chrome qualification 44741981631](https://github.com/Ares-Empire/AresOS/actions/runs/44741981631)
+- [Control base 44741986552](https://github.com/Ares-Empire/AresOS/actions/runs/44741986552)
+- [Control Mail 44741991496](https://github.com/Ares-Empire/AresOS/actions/runs/44741991496)
+- [Repo privacy 44741996353](https://github.com/Ares-Empire/AresOS/actions/runs/44741996353)
+- [Control boundary 44742067884](https://github.com/Ares-Empire/AresOS/actions/runs/44742067884): dispatched by
+  hand. It runs on pull requests touching `control/`, but GitHub skips that when the pushed head's message says
+  `[skip ci]`, so it didn't start by itself.
 
 ### Left, in order
 
