@@ -75,7 +75,13 @@ Ares-Empire/AresOS --interval 300` in a background shell.
      at its first failure): core group 7's late shadow root, review group 8's iframe drafts. It also fixed two
      real reader defects (image-map links, an editable Pay button's role): **the package reviews must read
      `9b482732`.** Fix round 2 runs on gpt-6.2-astra (`28a-step2-fix2`): every shard runs all its checks first; the
-     same chain launches 3a only if green. Then step 2
+     same chain launches 3a only if green.
+   - **Fri 02:32: step 2 green** on `35f7af24` (Chrome 44639875539, qualification 44639888962); **step 3a done**
+     (`70d7e5fb`; every evidence gap now on a channel outside Claude's tools; 40 old call sites left for 3b).
+     Its runs: Chrome 44654244144, qualification 44654244071. A shell chain launches **3b** (prompt
+     `28a-step3b.txt`) only if both are green. The builder may not touch `docs/design/`: **after 3b, add
+     `chrome_show`'s exception to CONTROL.md line 753 yourself** ("Nothing of ours ever opens a window or takes
+     the focus", except `chrome_show`, which brings a tab to the front for him). Then step 2
      (HARNESS-MAP), step 3b (removal; CONTROL.md line 753 "nothing of ours ... takes the focus" needs `chrome_show`'s exception;
      `response_checks.check_responses` in the Chrome tests, #122's NIT 2), step 4 (full validation twice), the
      package and security reviews. Red: one Codex Sol fix step that pushes, dispatches once and stops.
