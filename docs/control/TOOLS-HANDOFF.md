@@ -93,7 +93,14 @@ Ares-Empire/AresOS --interval 300` in a background shell.
      bare functions (owner-state oracle test in base and Mail); a reviews/20-chrome pin of the old WITHHELD_FORM
      text (qualification); GROUP 14 TIME calls an action the proxy refuses; latency `asking_click`/`navigate` miss.
      Fix round `28a-step3b-fix.txt` (gpt-6.2-sol; lead allows changing only the old-text pins in reviews/20-chrome,
-     never its records/) runs in a chain with all five workflows gating step 4. The lead's `chrome_show` line is in
+     never its records/) done 09:07 (`fb34fb6f`; runs Chrome 44699409140, qualification 44699413577, base
+     44699417356, Mail 44699421544, privacy 44699425679). **Latency PLAN-GAP:** on 3a PR #27's probe still timed
+     the old tools; now it times `chrome_do`/`chrome_go` (asking_click ~130 ms vs 60, navigate ~370 vs 100). The
+     brief says the gate stays within its ceilings, so this is the lead's call. An Opus agent (09:30) breaks the
+     time down by span, fixes waste outside the frozen asking path, proposes ceilings if inherent, and rebuilds
+     group 16's check as the brief reads (each task's median against the new-tools median recorded in
+     `efficiency-baseline.json`, fail above 1.5x; 3b built a per-sample check). Step 4 (Opus, from
+     `28a-step4.held.txt`) after that. The lead's `chrome_show` line is in
      CONTROL.md on the branch (`1c67199b`). Next: Codex step 4 (`28a-step4.txt`: FEATURES' stale `chrome_fill`
      State cell, REPORT.md, KNOWN-LIMITS, pass 2 = Chrome and qualification again), then the package and security
      reviews (astra). Reviewers must read 3b's "private view digest" in the reader's native reply. Then step 2
@@ -126,8 +133,9 @@ Ares-Empire/AresOS --interval 300` in a background shell.
 4. **Package 28** (#72): held until right after R29's cut, then merge and retarget #116 to main.
 5. **Board:** T386 (N8 and N9 follow-up, one re-pin): **B317 brief started Fri 08:44** by one Fable writer
    (`briefs/20-store-oracle-reads.md` on local branch `brief/317-store-oracle-reads`, worktree
-   `~/AresOS-317-brief`, not pushed). Next: read it, push to main, one Claude review (Opus), one Codex review
-   (astra), then build. T298 (live Chrome setup with him). #337 and #385 done.
+   `~/AresOS-317-brief`). **On main at `29f79ee5`.** Codex astra review running (09:32, answer in the
+   scratchpad `317-BRIEF-REVIEW-1.md`, to be committed under `reviews/20-store-oracle-reads/`); the Claude review
+   (Opus) follows when the Claude slot is free; then build (the brief names Opus builders). T298 (live Chrome setup with him). #337 and #385 done.
 6. **Budget (`mac-capacity`, Fri 08:42 and 08:48):** Claude week 41%, about 10% for all five leads until Sat
    08:00; one Claude agent at a time per lead; no Claude agent waiting on CI (shell watchers do that); Opus by
    default, Fable where the design needs it. **Codex ran at twice its fair pace:** keep it for cross-reviews and
