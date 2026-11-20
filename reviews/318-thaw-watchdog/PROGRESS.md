@@ -16,7 +16,7 @@ Brief: `briefs/318-thaw-watchdog.md` (the authority). Branch `pkg/318-thaw-watch
 **Step 2, the plan** (2026-11-20, Claude Opus 5.5 builder): `PLAN.md`, committed and pushed in `eb499fb3` before S0. Its rules section is the brief's step 2 word for word (checked with `diff`), plus the lead's run measure and its two known limits, and the commands. It hasn't changed since.
 
 **Step 3, the runs** (2026-11-20, same builder): S0, B1, A1, A2, each on the first attempt, no exit 75, no overlap, all trials VALID. **Verdict: WATCHDOG CONFIRMED** (the `null` backend only). Records in `runs/s0`, `runs/b1`, `runs/a1`, `runs/a2`; `rig/read_run.py runs/<name>` prints each run's numbers with PLAN.md's measure.
-- **`FINDINGS.md` is not in the repo yet.** The builder's file tool refuses to create a findings file (as with `REPORT.md`, see `CLAUDE.md`). Its full text is the last section of this file, "FINDINGS.md text". The lead commits it as `reviews/318-thaw-watchdog/FINDINGS.md`, for example, in `reviews/318-thaw-watchdog/`: `sed -n '/^<!-- FINDINGS START -->$/,/^<!-- FINDINGS END -->$/p' PROGRESS.md | sed '1d;$d' > FINDINGS.md`, and then deletes that section from here.
+- **`FINDINGS.md` is committed** (`d833c444`, by the lead from the step 3 builder's text).
 
 ## Left, in order
 
