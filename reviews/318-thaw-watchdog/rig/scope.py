@@ -48,7 +48,10 @@ def action(pid, unit, what, out):
                     raise
             record['after'] = {n: (group / n).read_text().strip() for n in ('memory.current', 'memory.swap.current')}
         elif what in {'freeze', 'thaw'}:
+            # Package 318 times the thaw from the write itself, not from the scope check before it.
+            record['write_monotonic_ns'] = time.monotonic_ns()
             (group / 'cgroup.freeze').write_text('1\n' if what == 'freeze' else '0\n')
+            record['written_monotonic_ns'] = time.monotonic_ns()
             deadline = time.monotonic() + 10
             while True:
                 events = dict(line.split() for line in (group / 'cgroup.events').read_text().splitlines())

@@ -18,5 +18,7 @@ done
 pci=$(readlink -f -- "$node/device")
 aresos_hold_nvidia "${pci##*/}" || aresos_fail 1 "Cannot hold NVIDIA awake."
 export PKG49_LOCK_HELD=1
+# Package 318 reads this card's power/runtime_status around the freeze and the thaw (read-only).
+export PKG318_GPU_PCI=${pci##*/}
 # Keep the outer EXIT trap: exec would discard the holder's cleanup.
 aresos_scoped pkg318-controller -- "$here/measure.sh" "$@"

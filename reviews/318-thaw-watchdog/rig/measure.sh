@@ -22,6 +22,13 @@
 #                    the Nether, whose caves stop a real flight within blocks (AresOS refuses spectator mode); needs a
 #                    save readied with prepare-glide.py; none: no flight
 #   QUIT=0           1: at the end close the game's window, so it saves and quits, and keep the save in <rig>/world
+#   RECLAIM=600M FREEZE=1   package 49's cover-freeze (COVER >= 60): 30 s into the cover a GC/trim, a 600M reclaim of
+#                    the game's own scope, then a freeze until the return request; the only cover action package 318 allows
+#   RT=keep          keep or demote (FREEZE=1): once the freeze is confirmed, record the game's realtime threads and
+#                    limits (rt.py); demote also sets them to SCHED_OTHER, keeping reset-on-fork. Just before the thaw the
+#                    policies are checked again (a realtime thread left in demote makes the run INVALID, exit 3), and
+#                    thaw.py samples the recorded threads every 10 ms for 3 s (keep) or 10 s (demote) and watches the
+#                    game's exit until 60 s after the return request, which the run waits for before its cleanup
 #
 # What it does (MODE=measure): copies the base world into mod/run/saves/AresHub, sets the distances, starts the rig
 # (run.sh: shared lock; start.sh: its own headless labwc and memory check), waits for the world, lets it settle, takes a
@@ -37,11 +44,11 @@ name=${1:?usage: run.sh <name> [KEY=value ...]}
 shift
 RD=8 SD=5 HEAP=1024 MIN_HEAP=256 GC=-XX:MaxHeapFreeRatio=30,-XX:MinHeapFreeRatio=10 MEMHIGH=2560M SIZE=1920x1080 REFRESH=144 SETTLE=120 WINDOW=60 COVER=0 MODE=measure WORLD=base SHOTS=1
 HOMEKIND=flat BASE=AresHub-base FLIGHT=roads QUIT=0
-ENV= MODS= PROBE=0 RECLAIM= FREEZE=0 LONG=0 NMT=1 COVER_ACTION=none CREATE_FLOW=manual
+ENV= MODS= PROBE=0 RECLAIM= FREEZE=0 LONG=0 NMT=1 COVER_ACTION=none CREATE_FLOW=manual RT=keep
 for setting; do
     key=${setting%%=*}
     case $key in
-        RD|SD|HEAP|MIN_HEAP|GC|MEMHIGH|SIZE|REFRESH|SETTLE|WINDOW|COVER|MODE|WORLD|SHOTS|HOMEKIND|BASE|FLIGHT|QUIT|ENV|MODS|PROBE|RECLAIM|FREEZE|LONG|NMT|COVER_ACTION|CREATE_FLOW)
+        RD|SD|HEAP|MIN_HEAP|GC|MEMHIGH|SIZE|REFRESH|SETTLE|WINDOW|COVER|MODE|WORLD|SHOTS|HOMEKIND|BASE|FLIGHT|QUIT|ENV|MODS|PROBE|RECLAIM|FREEZE|LONG|NMT|COVER_ACTION|CREATE_FLOW|RT)
             printf -v "$key" '%s' "${setting#*=}" ;;
         *) echo "unknown setting $key" >&2; exit 2 ;;
     esac
@@ -67,8 +74,12 @@ if [[ -n $RECLAIM || $FREEZE == 1 || $COVER_ACTION != none ]]; then
     ((COVER >= 60)) || { echo "cover action requires COVER >= 60" >&2; exit 2; }
 fi
 [[ $FREEZE != 1 || -n $RECLAIM ]] || { echo "freeze must follow reclaim" >&2; exit 2; }
-# This rerun never performs a direct cgroup write or a diagnostic collection.
-[[ $PROBE == 0 && $FREEZE == 0 && -z $RECLAIM && $COVER_ACTION == none ]] || { echo "cover/probe actions are outside package 318" >&2; exit 2; }
+# Package 318 allows exactly package 49's cover-freeze path (its GC/trim, RECLAIM=600M, FREEZE=1) and no other cover or
+# probe action; RT=demote only with that freeze.
+[[ $PROBE == 0 && $COVER_ACTION == none ]] || { echo "probe and GC-only cover actions are outside package 318" >&2; exit 2; }
+[[ -z $RECLAIM && $FREEZE == 0 || $RECLAIM == 600M && $FREEZE == 1 ]] || { echo "package 318 runs RECLAIM=600M FREEZE=1 or no cover action" >&2; exit 2; }
+[[ $RT == keep || $RT == demote ]] || { echo "RT: keep or demote" >&2; exit 2; }
+[[ $RT == keep || $FREEZE == 1 ]] || { echo "RT=demote needs FREEZE=1" >&2; exit 2; }
 JDK=${JAVA_HOME:-$HOME/.local/opt/jdk-25}
 WORK=$WT/.work/pkg318
 RIG=$WORK/rigs/$name
@@ -144,7 +155,7 @@ if [[ $MODE == measure || -d $SAVE ]]; then export GAME_ARGS="--quickPlaySinglep
 printf '%s\n' "name=$name" "RD=$RD" "SD=$SD" "HEAP=$HEAP" "MIN_HEAP=$MIN_HEAP" "GC=$GC" "MEMHIGH=$MEMHIGH" "SIZE=$SIZE" \
     "REFRESH=$REFRESH" "SETTLE=$SETTLE" "WINDOW=$WINDOW" "COVER=$COVER" "MODE=$MODE" "WORLD=$WORLD" \
     "HOMEKIND=$HOMEKIND" "BASE=$BASE" "FLIGHT=$FLIGHT" "QUIT=$QUIT" "CREATE_FLOW=$CREATE_FLOW" \
-    "ENV=$ENV" "MODS=$MODS" "PROBE=$PROBE" "RECLAIM=$RECLAIM" "FREEZE=$FREEZE" "LONG=$LONG" "NMT=$NMT" "COVER_ACTION=$COVER_ACTION" "WAKE_INPUT=active-v3" \
+    "ENV=$ENV" "MODS=$MODS" "PROBE=$PROBE" "RECLAIM=$RECLAIM" "FREEZE=$FREEZE" "LONG=$LONG" "NMT=$NMT" "COVER_ACTION=$COVER_ACTION" "RT=$RT" "WAKE_INPUT=active-v3" \
     "JVM_ARGS=$jvm" "GAME_ARGS=$GAME_ARGS" "source_revision=$(git -C "$WT" rev-parse HEAD)" "started=$(date -Is)" >"$RIG/settings.txt"
 
 # A command through chat: / opens it with the slash typed, the text, Enter.
@@ -152,6 +163,8 @@ chat() { vin key slash; sleep 0.5; vin type "$1"; sleep 0.3; vin key enter; slee
 shot() { mkdir -p "$RIG/shots"; "$WT/reviews/40-real-home/rig/shot.sh" "$RIG" "$RIG/shots/$1.png" || true; }
 
 source "$here/lifecycle.sh"
+# Fixed here, never taken from the environment: the exit watcher holds the game to 60 s after the return request.
+PKG318_THAW_HOLD=60
 rig_start "$here/start.sh"
 python3 -I "$here/interference.py" "$RIG/host-watch.jsonl" &
 host_watch=$!
@@ -313,17 +326,23 @@ if ((COVER > 0)); then
     python3 -I "$here/snap.py" "$game" covered0 "$RIG"
     if [[ $COVER_ACTION != none || -n $RECLAIM ]]; then
         delay=$((cover_start + 30 - SECONDS)); ((delay <= 0)) || sleep "$delay"
-        python3 -I "$here/scope.py" "$game" "$PKG49_GAME_UNIT" gc-trim "$RIG"
-        [[ -z $RECLAIM ]] || python3 -I "$here/scope.py" "$game" "$PKG49_GAME_UNIT" "reclaim:$RECLAIM" "$RIG"
+        rig_scope "$game" "$PKG49_GAME_UNIT" gc-trim "$RIG"
+        [[ -z $RECLAIM ]] || rig_scope "$game" "$PKG49_GAME_UNIT" "reclaim:$RECLAIM" "$RIG"
         if [[ $FREEZE == 1 ]]; then
+            rig_card before-freeze
             # Set before the write: an interrupted freeze is still thawed by cleanup.
             frozen=1
-            python3 -I "$here/scope.py" "$game" "$PKG49_GAME_UNIT" freeze "$RIG"
+            rig_scope "$game" "$PKG49_GAME_UNIT" freeze "$RIG"
+            # Only now that the freeze is confirmed: a frozen game can't end, start or promote a thread meanwhile.
+            rig_rt record "$game" "$PKG49_GAME_UNIT" "$RIG"
+            [[ $RT != demote ]] || rig_rt demote "$game" "$PKG49_GAME_UNIT" "$RIG"
+            rig_card frozen
         fi
     fi
     for ((t = 60; t <= COVER; t += 60)); do
         delay=$((cover_start + t - SECONDS)); ((delay <= 0)) || sleep "$delay"
         PKG49_FROZEN=$frozen python3 -I "$here/snap.py" "$game" "covered$((t / 60))m" "$RIG"
+        [[ $frozen != 1 ]] || rig_card "covered$((t / 60))m"
     done
     delay=$((cover_start + COVER - SECONDS)); ((delay <= 0)) || sleep "$delay"
     mark covered_end
@@ -335,10 +354,7 @@ import json, sys, time
 fields = open(f'/proc/{int(sys.argv[1])}/stat').read().rsplit(')', 1)[1].split()
 json.dump({'monotonic_ns': time.monotonic_ns(), 'majflt': int(fields[9]), 'minflt': int(fields[7])}, open(sys.argv[2], 'w'))
 PYFAULT
-    if [[ $frozen == 1 ]]; then
-        python3 -I "$here/scope.py" "$game" "$PKG49_GAME_UNIT" thaw "$RIG"
-        frozen=0
-    fi
+    [[ $frozen != 1 ]] || rig_return_thaw
     kill "$cover" 2>/dev/null || true; wait "$cover" 2>/dev/null || true; cover=
     mark wake_start
     python3 -I "$WT/reviews/40-real-home/rig/tl.py" "$RIG" activate aresos-desktop >>"$RIG/cover.txt" 2>&1
@@ -346,6 +362,7 @@ PYFAULT
     python3 -I "$here/wake.py" "$RIG"
     mark wake_end
     python3 -I "$here/snap.py" "$game" wake "$RIG"
+    rig_hold
 fi
 # Pictures for the report, after every measurement: from the pad looking south over the biggest group, and from
 # above it. Only the rig's own test logos are in them.

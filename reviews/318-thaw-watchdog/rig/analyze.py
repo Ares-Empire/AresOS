@@ -92,7 +92,7 @@ def window(start, end, clip_start=False):
 
 summary = {'name': settings.get('name'), 'settings': {k: settings.get(k) for k in
            ('RD', 'SD', 'HEAP', 'MIN_HEAP', 'GC', 'MEMHIGH', 'SIZE', 'REFRESH', 'SETTLE', 'WINDOW', 'COVER', 'MODE',
-            'HOMEKIND', 'BASE', 'FLIGHT', 'ENV', 'MODS', 'PROBE', 'RECLAIM', 'FREEZE', 'LONG', 'NMT', 'COVER_ACTION', 'WAKE_INPUT', 'CREATE_FLOW')},
+            'HOMEKIND', 'BASE', 'FLIGHT', 'ENV', 'MODS', 'PROBE', 'RECLAIM', 'FREEZE', 'LONG', 'NMT', 'COVER_ACTION', 'RT', 'WAKE_INPUT', 'CREATE_FLOW')},
            'windows': {}, 'snapshots': {}}
 # A first creation (MODE=create): from the Create click to joining, then while the town builds (flat), and the first
 # 30 s in the new world (60 s would reach vanilla's 30-frames limit, 60 s after the last input: the Create click).
