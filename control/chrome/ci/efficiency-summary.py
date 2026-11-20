@@ -12,9 +12,11 @@ descriptions plus the server instructions, and tool names plus input schemas
 as compact JSON.
 
 Group 16 compares calls and characters with the frozen baseline and the brief's
-budgets. Every measured sample of each public task must be at most 1.5 times
-that task's median in the same run. The recorded old and new measurements
-remain in efficiency-baseline.json.
+budgets. Brief 28a's latency check after brief 20's tools are removed: each task
+the side-by-side comparison timed (TIMED_TASKS) may take at most 1.5 times the
+new tools' median of that comparison run, as efficiency-baseline.json records
+it (its latency_comparisons entries of run COMPARISON_RUN), at its median of
+this run's measured samples.
 """
 import json
 import math
@@ -43,7 +45,12 @@ OUTLINE_ROWS = {
     "outline_three_tabs": {"baseline": "three_tabs", "calls": 1, "characters": None},
 }
 MEASURED_RUNS = 5
-WITHIN_RUN_LIMIT = 1.5
+# Brief 28a, "Latency: old and new in one run": the three tasks timed with brief 20's tools and the new ones
+# in one run, and that run (step 3a's 75bc1428, the last with both tool sets). Its entries in the baseline
+# file's latency_comparisons hold the new tools' medians the check that stays compares with.
+TIMED_TASKS = ("outline_f1_first_read", "act_f5_free_click", "act_f4_to_question")
+COMPARISON_RUN = "44671559502"
+RECORDED_LIMIT = 1.5
 
 
 def received(result):
@@ -172,7 +179,6 @@ ACT_ROWS = {
     "act_f5_free_click": {"baseline": "f5_free_click", "calls": 1, "characters": 2500},
     "act_list_25_tabs": {"baseline": "list_25_tabs", "calls": 1, "characters": 3500},
 }
-TIMED_TASKS = (*OUTLINE_ROWS, *ACT_ROWS, "act_f4_to_question")
 INSTRUCTIONS_MOST, EVERY_APP_MOST = 2800, 4096
 
 
@@ -211,8 +217,13 @@ def act_rows(summary, baseline):
     return rows, misses
 
 
-def latency_rows(summary):
-    """Require all five samples for each task to stay within 1.5 times their median."""
+def latency_rows(summary, baseline):
+    """Each timed task's median in this run, at most 1.5 times the new tools' median recorded for it.
+
+    The recorded median is the comparison run's (COMPARISON_RUN), one entry per
+    task in the baseline file's latency_comparisons. A sample's distance from
+    this run's own median isn't checked.
+    """
     rows, misses = {}, []
     for name in TIMED_TASKS:
         task = summary["tasks"].get(name)
@@ -220,13 +231,19 @@ def latency_rows(summary):
         if len(samples) != MEASURED_RUNS or not all(type(ms) in {int, float} and math.isfinite(ms) and ms > 0 for ms in samples):
             misses.append("%s: expected %d measured samples with positive milliseconds" % (name, MEASURED_RUNS))
             continue
+        entries = [entry for entry in baseline.get("latency_comparisons", [])
+                   if entry.get("run_id") == COMPARISON_RUN and (entry.get("new") or {}).get("task") == name]
+        recorded = entries[0]["new"].get("milliseconds") if len(entries) == 1 else None
+        if type(recorded) not in {int, float} or not math.isfinite(recorded) or recorded <= 0:
+            misses.append("%s: the baseline file records no single new-tools median of run %s for it" % (name, COMPARISON_RUN))
+            continue
         median = statistics.median(samples)
-        allowed = WITHIN_RUN_LIMIT * median
-        most = max(samples)
-        rows[name] = {"median_milliseconds": median, "most_milliseconds": most, "allowed_milliseconds": allowed,
-                      "milliseconds_per_run": samples}
-        if most > allowed:
-            misses.append("%s: slowest sample %.3f ms, allowed %.3f ms (1.5 times the run median)" % (name, most, allowed))
+        allowed = RECORDED_LIMIT * recorded
+        rows[name] = {"median_milliseconds": median, "recorded_median_milliseconds": recorded, "recorded_run": COMPARISON_RUN,
+                      "allowed_milliseconds": allowed, "milliseconds_per_run": samples}
+        if median > allowed:
+            misses.append("%s: median %.3f ms, allowed %.3f ms (1.5 times its new-tools median %.1f ms in run %s)"
+                          % (name, median, allowed, recorded, COMPARISON_RUN))
     return rows, misses
 
 
@@ -255,7 +272,7 @@ def main(argv):
     baseline = json.loads(BASELINE.read_text())
     rows, misses = read_rows(summary, baseline)
     acting, act_misses = act_rows(summary, baseline)
-    latency, latency_misses = latency_rows(summary)
+    latency, latency_misses = latency_rows(summary, baseline)
     sized, size_misses = size_rows(summary["sizes"])
     summary.update(read_rows=rows, read_row_misses=misses,
                    act_rows=acting, act_row_misses=act_misses, latency_rows=latency, latency_misses=latency_misses,

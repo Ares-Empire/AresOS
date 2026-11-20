@@ -3,6 +3,7 @@ import hashlib
 import importlib.util
 import json
 import re
+import statistics
 import sys
 import tempfile
 import unittest
@@ -243,6 +244,25 @@ class EfficiencyBaselineTest(unittest.TestCase):
         self.assertEqual(tasks["f2_table"]["plan"], ["read*"])
         self.assertEqual(tasks["f1_everything"]["row"], "F1: everything, the read and each cursor it returns")
 
+    def test_brief_28as_comparison_run_is_recorded_once_per_timed_task_as_its_summary_wrote_it(self):
+        # Brief 28a: "That run's id and numbers go into the report and into the baseline file."
+        entries = [entry for entry in self.baseline["latency_comparisons"] if entry["run_id"] == summary.COMPARISON_RUN]
+        self.assertEqual([entry["new"]["task"] for entry in entries], list(summary.TIMED_TASKS))
+        self.assertEqual([entry["old"]["task"] for entry in entries], ["f1_first_read", "f5_free_click", "f4_old_to_question"])
+        self.assertEqual({entry["sha"] for entry in entries}, {"75bc1428beca49573d42c01b8f6b90ff17759cb2"})
+        for entry in entries:
+            with self.subTest(task=entry["new"]["task"]):
+                self.assertEqual(entry["runs"], summary.MEASURED_RUNS)
+                self.assertEqual(entry["rule"], "new median <= 1.10 x old median + 50 ms")
+                for side in ("old", "new"):
+                    self.assertEqual(len(entry[side]["milliseconds_per_run"]), summary.MEASURED_RUNS)
+                    self.assertEqual(entry[side]["milliseconds"], statistics.median(entry[side]["milliseconds_per_run"]))
+                self.assertEqual(entry["allowed_milliseconds"], round(1.10 * entry["old"]["milliseconds"] + 50, 1))
+                self.assertTrue(entry["passed"])
+                self.assertLessEqual(entry["new"]["milliseconds"], entry["allowed_milliseconds"])
+        # Brief 28's own comparison stays first, as committed.
+        self.assertEqual(self.baseline["latency_comparisons"][0]["run_id"], "44226934670")
+
 
 def listed_tasks(name="OUTLINE_TASKS"):
     """A task list of efficiency-probe.mjs (OUTLINE_TASKS, ACT_TASKS, LATENCY_TASKS) as its source lists it: name, row and plan."""
@@ -357,8 +377,9 @@ class ActRowsTest(unittest.TestCase):
         timed = listed_tasks("LATENCY_TASKS")
         self.assertEqual([task["name"] for task in timed], ["act_f4_to_question"])
         self.assertEqual(timed[0]["plan"], ["do"])
-        self.assertEqual(summary.TIMED_TASKS, (*summary.OUTLINE_ROWS, *summary.ACT_ROWS, "act_f4_to_question"))
-        self.assertEqual((summary.MEASURED_RUNS, summary.WITHIN_RUN_LIMIT), (5, 1.5))
+        # "Latency: old and new in one run": the first read of F1, a free click with its report, F4 up to the question.
+        self.assertEqual(summary.TIMED_TASKS, ("outline_f1_first_read", "act_f5_free_click", "act_f4_to_question"))
+        self.assertEqual((summary.MEASURED_RUNS, summary.RECORDED_LIMIT, summary.COMPARISON_RUN), (5, 1.5, "44671559502"))
 
     def run_of(self, change=None):
         """A summary where every acting row holds; `change` edits its tasks."""
@@ -405,27 +426,53 @@ class ActRowsTest(unittest.TestCase):
         _, misses = summary.act_rows(self.run_of(edit("act_f4_fill_send", characters_per_run=[90000] * 5)), self.baseline)
         self.assertEqual(misses, [])
 
-    def test_every_task_has_five_trials_and_uses_its_own_same_run_median(self):
-        tasks = {name: {"milliseconds_per_run": [90, 99, 100, 101, 150]} for name in summary.TIMED_TASKS}
-        tasks["act_f4_to_question"]["milliseconds_per_run"] = [900, 999, 1000, 1010, 1500]
+    def recorded(self, name):
+        [entry] = [entry for entry in self.baseline["latency_comparisons"]
+                   if entry["run_id"] == summary.COMPARISON_RUN and entry["new"]["task"] == name]
+        return entry["new"]["milliseconds"]
+
+    def timed(self, median):
+        """Five samples around `median`: two below it, two above it, one of them far above."""
+        return [median * .5, median * .9, median, median * 1.1, median * 20]
+
+    def test_each_timed_tasks_median_may_be_one_and_a_half_times_its_recorded_new_tools_median(self):
+        tasks = {name: {"milliseconds_per_run": self.timed(summary.RECORDED_LIMIT * self.recorded(name))}
+                 for name in summary.TIMED_TASKS}
         run = {"tasks": tasks}
-        rows, misses = summary.latency_rows(run)
-        self.assertEqual(misses, [])
+        rows, misses = summary.latency_rows(run, self.baseline)
+        self.assertEqual(misses, [], "at the line passes; a sample far above this run's median isn't a miss")
         self.assertEqual(list(rows), list(summary.TIMED_TASKS))
-        self.assertEqual(rows["act_f4_to_question"]["allowed_milliseconds"], 1500)
+        self.assertEqual(rows["outline_f1_first_read"]["recorded_median_milliseconds"], 191.6)
+        self.assertEqual(rows["act_f5_free_click"]["recorded_median_milliseconds"], 668.0)
+        self.assertEqual(rows["act_f4_to_question"]["recorded_median_milliseconds"], 4495.5)
         for name in summary.TIMED_TASKS:
             with self.subTest(name=name):
-                samples = tasks[name]["milliseconds_per_run"]
-                samples[-1] += 0.001
-                _, missed = summary.latency_rows(run)
+                self.assertEqual(rows[name]["median_milliseconds"], rows[name]["allowed_milliseconds"])
+                saved = tasks[name]["milliseconds_per_run"]
+                tasks[name]["milliseconds_per_run"] = self.timed(summary.RECORDED_LIMIT * self.recorded(name) + .001)
+                _, missed = summary.latency_rows(run, self.baseline)
                 self.assertEqual(len(missed), 1, missed)
-                self.assertIn(name + ": slowest sample", missed[0])
-                samples[-1] -= 0.001
+                self.assertIn(name + ": median ", missed[0])
+                self.assertIn("in run 44671559502", missed[0])
+                tasks[name]["milliseconds_per_run"] = saved
 
+    def test_a_timed_task_without_its_samples_or_its_recorded_median_is_a_miss(self):
+        tasks = {name: {"milliseconds_per_run": [10, 10, 10, 10, 10]} for name in summary.TIMED_TASKS}
         tasks["outline_f1_first_read"]["milliseconds_per_run"].pop()
         del tasks["act_f4_to_question"]
-        _, misses = summary.latency_rows(run)
+        _, misses = summary.latency_rows({"tasks": tasks}, self.baseline)
         self.assertEqual([miss.split(":")[0] for miss in misses], ["outline_f1_first_read", "act_f4_to_question"])
+        # The median is recorded once for the comparison run: another run's, a missing or a doubled entry don't count.
+        tasks = {name: {"milliseconds_per_run": [10, 10, 10, 10, 10]} for name in summary.TIMED_TASKS}
+        entries = self.baseline["latency_comparisons"]
+        f5 = next(entry for entry in entries if entry["new"].get("task") == "act_f5_free_click")
+        for changed in ([entry for entry in entries if entry is not f5],
+                        [*entries, f5],
+                        [entry if entry is not f5 else {**f5, "run_id": "44226934670"} for entry in entries]):
+            with self.subTest(entries=len(changed)):
+                _, misses = summary.latency_rows({"tasks": tasks}, {**self.baseline, "latency_comparisons": changed})
+                self.assertEqual(len(misses), 1, misses)
+                self.assertIn("act_f5_free_click: the baseline file records no single new-tools median", misses[0])
 
     def test_the_size_rows_hold_for_this_catalogue_and_fail_above_mains(self):
         rows, misses = summary.size_rows(summary.sizes())
