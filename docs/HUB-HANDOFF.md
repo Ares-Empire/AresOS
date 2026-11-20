@@ -86,6 +86,13 @@ His guideline: "hub wise the main next step is make it a functional, usable home
 - **#361** (the Minecraft-look study) was dropped: it is `linux-desktop`'s brief 312 (board #374). The hub's part, the review against the checklist above, is **#410**.
 - `linux-laptop-home` has 56's jar hash (it confirmed at 13:55).
 
+## Coming to the shell protocol
+
+- **`world_clicked`, a new 1.x request from the mod** (`linux-desktop`, B312 step 3, 2026-11-20; `docs/design/COMPONENTS.md` 4.3 on `pkg/312-component-study`).
+  - **Why:** window layouts that cover the world need it. The shell keeps its own record of which window is where, and a window dragged out by its own bar (Chrome) leaves that record stale. The request corrects it.
+  - **When:** it is planned for a later layouts package. Nothing is needed now, but the hub, as the mod's protocol side, reviews it when it comes.
+- **B23c's Super-release check** went to `linux-aresos` on the board: does Super held through a drag open the search on release?
+
 ## Held
 
 - **The companions (board #253):** held until Patrik decides after his try-out.
