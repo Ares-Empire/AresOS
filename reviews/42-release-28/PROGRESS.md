@@ -1622,3 +1622,234 @@ assertions were corrected, and both modules were rerun.
 
 All 31 modules passed, for 588 tests and zero skips.
 `git diff --check` passed. No file over 500 MB was found in `.work/`.
+
+### Final review fixes, round 2 (Codex gpt-6.2-sol)
+
+The starting worktree was `e5d97383`. The hosted rehearsal uses `c1dba9f9`. The shipped
+release and update tools were the source of truth for the guide sweep. The two generated
+receipts below describe the local checkout. The R28 gate still awaits accepted hosted evidence.
+
+- **1 · Save before restart.** On R28, use **Alt+F4** on the focused Minecraft home. Wait for
+  **Minecraft was closed. Nothing is wrong.** Leave that screen open. The supervisor waits for
+  a retry. Both layout restarts use this step, as do update, previous, forward, rollback and
+  the emergency restart routes. The shared instruction also covers a restart for Windows.
+- **2 · Recovery terminal.** On R28, **Super+Ctrl+Esc** opens the recovery terminal if the Terminal
+  app fails. Keep it open before entering tty3 and through the check. The key binding is in
+  `os/config/usr/share/aresos/labwc/rc.xml:20`.
+- **4 · Record identity.** The active binding selector compares the record's package with its
+  directory. The rejection test puts a package 27 record in the package 42 directory.
+- **7 · Checks reservation.** Package 42 reserves 60 minutes, the checks job's limit.
+  The regression test ties the workflow reservation to that limit. Packages 13 and 27
+  still reserve 15 minutes. The 50-minute rehearsal preflight, four-run cap and
+  345-minute rehearsal ceiling still apply.
+- **8 · Check the action that ran.** Previous requires the older AresOS and the **Return to**
+  result after restart. Forward requires the newest AresOS and **Forward to**. An already
+  running target is checked on the same boot when no restart is waiting. A no-op writes no
+  new confirmation. Failed-update retries use **F12 → Bazzite**, then leave GRUB alone.
+  Windows stays the firmware default.
+- **9 · Release 27 console keys.** The exact STOP has a one-boot repair on German R27.
+  The proof is in `briefs/50-console-keymap.md:13` and
+  `reviews/22d-tools-without-stick/REPORT.md:323`: after `loadkeys -C /dev/tty3 -- de`,
+  keycode 21 changed from `+y` to `+z`, the checks passed and the owner proved physical
+  typing. The guides use that command from the retained root session with the maintainer.
+  A pending or half-written layout goes through layout abandon. Save a one-time
+  **was not applied** result even if it precedes a STOP. Require **PASS check** on this boot
+  before using it. The repair only lasts until restart.
+- **10 · Install hold.** The entry points for Fedora Media Writer, its restore control,
+  the installer and the GParted path all carry the hold before a write or erase. The GParted
+  path repeats the hold at **Apply**. The signed update on the existing installation has its
+  own gate.
+- **11 · Registry retry.** Enter the username at **GitHub username:** and the token at
+  **Read-only token (hidden):**. Wait for **PASS login** before retrying the same update.
+- **Guide tests.** `test_owner_guide_output` compares bold and inline-code console results
+  after cues such as “require,” “look for,” “shows” and “prints” with strings used by the
+  released CLI. It reads the archived v2 strings for the documented older-tools cases.
+  It rejects an invented result, using each guide's ellipsis for variable fields.
+  Route assertions reject using **Update to** or the update check box in place of the
+  return or forward check. `test_owner_path` also exercises the same-boot selection,
+  save-before-restart, R27 STOP and direct-entry holds.
+
+**PLAN-GAP — live save on release 28.** A live edit, normal close, restart and reopen
+cannot be tested here for the published release. The source and bytecode trace in round 1
+covers normal exit and world save. The rehearsal has no live edited world.
+The laptop's R28 route still needs the visible normal-close screen before reboot.
+R27's German keymap repair was demonstrated on the laptop before this round. It has
+no new physical result after an R28 → R27 return.
+
+#### Owner route audit
+
+`at …` in the command column means `sudo /var/lib/ares/at …`. Each message separated
+by a slash is a separate output line. Ellipses stand for the release reference, digest,
+menu rows or other variable fields. The guide sometimes quotes the fixed part of a line.
+
+**Tools only and registry login**
+
+| Step | Command | Tool output | Guide |
+| --- | --- | --- | --- |
+| Install from the folder or the stick | `at install` in the generated block | `PASS install` / `Tools updated from version … to …` / `manifest SHA256 …` | `docs/INSTALL.md:290`, `docs/INSTALL.md:331` |
+| Same bundle again | `at install` | `PASS install` / `Tools already installed; nothing changed` / `manifest SHA256 …` | `docs/INSTALL.md:290`, `docs/INSTALL.md:331` |
+| Verify tools only and save the title | `at check`, `at title` | `PASS check` / `PASS title` / `newer AresOS … runs and starts next` / `Boot menu at the next start: …` | `docs/INSTALL.md:333`, `docs/INSTALL.md:340` |
+| Export after a routine STOP with older tools still installed and no stick | routine export line | `PASS export` / `Tools stick absent; full records remain internal` | `docs/INSTALL.md:298` |
+| Login retry | `at login` | `GitHub username:` / `Read-only token (hidden):` / `PASS login` / `Private registry login succeeded; token excluded from diagnostics` | `docs/INSTALL.md:361` |
+| Stop before reauth or retry | `at update` | `STOP: Registry login missing, expired or unreachable: run sudo /var/lib/ares/at login, then run this command again; nothing was changed` | `docs/INSTALL.md:355` |
+
+**Signed update**
+
+| Step | Command | Tool output | Guide |
+| --- | --- | --- | --- |
+| Stage | `at update` | `PASS update` / `Signed exact release staged …` / `Running release stays as rollback …` / `pin yes; transaction idle` | `docs/INSTALL.md:348` |
+| Stage with two AresOS releases | `at update` | `… is removed when the update finishes at shutdown` / from the older release, `The new release starts with this system's settings (Wi-Fi, passwords, layout), not …'s` | `docs/INSTALL.md:350` |
+| Record interrupted staging that did complete | `at update` | `PASS update` / `Interrupted update recorded: …` | `docs/INSTALL.md:348` |
+| Already running and first | `at update` | `PASS update` / `… already starts next; nothing changed` / `It runs now` | `docs/INSTALL.md:352` |
+| Cannot stage here or already installed elsewhere | `at update` | `STOP: Update installs a new release only from a running AresOS that starts next: run …` or `STOP: The release of these tools is installed already, so update has nothing to install: run …` | `docs/INSTALL.md:353` |
+| Stop and resume | `at update` or next command | `STOP: The update … and was stopped safely: …` or `STOP: The update to … was interrupted before its result was recorded; do not reboot; run …` | `docs/INSTALL.md:354` |
+| Save the provisional title | `at title` | `PASS title` / `Boot menu after the update finishes at shutdown (expected): …` | `docs/INSTALL.md:370`, `docs/INSTALL.md:375` |
+| Export with ARESTOOLS | `at export` | `PASS export` / `SAFE TO REMOVE ARESTOOLS; unplug before every shutdown/restart` | `docs/INSTALL.md:299`, `docs/INSTALL.md:372`, `docs/EMERGENCY.md:69` |
+| Export without ARESTOOLS | `at export` | `PASS export` / `Tools stick absent: records copied to /run/ares-records with SHA256 readback` | `docs/INSTALL.md:298`, `docs/INSTALL.md:373`, `docs/EMERGENCY.md:70` |
+| Restart after saving the title off-device | `at reboot` | `PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start` | `docs/INSTALL.md:383` |
+
+**Check and the failed-update card**
+
+| Step | Command | Tool output | Guide |
+| --- | --- | --- | --- |
+| Read the result with the terminal open on R28 | `at check` | `PASS check` / `System console …; X11 … variant …` / `Loaded y/z map, cmdline and all retained BLS maps passed` | `docs/INSTALL.md:197`, `docs/INSTALL.md:449`, `docs/INSTALL-PROCEDURES.md:83`, `docs/EMERGENCY.md:26` |
+| No open change, default boot | `at check` | `PASS check` / `… runs and starts next` / `Boot menu at the next start: …` | `docs/INSTALL.md:340`, `docs/INSTALL.md:395` |
+| No waiting change, another row booted | `at check` | `PASS check` / `… runs; … starts next; this start was not the default` | `docs/INSTALL-PROCEDURES.md:120` |
+| Update confirmed | `at check` | `PASS check` / `Update to … confirmed after the restart` / `newer AresOS … runs and starts next` | `docs/INSTALL.md:387`, `docs/EMERGENCY.md:29` |
+| Same boot, staging present | `at check` | `PASS check` / `Update to … is not finished until the restart` | `docs/INSTALL.md:390`, `docs/EMERGENCY.md:31` |
+| Same boot, a selection is queued | `at check` or `at title` | `PASS check` or `PASS title` / `… runs; … starts next, after the restart` / `… is not finished until the restart` | `docs/INSTALL.md:406`, `docs/INSTALL.md:426`, `docs/INSTALL-PROCEDURES.md:135` |
+| Applied with target already running | `at check` or `at title` | `PASS check` or `PASS title` / `… runs and now starts next; no restart is waiting` | `docs/INSTALL.md:406`, `docs/INSTALL.md:436`, `docs/INSTALL-PROCEDURES.md:161` |
+| A different boot-menu row started after update | `at check` | `PASS check` / `… runs; … starts next; this start was not the default` / `Update to … is in place and has not started yet` | `docs/INSTALL.md:389`, `docs/EMERGENCY.md:28` |
+| Update did not apply | `at check` | `Update to … was not applied: the deployments are as before it, and nothing is waiting` (once, even on a STOP) | `docs/INSTALL.md:388`, `docs/EMERGENCY.md:26`, `docs/EMERGENCY.md:30` |
+| Restart to the unchanged default after a nondefault boot | `at reboot`, `at check` | `PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start` / `PASS check` / `… runs and starts next` | `docs/EMERGENCY.md:30` |
+| Journal mismatch or unfinished intent | `at check` | `STOP: The … did not finish as recorded (…); do not repeat it; export records and get help: EMERGENCY Failed or bad update` or `STOP: The update to … was interrupted before its result was recorded; do not reboot; run …` | `docs/INSTALL.md:391`, `docs/EMERGENCY.md:32` |
+| Keymap mismatch on R27 | `at check` | `STOP: Loaded console keys differ from system layout; get help` | `docs/INSTALL.md:449`, `docs/EMERGENCY.md:26`, `docs/INSTALL-REFERENCE.md:34` |
+| Repair this boot and recheck | `loadkeys -C /dev/tty3 -- de`, `at check` | The repair command needs no output on success. Require `PASS check` / `System console de; X11 … variant …` | `docs/INSTALL-REFERENCE.md:36`, `docs/INSTALL-REFERENCE.md:42` |
+| Save after a passing check | `at title`, `at records` | `PASS title` / `PASS records` | `docs/INSTALL.md:460`, `docs/INSTALL-REFERENCE.md:68` |
+
+**Previous and forward**
+
+| Step | Command | Tool output | Guide |
+| --- | --- | --- | --- |
+| Select older AresOS | `at previous`, `at title` | `PASS previous` / `Previous AresOS queued for the next start …` / `PASS title` | `docs/INSTALL.md:424`, `docs/INSTALL.md:426` |
+| Older AresOS booted after the queued return | `at check` | `PASS check` / `Return to … confirmed after the restart` / `older AresOS … runs and starts next` | `docs/INSTALL.md:433`, `docs/INSTALL.md:435`, `docs/EMERGENCY.md:28` |
+| Running older AresOS made first | `at check` | `PASS check` / `older AresOS … runs and now starts next; no restart is waiting` | `docs/INSTALL.md:436` |
+| Select newest AresOS | `at forward`, `at title` | `PASS forward` / `Newest installed AresOS starts next …` / `PASS title` | `docs/INSTALL.md:404`, `docs/INSTALL.md:406` |
+| Newest AresOS booted after restart | `at check` | `PASS check` / `Forward to … confirmed after the restart` | `docs/INSTALL.md:406` |
+| Running newest AresOS made first | `at check` | `PASS check` / `… runs and now starts next; no restart is waiting` | `docs/INSTALL.md:406` |
+| Target already first | `at previous` or `at forward`, then `at check` | `… already starts next; nothing changed` / `It runs now` or `It does not run yet: it starts at the next restart` / after any needed restart, `PASS check` with the selected AresOS running and first | `docs/INSTALL.md:407`, `docs/INSTALL.md:427`, `docs/INSTALL.md:437` |
+| If a restart is needed | `at reboot` | `PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start` | `docs/INSTALL.md:406`, `docs/INSTALL.md:429` |
+
+**Rollback and keep-stock**
+
+| Step | Command | Tool output | Guide |
+| --- | --- | --- | --- |
+| Select stock on AresOS | `at rollback`, `at title` | `PASS rollback` / `Saved stock rollback queued` / `PASS title` / `… runs; plain Bazzite … starts next, after the restart` | `docs/INSTALL-PROCEDURES.md:135` |
+| Stock already first | `at rollback` or `at keep-stock` | `Plain Bazzite … already starts next; nothing changed` / `It does not run yet: it starts at the next restart` for rollback, `It runs now` for keep-stock | `docs/INSTALL-PROCEDURES.md:135`, `docs/INSTALL-PROCEDURES.md:161` |
+| Keep booted stock as first | `at keep-stock`, `at title`, `at check` | `PASS keep-stock` / `Saved stock is default` / `PASS title` / `PASS check` / `plain Bazzite … runs and now starts next; no restart is waiting` | `docs/INSTALL-PROCEDURES.md:161` |
+| Boot first stock, or prove second boot | `at reboot` | `PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start` | `docs/INSTALL-PROCEDURES.md:143`, `docs/INSTALL-PROCEDURES.md:167` |
+| Check stock after reboot | `at check`, `at title` | `PASS check` / `plain Bazzite … runs and starts next` / confirmation if selected, `Rollback to … confirmed after the restart` or `Change to … confirmed after the restart` / `PASS title` | `docs/INSTALL-PROCEDURES.md:150`, `docs/INSTALL-PROCEDURES.md:167` |
+| Export and independently prove Windows | `at export`, `at reboot` | `PASS export` / `SAFE TO REMOVE ARESTOOLS; unplug before every shutdown/restart` / `PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start` | `docs/INSTALL-PROCEDURES.md:169` |
+
+**Keyboard layout**
+
+| Step | Command | Tool output | Guide |
+| --- | --- | --- | --- |
+| Begin trial | `at layout begin us-intl`, `de` or `us` | `PASS layout begin …` / `Console-only trial; system/greeter layout stays finished until layout finish` | `docs/INSTALL-PROCEDURES.md:15`, `docs/INSTALL-PROCEDURES.md:33`, `docs/INSTALL-PROCEDURES.md:41` |
+| Fresh tty4 proof | `sudo -k; sudo /var/lib/ares/at layout proof` | `Physically type yz-/!ü then Return:` / `PASS layout proof` / `Fresh second-console login and physical typing passed` | `docs/INSTALL-PROCEDURES.md:21`, `docs/INSTALL-PROCEDURES.md:61` |
+| Revert a failed trial | `at layout revert` | `PASS layout revert` / `Old console/X11 settings restored; no reboot` | `docs/INSTALL-PROCEDURES.md:51` |
+| Finish after proof, including proof after revert | `at layout finish` | `PASS layout finish` / `Layout trial completed; fresh login/typing proof saved` | `docs/INSTALL-PROCEDURES.md:27`, `docs/INSTALL-PROCEDURES.md:67` |
+| Restart after each finish | `at title`, `at reboot`, `at check` | `PASS title` / `PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start` / `PASS check` / `System console …; X11 … variant …` | `docs/INSTALL-PROCEDURES.md:77`, `docs/INSTALL-PROCEDURES.md:83`, `docs/INSTALL-PROCEDURES.md:85` |
+| Abandon an interrupted trial | `at layout abandon` | `PASS layout abandon` / `Last finished console layout restored; abandoned trial cleared` / `Last finished persistent layout verified; stock settings preserved` | `docs/INSTALL-PROCEDURES.md:108`, `docs/EMERGENCY.md:64` |
+| Repair a noted partial layout on its system | `at layout abandon` | `PASS layout abandon` / `This system's half-written layout is restored to the settings before its trial` | `docs/INSTALL-PROCEDURES.md:108` |
+| Already cleared | `at layout abandon` if accidentally repeated | `STOP: No layout trial and no half-written layout to abandon on this system; nothing changed` | `docs/INSTALL-PROCEDURES.md:91`, `docs/EMERGENCY.md:65` |
+
+**Held initial-install route and other checks**
+
+| Step | Command | Tool output | Guide |
+| --- | --- | --- | --- |
+| Install tools on prepared hardware | `at install` in the trusted bootstrap | `Photographed Crucial serial:` / `Windows baseline Micron serial:` / `PASS install` / `manifest SHA256 …` | `docs/INSTALL.md:109` |
+| Prepare corrected stock, then verify it is repeatable | `at prepare` twice | `PASS prepare` / `pin yes; pending none; updaters paused` / on repeat, `Already prepared; no OS mutations` | `docs/INSTALL.md:115` |
+| Stock records and safe removal | `at title`, `at records`, `at export` | `PASS title` / `PASS records` / `PASS export` / `SAFE TO REMOVE ARESTOOLS; unplug before every shutdown/restart` | `docs/INSTALL.md:124` |
+| Prove default Windows and return to stock | `at reboot`, then `at check`, `at title`, `at records` | `PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start` / `PASS check` / `PASS title` / `PASS records` | `docs/INSTALL.md:136`, `docs/INSTALL.md:145` |
+| Login, verify, switch once the gate allows it | `at login`, `at verify`, `at switch`, `at title` | `PASS login` / `PASS verify` / `PASS switch` / `PASS title` | `docs/INSTALL.md:161`, `docs/INSTALL.md:176` |
+| First boot and physical button records | `at check`, `at title`, `at records`, `at logs` | `PASS check` / `PASS title` / `PASS records` / `PASS logs` | `docs/INSTALL.md:197`, `docs/INSTALL.md:205` |
+| Diagnose a STOP | `at export` with or without ARESTOOLS | `PASS export` and the appropriate export line above. An older stick adds `The stick holds tools this laptop installed before (SHA256 …), not the installed ones`. | `docs/EMERGENCY.md:69`, `docs/EMERGENCY.md:70`, `docs/INSTALL-REFERENCE.md:9` |
+
+The check also reports a recovered reorder intent with
+`The interrupted … had made its change; it is recorded now`. The standing lines and the
+route's PASS still decide the next step. If the recorded staged deployment list changes before restart,
+the exact STOP includes `changed before the restart; do not reboot; get help`. This falls
+through to the STOP path at `docs/INSTALL.md:391` and `docs/EMERGENCY.md:32`.
+
+The Windows and bootstrap prompts, checksum output, firmware labels and Minecraft close
+screen come from their own programs. The install hold is in
+`docs/INSTALL-STATUS.md:20`, `docs/INSTALL.md:46`, `docs/INSTALL.md:79`,
+`docs/INSTALL.md:82`, `docs/INSTALL-REFERENCE.md:100`, `docs/INSTALL-REFERENCE.md:117`
+and `docs/INSTALL-PROCEDURES.md:198`.
+
+#### Local verification
+
+`python3 -B reviews/27-first-update-release/rebind.py pending "42 final review fixes, round 2"`
+printed `pending: 40 bound files differ from the active bindings, 0 removed`.
+`python3 -B reviews/42-release-28/walk-host.py` printed
+`PASS package 42 host walk (release-28): 270 sources; no VM started`.
+These commands regenerated `os/manifest/ci/16/pending-rebind.json` and
+`os/manifest/ci/42/host-walk.json`.
+
+The final receipt's 270 source hashes match the worktree. The waiting list has 40 paths
+and no removals. The local walk does not replace the hosted rehearsal.
+
+I ran the modules below one at a time with
+`python3 -B -m unittest discover -s os/tests -p <module>.py`.
+`pgrep -a -u ares -x ksshaskpass` printed nothing before each module. The model used
+`ARESOS_MODEL_SCOPE=slice`. It processed 120,000 states, discovered 173,130, covered
+3,185,862 edges and reached all eight journal outcomes.
+
+| Module | Tests | Seconds | Result |
+| --- | ---: | ---: | --- |
+| `test_aresos_desktop` | 189 | 67.852 | FAILED (errors=42) |
+| `test_build_tools` | 3 | 0.128 | OK |
+| `test_checkout_sources` | 10 | 1.174 | OK |
+| `test_ci_api_permissions` | 4 | 3.049 | OK |
+| `test_ci_step_environment` | 4 | 12.886 | OK |
+| `test_grub_bls` | 6 | 0.308 | OK |
+| `test_installer_webui` | 9 | 0.002 | OK |
+| `test_owner_bootstrap` | 13 | 1.246 | OK |
+| `test_owner_capabilities` | 6 | 0.168 | OK |
+| `test_owner_devices_native` | 14 | 1.962 | OK |
+| `test_owner_entry` | 3 | 0.348 | OK |
+| `test_owner_equality` | 12 | 105.478 | OK |
+| `test_owner_guard` | 12 | 0.057 | OK |
+| `test_owner_guide_output` | 2 | 0.175 | OK |
+| `test_owner_login` | 18 | 1.443 | OK |
+| `test_owner_path` | 51 | 1.234 | OK |
+| `test_owner_session` | 16 | 0.268 | OK |
+| `test_owner_sources` | 13 | 48.790 | OK |
+| `test_owner_staged_release` | 7 | 0.046 | OK |
+| `test_owner_step_limits` | 4 | 0.012 | OK |
+| `test_probe_native` | 4 | 0.002 | OK |
+| `test_rehearsal_auth` | 9 | 0.076 | OK |
+| `test_rehearsal_budget` | 6 | 0.067 | OK |
+| `test_release27` | 41 | 6.907 | OK |
+| `test_release28` | 94 | 25.812 | OK |
+| `test_release28_control` | 15 | 4.157 | OK |
+| `test_release28_rehearsal` | 44 | 34.945 | OK |
+| `test_stock_prepare` | 7 | 0.028 | OK |
+| `test_system_keyboard` | 7 | 0.011 | OK |
+| `test_tools_local_wiring` | 42 | 57.561 | OK |
+| `test_ways_back_model` | 26 | 172.244 | OK |
+| `test_ways_back_probe` | 57 | 154.273 | OK |
+
+31 full modules passed, with 559 tests and zero skips.
+Earlier guide runs identified stale wording assertions and a synthetic fixture field;
+the fixes and the final installer-hold wording passed the reruns above.
+
+The full desktop module ran because it reads the workflow. Its 42 setup errors were
+`PermissionError: [Errno 1] Operation not permitted` at Unix socket bind. A direct
+bind reproduced it in both the temporary directory and worktree scratch. The exact test
+that reads the changed workflow passed on its own.
+`python3 -B -m unittest discover -s os/tests -p test_aresos_desktop.py -k test_a_release_is_the_default_and_only_the_job_that_cannot_publish_throws_away`
+printed `Ran 1 test in 0.063s`, `OK`.
+
+`git diff --check` passed. No file over 500 MB was found in `.work/`.

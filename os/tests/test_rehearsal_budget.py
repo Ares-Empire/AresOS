@@ -26,6 +26,18 @@ class BudgetTest(unittest.TestCase):
             result = guard.budget(0)
         self.assertEqual(result['consumed_minutes'], 60)
 
+    def test_release28_checks_reserve_the_whole_job_limit(self):
+        workflow = yaml.load((pathlib.Path(__file__).resolve().parents[2] /
+                              '.github/workflows/os-image.yml').read_text(), Loader=yaml.BaseLoader)
+        job = workflow['jobs']['regressions']
+        guard_step, = [step for step in job['steps'] if 'rehearsal_guard.py' in step.get('run', '')]
+        branch = "github.ref_name == 'pkg/42-release-28'"
+        self.assertIn(branch, guard_step['if'])
+        self.assertEqual(guard_step['env']['REHEARSAL_MODE'], 'checks')
+        self.assertEqual(job['timeout-minutes'], '60')
+        self.assertEqual(guard_step['run'], 'python3 os/ci/rehearsal_guard.py ci ${{ ' +
+                         branch + ' && ' + job['timeout-minutes'] + ' || 15 }}')
+
     def test_part_b_reservation_keeps_legacy_limits_and_covers_owner_limits(self):
         workflow = yaml.load((pathlib.Path(__file__).resolve().parents[2] /
                               '.github/workflows/os-image.yml').read_text(), Loader=yaml.BaseLoader)

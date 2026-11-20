@@ -213,6 +213,15 @@ class CheckoutSourcesTest(unittest.TestCase):
             guide.write_text('later guide\n')
             self.assertEqual(rebind.changed(root), checkout.records(root, ['guide.md']))
 
+    def test_release28_rejects_a_record_from_another_package(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary)
+            record = root / 'os/manifest/ci/42/source-bindings.json'
+            record.parent.mkdir(parents=True)
+            record.write_text(json.dumps(dict(package='27', tables=[])))
+            with self.assertRaisesRegex(AssertionError, 'Binding record package differs from its directory: 42'):
+                checkout.active_tables(root)
+
     def test_every_active_source_binding_replays_checkout_including_crlf(self):
         tables = checkout.active_tables(ROOT)
         self.assertGreaterEqual(len(tables), 4)

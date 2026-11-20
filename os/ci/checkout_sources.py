@@ -110,10 +110,9 @@ def active_tables(root):
     for package in ('42', '22d', '22c', '27', '16'):
         staged = root / 'os/manifest/ci' / package / 'source-bindings.json'
         if staged.exists():
-            break
-    if staged.exists():
-        record = json.loads(staged.read_text())
-        return [(row['name'],row['sources']) for row in record['tables']]
+            record = json.loads(staged.read_text())
+            assert record.get('package') == package, 'Binding record package differs from its directory: ' + package
+            return [(row['name'], row['sources']) for row in record['tables']]
     walk_path = root / 'os/manifest/ci/14/host-walk/result.json'
     walk = json.loads(walk_path.read_text())
     prep_path = root / walk['current_verification']

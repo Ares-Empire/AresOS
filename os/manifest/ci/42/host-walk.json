@@ -41,7 +41,7 @@
       "path": ".gitattributes"
     },
     {
-      "sha256": "21ecbd37312e7384c59fb0bb1cf29f03cd415a76f603ac1091d74e07160fcf9c",
+      "sha256": "7ae15d18d32e7cbdda747977c51e5169237e659005d526d95a4e80b8a0cdb715",
       "path": ".github/workflows/os-image.yml"
     },
     {
@@ -53,11 +53,11 @@
       "path": "briefs/14zze-checkout-bytes.md"
     },
     {
-      "sha256": "7edf4c00c47189ec44f876be9275a96015a8ffdfe1f87ba98f08149081e0560f",
+      "sha256": "f5da3b5d5fa306e4f83f0393558bcb96745f2da07608aedaa16776daa38f2c75",
       "path": "docs/EMERGENCY.md"
     },
     {
-      "sha256": "ba17b1fdd9155fb39eba2e75f9a4986ce4c01d28311f2067dfee63fefa7ab2b8",
+      "sha256": "301dbd44aa978fe931618c7b320da69c8cd5476b3d015c0dc0d7b96aa693aab4",
       "path": "docs/INSTALL.md"
     },
     {
@@ -65,7 +65,7 @@
       "path": "docs/install-tools/OwnerTools.psm1"
     },
     {
-      "sha256": "cb303948bfea8308cc5d6b31bbcb7304135c96bdcdd8b92bbd6eeb44f5e1de3d",
+      "sha256": "2c34ce941171c6fbf97f030550dbd6302336a0efcfa5658ca50d03cd18caadb1",
       "path": "os/ci/checkout_sources.py"
     },
     {
@@ -833,7 +833,7 @@
       "path": "os/tests/serial_pty.py"
     },
     {
-      "sha256": "e787eda4296128b6329d98e907a0ce2bdb624bdf085442ae51b647064c9db820",
+      "sha256": "54cba71b7915e9e360976c863e046906a2f889cde12cde545514237f0a0ffcad",
       "path": "os/tests/test_checkout_sources.py"
     },
     {
@@ -973,7 +973,7 @@
       "path": "os/tests/test_owner_media.py"
     },
     {
-      "sha256": "3a78889e8c80ad4919f723879035374ba99f51a61e0110551f7cf90c64b5584e",
+      "sha256": "caf80cd250dff9eae53b2faae7f28e3587fae269a90e035749d20c0d00dd30a5",
       "path": "os/tests/test_owner_path.py"
     },
     {
@@ -1041,7 +1041,7 @@
       "path": "os/tests/test_owner_walk.py"
     },
     {
-      "sha256": "345c1c2e5935bbc61fa2917e6cf4e112e4f348f0ed597bbf757a95f30cdd908b",
+      "sha256": "edd530d462acb9058586da98c727386f0b3a858153f7a0ff25a6bd7f41d3c7a1",
       "path": "os/tests/test_rehearsal_budget.py"
     },
     {
