@@ -1,5 +1,76 @@
 # Package 28a: Chrome acting progress
 
+## Step 3b, fix
+
+2026-11-20. Draft PR #116. Fix commits `3893f613` and `fb34fb6f`.
+
+- **Control Base 44684303561 and Control Mail 44684307975.** Base `results.txt` and all four Mail `base.txt` artifacts fail the owner oracle's exact-schema test at `VALIDATORS[action].iter_errors`. Step 3b stored bound functions. `response_checks` now keeps `Draft202012Validator` instances and gives the plain shards a standard-library validator with `iter_errors` and first-error `validate`. A parity test checks exact failing rules and paths, including a Chrome popup enum that rejects numeric lookalikes for booleans.
+- **Chrome qualification 44684299893.** Both combines failed the same old withheld-form regex. In `reviews/20-chrome/`, `audit-review-evidence.mjs` changes the regex, and `mutation-audit.py` changes the two input literals for `final-notes-withheld-form-service` and `final-notes-withheld-form-extension`. All three now pin `using chrome_go with to: reload`. The audit still checks both refusals, zero receiver arrivals, the approved read and replay refusal. The updated audit passed against both original combine artifacts.
+- **Chrome 44684296519, Group 14 Time.** Both core `outline-time.jsonl` files show a proxy permission refusal on the first `outline` wait. `call.py` formerly translated this verb. All nine timed reads now share the `read` verb through the same CLI and proxy entry points. The native `outline` hold, time bounds, tab results, late-reply checks and unchecked approval assertion carry forward.
+
+### Retired-name sweep
+
+Searched the tracked branch for all 18 removed tool names, `chrome_old_`, `chrome_outline`, and the former switch. Omitted briefs, design, records and dated report history.
+
+| Hits | Disposition |
+| --- | --- |
+| `control/chrome/ci/outline-time.mjs` and `review-matrices.mjs` | Fixed the retired timed-read verb and the stale close-tool comment. The `outline` command on the admin hold still names the native reply. `browser.mjs` and the Group 16 helpers map the local `outline` label to `chrome_read`. |
+| `control/checks/17*-chrome` extensions, `run.mjs` files and `17-chrome/native-host.py` | `org.aresos.chrome_check` is the independent feasibility fixtures' native-messaging host. It never calls an MCP tool. |
+| `latency-profile.py` and `service.py` | `chrome_click` selects the committed free-step template made by `chrome_do` for synthetic history. `chrome_take_tab` selects the two underlying audit rows written by `chrome_take`. These are stored operation labels. |
+| `test_going.py`, `test_loss_errors.py`, `test_operation_projection.py`, `test_small_tools.py` | `chrome_navigate`, `chrome_close_tab` and `chrome_take_tab` assert stored effects of the public replacements. |
+| `test_outline_action.py`, `test_outline_time.py`, `test_instruction_rules.py` | The old names and former switch are negative catalogue, routing or text-scanner assertions. |
+| `efficiency-baseline.json`, `efficiency.test.mjs`, `test_efficiency.py`, `fixtures/28a-instructions/baseline.json` | Frozen comparison rows, tests of those rows, and the captured old instruction text. The historical arm of the paired latency harness still runs `ab7aba92` with its own catalogue. |
+| `docs/control/FEATURES.md` | The compose-key State cell is the brief's verbatim historical state. The Tool cell names `chrome_do`. |
+| `reviews/20-chrome/` and the 28/28a review files | The active audit regex and two withheld-form mutation pins changed as listed above. The separate `final-notes-reload-tool-text` mutation targets a historical instruction in `definitions.py`. It belongs to the manual mutation audit. Report, security review, old catalogue and comparison text retain their historical names. |
+
+### PLAN-GAPs
+
+**Paired latency.** The four latency artifacts in 44684296519 prove the current timed calls already reach `chrome_do` and `chrome_go`. The current wire logs each contain 543 `chrome_do` calls and 180 `chrome_go` calls, with zero calls to the removed tools. The historical wire logs use the old tools for the paired runner factor. The current service trace includes `chrome_do`'s settle and change report and `chrome_go`'s arrival, 150 ms quiet requirement and outline before reply. The quiet requirement alone exceeds the existing 100 ms navigation median target. For fresh plain samples, median service time outside the bridge is 107.54 ms for the asking click and 306.76 ms for navigation. Each phase and profile fails both the regression and target checks. Sync counts pass.
+
+| History phase | Timed call | Plain median / p95 (ms) | Audit median / p95 (ms) | Target median / p95 (ms) |
+| --- | --- | ---: | ---: | ---: |
+| Fresh | `asking_click` | 125.68 / 127.35 | 126.23 / 127.69 | 60 / 100 |
+| Fresh | `navigate` | 362.30 / 369.19 | 365.09 / 371.07 | 100 / 150 |
+| 1,000 | `asking_click` | 130.36 / 132.68 | 129.75 / 131.49 | 60 / 100 |
+| 1,000 | `navigate` | 369.94 / 373.79 | 370.31 / 373.01 | 100 / 150 |
+| 4,000 | `asking_click` | 141.89 / 143.70 | 142.00 / 146.94 | 60 / 100 |
+| 4,000 | `navigate` | 385.15 / 387.69 | 387.16 / 395.76 | 100 / 150 |
+
+The new-tool measurements and old ceilings stay active for the lead's decision.
+
+**Group 16 within-run latency.** The efficiency artifact from the same run completed all 12 public tasks and passed the call, character and approval budgets. Five same-tab read tasks failed the 1.5× limit. Every one grew slower in each successive round. The corresponding raw samples on `75bc1428` also miss this limit when replayed against it. Step 3a used the old/new comparison gate. Both runs' three-tab reads stay within the limit. The cause of the recurring timing growth remains open. The sample count, measured work and 1.5× limit stay as written. [Step 3a comparison run](https://github.com/Ares-Empire/AresOS/actions/runs/44671559502)
+
+| Read task | `25809d99` median / slowest / limit (ms) | `25809d99` slowest ÷ median | `75bc1428` slowest ÷ median |
+| --- | ---: | ---: | ---: |
+| F1 first read | 85.31 / 157.35 / 127.97 | 1.84 | 1.55 |
+| F1 everything | 156.43 / 296.82 / 234.65 | 1.90 | 1.57 |
+| F1 fields | 69.93 / 140.76 / 104.90 | 2.01 | 1.62 |
+| F2 table | 112.67 / 179.97 / 169.01 | 1.60 | 1.51 |
+| F3 link | 87.83 / 156.36 / 131.74 | 1.78 | 1.53 |
+
+**JUDGMENT-CALLs.** The timing case stays on the two public transports and keeps its setup holds on the fixture's admin socket. The latency measurements keep the complete public call and the previously approved reference.
+
+### Local verification
+
+- Portable Node `--test --test-concurrency=2 control/chrome_tests/*.test.mjs` passed 642/642 in 17.870 s.
+- `PYTHONPATH=control:control/chrome_tests python3 -B -m unittest -v` passed 708 tests in 1,785.325 s. The selection excludes `test_fault_surface`, `test_state_*` and the two qualification-fixture cases invoking a state test. The durable-write sweep passed 477 single, 477 persistent and 2,406 paired faults. The qualification refresh emitted a rate-limit `ResourceWarning`.
+- The audit passed both downloaded qualification combine artifacts, and both withheld-form mutation inputs matched current source exactly once. Draft and fallback verdicts agreed on all 12,053 current Chrome tool replies replayed from the two core and two current latency artifacts.
+- `python3 -B control/generate.py --check` printed `Generated artifacts match definitions`. `git diff --check` passed. Generated ask rules compared byte for byte with `origin/main`. The Chrome pins remain 19 tools, 5,975 description characters, 2,798 instruction characters, 8,773 combined and 6,729 for names and compact input schemas.
+- Standard-library Python `-S -B -m unittest -v` passed 2 response tests in 0.001 s and 111 Chrome tests in 56.282 s (`test_engine test_instruction_rules test_efficiency test_excluded_sites_28a test_loss_errors test_outline_time`).
+- The broad local Base response-user run (`.work/pkg28a-3b-fix/base-python.py`, pinned dependencies installed in `.work`) ran 261 tests in 164.982 s and reported 254 failures, including subcases, and 13 errors. All 124 owner-state oracle tests passed, including the exact failure from CI. The failed cases hit the absent root-owned managed policy or the file-transfer refusal of the dot-prefixed scratch path. The 141-test follow-up in `base-contained.py` substituted the generated managed policy at the file-read boundary and passed in 4.569 s, including schema drift, strict JSON over MCP, the owner oracle and the journal checkpoint cases. Installed-policy and export-path verification remains with hosted Base.
+- `mail-python.py` ran all of `test_review26_results` and `test_review_fixes_25` and the seven self-contained `test_review23_sweep` cases with the generated policy fixture. It passed 23 tests in 13.126 s. The remaining Mail sweep cases use real caller export paths outside `.work` and are covered by the hosted sweep. Browser tests run in hosted CI.
+- No file over 500 MB remains in `.work/`.
+
+### Dispatched once on `fb34fb6f`
+
+The `linux-tools` lead owns the hosted results.
+
+- [Control Chrome 44699409140](https://github.com/Ares-Empire/AresOS/actions/runs/44699409140)
+- [Control Chrome qualification 44699413577](https://github.com/Ares-Empire/AresOS/actions/runs/44699413577)
+- [Control Base 44699417356](https://github.com/Ares-Empire/AresOS/actions/runs/44699417356)
+- [Control Mail 44699421544](https://github.com/Ares-Empire/AresOS/actions/runs/44699421544)
+- [Repo privacy 44699425679](https://github.com/Ares-Empire/AresOS/actions/runs/44699425679)
+
 ## Step 3b
 
 2026-11-20. Draft PR #116, branch `pkg/28a-chrome-act`. Started at `ca3e3ecf`.
