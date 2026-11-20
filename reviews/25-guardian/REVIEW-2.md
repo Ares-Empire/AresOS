@@ -1,0 +1,9 @@
+Rechecked PR125 at `6b6a0b6d`. I found no blocker under decision 24.
+
+- **Finding 1 is fixed.** Only a verified free lock yields “nothing to stop.” With no tracked JVM and an unreadable lock, shutdown records `unsaved` with the error or uses the guard fallback. Manual stops are called off with a reason. Launch and instance reset require a free lock, interrupted hand-offs wait for the wrapper, and post-exit cleanup waits for verified lock release. [Stop handling](os/config/usr/libexec/aresos-desktop:3229) · [Guard fallback](os/config/usr/libexec/aresos-desktop:4709)
+- **Finding 2 is fixed.** Logout requires a matching zero-window reply after a Wayland sync. A cached zero cannot satisfy the request. Missing, late, unknown, and nonzero replies refuse logout. The nonblocking wait is capped at two seconds and the original stop deadline. [Reply check](os/config/usr/libexec/aresos-desktop:2095) · [Helper sync](os/config/usr/libexec/aresos-shell:4589) · [Deadline](os/config/usr/libexec/aresos-desktop:3436)
+- **Shutdown and reporting.** Shutdown joining the window wait skips it. The existing pidfd signal path, boot 1’s save request and acknowledgement, and the guard’s 85-second limit are preserved. `REPORT.md` records findings 3 and 4, the image-rule exceptions, the intentional guard failure status, and boot 2’s timing tolerance. [Shutdown join](os/config/usr/libexec/aresos-desktop:3262) · [Known limits](reviews/25-guardian/REPORT.md:270)
+
+`git diff --check` passed. The sandbox had no writable temporary directory, so I reviewed the regression tests by reading and did not run them.
+
+SAFE

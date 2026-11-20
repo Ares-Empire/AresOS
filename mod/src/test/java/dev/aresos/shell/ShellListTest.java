@@ -469,7 +469,9 @@ class ShellListTest {
         assertEquals("aresos-shell/1.2", hello.get("protocol").getAsString());
         assertEquals(2, hello.get("minor").getAsInt());
         var capabilities = helloExample.getAsJsonArray("capabilities");
+        // The 1.2 additions the client offers on top of the 1.1 example: the home, and Super's search (package 53d).
         capabilities.add("home_state");
+        capabilities.add("shell_search");
         assertEquals(capabilities, hello.get("capabilities"));
         var requests = helper.received("list_apps");
         assertEquals(2, requests.size());

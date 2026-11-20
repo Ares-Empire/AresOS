@@ -42,10 +42,12 @@ PRISM_ROOT = '/usr/lib/prismlauncher'
 # The supervisor alone decides these for the game.
 GPU_KEYS = ('__NV_PRIME_RENDER_OFFLOAD', '__NV_PRIME_RENDER_OFFLOAD_PROVIDER', '__GLX_VENDOR_LIBRARY_NAME',
             '__VK_LAYER_NV_optimus', '__EGL_VENDOR_LIBRARY_FILENAMES', 'DRI_PRIME')
+# ARESOS_DESKTOP_LIFECYCLE (package 25) opens the mod's lifecycle channel: only the supervisor's own value reaches
+# the game, never one inherited from Prism's environment.
 DROPPED = ('LD_PRELOAD', 'LD_LIBRARY_PATH', 'ARESOS_LAUNCH_NONCE', 'ARESOS_DESKTOP_INSTANCE', 'ARESOS_SHELL_SOCKET',
-           'ARESOS_SHELL_STATUS_FD')
-SUPPLIED = frozenset({'ARESOS_LAUNCH_NONCE', 'ARESOS_DESKTOP_INSTANCE', 'PATH', '__NV_PRIME_RENDER_OFFLOAD',
-                      '__GLX_VENDOR_LIBRARY_NAME', '__VK_LAYER_NV_optimus'})
+           'ARESOS_SHELL_STATUS_FD', 'ARESOS_DESKTOP_LIFECYCLE')
+SUPPLIED = frozenset({'ARESOS_LAUNCH_NONCE', 'ARESOS_DESKTOP_INSTANCE', 'ARESOS_DESKTOP_LIFECYCLE', 'PATH',
+                      '__NV_PRIME_RENDER_OFFLOAD', '__GLX_VENDOR_LIBRARY_NAME', '__VK_LAYER_NV_optimus'})
 FORWARDED = (signal.SIGTERM, signal.SIGINT, signal.SIGHUP, signal.SIGQUIT)
 REFUSED, BUSY = 78, 75
 SCOPE_WAIT = 10.0

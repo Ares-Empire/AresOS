@@ -2,7 +2,7 @@
 
 The baton for the next `linux-hub` session: the Minecraft home screen and the mod's hub side. Read it after `STATE.md`, and overwrite it when you pick it up.
 
-Written 2026-11-19 by `linux-hub` (Claude Opus 5.5), after package 56. The session was cleared at `mac-capacity`'s request.
+Written 2026-11-19 by `linux-hub` (Claude Opus 5.5), after package 56. The session was cleared at `mac-capacity`'s request. Picked up the same day at 12:20 by a fresh `linux-hub` (Claude Opus 5.5).
 
 ## Where things stand
 
@@ -14,10 +14,29 @@ Written 2026-11-19 by `linux-hub` (Claude Opus 5.5), after package 56. The sessi
   - 49 and 49b: memory measurements, with the settings unchanged and the arena cap not qualified;
   - 54: the town arrives in one line;
   - 56: the world ignores the mouse behind apps, the hotbar opens apps, and flying is 1.5×.
+    Main `da441546` (#117); its jar hash from main's Mod run 44511397426 (both builds match) was `b72f91182faba3ed35750e6954deb23c622c76d1d9ef94fb7e2b857185a0c511`.
+- **53d** (`linux-laptop-home`, Super opens a search over the world) merged on top of 56 as `c576818b` (#121). Main's jar is now `4f7324f56ad943a80e892cdce1985dce526bdeee36ea6cc79796abb5ec98211c` (Mod run 44532278666, both builds match).
+  - **New in `mod/`:**
+    - `WorldSearchScreen`, `SearchCrosshairMixin` and `RecipeBookSearchAccess`;
+    - `ShellFocusClient.search()`;
+    - the four-argument `AresOsClient.launch(id, visit, worldScreen, opened)`.
+  - **Test order:** `WorldSearchClientGameTest` stays last in the gametest list.
+  - **Shared mod work:** `linux-laptop-home` has nothing more queued in `mod/` (14:25).
 
   STATE.md has a line for each.
-- **R28** (cut Thu 2026-11-19 12:00) is the first release with the home screen at boot (packages 23, 23b and 23d, plus 46, 48, 51, 54 and 53a/b inert). Package 56 rides **R29**, as `linux-aresos` asked.
-- **No hub worktree or Codex job is open.** `~/AresOS-try` is `hub-try`'s checkout: leave it alone, because `hub-try --update` moves it.
+- **R28** is the first release with the home screen at boot (packages 23, 23b and 23d, plus 46, 48, 51, 54 and 53a/b inert). Package 56 rides **R29**, as `linux-aresos` asked.
+  - The cut was taken Thu 12:00: main `fba94b25` into `pkg/42` as `7f896b62`.
+  - Before `linux-aresos` publishes it (standing OK, board #388), it still needs the jar pin, the last dry run, the VM rehearsal and the final review. Installing it (`at update`) is Patrik's own step.
+  - The hub waits for `linux-aresos` to say R28 is on the laptop.
+- **B318 is running** (Fri 2026-11-20): why 49's frozen games died on thaw, the first item of T364. Worktree `~/AresOS-318-thaw-watchdog`, branch `pkg/318-thaw-watchdog`, brief `briefs/318-thaw-watchdog.md` (on the branch).
+  - **The finding so far,** read-only from the journal: each game had one rtkit realtime thread (OpenAL Soft's mixer, priority 1), and rtkit's `RLIMIT_RTTIME` is 200 ms soft and hard. The rigs run OpenAL Soft's `null` backend (`ALSOFT_DRIVERS=null`), which catches up every sample after a stall without sleeping. The kernel's SIGKILL leaves no log line.
+  - **The GPU is cleared:** its D0 lines came from the rig's own `nvidia-smi`, before the thaws.
+  - **The experiment:** B1 keeps the thread realtime; A1 and A2 demote it with `chrt --reset-on-fork --other` after the freeze.
+  - **The open product question:** whether the real backend (PipeWire or Pulse) catches up the same way. Step 4 answers it from the source only.
+  - **Reviews:** brief review 1 (Opus) was READY WITH CHANGES, all taken in. There was no Codex brief review, to halve Codex use. The package gets a Codex `gpt-6.2-sol` `high` review.
+  - **Progress:** step 1, the rig and its offline tests, is on an Opus agent. Steps 2–4 follow, each on a fresh agent.
+- `~/AresOS-try` is `hub-try`'s checkout: leave it alone, because `hub-try --update` moves it.
+- **B25** (the guardian, PR125, `61a66d78`, rides R29) doesn't change the jar. Its supervisor refuses to start a game while `aresos-guardian.service` isn't active. `hub-try` needs no stand-in for it, because `run-hub.sh` never starts the supervisor (`aresos-desktop`): it runs only the helper and the dev client, and the helper has no guardian check. A future tool that runs `aresos-desktop` outside the real system would need a stand-in `SYSTEMCTL`, as the guardian loop tests use.
 
 ## The owner's direction (2026-11-18)
 
@@ -62,6 +81,12 @@ His guideline: "hub wise the main next step is make it a functional, usable home
     - overlays never take keyboard focus;
     - Super stays free.
 
+## Board
+
+- **#335** (build the laptop home) was dropped: it is package 53, owned by `linux-laptop-home`.
+- **#361** (the Minecraft-look study) was dropped: it is `linux-desktop`'s brief 312 (board #374). The hub's part, the review against the checklist above, is **#410**.
+- `linux-laptop-home` has 56's jar hash (it confirmed at 13:55).
+
 ## Held
 
 - **The companions (board #253):** held until Patrik decides after his try-out.
@@ -83,4 +108,5 @@ His guideline: "hub wise the main next step is make it a functional, usable home
 
 - **56:** the empty-slot, non-app and world clicks are tested through the game's mouse callbacks, not native compositor delivery (REVIEW-1 nit).
 - **40:** a stale press in `AppsScreen` (REVIEW-3 nit).
+- **09:** `ModeInventoriesClientGameTest.toggle` timed out once (line 196, from 140, 56 s in, on NVIDIA) in one of three local client suites for 53d's rebase. The other two runs passed all 28. It looks like a timing flake in its 50 G presses (`reviews/53d-world-search/REBASE.md`, Known limits). `linux-laptop-home` left it to the hub: if it shows again, judge it here.
 - **49b:** the rig's `bash -n` record checks only the first script (REVIEW-1 nit). The rig itself is repaired for reruns in `reviews/49b-arena-rerun/rig/`.

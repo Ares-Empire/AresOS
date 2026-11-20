@@ -121,10 +121,21 @@ def make_world(paths, lock, provisioned='complete\n', marker=MARKER, home=HOME, 
     return world
 
 
+def systemctl_stand_in(folder):
+    """A stand-in for systemctl for the loops that use the real Runner: the shutdown guard is active and the system
+    is running. No test asks the laptop's own systemd about the guard (package 25, the machine rules)."""
+    path = pathlib.Path(folder) / 'systemctl'
+    path.write_text('#!/bin/sh\ncase "$1" in is-active) echo active ;; is-system-running) echo running ;; esac\n')
+    path.chmod(0o755)
+    return str(path)
+
+
 class FakeRunner:
     real = False
 
     def __init__(self):
+        # The shutdown guard (package 25, 3.1): (active, systemd's word).
+        self.guard = (True, 'active')
         self.helpers = []
         self.helper_alive = False
         self.prisms = []
@@ -144,6 +155,9 @@ class FakeRunner:
         self.cover_kills = []
         self.cover_error = None
         self.events = []  # the order of covers, Prism starts and message windows
+
+    def guard_active(self):
+        return self.guard
 
     def helper_running(self):
         return self.helper_alive
@@ -192,8 +206,8 @@ class FakeRunner:
         self.watched.append(pid)
         return True
 
-    def jvm_lock_held(self):
-        return self.lock_held
+    def jvm_lock_state(self):
+        return 'held' if self.lock_held else 'free'
 
     def scope_result(self, unit):
         self.scopes_asked.append(unit)
@@ -251,7 +265,7 @@ class Base(unittest.TestCase):
         self.next_pid += 10
         ok, reply = sup.on_jvm_start(self.jvm_request())
         self.assertTrue(ok, reply)
-        self.assertEqual(reply['scope'][-2:], ['--property=MemoryHigh=2560M', '--'])
+        self.assertEqual(reply['scope'][-3:], ['--property=MemoryHigh=2560M', '--property=TimeoutStopSec=15s', '--'])
         self.assertEqual(reply['unit'], f'aresos-game-{reply["launch"]}.scope')
         self.runner.processes[pid] = (wrapper_pid, pid * 7,
                                       f'0::/user.slice/user@1001.service/aresos.slice/{reply["unit"]}\n')
@@ -740,7 +754,8 @@ class LaunchTest(unittest.TestCase):
         # Review 1, finding 4: the memory target sits on the JVM's own scope, which the wrapper creates.
         self.assertEqual(desktop.game_scope('abc123'), [
             '/usr/bin/systemd-run', '--user', '--scope', '--quiet', '--slice=aresos.slice',
-            '--unit=aresos-game-abc123.scope', '--property=MemoryHigh=2560M', '--'])
+            '--unit=aresos-game-abc123.scope', '--property=MemoryHigh=2560M', '--property=TimeoutStopSec=15s',
+            '--'])
         self.assertTrue(desktop.game_cgroup_matches(
             '0::/user.slice/user-1001.slice/user@1001.service/aresos.slice/aresos-game-abc123.scope\n', 'abc123'))
         for cgroup in ('0::/user.slice/user-1001.slice/user@1001.service/aresos.slice/aresos-desktop-abc123.scope\n',
@@ -766,6 +781,7 @@ class LaunchTest(unittest.TestCase):
     def test_the_game_runs_on_nvidia_only_when_its_driver_is_there(self):
         env = desktop.game_environment('desk-1', 'n' * 32, nvidia=True)
         self.assertEqual(env, {'ARESOS_DESKTOP_INSTANCE': 'desk-1', 'ARESOS_LAUNCH_NONCE': 'n' * 32,
+                               'ARESOS_DESKTOP_LIFECYCLE': '1',  # package 25: the mod's lifecycle channel
                                'PATH': '/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin',
                                '__NV_PRIME_RENDER_OFFLOAD': '1', '__GLX_VENDOR_LIBRARY_NAME': 'nvidia',
                                '__VK_LAYER_NV_optimus': 'NVIDIA_only'})
@@ -863,10 +879,14 @@ class FirstStartTest(Base):
         pid, env = self.run_game(sup)
         self.assertEqual(sup.state, 'SETUP')
         self.assertEqual((env['ARESOS_DESKTOP_INSTANCE'], env['ARESOS_LAUNCH_NONCE']), self.runner.helpers[-1][:2])
+        # A world that is no home in the worlds folder is never declared ready (package 25, 4.4); before, any
+        # world's report was taken as it came.
         self.ready(sup, 'SomeOtherDesktop')
-        self.assertEqual(sup.state, 'IN_WORLD')
+        self.assertEqual(sup.state, 'SETUP')
         self.assertFalse(sup.persisted.hub_seen)
+        make_world(self.paths, self.lock)  # the mod made the hub; its report is checked on the disk
         self.ready(sup, 'AresHub')
+        self.assertEqual(sup.state, 'IN_WORLD')
         self.assertTrue(self.stored()['hub_seen'])
         self.assertEqual(self.runner.closed_views, 1)
 
@@ -2968,9 +2988,11 @@ class ImageBuildTest(unittest.TestCase):
         containerfile = (ROOT / 'os/Containerfile').read_text()
         stages = [line.split() for line in containerfile.splitlines() if line.startswith('FROM ')]
         base = json.loads((ROOT / 'os/manifest/base.json').read_text())['reference']
+        labwc_base = json.loads((ROOT / 'os/labwc/labwc.lock.json').read_text())['base']['reference']
         # The workflow checks the first FROM against the pinned base; it stays first.
         self.assertEqual(stages, [['FROM', base, 'AS', 'packages'], ['FROM', base, 'AS', 'source'],
-                                  ['FROM', self.BUILDER, 'AS', 'mod'], ['FROM', 'packages', 'AS', 'aresos']])
+                                  ['FROM', self.BUILDER, 'AS', 'mod'], ['FROM', base, 'AS', 'labwc-inputs'],
+                                  ['FROM', labwc_base, 'AS', 'labwc'], ['FROM', 'packages', 'AS', 'aresos']])
         source_stage = containerfile.split(' AS source\n', 1)[1].split('\nFROM ', 1)[0]
         self.assertIn('RUN bash /tmp/aresos-mod/build.sh source "$ARESOS_SOURCE_REVISION" /source', source_stage)
         mod_stage = containerfile.split(' AS mod\n', 1)[1].split('\nFROM ', 1)[0]
@@ -3239,6 +3261,7 @@ class ModJarPinTest(unittest.TestCase):
             shutil.copy(share / 'minecraft/desktop.lock.json', manifest / 'desktop.lock.json')
             for name in ('packages.lock.json', 'google-chrome.lock.json'):
                 shutil.copy(ROOT / 'os' / name, manifest / name)
+            shutil.copy(ROOT / 'os/labwc/labwc.lock.json', manifest / 'labwc.lock.json')
             return self.python(check, manifest, kind, cwd=ROOT)
 
         _, share, _ = self.configure(b'other bytes', ARESOS_BUILD_KIND='throwaway')
@@ -4065,6 +4088,7 @@ class LoopTest(Base):
                                                                          'AresDesktop'] + (['--world', world]
                                                                                            if world else [])),
                    mock.patch.object(desktop, 'BACKOFF', 0.2), mock.patch.object(desktop, 'PRISM_GRACE', 0.5),
+                   mock.patch.object(desktop, 'SYSTEMCTL', systemctl_stand_in(bin_dir)),
                    # No user systemd here: the wrapper runs Java directly (the scope itself is tested separately).
                    mock.patch.object(desktop, 'game_scope', lambda launch_id: [])]
         for patch in patches:
@@ -4142,7 +4166,7 @@ class LoopTest(Base):
         self.wait(lambda: launch.prism_ended is not None)
         # Nothing else may keep the lock once the launch's processes are gone (no child of the supervisor, the
         # cover among them, holds it across a fork).
-        self.assertFalse(self.loop.runner.jvm_lock_held(), 'the ended launch left the desktop lock held')
+        self.assertEqual(self.loop.runner.jvm_lock_state(), 'free', 'the ended launch left the desktop lock held')
 
     def covers(self):
         if not self.log.exists():
@@ -4579,7 +4603,7 @@ class LoopTest(Base):
                 except OSError:
                     return True
             self.wait(gone)
-            self.wait(lambda: not self.loop.runner.jvm_lock_held())
+            self.wait(lambda: self.loop.runner.jvm_lock_state() == 'free')
         return sup
 
     def test_prism_without_a_game_waits_in_auth_required(self):

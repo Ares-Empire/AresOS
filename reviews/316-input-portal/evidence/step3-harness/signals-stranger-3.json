@@ -1,0 +1,24 @@
+[
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameOwnerChanged",
+  "args": [
+   ":1.1",
+   "",
+   ":1.1"
+  ]
+ },
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameOwnerChanged",
+  "args": [
+   "org.freedesktop.impl.portal.desktop.aresos-input",
+   "",
+   ":1.1"
+  ]
+ }
+]

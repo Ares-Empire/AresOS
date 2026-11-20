@@ -1,0 +1,69 @@
+{
+ "run": "stop-1-a",
+ "source_revision": "3eee80eafe79d3e313af4fb91fef2a6d35dff6b7",
+ "started": "2026-11-19T04:07:46+01:00",
+ "game": "Minecraft 26.2 development client (Loom runClient) with the worktree's AresOS mod, headless in the rig's own labwc",
+ "mode": "stop",
+ "shown": true,
+ "environment": {
+  "runtime_folder_is_the_runs_own": true,
+  "gate": true,
+  "gate_expected": true,
+  "checked": "before the supervisor started and before any save"
+ },
+ "reopened": [
+  {
+   "block": 1,
+   "in_the_reopened_game": true,
+   "on_the_disk": true
+  }
+ ],
+ "path": {
+  "adopted": true,
+  "hello_accepted": true,
+  "state": "IN_WORLD",
+  "watches_its_stand_in_labwc": true,
+  "save": {
+   "exit": 0,
+   "says": "Saved: AresHub is on the disk.",
+   "seconds": 0.23
+  },
+  "first_block_on_disk_after_saved": true,
+  "second_block_on_disk_before_stop": false,
+  "stop": {
+   "exit": 0,
+   "says": "Stopped: the home was saved first; Minecraft closed.",
+   "seconds": 0.92
+  },
+  "seconds_from_second_block_to_stop": 0.0,
+  "stop_record": {
+   "open": false,
+   "kind": "stop",
+   "phase": "ended",
+   "save": "saved",
+   "sigterm": true,
+   "close": "exited",
+   "status": 143
+  },
+  "java_exited": true,
+  "exit_status": 143,
+  "blocks_on_disk_after_exit": [
+   true,
+   true
+  ],
+  "server_stop_lines": [
+   "[04:08:34] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage (world): All chunks are saved",
+   "[04:08:34] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage (DIM1): All chunks are saved",
+   "[04:08:34] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage (DIM-1): All chunks are saved",
+   "[04:08:34] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage: All dimensions are saved"
+  ],
+  "stop_phases": [
+   "stop (stop) +0.01 s: begins for launch <id>",
+   "stop (stop) +0.10 s: the save is confirmed (saved): Saved: AresHub is on the disk.",
+   "stop (stop) +0.10 s: SIGTERM sent to Java",
+   "stop (stop) ended after 0.78 s: confirmed, close exited"
+  ],
+  "prism_started": false
+ },
+ "gradle_saw_exit_value": 143
+}

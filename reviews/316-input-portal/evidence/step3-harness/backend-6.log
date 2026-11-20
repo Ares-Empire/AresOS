@@ -1,0 +1,33 @@
+2026-11-20T08:26:12.383673Z  INFO aresos_input_portal::wayland::state: the screens changed: 1 now zone_set=2
+2026-11-20T08:26:12.386921Z DEBUG aresos_input_portal::wayland::clipboard: watching the clipboard through ext-data-control
+2026-11-20T08:26:12.388682Z DEBUG aresos_input_portal::wayland::state: captured a 35355 byte xkb keymap from the compositor
+2026-11-20T08:26:12.388696Z DEBUG aresos_input_portal::wayland::state: clipboard selection changed types=0 is_ours=false
+2026-11-20T08:26:12.388706Z  INFO aresos_input_portal::wayland::state: Wayland barrier thread ready, 1 screen(s) in the snapshot
+2026-11-20T08:26:12.388725Z  INFO aresos_input_portal: screen HEADLESS-2: 1280x720 at (0, 0) scale 1 Normal
+2026-11-20T08:26:12.390162Z  INFO aresos_input_portal: org.freedesktop.impl.portal.desktop.aresos-input ready at /org/freedesktop/portal/desktop; capture auto-releases after 15s idle
+2026-11-20T08:26:12.413432Z  INFO aresos_input_portal::portal: session created app_id="org.aresos.harness" session=/org/freedesktop/portal/desktop/session/harness/bus_dies_capturing capabilities=0 started=false
+2026-11-20T08:26:12.414574Z  INFO aresos_input_portal::portal: clipboard access requested session=/org/freedesktop/portal/desktop/session/harness/bus_dies_capturing
+2026-11-20T08:26:12.415719Z  INFO aresos_input_portal::portal: session started session=/org/freedesktop/portal/desktop/session/harness/bus_dies_capturing capabilities=3 clipboard_enabled=true
+2026-11-20T08:26:12.416662Z  INFO aresos_input_portal::portal: handed EIS socket to client session=/org/freedesktop/portal/desktop/session/harness/bus_dies_capturing
+2026-11-20T08:26:12.418497Z  INFO aresos_input_portal::eis_server: EIS handshake complete, client is a Receiver context session=/org/freedesktop/portal/desktop/session/harness/bus_dies_capturing
+2026-11-20T08:26:12.418631Z DEBUG aresos_input_portal::eis_server: client bound seat with BitFlags<DeviceCapability>(0b110101, Pointer | Keyboard | Scroll | Button) session=/org/freedesktop/portal/desktop/session/harness/bus_dies_capturing
+2026-11-20T08:26:12.418655Z DEBUG aresos_input_portal::eis_server: reported device region 1280x720
+2026-11-20T08:26:12.418700Z DEBUG aresos_input_portal::eis_server: reported device region 1280x720
+2026-11-20T08:26:12.418759Z DEBUG aresos_input_portal::eis_server: sent a 35356 byte xkb keymap to the client
+2026-11-20T08:26:12.450184Z DEBUG aresos_input_portal::portal: returning 1 zone(s) zone_set=2
+2026-11-20T08:26:12.452625Z  INFO aresos_input_portal::portal: accepted 1 barrier(s), rejected 0
+2026-11-20T08:26:12.454156Z  INFO aresos_input_portal::portal: capture enabled session=/org/freedesktop/portal/desktop/session/harness/bus_dies_capturing barriers=1
+2026-11-20T08:26:12.454273Z  INFO aresos_input_portal::wayland::state: armed 1 barrier surface(s)
+2026-11-20T08:26:12.455999Z  INFO aresos_input_portal::wayland::state: barrier crossed, asking the compositor for the grab barrier=1
+2026-11-20T08:26:12.456197Z DEBUG aresos_input_portal::wayland::state: the barrier's surface has keyboard focus
+2026-11-20T08:26:12.456214Z DEBUG aresos_input_portal::wayland::state: the compositor granted the pointer lock
+2026-11-20T08:26:12.456219Z  INFO aresos_input_portal::wayland::state: the grab is held, capturing input barrier=1
+2026-11-20T08:26:12.488467Z  WARN aresos_input_portal::portal: the bus connection ended: closing every session and stopping
+2026-11-20T08:26:12.488586Z  WARN aresos_input_portal::portal: the bus connection ended: closing 1 session(s)
+2026-11-20T08:26:12.488752Z ERROR aresos_input_portal::portal: failed to emit a portal signal: I/O error: Broken pipe (os error 32) signal="Deactivated"
+2026-11-20T08:26:12.488787Z  INFO aresos_input_portal::wayland::state: capture ended, pointer released barrier=1 motions=0 keys=0 buttons=0 scrolls=0 confirmed=true
+2026-11-20T08:26:12.488835Z ERROR aresos_input_portal::portal: failed to emit a portal signal: I/O error: Broken pipe (os error 32) signal="SessionClosed"
+2026-11-20T08:26:12.488842Z DEBUG aresos_input_portal::wayland::state: tearing down 1 barrier surface(s)
+2026-11-20T08:26:12.488954Z  INFO aresos_input_portal: shutting down
+2026-11-20T08:26:12.489120Z  INFO aresos_input_portal::eis_server: EIS connection closed session=/org/freedesktop/portal/desktop/session/harness/bus_dies_capturing
+Error: the session bus connection ended

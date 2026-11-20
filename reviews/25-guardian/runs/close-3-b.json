@@ -1,0 +1,50 @@
+{
+ "run": "close-3-b",
+ "source_revision": "456f696985affcc34e04bec2a5e914298b7a1eef",
+ "started": "2026-11-19T04:45:21+01:00",
+ "game": "Minecraft 26.2 development client (Loom runClient) with the worktree's AresOS mod, headless in the rig's own labwc",
+ "mode": "close",
+ "shown": true,
+ "environment": {
+  "runtime_folder_is_the_runs_own": true,
+  "gate": true,
+  "gate_expected": true,
+  "checked": "before the supervisor started and before any save"
+ },
+ "reopened": [
+  {
+   "block": 11,
+   "in_the_reopened_game": true,
+   "on_the_disk": true
+  },
+  {
+   "block": 12,
+   "in_the_reopened_game": true,
+   "on_the_disk": true
+  },
+  {
+   "block": 13,
+   "in_the_reopened_game": true,
+   "on_the_disk": true
+  }
+ ],
+ "close": {
+  "signal": "SIGTERM through a pidfd, by the rig, to its own game",
+  "save_asked_before": false,
+  "first_block": 14,
+  "block": 15,
+  "ms_from_the_blocks_answer_to_sigterm": 2,
+  "block_on_disk_before_sigterm": false,
+  "exited": true,
+  "seconds_to_exit": 0.69,
+  "exit_status": 143,
+  "block_on_disk_after_exit": true,
+  "first_block_on_disk_after_exit": true,
+  "written_after_sigterm": {
+   "level.dat": true,
+   "player data": true
+  },
+  "server_stop_lines": []
+ },
+ "gradle_saw_exit_value": 143
+}

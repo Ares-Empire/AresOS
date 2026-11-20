@@ -520,6 +520,11 @@ def check(action, request):
         return cover_start()
     if action == 'cover-stop':
         return cover_stop()
+    if action == 'guardian-arm':
+        # Package 25: the stand-in game, the seeded home and the watchers for the power key that follows. Imported
+        # here: a layer that carries this file without guardian.py loses only this action.
+        import guardian
+        return guardian.arm(request)
     if action == 'export':
         return dict(returncode=0, files={name: export_bytes(pathlib.Path(path).read_bytes())
                                        for name, path in EXPORTS.items() if pathlib.Path(path).exists()})
