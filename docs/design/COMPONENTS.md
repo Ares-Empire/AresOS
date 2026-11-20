@@ -1,8 +1,8 @@
 # The desktop's pieces: how they look and how they behave
 
-**Status:** a design study in progress (package 312, `briefs/312-component-study.md`). Step 1 of 4 is written: the
-theme layer, version A's colours and font, the grid, version B's runtime contract, and the brightness and volume
-indicator. Sections marked *step 2*, *step 3* or *step 4* are still to come. Nothing here is built, and this study
+**Status:** a design study in progress (package 312, `briefs/312-component-study.md`). Steps 1 and 2 of 4 are
+written: the theme layer, version A's colours and font, the grid, version B's runtime contract, the brightness and
+volume indicator, and the window frame. Sections marked *step 3* or *step 4* are still to come. Nothing here is built, and this study
 changes no image, theme, `rc.xml` or mod file.
 
 **What it is for.** One design for the normal desktop pieces of AresOS, so each can be built from it in its own
@@ -50,7 +50,9 @@ A piece asks the look pack for parts by what they are for, never by what they lo
 nothing about what it does. That is how A and B fit the same pieces today, and how the Ares-apps look can come later
 without rebuilding them.
 
-**Kept simple.** One look is active. There is no theme switcher, no setting, and no Ares-apps look in this study.
+**One look at a time.** After step 1 the owner chose a setting for it: A, B or C, with B as the default (the brief,
+"Patrik's decision after step 1"). C is the game's own controls where the game has them, and B elsewhere. Step 4
+designs where the setting lives; section 4.2 says what the frame needs from it. No Ares-apps look in this study.
 
 ### The look pack
 
@@ -86,12 +88,13 @@ are 7), and the same layout code coped.
    more code in every piece, and every piece must be looked at in each look it ships with.
 3. **labwc keeps part of its look in `rc.xml`.** A change of look is the theme folder, those `rc.xml` lines and the
    image check's pin in one commit, and `rc.xml` changes go to `linux-aresos` first.
-4. **A change of look needs a restart of the piece.** Programs read the pack when they start; labwc reads its theme
-   at start or on `labwc --reconfigure`. Nothing changes while it is on screen. That is enough for one look.
+4. **When a change of look shows.** Our programs read the pack when they start, and they are short-lived (the
+   indicator ends a minute after its last use). labwc rereads its theme on `labwc --reconfigure`, so the frame can
+   change while windows are open (section 4.2).
 5. **labwc cannot do everything a look may want** (no pressed button image, one border colour, soft shadows only;
    WINDOWS.md lists it). A look has to work within that for the frame. Step 2 says what that means for A and B.
 
-What it does not cost: no switcher, no settings screen, no second look kept alive.
+What it does not cost: no second copy of any piece. A look is data.
 
 ---
 
@@ -139,7 +142,8 @@ construction and changes its colours.
 | `gold-700` | `#94702f` | The shade on gold | new |
 | `gold-900` | `#5b431b` | A part step | new |
 | `red-300` | `#ff6257` | Muted, off, close | the Games group's colour (`AppGroup`) |
-| `red-600` | `#b63a32` | The shade on red | new |
+| `red-600` | `#b63a32` | The shade on red; the face of close under the pointer | new |
+| `red-800` | `#7c2620` | The lip of a red button (step 2) | new |
 
 The "stone" steps are one cool, slightly violet grey in eight brightnesses, built outwards from the paving colour.
 The other three group colours (`#3AB3DA`, `#C774F2`, `#FED83D`) stay what they are, the colours of app groups, and
@@ -247,9 +251,13 @@ overlay scale may want to be 4 as well, so that the indicator's pixels match the
 | `button` | 9 × 9, built to 20 high | left 3, top 3, right 3, bottom 4 | normal, pointer on it (`-hover`), pressed, not available (`-disabled`) | the same. **A first pass:** step 2 owns the buttons and may redraw them. |
 | `step-*` | 6 × 4 | none | lit, unlit, muted, part, limit | the indicator |
 | `sun`, `speaker`, `speaker-muted`, `microphone`, `microphone-off` | 16 × 16 | none | each also drawn in one grey as "not there" | the indicator |
+| `button-close-hover` | 9 × 9 | as `button` | one | the frame's close under the pointer; later any button that deletes or closes |
+| `gold-block`, `gold-block-hover` | 10 × 10 | none | normal, pointer on it | the window-menu button |
+| `frame/*.png` | 24 × 20 | none | labwc's 36 images: nine buttons, each normal and under the pointer, on an active and an inactive window | labwc only, doubled to 48 × 40 px (section 4.2) |
 
-labwc's title-bar buttons are **not** these sprites: labwc wants one finished image per button and state at a fixed
-size, knows no nine-slice and has no pressed state. Step 2 defines them and how they are generated from the pack.
+labwc's title-bar buttons are finished images, not nine-slices: one per button and state at a fixed size, and no
+pressed state. They are put together from the sprites above and 8 × 8 pictograms (`GLYPHS` in `look.py`), and the
+theme generator doubles them (section 4.2).
 
 ---
 
@@ -428,8 +436,270 @@ bus that can start the program.
 
 ### 4.2 The window frame and its buttons
 
-*Step 2:* the buttons and the frame in A and B with their states, minimize and restore, what labwc can draw and what
-programs draw themselves.
+*Drawn by labwc. Complete in A, B and C.*
+
+**What he sees.** Every program that lets AresOS draw its frame gets a bar 20 units high across its top (40 px at
+2x): a small gold block at the left, the title, then minimize, maximize and close at the right, in Windows' order, and
+a thin line round the window. The window he is working in has raised buttons, a gold edge and a bright title; the
+others are flat and quiet. Programs that draw their own bar, such as Chrome and GNOME apps, keep theirs (below).
+
+![Version A: an inactive terminal behind, the active editor in front, the pointer on close](components/A-10-frame-windows.png)
+
+*1920 × 1080 at 2x over the drawn noon scene. The terminal's long title is cut with dots, as labwc cuts it.*
+
+**What each part does**
+
+| Part | Mouse | Notes |
+|---|---|---|
+| The gold block | Click: the window menu | Ares-Crown's gold dot, carried over. There is no app icon: labwc sizes an icon by the button box (WINDOWS.md). |
+| The title | Drag: move. Drag to the top edge: maximize. Drag to the left or right edge: half the screen. Double-click: maximize or restore. Right-click: the window menu. | labwc's defaults, and Windows' habits. |
+| Minimize | Click: minimize (below) | |
+| Maximize, restore | Click: maximize or restore. Middle-click: full height only (labwc's default, kept). **Right-click: the layout menu (new).** | `A-11` |
+| Close | Click: close, like Alt+F4 | |
+| The edge | Drag: resize | |
+| Scrolling over the bar | **Nothing (new).** labwc's default rolls the window up into its bar on a scroll down. | |
+
+**The buttons in every state**
+
+![Version A: every title-bar image labwc uses, and the end of a title bar at 4x](components/A-09-frame-buttons.png)
+
+| State | Can labwc show it? | Version A |
+|---|---|---|
+| Active window | yes (`-active`) | A raised stone button with an ink sign and a hard shadow. The block is gold. |
+| Pointer on it | yes (`_hover-active`) | The button's edge turns gold. Close turns red with an ink cross. The block gets an ink edge. |
+| **Pressed** | **no** | Nothing changes: the pointer's image stays. labwc acts on release inside the button, so sliding off before letting go cancels, as on Windows. |
+| Inactive window | yes (`-inactive`) | The button lies flat: dark stone, a dim sign, no shadow. The block's place is an empty socket. |
+| Pointer on it, inactive window | yes (`_hover-inactive`) | The same as on the active window, because a click there acts at once (labwc focuses and raises the window on the press, then the button acts). |
+| Maximized | `max_toggled` | Restore: two small windows. A maximized window has no edge line. |
+
+Push buttons in our own programs and in the password window keep the pressed state they have (section 3); only the
+frame lacks it. Step 1's push buttons stay as they were; the frame's buttons use the same sprite and the same gold
+edge under the pointer, and add one sprite, a red button (`button-close-hover`).
+
+**Active and inactive, at a glance.** Six differences, any two of which would do: the bar (`stone-700` against
+`stone-900`), the title (`ink` against `ink-quiet`), the buttons (raised against flat), the block (gold against an
+empty socket), the edge line (`gold-500` against `outline`) and the shadow (24 px against 12 px). The gold edge is the
+palette's rule at work: gold marks the chosen thing.
+
+**Where we lean on Windows, and what is our own**
+
+| Like Windows | Our own |
+|---|---|
+| The title at the left; minimize, maximize and close at the right in that order; close turns red | **Right-click on maximize opens the layout menu**, under the button (`A-11`). Windows 11 shows its layouts when the pointer rests on maximize; labwc cannot react to a resting pointer, and a menu that opens by itself gets in the way. A right-click is deliberate, and it replaces labwc's "maximize only the width", which nobody expects. Step 3 decides the menu's items; the picture uses labwc's own snap directions, which it can do today. |
+| Double-click the title to maximize; drag to the top to maximize, to a side for half the screen | **The world's hotbar holds minimized windows** (below): a minimized app's slot is marked, and clicking it brings its window back. The world is the desktop, so its bar becomes the taskbar. |
+| Alt+F4 closes | No rolling up a window by scrolling over its bar: a Linux habit that looks like a lost window. |
+
+![Version A: a maximized editor, and the menu a right-click on maximize opens](components/A-11-frame-maximized-menu.png)
+
+*The menu is labwc's own, in A's colours, one 20-unit row per item. Its items are step 3's to decide.*
+
+**Minimize and restore**
+
+- **What happens.** Minimize (the button, or the shell when he goes back to a covered world, HUB.md section 1) hides
+  the window at once; labwc has no animation. If the window covered the world, the world stops pausing and its sound
+  comes back ("Paused only when covered", HUB.md). If no other app is in front, the world has the keyboard and the
+  mouse again, as HUB.md says: closing or minimizing puts him back in the world.
+- **Where it goes, today.** AresOS has no taskbar, so a minimized window is only in Alt+Tab. labwc's switcher lists
+  minimized windows (its fields even have a state for it), and choosing one brings it back at its old place and size,
+  maximized again if it was, and the world pauses again (HUB.md).
+- **Where it goes, proposed: the hotbar.** An app's slot in the world's hotbar is already lit while the app is open.
+  A slot whose app has a minimized window gets a small mark, and a click on it brings back that app's most recent
+  window instead of starting the app again. That is Windows' taskbar, inside the game's own bar.
+  - It needs a few new things. The shell already sees each window's app and whether it is minimized (its window
+    tracking in `aresos-shell`), and can activate a window (the same call Super uses). New: a field in the 1.x view
+    interface that says which apps have a minimized window, and a request "bring back this app's window". The mod
+    draws the mark.
+  - It is not part of the frame's package: one small shell-and-protocol package and one small mod change. Its mark
+    belongs to the mod's hotbar and is drawn by that package.
+  - *To verify:* that labwc's answer to the activate request also restores a minimized window, as Alt+Tab does.
+- **Keys.** Step 2 adds none. Windows' Super+Down and the other Super+arrow keys belong to step 3's layouts. labwc
+  fires a lone-Super binding only when Super is pressed and released without another key (labwc-config(5), on
+  `onRelease`), so such chords do not open 23c's search. Super stays free.
+
+**What labwc can draw.** Checked against labwc 0.9.6's own manual pages on this laptop (`labwc --version` says 0.9.6;
+`man 5 labwc-theme`, `man 5 labwc-config` and `man 5 labwc-actions`, dated 2026-03-15), and its example
+`/usr/share/doc/labwc/rc.xml.all` for the default mouse bindings.
+
+| Part | What labwc can do | What it means for every look |
+|---|---|---|
+| The bar | One flat colour or a vertical gradient, for active and inactive. No image. | The bar is flat. Raised and sunken edges live only in the buttons. |
+| The title | One font for all titles (an `rc.xml` setting, whole points), one colour each for active and inactive, left, centre or right. No shadow, no outline. | Jersey 10 at 28 pt: its line is 40 px (ascent 1125 and descent 375 of its 1400 units), exactly the bar. No shadow, though A's other text has one. |
+| The buttons | One image per button and state: normal and `_hover`, each `-active` and `-inactive`; `_toggled` for max, shade and desk. PNG before SVG before XBM. One width and height for all buttons. **No pressed image:** the manual says the pressed, hover and disabled backgrounds "are not (yet) supported by labwc", and its list of image names has none. | 36 PNGs of 48 × 40 px: the 24 × 20-unit sprites doubled, so labwc never scales them. |
+| The edge line | One width for the whole frame; one colour for active and one for inactive. | 2 px, one unit. |
+| Corners | `rc.xml`'s `cornerRadius`, top corners only. | 0 in every look. |
+| Shadow | Soft only; size and colour for active and inactive; on or off in `rc.xml`. | A short soft shadow. A hard pixel shadow is not possible. |
+| Menus | Flat colours, one border, separators, the menu font. | A: stone and gold. B: the game's tooltip colours. |
+| Where themes are found | `~/.local/share/themes/<name>/labwc/` before `/usr/share/themes/<name>/labwc/` (labwc-theme(5), "THEME"). | B and C can live in his home folder and win over A in the image (below). |
+| Reloading | "All configuration and theme files except autostart and shutdown are reloaded on receiving signal SIGHUP" (labwc-config(5)); `labwc --reconfigure` sends it. | A change of look can take effect while windows are open. |
+
+**What programs draw themselves, and which looks reach them.** The tried list is package 31's (WINDOWS.md,
+"Programs that draw their own frame").
+
+| Program | Its bar | A | B | C |
+|---|---|---|---|---|
+| Terminal, Qt and KDE programs, plain GTK3 and GTK4 windows, X11 programs, Chrome app windows, Chrome with "Use system title bar", Electron with a normal frame | labwc's | Yes, all of it | Yes, once the sync step has written his theme folder | Yes, the same way |
+| GNOME apps (libadwaita) and GTK apps with a header bar | Their own (client-side) | No. Adwaita draws it. Only the button order reaches them, through AresOS's GSettings default, the same in every look. | No | No |
+| Chrome | Its own tab bar with its own buttons | No. Only the button order. A Chrome colour theme could tint the tab strip in A's stone; that would be a separate small package if he wants it. | No. A Chrome theme made of the game's pixels would have to be built on his machine and installed into Chrome; not worth it. | No |
+| Frameless Electron (the Lunar Client launcher, Discord) | Their whole window | No. Nothing reaches them. | No | No |
+
+Forcing our frame onto them is no way out: a window rule gives Chrome a second row of buttons, and libadwaita draws
+its header bar regardless (WINDOWS.md). So every look reaches every frame labwc draws and none of the others; no look
+makes this worse than today. The inside of a Qt program (its Breeze widgets) is not reached either; the password
+window's inside gets a Qt style sheet (step 4).
+
+**Version B: `B-07`, `B-09`, `B-11`, `B-12`** (private pictures).
+
+- **A chest window.** The bar is the light grey of the game's chests and inventory, and the title is in the dark grey
+  the game writes "Inventory" and "Chest" in, the one place where the game writes without a shadow, which is what
+  labwc can do.
+- **The buttons are inventory slots** with our pictograms in the game's white and its shadow (the game has no
+  minimize, maximize or restore sign). Under the pointer the slot lights with the game's own slot light, as when he
+  points at an item; close's sign turns the game's red. On an inactive window the sign turns dark grey.
+- **The window menu is a gold nugget**, faded on an inactive window: Crown's gold dot in the game's form.
+- **The edge line** is white on the active window, the game's own sign for the focused button or text field, and
+  black on the others. Over the bright sky the white line is the weaker edge (`B-09`); there the bar's colour and the
+  buttons carry the difference.
+- **The title** is Jersey 10, because labwc cannot read the game's font (section 5). `B-11`'s third row shows the
+  game's own letters, which would need a font file built from the game's letter sheets on his machine (section 5,
+  way b).
+- **The menu** (`B-12`) takes the colours of the game's tooltip, read from its tooltip sprites, with the chosen row
+  lit like a hovered slot and its text in the game's yellow.
+
+**Version C: `B-08`, `B-10`.** The game has no window, title bar, minimize or maximize of its own; its own controls
+are its buttons. C uses the game's normal 20-unit button (`widget/button`, highlighted under the pointer, the dark
+"not available" button on an inactive window) with signs from the game's font: `_`, `□`, `×`, and restore as two `□`,
+because the font has no restore sign. The game also has a small 14-unit cross button; C does not use it, so the three
+buttons stay alike. Everything else in C is B. Two things he would notice: the game's font draws `□` and `×` five
+units wide, about half the size of A's and B's eight-unit pictograms; and C's close never turns red, because the
+game's buttons have no red state.
+
+**What he would notice between the looks.** A is dark and quiet and sits with dark programs and today's frame. B and
+C put a light grey band, the colour of the game's chests, above every program: unmistakably the game, and furthest
+from Chrome's and GNOME's own bars. The title's letters are the same in all three unless B's way b is built.
+
+**What the frame needs from the look setting** (Patrik's decision after step 1: the look A, B or C, default B; place
+and size apply to the indicator, not to the frame. Step 4 designs the settings themselves.)
+
+- **One theme name for all looks.** `rc.xml` names the theme `AresOS`. The image ships look A as
+  `/usr/share/themes/AresOS/labwc/`, generated from the look pack. For B or C, the sync step (section 5) writes a
+  complete theme folder of the same name into `~/.local/share/themes/AresOS/labwc/`, which labwc reads first. For A it
+  removes that folder, and only if it made it. If the game's files are missing or wrong, no folder is written and the
+  frame is A: one piece, never half one look and half another.
+- **The same geometry in every look:** a 40 px bar, 48 × 40 px buttons, a 2 px edge line, Jersey 10 at 28 pt. So
+  `rc.xml` is the same whichever look he picks, a switch changes no image file, and no window's inside moves or
+  changes size.
+- **It can switch while he works, without restarting labwc.** After the folder changes, the setting runs
+  `labwc --reconfigure`. Open windows get the new frame. A reconfigure also rereads `rc.xml`'s keys; window rules run
+  only when a window first appears (the note in today's `rc.xml`), so the world's "always below" rule is not run
+  again. *To verify in a private labwc:* that open windows redraw their frames, and that the world keeps the pointer
+  and the keyboard through it.
+- **Cheap first, the rest later.** The frame's first package ships A only, as the image's theme. B and C come with
+  section 5's sync step, which then also writes the theme folder; the switch itself is a folder and one command.
+- **Today's Ares-Crown** gives way to the look's frame when that package ships. Its files stay in git history and are
+  a natural start for the later Ares-apps look, a fourth value of the same setting. Question 3 in section 7.
+
+**Version A's theme, for the build** (`themerc`, generated from the look pack; the menu lines as in `A-11`; the Alt+Tab
+and snapping lines are step 3's):
+
+```
+border.width: 2
+window.active.border.color: #cfa24f
+window.inactive.border.color: #0d0d10
+window.titlebar.padding.width: 0
+window.titlebar.padding.height: 0
+window.active.title.bg: Solid
+window.active.title.bg.color: #2b2832
+window.inactive.title.bg: Solid
+window.inactive.title.bg.color: #1a181f
+window.active.label.text.color: #f3f1ea
+window.inactive.label.text.color: #a6a39a
+window.label.text.justify: Left
+window.button.width: 48
+window.button.height: 40
+window.button.spacing: 0
+window.active.shadow.size: 24
+window.active.shadow.color: #0000008c
+window.inactive.shadow.size: 12
+window.inactive.shadow.color: #0000005a
+menu.border.width: 2
+menu.border.color: #0d0d10
+menu.items.padding.x: 8
+menu.items.padding.y: 0
+menu.items.bg.color: #2b2832
+menu.items.text.color: #f3f1ea
+menu.items.active.bg.color: #3a3644
+menu.items.active.text.color: #edca77
+menu.separator.width: 2
+menu.separator.padding.width: 8
+menu.separator.padding.height: 4
+menu.separator.color: #504b5c
+```
+
+And in `rc.xml` (to `linux-aresos` first): the theme's name `AresOS`, `cornerRadius` 0, Jersey 10 at 28 pt for
+`ActiveWindow`, `InactiveWindow`, `MenuHeader` and `MenuItem`, and a mouse block. It starts with `<default />`, as the
+manual's own example does, so labwc's other mouse bindings stay:
+
+```xml
+<mouse>
+  <default />
+  <context name="Maximize">
+    <mousebind button="Right" action="Click"><action name="ShowMenu" menu="aresos-layouts" atCursor="no" /></mousebind>
+  </context>
+  <context name="TitleBar">
+    <mousebind direction="Up" action="Scroll"><action name="None" /></mousebind>
+    <mousebind direction="Down" action="Scroll"><action name="None" /></mousebind>
+  </context>
+</mouse>
+```
+
+`atCursor="no"` opens a menu "underneath the window button that opened" it (labwc-actions(5)), and `None` as the only
+action clears a default binding. The `aresos-layouts` menu goes into a `menu.xml` beside `rc.xml`, which AresOS does
+not have yet; step 3 fills it.
+
+**What it is built from**
+
+| | |
+|---|---|
+| Draws it | labwc 0.9.6, unchanged. |
+| New: the theme generator | Writes `themerc` and the 36 images from the look pack, as `reviews/window-design-v1/draw-buttons.py` writes Ares-Crown's today. The study's `title_button()` and `window_frame()` in `tools/look.py` are its first draft. |
+| The image | `/usr/share/themes/AresOS/labwc/` with 37 files, Jersey 10 (section 2's list), `rc.xml` and a new `menu.xml`. The image check that pins Ares-Crown's checksum and 37 files (`os/ci/image-checks.sh`, about line 770) moves to the new folder in the same commit. The GTK button-order override and its compiled schemas do not change (same order). Package 31's report stays as history; `docs/design/WINDOWS.md` is updated by that package to describe the new frame and to correct its line on Jersey 10's 21 pt. |
+| B and C | The sync step (section 5) writes the theme folder and runs the reconfigure: about 100 more lines there. |
+| Size | One small package for A: the generator (about 150 lines), the image and its checks, the `rc.xml` and `menu.xml` lines, and tests in a private labwc. One or two builder steps. |
+
+**What the build must test** (in a private headless labwc, as package 31 did):
+
+- Every image at 1:1 on a 1920 × 1080 output at scale 1: a screenshot shows no scaled or blurred pixel.
+- The bar is 40 px high with Jersey 10 at 28 pt, and a title with `ÄÖÜß` fits it.
+- Each button under the pointer on an active and an inactive window; close red; restore on a maximized window; no edge
+  line on a maximized window.
+- A right-click on maximize opens the layout menu under the button; Escape closes it and the window keeps the focus;
+  scrolling over the bar does nothing.
+- A change of look: write and remove the home theme folder, reconfigure; open windows change their frame, none moves
+  or resizes, and a test client holding a pointer lock keeps it.
+- A half-written home theme folder never appears (the sync step writes a hidden folder and renames it).
+- Package 31's program list again: terminal, KWrite, GTK3, GTK4, a libadwaita sample, Chrome with its own bar.
+
+**Decisions taken here, with reasons** (all can change later without redesign)
+
+| Decision | Why |
+|---|---|
+| Every look has the same frame geometry and title font | A change of look never moves a window's inside, and `rc.xml` never changes with the look. |
+| The bar is 20 units at 2x, 40 px | It is the game's button height and Jersey 10's line, exactly. Only 4 px taller than Ares-Crown's 36. |
+| Raised buttons on the active window, flat ones on the others | With the gold edge, the active window can be told from across the room, without colour noise inside the bar. |
+| The pointer looks the same on an inactive window's button | A click there acts at once, so the button should say so. |
+| No pressed state for the frame | labwc has none. The action happens on release, so nothing is lost. |
+| Right-click on maximize opens the layout menu | Windows 11's layouts on maximize, without the resting-pointer trigger labwc lacks. It costs one mouse binding and one menu. |
+| No action on scrolling over the bar | labwc's default rolls the window up into its bar, which a Windows user reads as a lost window. |
+| The window menu stays a gold block (A), a gold nugget (B and C) | Crown's gold dot carried into each look; labwc cannot size an app icon well (WINDOWS.md). |
+| All 36 images are drawn, also shade and all-desktops | A later change of the button layout never shows labwc's grey default (package 31's rule). |
+| C uses the game's normal button for all three, not its small cross button | An even row of three alike buttons. |
+| One theme name; B and C live in his home folder | No image change per look. A is what remains when the folder is gone. |
+
+**Not verified** (nothing was run; these come from labwc's manual and must be confirmed by the build's tests): that
+labwc shows a PNG of exactly the button size without scaling it; that Jersey 10 at 28 pt makes a 40 px bar in labwc's
+own text drawing; that open windows redraw their frames on a reconfigure; that a user mouse binding replaces the
+default for the same context and button; that `None` clears the scroll bindings; that labwc's activate request
+restores a minimized window.
 
 ### 4.3 Window layouts and split screen
 
@@ -484,7 +754,8 @@ from the mod's development copy of the same jar (the same size as step 2 names).
 | Letters | `font/include/default.json` (which sheet holds which letter) and `font/include/space.json`; the sheets `textures/font/ascii.png`, `accented.png`, `nonlatin_european.png` |
 | The indicator | `textures/gui/sprites/toast/now_playing.png`; `boss_bar/yellow_background.png`, `yellow_progress.png`, `white_background.png`, `white_progress.png`, `notched_20_background.png`, `notched_20_progress.png`; `textures/item/lantern.png`, `bell.png`, `barrier.png`; `gui/sprites/social_interactions/mute_button.png`, `unmute_button.png`. For the slider form: `gui/sprites/widget/slider.png`, `slider_handle.png`, `button.png`, `button_disabled.png` |
 | Nine-slice insets | The `.png.mcmeta` file beside a sprite, which is where the game itself keeps them (for example the toast's border of 4, a button's of 3) |
-| Later pieces | Steps 2 to 4 add their lists here. |
+| The window frame (step 2) | B: `gui/sprites/container/slot.png`, `slot_highlight_back.png`, `slot_highlight_front.png`; `textures/item/gold_nugget.png`; `gui/sprites/tooltip/background.png` and `frame.png` (the menu's colours are read from them). C adds `gui/sprites/widget/button.png`, `button_highlighted.png`, `button_disabled.png` and the signs `_ □ ×` from the letter sheets. |
+| Later pieces | Steps 3 and 4 add their lists here. |
 
 **From the asset objects: nothing.** The sounds, the translations and the game's large fallback font
 (`minecraft/font/unifont.zip`) live there. B reads none of them.
@@ -521,7 +792,7 @@ It contains names and numbers only.
 |---|---|---|---|
 | Layer-shell programs | The indicator; later the layout picker and the overview | They read the cache instead of A's pack: the same parts by the same names. Nine-slice by the game's own insets. | They copy letters out of the three sheets using the game's table: a letter is as wide as its rightmost inked column plus one, a space is 4, the shadow is the colour at a quarter one unit down and right. Easy, and exact. |
 | The mod | Its own screens | It is B already: it draws with the running game's widgets. | The game's own. |
-| labwc | The frame, its buttons, menus, Alt+Tab | The sync step writes a **whole labwc theme folder** with the same name into `~/.local/share/themes/`, its button images put together from game sprites at the shipped scale. labwc looks in his home before the image, so B's folder wins while it exists and A's returns when it is gone, with no `rc.xml` change. The folder must be complete (labwc fills a missing image with its own grey default, not with A's), and labwc must be told to reload once after the first sync. *To verify in a private labwc.* | **labwc cannot read the game's font.** The game's font is letter sheets in the jar, and labwc can only use an installed font by name. Two ways: (a) under B the title bars keep A's Jersey 10; or (b) the sync step builds a real font file from the sheets into `~/.local/share/fonts/`, which needs a font-building library in the image and its own review. I would start with (a). |
+| labwc | The frame, its buttons, menus, Alt+Tab | The sync step writes a **whole labwc theme folder** with the same name (`AresOS`, section 4.2) into `~/.local/share/themes/`, its button images put together from game sprites at the shipped scale. labwc looks in his home before the image, so B's folder wins while it exists and A's returns when it is gone, with no `rc.xml` change. The folder must be complete (labwc fills a missing image with its own grey default, not with A's), and labwc must be told to reload once after the first sync. That labwc reads the home folder first is in its manual (labwc-theme(5)); that the whole switch works is *to verify in a private labwc.* | **labwc cannot read the game's font.** The game's font is letter sheets in the jar, and labwc can only use an installed font by name. Two ways: (a) under B the title bars keep A's Jersey 10; or (b) the sync step builds a real font file from the sheets into `~/.local/share/fonts/`, which needs a font-building library in the image and its own review. I would start with (a). |
 | Qt (`ksshaskpass`) | The password window's inside | A style sheet whose border images point into the cache. | The same limit and the same two ways as labwc. |
 
 **Letters the game's font has.** Its three sheets cover basic Latin (`ascii.png`), accented Latin including
@@ -563,20 +834,31 @@ What step 1 found, for step 4 to weigh:
 - B does not reach every renderer equally: complete in our own programs and in the mod, but labwc's title bars and
   the password window cannot use the game's font without building a font file on his machine.
 - A has to exist and be good either way: it is the fallback, and the only look that may be shown in public.
-- B's private pictures so far: `B-01` to `B-06`.
+- On the frame (section 4.2), labwc flattens every look: flat bar, one-colour edge, no text shadow, no pressed
+  button. The looks differ in the bar's colour (A dark stone, B and C the game's chest grey), the buttons (A raised
+  stone, B inventory slots, C the game's own buttons with small signs from its font) and the edge line. The title is
+  Jersey 10 in all three unless a font is built from the game's letters.
+- Switching the frame's look costs no image change and no restart: a theme folder in his home and a reconfigure.
+- B's private pictures so far: `B-01` to `B-12`.
 
 ---
 
 ## 7. Questions for the owner
 
-*Step 4 makes the final list. The lead posts them. From step 1:*
+*Step 4 makes the final list. The lead posts them. From steps 1 and 2:*
 
 1. **Where should the brightness and volume plate appear: at the top centre, or low above the hotbar?** Look at
    `A-06` (top) and `A-07` (low), and `A-08` for the top over an app. *Recommended: top centre.*
 2. **How big should it be: small, medium or large?** Look at `A-05` (and `B-06`). *Recommended: medium (3x).*
+3. **Should windows wear the Minecraft-look frame too, following the look setting, instead of today's black-and-gold
+   Ares-Crown?** Look at `A-10` (A), `B-09` (B) and `B-10` (C) against today's frame
+   (`reviews/window-design-v1/01-crown.png`). *Recommended: yes, the frame follows the look.*
 
 For step 4's A-or-B question, the indicator's pictures are `A-04` against `B-01` and `B-02`, side by side in `B-03`.
-If he chooses B, `B-01` (plate and bar) or `B-02` (the game's slider) is one more choice; I recommend `B-01`.
+If he chooses B, `B-01` (plate and bar) or `B-02` (the game's slider) is one more choice; I recommend `B-01`. For the
+frame, the sheet with A, B and C side by side is `B-11`. Under B, the game's own letters in window titles (`B-11`,
+third row) need a font file built on his machine; I recommend starting with Jersey 10 and asking again once B is in
+use.
 
 ---
 
@@ -588,9 +870,9 @@ If he chooses B, `B-01` (plate and bar) or `B-02` (the game's slider) is one mor
 |---|---|
 | No Mojang texture or font in any committed file, the pull request or the image | The committed pictures are made by `reviews/312-component-study/tools/draw_a.py` from three things only: flat colours, the letter maps typed into `look.py`, and Jersey 10. B's pictures are written by `draw_b.py` to one fixed folder outside the checkout, and that script has no option to write anywhere else. The staged files were checked before each push (`reviews/312-component-study/PROGRESS.md`). The study changes no image file. |
 | A's art is not traced from the game's | Every A sprite is a small map of letters typed by hand in `look.py`; none was made by opening, copying or redrawing a game file. The game's sprites were looked at in the same step, for B's pictures, and A's differ from them in shape, size and colour: a square bevelled plate against the game's rounded toast, twenty separate gold steps against a continuous notched bar, a sun, speaker and microphone the game does not have. Jersey 10 shares no letter bitmap with the game's font (section 2). |
-| Sprites sit on the GUI grid, so the mod can adopt them | One pixel per GUI unit, whole-unit insets, repeated edges, buttons 20 units high (section 3). |
+| Sprites sit on the GUI grid, so the mod can adopt them | One pixel per GUI unit, whole-unit insets, repeated edges, buttons 20 units high (section 3). The frame's images are 24 × 20 units, doubled for labwc. |
 | It sits next to the noon world and the laptop home's day street | `A-06` and `A-07` show it on a drawn scene in the day colours. A's dark plate is the same family as the world's name plates and the day look's dark bars. *Still to do by eye:* the real game behind it on the laptop. |
-| Readable at 1920 × 1080 and at the stated scales | `A-04` (over sky and over white), `A-05` (2x, 3x, 4x), `A-08` (over an app). |
+| Readable at 1920 × 1080 and at the stated scales | `A-04` (over sky and over white), `A-05` (2x, 3x, 4x), `A-08` (over an app). The frame: `A-10` (two windows over the noon scene at 2x, a long title cut), `A-11` (maximized, with the menu). |
 | The password window shows its full label and "Enter SSH Credentials" | *Step 4.* |
-| Passive surfaces never take keyboard focus; interactive ones say who owns input | The indicator: overlay layer, keyboard mode "none", empty input region (section 4.1), with tests named for the build. Interactive pieces: *steps 3 and 4.* |
-| Super stays free for the search over the world | The indicator binds no key. *Steps 2 to 4 for their keys.* |
+| Passive surfaces never take keyboard focus; interactive ones say who owns input | The indicator: overlay layer, keyboard mode "none", empty input region (section 4.1), with tests named for the build. The frame's layout menu is labwc's own menu: labwc has the keyboard while it is open, Escape closes it, and the window keeps the focus (4.2). Other interactive pieces: *steps 3 and 4.* |
+| Super stays free for the search over the world | The indicator and the frame bind no key; the frame changes two mouse bindings (4.2). *Steps 3 and 4 for their keys.* |

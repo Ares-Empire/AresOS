@@ -42,7 +42,8 @@ PALETTE = (
     ('gold-700', '#94702f', 'shade on gold'),
     ('gold-900', '#5b431b', 'a part step'),
     ('red-300', '#ff6257', 'muted, off, close'),
-    ('red-600', '#b63a32', 'shade on red'),
+    ('red-600', '#b63a32', 'shade on red; the face of close under the pointer'),
+    ('red-800', '#7c2620', 'the lip of a red button'),
 )
 P = {name: rgb(colour) for name, colour, _ in PALETTE}
 
@@ -91,7 +92,7 @@ A_KEY = {'O': P['outline'], 'L': P['stone-500'], 'F': P['stone-700'], 'D': P['st
          'S': P['stone-900'], 'E': P['stone-950'], 'H': P['stone-400'], 'B': P['stone-600'], 'P': P['stone-800'],
          'h': P['stone-300'], 'b': P['stone-500'], 'Y': P['gold-300'],
          'i': P['ink'], 'q': P['ink-quiet'], 'g': P['gold-300'], 'G': P['gold-500'], 'd': P['gold-700'],
-         'r': P['red-300']}
+         'r': P['red-300'], 'R': P['red-600'], 'k': P['red-800'], 'w': P['gold-100']}
 
 A_SPRITES = {
     # A raised plate: outline, light edge top and left, dark edge bottom and right. Nine-slice inset 3.
@@ -108,6 +109,14 @@ A_SPRITES = {
                            'OFFFFFFFO', '.OOOOOOO.'], A_KEY),
     'button-disabled': pix(['.OOOOOOO.', 'OPPPPPPPO', 'OPPPPPPPO', 'OPPPPPPPO', 'OPPPPPPPO', 'OPPPPPPPO', 'OPPPPPPPO',
                             'OPPPPPPPO', '.OOOOOOO.'], A_KEY),
+    # Step 2: close under the pointer, the same construction in red. Nine-slice insets as `button`.
+    'button-close-hover': pix(['.OOOOOOO.', 'OrrrrrrrO', 'OrRRRRRkO', 'OrRRRRRkO', 'OrRRRRRkO', 'OrRRRRRkO',
+                               'OkkkkkkkO', 'OkkkkkkkO', '.OOOOOOO.'], A_KEY),
+    # Step 2: the window-menu button at the left of the title bar, a gold block; with an ink edge under the pointer.
+    'gold-block': pix(['.OOOOOOOO.', 'OwwwwwwwgO', 'OwggggggdO', 'OwggggggdO', 'OwggGgggdO', 'OwgggGggdO',
+                       'OwggggggdO', 'OwggggggdO', 'OgdddddddO', '.OOOOOOOO.'], A_KEY),
+    'gold-block-hover': pix(['.iiiiiiii.', 'iwwwwwwwgi', 'iwggggggdi', 'iwggggggdi', 'iwggGgggdi', 'iwgggGggdi',
+                             'iwggggggdi', 'iwggggggdi', 'igdddddddi', '.iiiiiiii.'], A_KEY),
     'sun': pix(['.......gg.......', '.......GG.......', '..g..........g..', '...G........G...', '.....gggggg.....',
                 '....ggGGGGGG....', '....gGGGGGGd....', 'gG..gGGGGGGd..Gd', 'gG..gGGGGGGd..Gd', '....gGGGGGGd....',
                 '....GGGGGGdd....', '.....dddddd.....', '...G........G...', '..d..........d..', '.......GG.......',
@@ -261,6 +270,46 @@ class LookA:
                 kind = 'limit'
             image.alpha_composite(a_step(kind), (x + 2 + 7 * index, y + 2))
 
+    # ---- the window frame (step 2). labwc draws the bar, the title and the border in flat colours.
+
+    def frame_colours(self, active):
+        if active:
+            return dict(bar=P['stone-700'], title=P['ink'], border=P['gold-500'])
+        return dict(bar=P['stone-900'], title=P['ink-quiet'], border=P['outline'])
+
+    def menu_colours(self):
+        return dict(bg=P['stone-700'], text=P['ink'], chosen_bg=P['stone-600'], chosen_text=P['gold-300'],
+                    border=P['outline'], separator=P['stone-500'])
+
+    def title_width(self, text):
+        return self.text_width(text)
+
+    def title(self, image, x, text, colour):
+        """The title on a TITLE_H bar: Jersey 10's line is exactly 20 units, so its capitals start 5 units down.
+        labwc writes in one flat colour and cannot draw a shadow."""
+        self.text(image, x, 5, text, colour, shadow=False)
+
+    def title_button(self, kind, state):
+        """One of labwc's images: a CELL_W x TITLE_H cell. A raised stone button on the active window, a flat one
+        on an inactive window, a gold edge under the pointer, red for close."""
+        cell = Image.new('RGBA', (CELL_W, TITLE_H), (0, 0, 0, 0))
+        hover, active = state.startswith('hover'), state == 'active'
+        if kind == 'menu':
+            if hover or active:
+                cell.alpha_composite(A_SPRITES['gold-block-hover' if hover else 'gold-block'], (7, 5))
+            else:
+                cell.alpha_composite(self.slot(10, 10), (7, 5))
+            return cell
+        if hover:
+            face, colour, shadow = ('button-close-hover' if kind == 'close' else 'button-hover'), P['ink'], True
+        elif active:
+            face, colour, shadow = 'button', P['ink'], True
+        else:
+            face, colour, shadow = 'button-disabled', P['ink-dim'], False
+        cell.alpha_composite(nine_slice(A_SPRITES[face], 20, 16, (3, 3, 3, 4)), (2, 2))
+        cell.alpha_composite(glyph(kind, colour, P['outline'] if shadow else None), (8, 5))
+        return cell
+
 
 # ---------------------------------------------------------------- the piece: the level indicator
 
@@ -309,6 +358,113 @@ def indicator(look, state, icons):
     top = (height - 2 * look.cap - look.line_gap) // 2
     look.text(image, text_x, top, state['label'], look.ink)
     look.text(image, text_x, top + look.cap + look.line_gap, state['status'], getattr(look, state['tone']))
+    return image
+
+
+# ---------------------------------------------------------------- the piece: the window frame (section 4.2)
+
+# The frame's geometry belongs to the piece, not to a look: every look has the same bar, cells and border, so a
+# change of look never moves or resizes a window's inside. In GUI units; labwc gets them at 2x (40 px bar, 48 x 40 px
+# buttons, a 2 px border).
+TITLE_H, CELL_W, BORDER = 20, 24, 1
+
+# labwc's button images (labwc-theme(5), labwc 0.9.6): per button a normal and a hover image, each for an active and
+# an inactive window. There is no pressed image. `max_toggled` is restore; `shade` and `desk` are drawn too, so a later
+# change of the button layout never shows labwc's grey default.
+FRAME_BUTTONS = ('menu', 'iconify', 'max', 'max_toggled', 'close', 'shade', 'shade_toggled', 'desk', 'desk_toggled')
+FRAME_STATES = ('active', 'hover-active', 'inactive', 'hover-inactive')
+TITLE_LAYOUT = (('menu',), ('iconify', 'max', 'close'))  # rc.xml today: menu:iconify,max,close
+
+
+def labwc_file(kind, state):
+    """The file name labwc looks for, for example close_hover-active.png."""
+    return f'{kind}{"_hover" if state.startswith("hover") else ""}-{state.split("-")[-1]}.png'
+
+
+# Our own pictograms, 8 x 8 units. The game has none for these, so version B draws them too, in its colours.
+GLYPHS = {
+    'iconify': ['........', '........', '........', '........', '........', '........', 'xxxxxxxx', 'xxxxxxxx'],
+    'max': ['xxxxxxxx', 'xxxxxxxx', 'x......x', 'x......x', 'x......x', 'x......x', 'x......x', 'xxxxxxxx'],
+    'max_toggled': ['..xxxxxx', '..xxxxxx', 'xxxxxx.x', 'xxxxxx.x', 'x....x.x', 'x....xxx', 'x....x..',
+                    'xxxxxx..'],
+    'close': ['xx....xx', 'xxx..xxx', '.xxxxxx.', '..xxxx..', '..xxxx..', '.xxxxxx.', 'xxx..xxx', 'xx....xx'],
+    'shade': ['xxxxxxxx', 'xxxxxxxx', '........', '...xx...', '..xxxx..', '.xxxxxx.', '........', '........'],
+    'shade_toggled': ['xxxxxxxx', 'xxxxxxxx', '........', '.xxxxxx.', '..xxxx..', '...xx...', '........',
+                      '........'],
+    'desk': ['xxx..xxx', 'x.x..x.x', 'xxx..xxx', '........', '........', 'xxx..xxx', 'x.x..x.x', 'xxx..xxx'],
+    'desk_toggled': ['xxx..xxx', 'xxx..xxx', 'xxx..xxx', '........', '........', 'xxx..xxx', 'xxx..xxx',
+                     'xxx..xxx'],
+}
+
+
+def glyph(kind, colour, shadow=None):
+    """A pictogram in one colour, with a hard shadow one unit down and right if a shadow colour is given."""
+    mask = pix(GLYPHS[kind], {'x': (255, 255, 255, 255)}).getchannel('A')
+    image = Image.new('RGBA', (9, 9), (0, 0, 0, 0))
+    if shadow is not None:
+        image.paste(shadow, (1, 1), mask)
+    image.paste(colour, (0, 0), mask)
+    return image
+
+
+def fit(look, text, room):
+    """Cut a title to fit, as labwc does, with an ellipsis at the end."""
+    if look.title_width(text) <= room:
+        return text
+    while text and look.title_width(text + '...') > room:
+        text = text[:-1]
+    return text.rstrip() + '...'
+
+
+def window_frame(look, width, height, title, active=True, maximized=False, hover=None):
+    """A window's frame at one pixel per GUI unit, its inside left see-through: exactly the parts labwc draws.
+
+    `hover` names the button under the pointer. A maximized window has no border and shows restore.
+    """
+    colours = look.frame_colours(active)
+    edge = 0 if maximized else BORDER
+    image = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(image)
+    if edge:
+        draw.rectangle((0, 0, width - 1, height - 1), outline=colours['border'], width=edge)
+    draw.rectangle((edge, edge, width - edge - 1, edge + TITLE_H - 1), fill=colours['bar'])
+    state = 'active' if active else 'inactive'
+    left, right = TITLE_LAYOUT
+    for index, kind in enumerate(left):
+        image.alpha_composite(look.title_button(kind, f'hover-{state}' if hover == kind else state),
+                              (edge + CELL_W * index, edge))
+    first_right = width - edge - CELL_W * len(right)
+    for index, kind in enumerate(right):
+        shown = 'max_toggled' if kind == 'max' and maximized else kind
+        image.alpha_composite(look.title_button(shown, f'hover-{state}' if hover == kind else state),
+                              (first_right + CELL_W * index, edge))
+    title_x = edge + CELL_W * len(left)
+    room = Image.new('RGBA', (first_right - title_x - 2, TITLE_H), (0, 0, 0, 0))
+    look.title(room, 0, fit(look, title, room.width), colours['title'])
+    image.alpha_composite(room, (title_x, edge))
+    return image
+
+
+def window_menu(look, items, chosen=None):
+    """labwc's menu in a look's flat colours: one 20-unit row per item, a one-unit border, a thin separator."""
+    colours, pad = look.menu_colours(), 4
+    width = max(100, max(look.title_width(item) for item in items if item) + 2 * pad + 2)
+    height = 2 + sum(TITLE_H if item else 5 for item in items)
+    image = Image.new('RGBA', (width, height), colours['bg'])
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((0, 0, width - 1, height - 1), outline=colours['border'])
+    y = 1
+    for item in items:
+        if not item:
+            draw.line((1 + pad, y + 2, width - 2 - pad, y + 2), fill=colours['separator'])
+            y += 5
+            continue
+        if item == chosen:
+            draw.rectangle((1, y, width - 2, y + TITLE_H - 1), fill=colours['chosen_bg'])
+        row = Image.new('RGBA', (width - 2 - pad, TITLE_H), (0, 0, 0, 0))
+        look.title(row, 0, item, colours['chosen_text'] if item == chosen else colours['text'])
+        image.alpha_composite(row, (1 + pad, y))
+        y += TITLE_H
     return image
 
 
@@ -400,3 +556,108 @@ def place(scene, piece, factor, where, bottom_clear=64):
     y = 8 * factor if where == 'top' else scene.height - bottom_clear * factor - big.height
     scene.alpha_composite(big, (x, y))
     return scene
+
+
+# ---------------------------------------------------------------- the window frame's sheets and scenes (step 2)
+
+POINTER = pix(['O.........', 'OO........', 'OiO.......', 'OiiO......', 'OiiiO.....', 'OiiiiO....', 'OiiiiiO...',
+               'OiiiiiiO..', 'OiiiiiiiO.', 'OiiiiiOOOO', 'OiiOiiO...', 'OiOOiiO...', 'OO..OiiO..', 'O...OiiO..',
+               '.....OO...'], A_KEY)  # our own arrow, standing for the system pointer
+
+
+def client(width, height, kind):
+    """A program's inside at screen pixels, drawn schematically: a light editor page or a dark terminal."""
+    if kind == 'terminal':
+        image = Image.new('RGBA', (width, height), rgb('#0d0d10'))
+        draw = ImageDraw.Draw(image)
+        for row, (length, colour) in enumerate(((260, '#cfa24f'), (420, '#a6a39a'), (380, '#a6a39a'), (0, ''),
+                                                (300, '#cfa24f'), (520, '#f3f1ea'), (180, '#a6a39a'))):
+            if length:
+                draw.rectangle((24, 24 + row * 30, 24 + min(length, width - 48), 37 + row * 30), fill=rgb(colour))
+        return image
+    image = Image.new('RGBA', (width, height), rgb('#ffffff'))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((0, 0, width - 1, 43), fill=rgb('#f1f1f1'))
+    draw.line((0, 44, width - 1, 44), fill=rgb('#d9d9d9'))
+    for index in range(5):
+        draw.rectangle((16 + index * 52, 14, 48 + index * 52, 30), fill=rgb('#c9c9c9'))
+    for row, length in enumerate((620, 0, 880, 940, 760, 0, 900, 540, 0, 820, 870, 300, 0, 640, 910, 700)):
+        if length and 80 + row * 34 < height - 30:
+            draw.rectangle((40, 80 + row * 34, 40 + min(length, width - 80), 91 + row * 34), fill=rgb('#d5d5d5'))
+    return image
+
+
+def soft_shadow(scene, box, size, alpha):
+    """labwc's soft shadow under a window (it cannot draw a hard one)."""
+    from PIL import ImageFilter
+    layer = Image.new('RGBA', scene.size, (0, 0, 0, 0))
+    x0, y0, x1, y1 = box
+    ImageDraw.Draw(layer).rectangle((x0, y0 + size // 4, x1, y1 + size // 4), fill=(0, 0, 0, alpha))
+    scene.alpha_composite(layer.filter(ImageFilter.GaussianBlur(size / 2)))
+
+
+def put_window(scene, look, x, y, width, height, title, kind, active, factor=2, hover=None, maximized=False):
+    """A window at (x, y) in GUI units on a screen-sized scene: shadow, inside, then the frame over it."""
+    edge = 0 if maximized else BORDER
+    if not maximized:
+        soft_shadow(scene, (x * factor, y * factor, (x + width) * factor, (y + height) * factor),
+                    24 if active else 12, 140 if active else 90)
+    inside = client((width - 2 * edge) * factor, (height - 2 * edge - TITLE_H) * factor, kind)
+    scene.alpha_composite(inside, ((x + edge) * factor, (y + edge + TITLE_H) * factor))
+    frame = up(window_frame(look, width, height, title, active, maximized, hover), factor)
+    scene.alpha_composite(frame, (x * factor, y * factor))
+    return (x + width - edge - CELL_W * (len(TITLE_LAYOUT[1]))) * factor  # where the right-hand buttons begin
+
+
+def frame_scene(look, hotbar, scene_look=None):
+    """1920 x 1080 at 2x: the drawn noon world, an inactive terminal behind and the active editor in front with the
+    pointer on its close button. `scene_look` writes the drawn world's name plates (A's by default)."""
+    scene = world_scene(scene_look or look)
+    scene.alpha_composite(hotbar, ((1920 - hotbar.width) // 2, 1080 - hotbar.height))
+    put_window(scene, look, 70, 50, 400, 250, 'Terminal: ~/Projekte/Größenvergleich/Messungen', 'terminal', False)
+    buttons = put_window(scene, look, 330, 120, 540, 300, 'Einkaufsliste.txt - Editor', 'page', True,
+                         hover='close')
+    scene.alpha_composite(up(POINTER, 2), (buttons + 2 * CELL_W * 2 + 26, 120 * 2 + 22))
+    return scene
+
+
+LAYOUT_MENU = ('Left half', 'Right half', '', 'Top left', 'Top right', 'Bottom left', 'Bottom right')
+
+
+def maximized_scene(look):
+    """1920 x 1080 at 2x: a maximized editor (no border, restore shown), and the menu that a right-click on the
+    maximize button opens under it. The menu's items are step 3's; these are labwc's own snap directions."""
+    scene = Image.new('RGBA', (1920, 1080))
+    buttons = put_window(scene, look, 0, 0, 960, 540, 'Einkaufsliste.txt - Editor', 'page', True, hover='max',
+                         maximized=True)
+    menu = up(window_menu(look, LAYOUT_MENU, chosen='Left half'), 2)
+    menu_x = min(buttons + CELL_W * 2, 1920 - menu.width)
+    scene.alpha_composite(menu, (menu_x, TITLE_H * 2))
+    scene.alpha_composite(up(POINTER, 2), (buttons + CELL_W * 2 + 26, 22))
+    return scene
+
+
+def frame_buttons_sheet(look, caption, title):
+    """Every labwc image of a look at 2x on its bar colour, and three ends of a title bar at 4x."""
+    sheet = Image.new('RGBA', (1500, 900), rgb('#8fb3f3'))
+    sheet.alpha_composite(caption(title), (24, 14))
+    x0, y0, pitch_x, pitch_y = 280, 96, 220, 64
+    for column, state in enumerate(FRAME_STATES):
+        label = state.split('-')[-1] + (', pointer' if state.startswith('hover') else '')
+        sheet.alpha_composite(caption(label), (x0 + column * pitch_x, y0 - 34))
+    for row, kind in enumerate(FRAME_BUTTONS):
+        y = y0 + row * pitch_y
+        sheet.alpha_composite(caption(kind), (24, y + 10))
+        for column, state in enumerate(FRAME_STATES):
+            cell = Image.new('RGBA', (CELL_W + 4, TITLE_H + 4), look.frame_colours('inactive' not in state)['bar'])
+            cell.alpha_composite(look.title_button(kind, state), (2, 2))
+            sheet.alpha_composite(up(cell, 2), (x0 + column * pitch_x, y))
+    y = y0 + len(FRAME_BUTTONS) * pitch_y + 20
+    sheet.alpha_composite(caption('The right end of a title bar at 4x: active, pointer on close, inactive.'), (24, y))
+    sheet.alpha_composite(caption('Pressed: labwc has no image for it, so the pointer\'s image stays while the button '
+                                  'is held.'), (24, y + 32))
+    for index, (active, hover) in enumerate(((True, None), (True, 'close'), (False, None))):
+        end = window_frame(look, 400, TITLE_H + 6, 'Editor', active, hover=hover).crop((400 - 4 * CELL_W - 2, 0, 400,
+                                                                                       TITLE_H + 2))
+        sheet.alpha_composite(up(end, 4), (24 + index * 480, y + 76))
+    return sheet

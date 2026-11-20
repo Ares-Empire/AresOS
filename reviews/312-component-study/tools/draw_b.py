@@ -89,9 +89,12 @@ class LookB:
              'microphone': ('gui/sprites/social_interactions/mute_button',),
              'microphone-off': ('gui/sprites/social_interactions/unmute_button',)}
 
-    def __init__(self, jar):
+    def __init__(self, jar, jersey=None, title_font='jersey'):
+        """`jersey` is version A's look, whose font labwc can use; `title_font` 'game' draws titles in the game's
+        letters instead, which labwc could only show after a font file is built from them (section 5, way b)."""
         self.jar = jar
         self.font = GameFont(jar)
+        self.jersey, self.title_font = jersey, title_font
         self._cache = {}
 
     def sprite(self, name):
@@ -142,6 +145,88 @@ class LookB:
         self.text(image, (200 - self.text_width(text)) // 2, 6, text, colour)
         return image
 
+    # ---- the window frame (step 2): a chest window. The game's container grey with its unshadowed dark label,
+    # the white outline the game gives a focused widget, inventory slots as buttons, a gold nugget for the menu.
+
+    white, label = (255, 255, 255, 255), (64, 64, 64, 255)
+
+    def frame_colours(self, active):
+        if active:
+            return dict(bar=(198, 198, 198, 255), title=self.label, border=self.white)
+        return dict(bar=(139, 139, 139, 255), title=self.label, border=(0, 0, 0, 255))
+
+    def menu_colours(self):
+        """The game's tooltip: its colours read from the tooltip sprites, the chosen row lit like a hovered slot."""
+        bg = self.sprite('gui/sprites/tooltip/background')
+        frame = self.sprite('gui/sprites/tooltip/frame')
+        face = bg.getpixel((bg.width // 2, bg.height // 2))[:3] + (255,)
+        lit = Image.alpha_composite(Image.new('RGBA', (1, 1), face), Image.new('RGBA', (1, 1), (255, 255, 255, 96)))
+        return dict(bg=face, text=self.white, chosen_bg=lit.getpixel((0, 0)), chosen_text=self.value,
+                    border=frame.getpixel((frame.width // 2, 0))[:3] + (255,), separator=(85, 85, 85, 255))
+
+    def title_width(self, text):
+        return self.font.width(text) if self.title_font == 'game' else self.jersey.text_width(text)
+
+    def title(self, image, x, text, colour):
+        if self.title_font == 'game':
+            self.font.draw(image, x, 6, text, colour, shadow=False)  # the game's 7-unit capitals, centred
+        else:
+            self.jersey.title(image, x, text, colour)
+
+    def _highlight(self, cell, layer, x, y):
+        """The game's own light over a hovered slot (a 16 x 16 square inside a 24 x 24 sprite)."""
+        cell.alpha_composite(self.sprite(f'gui/sprites/container/slot_highlight_{layer}').crop((4, 4, 20, 20)), (x, y))
+
+    def title_button(self, kind, state):
+        cell = Image.new('RGBA', (kit.CELL_W, kit.TITLE_H), (0, 0, 0, 0))
+        hover, active = state.startswith('hover'), state == 'active'
+        if kind == 'menu':
+            nugget = self.sprite('item/gold_nugget')
+            if hover:
+                self._highlight(cell, 'back', 4, 2)
+            elif not active:
+                nugget = nugget.copy()
+                nugget.putalpha(nugget.getchannel('A').point(lambda v: v * 2 // 5))
+            cell.alpha_composite(nugget, (4, 2))
+            return cell
+        cell.alpha_composite(self.sprite('gui/sprites/container/slot'), (3, 1))
+        if hover:
+            self._highlight(cell, 'back', 4, 2)
+        colour = self.red if hover and kind == 'close' else self.white if hover or active else self.label
+        lit = hover or active
+        cell.alpha_composite(kit.glyph(kind, colour, tuple(c // 4 for c in colour[:3]) + (255,) if lit else None),
+                             (8, 6))
+        if hover:
+            self._highlight(cell, 'front', 4, 2)
+        return cell
+
+
+class LookC(LookB):
+    """Version C: the game's own buttons, with signs from the game's font where it has them. Elsewhere C is B."""
+
+    name = 'C'
+    letters = {'iconify': '_', 'max': '□', 'close': '×'}
+
+    def title_button(self, kind, state):
+        if kind == 'menu':
+            return super().title_button(kind, state)
+        cell = Image.new('RGBA', (kit.CELL_W, kit.TITLE_H), (0, 0, 0, 0))
+        hover, active = state.startswith('hover'), state == 'active'
+        face, inset = (('widget/button_highlighted', 3) if hover else ('widget/button', 3) if active
+                       else ('widget/button_disabled', 1))
+        cell.alpha_composite(kit.nine_slice(self.sprite(f'gui/sprites/{face}'), 22, 20, inset), (1, 0))
+        colour = self.white if hover or active else self.dim
+        if kind in self.letters:
+            text = self.letters[kind]
+            self.font.draw(cell, 1 + (22 - self.font.width(text)) // 2, 6, text, colour)
+        elif kind == 'max_toggled':  # the font has no restore sign: two of its squares, one behind the other
+            x = 1 + (22 - self.font.width('□')) // 2
+            self.font.draw(cell, x + 1, 5, '□', colour)
+            self.font.draw(cell, x - 1, 7, '□', colour)
+        else:  # shade and desk: the font has nothing, so B's pictogram on the game's button
+            cell.alpha_composite(kit.glyph(kind, colour, tuple(c // 4 for c in colour[:3]) + (255,)), (8, 6))
+        return cell
+
 
 def caption(look, text, factor=2):
     image = Image.new('RGBA', (look.text_width(text) + 2, look.cap + 6), (0, 0, 0, 0))
@@ -179,6 +264,23 @@ def comparison_sheet(a, b):
     return sheet
 
 
+def title_bars_sheet(a, b, b_game, c):
+    """The same title bar in every look: active, pointer on close, inactive, at 2x."""
+    rows = (('A: our own art (public pictures A-09 to A-11)', a),
+            ('B: the game\'s textures, the title in Jersey 10 as labwc can show it now', b),
+            ('B with the game\'s own letters in the title: needs a font file built from them on his machine', b_game),
+            ('C: the game\'s own buttons, signs from its font; everything else as B', c))
+    sheet = Image.new('RGBA', (1920, 40 + len(rows) * 124), SKY)
+    y = 20
+    for name, look in rows:
+        sheet.alpha_composite(caption(b, name), (30, y))
+        for index, (active, hover) in enumerate(((True, None), (True, 'close'), (False, None))):
+            bar = kit.window_frame(look, 300, kit.TITLE_H + 2, 'Einkaufsliste.txt - Editor', active, hover=hover)
+            sheet.alpha_composite(kit.up(bar, 2), (30 + index * 620, y + 34))
+        y += 124
+    return sheet
+
+
 def same_glyphs(a, b):
     """How many printable ASCII letters have the same bitmap in Jersey 10 and in the game's font."""
     same = []
@@ -207,6 +309,12 @@ All values are made up.
 | B-04 | `B-04-indicator-top.png` | B's indicator top centre on the drawn noon scene at 1920 x 1080, with the game's hotbar at 3x. | A-06 |
 | B-05 | `B-05-indicator-over-app.png` | B's indicator top centre over a light program at 1920 x 1080. | A-08 |
 | B-06 | `B-06-indicator-scales.png` | B's indicator at 2x, 3x and 4x in real screen pixels. | A-05 |
+| B-07 | `B-07-frame-buttons.png` | Step 2, the window frame in B: every labwc title-bar image at 2x (menu, minimize, maximize, restore, close, and the unused shade and all-desktops), active, pointer on it, inactive. Buttons are the game's inventory slot with our pictograms in the game's white; the pointer lights the slot with the game's own slot light; close turns its sign red; the menu button is a gold nugget. | A-09 |
+| B-08 | `B-08-frame-buttons-c.png` | The same in C: the game's own 20-unit button, highlighted under the pointer, dark on an inactive window, with signs from the game's font (`_`, a square, a multiplication sign; restore as two squares). | A-09 |
+| B-09 | `B-09-frame-windows.png` | B on the drawn noon scene at 1920 x 1080, 2x: an inactive terminal behind, the active editor in front with the pointer on close. The bar is the game's chest-window grey with its dark label colour; the active window has the game's white focus outline. Titles in Jersey 10. | A-10 |
+| B-10 | `B-10-frame-windows-c.png` | The same scene in C. | A-10 |
+| B-11 | `B-11-frame-a-b-c.png` | One title bar in A, B, B with the game's letters in the title, and C: active, pointer on close, inactive, at 2x. The sheet to choose from. | A-09 |
+| B-12 | `B-12-frame-maximized-menu.png` | B maximized (no border, restore shown) with the menu a right-click on maximize opens, in the game's tooltip colours. | A-11 |
 
 `work/parts.png` is a working sheet of the game sprites that were looked at; it is not a mockup.
 
@@ -223,7 +331,7 @@ def main():
     if not os.path.isdir(PRIVATE) or os.stat(PRIVATE).st_mode & 0o077:
         raise SystemExit(f'{PRIVATE} must exist and be closed to everyone else (mode 700).')
     a = kit.LookA(arguments.font)
-    b = LookB(zipfile.ZipFile(GAME_JAR))
+    b = LookB(zipfile.ZipFile(GAME_JAR), jersey=a)
 
     def save(image, name):
         path = os.path.join(PRIVATE, name)
@@ -257,6 +365,20 @@ def main():
         sheet.alpha_composite(big, (990, y + 30))
         y += big.height + 60
     save(sheet, 'B-06-indicator-scales.png')
+
+    # Step 2: the window frame in B and C.
+    c = LookC(zipfile.ZipFile(GAME_JAR), jersey=a)
+    b_game = LookB(zipfile.ZipFile(GAME_JAR), jersey=a, title_font='game')
+    save(kit.frame_buttons_sheet(b, lambda text: caption(b, text),
+                                 'Version B: every title-bar image at 2x (inventory slots and the slot light)'),
+         'B-07-frame-buttons.png')
+    save(kit.frame_buttons_sheet(c, lambda text: caption(b, text),
+                                 'Version C: the game\'s own buttons with signs from its font, at 2x'),
+         'B-08-frame-buttons-c.png')
+    save(kit.frame_scene(b, hotbar, scene_look=a), 'B-09-frame-windows.png')
+    save(kit.frame_scene(c, hotbar, scene_look=a), 'B-10-frame-windows-c.png')
+    save(title_bars_sheet(a, b, b_game, c), 'B-11-frame-a-b-c.png')
+    save(kit.maximized_scene(b), 'B-12-frame-maximized-menu.png')
 
     same = same_glyphs(a, b)
     capital = b.font.glyphs['H'][0]

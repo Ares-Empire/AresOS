@@ -181,6 +181,18 @@ def main():
     title_font = os.path.join(ROOT, 'os', 'config', 'usr', 'share', 'fonts', 'aresos', 'SpaceGrotesk-Variable.ttf')
     save(kit.place(kit.app_scene(title_font), brightness, 3, 'top'), 'A-08-indicator-over-app.png')
 
+    # Step 2: the window frame. labwc's 36 images at one pixel per GUI unit (the theme generator doubles them).
+    os.makedirs(os.path.join(OUT, 'sprites', 'frame'), exist_ok=True)
+    for kind in kit.FRAME_BUTTONS:
+        for state in kit.FRAME_STATES:
+            look.title_button(kind, state).save(os.path.join(OUT, 'sprites', 'frame', kit.labwc_file(kind, state)),
+                                                optimize=True)
+    save(kit.frame_buttons_sheet(look, lambda text: line(look, text, kit.P['outline'], 2, shadow=False),
+                                 'Version A: every title-bar image labwc uses, at 2x (48 x 40 px each)'),
+         'A-09-frame-buttons.png')
+    save(kit.frame_scene(look, kit.hotbar_stand_in(look)), 'A-10-frame-windows.png')
+    save(kit.maximized_scene(look), 'A-11-frame-maximized-menu.png')
+
 
 if __name__ == '__main__':
     main()
