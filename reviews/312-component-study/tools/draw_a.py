@@ -154,6 +154,49 @@ def scales_sheet(look, icons):
     return sheet
 
 
+def password_proof(look):
+    """Step 4's proof for the password window: the full label on one line, the window at 2x (shipped) and 3x, a
+    longer action wrapped, the field and button states, and the sixteen characters a fingerprint uses."""
+    sheet = Image.new('RGBA', (1920, 1170), SKY)
+    ink = kit.P['outline']
+    whole = Image.new('RGBA', (look.title_width(kit.OWNER_LABEL) + 16, kit.TITLE_H), kit.P['stone-700'])
+    look.title(whole, 8, kit.OWNER_LABEL, look.ink)
+    sheet.alpha_composite(line(look, f'The label on one line at 2x: {look.title_width(kit.OWNER_LABEL) * 2} px, about half the screen, '
+                                     'so the window wraps it at spaces.', ink, 2, shadow=False), (30, 16))
+    sheet.alpha_composite(kit.up(whole, 2), (30, 56))
+    sheet.alpha_composite(line(look, 'Shipped, 2x: 660 px wide', ink, 2, shadow=False), (30, 120))
+    small = kit.password_window(look, kit.OWNER_LABEL)
+    sheet.alpha_composite(kit.up(small, 2), (30, 156))
+    sheet.alpha_composite(line(look, 'The same at 3x: 990 px', ink, 2, shadow=False), (870, 120))
+    sheet.alpha_composite(kit.up(kit.password_window(look, kit.OWNER_LABEL, typed=0), 3), (870, 156))
+    y = 156 + small.height * 3 + 30
+    sheet.alpha_composite(line(look, 'A longer action: more lines, nothing cut. Pointer on OK.', ink, 2,
+                               shadow=False), (30, y))
+    long = kit.password_window(look, kit.LONG_LABEL, typed=9, hover='OK')
+    sheet.alpha_composite(kit.up(long, 2), (30, y + 36))
+    x = 870
+    sheet.alpha_composite(line(look, 'Field and buttons at 3x', ink, 2, shadow=False), (x, y))
+    inside = look.password_look()
+    sheet.alpha_composite(kit.up(inside.field(120, True), 3), (x, y + 40))
+    sheet.alpha_composite(kit.up(inside.field(120, False), 3), (x + 400, y + 40))
+    sheet.alpha_composite(line(look, 'with the keyboard, and without', ink, 2, shadow=False), (x, y + 104))
+    for index, (state, default) in enumerate((('button', True), ('button-hover', True), ('button-pressed', True),
+                                              ('button', False), ('button-hover', False))):
+        name = 'OK' if default else 'Cancel'
+        sheet.alpha_composite(kit.up(inside.push_button(60, name, state, default), 3), (x + index * 200, y + 150))
+    sheet.alpha_composite(line(look, 'OK (Enter presses it): normal, pointer, pressed; Cancel: normal, pointer',
+                               ink, 2, shadow=False), (x, y + 216))
+    y += 36 + long.height * 2 + 30
+    sheet.alpha_composite(line(look, 'The sixteen characters of a fingerprint at 4x, then dcbc375f: no two alike. '
+                                     '0 O and 1 l I never meet, because a fingerprint is lower-case hex.', ink, 2,
+                               shadow=False), (30, y))
+    hexes = Image.new('RGBA', (look.title_width('0 1 2 3 4 5 6 7 8 9 a b c d e f    dcbc375f') + 16, kit.TITLE_H),
+                      kit.P['stone-700'])
+    look.title(hexes, 8, '0 1 2 3 4 5 6 7 8 9 a b c d e f    dcbc375f', look.ink)
+    sheet.alpha_composite(kit.up(hexes, 4), (30, y + 40))
+    return sheet
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     parser.add_argument('--font', required=True, help='Jersey10-Regular.ttf, kept outside the repo')
@@ -204,6 +247,18 @@ def main():
          'A-12-layouts.png')
     save(kit.half_scene(look, kit.hotbar_stand_in(look)), 'A-13-half-and-world.png')
     save(kit.switcher_scene(look, kit.hotbar_stand_in(look)), 'A-14-switcher.png')
+
+
+    # Step 4: the overview, the password window and the settings screen.
+    kit.home_picture().save(os.path.join(OUT, 'sprites', 'home-picture.png'), optimize=True)
+    hotbar = kit.hotbar_stand_in(look)
+    save(kit.overview_scene(look, hotbar), 'A-15-overview.png')
+    save(kit.window_list_scene(look, hotbar), 'A-16-window-list.png')
+    save(kit.password_scene(look, hotbar), 'A-17-password.png')
+    save(password_proof(look), 'A-18-password-proof.png')
+    save(kit.settings_scene(look, hotbar, ('Our own', 'Top centre', 'Medium'), volume,
+                            note='A stand-in in our own art: the game draws this screen with its own buttons.'),
+         'A-19-settings.png')
 
 
 if __name__ == '__main__':

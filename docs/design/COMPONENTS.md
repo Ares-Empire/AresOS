@@ -1,9 +1,10 @@
 # The desktop's pieces: how they look and how they behave
 
-**Status:** a design study in progress (package 312, `briefs/312-component-study.md`). Steps 1 to 3 of 4 are
-written: the theme layer, version A's colours and font, the grid, version B's runtime contract, the brightness and
-volume indicator, the window frame, window layouts and app switching. Sections marked *step 4* are still to come.
-Nothing here is built, and this study changes no image, theme, `rc.xml` or mod file.
+**Status:** a finished design study (package 312, `briefs/312-component-study.md`, four steps on 2026-11-19 and
+2026-11-20). It covers the theme layer, version A's colours and font, the grid, version B's runtime contract, the
+brightness and volume indicator, the window frame, window layouts, app switching, the app overview, the password
+window, and the settings the owner chose. Nothing here is built, and this study changes no image, theme, `rc.xml` or
+mod file.
 
 **What it is for.** One design for the normal desktop pieces of AresOS, so each can be built from it in its own
 package: the brightness and volume indicator, the window frame and its buttons, minimize, window layouts, app
@@ -31,7 +32,8 @@ apps comes later and is not designed here.
 
 Contents: [1 The theme layer](#1-the-theme-layer) · [2 Version A's colours and font](#2-version-as-colours-and-font) ·
 [3 The grid and the scales](#3-the-grid-and-the-scales) · [4 The pieces](#4-the-pieces) ·
-[5 Version B's runtime contract](#5-version-bs-runtime-contract) · [6 A against B](#6-a-against-b) ·
+[5 Version B's runtime contract](#5-version-bs-runtime-contract) ·
+[6 What each look costs, and the build order](#6-what-each-look-costs-and-the-build-order) ·
 [7 Questions for the owner](#7-questions-for-the-owner) · [8 What the next hub session checks](#8-what-the-next-hub-session-checks)
 
 ---
@@ -51,8 +53,8 @@ nothing about what it does. That is how A and B fit the same pieces today, and h
 without rebuilding them.
 
 **One look at a time.** After step 1 the owner chose a setting for it: A, B or C, with B as the default (the brief,
-"Patrik's decision after step 1"). C is the game's own controls where the game has them, and B elsewhere. Step 4
-designs where the setting lives; section 4.2 says what the frame needs from it. No Ares-apps look in this study.
+"Patrik's decision after step 1"). C is the game's own controls where the game has them, and B elsewhere. Section
+4.7 designs this setting and the indicator's two; section 4.2 says what the frame needs from it. No Ares-apps look in this study.
 
 ### The look pack
 
@@ -74,9 +76,9 @@ are 7), and the same layout code coped.
 | Kind of piece | Who draws it | Function lives in | Look lives in |
 |---|---|---|---|
 | Window frame: title bar, its buttons, border, labwc's menus, Alt+Tab, the snapping preview | labwc | labwc and `rc.xml` (button order, keys, mouse) | A labwc theme folder (`themerc` and one image per button and state), **generated from the look pack** by a script, as `reviews/window-design-v1/draw-buttons.py` generates Ares-Crown's today. Plus five kinds of line in `rc.xml` that labwc keeps outside the theme: the theme's name, the fonts, the corner radius, shadows on or off, the Alt+Tab style. |
-| New pieces: the indicator, later a layout picker and the overview | A small layer-shell program each | That program | The look pack, read when the program starts. It copies sprites and letters onto its surface at a whole scale. |
+| New pieces: the indicator and the overview | A small layer-shell program each | That program | The look pack, read when the program starts. It copies sprites and letters onto its surface at a whole scale. |
 | The mod's own screens | The game | The mod | The game's own widgets, as today (package 48 kept vanilla buttons on purpose). A's sprites sit on the game's grid (section 3), so the mod could ship them as its widget textures later; that is the owner's choice then, not part of these builds. |
-| The password window's inside | Qt (`ksshaskpass`) | `ksshaskpass`, unchanged | A Qt style sheet, colours and font generated from the look pack (step 4; its build needs its own review on the owner tools' checked path). |
+| The password windows' insides | Qt (`ksshaskpass`, polkit's KDE agent) | Those programs, unchanged | A Qt style sheet in the image, generated from look A's pack and **the same in every look** (section 4.6; its build needs its own review on the owner tools' checked path). |
 | Programs that draw their own bar (Chrome, GNOME apps, frameless Electron) | The program | The program | Not ours. Only the button-order setting reaches them (`docs/design/WINDOWS.md`). |
 
 ### What the separation costs
@@ -195,9 +197,8 @@ where the game's letters are 7 high with strokes of 1. A private check compared 
 94 printable ASCII letters, none is the same in the two fonts.
 
 **Its weak spot.** `0` and `O` look the same, and so do `1`, `l` and `I` (bottom of the picture). Among the sixteen
-characters a fingerprint uses (`0`–`9`, `a`–`f`) I see no pair that can be confused, but that is the password
-window's proof to make (step 4); its fallback is to set the eight characters in JetBrains Mono, which the R29 image
-brings.
+characters a fingerprint uses (`0`–`9`, `a`–`f`) I see no pair that can be confused. Section 4.6 proves it (`A-18`), so the fallback,
+JetBrains Mono from the R29 image, is not needed.
 
 **The other candidate.** Pixelify Sans (OFL, SHA-256 `9ba86cd0…89e8a5` of the variable file from `ofl/pixelifysans`)
 did not land on whole pixels at any size from 8 to 48 px in the same test, so its letters would always have soft
@@ -255,6 +256,9 @@ overlay scale may want to be 4 as well, so that the indicator's pixels match the
 | `gold-block`, `gold-block-hover` | 10 × 10 | none | normal, pointer on it | the window-menu button |
 | `frame/*.png` | 24 × 20 | none | labwc's 36 images: nine buttons, each normal and under the pointer, on an active and an inactive window | labwc only, doubled to 48 × 40 px (section 4.2) |
 | `layout/layout-*.png` | 16 × 10 | none | one: labwc shows a menu icon unchanged on the chosen row | the layout menu's 11 pictograms, as named icons (section 4.3) |
+| `home-picture` | 188 × 96 | none | one | the overview's Home card, in every look (section 4.5) |
+| The overview's close button | 14 × 14, from `button` and `button-close-hover` | as `button` | normal, pointer on it | the overview (section 4.5) |
+| A text field | from `slot`, with a one-unit `gold-300` edge while it has the keyboard | 2 on every side | with and without the keyboard | the password windows' style sheet (section 4.6) |
 
 labwc's title-bar buttons are finished images, not nine-slices: one per button and state at a fixed size, and no
 pressed state. They are put together from the sprites above and 8 × 8 pictograms (`GLYPHS` in `look.py`), and the
@@ -341,14 +345,16 @@ stands for the game's hotbar and is version A's slot sprite, not the game's bar.
 
 The alternative is the bottom centre, above the hotbar and the hearts, where Windows 11 puts it:
 [`A-07`](components/A-07-indicator-bottom.png). It is nearer to where his eyes are in the world, but it sits in the
-middle of the view there and over a film's subtitles in an app. This is question 1 in section 7.
+middle of the view there and over a film's subtitles in an app. The owner made the place a setting, with the top
+centre as its default (board #409; section 4.7).
 
 **How big.** 175 × 30 units. Shipped at 3x that is 525 × 90 px.
 
 ![The indicator at 2x, 3x and 4x in real pixels](components/A-05-indicator-scales.png)
 
 2x (350 × 60 px) is the size of a Windows flyout and easy to miss from a chair's distance; 4x (700 × 120 px) is right
-only if his game's interface is also at 4. Question 2 in section 7.
+only if his game's interface is also at 4. The owner made the size a setting, with medium (3x) as its default (board
+#409; section 4.7).
 
 **With the world**
 
@@ -547,7 +553,7 @@ palette's rule at work: gold marks the chosen thing.
 Forcing our frame onto them is no way out: a window rule gives Chrome a second row of buttons, and libadwaita draws
 its header bar regardless (WINDOWS.md). So every look reaches every frame labwc draws and none of the others; no look
 makes this worse than today. The inside of a Qt program (its Breeze widgets) is not reached either; the password
-window's inside gets a Qt style sheet (step 4).
+window's inside gets a Qt style sheet from the image, in A for every look (section 4.6).
 
 **Version B: `B-07`, `B-09`, `B-11`, `B-12`** (private pictures).
 
@@ -580,7 +586,7 @@ C put a light grey band, the colour of the game's chests, above every program: u
 from Chrome's and GNOME's own bars. The title's letters are the same in all three unless B's way b is built.
 
 **What the frame needs from the look setting** (Patrik's decision after step 1: the look A, B or C, default B; place
-and size apply to the indicator, not to the frame. Step 4 designs the settings themselves.)
+and size apply to the indicator, not to the frame. Section 4.7 designs the settings themselves.)
 
 - **One theme name for all looks.** `rc.xml` names the theme `AresOS`. The image ships look A as
   `/usr/share/themes/AresOS/labwc/`, generated from the look pack. For B or C, the sync step (section 5) writes a
@@ -1014,7 +1020,7 @@ and nothing changes. While the frame moves, its window comes forward with an out
 2. A layout's group: bringing back one brings back the rest (4.3).
 3. The world's hotbar: a minimized app's slot gets a mark, and a click brings its window back (section 4.2's proposal,
    its own package).
-4. The overview (section 4.5, step 4).
+4. The overview (section 4.5).
 
 **Keys.** Alt+Tab (today, `NextWindow`), Shift+Alt+Tab (new, `PreviousWindow`), Alt+F4 as today. No Super key, so
 the search over the world is not touched.
@@ -1108,13 +1114,345 @@ where labwc puts the icon and the title).
 
 ### 4.5 The app overview
 
-*Step 4.*
+*A layer-shell program of our own. Interactive. Complete in A, B and C. What ships first is labwc's own list of
+windows on the same key.*
+
+**What he sees and does.** Super+Tab, the key of Windows' Task View. The screen goes dark and shows every open window
+at once, sorted by app. He clicks a window to go to it, or moves the gold frame with the arrow keys and presses Enter.
+Delete, or the close sign on a row, closes that window. Escape, or Super+Tab again, closes the overview and changes
+nothing.
+
+![Version A: the overview over the drawn world and two windows](components/A-15-overview.png)
+
+*1920 × 1080 at 2x. All windows are made up. The second editor window is framed in gold: he was in it when he opened
+the overview, so the keys start there. The pointer rests on a Chrome window's close sign.*
+
+**What it shows, in this order**
+
+1. **Home,** the world, with a picture of our own: the day home in the laptop home's colours, with his gold home block
+   on the road (`sprites/home-picture.png`). Never a live picture: the world may later sleep as a still image (#364),
+   and labwc gives programs no window pictures anyway (below). Picking Home returns to the world as Alt+Tab's Home
+   does: what covers it goes down (section 4.3).
+2. **A layout that went down together** (section 4.3's group), while there is one: a card with each window's place as
+   its pictogram. Picking the card or any of its windows brings the whole layout back.
+3. **One card per open app, in the hotbar's order:** his nine pinned apps first, then the rest by name. So a card
+   stays where it was from one opening to the next, where Alt+Tab's order changes with every switch. The card's icon is
+   the app's own pixel icon from the catalogue, with the number of its windows as a stack count, the way the game counts
+   items in a slot. Under it is one row per window: its layout place as a pictogram if it has one, its title, and a mark
+   at the right end. The mark is the minimize sign for a minimized window (whose title is also quieter), or a small
+   screen for a window on the other screen.
+
+Not in it: the laptop home, the start-up cover and the shutdown's black screen (as in Alt+Tab, section 4.4), and the
+overview itself.
+
+**Our own, and why it earns its place.** Alt+Tab answers "back to the one before". The overview answers "what is open,
+and where". It shows what Alt+Tab cannot: which windows are minimized, which windows share a layout and come back
+together, which window is on the other screen, and a close for each. All of it works with the mouse and without
+holding a key. The stack count and the hotbar's order make it read like the game's inventory of what is open, not a
+wall of pictures. Windows' Task View shows pictures of the windows; ours cannot (below), so it doesn't pretend to.
+
+**How it fits with the rest**
+
+| | Alt+Tab (4.4) | The overview | The world's hotbar |
+|---|---|---|---|
+| Opens | Alt+Tab, while Alt is held | Super+Tab; stays open | Always there in the world |
+| Shows | Every window, the most recent first, live pictures (labwc's) | Every window by app, Home, layouts, marks; no pictures | His nine pinned apps, lit when open; later marked when minimized (4.2) |
+| Best for | The keyboard: two or three windows back and forth | The mouse: one window among many, closing several, a layout back | Starting and returning to his main apps |
+| Brings a layout back whole | Yes (the shell does it) | Yes, and shows which windows come back | Yes, later |
+
+The Apps screen in the world (E, then "Apps…") lists programs to open, not windows, and stays as it is.
+
+**Keys.** Super+Tab opens and closes it. It is a chord: 23c's lone-Super binding (`onRelease`) fires only when no other
+key came between press and release, so Super+Tab never opens the search over the world. Today's `rc.xml` binds nothing
+on it (its one Super chord is Super+Ctrl+Escape, the recovery terminal). Inside: the arrow keys move the frame (left
+and right between cards, up and down between rows), Tab and Shift+Tab go through every row, Enter picks, Delete closes
+the framed window, Escape closes the overview.
+
+**Focus and input.**
+
+- **Who has the keyboard:** the overview, from opening until it closes. It is a layer-shell surface on the overlay layer
+  covering the screen, with keyboard mode `exclusive`, so no other program sees a key meanwhile.
+- **The world** loses the keyboard and the mouse as it does when an app comes forward (package 40's rules: no pause
+  menu, the world keeps living). Super+Tab is labwc's key, so the game never sees it.
+- **Escape, Super+Tab or a click outside every card** closes it, and the shell gives the focus back to the window that
+  had it (the shell knows which was active, and uses foreign-toplevel's `activate`). If that was the world, this is the
+  same as going Home with Alt+Tab.
+- **Picking a window:** the shell activates it (back from minimized, with its group, under the covering rule) and the
+  overview closes.
+- **It is a view of the shell, not a window.** It tells the shell when it has the keyboard (`view_focus`), and the shell
+  never lists it, never counts it as covering the world and never minimizes it.
+
+**Screens.** It opens on the screen with the pointer, where he is working, and lists the windows of both screens.
+Picking a window on the other screen focuses it there.
+
+**What labwc 0.9.6 can and cannot do here** (checked in labwc-actions(5), labwc-menu(5) and the list of Wayland
+interfaces in the installed `/usr/bin/labwc`; nothing was run):
+
+| Need | labwc 0.9.6 | Used |
+|---|---|---|
+| List the windows with title, app, minimized, maximized, active and screens; activate, minimize, bring back and close one | `zwlr_foreign_toplevel_manager_v1`, which the shell already uses | Yes, through the shell |
+| A lasting name for each window | `ext_foreign_toplevel_list_v1` | Not needed: the shell's own numbers do |
+| A picture of one window | **No.** It offers `ext_image_copy_capture_manager_v1` with the screen source only (`ext_output_image_capture_source_manager_v1`), not the window source; `zwlr_screencopy_manager_v1` and `zwlr_export_dmabuf_manager_v1` also copy whole screens. A minimized window is on no screen at all. Only labwc's own Alt+Tab draws window pictures. | Why the overview shows icons, titles and marks |
+| Where a window is | No (section 4.3) | Layout places come from the shell's record |
+| A ready list of windows | `client-list-combined-menu`, a built-in menu of every window that focuses the chosen one (labwc-menu(5)) | What ships first |
+| A key that starts a program | `Execute` | Super+Tab |
+| Workspaces | Yes (`GoToDesktop`, `ext_workspace_manager_v1`) | No: AresOS has one desktop, and Windows' virtual desktops are not proposed |
+
+**Which program draws it.** `aresos-overview`, a small layer-shell program like the indicator: GTK, gtk4-layer-shell and
+Cairo, with the look pack or B's cache. Not the mod, because it must show over apps and on the monitor. Not labwc,
+whose only window list is a menu of titles.
+
+**It asks the shell instead of labwc.** The shell already keeps the window list, the layout record, the groups and the
+covering rule. With one owner of window state, nothing can bring a window back past the covering rule or the
+known-output guard. New for views, in a 1.3 version of the shell's interface (LAPTOP-HOME.md section 5):
+
+- `list_windows`: for each window, the shell's number for it, the catalogue app it belongs to (or its own app name),
+  its title, minimized or not, active or not, its screen, its layout place and its group;
+- `windows_changed`, sent when that list changes;
+- `activate_window <number>`: the same route as Alt+Tab, with the shell's group and covering rules;
+- `close_window <number>`: foreign-toplevel's close, so the app still asks about unsaved work itself;
+- `go_home`: the same as picking Home.
+
+A window whose app is not in the catalogue gets a plain icon from the look pack.
+
+**What ships first: labwc's list** ([`A-16`](components/A-16-window-list.png)). One `rc.xml` line gives Super+Tab
+labwc's own window list in the middle of the screen, in the look's menu colours: every window by its title, chosen by
+mouse or arrow keys and Enter. It can come with the frame's package (section 4.2) at no extra cost. It has no cards, no
+Home picture, no layouts and no close, and it knows nothing of the shell. Picking a window there is labwc's own
+activate, which the shell already watches, so a layout still comes back whole and picking the world still uncovers it
+(*to verify*). The overview program replaces it on the same key.
+
+```xml
+<!-- first -->
+<keybind key="W-Tab"><action name="ShowMenu" menu="client-list-combined-menu"><position><x>center</x><y>center</y></position></action></keybind>
+<!-- later -->
+<keybind key="W-Tab"><action name="Execute" command="/usr/libexec/aresos-overview toggle" /></keybind>
+```
+
+**In A, B and C**
+
+- **A** (`A-15`): stone cards (the plate), the chosen row framed in gold, the hovered row lit, close red under the
+  pointer; the veil is the wall colour at 90 %.
+- **B** (`B-16`): the game's in-world screen background as the veil, tiled over a dark layer (the game blurs the world
+  under it; labwc has no blur); the game's popup panel as each card, its slots for the icons, its white stack count and
+  its letters; the chosen row framed in white, as the game frames the chosen world, and the hovered row lit like a
+  slot. The overview is our own program, so B is complete here, not flattened to colours as in labwc. At 2x the game's
+  capitals are 14 px, its own size at GUI scale 2; A's are 20 px.
+- **C** (`B-17`, the three side by side): every window's row is one of the game's buttons, highlighted when chosen or
+  under the pointer, and the close is the game's small cross button. The rest is B.
+- **In every look** the Home picture is our own drawing.
+- **Scale 2x**, as labwc's menus and Alt+Tab. At 3x four cards do not fit across the screen.
+
+**What it is built from**
+
+| | |
+|---|---|
+| Draws it | `aresos-overview`, a layer-shell program |
+| Existing things it uses | gtk4-layer-shell, GTK and Cairo (the R29 image brings them for the laptop home); the shell's window list and layout record; the catalogue's icons; the look pack |
+| New in the shell | The five requests above, about 150 lines and their tests |
+| New: the program | About 500 lines: cards, keys, and the look through the same small module the indicator uses |
+| `rc.xml` | One line, to `linux-aresos` first |
+| Size | One package after the layout packages (it shows their groups): two or three builder steps. The first ship, labwc's list, is one line in the frame's package. |
+
+**What the build must test** (a private headless labwc with two outputs, the shell and a stand-in world):
+
+- The world keeps living while it is open; after Escape the world has the keyboard again and takes the pointer back (a
+  test client holding a pointer lock).
+- Picking a minimized window brings it back where it was; picking one window of a group brings the group; picking Home
+  minimizes what covers the world; picking a window on the other screen focuses it there.
+- Delete closes the framed window, and an app with unsaved work still asks.
+- With 23c's binding: Super+Tab, then Super released, does not open the search.
+- With thirty windows the cards wrap into more columns and the overview scrolls; titles with `ÄÖÜß` are cut with an
+  ellipsis.
+- It is never in Alt+Tab and never counts as covering the world.
+- With the program removed, Super+Tab does nothing harmful.
+
+**Decisions taken here, with reasons** (all can change later without redesign)
+
+| Decision | Why |
+|---|---|
+| A window overview grouped by app, not an app catalogue with running status | The catalogue with running status exists four times already: the world's lit logos, the hotbar, the laptop home's houses and the Apps screen. What was missing is one place that shows every window. |
+| No window pictures | labwc 0.9.6 gives programs none, a minimized window has none, and the world may sleep. Icons, titles and marks instead. |
+| The hotbar's order, not the most recent first | A card stays where it was; Alt+Tab already does recency. |
+| The overview asks the shell, never labwc's window list | One owner of covering, groups and the known-output guard. |
+| Super+Tab | Windows' Task View key, and a chord, so the search keeps lone Super. |
+| labwc's list first | One line, available at once; the program replaces it on the same key. |
+| Started on first use, ends five minutes after it last closed | A GTK program holds about 50 MiB while it runs; staying a while makes the next opening instant. If its first start takes longer than about 300 ms, the build starts it with the session instead. |
+
+**Not verified:** how labwc's window list marks a minimized window, and that picking one there brings it back; that
+the shell sees that activate in time for the covering rule; how the game takes the pointer back after the overview
+closes over the world; that a layer surface on the overlay layer with keyboard mode `exclusive` gets the keyboard
+while a game holds a pointer lock.
 
 ### 4.6 The password window
 
-*Step 4.* Step 1 leaves it one finding: Jersey 10's `0`/`O` and `1`/`l`/`I` look alike (section 2), and the full
-label "AresOS owner tools dcbc375f: install these tools, then check and title" is about 450 units wide in Jersey 10,
-which is about 900 px at 2x and 1350 px at 3x.
+*Qt's `ksshaskpass`, unchanged. Its inside is version A in every look. Its build needs its own review on the owner
+tools' checked path.*
+
+**What he sees.** As `docs/INSTALL.md` describes it, around line 269: a window in the middle of the screen. Its title
+bar says **Enter SSH Credentials** (the program's fixed title) and wears the frame of the chosen look, like every
+window. Inside, on AresOS's dark stone in Jersey 10: a key icon, the label **AresOS owner tools dcbc375f: install
+these tools, then check and title** on two lines, **Password:** and the field with a gold edge (it has the keyboard),
+and **OK** in gold letters (Enter presses it) beside **Cancel**.
+
+![Version A: the password window in front of the terminal where Claude runs](components/A-17-password.png)
+
+*1920 × 1080 at 2x. The window is 660 × 276 px. The arrangement inside follows KDE's password dialog and is
+approximate; colours, letters and sizes are what the style sheet sets.*
+
+**Every password prompt AresOS shows**
+
+| Prompt | Program | When | What is styled |
+|---|---|---|---|
+| The owner tools' check | `sudo -k -A` with `ksshaskpass` (INSTALL.md, OWNER-TOOLS.md) | When Claude runs the tools' routine line, after he said go | The inside, from the image's style sheet (below) |
+| An app needs admin rights | polkit's KDE agent, `polkit-kde-authentication-agent-1`, started by labwc's `autostart` | A system-wide Flatpak install and the like | The same style sheet |
+| `sudo` in a terminal | The terminal | When he or Claude types `sudo` | Nothing: the terminal's own text |
+| Signing in after signing out | `agreety` on the text console (greetd) | Rarely: the first session starts by itself | Nothing: the text console |
+
+**How he tells the real window from a fake.** Not by its look. Any program he runs can draw a copy of any window, in
+A, B or C, pixel for pixel, and a game server can draw one inside the world. So the look is never the proof, and this
+design adds no seal, lock or "secure" sign that would suggest it is. Three things count, and the design keeps each of
+them whole:
+
+1. **He told Claude to go just now** (INSTALL.md's rule). A password window he did not ask for gets Cancel.
+2. **It is a window of its own** with the frame and "Enter SSH Credentials", above everything, and **never inside the
+   game.** AresOS never asks for his password inside the world: not in the chat, on a sign, in a book, in the AresOS
+   menu or on any screen of the mod, and anything typed there may go to a game server. One rule to remember:
+   a password field in the game is never AresOS's. (Section 8 makes this a check for every build package.)
+3. **The line starts with "AresOS owner tools"** and its 8 characters equal line 1 of `docs/OWNER-TOOLS.md`, which he
+   opens on his phone from his own bookmark.
+
+INSTALL.md's stated limit stands: the window stops accidents and a Claude that acts without asking, not a Claude that
+has been tricked.
+
+**What must never look like the game: the inside, in every look.** Two reasons:
+
+- Inside the world, many things ask for typed text in the game's look: the chat, signs, anvils, a server's `/login`
+  prompt. A password window in the game's look would teach him that game-looking things may ask for his password. One
+  that looks like nothing in the game keeps rule 2 easy to follow.
+- B's and C's files live in his home folder, which every program he runs can change. The inside must come only from
+  files in the image, owned by root, so that nothing in his home can change, hide or cover what the window says. A Qt
+  style sheet can even replace a label's words (`qproperty-text`), so where the sheet comes from matters.
+
+So the inside is A, from the image, under every look setting. The frame follows the look like every window's frame,
+because labwc styles every frame from one theme and cannot leave one window out (`B-18` shows the window under B's and
+C's frames). The frame carries none of the three things he checks.
+
+**What can be styled safely**
+
+| Part | Styled? | How |
+|---|---|---|
+| Background, text colour, letters | Yes, A's | `stone-700`, `ink`, Jersey 10 at 28 pt: the frame's 2x |
+| The field | Yes | A's slot as a border image, with a gold edge while it has the keyboard |
+| OK and Cancel | Yes | A's button sprites for normal, pointer on it, pressed and not available; OK's letters gold because Enter presses it; no text shadow (a style sheet draws none) |
+| The icon | No | The icon theme's; the style sheet does not reach it |
+| The label's words and how it wraps | **Never** | sudo writes the words and Qt wraps them at spaces. The style sheet sets no width or height, no `qproperty-`, and no text colour close to its background. |
+| The title | No | The program's fixed "Enter SSH Credentials" |
+| The frame | As every window's | labwc's theme |
+
+**Readable, and nothing cut** ([`A-18`](components/A-18-password-proof.png)). The label is 451 units long in Jersey
+10, 902 px at 2x on one line, about half the screen. So the window wraps it at spaces: two lines in the 660 px window
+at 2x, four for a longer made-up action. Qt's label grows with its lines, so nothing is cut, and the fingerprint is one
+word, so it is never split. At 3x the window is 990 px wide and still two lines. The sixteen characters a fingerprint
+uses, in Jersey 10 at 4x: no two look alike. Jersey 10's weak pairs (`0` and `O`; `1`, `l` and `I`) never meet in a
+fingerprint, which is lower-case hex. JetBrains Mono stays the fallback if the build's screenshot of Qt's own text
+drawing shows otherwise.
+
+**How the style reaches the window** (for the build; on the owner tools' checked path):
+
+- **The sheet:** `/usr/share/aresos/look/password.qss` and its sprites, in the image, generated from look A's pack. The
+  image checks allow only colour, font, border-image and padding rules, image paths under `/usr/share/aresos/look/`,
+  no `qproperty-`, and text at least 7:1 against its background.
+- **ksshaskpass gets it** through Qt's own `-stylesheet` argument. sudo starts the askpass program with the prompt as
+  its only argument, so the owner tools' line names a small wrapper instead: `SUDO_ASKPASS=/usr/libexec/aresos-askpass`,
+  which runs `/usr/bin/ksshaskpass -stylesheet /usr/share/aresos/look/password.qss "$@"`. The wrapper is in the image,
+  owned by root, passes the prompt through unchanged and adds nothing else.
+- **This changes the checked line** in `docs/INSTALL.md` and the owner tools' guide. So its package is a change on the
+  owner tools' checked path: a Fable review (security-sensitive), INSTALL.md and OWNER-TOOLS.md updated in the same
+  package, and the window's words exactly as INSTALL.md describes them.
+- **polkit's agent:** its `autostart` line gains the same argument.
+- **If the sheet is missing** Qt shows the plain window, and the password still works.
+- **The simpler way, if that review says no:** leave both windows plain. Nothing else in this study depends on styling
+  them.
+
+**What the build must test** (in a private labwc with a stand-in prompt, never the real owner tools):
+
+- At 2x, with Qt's own text drawing: the full label, the title, Password:, OK and Cancel, compared with `A-17`; a long
+  label wraps to four lines and nothing is cut.
+- Without the sheet, the plain window appears and works. A style sheet in his home folder is never read.
+- The polkit agent shows the same style.
+- KDE's eye button in the field, if it appears, works; no "remember" box appears for this prompt.
+- The image check rejects a sheet with `qproperty-`, an image path outside `/usr/share/aresos/look/`, or weak contrast.
+
+**Decisions taken here, with reasons**
+
+| Decision | Why |
+|---|---|
+| The inside is A in every look | The game's look inside a password window teaches the wrong thing, and B's files are his home folder's, which any of his programs can change. |
+| The style comes from the image only | Nothing in his home can change, hide or cover the label. |
+| No trust sign in the look | Any look can be copied; the proof is the three checks above. |
+| Jersey 10 for the label | `A-18` shows the sixteen hex characters apart; JetBrains Mono stays the fallback. |
+| 2x | The size of the frame and of every window's text at 2x. |
+| polkit's agent gets the same style | One look for every password window, and the same reasoning applies. |
+
+**Not verified:** the exact arrangement of KDE's password dialog (the icon's size, the eye button, margins); that
+`ksshaskpass` takes Qt's `-stylesheet` argument as every Qt widget program does; Jersey 10 in Qt's own text drawing at
+28 pt; the echo character (Jersey 10 may not have it, and Qt then takes it from another font).
+
+### 4.7 The settings: the look, and the indicator's place and size
+
+*The owner's three settings (board #409). Built in steps: the first package ships them with their defaults.*
+
+| Setting | Values, as he reads them | Default | Who reads it |
+|---|---|---|---|
+| Look | Our own (A), Minecraft textures (B), Minecraft buttons (C) | Minecraft textures | The frame (through the sync step and labwc's theme folder), the indicator, the overview. Later the Ares-apps look is a fourth value. |
+| Indicator place | Top centre, Bottom centre (above the hotbar) | Top centre | The indicator |
+| Indicator size | Small (2x), Medium (3x), Large (4x) | Medium | The indicator |
+
+The password windows and the mod's own screens read none of them: the first are A (section 4.6), the second always the
+game's.
+
+**Where they live.** One small file in his home, `~/.config/aresos/desktop.json`, and one program that owns it,
+`/usr/libexec/aresos-settings` (`get`, and `set <name> <value>`). It checks the value, writes the whole file at once (a
+new file renamed into place) and applies the change. No file means the defaults; a broken file means the defaults and a
+line in the journal. The defaults live in that program and nowhere else.
+
+**How he changes them.** In the world: Esc opens the AresOS menu, and a new row "Settings…" opens "Desktop settings"
+([`A-19`](components/A-19-settings.png) as a stand-in; `B-19` as the game draws it). It has three of the game's option
+buttons and Done. A click moves a setting to its next value, as the game's own options do, and the change shows at
+once. The mod draws this screen with the game's buttons in every look, like all its screens, and sends the change to
+the shell (a new 1.x request, `set_setting`), which runs `aresos-settings set`. Claude can do the same in a terminal
+when he asks.
+
+**How a change takes effect, at once**
+
+- **The look:** the program runs the sync step for the new look. For B or C it writes the theme folder
+  `~/.local/share/themes/AresOS/labwc/` from B's cache; for A it removes that folder (only its own). Then it runs
+  `labwc --reconfigure`, and open windows get the new frame without moving (section 4.2: labwc's manual says it
+  rereads the theme; *to verify* in a private labwc). The indicator and the overview take the look the next time they
+  show. If B's files are not there yet (the game is not installed yet, or this is the very first session), the setting
+  stays B, everything shows A, and the button reads "Look: Minecraft textures (waiting for the game)".
+- **Place and size:** nothing to reload. The program shows the indicator once, at once, at the new place and size with
+  the current volume, so he sees what he chose (`B-19`).
+
+**Cheap now, or later**
+
+| Part | Cost | When |
+|---|---|---|
+| The settings file and `aresos-settings`, three settings with their defaults | Small: about 80 lines and tests | First, with the indicator |
+| The place | An anchor of the indicator's layer surface: a few lines | First, with the indicator |
+| The size | The whole-number scale: one number | First, with the indicator |
+| The look, A | Nothing more: the only look at first | First |
+| The look, B | Section 5's shared work: the sync step, the map, the per-version check, the game's letters in our programs | Second |
+| The look, C | Per piece, on top of B: the frame's three buttons (about 30 lines in the theme generator), the indicator's slider form (about 40), the overview's rows (about 30) | With each piece, once B exists |
+| The settings screen in the mod, and `set_setting` | About 150 lines in the mod, 40 in the shell, tests | Once B is there, so that the choice means something |
+
+**What ships first, plainly.** The first package is the indicator in look A, at the top centre, medium size (section
+4.1). It already reads all three settings from the file, with B as the look's default. Until the second package brings
+B's files, B falls back to A, which is the fallback rule in any case, so nothing special is needed. There is no screen
+yet; if he wants a value changed before the screen exists, Claude runs one command. The order of the rest is in
+section 6.
+
 
 ---
 
@@ -1153,7 +1491,9 @@ from the mod's development copy of the same jar (the same size as step 2 names).
 | Nine-slice insets | The `.png.mcmeta` file beside a sprite, which is where the game itself keeps them (for example the toast's border of 4, a button's of 3) |
 | The window frame (step 2) | B: `gui/sprites/container/slot.png`, `slot_highlight_back.png`, `slot_highlight_front.png`; `textures/item/gold_nugget.png`; `gui/sprites/tooltip/background.png` and `frame.png` (the menu's colours are read from them). C adds `gui/sprites/widget/button.png`, `button_highlighted.png`, `button_disabled.png` and the signs `_ □ ×` from the letter sheets. |
 | Layouts and Alt+Tab (step 3) | Nothing new: the menu, the snapping preview and Alt+Tab take their colours from the tooltip sprites above, and B's pictograms are drawn from flat colours in the game's white and black. C reads nothing more. |
-| Later pieces | Step 4 adds its list here. |
+| The overview (step 4) | B: `gui/inworld_menu_background.png` (the veil) and `gui/sprites/popup/background.png` (the cards), with the slot above. C adds `gui/sprites/widget/cross_button.png` and `cross_button_highlighted.png`, and uses the button sprites above for its rows. The Home picture is always our own. |
+| The password windows (step 4) | **Nothing, by design:** their inside is A in every look and reads only the image's files (section 4.6). |
+| The settings screen (step 4) | Nothing: the mod draws it with the running game's own widgets. |
 
 **From the asset objects: nothing.** The sounds, the translations and the game's large fallback font
 (`minecraft/font/unifont.zip`) live there. B reads none of them.
@@ -1188,10 +1528,10 @@ It contains names and numbers only.
 
 | Program | Pieces | B's textures | B's font |
 |---|---|---|---|
-| Layer-shell programs | The indicator; later the layout picker and the overview | They read the cache instead of A's pack: the same parts by the same names. Nine-slice by the game's own insets. | They copy letters out of the three sheets using the game's table: a letter is as wide as its rightmost inked column plus one, a space is 4, the shadow is the colour at a quarter one unit down and right. Easy, and exact. |
+| Layer-shell programs | The indicator and the overview | They read the cache instead of A's pack: the same parts by the same names. Nine-slice by the game's own insets. | They copy letters out of the three sheets using the game's table: a letter is as wide as its rightmost inked column plus one, a space is 4, the shadow is the colour at a quarter one unit down and right. Easy, and exact. |
 | The mod | Its own screens | It is B already: it draws with the running game's widgets. | The game's own. |
 | labwc | The frame, its buttons, menus, Alt+Tab | The sync step writes a **whole labwc theme folder** with the same name (`AresOS`, section 4.2) into `~/.local/share/themes/`, its button images put together from game sprites at the shipped scale. labwc looks in his home before the image, so B's folder wins while it exists and A's returns when it is gone, with no `rc.xml` change. The folder must be complete (labwc fills a missing image with its own grey default, not with A's), and labwc must be told to reload once after the first sync. That labwc reads the home folder first is in its manual (labwc-theme(5)); that the whole switch works is *to verify in a private labwc.* | **labwc cannot read the game's font.** The game's font is letter sheets in the jar, and labwc can only use an installed font by name. Two ways: (a) under B the title bars keep A's Jersey 10; or (b) the sync step builds a real font file from the sheets into `~/.local/share/fonts/`, which needs a font-building library in the image and its own review. I would start with (a). |
-| Qt (`ksshaskpass`) | The password window's inside | A style sheet whose border images point into the cache. | The same limit and the same two ways as labwc. |
+| Qt (`ksshaskpass`, polkit's agent) | The password windows' insides | **None, by design:** the inside is A in every look and reads only the image's files (section 4.6). | None. |
 
 **Letters the game's font has.** Its three sheets cover basic Latin (`ascii.png`), accented Latin including
 `ä ö ü Ä Ö Ü` (`accented.png`) and `ß`, `ẞ`, `€`, Greek and Cyrillic (`nonlatin_european.png`). German is complete.
@@ -1220,63 +1560,141 @@ in the system font.
 
 ---
 
-## 6. A against B
+## 6. What each look costs, and the build order
 
-*Step 4 writes this: what he would notice, what each costs to build and keep, the risks, and a recommendation.*
+The owner chose after step 1 (board #409): B is the default, and a setting offers A, B and C; A stays as the fallback.
+After step 2 he chose that windows follow the look (board T432). So this section no longer weighs A against B. It says
+what each look costs to build and to keep, and in which order to build.
 
-What step 1 found, for step 4 to weigh:
+**What he will notice between them** (sections 4.1 to 4.7 in short):
 
-- On the indicator the difference is mostly the letters and the icons (section 4.1).
-- B needs work that A does not, before its first piece: the sync step, the map, the check per game version, and
-  letter-copying in each of our programs.
-- B does not reach every renderer equally: complete in our own programs and in the mod, but labwc's title bars and
-  the password window cannot use the game's font without building a font file on his machine.
-- A has to exist and be good either way: it is the fallback, and the only look that may be shown in public.
-- On the frame (section 4.2), labwc flattens every look: flat bar, one-colour edge, no text shadow, no pressed
-  button. The looks differ in the bar's colour (A dark stone, B and C the game's chest grey), the buttons (A raised
-  stone, B inventory slots, C the game's own buttons with small signs from its font) and the edge line. The title is
-  Jersey 10 in all three unless a font is built from the game's letters.
-- Switching the frame's look costs no image change and no restart: a theme folder in his home and a reconfigure.
-- On layouts and switching (4.3, 4.4), A and B differ least of all: labwc draws the layout menu, the snapping preview
-  and Alt+Tab in flat colours only, so the looks differ in colour (A stone and gold, B the tooltip's near-black with
-  white and yellow) and in the menu's pictograms. The game has no control of its own for any of them, so C is B there.
-  B needs one more thing written by the sync step: its pictograms as icons in his home folder.
-- B's private pictures so far: `B-01` to `B-15`.
+- **A** is dark stone and gold, Jersey 10's larger letters (capitals 10 units), and our own icons.
+- **B** is the game's own: light grey chest bars on windows, the game's panels and letters (capitals 7 units), and game
+  items standing in for icons where the game has none.
+- **C** is B with the game's own buttons wherever the game has a control: the title bar's buttons, the indicator as an
+  option slider, the overview's rows. Where the game has no control (menus, Alt+Tab, the layout preview) C is B.
+- **Where it shows fully:** in our own programs (the indicator, the overview) every look is complete, textures and
+  letters. In labwc's pieces (the frame, menus, Alt+Tab) labwc flattens every look to colours and finished button
+  images, and titles stay in Jersey 10 (section 5, way a).
+- **What never changes with the look:** the password windows' insides are A (section 4.6), and the mod's own screens
+  are the game's.
+
+**What each costs**
+
+| Look | To build | To keep |
+|---|---|---|
+| A | The art exists: this study's sprites, labwc's 36 images, the pictograms and the Home picture. Still to build: the look pack's files, the theme generator, Jersey 10 in the image and the image checks for both. Needed whatever he picks: it is the fallback, the public face, and the password windows' inside. | Nothing moves when the game updates. Every new piece needs A's art drawn first. Only A may be shown in public. |
+| B | Section 5's shared work, once: the sync step (about 300 lines: find the instance, check the jar, copy what the map names and check each file, write the stamp, labwc's theme folder and the pictogram icons, fall back per piece), the map, the per-version check in the mod's workflow (about 80 lines), and the game's letters in our programs (one module, about 120 lines). Then per piece: its rows in the map and B's parts, about 20 to 60 lines. | A new game version comes only with a new image, and the check in the mod's workflow says before the release whether a file moved. That is a real risk: the game renamed all its interface sprites once (in 1.20.2). Its pictures stay private, so every review of B happens on a private page. It works only where the game is installed. |
+| C | On top of B, only where the game has a control: the frame's buttons, the indicator's slider form, the overview's rows. About 30 to 40 lines each, and their pictures. | As B, plus the game's button sprites. Its signs in the title bar are small (5 units wide). |
+
+**The build order.** Each is its own package with a fresh review:
+
+1. **The indicator in A,** with the settings file, the place and the size (sections 4.1, 4.7). Jersey 10 and the look
+   pack's first files go into the image.
+2. **B's shared work** (section 5) **and B for the indicator,** with C's slider form if it stays cheap there. From
+   here the default, B, shows wherever the game is installed.
+3. **The frame in A, B and C** (section 4.2), with Alt+Tab's lines (4.4) and labwc's window list on Super+Tab (4.5's
+   first ship).
+4. **Layouts, then covering** (section 4.3's two packages).
+5. **The overview program** (section 4.5), in A, B and C.
+6. **The settings screen in the mod** (section 4.7).
+7. **The password windows' style** (section 4.6), on its own with a Fable review. It needs only Jersey 10 in the image,
+   not B, so it can move earlier if wanted.
+
+A comes first because every piece needs it anyway and it can be tested anywhere, also in CI. B comes second because it
+is the default he chose.
+
+**The risks that remain**
+
+- **B and game updates:** above; the per-version check catches a moved file before a release, and a piece whose file is
+  missing is drawn in A as a whole piece (section 5).
+- **B if AresOS is ever shared:** whoever gets it sees A unless they have the game themselves (section 5).
+- **B is never public:** every public picture, the README's included, is A.
+- **The password windows' style changes the owner tools' checked line;** if its review says no, both windows stay plain
+  and nothing else changes.
 
 ---
 
 ## 7. Questions for the owner
 
-*Step 4 makes the final list. The lead posts them. From steps 1 to 3 (step 3 adds none: its calls were technical and
-are recorded in 4.3 and 4.4):*
+**Answered**
 
-1. **Where should the brightness and volume plate appear: at the top centre, or low above the hotbar?** Look at
-   `A-06` (top) and `A-07` (low), and `A-08` for the top over an app. *Recommended: top centre.*
-2. **How big should it be: small, medium or large?** Look at `A-05` (and `B-06`). *Recommended: medium (3x).*
-3. **Should windows wear the Minecraft-look frame too, following the look setting, instead of today's black-and-gold
-   Ares-Crown?** Look at `A-10` (A), `B-09` (B) and `B-10` (C) against today's frame
-   (`reviews/window-design-v1/01-crown.png`). *Recommended: yes, the frame follows the look.* **Answered** on board
-   T432, Friday 2026-11-20: "Yes, follow the look" (section 4.2).
+1. **Where the brightness and volume plate appears.** Answered on board #409, Thursday 2026-11-19: "And place: also a
+   setting. Default Top Centre but switchable." A setting, top centre by default (sections 4.1, 4.7).
+2. **How big it is.** Answered on board #409: "Same with size." A setting, medium (3x) by default (section 4.7). He
+   added: "if making only 1 set option rn is much simpler we can do that and note the other things as to come later";
+   section 4.7 says what ships first.
+3. **Whether windows wear the Minecraft-look frame and follow the look.** Answered on board T432, Friday 2026-11-20:
+   "Yes, follow the look" (section 4.2).
 
-For step 4's A-or-B question, the indicator's pictures are `A-04` against `B-01` and `B-02`, side by side in `B-03`.
-If he chooses B, `B-01` (plate and bar) or `B-02` (the game's slider) is one more choice; I recommend `B-01`. For the
-frame, the sheet with A, B and C side by side is `B-11`; for the layout menu and Alt+Tab it is `B-15`. Under B, the game's own letters in window titles (`B-11`,
-third row) need a font file built on his machine; I recommend starting with Jersey 10 and asking again once B is in
-use.
+**New questions: none.** Step 4's calls are technical or follow from safety, and are recorded with their reasons in
+sections 4.5 to 4.7. Four things he will notice, for the lead to tell him rather than ask:
+
+- **The password window keeps AresOS's own look inside** in every look setting, and AresOS never asks for his password
+  inside the game (section 4.6; `A-17`, `B-18`).
+- **Super+Tab opens the overview:** first labwc's plain list (`A-16`), later the cards (`A-15`, `B-16`; A, B and C side
+  by side in `B-17`).
+- **The settings are in the AresOS menu** (Esc, then "Settings…"; `B-19`) once the settings screen is built. Until
+  then Claude changes a value for him on request.
+- **Under B, window titles stay in Jersey 10** (section 5, way a), as step 2 recommended; worth asking again once B is
+  in use.
 
 ---
 
 ## 8. What the next hub session checks
 
-*Answers so far, from step 1. Step 4 completes the list.*
+*The brief's checks, each with its answer (complete after step 4), then the checks the build packages carry.*
 
 | Check | Answer |
 |---|---|
-| No Mojang texture or font in any committed file, the pull request or the image | The committed pictures are made by `reviews/312-component-study/tools/draw_a.py` from three things only: flat colours, the letter maps typed into `look.py`, and Jersey 10. B's pictures are written by `draw_b.py` to one fixed folder outside the checkout, and that script has no option to write anywhere else. The staged files were checked before each push (`reviews/312-component-study/PROGRESS.md`). The study changes no image file. |
-| A's art is not traced from the game's | Every A sprite is a small map of letters typed by hand in `look.py`; none was made by opening, copying or redrawing a game file. The game's sprites were looked at in the same step, for B's pictures, and A's differ from them in shape, size and colour: a square bevelled plate against the game's rounded toast, twenty separate gold steps against a continuous notched bar, a sun, speaker and microphone the game does not have. Jersey 10 shares no letter bitmap with the game's font (section 2). |
-| Sprites sit on the GUI grid, so the mod can adopt them | One pixel per GUI unit, whole-unit insets, repeated edges, buttons 20 units high (section 3). The frame's images are 24 × 20 units, doubled for labwc; the layout pictograms 16 × 10. |
-| It sits next to the noon world and the laptop home's day street | `A-06` and `A-07` show it on a drawn scene in the day colours. A's dark plate is the same family as the world's name plates and the day look's dark bars. *Still to do by eye:* the real game behind it on the laptop. |
-| Readable at 1920 × 1080 and at the stated scales | `A-04` (over sky and over white), `A-05` (2x, 3x, 4x), `A-08` (over an app). The frame: `A-10` (two windows over the noon scene at 2x, a long title cut), `A-11` (maximized, with the layout menu and its list). Layouts and switching: `A-12` (every place and the covering cases), `A-13` (a half over the noon scene with the preview), `A-14` (Alt+Tab over two windows, long titles cut). |
-| The password window shows its full label and "Enter SSH Credentials" | *Step 4.* |
-| Passive surfaces never take keyboard focus; interactive ones say who owns input | The indicator: overlay layer, keyboard mode "none", empty input region (section 4.1), with tests named for the build. The frame's layout menu is labwc's own menu: labwc has the keyboard while it is open, Escape closes it, and the window keeps the focus (4.2, 4.3); its keys never act on the world, the laptop home or a cover. Alt+Tab is labwc's: labwc has the keyboard until Alt is let go or Escape cancels, and no program sees those keys (4.4). Dragging and the snapping preview are labwc's own move. The overview: *step 4.* |
-| Super stays free for the search over the world | The indicator and the frame bind no key; the frame changes two mouse bindings (4.2). The layouts add only chords (Super with an arrow, Super+Shift with an arrow, Super+Z), which labwc never mistakes for a lone Super; Alt+Tab adds Shift+Alt+Tab (4.3, 4.4). For 23c to test: Super held through a mouse drag, then released. *Step 4 for the overview's keys.* |
+| No Mojang texture or font in any committed file, the pull request or the image | The committed pictures are made by `reviews/312-component-study/tools/draw_a.py` from three things only: flat colours, the letter maps typed into `look.py`, and Jersey 10. B's pictures are written by `draw_b.py` to one fixed folder outside the checkout, and that script has no option to write anywhere else. The staged files were checked before each push of all four steps; the checks are recorded in the pull request's description (#123). The study changes no image file. |
+| A's art is not traced from the game's | Every A sprite is a small map of letters typed by hand in `look.py`; none was made by opening, copying or redrawing a game file. The game's sprites were looked at in the same steps, for B's pictures, and A's differ from them in shape, size and colour: a square bevelled plate against the game's rounded toast, twenty separate gold steps against a continuous notched bar, a sun, speaker and microphone the game does not have, stone cards against the game's popup panel. Jersey 10 shares no letter bitmap with the game's font (section 2). The overview's app icons and Home picture are our own drawings. |
+| Sprites sit on the GUI grid, so the mod can adopt them | One pixel per GUI unit, whole-unit insets, repeated edges, buttons 20 units high (section 3). The frame's images are 24 × 20 units, doubled for labwc; the layout pictograms 16 × 10; the Home picture 188 × 96. |
+| It sits next to the noon world and the laptop home's day street | `A-06` and `A-07` show it on a drawn scene in the day colours, and the overview's Home picture uses them too. A's dark plate is the same family as the world's name plates and the day look's dark bars. *Still to do by eye:* the real game behind it on the laptop. |
+| Readable at 1920 × 1080 and at the stated scales | `A-04` (over sky and over white), `A-05` (2x, 3x, 4x), `A-08` (over an app). The frame: `A-10`, `A-11`. Layouts and switching: `A-12`, `A-13`, `A-14` (long titles cut). The overview: `A-15` at 2x (long titles cut with an ellipsis). The password window: `A-17`, `A-18` at 2x and 3x. The settings screen: `A-19` at 3x. |
+| The password window shows its full label and "Enter SSH Credentials" | `A-17` and `A-18`: the title in the frame; the full label "AresOS owner tools dcbc375f: install these tools, then check and title" wrapped at spaces onto two lines at 2x and at 3x, and a longer made-up action onto four, with nothing cut; Password:, OK and Cancel. The sixteen hex characters are shown apart at 4x. Under B and C only the frame changes (`B-18`). The build checks it again with Qt's own text drawing (section 4.6). |
+| Passive surfaces never take keyboard focus; interactive ones say who owns input | The indicator: overlay layer, keyboard mode "none", empty input region (section 4.1). The layout menu is labwc's own menu: labwc has the keyboard while it is open, Escape closes it, the window keeps the focus (4.2, 4.3). Alt+Tab is labwc's until Alt is let go or Escape (4.4). The overview has the keyboard (`exclusive`) from Super+Tab until it closes; Escape, Super+Tab or a click outside closes it and the shell gives the focus back to the window that had it (4.5). The password window is a normal window and has the keyboard while it is in front, as today (4.6). The settings screen is the mod's, inside the game (4.7). |
+| Super stays free for the search over the world | The indicator and the frame bind no key; the frame changes two mouse bindings (4.2). The layouts add only chords (Super with an arrow, Super+Shift with an arrow, Super+Z), Alt+Tab adds Shift+Alt+Tab, and the overview adds Super+Tab (4.3 to 4.5). labwc never mistakes a chord for a lone Super. For 23c to test: Super held through a mouse drag, then released; Super+Tab, then Super released. |
+
+### Checks for the build packages
+
+Each piece's own test list is in its section (4.1 to 4.7). These are the items gathered from all four steps that a lead
+must arrange, or that more than one package carries.
+
+**For the lead to settle before the builds** (not questions for the owner)
+
+- The GUI scale his game actually runs at: it decides whether the indicator wants 3x or 4x by default, and how large
+  B's letters look next to the game's.
+- Prism's two paths for the client jar and the asset objects, on the first real `AresDesktop` instance (section 5).
+- Whether the session has a bus that can start a program on demand (the indicator, the overview).
+- Every `rc.xml`, `menu.xml` and theme change goes to `linux-aresos` first: the indicator's six key lines, the theme
+  name `AresOS`, the fonts, the frame's mouse block, the layout keys and menu, Alt+Tab's lines, Super+Tab.
+- Small ones that can go in before the layout packages: the world's window rule gains `fixedPosition="yes"`; the
+  start-up cover and the shutdown's black screen gain `skipWindowSwitcher="yes"`.
+- For 23c: Super held through a mouse drag and then released, and Super+Tab then Super released, must not open the
+  search.
+- The image check that pins Ares-Crown's checksum and 37 files moves to the new theme folder in the frame's package;
+  `docs/design/WINDOWS.md` is updated there, including its line on Jersey 10's 21 pt.
+- Covering by layouts needs the mod's new `world_clicked` request (section 4.3); the overview needs the shell's 1.3
+  view requests (4.5); the settings screen needs `set_setting` (4.7).
+
+**Every package**
+
+- The public and private check before every push: no staged file came from the game's jar, its assets or a private
+  folder, and no staged file's SHA-256 equals one there. B's pictures and any screenshot with B in it stay private.
+- A's art for every new part is drawn first, by hand, and never traced from the game's.
+- Nothing ever reads `~/.minecraft` or `~/.lunarclient`, also not as a fallback.
+- **No password field in the game.** The mod shows no field that asks for a password, and no AresOS screen inside the
+  world ever asks for one (section 4.6, rule 2).
+
+**Per package, the checks that come from more than one section**
+
+| Package | Checks |
+|---|---|
+| The indicator and the settings file | A layer surface without a named output lands on the pointer's screen; an empty input region never disturbs a pointer lock; a held key at labwc's repeat rate; brightness on the `eDP` screen and volume on the pointer's; the keys work without the program; place and size come from the file, and a change shows the plate once. |
+| B's shared work | The paths and the jar's SHA-1 and size; the map checked against each game version in the mod's workflow; a missing or resized file puts that piece on A as a whole; a half-written cache or theme folder never appears; the cache is never copied into the repo, an image, a backup or a report. |
+| The frame (with Alt+Tab and the first Super+Tab) | Each image shown 1:1; a 40 px bar with Jersey 10 at 28 pt; a reconfigure redraws open windows without moving them and keeps a pointer lock; a user mouse binding replaces labwc's default and `None` clears the scroll bindings; labwc's activate restores a minimized window; Alt+Tab's tile for a minimized window, the pointer after a cancelled Alt+Tab, and whether the panel takes clicks; labwc's window list on Super+Tab brings back a minimized window and the shell sees it; package 31's list of programs. |
+| Layouts and covering | Section 4.3's list: full coverage, a gap, another output, an output not known yet; `world_clicked`; a layout comes back whole from every route. |
+| The overview | Section 4.5's list, with the shell's 1.3 requests tested on their own first. |
+| The settings screen | Each click moves one setting and shows the change at once; a look change while B's files are missing reads "waiting for the game"; a broken settings file means the defaults. |
+| The password windows' style | Section 4.6's list, a Fable review, and INSTALL.md and OWNER-TOOLS.md changed in the same package. |

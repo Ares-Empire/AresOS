@@ -22,7 +22,7 @@ import zipfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from PIL import Image  # noqa: E402
+from PIL import Image, ImageDraw  # noqa: E402
 
 import look as kit  # noqa: E402
 
@@ -217,6 +217,65 @@ class LookB:
         """The preview lit like a hovered slot: white at about a third, framed in white."""
         return dict(fill=(255, 255, 255, 80), lines=((0, 0, 0, 255), self.white, (0, 0, 0, 255)))
 
+    # ---- the overview (step 4): our own program, so B can use the game's textures here, not only its colours.
+
+    def veil(self, width, height):
+        """The game's own background for a screen opened over the world, tiled. The game also blurs the world
+        behind it; labwc has no blur, so a dark layer lies under the tiles instead."""
+        tile = self.sprite('gui/inworld_menu_background')
+        image = Image.new('RGBA', (width, height), (0, 0, 0, 170))
+        for x in range(0, width, tile.width):
+            for y in range(0, height, tile.height):
+                image.alpha_composite(tile, (x, y))
+        return image
+
+    def card(self, width, height):
+        """The game's popup panel, nine-sliced by its own border of 6."""
+        return kit.nine_slice(self.sprite('gui/sprites/popup/background'), width, height, 6)
+
+    def icon_slot(self, image, x, y, sprite):
+        image.alpha_composite(self.sprite('gui/sprites/container/slot'), (x + 1, y + 1))
+        image.alpha_composite(sprite, (x + 2, y + 2))
+
+    def count_badge(self, image, x, y, count):
+        """The game's own stack count: white with its shadow, at the bottom right of the item."""
+        text = str(count)
+        self.text(image, x + 19 - self.text_width(text), y + 11, text, self.white)
+
+    def overview_colours(self):
+        return dict(text=self.white, quiet=self.quiet, hint=self.quiet)
+
+    def overview_row(self, width, state):
+        """Lit like a hovered slot; the chosen row framed in white, as the game frames the chosen world."""
+        if state == 'normal':
+            return None
+        row = Image.new('RGBA', (width, 20), (255, 255, 255, 48))
+        if state == 'chosen':
+            ImageDraw.Draw(row).rectangle((0, 0, width - 1, 19), outline=self.white)
+        return row
+
+    def close_button(self, state):
+        cell = Image.new('RGBA', (14, 14), (0, 0, 0, 0))
+        colour = self.red if state == 'hover' else self.white
+        cell.alpha_composite(kit.glyph('close', colour, tuple(c // 4 for c in colour[:3]) + (255,)), (3, 3))
+        return cell
+
+    def home_picture(self):
+        return kit.home_picture()  # always our own drawing: never the game's world or a picture of it
+
+    # ---- the password window (step 4): its inside is version A in every look (COMPONENTS.md 4.6).
+
+    def password_look(self):
+        return self.jersey
+
+    # ---- the settings screen (step 4): the mod draws it with the game's option buttons.
+
+    def settings_button(self, width, label, state='button'):
+        face = {'button': 'button', 'button-hover': 'button_highlighted', 'button-disabled': 'button_disabled'}[state]
+        image = kit.nine_slice(self.sprite(f'gui/sprites/widget/{face}'), width, 20, 3)
+        self.text(image, (width - self.text_width(label)) // 2, 6, label, self.white)
+        return image
+
 
 class LookC(LookB):
     """Version C: the game's own buttons, with signs from the game's font where it has them. Elsewhere C is B."""
@@ -243,6 +302,16 @@ class LookC(LookB):
         else:  # shade and desk: the font has nothing, so B's pictogram on the game's button
             cell.alpha_composite(kit.glyph(kind, colour, tuple(c // 4 for c in colour[:3]) + (255,)), (8, 6))
         return cell
+
+    def overview_row(self, width, state):
+        """C: every window's row is one of the game's buttons, highlighted when chosen or under the pointer."""
+        face = 'button_highlighted' if state in ('chosen', 'hover') else 'button'
+        return kit.nine_slice(self.sprite(f'gui/sprites/widget/{face}'), width, 20, 3)
+
+    def close_button(self, state):
+        """C: the game's own small cross button."""
+        return self.sprite('gui/sprites/widget/cross_button_highlighted' if state == 'hover'
+                           else 'gui/sprites/widget/cross_button').copy()
 
 
 def caption(look, text, factor=2):
@@ -327,6 +396,39 @@ def same_glyphs(a, b):
     return same
 
 
+def overview_sheet(a, b, c):
+    """Step 4's sheet to choose from: Home, the editor's card and Chrome's card in A, B and C, at 2x on the veil."""
+    sheet = Image.new('RGBA', (1920, 1000), SKY)
+    for column, (name, look) in enumerate((('A: our own art', a), ('B: the game\'s textures and font', b),
+                                           ('C: the game\'s buttons as rows', c))):
+        x = 30 + column * 630
+        sheet.alpha_composite(caption(b, name), (x, 20))
+        sheet.alpha_composite(kit.up(look.veil(290, 470), 2), (x, 56))
+        y = 66
+        cards = [kit.home_card(look)]
+        for app, icon, windows in kit.OVERVIEW_APPS:
+            if app in ('Editor', 'Chrome'):
+                cards.append(kit.overview_card(look, app, kit.APP_ICONS[icon], windows,
+                                               chosen=1 if app == 'Editor' else None,
+                                               hover=1 if app == 'Chrome' else None)[0])
+        for card in cards:
+            sheet.alpha_composite(kit.up(card, 2), (x + 10, y))
+            y += card.height * 2 + 16
+    return sheet
+
+
+def password_sheet(b, c):
+    """The password window under B's and C's frames: the frame follows the look, the inside stays A."""
+    sheet = Image.new('RGBA', (1920, 560), SKY)
+    for column, (name, look) in enumerate((('B: B\'s frame, the inside in A', b), ('C: C\'s frame, the inside in A', c))):
+        x = 30 + column * 940
+        sheet.alpha_composite(caption(b, name), (x, 20))
+        sheet.alpha_composite(kit.up(kit.password_window(look, kit.OWNER_LABEL), 2), (x, 60))
+    note = 'In every look the inside comes from the image\'s own files, never from the game or his home folder.'
+    sheet.alpha_composite(caption(b, note), (30, 500))
+    return sheet
+
+
 INDEX = '''# Version B's mockups (package 312): private
 
 Every picture here contains Minecraft's textures or font. Nothing in this folder is ever committed, attached to a
@@ -351,6 +453,10 @@ All values are made up.
 | B-13 | `B-13-half-and-world.png` | Step 3, layouts in B: the editor in the left half with the drawn world in the right half, and a terminal dragged to the right edge, where labwc's preview shows the half it will fill, lit white like a hovered slot. 1920 x 1080 at 2x. | A-13 |
 | B-14 | `B-14-switcher.png` | Alt+Tab in B: the panel in the tooltip's colours, the chosen window framed in white as the game frames the chosen world in its world list; the chosen terminal brought forward with a black-white-black outline. Titles in Jersey 10 (labwc's font). | A-14 |
 | B-15 | `B-15-menus-and-switchers-a-b.png` | The layout menu with its submenu, and the Alt+Tab panel, in A and in B side by side. C uses B for both. The sheet to choose from for step 3. | A-11, A-14 |
+| B-16 | `B-16-overview.png` | Step 4, the overview in B over the drawn scene at 1920 x 1080, 2x: the game's in-world screen background as the veil, the game's popup panel as each card, item-style stack counts, the game's font; the chosen row framed in white, the hovered row lit with its close sign red. The Home picture is our own drawing in every look. | A-15 |
+| B-17 | `B-17-overview-a-b-c.png` | Home, the editor's card and Chrome's card in A, B and C side by side, at 2x. In C every window row is one of the game's buttons and close is the game's small cross button. The sheet to choose from for the overview. | A-15 |
+| B-18 | `B-18-password-b-c.png` | The password window under B's and under C's frame, at 2x: the title bar follows the look, the inside stays A in every look (section 4.6). | A-17, A-18 |
+| B-19 | `B-19-settings.png` | The settings screen as the mod draws it, with the game's option buttons and font over its in-world background, at 3x; the pointer on "Look", and B's indicator shown once at the top centre as the preview of a change. | A-19 |
 
 `work/parts.png` is a working sheet of the game sprites that were looked at; it is not a mockup.
 
@@ -421,6 +527,14 @@ def main():
     save(kit.half_scene(b, hotbar, scene_look=a), 'B-13-half-and-world.png')
     save(kit.switcher_scene(b, hotbar, scene_look=a), 'B-14-switcher.png')
     save(menus_and_switchers_sheet(a, b), 'B-15-menus-and-switchers-a-b.png')
+
+    # Step 4: the overview, the password window and the settings screen. The game has its own buttons, so C
+    # differs from B in the overview's rows; the password window's inside is A in every look.
+    save(kit.overview_scene(b, hotbar, scene_look=a), 'B-16-overview.png')
+    save(overview_sheet(a, b, c), 'B-17-overview-a-b-c.png')
+    save(password_sheet(b, c), 'B-18-password-b-c.png')
+    save(kit.settings_scene(b, hotbar, ('Minecraft textures', 'Top centre', 'Medium'),
+                            kit.indicator(b, kit.INDICATOR_STATES[3][1], b.icons), scene_look=a), 'B-19-settings.png')
 
     same = same_glyphs(a, b)
     capital = b.font.glyphs['H'][0]

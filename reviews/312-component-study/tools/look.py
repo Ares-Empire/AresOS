@@ -323,6 +323,78 @@ class LookA:
     def snap_colours(self):
         return dict(fill=rgb('#cfa24f', 64), lines=(P['outline'], P['gold-300'], P['outline']))
 
+    # ---- the overview (step 4): our own layer-shell program, so every part can be a sprite.
+
+    def veil(self, width, height):
+        """What lies over the screen while the overview is open: the wall colour, mostly opaque."""
+        return Image.new('RGBA', (width, height), rgb('#0d0d10', 232))
+
+    def card(self, width, height):
+        return self.plate(width, height)
+
+    def icon_slot(self, image, x, y, sprite):
+        image.alpha_composite(self.slot(20, 20), (x, y))
+        image.alpha_composite(sprite, (x + 2, y + 2))
+
+    def count_badge(self, image, x, y, count):
+        """A stack count, as an item's: the number at the bottom right of the icon's slot."""
+        text = str(count)
+        self.text(image, x + 20 - self.text_width(text), y + 20 - self.cap, text, self.ink)
+
+    def overview_colours(self):
+        return dict(text=self.ink, quiet=self.quiet, hint=self.quiet)
+
+    def overview_row(self, width, state):
+        """A window's row: flat, lit under the pointer, framed in gold when the keys have chosen it."""
+        if state == 'normal':
+            return None
+        row = Image.new('RGBA', (width, 20), P['stone-600'])
+        if state == 'chosen':
+            ImageDraw.Draw(row).rectangle((0, 0, width - 1, 19), outline=P['gold-300'])
+        return row
+
+    def close_button(self, state):
+        face = 'button-close-hover' if state == 'hover' else 'button'
+        cell = nine_slice(A_SPRITES[face], 14, 14, (3, 3, 3, 4))
+        cell.alpha_composite(glyph('close', self.ink, P['outline']), (3, 2))
+        return cell
+
+    def home_picture(self):
+        return home_picture()
+
+    # ---- the password window (step 4). Its inside is always this look, version A, in every look setting.
+
+    def password_look(self):
+        return self
+
+    def password_colours(self):
+        return dict(bg=P['stone-700'], text=self.ink, label=self.ink)
+
+    def field(self, width, focus):
+        """A text field: the sunken slot, with a gold edge while it has the keyboard."""
+        image = self.slot(width, 20)
+        if focus:
+            ImageDraw.Draw(image).rectangle((0, 0, width - 1, 19), outline=P['gold-300'])
+        return image
+
+    def push_button(self, width, label, state='button', default=False):
+        """A Qt push button: A's button sprite. Qt's style sheet draws no text shadow; the default button (OK,
+        which Enter presses) has gold text."""
+        image = nine_slice(A_SPRITES[state], width, 20, (3, 3, 3, 4))
+        colour = self.dim if state == 'button-disabled' else P['gold-300'] if default else self.ink
+        row = Image.new('RGBA', (width, 20), (0, 0, 0, 0))
+        self.title(row, (width - self.title_width(label)) // 2, label, colour)
+        image.alpha_composite(row, (0, 1 if state == 'button-pressed' else 0))
+        return image
+
+    def dialog_icon(self):
+        return APP_ICONS['key']
+
+    # ---- the settings screen (step 4). The mod draws it with the game's widgets; A's is a public stand-in.
+
+    def settings_button(self, width, label, state='button'):
+        return self.button(width, label, state)
+
 
 # ---------------------------------------------------------------- the piece: the level indicator
 
@@ -893,3 +965,290 @@ def frame_buttons_sheet(look, caption, title):
                                                                                        TITLE_H + 2))
         sheet.alpha_composite(up(end, 4), (24 + index * 480, y + 76))
     return sheet
+
+
+# ---------------------------------------------------------------- step 4: the overview, the password window, settings
+
+GLYPHS['monitor'] = ['xxxxxxxx', 'x......x', 'x......x', 'x......x', 'xxxxxxxx', '...xx...', '..xxxx..', '........']
+
+_ICON_KEY = {'O': P['outline'], 'W': rgb('#f6f6f4'), 'g': rgb('#c9c9c9'), 'K': rgb('#1d1b22'), 'Y': P['gold-300'],
+             'G': P['gold-500'], 'd': P['gold-700'], 'b': rgb('#3ab3da'), 'B': rgb('#2a7f9e'), 'i': P['ink']}
+
+# Stand-ins of our own for app icons, 16 x 16 (the hub makes each app's pixel icon from the app's own icon, HUB.md).
+# The same in every look: an app's icon belongs to the app, not to the look. 'key' stands for the icon theme's
+# password icon in KDE's password dialog, which the style sheet does not change.
+APP_ICONS = {
+    'page': pix(['..OOOOOOOOO.....', '..OWWWWWWWOO....', '..OWggggWWOWO...', '..OWWWWWWWOOOO..', '..OWggggggggWO..',
+                 '..OWWWWWWWWWWO..', '..OWggggggggWO..', '..OWWWWWWWWWWO..', '..OWgggggggWWO..', '..OWWWWWWWWWWO..',
+                 '..OWggggggggWO..', '..OWWWWWWWWWWO..', '..OWgggggWWWWO..', '..OWWWWWWWWWWO..', '..OOOOOOOOOOOO..',
+                 '................'], _ICON_KEY),
+    'terminal': pix(['................', 'OOOOOOOOOOOOOOOO', 'OiiiiiiiiiiiiiiO', 'OKKKKKKKKKKKKKKO', 'OKYKKKKKKKKKKKKO',
+                     'OKKYKKKKKKKKKKKO', 'OKKKYKKKKKKKKKKO', 'OKKYKKKKKKKKKKKO', 'OKYKKKYYYYKKKKKO', 'OKKKKKKKKKKKKKKO',
+                     'OKKKKKKKKKKKKKKO', 'OKKKKKKKKKKKKKKO', 'OKKKKKKKKKKKKKKO', 'OKKKKKKKKKKKKKKO', 'OOOOOOOOOOOOOOOO',
+                     '................'], _ICON_KEY),
+    'globe': pix(['.....OOOOOO.....', '...OObbbbbbOO...', '..ObbBbbbbBbbO..', '.ObbbBbbbbBbbbO.', '.OBBBBBBBBBBBBO.',
+                  'ObbbbBbbbbBbbbbO', 'ObbbbBbbbbBbbbbO', 'OBBBBBBBBBBBBBBO', 'ObbbbBbbbbBbbbbO', 'ObbbbBbbbbBbbbbO',
+                  '.OBBBBBBBBBBBBO.', '.ObbbBbbbbBbbbO.', '..ObbBbbbbBbbO..', '...OObbbbbbOO...', '.....OOOOOO.....',
+                  '................'], _ICON_KEY),
+    'folder': pix(['................', '................', '.OOOOO..........', 'OYYYYYO.........', 'OYGGGGYOOOOOOOO.',
+                   'OYGGGGGGGGGGGGGO', 'OYYYYYYYYYYYYYYO', 'OYGGGGGGGGGGGGdO', 'OYGGGGGGGGGGGGdO', 'OYGGGGGGGGGGGGdO',
+                   'OYGGGGGGGGGGGGdO', 'OYGGGGGGGGGGGGdO', 'OddddddddddddddO', 'OOOOOOOOOOOOOOOO', '................',
+                   '................'], _ICON_KEY),
+    'key': pix(['................', '....OOOO........', '...OYYYYO.......', '..OYGOOGdO......', '..OYO..OdO......',
+                '..OYGOOGdO......', '...OGGGdO.......', '....OGdO........', '....OGdO........', '....OGdOO.......',
+                '....OGddO.......', '....OGdOO.......', '....OGddO.......', '....OGdO........', '.....OO.........',
+                '................'], _ICON_KEY),
+}
+
+
+def home_picture(width=188, height=96):
+    """The overview's picture for Home: a drawing of our own at one pixel per unit, never a live picture of the
+    world (the world may sleep as a still image, board #364). The day colours of the laptop home, two block fronts
+    and the gold home block on the road."""
+    image = Image.new('RGBA', (width, height))
+    draw = ImageDraw.Draw(image)
+    horizon, mid = height * 3 // 5, width // 2
+    _bands(draw, 0, width, 0, horizon, rgb('#6f9df0'), rgb('#aecbf8'), 6)
+    _bands(draw, 0, width, horizon, height, rgb('#668845'), rgb('#537236'), 4)
+    draw.polygon([(mid - 4, horizon), (mid + 3, horizon), (mid + 30, height - 1), (mid - 31, height - 1)],
+                 fill=rgb('#2b2832'))
+    for x0, face, motif in ((22, '#31407f', '#f3f1ea'), (142, '#1d1b22', '#cfa24f')):
+        draw.rectangle((x0, horizon - 24, x0 + 23, horizon - 1), fill=rgb(face))
+        draw.rectangle((x0 + 6, horizon - 20, x0 + 17, horizon - 11), fill=rgb(motif))
+        draw.rectangle((x0 + 8, horizon - 18, x0 + 15, horizon - 13), fill=rgb(face))
+        draw.rectangle((x0 + 9, horizon - 7, x0 + 14, horizon - 1), fill=P['outline'])
+    image.alpha_composite(A_SPRITES['gold-block'], (mid - 5, horizon + 12))
+    ImageDraw.Draw(image).rectangle((0, 0, width - 1, height - 1), outline=P['outline'])
+    return image
+
+
+def fit_text(look, text, room):
+    """Cut text to fit in our own programs, which write in the look's own letters, with an ellipsis."""
+    if look.text_width(text) <= room:
+        return text
+    while text and look.text_width(text + '...') > room:
+        text = text[:-1]
+    return text.rstrip() + '...'
+
+
+def wrap(look, text, room):
+    """Break at spaces, as Qt's word-wrapping label does. A word is never cut, so the fingerprint stays whole."""
+    lines, current = [], ''
+    for word in text.split(' '):
+        trial = f'{current} {word}' if current else word
+        if current and look.title_width(trial) > room:
+            lines.append(current)
+            current = word
+        else:
+            current = trial
+    lines.append(current)
+    return lines
+
+
+# The overview's made-up contents: Home, one layout that went down together when he returned to the world, and the
+# open apps in the hotbar's order. A window is (title, its place in a layout or None, a mark: None, 'down' for
+# minimized, 'monitor' for the other screen).
+OVERVIEW_LAYOUT = (('Einkaufsliste.txt - Editor', 'left', 'down'), ('Terminal: ~/Projekte', 'right', 'down'))
+OVERVIEW_APPS = (
+    ('Editor', 'page', (('Einkaufsliste.txt - Editor', 'left', 'down'), ('Größenvergleich.md - Editor', None, None))),
+    ('Terminal', 'terminal', (('Terminal: ~/Projekte', 'right', 'down'),)),
+    ('Chrome', 'globe', (('AresOS - GitHub', None, None), ('Wetter Berlin - Google Suche', None, None),
+                         ('YouTube', None, 'monitor'))),
+    ('Files', 'folder', (('Downloads', None, 'down'),)),
+)
+OVERVIEW_CHOSEN = ('Editor', 1)    # the window he was in when he opened it: the keys start there
+OVERVIEW_HOVER = ('Chrome', 1)     # the pointer rests on this row's close button
+CARD_W, CARD_GAP = 200, 10
+
+
+def overview_card(look, name, icon, windows, chosen=None, hover=None):
+    """One card: an icon with the number of windows as a stack count, a name, and one row per window. A row shows
+    the window's layout place as its pictogram, its title, and a mark: minimized, or on the other screen. Under the
+    pointer a row shows its close button. Returns the card and where each row's close button sits."""
+    width, height = CARD_W, 30 + 20 * len(windows) + 6
+    card = look.card(width, height)
+    colours = look.overview_colours()
+    look.icon_slot(card, 5, 5, icon)
+    if len(windows) > 1:
+        look.count_badge(card, 5, 5, len(windows))
+    look.text(card, 30, 5 + (20 - look.cap) // 2, fit_text(look, name, width - 36), colours['text'])
+    closes = {}
+    for index, (title, region, mark) in enumerate(windows):
+        y = 30 + 20 * index
+        state = 'chosen' if index == chosen else 'hover' if index == hover else 'normal'
+        row = look.overview_row(width - 8, state)
+        if row is not None:
+            card.alpha_composite(row, (4, y))
+        if region:
+            card.alpha_composite(look.layout_icon(PICTOGRAMS[region]), (7, y + 5))
+        ink = colours['quiet'] if mark == 'down' else colours['text']
+        look.text(card, 28, y + (20 - look.cap) // 2, fit_text(look, title, width - 8 - 24 - 20), ink)
+        closes[index] = (width - 20, y + 3)
+        if index == hover:
+            card.alpha_composite(look.close_button('hover'), closes[index])
+        elif mark in ('down', 'monitor'):
+            card.alpha_composite(glyph('iconify' if mark == 'down' else 'monitor', colours['quiet']),
+                                 (width - 18, y + 6))
+    return card, closes
+
+
+def home_card(look):
+    picture = look.home_picture()
+    width, height = CARD_W, 6 + picture.height + 2 + 20 + 4
+    card = look.card(width, height)
+    card.alpha_composite(picture, ((width - picture.width) // 2, 6))
+    y, colours = 6 + picture.height + 2, look.overview_colours()
+    look.text(card, 8, y + (20 - look.cap) // 2, 'Home', colours['text'])
+    look.text(card, width - 8 - look.text_width('the world'), y + (20 - look.cap) // 2, 'the world',
+              colours['quiet'])
+    return card
+
+
+def overview_panel(look):
+    """The overview at one pixel per unit on a 960 x 540-unit screen (2x on the laptop): Home and the layout that
+    went down together first, then one card per app in the hotbar's order, in columns; the keys at the bottom.
+    Returns the panel and where the pointer rests (on the close button of OVERVIEW_HOVER)."""
+    screen = Image.new('RGBA', (960, 540), (0, 0, 0, 0))
+    both = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
+    both.alpha_composite(look.layout_icon((REGIONS['left'], REGIONS['right'])), (0, 3))
+    layout, _ = overview_card(look, 'Layout', both, OVERVIEW_LAYOUT)
+    columns = [[(None, home_card(look), {}), (None, layout, {})]]
+    apps = {}
+    for name, icon, windows in OVERVIEW_APPS:
+        apps[name] = overview_card(look, name, APP_ICONS[icon], windows,
+                                   chosen=OVERVIEW_CHOSEN[1] if OVERVIEW_CHOSEN[0] == name else None,
+                                   hover=OVERVIEW_HOVER[1] if OVERVIEW_HOVER[0] == name else None)
+    columns += [[('Editor',) + apps['Editor'], ('Terminal',) + apps['Terminal']], [('Chrome',) + apps['Chrome']],
+                [('Files',) + apps['Files']]]
+    x0 = (960 - len(columns) * CARD_W - (len(columns) - 1) * CARD_GAP) // 2
+    pointer = None
+    for column, cards in enumerate(columns):
+        x, y = x0 + column * (CARD_W + CARD_GAP), 64
+        for name, card, closes in cards:
+            screen.alpha_composite(card, (x, y))
+            if name == OVERVIEW_HOVER[0]:
+                cx, cy = closes[OVERVIEW_HOVER[1]]
+                pointer = (x + cx + 7, y + cy + 7)
+            y += card.height + CARD_GAP
+    colours = look.overview_colours()
+    look.text(screen, (960 - look.text_width('Overview')) // 2, 30, 'Overview', colours['text'])
+    hint = 'Click or Enter: go to it     Delete: close it     Esc: back'
+    look.text(screen, (960 - look.text_width(hint)) // 2, 496, hint, colours['hint'])
+    return screen, pointer
+
+
+def overview_scene(look, hotbar, scene_look=None):
+    """1920 x 1080 at 2x: the overview open over the drawn world and two windows. The veil hides what is behind it:
+    the overview shows no live picture of the world or of any window (labwc gives programs no window pictures)."""
+    scene = world_scene(scene_look or look)
+    scene.alpha_composite(hotbar, ((1920 - hotbar.width) // 2, 1080 - hotbar.height))
+    put_window(scene, look, 70, 50, 420, 260, 'Wetter Berlin - Google Suche', 'page', False)
+    put_window(scene, look, 330, 120, 540, 300, 'Größenvergleich.md - Editor', 'page', True)
+    scene.alpha_composite(up(look.veil(960, 540), 2))
+    panel, (px, py) = overview_panel(look)
+    scene.alpha_composite(up(panel, 2))
+    put_pointer(scene, px * 2, py * 2)
+    return scene
+
+
+WINDOW_LIST = ('Größenvergleich.md - Editor', 'Einkaufsliste.txt - Editor', 'Terminal: ~/Projekte', 'AresOS - GitHub',
+               'Wetter Berlin - Google Suche', 'YouTube', 'Downloads', 'Home')
+
+
+def window_list_scene(look, hotbar, scene_look=None):
+    """1920 x 1080 at 2x: what Super+Tab opens first, labwc's own list of every window as a menu in the middle of
+    the screen, in the look's menu colours. Its exact rows (a heading, how a minimized window is marked) are
+    labwc's and approximate here."""
+    scene = world_scene(scene_look or look)
+    scene.alpha_composite(hotbar, ((1920 - hotbar.width) // 2, 1080 - hotbar.height))
+    put_window(scene, look, 330, 120, 540, 300, 'Größenvergleich.md - Editor', 'page', True)
+    menu, tops = window_menu(look, [(title, None) for title in WINDOW_LIST], chosen='YouTube')
+    x, y = 480 - menu.width // 2, 270 - menu.height // 2
+    scene.alpha_composite(up(menu, 2), (x * 2, y * 2))
+    put_pointer(scene, (x + 60) * 2, (y + tops['YouTube'] + 10) * 2)
+    return scene
+
+
+OWNER_LABEL = 'AresOS owner tools dcbc375f: install these tools, then check and title'
+LONG_LABEL = ('AresOS owner tools dcbc375f: install these tools, then check and title, then export the records '
+              'to the stick (made up, to prove wrapping)')
+PASSWORD_W = 330
+
+
+def password_window(look, label, typed=6, hover=None, pressed=None, focus=True, width=PASSWORD_W):
+    """ksshaskpass's window at one pixel per unit: labwc's frame in the chosen look with the program's fixed title,
+    and the inside, which is version A in every look (`password_look()`). The arrangement inside follows KDE's
+    password dialog (an icon, the label, the field, OK and Cancel) and is approximate; colours, letters and sizes
+    are what the style sheet sets."""
+    inside = look.password_look()
+    colours = inside.password_colours()
+    pad, text_x = 8, 8 + 20 + 8
+    inner_w = width - 2 * BORDER
+    lines = wrap(inside, label, inner_w - text_x - pad)
+    body_h = pad + 20 * len(lines) + 8 + 20 + 12 + 20 + pad
+    height = 2 * BORDER + TITLE_H + body_h
+    body = Image.new('RGBA', (inner_w, body_h), colours['bg'])
+    inside.icon_slot(body, pad, pad, inside.dialog_icon())
+    for index, text in enumerate(lines):
+        row = Image.new('RGBA', (inner_w - text_x - pad, TITLE_H), (0, 0, 0, 0))
+        inside.title(row, 0, text, colours['label'])
+        body.alpha_composite(row, (text_x, pad + 20 * index))
+    y = pad + 20 * len(lines) + 8
+    row = Image.new('RGBA', (inside.title_width('Password:') + 2, TITLE_H), (0, 0, 0, 0))
+    inside.title(row, 0, 'Password:', colours['text'])
+    body.alpha_composite(row, (text_x, y))
+    field_x = text_x + inside.title_width('Password:') + 8
+    body.alpha_composite(inside.field(inner_w - field_x - pad, focus), (field_x, y))
+    draw = ImageDraw.Draw(body)
+    for index in range(typed):  # Qt draws its echo character; four-unit squares stand for it here
+        draw.rectangle((field_x + 6 + 7 * index, y + 8, field_x + 9 + 7 * index, y + 11), fill=colours['text'])
+    if focus:
+        draw.line((field_x + 6 + 7 * typed, y + 4, field_x + 6 + 7 * typed, y + 15), fill=colours['text'])
+    y += 20 + 12
+    for name, x, default in (('OK', inner_w - pad - 126, True), ('Cancel', inner_w - pad - 60, False)):
+        state = 'button-hover' if hover == name else 'button-pressed' if pressed == name else 'button'
+        body.alpha_composite(inside.push_button(60, name, state, default), (x, y))
+    image = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+    image.alpha_composite(body, (BORDER, BORDER + TITLE_H))
+    image.alpha_composite(window_frame(look, width, height, 'Enter SSH Credentials'))
+    return image
+
+
+def password_scene(look, hotbar, scene_look=None):
+    """1920 x 1080 at 2x: the password window in the middle, in front of the terminal where Claude runs."""
+    scene = world_scene(scene_look or look)
+    scene.alpha_composite(hotbar, ((1920 - hotbar.width) // 2, 1080 - hotbar.height))
+    put_window(scene, look, 60, 40, 560, 330, 'Terminal: ~ (Claude)', 'terminal', False)
+    window = password_window(look, OWNER_LABEL)
+    x, y = (960 - window.width) // 2, (540 - window.height) // 2
+    soft_shadow(scene, (x * 2, y * 2, (x + window.width) * 2, (y + window.height) * 2), 24, 140)
+    scene.alpha_composite(up(window, 2), (x * 2, y * 2))
+    return scene
+
+
+# The settings, as the AresOS menu's screen shows them: (name, its values, the default's index).
+SETTINGS = (('Look', ('Our own', 'Minecraft textures', 'Minecraft buttons'), 1),
+            ('Indicator place', ('Top centre', 'Bottom centre'), 0),
+            ('Indicator size', ('Small', 'Medium', 'Large'), 1))
+
+
+def settings_scene(look, hotbar, values, indicator_piece, scene_look=None, note=None):
+    """1920 x 1080 at 3x, the game's own interface scale: the settings screen of the AresOS menu over the world,
+    three option buttons and Done, the pointer on the one just clicked, and the indicator shown once at the place
+    and size just chosen."""
+    scene = world_scene(scene_look or look)
+    scene.alpha_composite(hotbar, ((1920 - hotbar.width) // 2, 1080 - hotbar.height))
+    scene.alpha_composite(up(look.veil(640, 360), 3))
+    screen = Image.new('RGBA', (640, 360), (0, 0, 0, 0))
+    look.text(screen, (640 - look.text_width('Desktop settings')) // 2, 66, 'Desktop settings', look.ink)
+    x, y = (640 - 200) // 2, 96
+    for index, ((name, _, _), value) in enumerate(zip(SETTINGS, values)):
+        screen.alpha_composite(look.settings_button(200, f'{name}: {value}', 'button-hover' if index == 0 else
+                                                    'button'), (x, y + 24 * index))
+    screen.alpha_composite(look.settings_button(200, 'Done'), (x, y + 24 * len(SETTINGS) + 20))
+    if note:
+        look.text(screen, (640 - look.text_width(note)) // 2, 300, note, look.quiet)
+    scene.alpha_composite(up(screen, 3))
+    place(scene, indicator_piece, 3, 'top')
+    put_pointer(scene, (x + 150) * 3, (y + 12) * 3)
+    return scene
