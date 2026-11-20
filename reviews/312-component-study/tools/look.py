@@ -310,6 +310,19 @@ class LookA:
         cell.alpha_composite(glyph(kind, colour, P['outline'] if shadow else None), (8, 5))
         return cell
 
+    # ---- layouts and switching (step 3). labwc draws the menu, Alt+Tab and the snapping preview in flat colours.
+
+    def layout_icon(self, rects):
+        """A layout's pictogram for a menu row: a dark screen with a stone edge, the slot in gold."""
+        return pictogram(rects, P['stone-400'], P['stone-900'], P['gold-500'])
+
+    def switcher_colours(self):
+        return dict(bg=P['stone-700'], border=P['outline'], text=P['ink'], chosen_border=P['gold-300'],
+                    chosen_bg=P['stone-600'], outline=(P['outline'], P['gold-300'], P['outline']))
+
+    def snap_colours(self):
+        return dict(fill=rgb('#cfa24f', 64), lines=(P['outline'], P['gold-300'], P['outline']))
+
 
 # ---------------------------------------------------------------- the piece: the level indicator
 
@@ -394,6 +407,8 @@ GLYPHS = {
     'desk': ['xxx..xxx', 'x.x..x.x', 'xxx..xxx', '........', '........', 'xxx..xxx', 'x.x..x.x', 'xxx..xxx'],
     'desk_toggled': ['xxx..xxx', 'xxx..xxx', 'xxx..xxx', '........', '........', 'xxx..xxx', 'xxx..xxx',
                      'xxx..xxx'],
+    # labwc marks a row that opens a submenu; drawn here in the menu's text colour (step 3).
+    'submenu': ['..x.....', '..xx....', '..xxx...', '..xxxx..', '..xxx...', '..xx....', '..x.....', '........'],
 }
 
 
@@ -445,27 +460,244 @@ def window_frame(look, width, height, title, active=True, maximized=False, hover
     return image
 
 
-def window_menu(look, items, chosen=None):
-    """labwc's menu in a look's flat colours: one 20-unit row per item, a one-unit border, a thin separator."""
+def window_menu(look, rows, chosen=None):
+    """labwc's menu in a look's flat colours: one 20-unit row per item, a one-unit border, a thin separator.
+
+    `rows` are (label, pictogram) pairs; an empty label is a separator, a label ending in ' >' opens a submenu.
+    labwc shows a row's icon unchanged when the row is chosen. Returns the menu and the top of each row by label.
+    """
     colours, pad = look.menu_colours(), 4
-    width = max(100, max(look.title_width(item) for item in items if item) + 2 * pad + 2)
-    height = 2 + sum(TITLE_H if item else 5 for item in items)
+    icons = any(icon for _, icon in rows)
+    icon_room = ICON_W + 4 if icons else 0
+    names = [label.removesuffix(' >') for label, _ in rows if label]
+    arrow_room = 10 if any(label.endswith(' >') for label, _ in rows) else 0
+    width = max(100, max(look.title_width(name) for name in names) + 2 * pad + 2 + icon_room + arrow_room)
+    height = 2 + sum(TITLE_H if label else 5 for label, _ in rows)
     image = Image.new('RGBA', (width, height), colours['bg'])
     draw = ImageDraw.Draw(image)
     draw.rectangle((0, 0, width - 1, height - 1), outline=colours['border'])
-    y = 1
-    for item in items:
-        if not item:
+    y, tops = 1, {}
+    for label, icon in rows:
+        if not label:
             draw.line((1 + pad, y + 2, width - 2 - pad, y + 2), fill=colours['separator'])
             y += 5
             continue
-        if item == chosen:
+        name = label.removesuffix(' >')
+        tops[name] = y
+        if name == chosen:
             draw.rectangle((1, y, width - 2, y + TITLE_H - 1), fill=colours['chosen_bg'])
-        row = Image.new('RGBA', (width - 2 - pad, TITLE_H), (0, 0, 0, 0))
-        look.title(row, 0, item, colours['chosen_text'] if item == chosen else colours['text'])
-        image.alpha_composite(row, (1 + pad, y))
+        if icon:
+            image.alpha_composite(look.layout_icon(PICTOGRAMS[icon]), (1 + pad, y + (TITLE_H - ICON_H) // 2))
+        colour = colours['chosen_text'] if name == chosen else colours['text']
+        row = Image.new('RGBA', (width - 2 - pad - icon_room, TITLE_H), (0, 0, 0, 0))
+        look.title(row, 0, name, colour)
+        image.alpha_composite(row, (1 + pad + icon_room, y))
+        if label.endswith(' >'):
+            image.alpha_composite(glyph('submenu', colour), (width - 1 - pad - 8, y + 6))
         y += TITLE_H
+    return image, tops
+
+
+# ---------------------------------------------------------------- layouts and switching (step 3)
+
+# The layouts: labwc regions in whole percent of an output's usable area (x, y, width, height). Whole percents so
+# that two slots meet exactly at any screen width (66 + 34), and so the shell can add them up the same way.
+REGIONS = {
+    'left': (0, 0, 50, 100), 'right': (50, 0, 50, 100),
+    'top-left': (0, 0, 50, 50), 'top-right': (50, 0, 50, 50),
+    'bottom-left': (0, 50, 50, 50), 'bottom-right': (50, 50, 50, 50),
+    'left-wide': (0, 0, 66, 100), 'right-narrow': (66, 0, 34, 100),
+    'middle': (20, 10, 60, 80),
+}
+ICON_W, ICON_H = 16, 10
+PICTOGRAMS = {name: (box,) for name, box in REGIONS.items()}
+PICTOGRAMS['own'] = ((14, 12, 50, 50),)                       # a window at its own size
+PICTOGRAMS['share'] = (REGIONS['left'], REGIONS['right'])     # two windows side by side
+
+# The layout menu (`aresos-layouts` in menu.xml), opened by a right-click on maximize or by Super+Z.
+LAYOUT_MENU = (
+    ('Left half', 'left'), ('Right half', 'right'), ('', None),
+    ('Top left', 'top-left'), ('Top right', 'top-right'), ('Bottom left', 'bottom-left'),
+    ('Bottom right', 'bottom-right'), ('', None),
+    ('Two thirds, left', 'left-wide'), ('One third, right', 'right-narrow'), ('', None),
+    ('Middle', 'middle'), ('Its own size', 'own'), ('', None),
+    ('Share the screen with >', 'share'),
+)
+# Its submenu, made by the shell when it opens: the other windows showing on the same screen.
+SHARE_MENU = (('Terminal: ~/Projekte', None), ('Downloads - Files', None))
+
+
+def pictogram(rects, frame, face, fill):
+    """A layout's pictogram, ICON_W x ICON_H units: a small screen with its slots filled. Two slots side by side
+    keep one unit of the screen between them."""
+    image = Image.new('RGBA', (ICON_W, ICON_H), face)
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((0, 0, ICON_W - 1, ICON_H - 1), outline=frame)
+    inner_w, inner_h = ICON_W - 2, ICON_H - 2
+    for x, y, w, h in rects:
+        x0, y0 = 1 + round(inner_w * x / 100), 1 + round(inner_h * y / 100)
+        x1, y1 = round(inner_w * (x + w) / 100), round(inner_h * (y + h) / 100)
+        if len(rects) > 1 and x + w < 100:
+            x1 -= 1
+        draw.rectangle((x0, y0, x1, y1), fill=fill)
     return image
+
+
+def layout_menu_open(look, flip=False):
+    """The layout menu with 'Share the screen with' chosen and its submenu open beside it. `flip` puts the submenu
+    on the left, as labwc does when there is no room on the right. Returns the image and the main menu's x."""
+    main, tops = window_menu(look, LAYOUT_MENU, chosen='Share the screen with')
+    sub, _ = window_menu(look, SHARE_MENU, chosen=SHARE_MENU[0][0])
+    top = tops['Share the screen with'] - 1
+    image = Image.new('RGBA', (main.width + sub.width, max(main.height, top + sub.height)), (0, 0, 0, 0))
+    main_x = sub.width if flip else 0
+    image.alpha_composite(main, (main_x, 0))
+    image.alpha_composite(sub, (0 if flip else main.width, top))
+    return image, main_x
+
+
+def snap_overlay(scene, look, box):
+    """labwc's snapping preview: a filled rectangle and up to three lines, in the look's colours (screen pixels)."""
+    colours = look.snap_colours()
+    layer = Image.new('RGBA', scene.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(layer)
+    x0, y0, x1, y1 = box
+    draw.rectangle((x0, y0, x1 - 1, y1 - 1), fill=colours['fill'])
+    for index, colour in enumerate(colours['lines']):
+        inset = 2 * index
+        draw.rectangle((x0 + inset, y0 + inset, x1 - 1 - inset, y1 - 1 - inset), outline=colour, width=2)
+    scene.alpha_composite(layer)
+
+
+def put_pointer(scene, x, y):
+    """Our arrow at 2x with its tip at (x, y), cut at the screen's edge."""
+    arrow = up(POINTER, 2)
+    scene.alpha_composite(arrow.crop((0, 0, min(arrow.width, scene.width - x), arrow.height)), (x, y))
+
+
+def half_scene(look, hotbar, scene_look=None):
+    """1920 x 1080 at 2x: the editor in the left half with the world showing and running in the right half, and a
+    terminal being dragged to the right edge, where labwc's preview shows the half it will fill."""
+    scene = world_scene(scene_look or look)
+    scene.alpha_composite(hotbar, ((1920 - hotbar.width) // 2, 1080 - hotbar.height))
+    put_window(scene, look, 0, 0, 480, 540, 'Einkaufsliste.txt - Editor', 'page', False)
+    snap_overlay(scene, look, (960, 0, 1920, 1080))
+    put_window(scene, look, 680, 180, 280, 190, 'Terminal: ~/Projekte', 'terminal', True)
+    put_pointer(scene, 1912, 372)
+    return scene
+
+
+def layouts_sheet(look, caption, background):
+    """Every layout as a small screen (1920 x 1080 drawn at an eighth), and the covering rule's cases."""
+    sheet = Image.new('RGBA', (1680, 880), background)
+    sheet.alpha_composite(caption('The layouts: where each puts the window, and how he gets it there', 'title'),
+                          (24, 14))
+    cells = (('Left half', ['left'], 'Super+Left, or drag', 'to the left edge'),
+             ('Right half', ['right'], 'Super+Right, or drag', 'to the right edge'),
+             ('Top left', ['top-left'], 'Super+Left, Super+Up', 'or drag to the corner'),
+             ('Bottom right', ['bottom-right'], 'Super+Right, then Down,', 'or drag to the corner'),
+             ('Two thirds, left', ['left-wide'], 'The menu, or drag', 'with Ctrl held'),
+             ('One third, right', ['right-narrow'], 'The menu: a side panel', 'for chat or music'),
+             ('Middle', ['middle'], 'The menu: easy to read,', 'the world around it'),
+             ('Whole screen', ['whole'], 'Maximize, Super+Up, or', 'drag to the top edge'),
+             ('Share the screen with', ['left', 'right*'], 'This window left, the', 'chosen one right'),
+             ('Its own size', ['own'], 'Super+Down, or drag it', 'away from its slot'))
+    for index, (name, slots, first, second) in enumerate(cells):
+        x, y = 24 + (index % 5) * 330, 64 + (index // 5) * 236
+        sheet.alpha_composite(screen_diagram(look, slots), (x, y))
+        for row, (text, kind) in enumerate(((name, 'name'), (first, 'note'), (second, 'note'))):
+            sheet.alpha_composite(caption(text, kind), (x, y + 140 + row * 26))
+    sheet.alpha_composite(caption('When a layout covers the world (decided for the world\'s screen only)', 'title'),
+                          (24, 544))
+    cases = (('Two halves', ['left', 'right*'], 'fill the screen:', 'world paused', 'paused'),
+             ('One half', ['left'], 'the world shows', 'and runs', 'runs'),
+             ('Three quarters', ['top-left', 'bottom-left*', 'top-right*'], 'a gap:', 'world runs', 'runs'),
+             ('A third and two thirds', ['left-wide', 'right-narrow*'], 'fill the screen:', 'world paused',
+              'paused'),
+             ('Halves on the laptop,', ['left', 'right*'], 'the world on the', 'monitor: it runs', 'runs'))
+    for index, (name, slots, first, second, mark) in enumerate(cases):
+        x, y = 24 + index * 330, 594
+        sheet.alpha_composite(screen_diagram(look, slots, world=index != 4), (x, y))
+        for row, (text, kind) in enumerate(((name, 'name'), (first, 'note'), (second, mark))):
+            sheet.alpha_composite(caption(text, kind), (x, y + 140 + row * 26))
+    return sheet
+
+
+def screen_diagram(look, slots, world=True):
+    """A 1920 x 1080 screen at an eighth (240 x 135): the drawn world behind (or a plain dark screen when the
+    world is on the other screen), each slot a window with its bar. A slot ending in '*' is an inactive window."""
+    image = Image.new('RGBA', (240, 135))
+    draw = ImageDraw.Draw(image)
+    if world:
+        _bands(draw, 0, 240, 0, 75, rgb('#6f9df0'), rgb('#aecbf8'), 5)
+        _bands(draw, 0, 240, 75, 135, rgb('#668845'), rgb('#537236'), 4)
+        draw.polygon([(115, 75), (125, 75), (161, 135), (79, 135)], fill=rgb('#2b2832'))
+    else:
+        draw.rectangle((0, 0, 239, 134), fill=rgb('#3d3a44'))
+    for slot in slots:
+        active = not slot.endswith('*')
+        name = slot.rstrip('*')
+        x, y, w, h = (0, 0, 100, 100) if name == 'whole' else PICTOGRAMS[name][0]
+        box = (round(240 * x / 100), round(135 * y / 100), round(240 * (x + w) / 100) - 1,
+               round(135 * (y + h) / 100) - 1)
+        colours = look.frame_colours(active)
+        draw.rectangle(box, fill=rgb('#ffffff') if active else rgb('#1d1b22'), outline=colours['border'])
+        draw.rectangle((box[0] + 1, box[1] + 1, box[2] - 1, box[1] + 5), fill=colours['bar'])
+    draw.rectangle((0, 0, 239, 134), outline=rgb('#0d0d10'))
+    return image
+
+
+# Alt+Tab, in focus order: the window he is in, the one a single Alt+Tab picks, the world, a minimized window.
+SWITCHER_ITEMS = (('Einkaufsliste.txt - Editor', 'page'), ('Terminal: ~/Projekte/Größenvergleich', 'terminal'),
+                  ('Home', 'world'), ('Downloads - Files', 'page'))
+SWITCHER_ITEM_W, SWITCHER_ITEM_H, SWITCHER_PAD = 280, 208, 8   # screen pixels, as themerc takes them
+
+
+def switcher_panel(look, world, chosen=1):
+    """labwc's Alt+Tab in its picture style, in screen pixels at 2x: a flat panel with one border, a thumbnail and
+    a title per window, and the chosen one framed. labwc also puts each app's icon on its tile (left out here)."""
+    colours = look.switcher_colours()
+    count = len(SWITCHER_ITEMS)
+    width, height = count * SWITCHER_ITEM_W + 2 * SWITCHER_PAD + 4, SWITCHER_ITEM_H + 2 * SWITCHER_PAD + 4
+    panel = Image.new('RGBA', (width, height), colours['bg'])
+    draw = ImageDraw.Draw(panel)
+    draw.rectangle((0, 0, width - 1, height - 1), outline=colours['border'], width=2)
+    for index, (title, kind) in enumerate(SWITCHER_ITEMS):
+        x, y = 2 + SWITCHER_PAD + index * SWITCHER_ITEM_W, 2 + SWITCHER_PAD
+        if index == chosen:
+            draw.rectangle((x, y, x + SWITCHER_ITEM_W - 1, y + SWITCHER_ITEM_H - 1), fill=colours['chosen_bg'],
+                           outline=colours['chosen_border'], width=4)
+        room_w, room_h = SWITCHER_ITEM_W - 2 * SWITCHER_PAD, SWITCHER_ITEM_H - 2 * SWITCHER_PAD - 2 * TITLE_H
+        source = world if kind == 'world' else client(1080, 640 if kind == 'page' else 560, kind)
+        scale = min(room_w / source.width, room_h / source.height)
+        thumb = source.resize((round(source.width * scale), round(source.height * scale)),
+                              Image.Resampling.BILINEAR)   # labwc scales a live picture smoothly
+        panel.alpha_composite(thumb, (x + (SWITCHER_ITEM_W - thumb.width) // 2, y + SWITCHER_PAD +
+                                      (room_h - thumb.height) // 2))
+        room = (SWITCHER_ITEM_W - 2 * SWITCHER_PAD) // 2
+        text = fit(look, title, room)
+        label = Image.new('RGBA', (room, TITLE_H), (0, 0, 0, 0))
+        look.title(label, (room - look.title_width(text)) // 2, text, colours['text'])
+        panel.alpha_composite(up(label, 2), (x + SWITCHER_PAD, y + SWITCHER_ITEM_H - SWITCHER_PAD - 2 * TITLE_H))
+    return panel
+
+
+def switcher_scene(look, hotbar, scene_look=None):
+    """1920 x 1080: Alt+Tab held over the editor. The terminal, the window a release would pick, is brought
+    forward with labwc's preview outline round it; the panel sits in the middle of the screen."""
+    world = world_scene(scene_look or look)
+    world.alpha_composite(hotbar, ((1920 - hotbar.width) // 2, 1080 - hotbar.height))
+    scene = world.copy()
+    put_window(scene, look, 330, 120, 540, 300, 'Einkaufsliste.txt - Editor', 'page', True)
+    put_window(scene, look, 70, 50, 400, 250, 'Terminal: ~/Projekte/Größenvergleich', 'terminal', False)
+    outline = look.switcher_colours()['outline']
+    draw = ImageDraw.Draw(scene)
+    for index, colour in enumerate(outline):
+        inset = 2 * index
+        draw.rectangle((140 + inset, 100 + inset, 939 - inset, 599 - inset), outline=colour, width=2)
+    panel = switcher_panel(look, world)
+    scene.alpha_composite(panel, ((1920 - panel.width) // 2, (1080 - panel.height) // 2))
+    return scene
 
 
 # ---------------------------------------------------------------- backdrops, drawn here from flat colours
@@ -621,18 +853,18 @@ def frame_scene(look, hotbar, scene_look=None):
     return scene
 
 
-LAYOUT_MENU = ('Left half', 'Right half', '', 'Top left', 'Top right', 'Bottom left', 'Bottom right')
-
-
 def maximized_scene(look):
-    """1920 x 1080 at 2x: a maximized editor (no border, restore shown), and the menu that a right-click on the
-    maximize button opens under it. The menu's items are step 3's; these are labwc's own snap directions."""
+    """1920 x 1080 at 2x: a maximized editor (no border, restore shown), and the layout menu that a right-click on
+    the maximize button opens under it (section 4.3), with 'Share the screen with' open. There is no room on the
+    right, so labwc opens the submenu on the left."""
     scene = Image.new('RGBA', (1920, 1080))
     buttons = put_window(scene, look, 0, 0, 960, 540, 'Einkaufsliste.txt - Editor', 'page', True, hover='max',
                          maximized=True)
-    menu = up(window_menu(look, LAYOUT_MENU, chosen='Left half'), 2)
-    menu_x = min(buttons + CELL_W * 2, 1920 - menu.width)
-    scene.alpha_composite(menu, (menu_x, TITLE_H * 2))
+    menus, main_x = layout_menu_open(look, flip=True)
+    menus = up(menus, 2)
+    main_width = menus.width - 2 * main_x
+    menu_x = min(buttons + CELL_W * 2, 1920 - main_width)
+    scene.alpha_composite(menus, (menu_x - 2 * main_x, TITLE_H * 2))
     scene.alpha_composite(up(POINTER, 2), (buttons + CELL_W * 2 + 26, 22))
     return scene
 

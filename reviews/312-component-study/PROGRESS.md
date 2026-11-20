@@ -51,13 +51,49 @@ confirmed: every staged PNG is under `docs/design/components/` and was written b
 game file; no staged file's SHA-256 equals a file in the private folder; nothing staged came from the game jar, an
 extracted file or the private folder.
 
+## Done: step 3, layouts and switching (2026-11-20, Claude Opus 5.5)
+
+`mac-capacity` moved steps 2 to 4 to Opus (the Claude week is over pace). Mid-step the lead relayed the owner's
+answer to board T432, "Yes, follow the look": 4.2 now states it as decided (Ares-Crown is replaced once the frame is
+built), and section 7's question 3 is marked answered. The brief is the lead's to update.
+
+**Public sections finished or changed** in `docs/design/COMPONENTS.md`:
+- 4.3, window layouts and split screen: the nine places (halves, quarters, two thirds and a third, the middle, its
+  own size), the layout menu's rows and "Share the screen with" (our own Snap Assist, a labwc pipe menu), the
+  Super+arrow keys with a guard that keeps them off the world, dragging and the preview, what labwc 0.9.6 can and
+  cannot do (checked in its manual pages, `rc.xml.all`, `labwc --help` and the list of interfaces in its program),
+  the covering rule (the geometry is the shell's own record, filled by labwc's `If` answers at the end of each layout
+  binding; which windows go down on a return to the world; a layout comes back whole), the known limits, the build's
+  tests, the `rc.xml`, `menu.xml` and `themerc` lines, the two packages it splits into, decisions and what is not
+  verified.
+- 4.4, app switching: labwc's switcher, its contents and order, the world as "Home", how minimized windows come back
+  (four ways), keys, focus, screens, how far the look follows A, B and C, the `themerc` and `rc.xml` lines, tests,
+  decisions.
+- 4.2: T432 decided; pointers to 4.3 and 4.4 instead of "step 3". 3: the pictograms in the sprite table. 5: what B
+  reads for step 3 (nothing new). 6, 7 (question 3 answered; step 3 adds no question), 8 (three rows extended).
+
+**Public pictures** (`docs/design/components/`, 524 KB in all): new `A-12-layouts`, `A-13-half-and-world`,
+`A-14-switcher`, and 11 pictograms in `sprites/layout/`; `A-11` redrawn with the final menu and its open list.
+`A-09` was redrawn too, from unchanged code: the committed one predated step 2's last caption fix (its column
+captions overlapped).
+
+**Private mockups finished:** `B-12` redrawn with the final menu; new `B-13` half and world with the preview, `B-14`
+Alt+Tab, `B-15` the layout menu and Alt+Tab in A and B side by side (the sheet to choose from). C has no picture of
+its own here: the game has no control for a menu, a preview or a switcher, so C uses B. Rows are in `B-INDEX.md`.
+
+**The public and private check, step 3.** Before the push I ran `git status` and `git diff --cached --stat` and
+confirmed: the 21 staged files are `COMPONENTS.md`, `PROGRESS.md`, the three kit scripts, and 16 PNGs, all under
+`docs/design/components/` and all written by `tools/draw_a.py`, which opens no game file (its only inputs are flat
+colours, the letter maps in `look.py` and Jersey 10); no staged file's SHA-256 equals any file in the private folder
+(0 matches); no staged path names the game, its jar, its assets or the private folder; nothing staged came from the
+game jar, an extracted file or the private folder.
+
 ## Left, in order
 
-3. **Layouts and switching** (4.3, 4.4): window layouts with the covering rule's cases, and app switching. Step 2
-   leaves step 3: the items of the `aresos-layouts` menu that a right-click on maximize opens (`A-11` shows labwc's
-   own snap directions as placeholders), the Super+arrow keys, and the Alt+Tab and snapping lines of A's `themerc`.
-4. **The overview, the password window and the decision** (4.5, 4.6, 6, 7, 8): then delete this file. Step 4 also
-   designs the look setting itself (where it lives, how he changes it); 4.2 says what the frame needs from it.
+4. **The overview, the password window and the decision** (4.5, 4.6, 6, 7, 8): then delete this file and put its
+   last state into the pull request's description. Step 4 also designs the look setting itself (where it lives, how
+   he changes it); 4.2 says what the frame needs from it, 4.3 adds the layout pictograms (icons the sync step writes
+   for B and C). The overview should say how it relates to Alt+Tab (4.4) and to a layout's group (4.3).
 
 ## How to draw
 
@@ -81,7 +117,10 @@ Python leaves a `__pycache__` folder beside the scripts; it is ignored by git.
 
 **For a new piece:** add its made-up states and one layout function to `look.py`, add any new part as a method to
 both `LookA` and `LookB`, and draw it from both scripts. For the frame the parts are `frame_colours()`,
-`menu_colours()`, `title()`, `title_width()` and `title_button()`.
+`menu_colours()`, `title()`, `title_width()` and `title_button()`; step 3 added `layout_icon()`,
+`switcher_colours()` and `snap_colours()`. Step 3's layout functions are `window_menu()` (now with pictograms and
+submenu rows), `layout_menu_open()`, `half_scene()`, `layouts_sheet()`, `switcher_panel()` and `switcher_scene()`;
+the places are `REGIONS`, the menu `LAYOUT_MENU`.
 
 ## What the files don't show
 
@@ -101,8 +140,22 @@ both `LookA` and `LookB`, and draw it from both scripts. For the frame the parts
   the game's own; the bar's colour carries the focus there.
 - **The hotbar's mark for a minimized app is not drawn:** it belongs to the mod's hotbar, whose look is the game's.
 - **Jersey 10's 21 pt in WINDOWS.md** is still uncorrected (step 1's note); 4.2 gives the line to the frame package.
-- **Nothing was run** against labwc, Qt, PipeWire or the backlight. Sections 4.1's and 4.2's "Not verified" lists and
+- **Nothing was run** against labwc, Qt, PipeWire or the backlight. Sections 4.1 to 4.4's "Not verified" lists and
   section 5's two Prism paths are for the build packages to confirm.
+- **Step 3, ways to learn a window's place that were considered and dropped:** a picker program of our own that
+  presses a hidden key through labwc's virtual keyboard so that labwc places the window (a virtual keyboard sends its
+  own key map to the focused program, which could disturb the game); tiny see-through probe surfaces under the
+  windows (whether they count as hidden depends on each program declaring its opaque area); the world learning from
+  the compositor that it is hidden (not knowable without running it); a `ForEach` count of filled places on every
+  binding (it names no window, and the reports would arrive in no fixed order).
+- **Why keys use `SnapToRegion`** and not labwc's `SnapToEdge` with `combine`: a named region makes each key's result
+  and the report exact; edge snapping still serves dragging, and the report reads `tiled` for it.
+- **Alt+Tab's tiles are scaled smoothly** (`switcher_panel()` uses bilinear scaling), the one place the kit does not
+  scale by whole steps: labwc scales live window pictures. Where labwc puts the icon and the title on a tile is
+  approximate; colours and sizes are exact. "Home" as the world's title is a proposal (a later mod change).
+- **In `A-14` the editor is drawn active** behind the previewed terminal: during Alt+Tab the focus has not moved yet.
+- **The pictograms have one state:** labwc shows a menu icon unchanged on the chosen row, so there is no gold-300
+  variant, although the chosen row's text turns gold.
 - From step 1: why the indicator's bar is 143 units wide (its two labels must fit above it); Jersey 10's grid of 1400
   units per em and squares of 75 units, drawn at 56 px and sampled every third pixel; B's indicator icons are stand-ins
   (lantern, bell, barrier, chat bubbles) because the game has no sun, speaker or microphone at icon size; B's letter
@@ -117,6 +170,13 @@ both `LookA` and `LookB`, and draw it from both scripts. For the frame the parts
 - The frame's later `rc.xml` mouse block, the new `menu.xml` and the theme name `AresOS` go to `linux-aresos` first.
 - Checked in step 2, no longer open: labwc looks for a theme in `~/.local/share/themes/` before `/usr/share/themes/`
   (labwc-theme(5), "THEME").
+- From step 3, for `linux-aresos` with the later `rc.xml`: the world's window rule gains `fixedPosition="yes"` (today
+  labwc's default Super+drag can move the maximized world), and the start-up cover and the shutdown's black screen
+  gain `skipWindowSwitcher="yes"`. These are small and could go in before the layout packages.
+- From step 3, for 23c: whether Super held through a mouse drag and then released opens the search (labwc's
+  `onRelease` waits only for other keys). Today's default Super+drag already raises it.
+- From step 3: covering by layouts needs a new 1.x request from the mod, `world_clicked` (4.3), and splits the layout
+  work into two packages (layouts first, covering second). Both are recorded as technical calls, not owner questions.
 
 ## Questions for the owner so far (section 7; the lead posts them, step 4 makes the final list)
 
@@ -124,4 +184,8 @@ both `LookA` and `LookB`, and draw it from both scripts. For the frame the parts
    the hotbar (`A-07`)? Recommended: top centre.
 2. How big: small, medium or large (`A-05`, `B-06`)? Recommended: medium (3x).
 3. Should windows wear the Minecraft-look frame too, following the look setting, instead of today's black-and-gold
-   Ares-Crown (`A-10`, `B-09`, `B-10`)? Recommended: yes.
+   Ares-Crown (`A-10`, `B-09`, `B-10`)? Recommended: yes. **Answered** on board T432, 2026-11-20: "Yes, follow the
+   look".
+
+Step 3 adds no question: its calls are technical and recorded in 4.3 and 4.4. For the A-or-B choice, step 3's sheet
+is `B-15` (menu and Alt+Tab side by side), and `B-13` shows B on a whole screen.

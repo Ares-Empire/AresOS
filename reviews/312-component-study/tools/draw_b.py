@@ -200,6 +200,23 @@ class LookB:
             self._highlight(cell, 'front', 4, 2)
         return cell
 
+    # ---- layouts and switching (step 3): labwc's menu, Alt+Tab and snapping preview, in the game's colours.
+
+    def layout_icon(self, rects):
+        """The pictogram as the game would draw a map of slots: black screen, grey edge, the slot white."""
+        return kit.pictogram(rects, self.quiet, (0, 0, 0, 255), self.white)
+
+    def switcher_colours(self):
+        """Alt+Tab in the tooltip's colours, as the menus; the chosen window framed in white, as the game frames the
+        chosen world in its list of worlds."""
+        menu = self.menu_colours()
+        return dict(bg=menu['bg'], border=menu['border'], text=self.white, chosen_border=self.white,
+                    chosen_bg=menu['chosen_bg'], outline=((0, 0, 0, 255), self.white, (0, 0, 0, 255)))
+
+    def snap_colours(self):
+        """The preview lit like a hovered slot: white at about a third, framed in white."""
+        return dict(fill=(255, 255, 255, 80), lines=((0, 0, 0, 255), self.white, (0, 0, 0, 255)))
+
 
 class LookC(LookB):
     """Version C: the game's own buttons, with signs from the game's font where it has them. Elsewhere C is B."""
@@ -281,6 +298,22 @@ def title_bars_sheet(a, b, b_game, c):
     return sheet
 
 
+def menus_and_switchers_sheet(a, b):
+    """Step 3's sheet to choose from: the layout menu with its submenu, and Alt+Tab's panel, in A and in B."""
+    world = kit.world_scene(a)
+    sheet = Image.new('RGBA', (1920, 1290), SKY)
+    for column, (name, look) in enumerate((('A: our own art', a), ('B: the game\'s colours (C uses B here)', b))):
+        x = 30 + column * 960
+        sheet.alpha_composite(caption(b, name), (x, 20))
+        menus, _ = kit.layout_menu_open(look)
+        sheet.alpha_composite(kit.up(menus, 2), (x, 60))
+    for row, (name, look) in enumerate((('A: Alt+Tab', a), ('B: Alt+Tab', b))):
+        y = 660 + row * 310
+        sheet.alpha_composite(caption(b, name), (30, y))
+        sheet.alpha_composite(kit.switcher_panel(look, world), (30, y + 36))
+    return sheet
+
+
 def same_glyphs(a, b):
     """How many printable ASCII letters have the same bitmap in Jersey 10 and in the game's font."""
     same = []
@@ -314,7 +347,10 @@ All values are made up.
 | B-09 | `B-09-frame-windows.png` | B on the drawn noon scene at 1920 x 1080, 2x: an inactive terminal behind, the active editor in front with the pointer on close. The bar is the game's chest-window grey with its dark label colour; the active window has the game's white focus outline. Titles in Jersey 10. | A-10 |
 | B-10 | `B-10-frame-windows-c.png` | The same scene in C. | A-10 |
 | B-11 | `B-11-frame-a-b-c.png` | One title bar in A, B, B with the game's letters in the title, and C: active, pointer on close, inactive, at 2x. The sheet to choose from. | A-09 |
-| B-12 | `B-12-frame-maximized-menu.png` | B maximized (no border, restore shown) with the menu a right-click on maximize opens, in the game's tooltip colours. | A-11 |
+| B-12 | `B-12-frame-maximized-menu.png` | B maximized (no border, restore shown) with the layout menu a right-click on maximize opens, in the game's tooltip colours: step 3's rows with their pictograms (black screens, the slot in white), "Share the screen with" chosen and its submenu open on the left. | A-11 |
+| B-13 | `B-13-half-and-world.png` | Step 3, layouts in B: the editor in the left half with the drawn world in the right half, and a terminal dragged to the right edge, where labwc's preview shows the half it will fill, lit white like a hovered slot. 1920 x 1080 at 2x. | A-13 |
+| B-14 | `B-14-switcher.png` | Alt+Tab in B: the panel in the tooltip's colours, the chosen window framed in white as the game frames the chosen world in its world list; the chosen terminal brought forward with a black-white-black outline. Titles in Jersey 10 (labwc's font). | A-14 |
+| B-15 | `B-15-menus-and-switchers-a-b.png` | The layout menu with its submenu, and the Alt+Tab panel, in A and in B side by side. C uses B for both. The sheet to choose from for step 3. | A-11, A-14 |
 
 `work/parts.png` is a working sheet of the game sprites that were looked at; it is not a mockup.
 
@@ -379,6 +415,12 @@ def main():
     save(kit.frame_scene(c, hotbar, scene_look=a), 'B-10-frame-windows-c.png')
     save(title_bars_sheet(a, b, b_game, c), 'B-11-frame-a-b-c.png')
     save(kit.maximized_scene(b), 'B-12-frame-maximized-menu.png')
+
+    # Step 3: layouts and switching in B. The game has no control of its own for a menu, a switcher or a
+    # snapping preview, so C uses B for all three; its windows would wear C's frame, as in B-10.
+    save(kit.half_scene(b, hotbar, scene_look=a), 'B-13-half-and-world.png')
+    save(kit.switcher_scene(b, hotbar, scene_look=a), 'B-14-switcher.png')
+    save(menus_and_switchers_sheet(a, b), 'B-15-menus-and-switchers-a-b.png')
 
     same = same_glyphs(a, b)
     capital = b.font.glyphs['H'][0]

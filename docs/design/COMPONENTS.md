@@ -1,9 +1,9 @@
 # The desktop's pieces: how they look and how they behave
 
-**Status:** a design study in progress (package 312, `briefs/312-component-study.md`). Steps 1 and 2 of 4 are
+**Status:** a design study in progress (package 312, `briefs/312-component-study.md`). Steps 1 to 3 of 4 are
 written: the theme layer, version A's colours and font, the grid, version B's runtime contract, the brightness and
-volume indicator, and the window frame. Sections marked *step 3* or *step 4* are still to come. Nothing here is built, and this study
-changes no image, theme, `rc.xml` or mod file.
+volume indicator, the window frame, window layouts and app switching. Sections marked *step 4* are still to come.
+Nothing here is built, and this study changes no image, theme, `rc.xml` or mod file.
 
 **What it is for.** One design for the normal desktop pieces of AresOS, so each can be built from it in its own
 package: the brightness and volume indicator, the window frame and its buttons, minimize, window layouts, app
@@ -254,6 +254,7 @@ overlay scale may want to be 4 as well, so that the indicator's pixels match the
 | `button-close-hover` | 9 × 9 | as `button` | one | the frame's close under the pointer; later any button that deletes or closes |
 | `gold-block`, `gold-block-hover` | 10 × 10 | none | normal, pointer on it | the window-menu button |
 | `frame/*.png` | 24 × 20 | none | labwc's 36 images: nine buttons, each normal and under the pointer, on an active and an inactive window | labwc only, doubled to 48 × 40 px (section 4.2) |
+| `layout/layout-*.png` | 16 × 10 | none | one: labwc shows a menu icon unchanged on the chosen row | the layout menu's 11 pictograms, as named icons (section 4.3) |
 
 labwc's title-bar buttons are finished images, not nine-slices: one per button and state at a fixed size, and no
 pressed state. They are put together from the sprites above and 8 × 8 pictograms (`GLYPHS` in `look.py`), and the
@@ -485,13 +486,14 @@ palette's rule at work: gold marks the chosen thing.
 
 | Like Windows | Our own |
 |---|---|
-| The title at the left; minimize, maximize and close at the right in that order; close turns red | **Right-click on maximize opens the layout menu**, under the button (`A-11`). Windows 11 shows its layouts when the pointer rests on maximize; labwc cannot react to a resting pointer, and a menu that opens by itself gets in the way. A right-click is deliberate, and it replaces labwc's "maximize only the width", which nobody expects. Step 3 decides the menu's items; the picture uses labwc's own snap directions, which it can do today. |
+| The title at the left; minimize, maximize and close at the right in that order; close turns red | **Right-click on maximize opens the layout menu**, under the button (`A-11`). Windows 11 shows its layouts when the pointer rests on maximize; labwc cannot react to a resting pointer, and a menu that opens by itself gets in the way. A right-click is deliberate, and it replaces labwc's "maximize only the width", which nobody expects. Section 4.3 gives the menu's rows. |
 | Double-click the title to maximize; drag to the top to maximize, to a side for half the screen | **The world's hotbar holds minimized windows** (below): a minimized app's slot is marked, and clicking it brings its window back. The world is the desktop, so its bar becomes the taskbar. |
 | Alt+F4 closes | No rolling up a window by scrolling over its bar: a Linux habit that looks like a lost window. |
 
 ![Version A: a maximized editor, and the menu a right-click on maximize opens](components/A-11-frame-maximized-menu.png)
 
-*The menu is labwc's own, in A's colours, one 20-unit row per item. Its items are step 3's to decide.*
+*The menu is labwc's own, in A's colours, one 20-unit row per item with its pictogram; section 4.3 explains the rows.
+"Share the screen with" is open; there is no room on the right, so labwc opens the list on the left.*
 
 **Minimize and restore**
 
@@ -512,7 +514,7 @@ palette's rule at work: gold marks the chosen thing.
   - It is not part of the frame's package: one small shell-and-protocol package and one small mod change. Its mark
     belongs to the mod's hotbar and is drawn by that package.
   - *To verify:* that labwc's answer to the activate request also restores a minimized window, as Alt+Tab does.
-- **Keys.** Step 2 adds none. Windows' Super+Down and the other Super+arrow keys belong to step 3's layouts. labwc
+- **Keys.** The frame adds none. Windows' Super+Down and the other Super+arrow keys belong to the layouts (4.3). labwc
   fires a lone-Super binding only when Super is pressed and released without another key (labwc-config(5), on
   `onRelease`), so such chords do not open 23c's search. Super stays free.
 
@@ -595,11 +597,13 @@ and size apply to the indicator, not to the frame. Step 4 designs the settings t
   and the keyboard through it.
 - **Cheap first, the rest later.** The frame's first package ships A only, as the image's theme. B and C come with
   section 5's sync step, which then also writes the theme folder; the switch itself is a folder and one command.
-- **Today's Ares-Crown** gives way to the look's frame when that package ships. Its files stay in git history and are
-  a natural start for the later Ares-apps look, a fourth value of the same setting. Question 3 in section 7.
+- **Decided: windows follow the look** (the owner on board T432, Friday 2026-11-20: "Yes, follow the look"). Every
+  window wears the frame of the chosen look, A, B or C (default B), instead of today's Ares-Crown. Ares-Crown stays
+  the shipped frame until the frame's package is built, and is replaced then. Its files stay in git history and are a
+  natural start for the later Ares-apps look, a fourth value of the same setting.
 
-**Version A's theme, for the build** (`themerc`, generated from the look pack; the menu lines as in `A-11`; the Alt+Tab
-and snapping lines are step 3's):
+**Version A's theme, for the build** (`themerc`, generated from the look pack; the menu lines as in `A-11`; the
+snapping lines are in 4.3 and the Alt+Tab lines in 4.4):
 
 ```
 border.width: 2
@@ -654,7 +658,7 @@ manual's own example does, so labwc's other mouse bindings stay:
 
 `atCursor="no"` opens a menu "underneath the window button that opened" it (labwc-actions(5)), and `None` as the only
 action clears a default binding. The `aresos-layouts` menu goes into a `menu.xml` beside `rc.xml`, which AresOS does
-not have yet; step 3 fills it.
+not have yet; section 4.3 gives its rows and four more mouse bindings.
 
 **What it is built from**
 
@@ -703,11 +707,404 @@ restores a minimized window.
 
 ### 4.3 Window layouts and split screen
 
-*Step 3:* layouts from the top of the window, the covering rule and its cases.
+*labwc's own snapping, regions and menu, and a small record in the shell. Complete in A and B; C uses B.*
+
+**What he sees and does.** Three ways put a window into a layout, all leading to the same places:
+
+- **The layout menu.** A right-click on maximize opens it under the button (section 4.2); Super+Z opens it for the
+  keyboard at the window's top left corner. One row per place, each with a small picture of the screen and the place
+  in gold (`A-11`). One click puts the window there.
+- **Keys:** Windows' Super and the arrow keys (below).
+- **Dragging** the title bar: to the left or right edge for a half, into a corner for a quarter, to the top edge to
+  maximize, as on Windows. Before he lets go, the place it will take is lit (`A-13`). With Ctrl held while dragging,
+  every place in the menu can be reached; the one nearest the pointer is lit.
+
+![Version A: every layout, how he gets it, and when a layout covers the world](components/A-12-layouts.png)
+
+*Diagrams of the 1920 × 1080 screen at an eighth, with the drawn world behind. White is the window he is in.*
+
+**The places** (labwc regions, in whole percents of the screen's usable area; AresOS has no panel, so that is the
+whole screen):
+
+| Place | Region | On 1920 × 1080 | Why it is there |
+|---|---|---|---|
+| Left half, right half | `left`, `right` | 960 × 1080 | Two programs side by side: the layout people use most on Windows. |
+| Four quarters | `top-left`, `top-right`, `bottom-left`, `bottom-right` | 960 × 540 | Four small things at once, as on Windows. |
+| Two thirds left, one third right | `left-wide` (66 %), `right-narrow` (34 %) | about 1267 and 653 wide | **Our own choice:** a main program beside a side panel for chat or music. There is no layout of three equal columns: 640 px is too narrow for most programs. |
+| Middle | `middle` (60 × 80 %, from 20 % and 10 %) | 1152 × 864 | **Our own:** a readable size in the middle, with the world around it, for programs that open too small or too big. On Windows the space around is wallpaper; here it is the world, so a framed window is worth a row. |
+| Its own size | `UnSnap` | as before | Back to where it was and how big. |
+| The whole screen | maximize | 1920 × 1080 | The maximize button, Super+Up or the top edge. Not a menu row: the button is right there. |
+
+Whole percents, so that two places meet exactly at any screen width (66 + 34) and the shell can add them up the same
+way. One table of regions is the source for `rc.xml`'s regions, the menu and the shell's sums (below).
+
+**Share the screen with ▸ (our own: Windows' Snap Assist inside the menu).** The last row opens a list of the other
+windows showing on the same screen, by app and title (a labwc *pipe menu*: the shell writes the list when the row is
+opened). Choosing one puts this window in the left half and the chosen one in the right half, and gives the chosen
+one the focus. Windows does this in two steps (snap, then pick a thumbnail in the empty half); here it is one choice
+in the menu he already has open. Two windows with the same app and the same title are both left out, because labwc
+can point at a window only by those two (its `ForEach` query); minimized windows are left out as well.
+
+**Keys** (Windows' own, made exact with labwc's `If` on where the window is now):
+
+| Key | A free or maximized window | In the left or right half | In a top quarter | In a bottom quarter |
+|---|---|---|---|---|
+| Super+Left | left half | left half; from the right half, back to its own size (as Windows) | top left | bottom left |
+| Super+Right | right half | the same, mirrored | top right | bottom right |
+| Super+Up | maximize | that side's top quarter | maximize | that side's half |
+| Super+Down | maximized: back to its own size; otherwise minimize | that side's bottom quarter | that side's half | minimize |
+| Super+Shift+Left or Right | to the other screen, in the same place | | | |
+| Super+Z | the layout menu, for the keyboard | | | |
+
+A window in the middle or in a third counts as free. **None of the keys, and not Super+Z, acts on the world, the
+laptop home or a cover:** each binding first asks labwc whether the focused window is `aresos-desktop` or `aresos.*`
+and then does nothing. Without that guard Super+Down would minimize the world.
+
+*Checked against today's `rc.xml`:* it binds Super+Ctrl+Escape, Alt+F4, Alt+Tab and the brightness and sound keys;
+nothing above collides. labwc's own Super+arrow bindings are not loaded today (`rc.xml` has keybinds and no
+`<default />`), so these are new. A chord never opens 23c's search: labwc runs an `onRelease` binding only when no
+other key came between press and release (labwc-config(5)). **One case for 23c to test:** Super held through a mouse
+drag and then released (labwc's default Super+drag moves a window). That is why the region drag is taught with Ctrl;
+labwc accepts Ctrl, Alt, Shift or Super for it.
+
+**What labwc 0.9.6 can do itself** (its manual pages labwc-actions(5), labwc-config(5), labwc-menu(5), the example
+`rc.xml.all`, `labwc --help` and the list of Wayland interfaces in its program; nothing was run):
+
+| Need | labwc | Used |
+|---|---|---|
+| Halves and quarters on keys | `SnapToEdge` with `combine` | No: `SnapToRegion` reaches the same places by name, so every key's result is known exactly. |
+| Named places | `<regions>` in `rc.xml`, in percent of the usable area; `SnapToRegion`, `ToggleSnapToRegion` | The nine regions above. |
+| Dragging | An edge gives a half, within `cornerRange` (50 px) of a corner a quarter, the top edge maximizes (`topMaximize`); with a modifier, the nearest region; a preview after a delay (500 ms by default) | Kept, with the preview after 250 ms, nearer Windows' feel. |
+| Back to its own size | `UnSnap` | "Its own size". |
+| Ask where a window is | `If` and `ForEach` with the conditions `tiled`, `tiled_region`, `maximized`, `iconified`, `identifier`, `monitor` | The keys, the guard, the report to the shell. |
+| A menu under a button, with icons, written by a program | `ShowMenu` with `atCursor="no"`; `icon=` on menu rows (`<menu><showIcons>`, on by default); pipe menus | The layout menu and "Share the screen with". |
+| Tell programs they are tiled | `notifyClient`, default `always` | Kept: GTK programs then square their corners. |
+| Tell another program where a window is | **Nothing.** The shell's window list (foreign-toplevel) carries maximized, minimized, activated, fullscreen and the screens; none of the other interfaces labwc offers carries a position, a size or a tiled state. | The reason for the record below. |
+| Let another program place a window | **Nothing.** labwc takes no actions from other programs; its command line can only reload or exit. | Why the picker is labwc's menu and not a grid of layout pictures like Windows 11's, which would need a program of our own that labwc cannot obey. |
+
+**The world and the layouts: the covering rule** (the brief's fixed limit, board #373)
+
+The world never takes a place in a layout: the guard above keeps keys and the menu off it, and the build adds
+`fixedPosition="yes"` to the world's window rule, so that labwc's Super+drag cannot move it into one (labwc-config(5):
+"disallows interactive move/resize"). A layout covers the world only when the windows in it fill the world's screen.
+One app in one half leaves the world showing and running in the other half (`A-13`): the free half is the live world,
+which no other desktop has.
+
+![Version A: the editor in the left half, the world running in the right half, and a terminal dragged to the right edge with labwc's preview](components/A-13-half-and-world.png)
+
+*1920 × 1080 at 2x. The preview is A's gold tint with a black, gold and black frame.*
+
+**Where the geometry comes from: the layout feature's own record, kept by the shell.** labwc knows where each window
+is but tells no one (the table above). So the shell keeps a record per window, its place and its screen, filled by
+labwc itself:
+
+- Every layout binding (each menu row, each key, the Super+Shift moves) ends with the same block of `If` queries,
+  which asks labwc where the focused window is now (`tiled_region`, or `tiled` for a half from an edge) and runs
+  `aresos-desktop layout-slot <place>` or `layout-slot none`. The shell takes the window and its screen from its own
+  window list at that moment.
+- A window **leaves its place** when the shell sees it closed, maximized or fullscreen (it then covers alone, as
+  today), moved to another screen (the next report places it again), or reported somewhere else; and when labwc's
+  frame starts moving or resizing it: the frame's mouse bindings for dragging the title, dragging the edge and
+  Super+drag run `aresos-desktop layout-leave` before `Move` or `Resize`.
+- **A minimized window keeps its place but does not fill it,** so its layout has a gap while it is down, and fills it
+  again when it comes back (labwc brings it back where it was; *to verify* for a placed window).
+
+**The test.** The world's screen is covered when the places of the not-minimized windows on it together fill it. The
+shell adds whole percents, so a layout fills the screen or it does not, with no rounding. `Windows.covering()` gains
+this test beside maximized and fullscreen, and the world pauses (`shell_covered`) exactly as under a maximized
+window. A window whose screen is not known yet gets no place, so it never counts.
+
+**Which windows go down when he returns to the world.** When the world gets the focus (Alt+Tab, the search, the return
+after a close) and a full layout covers it, the shell minimizes every window with a place on that screen, together
+with the maximized and fullscreen ones there (today's rule). A partial layout covers nothing, so nothing in it goes
+down. Floating windows stay above the world, as smaller windows do today. Only windows on a screen known to be the
+world's are minimized (today's known-output guard, kept).
+
+**A layout comes back whole (our own).** The windows the shell minimized together in one return to the world are
+remembered as a group. When he brings one back (Alt+Tab, later the hotbar), the shell brings the others back as well
+(foreign-toplevel's `unset_minimized`), gives the focus back to the one he chose, and the world pauses again. Windows
+does this for snap groups from its taskbar. A window he minimized himself never joins a group.
+
+**What the record cannot see** (known limits; none of them loses work or hides a window for good):
+
+- **A layout made only by dragging** is not recorded: labwc's drag to an edge runs no binding afterwards. The world
+  keeps running behind it, as it does today behind any layout: it costs the graphics card some work and its sound
+  plays on. The menu and the keys make a layout the shell knows. This errs toward running.
+- **A window dragged out of its place by its own bar** (Chrome's tab strip, a GNOME header bar) runs none of our
+  bindings, so the record still says full and the world may stay paused with a gap showing. The world corrects it: a
+  click that gives the world the focus proves it can be seen, so the mod sends a new 1.x request, `world_clicked`, and
+  the shell drops that screen's places and minimizes nothing. The click and labwc's focus change reach the shell by
+  two roads, so when only places (no maximized window) cover the world, the shell waits about 250 ms before
+  minimizing: longer than one frame of the paused world at 10 a second.
+
+**What the build must test** (a private headless labwc with two outputs, the shell and a stand-in world, as package
+40 tested covering):
+
+1. **Full coverage:** two halves on the world's screen cover it; Alt+Tab to the world minimizes both; Alt+Tab to one
+   brings both back and pauses the world again. Also full: two thirds and a third; a half and two quarters; four
+   quarters; a half over two thirds (the places may overlap).
+2. **A gap:** one half; three quarters; the middle alone; a placed window minimized. Not covered, and a click on the
+   world minimizes nothing.
+3. **Another output:** halves on the laptop with the world on the monitor do not cover it, and the reverse.
+4. **An output not known yet:** a window placed before its screen is named gets no place; the next report after it
+   is named counts it.
+5. **Leaving a place:** dragging the title or the edge, Super+drag, "Its own size", maximize, fullscreen, close,
+   Super+Shift to the other screen.
+6. **The known limits act as written:** a layout made by dragging leaves the world running; a placed window dragged
+   by its own bar, then a click on the world, minimizes nothing and lets the world run.
+7. **The guard:** every key and Super+Z on the world, the laptop home and a cover do nothing; Super+drag cannot move
+   the world.
+8. **Super:** none of the keys, and (with 23c) Super held through a drag, opens the search.
+
+**Focus and input: the layout menu is interactive.** It is labwc's own menu: labwc has the keyboard while it is open;
+the arrow keys and Enter choose, Escape closes it and the window keeps the focus. Opened with the mouse, the press has
+already focused the window. "Share the screen with" gives the chosen window the focus. The world is never part of it
+(the guard). Dragging is labwc's own move; the world is not focused while he drags another window, so its pointer
+capture is not involved.
+
+**The look** (labwc draws all of it in flat colours; `A-11`, `A-13`, `B-12`, `B-13`, `B-15`):
+
+- **The menu** uses section 4.2's menu colours. Each row's pictogram is an icon file from the look pack, 16 × 10
+  units (32 × 20 px at 2x): A's is a stone screen with the place in gold (`sprites/layout/`), B's a black screen with
+  the place in white. labwc shows a row's icon unchanged when the row is chosen, so a pictogram has one state. They
+  are named icons (`aresos-layout-left` and so on): the image ships A's under `/usr/share/icons/hicolor/`, and the
+  sync step writes B's into his home folder's icon folder, which is searched first.
+- **The preview** (`snapping.overlay.*`): A, a gold tint with a black, gold and black frame; B, white at about a
+  third, the game's light on a hovered slot, framed black, white and black.
+- **C:** the game has no menu, preview or switcher of this kind, so C uses B here; C's windows wear C's frame (`B-10`).
+- What he would notice: A's menu is stone and gold, B's the near-black of the game's tooltip with white pictograms and
+  yellow on the chosen row. The rows and pictures are the same in both.
+
+**For the build** (`rc.xml` and the new `menu.xml` go to `linux-aresos` first; nothing is applied in this study). The
+`If` chains are long and alike, so a script writes them from the one table of regions:
+
+```xml
+<snapping>
+  <range inner="10" outer="10" /><cornerRange>50</cornerRange>
+  <overlay enabled="yes"><delay inner="250" outer="250" /></overlay>
+  <topMaximize>yes</topMaximize><notifyClient>always</notifyClient>
+</snapping>
+<regions>
+  <region name="left" x="0%" y="0%" width="50%" height="100%" />
+  <region name="right" x="50%" y="0%" width="50%" height="100%" />
+  <region name="top-left" x="0%" y="0%" width="50%" height="50%" />
+  <region name="top-right" x="50%" y="0%" width="50%" height="50%" />
+  <region name="bottom-left" x="0%" y="50%" width="50%" height="50%" />
+  <region name="bottom-right" x="50%" y="50%" width="50%" height="50%" />
+  <region name="left-wide" x="0%" y="0%" width="66%" height="100%" />
+  <region name="right-narrow" x="66%" y="0%" width="34%" height="100%" />
+  <region name="middle" x="20%" y="10%" width="60%" height="80%" />
+</regions>
+
+<!-- One key in full; the others follow the table above. -->
+<keybind key="W-Left">
+  <action name="If">
+    <query identifier="aresos-desktop" /><query identifier="aresos.*" />
+    <else>
+      <action name="If">
+        <query tiled_region="right" /><query tiled="right" />
+        <then><action name="UnSnap" /></then>
+        <else><!-- top-right to top-left, bottom-right to bottom-left, otherwise SnapToRegion left --></else>
+      </action>
+      <!-- the report: If tiled_region="left" then Execute "aresos-desktop layout-slot left", … else "… none" -->
+    </else>
+  </action>
+</keybind>
+```
+
+`menu.xml` (each row's actions end with the same report):
+
+```xml
+<openbox_menu>
+  <menu id="aresos-layouts">
+    <item label="Left half" icon="aresos-layout-left"><action name="SnapToRegion" region="left" /></item>
+    <!-- … one item per row of A-11; "Its own size" is UnSnap … -->
+    <menu id="aresos-share" label="Share the screen with" icon="aresos-layout-share"
+          execute="/usr/libexec/aresos-desktop layout-partners" />
+  </menu>
+</openbox_menu>
+```
+
+The pipe menu's rows run `SnapToRegion left` on this window, then a `ForEach` that finds the chosen window by app and
+title (its glob signs escaped) and runs `SnapToRegion right`, `Focus` and `Raise` on it. Section 4.2's mouse block
+gains four bindings that run `aresos-desktop layout-leave` and then do what labwc does by default: `Title` left drag
+(`Move`), `Border` left drag (`Resize`), `Frame` Super+left drag (`Move`) and Super+right drag (`Resize`). The snapping
+preview's lines in A's `themerc`:
+
+```
+snapping.overlay.region.bg.enabled: yes
+snapping.overlay.edge.bg.enabled: yes
+snapping.overlay.region.border.enabled: yes
+snapping.overlay.edge.border.enabled: yes
+snapping.overlay.region.bg.color: #cfa24f40
+snapping.overlay.edge.bg.color: #cfa24f40
+snapping.overlay.region.border.width: 2
+snapping.overlay.edge.border.width: 2
+snapping.overlay.region.border.color: #0d0d10,#edca77,#0d0d10
+snapping.overlay.edge.border.color: #0d0d10,#edca77,#0d0d10
+```
+
+**What it is built from**
+
+| Part | Who does it | New work |
+|---|---|---|
+| Places, keys, mouse, menu, preview | labwc 0.9.6, unchanged | `rc.xml`, `menu.xml` and `themerc` lines, written from one table of regions |
+| The pictograms | the icon theme | the theme generator writes 11 icons per look |
+| `aresos-desktop layout-slot`, `layout-leave`, `layout-partners` | the supervisor's commands, as 23c's `search` | about 100 lines |
+| The record, the cover test, the group, `world_clicked` | `aresos-shell` | about 250 lines and the tests above |
+| `world_clicked` | the mod | a few lines where it already handles the click that focuses the world |
+
+**Size: two packages.** (1) **Layouts:** the places, keys, menu, pictograms and "Share the screen with", in labwc and
+the generator; one builder step, tested in a private labwc. It is useful alone: until (2) lands, the world keeps
+running behind a full layout, as it does today. (2) **Layouts cover the world:** the record in the shell, the mod's
+request and the tests above; two builder steps, and it needs the two-output private labwc. It touches covering and
+minimizing, so its review is a careful one.
+
+**Decisions taken here, with reasons**
+
+| Decision | Why |
+|---|---|
+| The picker is labwc's menu, a list with pictures, not a grid like Windows 11's | No other program can place a window in labwc 0.9.6. A list under the button is one click, like Windows'. |
+| Halves, quarters, two thirds and a third, the middle; no three columns | Each is used; a third on both sides is too narrow at 1920 px. |
+| Keys snap to named regions, not to edges | Every key's result is known, so the report and the next key are exact. |
+| "Share the screen with" puts this window left | One rule he learns once; Super+arrows swap sides afterwards. |
+| The geometry is the shell's own record, filled by labwc's answers | labwc tells no other program where a window is. |
+| When unsure, the world runs rather than pauses | A world that runs behind a layout costs power; a paused world in sight looks broken. |
+| A minimized window keeps its place | Its layout comes back as it was. |
+| Returning to the world minimizes a whole full layout | Any part left would leave the world partly hidden. |
+| A layout comes back whole | It went down as one, by the shell's doing, not his. |
+| The preview after 250 ms | Windows shows its preview almost at once; labwc's 500 ms feels slow. |
+
+**Not verified** (from labwc's manual; the build's tests confirm): that `If` can be nested in `else`; that `If` in a
+menu row tests the window the menu was opened for; that `ForEach` runs `SnapToRegion` on each window it finds; that
+labwc parses whole percents so that 66 % and 34 % meet; the size at which labwc draws menu icons; that a placed
+window comes back to its place after minimize, after `MoveToOutput`, and after `unset_minimized`; that
+`unset_minimized` does not take the focus; that `fixedPosition` stops Super+drag on the world.
 
 ### 4.4 App switching
 
-*Step 3.*
+*labwc's window switcher. Complete in A and B; C uses B.*
+
+**What he sees and does.** Alt+Tab, as on Windows: one quick Alt+Tab goes back to the window he used before. Holding
+Alt shows a panel in the middle of the screen with a picture and the title of every window, the most recently used
+first; Tab and Shift+Tab (or the arrow keys) move the frame; letting go of Alt picks the framed window; Escape cancels
+and nothing changes. While the frame moves, its window comes forward with an outline round it (labwc's preview).
+
+![Version A: Alt+Tab held over the editor; the terminal is framed and brought forward with its outline](components/A-14-switcher.png)
+
+*1920 × 1080, the panel at 2x (tiles of 280 × 208 px). labwc also puts each app's icon on its tile; left out here.*
+
+**What is in it, and in which order**
+
+- **Every app window on every screen, minimized ones too, and the world, called "Home".** In the order of use
+  (`order="focus"`, labwc's default and Windows' order): the window he is in first, the one before it second, so a
+  quick Alt+Tab swaps the two.
+- **Not in it:** the laptop home (its window rule, LAPTOP-HOME.md section 6), the start-up cover and the shutdown's
+  black screen (for the build: `skipWindowSwitcher="yes"` on their rules).
+- **The world as Home (our own).** Choosing it is how he gets back to the world from a covering app: the shell
+  minimizes what covers it (HUB.md section 1; for layouts section 4.3). Today its title is the game's own window
+  title; a small later mod change can name the window "Home", which is what the panel then shows.
+- **Minimized windows** keep their place in the order and show their last picture (*to verify*: labwc might show an
+  empty tile). Picking one brings it back where it was: maximized again, or back in its layout place; if it went down
+  with a layout, the whole layout comes back (4.3).
+
+**How minimized windows come back.** Step 2 found that Alt+Tab is the only way today. With this design there are four:
+
+1. Alt+Tab, as above.
+2. A layout's group: bringing back one brings back the rest (4.3).
+3. The world's hotbar: a minimized app's slot gets a mark, and a click brings its window back (section 4.2's proposal,
+   its own package).
+4. The overview (section 4.5, step 4).
+
+**Keys.** Alt+Tab (today, `NextWindow`), Shift+Alt+Tab (new, `PreviousWindow`), Alt+F4 as today. No Super key, so
+the search over the world is not touched.
+
+**Focus and input: Alt+Tab is interactive.** labwc owns the keyboard from the first Alt+Tab until Alt is let go or
+Escape is pressed; no program sees those keys, so Escape here never opens the world's AresOS menu. Picking focuses the
+chosen window; if that is an app over the world, the world lets go of the mouse (package 40). Cancelling leaves the
+focus where it was. *To verify:* that a cancelled Alt+Tab over the world in play leaves it its pointer capture, and
+whether labwc's panel takes a click (the design does not rely on it).
+
+**Screens.** The panel appears on the screen that has the keyboard focus (`output="focused"`, instead of labwc's
+default, every screen), so with the monitor plugged in it appears where he is working. The list holds the windows of
+both screens (`NextWindow`'s default `output="all"`), so Alt+Tab reaches every app (HUB.md section 1).
+
+**How far the switcher's look follows A, B and C.** labwc draws the panel itself, from `themerc`: one background
+colour, one border colour and width, the text colour, the chosen tile's frame colour and width and its background,
+the sizes of tiles, padding and icons, and the previewed window's outline in up to three colours. No image, no
+nine-slice and no text shadow. The font is `rc.xml`'s on-screen font: Jersey 10 at 28 pt, as in the title bars.
+
+- **A** (`A-14`): a stone panel with a black edge; the chosen tile framed in gold on lighter stone; the previewed
+  window outlined black, gold and black.
+- **B** (`B-14`): the game's tooltip colours, as B's menus; the chosen tile framed in white on a lit ground, as the
+  game frames the chosen world in its list of worlds; the outline black, white and black.
+- **C:** the game has no switcher of its own; C uses B.
+- In every look the tiles show the windows themselves, scaled smoothly by labwc. The panel's shape is the same in all
+  looks; only its colours differ (`B-15`, side by side). The same values also style labwc's size note while a window
+  is resized.
+
+**The picture style stays.** Package 31 chose labwc's picture style (`thumbnail`), and it stays: with two windows of
+one program open, the picture tells them apart where a title may not. labwc's list style (`classic`) would look more
+like the game's list of worlds but shows only an icon and a line of text.
+
+**Where we lean on Windows, and what is our own**
+
+| Like Windows | Our own |
+|---|---|
+| Alt+Tab and Shift+Alt+Tab, most recent first, a quick tap swaps two windows, Escape cancels, the framed window comes forward | The world is in the list as Home, and picking it uncovers it; a layout comes back whole; the hotbar becomes the taskbar (later) |
+
+**For the build.** A's `themerc` gains:
+
+```
+osd.bg.color: #2b2832
+osd.border.color: #0d0d10
+osd.border.width: 2
+osd.label.text.color: #f3f1ea
+osd.window-switcher.style-thumbnail.width.max: 80%
+osd.window-switcher.style-thumbnail.padding: 8
+osd.window-switcher.style-thumbnail.item.width: 280
+osd.window-switcher.style-thumbnail.item.height: 208
+osd.window-switcher.style-thumbnail.item.padding: 8
+osd.window-switcher.style-thumbnail.item.active.border.width: 4
+osd.window-switcher.style-thumbnail.item.active.border.color: #edca77
+osd.window-switcher.style-thumbnail.item.active.bg.color: #3a3644
+osd.window-switcher.style-thumbnail.item.icon.size: 32
+osd.window-switcher.preview.border.width: 2
+osd.window-switcher.preview.border.color: #0d0d10,#edca77,#0d0d10
+```
+
+and `rc.xml` (to `linux-aresos` first):
+
+```xml
+<font place="OnScreenDisplay"><name>Jersey 10</name><size>28</size></font>
+<windowSwitcher preview="yes" outlines="yes" order="focus">
+  <osd show="yes" style="thumbnail" output="focused" thumbnailLabelFormat="%T" />
+</windowSwitcher>
+<keybind key="A-S-Tab"><action name="PreviousWindow" /></keybind>
+```
+
+**What it is built from.** labwc 0.9.6, unchanged. The theme generator writes the lines above for each look (B's from
+the tooltip's colours, as its menus). No package of its own: it ships with the frame's package (section 4.2), whose
+generator and private-labwc tests it shares. The mod's "Home" title is a few lines in a later mod package.
+
+**What the build must test:** four windows with one minimized and the world; a quick Alt+Tab swaps two windows;
+Shift+Alt+Tab goes back; picking the minimized one restores it maximized if it was; picking Home over a maximized app
+minimizes the app; Escape over the world keeps its keyboard and pointer capture; with two outputs the panel shows on
+the focused one and lists both screens' windows; the laptop home and the covers are not listed.
+
+**Decisions taken here, with reasons**
+
+| Decision | Why |
+|---|---|
+| labwc's switcher, not a program of our own | It already lists every window, minimized ones too, and only labwc can focus a window as part of a key it owns. |
+| The picture style, kept | It tells two windows of one program apart. |
+| The panel on the focused screen | Where he is working, not on a screen he is not looking at. |
+| Shift+Alt+Tab added | Windows has it; labwc's default has it; AresOS's `rc.xml` dropped it with the other defaults. |
+| B's switcher in the tooltip's colours, with the world list's white frame | It matches B's menus, and the white frame is how the game marks the chosen line in a list. |
+
+**Not verified:** a minimized window's tile picture; the pointer capture after a cancelled Alt+Tab; whether the panel
+takes clicks; the label's exact place under the picture (the mockup is exact in colours and sizes, approximate in
+where labwc puts the icon and the title).
 
 ### 4.5 The app overview
 
@@ -755,7 +1152,8 @@ from the mod's development copy of the same jar (the same size as step 2 names).
 | The indicator | `textures/gui/sprites/toast/now_playing.png`; `boss_bar/yellow_background.png`, `yellow_progress.png`, `white_background.png`, `white_progress.png`, `notched_20_background.png`, `notched_20_progress.png`; `textures/item/lantern.png`, `bell.png`, `barrier.png`; `gui/sprites/social_interactions/mute_button.png`, `unmute_button.png`. For the slider form: `gui/sprites/widget/slider.png`, `slider_handle.png`, `button.png`, `button_disabled.png` |
 | Nine-slice insets | The `.png.mcmeta` file beside a sprite, which is where the game itself keeps them (for example the toast's border of 4, a button's of 3) |
 | The window frame (step 2) | B: `gui/sprites/container/slot.png`, `slot_highlight_back.png`, `slot_highlight_front.png`; `textures/item/gold_nugget.png`; `gui/sprites/tooltip/background.png` and `frame.png` (the menu's colours are read from them). C adds `gui/sprites/widget/button.png`, `button_highlighted.png`, `button_disabled.png` and the signs `_ □ ×` from the letter sheets. |
-| Later pieces | Steps 3 and 4 add their lists here. |
+| Layouts and Alt+Tab (step 3) | Nothing new: the menu, the snapping preview and Alt+Tab take their colours from the tooltip sprites above, and B's pictograms are drawn from flat colours in the game's white and black. C reads nothing more. |
+| Later pieces | Step 4 adds its list here. |
 
 **From the asset objects: nothing.** The sounds, the translations and the game's large fallback font
 (`minecraft/font/unifont.zip`) live there. B reads none of them.
@@ -839,24 +1237,30 @@ What step 1 found, for step 4 to weigh:
   stone, B inventory slots, C the game's own buttons with small signs from its font) and the edge line. The title is
   Jersey 10 in all three unless a font is built from the game's letters.
 - Switching the frame's look costs no image change and no restart: a theme folder in his home and a reconfigure.
-- B's private pictures so far: `B-01` to `B-12`.
+- On layouts and switching (4.3, 4.4), A and B differ least of all: labwc draws the layout menu, the snapping preview
+  and Alt+Tab in flat colours only, so the looks differ in colour (A stone and gold, B the tooltip's near-black with
+  white and yellow) and in the menu's pictograms. The game has no control of its own for any of them, so C is B there.
+  B needs one more thing written by the sync step: its pictograms as icons in his home folder.
+- B's private pictures so far: `B-01` to `B-15`.
 
 ---
 
 ## 7. Questions for the owner
 
-*Step 4 makes the final list. The lead posts them. From steps 1 and 2:*
+*Step 4 makes the final list. The lead posts them. From steps 1 to 3 (step 3 adds none: its calls were technical and
+are recorded in 4.3 and 4.4):*
 
 1. **Where should the brightness and volume plate appear: at the top centre, or low above the hotbar?** Look at
    `A-06` (top) and `A-07` (low), and `A-08` for the top over an app. *Recommended: top centre.*
 2. **How big should it be: small, medium or large?** Look at `A-05` (and `B-06`). *Recommended: medium (3x).*
 3. **Should windows wear the Minecraft-look frame too, following the look setting, instead of today's black-and-gold
    Ares-Crown?** Look at `A-10` (A), `B-09` (B) and `B-10` (C) against today's frame
-   (`reviews/window-design-v1/01-crown.png`). *Recommended: yes, the frame follows the look.*
+   (`reviews/window-design-v1/01-crown.png`). *Recommended: yes, the frame follows the look.* **Answered** on board
+   T432, Friday 2026-11-20: "Yes, follow the look" (section 4.2).
 
 For step 4's A-or-B question, the indicator's pictures are `A-04` against `B-01` and `B-02`, side by side in `B-03`.
 If he chooses B, `B-01` (plate and bar) or `B-02` (the game's slider) is one more choice; I recommend `B-01`. For the
-frame, the sheet with A, B and C side by side is `B-11`. Under B, the game's own letters in window titles (`B-11`,
+frame, the sheet with A, B and C side by side is `B-11`; for the layout menu and Alt+Tab it is `B-15`. Under B, the game's own letters in window titles (`B-11`,
 third row) need a font file built on his machine; I recommend starting with Jersey 10 and asking again once B is in
 use.
 
@@ -870,9 +1274,9 @@ use.
 |---|---|
 | No Mojang texture or font in any committed file, the pull request or the image | The committed pictures are made by `reviews/312-component-study/tools/draw_a.py` from three things only: flat colours, the letter maps typed into `look.py`, and Jersey 10. B's pictures are written by `draw_b.py` to one fixed folder outside the checkout, and that script has no option to write anywhere else. The staged files were checked before each push (`reviews/312-component-study/PROGRESS.md`). The study changes no image file. |
 | A's art is not traced from the game's | Every A sprite is a small map of letters typed by hand in `look.py`; none was made by opening, copying or redrawing a game file. The game's sprites were looked at in the same step, for B's pictures, and A's differ from them in shape, size and colour: a square bevelled plate against the game's rounded toast, twenty separate gold steps against a continuous notched bar, a sun, speaker and microphone the game does not have. Jersey 10 shares no letter bitmap with the game's font (section 2). |
-| Sprites sit on the GUI grid, so the mod can adopt them | One pixel per GUI unit, whole-unit insets, repeated edges, buttons 20 units high (section 3). The frame's images are 24 × 20 units, doubled for labwc. |
+| Sprites sit on the GUI grid, so the mod can adopt them | One pixel per GUI unit, whole-unit insets, repeated edges, buttons 20 units high (section 3). The frame's images are 24 × 20 units, doubled for labwc; the layout pictograms 16 × 10. |
 | It sits next to the noon world and the laptop home's day street | `A-06` and `A-07` show it on a drawn scene in the day colours. A's dark plate is the same family as the world's name plates and the day look's dark bars. *Still to do by eye:* the real game behind it on the laptop. |
-| Readable at 1920 × 1080 and at the stated scales | `A-04` (over sky and over white), `A-05` (2x, 3x, 4x), `A-08` (over an app). The frame: `A-10` (two windows over the noon scene at 2x, a long title cut), `A-11` (maximized, with the menu). |
+| Readable at 1920 × 1080 and at the stated scales | `A-04` (over sky and over white), `A-05` (2x, 3x, 4x), `A-08` (over an app). The frame: `A-10` (two windows over the noon scene at 2x, a long title cut), `A-11` (maximized, with the layout menu and its list). Layouts and switching: `A-12` (every place and the covering cases), `A-13` (a half over the noon scene with the preview), `A-14` (Alt+Tab over two windows, long titles cut). |
 | The password window shows its full label and "Enter SSH Credentials" | *Step 4.* |
-| Passive surfaces never take keyboard focus; interactive ones say who owns input | The indicator: overlay layer, keyboard mode "none", empty input region (section 4.1), with tests named for the build. The frame's layout menu is labwc's own menu: labwc has the keyboard while it is open, Escape closes it, and the window keeps the focus (4.2). Other interactive pieces: *steps 3 and 4.* |
-| Super stays free for the search over the world | The indicator and the frame bind no key; the frame changes two mouse bindings (4.2). *Steps 3 and 4 for their keys.* |
+| Passive surfaces never take keyboard focus; interactive ones say who owns input | The indicator: overlay layer, keyboard mode "none", empty input region (section 4.1), with tests named for the build. The frame's layout menu is labwc's own menu: labwc has the keyboard while it is open, Escape closes it, and the window keeps the focus (4.2, 4.3); its keys never act on the world, the laptop home or a cover. Alt+Tab is labwc's: labwc has the keyboard until Alt is let go or Escape cancels, and no program sees those keys (4.4). Dragging and the snapping preview are labwc's own move. The overview: *step 4.* |
+| Super stays free for the search over the world | The indicator and the frame bind no key; the frame changes two mouse bindings (4.2). The layouts add only chords (Super with an arrow, Super+Shift with an arrow, Super+Z), which labwc never mistakes for a lone Super; Alt+Tab adds Shift+Alt+Tab (4.3, 4.4). For 23c to test: Super held through a mouse drag, then released. *Step 4 for the overview's keys.* |

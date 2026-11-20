@@ -193,6 +193,18 @@ def main():
     save(kit.frame_scene(look, kit.hotbar_stand_in(look)), 'A-10-frame-windows.png')
     save(kit.maximized_scene(look), 'A-11-frame-maximized-menu.png')
 
+    # Step 3: layouts and switching. The layout menu's pictograms at one pixel per GUI unit (labwc shows them as
+    # menu icons; the theme generator enlarges them).
+    os.makedirs(os.path.join(OUT, 'sprites', 'layout'), exist_ok=True)
+    for name, rects in kit.PICTOGRAMS.items():
+        look.layout_icon(rects).save(os.path.join(OUT, 'sprites', 'layout', f'layout-{name}.png'), optimize=True)
+    inks = {'title': kit.P['outline'], 'name': kit.P['outline'], 'note': kit.P['stone-600'],
+            'paused': kit.P['red-600'], 'runs': kit.P['gold-700']}
+    save(kit.layouts_sheet(look, lambda text, kind: line(look, text, inks[kind], 2, shadow=False), PAGE),
+         'A-12-layouts.png')
+    save(kit.half_scene(look, kit.hotbar_stand_in(look)), 'A-13-half-and-world.png')
+    save(kit.switcher_scene(look, kit.hotbar_stand_in(look)), 'A-14-switcher.png')
+
 
 if __name__ == '__main__':
     main()
