@@ -1,5 +1,110 @@
 # Package 28a: Chrome acting progress
 
+## Step 3b
+
+2026-11-20. Draft PR #116, branch `pkg/28a-chrome-act`. Started at `ca3e3ecf`.
+Implementation and local evidence are for `25809d99`.
+
+### Done
+
+- Removed the `chrome_old_` catalogue and its test-only switch, the
+  legacy read/form/find/wait adapter and the old tab
+  snapshot paging. `chrome_tabs` still pages its own list beyond 200 tabs.
+  The reader no longer returns legacy rows. Its private view digest preserves
+  the row comparison for held submissions and fresh questions.
+- The 18 retired tools include the reads `chrome_find`, `chrome_read_form`
+  and `chrome_wait`, and the inputs
+  `chrome_click`, `chrome_fill`, `chrome_fill_form`, `chrome_select`,
+  `chrome_check`, `chrome_press`, `chrome_scroll` and `chrome_dialog`.
+  They also include `chrome_navigate`, `chrome_take_tab`, `chrome_release_tab`,
+  `chrome_close_tab`, `chrome_downloads`, `chrome_bookmarks` and `chrome_history`.
+- Retired 16 catalogue-contract call sites and converted the 24 comparison
+  sites. The carrying cases still exercise the public tools, including the
+  excluded-sites sweep. Both typed-field tools remain. [Harness map](HARNESS-MAP.md#step-3b-removal)
+- Group 16 runs each public task once as a warm-up and measures it five
+  times. A measured sample above **1.5 ×** that task's median in the same run
+  fails. The calls, character and approval budgets still apply. The paired
+  latency gate measures public tools in its current leg and the historical
+  runtime's own tools in its reference leg. Its ceilings, sample counts and
+  reference files are intact. Prior side-by-side evidence stays in the report
+  and the committed baseline. [Latency evidence](LATENCY-FIX2.md)
+- Both withheld-form refusals direct Claude to `chrome_go` with `to: reload`.
+  The scan covers all Chrome descriptions, server instructions, and the full
+  sources of the Python adapter and browser background. The generated ask
+  rules match `origin/main` byte for byte. A source comparison matched all
+  14 checked asking and binding functions against step 3a.
+- The shared response checker now wraps the Chrome Python fixture. The
+  standard-library CI shards use the service's schema-subset validator when
+  the `jsonschema` package is unavailable. All public replies in the local
+  suite passed their declared schemas.
+- Regenerated the tool catalogue and documentation. The existing exact pins
+  hold for **19** tools, **5,975** description characters, **2,798** instruction
+  characters, **8,773** combined characters and **6,729** names plus compact
+  input-schema characters. [Generated tool text](TOOL-DESCRIPTIONS.md)
+- Updated the Chrome README and the FEATURES Tool cells for Chrome's own
+  downloads under Files, and for page read/search, form submit, labelled
+  activation, compose keys, unlabelled click, downloads, bookmarks and
+  history, payments, and future bookmark editing under Chrome. Step 1d's
+  multi-tab read, batched steps and bring-to-front rows carry forward. A
+  byte comparison matched every State cell against step 3a.
+
+### Verified locally
+
+- Portable Node `--test --test-concurrency=2 control/chrome_tests/*.test.mjs`
+  reported **642 passed, 0 failed** in **17.872 s**.
+- `PYTHONPATH=control:control/chrome_tests python3 -B -m unittest -v` ran
+  the Chrome modules except `test_fault_surface` and `test_state_*`. It ran
+  six qualification fixture cases, omitting the two that invoke a state
+  case. It reported **708 tests in 1,768.179 s**, `OK`, with qualification
+  refresh `ResourceWarning` output, including HTTP 403. The durable-write
+  sweep checked 477 single failures, 477 persistent failures and 2,406
+  paired failures.
+- A standard-library-only Python run and an injected retired-name check
+  exercised the response-check fallback and scanner. Python `-S -B -m unittest -v test_instruction_rules test_efficiency
+  test_excluded_sites_28a test_loss_errors test_outline_time` reported
+  **79 tests in 12.246 s**, `OK`. A valid tab reply passed, a string tab
+  number failed, and injecting a retired tool name made the scan fail
+  separately for each source file. Unmodified tool text passed.
+- `python3 -B control/generate.py --check` printed
+  `Generated artifacts match definitions`. `git diff --check` passed.
+  No file over 500 MB remains in `.work/`.
+
+### Runs
+
+Each workflow was dispatched once on `25809d99`. The `linux-tools`
+lead owns the hosted verdicts.
+
+- [Control Chrome 44684296519](https://github.com/Ares-Empire/AresOS/actions/runs/44684296519)
+- [Control Chrome qualification 44684299893](https://github.com/Ares-Empire/AresOS/actions/runs/44684299893)
+- [Control Base 44684303561](https://github.com/Ares-Empire/AresOS/actions/runs/44684303561)
+- [Control Mail 44684307975](https://github.com/Ares-Empire/AresOS/actions/runs/44684307975)
+- [Repo privacy 44684311459](https://github.com/Ares-Empire/AresOS/actions/runs/44684311459)
+
+### Left, in order
+
+1. **Step 4.** Full Chrome validation twice on the final head, plus base,
+   Mail, boundary and qualification.
+2. Package review and security review.
+
+### What the code doesn't show
+
+The browser matrices, real Chrome timings and hosted workflow verdicts are
+pending. Local tests used Python and Node fixtures.
+
+### JUDGMENT-CALLs
+
+None affecting the owner. The private view digest retains the previous
+row comparison for approval-related checks while dropping the row payload
+from the native reply. The public outline and decisive input bindings keep
+their existing forms.
+
+### PLAN-GAPs
+
+The compose-key FEATURES State cell still names the former fill tool.
+Step 3b preserves that cell verbatim and gives the `chrome_do` fill step
+in the Tool cell. The brief's obsolete tab paging is the extension's legacy
+catalogue paging. Item 6 still requires the public cursor beyond 200 tabs.
+
 ## Step 3a, fix 2
 
 2026-11-20. Draft PR #116. Both installs and both qualification repeats on `c64d7367`
