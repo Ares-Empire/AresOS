@@ -28,13 +28,12 @@ Written 2026-11-19 by `linux-hub` (Claude Opus 5.5), after package 56. The sessi
   - The cut was taken Thu 12:00: main `fba94b25` into `pkg/42` as `7f896b62`.
   - Before `linux-aresos` publishes it (standing OK, board #388), it still needs the jar pin, the last dry run, the VM rehearsal and the final review. Installing it (`at update`) is Patrik's own step.
   - The hub waits for `linux-aresos` to say R28 is on the laptop.
-- **B318 is running** (Fri 2026-11-20): why 49's frozen games died on thaw, the first item of T364. Worktree `~/AresOS-318-thaw-watchdog`, branch `pkg/318-thaw-watchdog`, brief `briefs/318-thaw-watchdog.md` (on the branch).
-  - **The finding so far,** read-only from the journal: each game had one rtkit realtime thread (OpenAL Soft's mixer, priority 1), and rtkit's `RLIMIT_RTTIME` is 200 ms soft and hard. The rigs run OpenAL Soft's `null` backend (`ALSOFT_DRIVERS=null`), which catches up every sample after a stall without sleeping. The kernel's SIGKILL leaves no log line.
-  - **The GPU is cleared:** its D0 lines came from the rig's own `nvidia-smi`, before the thaws.
-  - **The experiment:** B1 keeps the thread realtime; A1 and A2 demote it with `chrt --reset-on-fork --other` after the freeze.
-  - **The open product question:** whether the real backend (PipeWire or Pulse) catches up the same way. Step 4 answers it from the source only.
-  - **Reviews:** brief review 1 (Opus) was READY WITH CHANGES, all taken in. There was no Codex brief review, to halve Codex use. The package gets a Codex `gpt-6.2-sol` `high` review.
-  - **Progress:** step 1, the rig and its offline tests, is on an Opus agent. Steps 2–4 follow, each on a fresh agent.
+- **B318, PR126** (Fri 2026-11-20): why 49's frozen games died on thaw, the first item of T364. Worktree `~/AresOS-318-thaw-watchdog`, branch `pkg/318-thaw-watchdog`, head `630913d8`.
+  - **Verdict: WATCHDOG CONFIRMED,** for the rigs' `null` backend. OpenAL Soft's one rtkit realtime thread catches up about 350 ms without blocking after a five-minute freeze. The kernel's `RLIMIT_RTTIME` (200 ms, soft = hard) SIGKILLs the game. Demoted first (`chrt --reset-on-fork --other`, chosen by policy, not name: it is called `Render thread`), the game survives.
+  - **The GPU is cleared.**
+  - **Step 4, from source only:** the real PipeWire and PulseAudio backends drop the backlog, and OpenAL asks for no realtime there. Recommended design: the supervisor demotes realtime threads after the freeze is confirmed and checks again before the thaw. With `null`, a freeze stays safe up to about 150 s.
+  - **Still to confirm** once R28 runs the home on the laptop, read-only: the game log's "OpenAL initialized on device" line and the game's realtime threads.
+  - **Reviews:** brief review 1 (Opus). The Codex `gpt-6.2-sol` `high` cross-review is running read-only (`../AresOS-318-review-1.log`, last message `../AresOS-318-review-1.last.md`). The lead commits it as `REVIEW-1.md`, and the PR merges on SAFE.
 - `~/AresOS-try` is `hub-try`'s checkout: leave it alone, because `hub-try --update` moves it.
 - **B25** (the guardian, PR125, `61a66d78`, rides R29) doesn't change the jar. Its supervisor refuses to start a game while `aresos-guardian.service` isn't active. `hub-try` needs no stand-in for it, because `run-hub.sh` never starts the supervisor (`aresos-desktop`): it runs only the helper and the dev client, and the helper has no guardian check. A future tool that runs `aresos-desktop` outside the real system would need a stand-in `SYSTEMCTL`, as the guardian loop tests use.
 
