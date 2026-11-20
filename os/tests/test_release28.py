@@ -1939,13 +1939,13 @@ class Guard42Test(unittest.TestCase):
             runs.append(dict(runs[-1], id=99, display_title=titles['dry-run-28']))
             with self.assertRaisesRegex(AssertionError, 'dry-run-28 dispatch allowance exhausted'):
                 guard.budget(0)
-            # Step 3's rehearsal kind (cap 0 until step 6 raised it to 3, then 4, 5, 6 and 7): seven dispatches pass, an eighth stops.
+            # Step 3's rehearsal kind (cap 0 until step 6 raised it to 3, then 4, 5, 6, 7 and 8): eight dispatches pass, a ninth stops.
             runs[-1]['display_title'] = 'Two-disk rehearsal (release-28)'
             self.assertEqual(guard.budget(0)['dispatch_counts']['release-28'], 1)
-            runs.extend(dict(runs[-1], id=200 + n) for n in range(7))
+            runs.extend(dict(runs[-1], id=200 + n) for n in range(8))
             with self.assertRaisesRegex(AssertionError, 'STOP: release-28 dispatch allowance exhausted'):
                 guard.budget(0)
-            del runs[-7:]
+            del runs[-8:]
             # A title the ledger does not know stops with a line that names it.
             runs[-1]['display_title'] = 'Two-disk rehearsal (tools-local)'
             with self.assertRaisesRegex(AssertionError, r"^STOP: run 99 is titled 'Two-disk rehearsal \(tools-local\)', "
@@ -2025,14 +2025,15 @@ class Guard42Test(unittest.TestCase):
         titles = guard.PACKAGES['42']['titles']
         with self.assertRaisesRegex(AssertionError, 'STOP: resolve dispatch allowance exhausted'):
             self.run_main('ci', 'resolve', [titles['resolve'], titles['resolve']])
-        # Step 6 raised the checks cap to 3, then 5, 6, 7, 8, 9, 10, 11, 12 and 13 (the model gate needs one on each rehearsal head;
+        # Step 6 raised the checks cap to 3, then 5, 6, 7, 8, 9, 10, 11, 12, 13 and 14 (the model gate needs one on each rehearsal head;
         # run 44710509866 hit the regressions job's time limit, 44717214380 a test binding it, 44722199520 was
         # cancelled for the preflight step's limit, rehearsal 4 needs a fifth head, 44751479475 a test reading an
         # unfetched commit, rehearsal 5 a stalled serial console, rehearsal 6
-        # the Terminal's environment, its review the Terminal's directory): the fourteenth stops.
-        self.assertIn('42-dispatch-authorization.json', self.run_main('ci', 'checks', [titles['checks']] * 12))
+        # the Terminal's environment, its review the Terminal's directory,
+        # rehearsal 7 its monitor): the fifteenth stops.
+        self.assertIn('42-dispatch-authorization.json', self.run_main('ci', 'checks', [titles['checks']] * 13))
         with self.assertRaisesRegex(AssertionError, 'STOP: checks dispatch allowance exhausted'):
-            self.run_main('ci', 'checks', [titles['checks']] * 13)
+            self.run_main('ci', 'checks', [titles['checks']] * 14)
         # A check build of another kind is no dispatch this ledger knows: its own guard names its title.
         with self.assertRaisesRegex(AssertionError, r"STOP: run 50 is titled 'OS image check build \(build, never published\)'"):
             self.run_main('ci', 'resolve', [], title='OS image check build (build, never published)')

@@ -1888,3 +1888,12 @@ printed `Ran 1 test in 0.063s`, `OK`.
   while `at check` and the Control checker query them soon after login (the same moves passed on rehearsal 6's
   first R28 boot); Prism may rewrite unmodelled files during the final home snapshot; `game_scope` does not assert
   the kill's result; the PATH probe relies on labwc giving the reopened foot keyboard focus (one retry).
+- **Rehearsal 7** (44812508100, `ecf94d07`; recheck SAFE, `~/AresOS-42-terminal-cwd-recheck.md`) reached release 28
+  again and passed the supervisor, display and home checks; the reopened foot then exited with ` err:
+  wayland.c:1827: no monitors available`. It was opened while tty3 (the console of the stopped `at check`) was in
+  front, so labwc had no active output. **Fix:** `no_foot` returns to tty1 and waits for it and his active session
+  (`ACTIVE_DESKTOP`) before the launch, as his guide opens the Terminal app on his desktop before tty3; TERMINAL
+  tries a launch whose log says "no monitors available" again, five times at most, and keeps each attempt's log.
+  The fake tracks the VT in front from the QMP keys; a foot started without a monitor writes foot's line and exits.
+  New cases: `vt_stays_tty3` (STOP with the log) and `test_a_late_monitor_is_tried_again`. Caps: release-28 8,
+  checks 14.

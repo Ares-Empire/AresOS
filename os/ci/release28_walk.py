@@ -341,7 +341,9 @@ print(json.dumps(out))
 # foot started from that environment found no display and exited at once (rehearsal 6, run 44781321736). Like the
 # hub (apps/terminal.json "working_directory": "~", aresos-shell's working_directory), it starts in his home: the
 # serial root shell's directory is the recovery account's, which ares cannot enter, and foot exits when its chdir
-# fails. foot's own messages are kept for the evidence.
+# fails. foot's own messages are kept for the evidence. It starts on his desktop (no_foot switches to tty1 first): a foot
+# started while tty3 is in front finds no monitor and exits (rehearsal 7, run 44812508100). labwc may bring its output
+# back a moment after the switch, so a launch that ends with "no monitors available" is tried again, five times at most.
 TERMINAL = r'''import json,pathlib,subprocess,time
 SUPERVISOR=b'/usr/bin/python3\0/usr/libexec/aresos-desktop\0session\0'
 LOG='/run/aresos-terminal.log'
@@ -352,7 +354,7 @@ def feet():
     return subprocess.run(['pgrep','-u','ares','-x','foot'],capture_output=True,text=True).stdout.split()
 named=subprocess.run(['pgrep','-u','ares','-x','aresos-desktop'],capture_output=True,text=True).stdout.split()
 supervisor=[pid for pid in named if cmdline(pid)==SUPERVISOR]
-out=dict(supervisors=len(supervisor),wayland=False,home=False,foot=0,running=0,log='')
+out=dict(supervisors=len(supervisor),wayland=False,home=False,foot=0,running=0,attempts=0,log='')
 if len(supervisor)==1:
     env=dict(i.split('=',1) for i in pathlib.Path('/proc/'+supervisor[0]+'/environ').read_text().split('\0') if '=' in i)
     out['wayland']=bool(env.get('WAYLAND_DISPLAY')) and bool(env.get('XDG_RUNTIME_DIR'))
@@ -360,17 +362,23 @@ if len(supervisor)==1:
 if out['wayland'] and out['home']:
     keep=['HOME','USER','LOGNAME','LANG','XDG_RUNTIME_DIR','WAYLAND_DISPLAY','DBUS_SESSION_BUS_ADDRESS','XDG_SESSION_ID','XDG_SEAT','XDG_SESSION_TYPE','XDG_CURRENT_DESKTOP']
     words=['runuser','-u','ares','--','env','-i']+[k+'='+env[k] for k in keep if k in env]+['PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin','setsid','-f']+@ARGV@
-    with open(LOG,'wb') as log:
-        subprocess.run(words,cwd=env['HOME'],stdin=subprocess.DEVNULL,stdout=log,stderr=subprocess.STDOUT,check=True)
-    for n in range(60):
-        found=feet()
-        if found: break
-        time.sleep(1)
-    out['foot']=len(found)
-    # A foot that cannot reach the display or enter its directory exits at once: the same one must still run.
-    time.sleep(3)
-    out['running']=len(set(found)&set(feet()))
-    out['log']=pathlib.Path(LOG).read_text(errors='replace')[-2000:]
+    logs=[]
+    for attempt in range(1,6):
+        out['attempts']=attempt
+        with open(LOG,'wb') as log:
+            subprocess.run(words,cwd=env['HOME'],stdin=subprocess.DEVNULL,stdout=log,stderr=subprocess.STDOUT,check=True)
+        for n in range(60):
+            found=feet()
+            if found: break
+            time.sleep(1)
+        out['foot']=len(found)
+        # A foot that cannot reach the display, a monitor or its directory exits at once: the same one must still run.
+        time.sleep(3)
+        out['running']=len(set(found)&set(feet()))
+        logs.append(pathlib.Path(LOG).read_text(errors='replace'))
+        if out['running'] or 'no monitors available' not in logs[-1]: break
+        time.sleep(2)
+    out['log']=''.join('[attempt '+str(n+1)+'] '+text for n,text in enumerate(logs))[-2000:]
 print(json.dumps(out))
 '''
 
@@ -663,6 +671,11 @@ def no_foot(console, guest, stage, vm):
     stopped = console.run('check', stage + '-no-foot-check', expect_stop=True)
     assert FOOT_STOP in str(stopped['error']), 'STOP: check without foot did not stop with ' + FOOT_STOP + ': ' + str(stopped['error'])
     assert not any(row.get('mutation') for row in stopped['trace']), 'STOP: the stopped check changed something'
+    # His guide opens the Terminal app on his desktop: back to tty1 and his active session first.
+    guest.keys(['ctrl', 'alt', 'f1'])
+    guest.command(stage + '-terminal-desktop', 'set -e; for n in {1..60}; do if test "$(cat /sys/class/tty/tty0/active)" = tty1; then exit 0; fi; sleep 1; done; exit 1')
+    guest.command(stage + '-terminal-session', vm.ACTIVE_DESKTOP)
+    time.sleep(1)
     opened = guest.capture_json(stage + '-terminal', vm.sw.framed('python3 -c ' + shlex.quote(program(TERMINAL, argv=vm.HUB_TERMINAL))))
     vm.td.save(stage + '-terminal', opened)
     assert opened['supervisors'] == 1, 'STOP: not exactly one desktop supervisor (aresos-desktop session) of ares: ' + str(opened['supervisors'])

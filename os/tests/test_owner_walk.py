@@ -507,6 +507,8 @@ class Release28Session:
         self.walk, self.control, self.faults = release28_walk, control, set(faults)
         self.foot, self.events, self.executed, self.boots = 1, [], [], []
         self.doomed_foot = False
+        # The VT in front (the QMP keys move it); labwc has a monitor only while its tty1 is.
+        self.vt, self.launches = 'tty1', 0
         self.folder = tempfile.TemporaryDirectory()
         self.root = pathlib.Path(self.folder.name)
         self.owners, self.modes, self.jvm, self.wrapper = {}, {}, False, None
@@ -690,8 +692,14 @@ class Release28Session:
         elif words[0] == 'setsid':
             assert words[1:] == ['-f', *vm.HUB_TERMINAL], 'Wrong Terminal argv'
             self.foot += 1
-            # foot exits at once without a display or when it cannot enter its directory (rehearsal 6; review of 391366a9).
-            self.doomed_foot = not assigned.get('WAYLAND_DISPLAY') or kw.get('cwd') != '/var/home/ares'
+            # foot exits at once without a display or when it cannot enter its directory (rehearsal 6; review of 391366a9),
+            # and without a monitor: tty3 in front (rehearsal 7), or labwc's output not back yet on the first try.
+            self.launches += 1
+            monitor = self.vt == 'tty1' and not ('late_monitor' in self.faults and self.launches == 1)
+            if not monitor:
+                kw['stdout'].write(b' err: wayland.c:1827: no monitors available\n')
+                kw['stdout'].flush()
+            self.doomed_foot = not assigned.get('WAYLAND_DISPLAY') or kw.get('cwd') != '/var/home/ares' or not monitor
             self.events.append('terminal opened')
         elif words[0] == '/usr/bin/fc-match': stdout = self.walk.SPACE_GROTESK
         elif words == ['/usr/bin/python3', '-I', '-']:
@@ -1149,6 +1157,10 @@ def walk(ps2=False, route='qualification', control=False, faults=()):
             assert args['hold-time'] == 30
             assert all(k['type'] == 'qcode' for k in args['keys'])
             keys = [k['data'] for k in args['keys']]
+            if route == 'release-28' and keys in (['ctrl', 'alt', 'f1'], ['ctrl', 'alt', 'f3']):
+                # vt_stays_tty3: the switch back to his desktop does not happen (rehearsal 7 opened foot there).
+                if not ('vt_stays_tty3' in faults and keys[-1] == 'f1'):
+                    r28_session.vt = 'tty' + keys[-1][1:]
             if dialogs and keys == ['esc']:
                 local.escaped = True
             if self.menu:
@@ -1398,7 +1410,8 @@ class Release28ProbeTest(unittest.TestCase):
                  'extra_polkit': 'beyond the reviewed list', 'bad_path': 'terminal lacks his PATH',
                  'deleted_world': 'missing saved-world', 'corrupt_world': 'saved-world contents',
                  'denied_world': 'inaccessible as ares',
-                 'supervisor_without_display': 'has no Wayland display'}
+                 'supervisor_without_display': 'has no Wayland display',
+                 'vt_stays_tty3': 'exited at once: .*no monitors available'}
         for fault, error in cases.items():
             with self.subTest(fault=fault), self.assertRaisesRegex(AssertionError, error):
                 walk(route='release-28', control=fault.startswith(('bad_control', 'control_')) or fault in (
@@ -1435,6 +1448,13 @@ class Release28ProbeTest(unittest.TestCase):
         self.assertNotEqual(source, release28_walk.TERMINAL)
         with patch.object(release28_walk, 'TERMINAL', source), self.assertRaisesRegex(AssertionError, 'exited at once'):
             walk(route='release-28')
+
+    def test_a_late_monitor_is_tried_again(self):
+        # labwc may bring its output back a moment after the switch to tty1: the second launch opens his Terminal.
+        result = walk(route='release-28', faults=['late_monitor'])
+        terminal = result['result']['no_foot']['terminal']
+        self.assertEqual((terminal['attempts'], terminal['running']), (2, 1))
+        self.assertIn('[attempt 1]  err: wayland.c:1827: no monitors available', terminal['log'])
 
     def test_explicit_prism_allowances_preserve_stable_files(self):
         result = walk(route='release-28', faults=['prism_mutable'])
