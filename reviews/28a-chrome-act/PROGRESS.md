@@ -1,5 +1,99 @@
 # Package 28a: Chrome acting progress
 
+## Step 4
+
+2026-11-20. Draft PR #116. Built by a Claude agent (claude-opus-5-5) for the `linux-tools` lead. Code and
+data commits `26d1baae` (navigate's ceiling and reference), `a5158d92` (group 16's comparison run),
+`db257f61` (`test_doing`'s time cases), `ffbb8c36` (the FEATURES State cell); the report commit follows them.
+The full report is [REPORT.md](REPORT.md); step 4's known limits are at the top of
+[KNOWN-LIMITS.md](KNOWN-LIMITS.md).
+
+### Done
+
+- **The lead's latency decisions** (below), in `latency-targets.json`, `latency-reference.json`,
+  `efficiency-baseline.json` and `efficiency-summary.py`, with their tests in `test_latency.py` and
+  `test_efficiency.py`.
+- **`test_doing`'s flaky time case** counts step starts and dispatched inputs against the list's own clock
+  (the fake extension records `reached`, the helper `timed`), and two deterministic cases cover a step whose page
+  work runs past the cut and a step started before the cut whose input comes after it. Mutations: no check of
+  the dispatch second before a step fails the first (and the uniform case); an input carrying the call's end
+  fails the second. 13 runs of the three cases in a row passed on the final code. [Harness map](HARNESS-MAP.md#step-4)
+- **FEATURES:** the compose-key row's State cell names `chrome_do`'s `fill` step instead of `chrome_fill`; a
+  comparison of every State cell with step 3b's head shows only that cell changed.
+- **REPORT.md** as the brief's "Report" asks, pass 2's and the reviews' conclusions left as marked placeholders;
+  **KNOWN-LIMITS.md** step 4's lines.
+
+### The lead's latency decisions (linux-tools, 2026-11-20)
+
+- **`navigate`'s ceiling: 400 / 450 ms** (from 100 / 150), by PR #27's rule for a call dominated by a fixed
+  wait (the wait plus PR #27's margin on the rest). Why: `chrome_go` waits for the page to arrive and be quiet
+  for 150 ms (brief 28's rule), which brief 20's navigate left to a second, untimed call; the 150 ms rule alone is
+  longer than the old 100 ms ceiling.
+- **`navigate`'s reference** re-taken from run 44705819383, both profiles, every history phase, in the file's
+  format; every other call's reference byte-identical (a JSON comparison with navigate's blocks removed is equal,
+  and the file round-trips byte for byte). Old and new side by side (median / p95 ms; fresh, 1,000, 4,000):
+
+  | Profile | Old reference (43502970342) | 44705819383, all 60 | New reference (positions 0-19) |
+  |---|---|---|---|
+  | plain | 34.89 / 49.83, 38.29 / 43.47, 52.84 / 54.80 | 309.56 / 317.56, 312.51 / 316.91, 330.49 / 333.73 | 310.70 / 319.41, 312.64 / 316.91, 328.25 / 330.71 |
+  | audit | 41.55 / 78.66, 42.59 / 60.10, 54.78 / 60.31 | 313.47 / 319.33, 318.44 / 320.84, 333.67 / 338.56 | 315.95 / 333.76, 318.57 / 320.47, 332.81 / 334.31 |
+
+  *How the blocks were made* (`.work/pkg28a-4/tools/navigate20.py`, not committed): `latency-summary.py`'s own
+  `summarize()` with its sample count set to the reference's 20, run on the artifact's `latency-client.json` and
+  `latency-service.jsonl` rows at positions 0 to 19 of each phase (every call, so the program's checks hold),
+  then navigate's phase blocks taken. The same function at 60 on the unfiltered artifact reproduces the
+  artifact's `latency-summary.json` exactly. The gate validates the reference at exactly 20 samples, so the 60
+  samples couldn't go in as they are. The gate replayed on 44705819383's own artifacts with step 4's files passes
+  in both profiles.
+- **`asking_click`** keeps its ceiling and reference; 44705819383 confirms it passes: plain 20.72 / 21.90,
+  23.65 / 24.88, 34.62 / 38.57; audit 21.60 / 22.65, 24.92 / 25.99, 35.24 / 36.96 (fresh, 1,000, 4,000; ceiling
+  60 / 100, `target_miss: false`, no regression).
+- **The poll interval stays 100 ms.**
+- **Group 16's recorded medians: run 44463920809** (step 1d, `a2ad7c7d`). Its efficiency artifact holds the three
+  timed tasks' new-tool medians, so `latency_comparisons` take its entries as it wrote them, replacing step 3b's
+  stand-in entries of 44671559502; `COMPARISON_RUN = "44463920809"`. Side by side (brief 20 / new median ms):
+  F1 first read 141.6 / 176.8 (44463920809) and 164.1 / 191.6 (44671559502); F5 click with its report 749.8 /
+  666.1 and 777.8 / 668.0; F4 up to the question 4,671.4 / 4,340.9 and 4,918.0 / 4,495.5. The check that stays
+  allows 265.2, 999.15 and 6,511.35 ms; 44705819383 measured 78.7, 593.2 and 4,218.3 (replayed: no miss).
+
+### Verified locally
+
+- Portable Node `--test --test-concurrency=2 control/chrome_tests/*.test.mjs`: 642 passed, 0 failed (18.5 s).
+- `PYTHONPATH=control:control/chrome_tests python3 -B -m unittest test_latency test_efficiency test_doing
+  test_going test_questions test_engine test_instruction_rules test_field_descriptions test_policy
+  test_loss_errors test_small_tools test_operation_projection test_excluded_sites_28a test_outline_time`:
+  311 tests, OK (78.1 s).
+- `python3 -B control/generate.py --check`: `Generated artifacts match definitions`. `git diff --check`: clean.
+  Generated ask rules byte-identical to `origin/main`'s. No file over 500 MB in `.work/`. No browser ran locally.
+
+### Pass 1
+
+Dispatched once each on the report commit (the head after this step's push); the `linux-tools` lead's shell
+watches them and dispatches pass 2.
+
+Run IDs: added by the next commit (`[skip ci]`), after the dispatch.
+
+### Left, in order
+
+1. **Pass 2** on the final head, dispatched by the lead's shell after pass 1.
+2. The **package review** and the **security review**, then REPORT's placeholders.
+
+### JUDGMENT-CALLs
+
+- Navigate's reference at the reference's own positions 0 to 19 of the run's 60 (above); its blocks hold every
+  stage today's summary program writes for navigate (also `frame_facts`, `store_write`, `journal_fsync`).
+- Group 16's baseline holds "that run" only: 44671559502's entries replaced, not kept beside it.
+- `test_doing`'s deterministic cases put the cut a second in (one early run at 0.5 s saw a quick third step
+  refused on this laptop, cause not found).
+
+### PLAN-GAPs
+
+- The time check in `input` is more than the one check the brief names (`e3da3a8d`: bounded setup waits and a
+  second check after a pointer input's hit test); each can only stop a dispatch. For the security review.
+- The qualification workflow changed (`e6737d29`, `df24623d`: the two CI-only instrumentation flags) although the
+  brief's paths name only `control-chrome.yml`; the record and its publishing are unchanged.
+- "In the file's own format" meant 20 samples a call for a 60-sample run (above).
+
 ## Step 3b, latency
 
 2026-11-20. Draft PR #116. Built by a Claude agent (claude-opus-5-5) for the `linux-tools` lead. Commits

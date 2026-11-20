@@ -6,6 +6,84 @@ the additional limits accepted while building 28a: what happens, its harm, and w
 accepted under decision 24. Browser coverage and unfinished acceptance remain in
 [PROGRESS.md](PROGRESS.md).
 
+## Step 4 (2026-11-20)
+
+Each line: what it is, the harm, and why it is accepted under decision 24. Run numbers are
+Control Chrome runs; **run** marks a measured number, **read** a file, **assumed** an inference.
+Step 4 checked the lines below and the four of earlier steps; it did not re-verify section 6's
+list line by line. None of the lines it checked was found untrue.
+
+### Navigation waits for the page (the lead's decision)
+
+- **`chrome_go` and `chrome_open` take about a third of a second, most of it fixed waits.**
+  They return once the page has arrived, is ready and its state token has been still for 150 ms
+  (brief 28's rule), then read its outline. **Run** 44705819383: navigate 310 to 334 ms median,
+  317 to 339 ms p95 over both profiles and the three history phases; about 250 ms of it are the
+  100 ms poll that first sees the final token and the 150 ms quiet (**read** PROGRESS, "Step 3b,
+  latency"). Brief 20's navigate took 32 to 51 ms because it returned before the page arrived.
+  Group 16's "open a page and return one fact" took 379 ms in one call against brief 20's 196 ms
+  in two (**run** 44705819383 against baseline 43705060936). *Harm:* each navigation costs about
+  0.3 s more wall time than brief 20's navigate alone. *Accepted:* the lead's decision
+  (linux-tools, 2026-11-20): the call replaces a second read and returns a loaded page; its
+  ceiling is 400 / 450 ms by PR #27's rule for a call dominated by a fixed wait; the poll stays
+  100 ms (a 25 ms poll until the first ready look would save up to about 75 ms at up to four
+  times the page-state reads during a slow load, each walking every frame's fields).
+- **Navigate's reference comparison is looser than its ceiling.** Its reference is now run
+  44705819383's own numbers (positions 0 to 19 of each phase), so the paired regression
+  thresholds are 476 to 509 ms median and 575 to 605 ms p95, above the 400 / 450 ceilings
+  (**run** the gate replayed on 44705819383's artifacts). For navigate the ceiling decides
+  alone, as it already did for `read` at 4,000 history entries (threshold 40.9 ms, ceiling 35).
+  *Harm:* a navigate regression that stays under 400 / 450 ms passes. *Accepted:* the ceiling
+  is absolute and scaled only by a slower runner; today's slowest phase leaves 66 ms of median
+  headroom.
+
+### Group 16's time check
+
+- **The 1.5 x line is loose.** Each timed task's median may be 1.5 times the new tools' median of
+  "that run", step 1's comparison 44463920809: F1's first read 176.8 ms, F5's click with its
+  report 666.1 ms, F4 up to the question 4,340.9 ms, so 265.2, 999.15 and 6,511.35 ms. Run
+  44705819383 measured 78.7, 593.2 and 4,218.3 ms: 0.30, 0.59 and 0.65 of the line (**run**,
+  `efficiency-measured.json` `latency_rows`, replayed with the new baseline). The recorded
+  medians come from a run where every round also ran brief 20's tasks and carry the within-run
+  growth below, so F1's read could more than triple before failing; F5 and F4 are mostly brief
+  20's fixed 525 ms wait per input, so the line allows about 330 ms and 2.2 s more. *Harm:* a
+  moderate slowdown of a read or a step list passes group 16. *Accepted:* it is the brief's rule
+  as written; PR #27's gate still bounds `read` at 35 / 60 ms and each input call at its
+  ceiling in every run. Tightening it (a recorded run of the new tools alone) is the lead's.
+- **Reads get slower round by round within one run, cause unknown.** In 44705819383 F1's first
+  read took 50.9, 66.8, 78.7, 96.6 and 146.6 ms in its five rounds, F1's fields 42.9 to 135.7 ms,
+  F3's find 55.2 to 155.7 ms (**run**). Brief 20's own tools grew the same way in 44463920809
+  (`f1_first_read` 70.6 to 195.9 ms, `f2_table` 9,882 to 16,345 ms), so it isn't this package's.
+  Three-tab reads and inputs don't grow. *Harm:* reads late in a long session may be slower than
+  the gates measure; nothing else. *Accepted:* low harm and older than this package; PR #27's
+  report already noted a long-session doubling it couldn't reproduce. Open for a later look.
+- **`chrome_tabs` for 25 tabs takes about 90 ms** (**run** 44705819383: 92.6 ms median, 2,387
+  characters) against brief 20's three list calls at 14.5 ms and 6,834 characters in all
+  (baseline 43705060936). No budget times it; the cause wasn't analysed. *Harm:* about 80 ms per
+  list. *Accepted:* low; the row's call and character budgets hold.
+
+### Reading (found in `9b482732`)
+
+- **An editable native button reads as a button, with its text as its label.** `9b482732` moved
+  the reader's `isContentEditable` rule below the native `button` tag (`reader.js`, **read**
+  `outlineRole`), so `<button contenteditable>` keeps its role and its visible text as its name,
+  as an element with an explicit `role=button` already did on brief 28's read. Text typed into
+  such a button is shown as its label, not as "(filled, not read)". *Harm:* text the owner typed
+  into an editable button of an unwatched page reaches Claude. *Accepted:* low (**assumed**): an
+  editable button is a misuse no sign-in or code entry relies on; inputs, textareas and other
+  editable elements stay on the withholding path and password fields stay excluded. The fix it
+  came with keeps an editable Pay button's role and label, so the click on it still asks. The
+  security review should confirm this reading.
+
+### Time (found in `e3da3a8d`)
+
+- **A slow frame setup refuses an input `expired`.** `e3da3a8d` bounds the extension's waits
+  before an input (each frame's control and arming replies, the reveal, the last facts read and
+  the hit test) by the input's time, and checks the time again after the hit test of a pointer
+  input. *Harm:* on a slow page a step near the end of a list's 12 s can be refused and counted
+  in `not_run` although it would have run in time. *Accepted:* it can only stop a dispatch,
+  never start or change one; Claude sends the not-run steps again.
+
 ## Limits found while building package 28a
 
 ### Forward after a restored draft

@@ -218,3 +218,13 @@ rather than additional dispatched cases.
   The close cases carry malformed, hostile and indistinguishable labels through
   the real bridge parser and the public reply. The refactored catalogue checks
   for absence replace the temporary proxy, CLI and engine alias probes.
+
+## Step 4
+
+- **`test_doing`'s fake extension and time cases.** `Steps.input` records in `reached` when each input
+  passed its last time check, right before its dispatch. The time cases count, through the new `timed`
+  helper, a step's start (right after `run_steps`' check of the dispatch second) and an input's dispatch,
+  against the list's own clock, instead of every `facts` or `input` attempt after a start time taken outside
+  the call. A refused late attempt dispatched nothing and still counts in `not_run`; the assertions on
+  outcomes, `deadline`, `not_run` and the receiver are unchanged. Two deterministic cases cover a step whose
+  page work runs past the cut and a step started before the cut whose input comes after it.
