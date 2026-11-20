@@ -89,7 +89,7 @@
       "path": "os/ci/installer_inspect.py"
     },
     {
-      "sha256": "25aafc803e15b96793ba9b42fa7066e3efad7d5d544238b9fcaf0828a7f57df2",
+      "sha256": "2ce3caddddce28824999aa2dbcaa4cc530bac60ce19bce34ac2acfbab6387765",
       "path": "os/ci/installer_webui.py"
     },
     {

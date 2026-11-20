@@ -1031,6 +1031,18 @@ Read this before dispatching. It is not part of the stock rewind, and the rewind
   (`776b76f3…`), a copy kept as a private file would bring the laptop's real installer back, and neither this
   gap nor the stock rewind would be needed. Only the owner can check that.
 
+**Closed by the lead (2026-11-20, Claude Opus 5.5).** The bundle hash comes from the pinned ISO itself, not a run:
+the public ISO downloaded to the laptop's `/var/tmp` matched `bd043223…` (9088845824 bytes); `unsquashfs -cat` of
+`LiveOS/squashfs.img` gave `usr/share/cockpit/anaconda-webui/index.js.gz`, unpacked as a browser receives it,
+`fffb3a05621db05f3419230e7b8b0c3c82c8253f1d35da1a49d3ca66954a0fdb` (895148 bytes), and `index.js.map`
+`9c3f8f28…`, the value run 44644689353's inspection recorded, so the method matches CI's. The previous pages were
+served unpacked too (913874 bytes in `os/manifest/ci/11g/probe-2/two-disk/completion-selector-source.json`). Both
+pins moved in `os/ci/installer_webui.py`; a mismatch now prints the served hash. No `probe` run first: this branch
+admits only `release-28`, and a stop at the web pages comes in the first live session, minutes into rehearsal 4,
+so the probe would save little. Rehearsal 4 is the run through the new pages; the two unpinned risks above
+(`require_supported_live_kickstart`, `keyboard_proof`) stop it there too, just as early. The owner's installer
+stick is not pursued: a 9 GB private copy needs hosting, and nothing waits on a fresh install.
+
 ### The design: (a), the live session's store holds the base image before the installer starts
 
 The new ISO is a different Bazzite generation: its live root is `45.20261117.1` (Fedora 45, kernel
@@ -1115,7 +1127,7 @@ How it runs (`os/ci/stock_image.py`, called from `two_disk_vm.py`):
 
 ### Known limits
 
-1. Rehearsal 4 stops at the web pages until PLAN-GAP 3 is closed.
+1. ~~Rehearsal 4 stops at the web pages until PLAN-GAP 3 is closed.~~ Closed by the lead (pins moved, see PLAN-GAP 3).
 2. A loop file on a 9p share is new in this harness and no run has shown it. If it fails, the run stops in
    `-stock-store` or `-stock-copy`, minutes into the first live session, with the command's output in the evidence.
 3. The installer is Fedora 45's anaconda installing a Fedora 44 image. Upstream never shipped that pair; the laptop
