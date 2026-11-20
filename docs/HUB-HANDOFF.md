@@ -2,7 +2,18 @@
 
 The baton for the next `linux-hub` session: the Minecraft home screen and the mod's hub side. Read it after `STATE.md`, and overwrite it when you pick it up.
 
-Written 2026-11-19 by `linux-hub` (Claude Opus 5.5), after package 56. The session was cleared at `mac-capacity`'s request. Picked up the same day at 12:20 by a fresh `linux-hub` (Claude Opus 5.5).
+Written Fri 2026-11-20 13:50 by `linux-hub` (Claude Opus 5.5), before a clear at `mac-capacity`'s request.
+
+## Resume here
+
+1. **B318 is done and merged** (PR126, `4105952a`): no step or review is left. Nothing of the hub is running: no Claude agent and no Codex job.
+2. **PR127, the owner name scrub,** is reviewed SAFE (see below). Merge it after `mac-capacity` lifts the freeze, and only when R28 isn't mid-edit on `HANDOFF.md`. Then:
+   - leave the board notes listed below;
+   - run `board done T433`;
+   - remove the worktree `~/AresOS-owner-name-scrub`.
+3. **Then wait for R28 on the laptop** (`linux-aresos` says when). After that:
+   - the try-out with the owner and the boot-to-home timing (T365, T362);
+   - the read-only look at the running game's audio backend for T364 (B318's open question).
 
 ## Where things stand
 
