@@ -261,6 +261,18 @@ try {
     if(command==='kill_host'){const lines=execFileSync('ps',['-u','1000','-o','pid=,args='],{encoding:'utf8'}).split('\n');for(const line of lines)if(line.includes('/usr/libexec/aresos-control/chrome/native_host.py'))process.kill(Number(line.trim().split(/\s+/)[0]),'SIGKILL');return;}
     return JSON.parse(execFileSync('sudo',['-n','/usr/bin/python3','/workspace/control/chrome/ci/admin.py',JSON.stringify(command)],{encoding:'utf8'}));
   };
+  const restoreControl=async()=>{
+    const active=await eventually(async()=>{
+      // A public reply after restart means the daemon is serving both sockets.
+      if(await modern()&&!(await wire('chrome_tabs')).ok)return;
+      const result=await rpc('tabs',{limit:10});
+      return result.ok&&result.data.items.find(item=>item.active&&item.focused&&!item.cleanup_pending);
+    },'native reconnect',45000);
+    tab=active.tab;browserWindow=execFileSync('xdotool',['getactivewindow'],{encoding:'utf8'}).trim();
+    const marker='restored-'+Date.now();await ownerNavigate('http://fixture.test:8765/?case=compose&id='+marker);
+    assert.ok((await call('tabs',{limit:10})).items.some(item=>item.tab===tab&&item.url?.includes(marker)));
+    await call('take_tab',{tab});return tab;
+  };
   await matrices({smokeResults,call,read,readPage,nav,settled,target,selectedTarget,counts,eventually,tab,setTab:value=>{tab=value;},fixture,admin,observe,oldCatalogue,rpc,caller,ownerNavigate,ownerCloseTab:owner.close,ownerOpenTab,ownerClickPage,ownerOpenPopup,nativeDonor,closeNativeDonor,baseline,envelopeResults,
     popupControl:async(command,value)=>{
       const state=async()=>{await lifecycle({fixture:'control_status'});const value=JSON.parse(fs.readFileSync('/out/control-status.json'));fs.appendFileSync('/out/popup-controls.jsonl',JSON.stringify(value)+'\n');return value;};
@@ -291,7 +303,7 @@ try {
     },
     isolationAfter:()=>{const finalListeners=execFileSync('ss',['-lntp'],{encoding:'utf8'}).split('\n').filter(line=>line.includes('\"chrome\"'));assert.equal(finalListeners.length,0,'Chrome must still have no listening port after all tools');fs.writeFileSync('/out/isolation-after.json',JSON.stringify({listeners:finalListeners}));},
     ownerHistory:async(direction)=>{execFileSync('xdotool',['key','--clearmodifiers',direction==='back'?'alt+Left':'alt+Right']);await delay(400);},
-    ownerBookmark:()=>execFileSync('xdotool',['key','--clearmodifiers','ctrl+d','Return']),lifecycle,restoreControl:async()=>{const active=await eventually(async()=>{const result=await rpc('tabs',{limit:10});return result.ok&&result.data.items.find(item=>item.active&&item.focused&&!item.cleanup_pending);},'native reconnect',45000);tab=active.tab;browserWindow=execFileSync('xdotool',['getactivewindow'],{encoding:'utf8'}).trim();const marker='restored-'+Date.now();await ownerNavigate('http://fixture.test:8765/?case=compose&id='+marker);assert.ok((await call('tabs',{limit:10})).items.some(item=>item.tab===tab&&item.url?.includes(marker)));await call('take_tab',{tab});return tab;},stopClick:()=>{execFileSync('import',['-window','root','/out/stop.png']);execFileSync('xdotool',['key','--clearmodifiers','Return']);},ownerKey:(enterOnly=false)=>execFileSync('xdotool',['key','--clearmodifiers',...(enterOnly?['Return']:['Tab','Return'])]),ownerType:text=>execFileSync('xdotool',['type','--clearmodifiers','--delay','20',text])});
+    ownerBookmark:()=>execFileSync('xdotool',['key','--clearmodifiers','ctrl+d','Return']),lifecycle,restoreControl,stopClick:()=>{execFileSync('import',['-window','root','/out/stop.png']);execFileSync('xdotool',['key','--clearmodifiers','Return']);},ownerKey:(enterOnly=false)=>execFileSync('xdotool',['key','--clearmodifiers',...(enterOnly?['Return']:['Tab','Return'])]),ownerType:text=>execFileSync('xdotool',['type','--clearmodifiers','--delay','20',text])});
 } catch(error) {
   try{execFileSync('import',['-window','root','/out/failure.png']);}catch{}
   throw error;
