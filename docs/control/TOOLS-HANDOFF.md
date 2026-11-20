@@ -78,8 +78,10 @@ Ares-Empire/AresOS --interval 300` in a background shell.
      same chain launches 3a only if green.
    - **Fri 02:32: step 2 green** on `35f7af24` (Chrome 44639875539, qualification 44639888962); **step 3a done**
      (`70d7e5fb`; every evidence gap now on a channel outside Claude's tools; 40 old call sites left for 3b).
-     Its runs: Chrome 44654244144, qualification 44654244071. A shell chain launches **3b** (prompt
-     `28a-step3b.txt`) only if both are green. The builder may not touch `docs/design/`: **after 3b, add
+     Its runs (Chrome 44654244144, qualification 44654244071) are **red everywhere** (03:20): extension calls
+     answer "Cannot access 'tab' before initialization", likely the CI-copy observer; plus two Python pins
+     (`test_latency`, `test_state_mutations` S6 and S12). A shell chain (`chain.sh` in the scratchpad) runs Codex
+     `28a-step3a-fix`, then **3b** (prompt `28a-step3b.txt`) only if the fix's two runs are green. The builder may not touch `docs/design/`: **after 3b, add
      `chrome_show`'s exception to CONTROL.md line 753 yourself** ("Nothing of ours ever opens a window or takes
      the focus", except `chrome_show`, which brings a tab to the front for him). Then step 2
      (HARNESS-MAP), step 3b (removal; CONTROL.md line 753 "nothing of ours ... takes the focus" needs `chrome_show`'s exception;
