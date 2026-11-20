@@ -2,16 +2,13 @@
 
 The baton for the next `linux-hub` session: the Minecraft home screen and the mod's hub side. Read it after `STATE.md`, and overwrite it when you pick it up.
 
-Written Fri 2026-11-20 13:50 by `linux-hub` (Claude Opus 5.5), before a clear at `mac-capacity`'s request.
+Written Fri 2026-11-20 13:50 by `linux-hub` (Claude Opus 5.5), before a clear at `mac-capacity`'s request; updated 14:15 after PR127 merged.
 
 ## Resume here
 
 1. **B318 is done and merged** (PR126, `4105952a`): no step or review is left. Nothing of the hub is running: no Claude agent and no Codex job.
-2. **PR127, the owner name scrub,** is reviewed SAFE (see below). Merge it after `mac-capacity` lifts the freeze, and only when R28 isn't mid-edit on `HANDOFF.md`. Then:
-   - leave the board notes listed below;
-   - run `board done T433`;
-   - remove the worktree `~/AresOS-owner-name-scrub`.
-3. **Then wait for R28 on the laptop** (`linux-aresos` says when). After that:
+2. **PR127, the owner name scrub, is merged** (`d4cfe514`, 14:10), with its board notes left, T433 done and its worktree removed (see below).
+3. **Now wait for R28 on the laptop** (`linux-aresos` says when). After that:
    - the try-out with the owner and the boot-to-home timing (T365, T362);
    - the read-only look at the running game's audio backend for T364 (B318's open question).
 
@@ -97,13 +94,10 @@ His guideline: "hub wise the main next step is make it a functional, usable home
 
 ## Owner name scrub (T433, his answer 2026-11-20: "Scrub to 'the owner'")
 
-- **PR127** (branch `docs/owner-name-scrub`, worktree `~/AresOS-owner-name-scrub`): his first name becomes "the owner" in 13 current files on main. `AGENTS.md` rule 6 and `CLAUDE.md` get the rule.
-- **Review:** Codex `gpt-6-luna` medium, **SAFE** (`reviews/owner-name-scrub/REVIEW-1.md` on the branch).
-- **Held** until `mac-capacity`'s freeze ends (after its 13:43 reading). The PR rewrites six lines of `linux-aresos`'s `HANDOFF.md` during R28. Before merging, check that R28 isn't mid-edit.
-- **After the merge:**
-  - `board leave` a note for `aresos`, `tools`, `desktop`, `laptop-home` and `aresos-control`: pull before editing, write "the owner" from now on, and scrub their unmerged branches before merging;
-  - `board done T433`.
-- **An idea for `mac-capacity`:** aresync's privacy check uses one terms list for every repo, so his name can't go on it without blocking private repos. A list for public repos only would guard this one.
+- **Merged** as `d4cfe514` (PR127, squash, Fri 14:10): his first name is "the owner" in 13 current files on main, and `AGENTS.md` rule 6 and `CLAUDE.md` carry the rule. `git grep` finds the name nowhere in the tree.
+- **Review:** Codex `gpt-6-luna` medium, **SAFE** (`reviews/owner-name-scrub/REVIEW-1.md`). Before merging, it was rebased onto `33bda493`. The only clash was R28's line 69 of `HANDOFF.md`, next to the scrub's lines 70–73; each side's line was kept. The scrub's added and removed lines are byte-identical to the reviewed ones. `linux-aresos` said "go now" (14:07, no unpushed `HANDOFF.md` edits).
+- **Done after the merge:** board notes T443–T446 for `tools`, `desktop`, `laptop-home` and `aresos-control`: pull before editing, write "the owner", and scrub unmerged branches. `linux-aresos` got the same note directly and scrubs `pkg/42-release-28` before it merges back. T433 is done.
+- **An idea for `mac-capacity`** (sent 14:15): aresync's privacy check uses one terms list for every repo, so his name can't go on it without blocking private repos. A list for public repos only would guard this one.
 
 ## Coming to the shell protocol
 
