@@ -63,8 +63,8 @@ def record(digest='28' * 32, identity=walk.IDENTITY, daily_wheel=True):
 class LedgerTest(unittest.TestCase):
     def test_the_kind_is_recorded_with_cap_3_and_22ds_bounds(self):
         # Step 3 recorded it with cap 0; step 6 raised it to the brief's three rehearsal runs.
-        self.assertEqual(LEDGER['dispatch_caps'][MODE], 6)
-        self.assertEqual((LEDGER['dispatch_caps']['checks'], LEDGER['minute_cap']), (11, 2400))
+        self.assertEqual(LEDGER['dispatch_caps'][MODE], 7)
+        self.assertEqual((LEDGER['dispatch_caps']['checks'], LEDGER['minute_cap']), (12, 2400))
         self.assertIn('Step 6 (2026-11-19, the lead): release-28 from 0 to 3', LEDGER['budget'])
         self.assertEqual(LEDGER['job_bounds'][MODE], guard.PACKAGES['22d']['job_bounds']['tools-local'])
         self.assertEqual(LEDGER['titles'][MODE], 'Two-disk rehearsal (release-28)')
@@ -90,15 +90,15 @@ class LedgerTest(unittest.TestCase):
                     self.assertRaisesRegex(AssertionError, MODE + ' dispatch allowance exhausted'):
                 guard.budget(0)
             self.assertEqual(guard.budget(0)['dispatch_counts'][MODE], 1)
-        # Cap 6 (step 6, then 2026-11-20 three times; rehearsal 4 stopped on the walk's login rule, rehearsal 5 on a
-        # stalled serial console): the seventh stops.
-        runs = [dict(run, id=n) for n in range(1, 8)]
+        # Cap 7 (step 6, then 2026-11-20 four times; rehearsal 4 stopped on the walk's login rule, rehearsal 5 on a
+        # stalled serial console, rehearsal 6 on the Terminal's environment): the eighth stops.
+        runs = [dict(run, id=n) for n in range(1, 9)]
         api = lambda path: dict(workflow_runs=runs) if path.startswith('actions/runs?') else dict(total_count=1, jobs=[job])
         with patch.object(guard, 'api', side_effect=api):
             with self.assertRaisesRegex(AssertionError, MODE + ' dispatch allowance exhausted'):
                 guard.budget(0)
             del runs[-1]
-            self.assertEqual(guard.budget(0)['dispatch_counts'][MODE], 6)
+            self.assertEqual(guard.budget(0)['dispatch_counts'][MODE], 7)
 
 
 class DispatchTest(unittest.TestCase):

@@ -336,17 +336,35 @@ print(json.dumps(out))
 '''
 
 # The guide's "open the Terminal app": the hub's terminal (owner_vm.HUB_TERMINAL) in his labwc session, as ares.
+# Its environment is the desktop supervisor's (`aresos-desktop session`, started by labwc's autostart), which the
+# hub's programs inherit. labwc's own /proc environ never holds WAYLAND_DISPLAY: labwc sets it after it starts, so a
+# foot started from that environment found no display and exited at once (rehearsal 6, run 44781321736).
 TERMINAL = r'''import json,pathlib,subprocess,time
-labwc=subprocess.check_output(['pgrep','-u','ares','-x','labwc'],text=True).split()[0]
-env=dict(i.split('=',1) for i in pathlib.Path('/proc/'+labwc+'/environ').read_text().split('\0') if '=' in i)
-keep=['HOME','USER','LOGNAME','LANG','XDG_RUNTIME_DIR','WAYLAND_DISPLAY','DBUS_SESSION_BUS_ADDRESS','XDG_SESSION_ID','XDG_SEAT','XDG_SESSION_TYPE','XDG_CURRENT_DESKTOP']
-words=['runuser','-u','ares','--','env','-i']+[k+'='+env[k] for k in keep if k in env]+['PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin','setsid','-f']+@ARGV@
-subprocess.run(words,stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,check=True)
-for n in range(60):
-    found=subprocess.run(['pgrep','-u','ares','-x','foot'],capture_output=True,text=True).stdout.split()
-    if found: break
-    time.sleep(1)
-print(json.dumps(dict(foot=len(found),wayland='WAYLAND_DISPLAY' in env)))
+SUPERVISOR=b'/usr/bin/python3\0/usr/libexec/aresos-desktop\0session\0'
+def cmdline(pid):
+    try: return pathlib.Path('/proc/'+pid+'/cmdline').read_bytes()
+    except FileNotFoundError: return b''
+def feet():
+    return subprocess.run(['pgrep','-u','ares','-x','foot'],capture_output=True,text=True).stdout.split()
+named=subprocess.run(['pgrep','-u','ares','-x','aresos-desktop'],capture_output=True,text=True).stdout.split()
+supervisor=[pid for pid in named if cmdline(pid)==SUPERVISOR]
+out=dict(supervisors=len(supervisor),wayland=False,foot=0,running=0)
+if len(supervisor)==1:
+    env=dict(i.split('=',1) for i in pathlib.Path('/proc/'+supervisor[0]+'/environ').read_text().split('\0') if '=' in i)
+    out['wayland']=bool(env.get('WAYLAND_DISPLAY')) and bool(env.get('XDG_RUNTIME_DIR'))
+if out['wayland']:
+    keep=['HOME','USER','LOGNAME','LANG','XDG_RUNTIME_DIR','WAYLAND_DISPLAY','DBUS_SESSION_BUS_ADDRESS','XDG_SESSION_ID','XDG_SEAT','XDG_SESSION_TYPE','XDG_CURRENT_DESKTOP']
+    words=['runuser','-u','ares','--','env','-i']+[k+'='+env[k] for k in keep if k in env]+['PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin','setsid','-f']+@ARGV@
+    subprocess.run(words,stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,check=True)
+    for n in range(60):
+        found=feet()
+        if found: break
+        time.sleep(1)
+    out['foot']=len(found)
+    # A foot that cannot reach the display exits at once: it must still be running a few seconds later.
+    time.sleep(3)
+    out['running']=len(feet())
+print(json.dumps(out))
 '''
 
 # Ends every foot of ares (the SETUP screen's message window among them) and waits until none is left.
@@ -640,7 +658,10 @@ def no_foot(console, guest, stage, vm):
     assert not any(row.get('mutation') for row in stopped['trace']), 'STOP: the stopped check changed something'
     opened = guest.capture_json(stage + '-terminal', vm.sw.framed('python3 -c ' + shlex.quote(program(TERMINAL, argv=vm.HUB_TERMINAL))))
     vm.td.save(stage + '-terminal', opened)
+    assert opened['supervisors'] == 1, 'STOP: not exactly one desktop supervisor (aresos-desktop session) of ares: ' + str(opened['supervisors'])
+    assert opened['wayland'] is True, "STOP: the desktop supervisor's environment has no Wayland display"
     assert opened['foot'] >= 1, 'STOP: the Terminal app did not open a foot'
+    assert opened['running'] >= 1, "STOP: the Terminal app's foot exited at once"
     return dict(ended=ended['ended'], stop=str(stopped['error']), terminal=opened)
 
 

@@ -1853,3 +1853,25 @@ that reads the changed workflow passed on its own.
 printed `Ran 1 test in 0.063s`, `OK`.
 
 `git diff --check` passed. No file over 500 MB was found in `.work/`.
+
+### Rehearsals 5 and 6 (2026-11-20, the lead)
+
+- **Rehearsal 5** (44764936797, `8afed5c5`) stopped before its installer. The live session reached its desktop
+  (`failure-protected-second-install.png`), but its serial console went silent right after systemd's terminfo
+  probe was answered, so `login:` did not come within 360 seconds. The reply counts (terminfo 3, cursor 4) include
+  queries that arrived only after the harness typed `systemctl poweroff`; `finish_shutdown` keeps that output only
+  when the shutdown succeeds. A guest serial stall: rerun unchanged (`77a08140`, release-28 6, checks 11; Codex Sol
+  recheck SAFE, `~/AresOS-42-cap6-recheck.md`; its known limit: `test_release28.py`'s checks fixture writes an
+  invalid `T010:00:00Z` time for its eleventh run). If it repeats: wake the line before `login:` (a design change),
+  and save the shutdown wait's output on failure.
+- **Rehearsal 6** (44781321736, `77a08140`) passed the live session, the install, the stock rewind, the offline
+  first stock boot and the route through releases 13 and 27 to 28, then stopped in `terminal_path`: no foot of ares
+  in 120 seconds. `no_foot`'s TERMINAL took the environment from labwc's `/proc/<pid>/environ`, which never holds
+  `WAYLAND_DISPLAY` (labwc sets it after it starts), so foot started without a display and exited at once
+  (`release-28-terminal.json`: `foot` 1, `wayland` false). The fake session had given labwc's environ a display.
+- **Fix:** TERMINAL takes the environment from the one `aresos-desktop session` process of ares (exact command line;
+  the walk's own `aresos-desktop status` is skipped), which labwc's autostart starts and whose environment the hub's
+  programs inherit; `no_foot` STOPs without exactly one supervisor or without a display, and when the foot is gone
+  three seconds after it appeared. The fake: labwc's environ has no display, the supervisor's has it, a foot started
+  without a display is seen once and then exits; new cases `supervisor_without_display` and
+  `test_a_terminal_from_labwcs_own_environment_stops`. Caps: release-28 7, checks 12.

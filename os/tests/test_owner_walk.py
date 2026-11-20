@@ -506,6 +506,7 @@ class Release28Session:
         import release28_walk
         self.walk, self.control, self.faults = release28_walk, control, set(faults)
         self.foot, self.events, self.executed, self.boots = 1, [], [], []
+        self.doomed_foot = False
         self.folder = tempfile.TemporaryDirectory()
         self.root = pathlib.Path(self.folder.name)
         self.owners, self.modes, self.jvm, self.wrapper = {}, {}, False, None
@@ -537,7 +538,14 @@ class Release28Session:
         self.Path = Path
         self.Path('/tmp').mkdir()
         self.write('/proc/42/cmdline', '/usr/bin/labwc\0--config-dir\0/usr/share/aresos/labwc\0')
-        self.write('/proc/42/environ', 'HOME=/var/home/ares\0WAYLAND_DISPLAY=wayland-0\0XDG_RUNTIME_DIR=/run/user/1001\0')
+        # labwc sets WAYLAND_DISPLAY after it starts, so its /proc environ never holds it (rehearsal 6, 44781321736);
+        # its autostart's desktop supervisor (43) inherits it. 44 is the walk's own `aresos-desktop status`.
+        self.write('/proc/42/environ', 'HOME=/var/home/ares\0XDG_RUNTIME_DIR=/run/user/1001\0')
+        self.write('/proc/43/cmdline', '/usr/bin/python3\0/usr/libexec/aresos-desktop\0session\0')
+        display = '' if 'supervisor_without_display' in self.faults else 'WAYLAND_DISPLAY=wayland-0\0'
+        self.write('/proc/43/environ', 'HOME=/var/home/ares\0' + display + 'XDG_RUNTIME_DIR=/run/user/1001\0')
+        self.write('/proc/44/cmdline', '/usr/bin/python3\0/usr/libexec/aresos-desktop\0status\0')
+        self.write('/proc/44/environ', 'HOME=/var/home/ares\0WAYLAND_DISPLAY=wayland-0\0XDG_RUNTIME_DIR=/run/user/1001\0')
         self.write('/proc/42/cgroup', '0::/user.slice/user-1001.slice/session-3.scope\n')
         self.write('/usr/share/aresos/labwc/rc.xml', '<labwc_config><theme><name>Ares-Crown</name></theme></labwc_config>')
         self.write('/usr/share/themes/Ares-Crown/labwc/themerc', 'fixture')
@@ -657,16 +665,24 @@ class Release28Session:
 
     def run(self, argv, **kw):
         import subprocess
-        words, uid = list(argv), 0
+        words, uid, assigned = list(argv), 0, {}
         if words[:4] == ['runuser', '-u', 'ares', '--']:
             uid, words = 1001, words[4:]
         if words[0] in ('env', '/usr/bin/env'):
             words = words[1:]
             if words[0] == '-i': words = words[1:]
-            while words and '=' in words[0]: words = words[1:]
+            while words and '=' in words[0]:
+                key, value = words[0].split('=', 1)
+                assigned[key], words = value, words[1:]
         code, stdout, stderr = 0, '', ''
         if words[0] == 'pgrep':
-            stdout = '42\n' if words[-1] == 'labwc' else ''.join(str(50+i)+'\n' for i in range(self.foot))
+            if words[-1] == 'labwc': stdout = '42\n'
+            elif words[-1] == 'aresos-desktop': stdout = '43\n44\n'
+            else:
+                stdout = ''.join(str(50+i)+'\n' for i in range(self.foot))
+                if self.doomed_foot:
+                    # A foot without a display is seen once, then it has exited.
+                    self.foot, self.doomed_foot = self.foot - 1, False
             code = 0 if stdout else 1
         elif words[0] == 'pkill':
             self.events.append('foot ended')
@@ -674,6 +690,7 @@ class Release28Session:
         elif words[0] == 'setsid':
             assert words[1:] == ['-f', *vm.HUB_TERMINAL], 'Wrong Terminal argv'
             self.foot += 1
+            self.doomed_foot = not assigned.get('WAYLAND_DISPLAY')
             self.events.append('terminal opened')
         elif words[0] == '/usr/bin/fc-match': stdout = self.walk.SPACE_GROTESK
         elif words == ['/usr/bin/python3', '-I', '-']:
@@ -1379,7 +1396,8 @@ class Release28ProbeTest(unittest.TestCase):
                  'bad_instance_mode': 'stable instance', 'bad_memory': 'memory.high',
                  'extra_polkit': 'beyond the reviewed list', 'bad_path': 'terminal lacks his PATH',
                  'deleted_world': 'missing saved-world', 'corrupt_world': 'saved-world contents',
-                 'denied_world': 'inaccessible as ares'}
+                 'denied_world': 'inaccessible as ares',
+                 'supervisor_without_display': 'has no Wayland display'}
         for fault, error in cases.items():
             with self.subTest(fault=fault), self.assertRaisesRegex(AssertionError, error):
                 walk(route='release-28', control=fault.startswith(('bad_control', 'control_')) or fault in (
@@ -1395,6 +1413,17 @@ class Release28ProbeTest(unittest.TestCase):
         source = release28_walk.END_FOOT.replace("subprocess.run(['pkill','-u','ares','-x','foot'])", 'pass')
         self.assertNotEqual(source, release28_walk.END_FOOT)
         with patch.object(release28_walk, 'END_FOOT', source), self.assertRaisesRegex(AssertionError, 'still running'):
+            walk(route='release-28')
+
+    def test_a_terminal_from_labwcs_own_environment_stops(self):
+        # Rehearsal 6 (run 44781321736): labwc's /proc environ has no WAYLAND_DISPLAY, so a foot started from it
+        # exited at once. Reading labwc instead of the desktop supervisor must stop the route here.
+        import release28_walk
+        source = (release28_walk.TERMINAL.replace("['pgrep','-u','ares','-x','aresos-desktop']", "['pgrep','-u','ares','-x','labwc']")
+                  .replace(r"b'/usr/bin/python3\0/usr/libexec/aresos-desktop\0session\0'",
+                           r"b'/usr/bin/labwc\0--config-dir\0/usr/share/aresos/labwc\0'"))
+        self.assertNotEqual(source.count('labwc'), release28_walk.TERMINAL.count('labwc'))
+        with patch.object(release28_walk, 'TERMINAL', source), self.assertRaisesRegex(AssertionError, 'has no Wayland display'):
             walk(route='release-28')
 
     def test_explicit_prism_allowances_preserve_stable_files(self):

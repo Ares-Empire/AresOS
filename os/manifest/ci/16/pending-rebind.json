@@ -54,7 +54,8 @@
     "42 step 6: the walk accepts masked non-root login units (rehearsal 4); rehearsal cap 5, checks cap 9",
     "42 step 6: masked login units only as ordering; ledger note",
     "42: test_checkout_sources reads the record's commit only where it is present; checks cap 10",
-    "42: rehearsal 5 stalled on the live serial console; release-28 cap 6, checks cap 11"
+    "42: rehearsal 5 stalled on the live serial console; release-28 cap 6, checks cap 11",
+    "42: rehearsal 6 stopped at the Terminal's environment; the walk reads the desktop supervisor's; release-28 cap 7, checks cap 12"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -103,7 +104,7 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "6ae1cb8cbe5863ca7b611223353b00bfb546bac7efb70dc93ab4e39dbfb97eac",
+      "sha256": "d13e3c1cfb66f1c4b5c87805776ebd86449ac22e8a5cdf364c178696a4b2f0d9",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
@@ -199,7 +200,7 @@
       "path": "os/tests/test_owner_update.py"
     },
     {
-      "sha256": "96b245a2cfa0ba56337ac6531de8a1ad208cc207ae5e3751604df6e07f9f9162",
+      "sha256": "5373d9ef5e59d2cb12b422ee3a85b8f77a48c41800f9051815f7d79c59f857a8",
       "path": "os/tests/test_owner_walk.py"
     },
     {
