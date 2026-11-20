@@ -70,7 +70,7 @@ PLAN.md's measure, from `thaw-samples.csv` (10 ms samples), counting only rows a
 | A1 | `SCHED_OTHER` | **347.4 ms** | +0.5 to +350.5 ms | 88.2, 99.7, 99.7, 68.2, 0.5 | 0 / 2 |
 | A2 | `SCHED_OTHER` | **349.1 ms** | +7.3 to +357.2 ms | 89.8, 99.7, 99.7, 60.8, 0.5 | 0 / 1 |
 
-- **B1, the death.** The last sample, at +196.9 ms, shows the thread still running with 195.8 ms of CPU since its frozen value. The next sample, due about 10 ms later, found it gone. So the game died between +196.9 and about +207 ms, at about 200 ms of CPU, which is where the hard limit lies. The watcher's pidfd saw the whole process gone at +367 ms; tearing down a JVM with 600 MiB in swap takes time. The first sample after the thaw came 7.0 ms after the write, by when the thread had already used 6.15 ms; PLAN.md's measure doesn't count that part (see PLAN-GAP 1).
+- **B1, the death.** The last sample, at +196.9 ms, shows the thread still running with 195.8 ms of CPU since its frozen value. The next sample, due about 10 ms later, found it gone. The watcher's pidfd saw the whole process gone at +367.3 ms. **Estimate, not measured directly:** the kill came between +196.9 and about +207 ms, at about 200 ms of CPU, where the hard limit lies, and the 160 ms after it were the JVM's teardown with 600 MiB in swap. The first sample after the thaw came 7.0 ms after the write, by when the thread had already used 6.15 ms; PLAN.md's measure doesn't count that part (see PLAN-GAP 1).
 - **A1 and A2, the whole catch-up.** The demoted thread ran at almost a full core until about +350 ms, with only one or two nonvoluntary switches (as an ordinary thread it can be preempted). Then it went back to its normal rhythm: about 0.5 ms of CPU per 100 ms and about 197 voluntary switches a second, for the rest of the 10 s window.
 - **No promotion again.** In A1 and A2 no thread of the game was realtime in any 100 ms scan after the thaw, and the journal holds no rtkit grant after the one at sound start. The demotion kept `SCHED_RESET_ON_FORK` set (`rt-demote.json`).
 
@@ -143,15 +143,15 @@ Step 4, by a Claude Opus 5.5 builder on 2026-11-20: reading only. No game or rig
 - **rtkit 0.11** (rpm `rtkit-0.11`, started without options, so its built-in defaults hold): `https://github.com/heftig/rtkit/blob/v0.11/rtkit-daemon.c`.
 - **LWJGL 3.4.1's `lwjgl-openal-3.4.1.jar`** (read with `javap`), and the mod's sound code under `mod/src`.
 
-### 1. The product's backend doesn't catch up
+### 1. The product's backends have no catch-up loop
 
-**Which backend the game picks.** OpenAL Soft tries `pipewire` first, then `pulse`, and `null` last (`alc/alc.cpp:221-271`). The PipeWire backend steps aside only if libpipewire is too old or PipeWire reports no audio nodes (`alc/backends/pipewire.cpp:2215-2237`). In the real session, with PipeWire as the sound server, the game very likely uses the PipeWire backend. **Guess:** nobody has seen it in a real session. The game log's "OpenAL initialized on device …" line would show it (`No Output` is the `null` backend).
+**Which backend the game picks.** OpenAL Soft tries `pipewire` first, then `pulse`, and `null` last (`alc/alc.cpp:221-271`). The PipeWire backend steps aside only if libpipewire is too old or PipeWire reports no audio nodes (`alc/backends/pipewire.cpp:2215-2237`). In the real session, with PipeWire as the sound server, the game very likely uses the PipeWire backend. **Guess:** nobody has seen it in a real session. The game log's "OpenAL initialized on device …" line is a hint, not proof: a device name alone doesn't establish the backend (`No Output` is the `null` backend).
 
 | | `null` (the rigs) | PipeWire (most likely the product's) | PulseAudio (the fallback) |
 |---|---|---|---|
 | What sets the pace | the backend's own clock: `steady_clock` from the thread's start (`alc/backends/null.cpp:67-68`) | PipeWire's graph, one `process` call per cycle | the server's write requests |
-| What one wake renders | everything due since the start. An inner loop renders update after update until it has caught up, with no sleep in between (`null.cpp:69-99`) | what the buffer asks for: `pw_buffer::requested` (`pipewire.cpp:1492-1534`), which PipeWire sets to one cycle (`src/pipewire/stream.c:461`) | the `nbytes` the server asks for (`alc/backends/pulseaudio.cpp:751-773`), at most the buffer OpenAL set up: `tlength`, the device's buffer size (`pulseaudio.cpp:1008`, `1055`) |
-| After a long stall | the whole backlog in one go: about 1.3 ms of CPU per frozen second here | no backlog: the cycles missed while frozen are never rendered | at most one buffer |
+| What one wake renders | everything due since the start. An inner loop renders update after update until it has caught up, with no sleep in between (`null.cpp:69-99`) | what the buffer asks for: `pw_buffer::requested` (`pipewire.cpp:1492-1534`), which PipeWire sets to one cycle (`src/pipewire/stream.c:461`) | the `nbytes` the server asks for (`alc/backends/pulseaudio.cpp:751-773`), OpenAL asks for a `tlength` of the device's buffer size (`pulseaudio.cpp:1008`, `1055`), a target for the server, not a cap the callback enforces |
+| After a long stall | the whole backlog in one go: about 1.3 ms of CPU per frozen second here | no catch-up loop: each call renders what PipeWire requests | no catch-up loop: each call renders the `nbytes` the server requests |
 | The thread that mixes | the backend's own thread, started with `std::thread` (`null.cpp:120-130`) | the PipeWire thread loop OpenAL creates per device, named `ALSoftP<n>` (`pipewire.cpp:1579-1590`). The stream connects without `PW_STREAM_FLAG_RT_PROCESS` unless `[pipewire] rt-mix = true` (`pipewire.cpp:1728-1730`; default false, `alsoftrc.sample:430-434`). PipeWire then gives the node the `main` loop class and `node.async` (`stream.c:2095-2099`), so `process` runs on that thread loop | libpulse's threaded mainloop thread (`pulseaudio.cpp:337`) |
 | Realtime for that thread | yes. `SetRTPriority()` at the thread's start (`null.cpp:64`) asks the kernel, then rtkit, for `SCHED_RR` priority 1 (`core/helpers.cpp:373-396`, `398-480`, `484-491`) | not from OpenAL: `pipewire.cpp` has no `SetRTPriority` call | not from OpenAL: `pulseaudio.cpp` has no `SetRTPriority` call. **Guess:** libpulse doesn't make it realtime either |
 
@@ -159,7 +159,7 @@ Of OpenAL Soft's Linux backends only `null`, ALSA, OSS, JACK, sndio and Solaris 
 
 **The game may still hold a realtime thread under PipeWire.** PipeWire's client config on this laptop loads `libpipewire-module-rt` into every client (`/usr/share/pipewire/client.conf:45-57`, `flags = [ ifexists nofail ]`). That module makes PipeWire's own data-loop threads realtime through rtkit, and when it uses rtkit it lowers the process's `RLIMIT_RTTIME` to rtkit's 200 ms (`src/modules/module-rt.c:1003-1019`). rtkit's journal on this laptop shows PipeWire clients (`pipewire`, `wireplumber`) at priority 20; the games' grants, all from rigs with `null`, are at priority 1. **Guess:** under PipeWire the game has one such data-loop thread at priority 20. It wakes once per graph cycle and blocks again, and OpenAL's stream doesn't run on it, so it has no backlog to catch up. Only a real session can show whether it exists and what it does after a thaw.
 
-**In short:** by the source, the product's backend drops the backlog instead of catching it up, and its mixer isn't realtime. The kill seen in B1 belongs to the `null` backend (and maybe to ALSA or OSS, not read), not to the product's audio path. Nobody has watched a real-backend thaw.
+**In short:** by the source, neither real backend has the `null` backend's elapsed-time catch-up loop, and OpenAL asks for no realtime in either. So the kill seen in B1 is, by the source, a `null` behavior (and maybe ALSA's or OSS's, not read). Which backend the product actually selects, which of its threads run realtime, and how it behaves after a thaw stay open: nobody has watched a real-backend thaw.
 
 ### 2. Ways to avoid the kill, with their costs
 
@@ -212,9 +212,8 @@ Of OpenAL Soft's Linux backends only `null`, ALSA, OSS, JACK, sndio and Solaris 
 
 - The catch-up grows linearly with the frozen time: each frozen second adds a second of samples for the inner loop to render (`null.cpp:75-86`).
 - Measured: 350–356 ms of CPU after 267.5 s frozen, so 1.31–1.33 ms per frozen second. B1 died at about 196–200 ms of it.
-- **200 ms ÷ 1.33 ms per frozen second ≈ 150 s.** On this laptop, with `null`, a thaw after more than about two and a half minutes frozen kills the game.
-- **Treat about one minute as safe.** The trials mixed near silence (the covered home screen pauses every sound). Music, many sources or HRTF cost more per second, and a slower or throttled CPU renders more slowly. **Guess** for the margin: each run measured one freeze length.
-- **For the real backend: nothing, by the source.** PipeWire and PulseAudio build no backlog, and their mixer threads aren't realtime, so this number doesn't bound a real-session freeze. It does bound every rig and CI run of the sleeping world, because they all use `null`.
+- **200 ms ÷ 1.33 ms per frozen second ≈ 150 s.** This is an extrapolation from one freeze length of one workload: near silence (the covered home screen pauses every sound) on this laptop's CPU. Music, many sources or HRTF cost more per second, and a slower or throttled CPU renders more slowly, so the crossing can come much earlier. No freeze length is shown to be safe; don't use a time limit in place of the demotion.
+- **For the real backend: nothing, by the source.** PipeWire and PulseAudio build no backlog, and their mixer threads aren't realtime, so this number doesn't bound a real-session freeze. Rig and CI runs of the sleeping world all use `null`: they need the demotion (or `rt-prio = 0`), not a time limit.
 
 ### 4. Why the thread is named `Render thread`
 
@@ -231,8 +230,15 @@ Of OpenAL Soft's Linux backends only `null`, ALSA, OSS, JACK, sndio and Solaris 
 - It covers every backend and any realtime thread, whatever its name, including ones nobody knows about yet.
 - Its cost is small: the demoted thread stays a normal thread until the next device restart, which `null` never notices.
 
-By the source, the product's PipeWire backend doesn't catch up and its mixer isn't realtime, so the kill shouldn't happen there at all. b) is the safety net for the fallbacks (ALSA, `null`) and for whatever realtime thread PipeWire adds to the game. Every rig and CI run of the sleeping world uses `null`, so those need b), or freezes under a minute, to survive a thaw.
+By the source, the PipeWire backend has no catch-up loop and OpenAL doesn't make its mixer realtime; whether the kill can happen in the product stays open until a real session shows the backend and its threads. b) is the safety net for the fallbacks (ALSA, `null`) and for whatever realtime thread PipeWire adds to the game. Every rig and CI run of the sleeping world uses `null`, so those need b) (or `rt-prio = 0`) to survive a thaw.
 
 Don't make c) the fix: it does nothing for the product's backend, and PipeWire's own module can undo `rt-time-limit = false`. `rt-prio = 0` is a fine one-line choice for a rig that wants long freezes without the demotion code. Keep a) for later. It is the cleanest for the audio (no stream running while frozen), but it costs a mod change, a handshake on every freeze and, with `null`, an rtkit request on every wake. Take it up only if a real-session thaw shows audio trouble.
 
 **Before relying on the source reading,** a real session should show two things without freezing anything: the game log's "OpenAL initialized on device" line (which backend) and the game's realtime threads (policy, priority, `comm`). That runs in the owner's session, so it is his call. A real thaw test is a decision for a later package.
+
+## Known limits (review 1)
+
+Two latent paths in the rig, both inherited from packages 49 and 49b. They are filed here under decision 24's bar rather than fixed: the rig is finished evidence, not reused tooling, and neither path can lose data.
+
+- **The recovery shortcut** (REVIEW-1 finding 2). `rig/start.sh` copies the product's labwc `rc.xml`, so its Super+Ctrl+Escape binding (`aresos-desktop hide-cover`) is live in the rig's compositor. Through the inherited `XDG_RUNTIME_DIR` it could reach an installed supervisor and hide its startup cover. The rig's virtual keyboard never sends that combination. A rig reused for the sleeping world should get its own compositor config without host-control bindings.
+- **A controller killed while frozen** (REVIEW-1 finding 3). The thaw and stop run from the measurement shell's `EXIT` trap. If that shell is SIGKILLed while the game is frozen, the frozen game and its compositor scopes stay behind and hold their memory until stopped by hand (`systemctl --user stop 'pkg318-*'`). A reused rig should give an independent watcher both scopes.

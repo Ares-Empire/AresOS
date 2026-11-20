@@ -1,6 +1,6 @@
 # 318: why frozen worlds die on thaw
 
-Board T364 (the sleeping world), brief number from `board brief`. A follow-up of package 49 (`reviews/49-memory-cuts/REPORT.md`): its two cover-freeze trials held memory for five minutes, then both games died with SIGKILL (exit 137) on thaw. The report left the sender unknown. Patrik's sleeping-world idea (freeze or swap the world while it isn't needed, wake it early) can't go further until we know what kills a thawed game, and whether the real session would hit it too.
+Board T364 (the sleeping world), brief number from `board brief`. A follow-up of package 49 (`reviews/49-memory-cuts/REPORT.md`): its two cover-freeze trials held memory for five minutes, then both games died with SIGKILL (exit 137) on thaw. The report left the sender unknown. The owner's sleeping-world idea (freeze or swap the world while it isn't needed, wake it early) can't go further until we know what kills a thawed game, and whether the real session would hit it too.
 
 **Builder:** a Claude Opus agent per step (Claude has room this week; this is a careful measurement with a known rig).
 
