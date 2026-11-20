@@ -89,7 +89,11 @@ Ares-Empire/AresOS --interval 300` in a background shell.
      qualification 44671559627). **06:59 3b done** (`25809d99`: 18 tools removed, 19 left; descriptions 5,975,
      instructions 2,798, combined 8,773; group 16 now fails a sample above 1.5x its task's median in the same run).
      Pass 1 on 25809d99: boundary 44684294599 and privacy 44684311459 green; Chrome 44684296519, qualification
-     44684299893, base 44684303561, Mail 44684307975 watched by a shell. The lead's `chrome_show` line is in
+     44684299893, base 44684303561, Mail 44684307975 **red at 08:20**: shared `response_checks.VALIDATORS` became
+     bare functions (owner-state oracle test in base and Mail); a reviews/20-chrome pin of the old WITHHELD_FORM
+     text (qualification); GROUP 14 TIME calls an action the proxy refuses; latency `asking_click`/`navigate` miss.
+     Fix round `28a-step3b-fix.txt` (gpt-6.2-sol; lead allows changing only the old-text pins in reviews/20-chrome,
+     never its records/) runs in a chain with all five workflows gating step 4. The lead's `chrome_show` line is in
      CONTROL.md on the branch (`1c67199b`). Next: Codex step 4 (`28a-step4.txt`: FEATURES' stale `chrome_fill`
      State cell, REPORT.md, KNOWN-LIMITS, pass 2 = Chrome and qualification again), then the package and security
      reviews (astra). Reviewers must read 3b's "private view digest" in the reader's native reply. Then step 2
