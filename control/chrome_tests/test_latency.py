@@ -597,8 +597,10 @@ class LatencyGate(unittest.TestCase):
 
     def test_final_f4_a_median_or_p95_over_a_lead_ceiling_fails_alone(self):
         # The final review's case: the lead's ceilings, the measured reference,
-        # and one history phase changed. read 35/60, asking_click 60/100.
-        for call,median,p95 in [('read',50,55),('asking_click',65,70),('read',30,65),('asking_click',50,110)]:
+        # and one history phase changed. read 35/60, asking_click 60/100, and
+        # navigate 400/450 (linux-tools, 2026-11-20: chrome_go waits for the
+        # page; its reference was re-taken, so its thresholds lie above these).
+        for call,median,p95 in [('read',50,55),('asking_click',65,70),('read',30,65),('asking_click',50,110),('navigate',410,420),('navigate',390,460)]:
             with self.subTest(call=call,median=median,p95=p95):
                 current,baseline,reference,targets=self.real_profile()
                 self.assertTrue(self.gate.check(current,baseline,reference,targets)['passed'])
@@ -610,17 +612,43 @@ class LatencyGate(unittest.TestCase):
 
     def test_final_f4_reference_comparison_still_needs_median_and_p95_to_cross(self):
         current,baseline,reference,targets=self.real_profile()
-        # navigate: its reference threshold lies under its ceiling, so a median
-        # shift between them is runner noise to the comparison and passes.
-        accepted=reference['current']['phases']['history-4000']['navigate']['client_total']
+        # asking_click: its reference threshold lies under its ceiling, so a
+        # median shift between them is runner noise to the comparison and passes.
+        # (navigate carried this case until its reference was re-taken from run
+        # 44705819383, linux-tools, 2026-11-20: its thresholds now lie above its ceilings.)
+        accepted=reference['current']['phases']['history-4000']['asking_click']['client_total']
         median=accepted['median_ms']*1.5+10+1
-        self.assertLess(median,targets['ceilings_ms']['navigate']['median_ms'])
-        current['phases']['history-4000']['navigate']['client_total'].update(median_ms=median,p95_ms=max(median,accepted['p95_ms']))
+        self.assertLess(median,targets['ceilings_ms']['asking_click']['median_ms'])
+        current['phases']['history-4000']['asking_click']['client_total'].update(median_ms=median,p95_ms=max(median,accepted['p95_ms']))
         result=self.gate.check(current,baseline,reference,targets)
         self.assertTrue(result['passed'],result['failures'])
-        row=next(row for row in result['measurements'] if row['phase']=='history-4000' and row['call']=='navigate')
+        row=next(row for row in result['measurements'] if row['phase']=='history-4000' and row['call']=='asking_click')
         self.assertGreater(row['paired_work_ms']['median_ms'],row['regression_threshold_ms']['median_ms'])
         self.assertLessEqual(row['paired_work_ms']['p95_ms'],row['regression_threshold_ms']['p95_ms'])
+
+    def test_navigates_ceiling_and_reference_follow_chrome_go(self):
+        # The lead (linux-tools, 2026-11-20, package 28a step 4): chrome_go returns
+        # once the page has arrived and been quiet for 150 ms, so navigate's
+        # ceiling is 400/450 and its reference is re-taken from run 44705819383
+        # at the reference's own 20 positions. The old runtime and every other
+        # call keep run 43502970342's.
+        import json
+        from pathlib import Path
+        ci=Path(__file__).resolve().parents[1]/'chrome/ci'
+        targets=json.loads((ci/'latency-targets.json').read_text())
+        document=json.loads((ci/'latency-reference.json').read_text())
+        self.assertEqual(targets['ceilings_ms']['navigate'],{'median_ms':400,'p95_ms':450})
+        self.assertIn('linux-tools, 2026-11-20',targets['navigate_basis'])
+        self.assertEqual((document['measurement_run'],document['navigate_measurement']['measurement_run']),('43502970342','44705819383'))
+        for profile in ['plain','audit']:
+            current=document['profiles'][profile]['current']
+            self.assertEqual(current['calls']['navigate'],current['phases']['fresh']['navigate'])
+            for phase,group in current['phases'].items():
+                with self.subTest(profile=profile,phase=phase):
+                    self.assertEqual({stage['samples'] for stage in group['navigate'].values()},{self.reference_samples})
+                    total=group['navigate']['client_total']
+                    # The waits alone are about 250 ms; the measured call sits under the new ceilings.
+                    self.assertTrue(250<total['median_ms']<=total['p95_ms']<targets['ceilings_ms']['navigate']['median_ms'],total)
 
     def test_gate60_three_slow_samples_of_sixty_pass_and_a_fourth_fails(self):
         # The lead (mac-aresos-control, 2026-11-14, after run 43603381599): 60
