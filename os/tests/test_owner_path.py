@@ -24,6 +24,10 @@ GATE = ('**Entry gate: require STEP 5 COMPLETE and its evidence before '
         'authentication or switching. If absent, STOP')
 MARKER = 'All checks PASS: write **STEP 5 COMPLETE**'
 UPDATE = 'update-aresos-to-a-new-release'
+SAVE_HOME = 'save-the-minecraft-home-before-restarting'
+INSTALL_HOLD = '**STOP for a fresh install or reinstall.**'
+STICK_EXPORT = 'SAFE TO REMOVE ARESTOOLS; unplug before every shutdown/restart'
+LOCAL_EXPORT = 'Tools stick absent: records copied to /run/ares-records with SHA256 readback'
 UPDATE_GATE = ('**Update gate: require STEP 5 COMPLETE and a checked running AresOS '
                'before authentication or updating.**')
 SENSITIVE = re.compile(r'^sudo /var/lib/ares/at (?:login|switch|update)$')
@@ -623,7 +627,7 @@ class OwnerPathTest(unittest.TestCase):
         stage = next(line for line in status.splitlines() if line.startswith('| Stage C —'))
         # Steps 5-7 are recorded as they happened (package 22), step 7 with
         # its two open items.
-        for value in ('RELEASED 2026-11-07', 'Step 4 PASSED 2026-11-08', 'Step 5 COMPLETE 2026-11-09',
+        for value in ('was released on 2026-11-07 for the checked installer', 'Step 4 PASSED 2026-11-08', 'Step 5 COMPLETE 2026-11-09',
                       'Step 6 PASSED 2026-11-09', 'Step 7 PASSED 2026-11-09 with two items OPEN',
                       'board #139', 'board #140'):
             self.assertIn(value, stage)
@@ -789,22 +793,22 @@ class OwnerPathTest(unittest.TestCase):
         self.assertIn('owner as first reader', status)
         self.assertIn('maintainer (Claude) checking each stage', status)
         for label,state in (('Stage A — preparation','CHECKED 2026-11-05'),
-                            ('Stage B — fitting','CHECKED 2026-11-07'),
-                            ('Stage C — installation','RELEASED 2026-11-07')):
+                            ('Stage B — fitting','CHECKED 2026-11-07')):
             row=next(line for line in status.splitlines() if line.startswith('| '+label+' |'))
             self.assertIn('**'+state+'**',row)
         c=next(line for line in status.splitlines() if line.startswith('| Stage C —'))
-        for term in ('maintainer has checked A and B','native mounted-child check has passed',
-                     'maintainer has updated this table','each step'):
+        for term in ('maintainer checked A and B', 'native mounted-child check passed', 'each step'):
             self.assertIn(term,c)
+        physical = next(line for line in status.splitlines() if line.startswith('| **Physical installation**'))
+        for row in (physical, c):
+            self.assertIn(INSTALL_HOLD, row.split('|')[2])
+            self.assertIn('Wait until a new installer has been checked.', row)
+        update = next(line for line in status.splitlines() if line.startswith('| Signed update on an existing AresOS install'))
+        self.assertIn('**Step 8, `at update`**', update)
+        self.assertIn(f'(INSTALL.md#{UPDATE})', update)
+        self.assertNotIn(INSTALL_HOLD, update.split('|')[2])
         self.assertNotIn('Until it permits physical installation, read only',guide)
-        # The guide's step 4 header must agree with the Stage C row.
-        step4=section(guide,'4-install-and-prepare-corrected-stock')
-        if '**RELEASED' in c:
-            self.assertNotIn('NOT RELEASED',step4)
-            self.assertIn('Stage C — released',step4)
-        else:
-            self.assertIn('Stage C — NOT RELEASED',step4)
+        self.assertIn(INSTALL_HOLD, section(guide,'4-install-and-prepare-corrected-stock'))
         for anchor in ('1-backups-recovery-and-windows-preparation','3-fit-and-identify-both-drives',
                        '4-install-and-prepare-corrected-stock'):
             self.assertIn('stop here and send your records to the maintainer',section(guide,anchor))
@@ -1023,14 +1027,16 @@ class OwnerPathTest(unittest.TestCase):
                  # One word per meaning: where update may not stage it names forward, and the last box is forward.
                  '**Update installs a new release only from a running AresOS that starts next**', 'take the last box',
                  '**The release of these tools is installed already**', 'the last box makes it the next start',
-                 commands['title'], commands['export'], 'SAFE TO REMOVE ARESTOOLS',
+                 '**Title and export:**', commands['title'], commands['export'], pass_line('title'), pass_line('export'),
+                 '**With ARESTOOLS:** `' + STICK_EXPORT + '`', 'Unplug the stick.',
+                 '**Without ARESTOOLS:** `' + LOCAL_EXPORT + '`', 'Save the new title off the laptop as **provisional**',
                  '**Boot menu after the update finishes at shutdown (expected):**', commands['reboot'], pass_line('reboot'),
                  '10-minute rule', '**F12** (or **Fn+F12**) → **Bazzite**', commands['check'], commands['title'],
                  commands['records'], pass_line('check'), '**Update to … confirmed after the restart**',
                  '**Update to … was not applied: the deployments are as before it, and nothing is waiting**',
                  '**Update to … is in place and has not started yet**', '**… did not finish as recorded**',
                  'sudo passwd ares', commands['previous'], pass_line('previous'), '**Return to … confirmed after the restart**',
-                 '**forward again**', 'the last box: **forward** makes the newer release the next start again',
+                 '**forward again**', 'use the last box',
                  # 22c: forward again after previous, and back from plain Bazzite, never a new release.
                  # One word per meaning: the box runs forward, from every system, with no check-first
                  # dispatch and no boot-menu step (review 5's two-step path is gone with update's reorder).
@@ -1050,7 +1056,7 @@ class OwnerPathTest(unittest.TestCase):
             self.assertGreaterEqual(found, 0, value)
             position = found + len(value)
         boxes = [line for line in route.splitlines() if line.startswith('- [ ]')]
-        # 22d: the routine box first; then Windows, tools, tools only (the stick route), stage, title and stick,
+        # 22d: the routine box first; then Windows, tools, tools only (the stick route), stage, title and export,
         # restart, check, password, misbehaves, forward again.
         self.assertEqual(len(boxes), 11)
         self.assertTrue(boxes[0].startswith("- [ ] **New tools from Claude's terminal**"))
@@ -1139,13 +1145,12 @@ class OwnerPathTest(unittest.TestCase):
         card = section(texts['EMERGENCY.md'], 'failed-or-bad-update')
         for value in ('Windows Boot Manager', commands['previous'], pass_line('previous'), commands['reboot'],
                       pass_line('reboot'), '**Bazzite**', '(INSTALL-PROCEDURES.md#recovery-menu)',
-                      'take the row your last title named for the AresOS that ran before the update',
+                      'Take the row for the AresOS you ran before the update.', 'in your provisional title',
                       '**Boot menu after the update finishes at shutdown (expected):**', 'or the old AresOS returns by itself',
-                      'Whatever started, and however', 'check comes **first**, never previous before it',
+                      '**Check whichever system started.**',
                       # Review 5: a check just run keeps its result; otherwise check now; anything else → Help.
-                      "If you came here from a check you just ran (the update route's check box or misbehaves box, "
-                      "or the boot menu), use that check's result", '**was not applied** shows only once',
-                      '`' + commands['check'] + '` now', 'Then go by what that check shows',
+                      'If you just ran a check, use that result.', '**was not applied** shows only once',
+                      '`' + commands['check'] + '` before **previous**',
                       '- Any other result, also a check with none of these lines: do **not** run previous; '
                       '**STOP → go to [Help](INSTALL-REFERENCE.md#help)**',
                       '**Previous AresOS queued for the next start**', '**Return to … confirmed after the restart**',
@@ -1163,7 +1168,7 @@ class OwnerPathTest(unittest.TestCase):
         # The titled row; check before anything; previous where the update is in place or the new one runs;
         # never after "was not applied"; then rollback, then Windows.
         positions = [card.index(value) for value in (
-            'the row your last title named', commands['check'], '- **Update to … is in place and has not started yet**',
+            'Take the row for the AresOS you ran before the update', commands['check'], '- **Update to … is in place and has not started yet**',
             commands['previous'], '- **Update to … confirmed after the restart**', 'It misbehaves: **previous** the same way',
             '- **Update to … was not applied**', 'Do **not** run previous', '**rollback** to plain Bazzite',
             '**Windows Boot Manager**')]
@@ -1222,6 +1227,31 @@ class OwnerPathTest(unittest.TestCase):
         self.assertIn('[back to AresOS from stock](INSTALL-PROCEDURES.md#back-to-aresos-from-stock)', console)
         hang = section(texts['INSTALL-REFERENCE.md'], 'hung-shutdown-or-restart')
         self.assertIn('[update route](INSTALL.md#update-aresos-to-a-new-release)', hang)
+
+    def test_release28_checks_keep_the_terminal_open_and_restarts_wait_for_minecraft(self):
+        texts = documents()
+        guide = texts['INSTALL.md']
+        route = section(guide, UPDATE)
+        save = section(guide, SAVE_HOME)
+        card = section(texts['EMERGENCY.md'], 'failed-or-bad-update')
+        procedures = texts['INSTALL-PROCEDURES.md']
+        for text in (route.split('- [ ] **Check:**', 1)[1].split('- [ ]', 1)[0],
+                     route.split('- [ ] **Forward again', 1)[1], card,
+                     section(procedures, 'layout-completion'), section(procedures, 'abandon-completion'),
+                     section(procedures, 'recovery-menu'), texts['INSTALL-REFERENCE.md']):
+            self.assertIn('**Terminal** app', text)
+            self.assertRegex(text, r'open until the PASS lines')
+        for text in (route, card):
+            self.assertIn("release 27's desktop", text)
+            self.assertIn('Your Minecraft home files are there again when you return to release 28.', text)
+        self.assertIn('**Alt+F4**', save)
+        self.assertIn('**Minecraft was closed. Nothing is wrong.**', save)
+        for box in ('Restart into the new release', 'If the new release misbehaves', 'Forward again'):
+            text = route.split(f'- [ ] **{box}', 1)[1].split('- [ ]', 1)[0]
+            self.assertLess(text.index(f'(#{SAVE_HOME})'), text.index('sudo /var/lib/ares/at reboot'))
+        for text in (section(procedures, 'rollback-from-running-aresos'),
+                     *(line for line in card.splitlines() if 'sudo /var/lib/ares/at reboot' in line)):
+            self.assertLess(text.index(f'(INSTALL.md#{SAVE_HOME})'), text.index('sudo /var/lib/ares/at reboot'))
 
     def test_failed_update_card_routes_every_traced_case_to_the_aresos_from_before_the_update(self):
         """Review 4, finding 1, traced as the reviewer did: in the reference ledger (ways_back_ledger, which
@@ -1309,8 +1339,8 @@ class OwnerPathTest(unittest.TestCase):
         commands = json.loads((ROOT/'os/owner-tools/commands.json').read_text())
         card = section(documents()['EMERGENCY.md'], 'failed-or-bad-update')
         entry = card[:card.index('\n- ')]
-        positions = [entry.index(value) for value in ('If you came here from a check you just ran', "use that check's result",
-                     'a second check no longer shows it', 'Otherwise', '`' + commands['check'] + '` now')]
+        positions = [entry.index(value) for value in ('If you just ran a check', 'use that result',
+                     '**was not applied** shows only once', 'Otherwise', '`' + commands['check'] + '` before **previous**')]
         self.assertEqual(positions, sorted(positions))
         quotes = {'in-place-not-started': '- **Update to … is in place and has not started yet**',
                   'target-boot-confirmed': '- **Update to … confirmed after the restart**',
@@ -1713,13 +1743,14 @@ class OwnerPathTest(unittest.TestCase):
                  "After a **STOP tools folder** (Claude's own line; no administrator command ran) there is no export and no window",
                  '**' + bootstrap.label(fingerprint, bootstrap.ACTIONS['export-routine']) + '**',
                  '```bash\n' + commands['export-routine'] + '\n```',
-                 '`Tools stick absent: records copied to /run/ares-records with SHA256 readback`',
-                 '`This copy is on this laptop, not off it; uid 1001 can read it, and a restart deletes it`',
-                 '`Tools stick absent; full records remain internal`', '**SAFE TO REMOVE ARESTOOLS** means a copy off it',
-                 'never copies it into the repository, a pull request or the board',
-                 'After this box the tools stick still holds older tools', '`' + stale + '`',
-                 'cannot bring the current tools until Claude writes it again',
-                 '**Record:**', '[Return to step 8](#8-everyday-boot-and-recovery)', 'go on with the stage box')
+                 '**Without ARESTOOLS**', '`' + LOCAL_EXPORT + '`', 'a restart deletes it',
+                 '`Tools stick absent; full records remain internal`', '**With ARESTOOLS**', '`' + STICK_EXPORT + '`',
+                 'then unplug. The copy is on the stick.', 'The stick can still take records with older tools on it.',
+                 'Claude rewrites it from Windows before it can bring the current tools.',
+                 'Keep them out of the repository, pull requests and the board.',
+                 'Record the announced commit, the fingerprint and the three PASS lines.', 'go on with the stage box',
+                 'The title and export box after staging works with or without a stick.',
+                 '[return to step 8](#8-everyday-boot-and-recovery)')
         position = 0
         for value in order:
             found = box.find(value, position)
@@ -1734,7 +1765,7 @@ class OwnerPathTest(unittest.TestCase):
         for value in ("'Tools stick absent: records copied to '", "readers = 'only root can read it'",
                       "readers = 'uid ' + str(reader) + ' can read it'",
                       "'This copy is on this laptop, not off it; ' + readers + ', and a restart deletes it'",
-                      "'For a copy off the laptop plug in the tools stick and run export again'",
+                      "'For a copy off the laptop plug in the tools stick and run export again'", repr(STICK_EXPORT),
                       "'" + stale.replace('…', "' + found + '") + "'"):
             self.assertIn(value, media)
         owner_text = (ROOT/'os/owner-tools/owner.py').read_text()

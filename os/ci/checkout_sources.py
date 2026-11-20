@@ -106,10 +106,8 @@ def verify_git(root, rows, ref='HEAD'):
 def active_tables(root):
     """Current qualification, probe and preflight records; history stays intact."""
     root = pathlib.Path(root)
-    # The newest VM rehearsal's bindings are current: package 22d's once its
-    # rehearsal passed and recorded them (rebind.py rebind), before that
-    # package 22c's, package 27's, package 16's.
-    for package in ('22d', '22c', '27', '16'):
+    # New bindings take over only when the passing rehearsal is recorded.
+    for package in ('42', '22d', '22c', '27', '16'):
         staged = root / 'os/manifest/ci' / package / 'source-bindings.json'
         if staged.exists():
             break

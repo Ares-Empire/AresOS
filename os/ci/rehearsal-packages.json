@@ -198,7 +198,7 @@
       "dry-run-28": 180,
       "publish-28": 180,
       "resolve": 120,
-      "checks": 40,
+      "checks": 60,
       "release-28": 345
     },
     "titles": {

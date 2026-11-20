@@ -33,6 +33,9 @@ from test_ci_api_permissions import reachable
 from test_owner_staged_release import condition
 
 BRANCH = 'pkg/42-release-28'
+# Main at the November 19 cut, and the source commit used to publish release 28.
+CUT_BASE = 'fba94b2572a48a5f49c02defb391ee47bb4efec1'
+PUBLISHED_SOURCE = '7d5fbbf2c7f7c5b4d41dd707a9407e6401a4d062'
 WORKFLOW = yaml.load((ROOT / '.github/workflows/os-image.yml').read_text(), Loader=yaml.BaseLoader)
 FIXTURES = ROOT / 'os/tests/fixtures/release28-schemas'
 OVERRIDE = (ROOT / 'os/config' / rd.SCHEMA_OVERRIDE).read_text()
@@ -415,35 +418,30 @@ class SourceChangesTest(unittest.TestCase):
 
 
 class ImageSourcesTest(unittest.TestCase):
-    def test_this_branch_changes_no_image_source_but_the_jar_pin(self):
+    def test_the_published_cut_changes_only_the_reviewed_image_sources(self):
         with contextlib.chdir(ROOT):
-            try:
-                main_base = rd.main_merge_base()
-            except AssertionError:
-                self.skipTest('this checkout has no origin/main')
-            allowed, differing = rd.source_changes(main_base)
+            allowed, differing = rd.source_changes(CUT_BASE, PUBLISHED_SOURCE)
         self.assertEqual(differing, [])
-        self.assertLessEqual(set(allowed), set(rd.BRANCH_SOURCE_CHANGES))
+        self.assertEqual(set(allowed), {'os/minecraft/desktop.lock.json', 'os/build.sh'})
 
     def test_the_cut_fix_is_the_only_build_sh_change_allowed(self):
         # Review 11: exactly CUT_BYTECODE_FIX on main's build.sh at the cut, and nothing else, passes the source stop.
         with contextlib.chdir(ROOT):
-            try:
-                main_base = rd.main_merge_base()
-            except AssertionError:
-                self.skipTest('this checkout has no origin/main')
-            before = rd.blob(main_base, 'os/build.sh')
-        after = (ROOT / 'os/build.sh').read_bytes()
+            before = rd.blob(CUT_BASE, 'os/build.sh')
+            after = rd.blob(PUBLISHED_SOURCE, 'os/build.sh')
         self.assertTrue(rd.cut_bytecode_fix_only(before, after))
         self.assertFalse(rd.cut_bytecode_fix_only(before, after + b'echo extra\n'))
         self.assertFalse(rd.cut_bytecode_fix_only(before, before))
         self.assertFalse(rd.cut_bytecode_fix_only(before, after.replace(b'--clear-groups', b'--keep-groups')))
         self.assertFalse(rd.cut_bytecode_fix_only(None, after))
 
-    def test_the_source_list_covers_what_the_build_reads(self):
-        build, containerfile = (ROOT / 'os/build.sh').read_text(), (ROOT / 'os/Containerfile').read_text()
+    def test_the_source_list_covers_what_the_published_build_reads(self):
+        def published(path):
+            return git('show', f'{PUBLISHED_SOURCE}:{path}')
+
+        build, containerfile = published('os/build.sh'), published('os/Containerfile')
         # check-build.sh builds os/Containerfile with os/ as its context; the Containerfile copies it to /tmp/aresos.
-        self.assertIn('--file os/Containerfile os ', (ROOT / 'os/ci/check-build.sh').read_text())
+        self.assertIn('--file os/Containerfile os ', published('os/ci/check-build.sh'))
         self.assertIn('\nCOPY . /tmp/aresos/\n', containerfile)
         read = {os.path.normpath(rel) for rel in re.findall(r'/tmp/aresos/([\w.-]+(?:/[\w.-]+)*)', build + containerfile)}
         read -= {'ci'}  # the Containerfile checks it is absent (os/.containerignore)
@@ -454,15 +452,15 @@ class ImageSourcesTest(unittest.TestCase):
                 path = rel if rel == 'control' or rel.startswith('control/') else 'os/' + rel
                 self.assertTrue(any((path + '/').startswith(source + '/') for source in rd.IMAGE_SOURCES), rel)
         # Chrome's signing key, named by its lock; the source stage keeps only mod/ of this commit.
-        key = json.loads((ROOT / 'os/google-chrome.lock.json').read_text())['signing_key']['file']
+        key = json.loads(published('os/google-chrome.lock.json'))['signing_key']['file']
         self.assertTrue(('os/' + key).startswith('os/keys/'))
         self.assertIn('keep only mod/', build)
         self.assertIn('mod', rd.IMAGE_SOURCES)
         self.assertIn('control', rd.IMAGE_SOURCES)
         self.assertIn('os/.containerignore', rd.IMAGE_SOURCES)
-        # Every listed source exists here, and the branch's exceptions are among them.
+        # Every listed source exists in the published source tree, including the branch's exceptions.
         for source in rd.IMAGE_SOURCES:
-            self.assertTrue((ROOT / source).exists(), source)
+            self.assertEqual(git('ls-tree', '--name-only', PUBLISHED_SOURCE, '--', source), source)
         # The jar pin, and the cut's build.sh fix (review 11), which test_the_cut_fix_is_the_only_build_sh_change_allowed holds.
         self.assertEqual(set(rd.BRANCH_SOURCE_CHANGES), {'os/minecraft/desktop.lock.json', 'os/build.sh'})
 
@@ -1920,6 +1918,7 @@ class Guard42Test(unittest.TestCase):
         self.assertIn('Step 5 (2026-11-19): publish-28 and publish_cap from 0 to 1', ledger['budget'])
         self.assertEqual(ledger['job_bounds']['publish-28'], int(WORKFLOW['jobs']['release-28']['timeout-minutes']))
         self.assertEqual(ledger['job_bounds']['dry-run-28'], int(WORKFLOW['jobs']['release-28-dry-run']['timeout-minutes']))
+        self.assertEqual(ledger['job_bounds']['checks'], int(WORKFLOW['jobs']['regressions']['timeout-minutes']))
         # The check-build job's limit depends on its mode since 18c (131 for control, 120 otherwise); the ledger
         # bounds the resolve mode, the only check build package 42 dispatches.
         resolve = dict(base.UPDATE_INPUTS, **{'github.ref_name': 'pkg/42-release-28', 'inputs.rehearsal': '',

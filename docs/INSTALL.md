@@ -225,6 +225,12 @@ Later work is outside this installation path: [update to a new release](#update-
 
 **Record:** current boot order, latest stock title, future procedure result. **STOP → go to the [symptom card](EMERGENCY.md)**, then [Help](INSTALL-REFERENCE.md#help) if unresolved; return to step 8 after resolution. When permanently leaving AresOS, continue to [step 9](#9-retire-access-and-return-to-windows).
 
+### Save the Minecraft home before restarting
+
+If the Minecraft home is open on release 28, focus it. Click it or use **Alt+Tab** if another window covers it. Press **Alt+F4** (or **Alt+Fn+F4**). Wait for **Minecraft was closed. Nothing is wrong.** The game saves as it closes. If that screen is already there, leave it open. If it does not appear after you try to close the home, stop and get [Help](INSTALL-REFERENCE.md#help) before restarting.
+
+If you were already in tty3, use **Ctrl+Alt+F1** (or **Ctrl+Alt+Fn+F1**, Ctrl = Strg) to reach the desktop. Try F2 in place of F1 if you see the sign-in screen. After Minecraft closes, go back to the same tty3 session.
+
 ### Update AresOS to a new release
 
 **Update gate: require STEP 5 COMPLETE and a checked running AresOS before authentication or updating.** Step 7's record is that check; it also covers the last box, **Forward again, or back from plain Bazzite**, which needs no announcement, stick, login or network. New tools or a new release need the maintainer's announcement, and this guide must carry their tools fingerprint. For new tools the announcement is the maintainer's board note for you with the full commit hash and the tools fingerprint: the **announced commit**. Claude installs only that commit, never the newest one on GitHub by itself. If the marker, step 7's record or a needed announcement is missing, STOP → [Help](INSTALL-REFERENCE.md#help).
@@ -232,6 +238,8 @@ Later work is outside this installation path: [update to a new release](#update-
 After the first update three systems are installed: the **newer AresOS**, the **older AresOS** and **plain Bazzite** (the corrected stock). An update keeps Windows the firmware default, the **current AresOS as rollback** and the **corrected stock pinned**, and removes the other AresOS when it finishes at shutdown. With the current tools (this guide's fingerprint) each of these commands names where the next start goes, works from every installed system and never creates or deletes one: **forward** the newest installed AresOS (forward again after **previous**, back from plain Bazzite), **previous** the older AresOS, **rollback** (on an AresOS) and **keep-stock** (on plain Bazzite) plain Bazzite. A new release comes only through **update** (the stage box). Layout trials work on an AresOS that starts next. Every title names what runs, what starts next and the boot menu's rows: [rollback, keep-stock and the boot menu](INSTALL-PROCEDURES.md#recovery-menu), [what you notice on each system](INSTALL-PROCEDURES.md#what-you-notice-on-each-system). **Older tools** (before package 22c) STOP these after an update with **Expected exact stock/AresOS pair**: that line means **install the current tools first**: the routine box below, or the stick's Windows box, tools box and tools-only box after it. Run one owner command at a time: a second one STOPs with **Another owner command is running**; let the first finish.
 
 - [ ] **New tools from Claude's terminal** (the routine way; no stick, no Windows, no console): on the running AresOS, R27 or later (before R27 your daily account `ares` is no administrator), with you at the laptop and signed in to its desktop. Claude runs the lines; you approve the one line that changes the laptop by typing your password into a window. If anything below differs, press **Cancel** and use the stick boxes after this one instead. Only this box's install line and its export line run this way for now: every other owner command stays at the console (the boxes below) until a later release brings it here.
+
+  On release 28, open the **Terminal** app on the desktop first. `at check` needs it open until the PASS lines appear.
 
   First Claude, in its own terminal as `ares` (no window yet), brings its copy of the repository up to the announced commit only by a fast-forward pull (never a reset, and never a checkout over other sessions' work), and runs this line with the commit's full hash added at the end. From here until the last PASS line no other Claude session runs an owner command: they run one at a time, and two at once make one of them STOP.
 
@@ -287,7 +295,10 @@ trap "echo STOP after install: check or title refused" ERR
 SUDO_ASKPASS=/usr/bin/ksshaskpass SSH_ASKPASS_PROMPT= /usr/bin/sudo -k -A -p 'AresOS owner tools df89ac33: export the records' /usr/bin/bash -c '/var/lib/ares/at export'
 ```
 
-  Version 4 and later tools without a stick answer `Tools stick absent: records copied to /run/ares-records with SHA256 readback`, then `This copy is on this laptop, not off it; uid 1001 can read it, and a restart deletes it`. Older tools (when the install stopped before it finished) answer `Tools stick absent; full records remain internal`. Either way the records stay on this laptop: only the stick's **SAFE TO REMOVE ARESTOOLS** means a copy off it. Claude reads that copy only to help you, and never copies it into the repository, a pull request or the board (it holds disk serials and firmware entries). After this box the tools stick still holds older tools: it still takes records (export to it then adds `The stick holds tools this laptop installed before (SHA256 …), not the installed ones`), but it cannot bring the current tools until Claude writes it again (for now from Windows, the box below); Claude asks you for the stick about once per release. **Record:** the announced commit, the fingerprint and the three PASS lines; then [Return to step 8](#8-everyday-boot-and-recovery). For a new release, [enter tty3 and become administrator](INSTALL-REFERENCE.md#console) and go on with the stage box.
+  - **Without ARESTOOLS**, version 4 and later tools print `Tools stick absent: records copied to /run/ares-records with SHA256 readback`. The copy stays on the laptop and a restart deletes it. Older tools print `Tools stick absent; full records remain internal` if the tools install stopped before it finished.
+  - **With ARESTOOLS**, look for `SAFE TO REMOVE ARESTOOLS; unplug before every shutdown/restart`, then unplug. The copy is on the stick. The stick can still take records with older tools on it. Claude rewrites it from Windows before it can bring the current tools.
+
+  Claude uses the records to help you. Keep them out of the repository, pull requests and the board. Record the announced commit, the fingerprint and the three PASS lines. For a new release, [enter tty3 and become administrator](INSTALL-REFERENCE.md#console) and go on with the stage box. The title and export box after staging works with or without a stick. For tools only, [return to step 8](#8-everyday-boot-and-recovery).
 
 - [ ] **Windows side** (the stick route for new tools, second after the routine box: when the desktop or Claude is unavailable, or when you prefer the stick). The maintainer runs it in PowerShell 7 in the reviewed repository at the announced commit, only ARESTOOLS connected; replace `T` with its actual D–Z letter, never C:. The first line keeps the old bundle under a dated name (skip it on a stick without `ares-tools`):
 
@@ -319,7 +330,7 @@ bash ./at install'
 
 Require `SHA256SUMS: OK`, every listed file's OK and `PASS install` with **Tools updated from version** and the same fingerprint (a repeat says **Tools already installed; nothing changed**). It asks no serials, keeps every record, keeps the replaced tools privately and refuses older tools (a downgrade) with nothing changed. Keep every other console idle: it STOPs while anything uses the installed tools, and for a moment the owner commands are unavailable; a STOP always leaves working tools in place. Any STOP → [A tools command stopped](EMERGENCY.md#a-tools-command-stopped); Return to this update route only after Help.
 
-- [ ] **Tools only** (the announcement brings new tools and no new release): finish here, in the same root session:
+- [ ] **Tools only** (the announcement brings new tools and no new release): on release 28, open the **Terminal** app on the desktop and keep it open until the PASS lines appear. Finish in the same tty3 root session:
 
 ```bash
 sudo /var/lib/ares/at check
@@ -343,16 +354,21 @@ sudo /var/lib/ares/at update
 
 Enter the username and token **only at the hidden token prompt**; require `PASS login`, then `PASS update`. Any other STOP → **STOP → [Help](INSTALL-REFERENCE.md#help)**; never retry with another target or reboot.
 
-- [ ] **Title and stick:**
+- [ ] **Title and export:**
 
 ```bash
 sudo /var/lib/ares/at title
 sudo /var/lib/ares/at export
 ```
 
-Require `PASS title`, `PASS export` and **SAFE TO REMOVE ARESTOOLS**; unplug. Save the new title as **provisional** with its state and time; every older title is INVALID. Its line **Boot menu after the update finishes at shutdown (expected):** names the rows the next start will show; the [failed-update card](EMERGENCY.md#failed-or-bad-update) uses it.
+Require `PASS title` and `PASS export`. Then look for the line that matches your route:
 
-- [ ] **Restart into the new release:**
+  - **With ARESTOOLS:** `SAFE TO REMOVE ARESTOOLS; unplug before every shutdown/restart`. Unplug the stick.
+  - **Without ARESTOOLS:** `Tools stick absent: records copied to /run/ares-records with SHA256 readback`. A restart deletes this local copy.
+
+Save the new title off the laptop as **provisional**, with its state and time. Every older title is INVALID. Its **Boot menu after the update finishes at shutdown (expected):** line names the rows the [failed-update card](EMERGENCY.md#failed-or-bad-update) uses. Then go to the restart box.
+
+- [ ] **Restart into the new release:** if you are on release 28, [save and close the Minecraft home](#save-the-minecraft-home-before-restarting) first.
 
 ```bash
 sudo /var/lib/ares/at reboot
@@ -360,7 +376,7 @@ sudo /var/lib/ares/at reboot
 
 Require `PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start` (screen may disappear). The update finishes during shutdown: a hang uses the [10-minute rule](INSTALL-REFERENCE.md#hung-shutdown-or-restart), never an immediate power hold. At power-on **F12** (or **Fn+F12**) → **Bazzite**. The new AresOS not starting, or the old one or stock returning → [Failed or bad update](EMERGENCY.md#failed-or-bad-update); in the boot menu take only a row your last title named, and never repeat the update without Help.
 
-- [ ] **Check:** [tty3 → sudo -i](INSTALL-REFERENCE.md#console), then Return to this update route:
+- [ ] **Check:** on the release 28 home screen, open the **Terminal** app. If you see the AresOS first-start terminal, leave it open. `at check` needs a terminal open until the PASS lines appear. Then [tty3 → sudo -i](INSTALL-REFERENCE.md#console) and run:
 
 ```bash
 sudo /var/lib/ares/at check
@@ -369,20 +385,22 @@ sudo /var/lib/ares/at records
 ```
 
 Require `PASS check` with **Update to … confirmed after the restart**, then `PASS title` and `PASS records`: the new release booted, the previous AresOS beside it, the corrected stock still pinned, the title's first line **newer AresOS … runs and starts next** and its **Boot menu at the next start:** line with all three rows, labwc and foot running and the daily account exactly as this release's record says. Save the refreshed title; the provisional one is INVALID. Prove console and foot typing of `yz-/!ü` and fresh password sudo as in step 7. Instead of the confirmation:
-  - **Update to … was not applied: the deployments are as before it, and nothing is waiting**: the update did not finish at shutdown and the old release runs; nothing is lost. Do **not** run previous (it would go one release further back). → [Failed or bad update](EMERGENCY.md#failed-or-bad-update) with this check's result (it shows only once); Help decides each repeat.
-  - **Update to … is in place and has not started yet**, with **this start was not the default**: another boot-menu row was taken. Restart with no choice and check again.
+  - **Update to … was not applied: the deployments are as before it, and nothing is waiting**: the update did not finish at shutdown and the old release runs. Do **not** run previous (it would go one release further back). → [Failed or bad update](EMERGENCY.md#failed-or-bad-update) with this check's result (it shows only once); Help decides each repeat.
+  - **Update to … is in place and has not started yet**, with **this start was not the default**: another boot-menu row was taken. On release 28, [save and close the Minecraft home](#save-the-minecraft-home-before-restarting) first. Restart with no choice and check again.
   - A STOP **… did not finish as recorded** → [Failed or bad update](EMERGENCY.md#failed-or-bad-update); never repeat it without Help.
 
 - [ ] **Administrator password, once:** on the first update to a release whose announcement says `ares` is an administrator, set its password in this root session with `sudo passwd ares`. Type a long, unique passphrase twice yourself, by the every-install rule: only **lowercase a–x and top-row digits 0–9**, so it types the same in German, US International and US. Require the line ending **updated successfully**. Never photograph, record or send it; keep it private. Then in foot as `ares`, run `sudo -v` and require that password to be accepted.
 
-- [ ] **If the new release misbehaves** but starts: in the tty3 root session, `sudo /var/lib/ares/at check` first. Run previous only on the newer release this route installed: the check box showed **Update to … confirmed after the restart** (on a later day, check shows **newer AresOS … runs and starts next**, with that confirmation in your record; a **Forward to …** confirmation is a return, not this). Anything else, above all **was not applied** → [Failed or bad update](EMERGENCY.md#failed-or-bad-update) with this check's result, never previous.
+- [ ] **If the new release misbehaves** but starts: on release 28, open the **Terminal** app and keep it open until the PASS lines appear. In the tty3 root session, run `sudo /var/lib/ares/at check` first. Run previous only on the newer release this route installed: the check box showed **Update to … confirmed after the restart** (on a later day, check shows **newer AresOS … runs and starts next**, with that confirmation in your record; a **Forward to …** confirmation is a return, not this). Anything else, above all **was not applied** → [Failed or bad update](EMERGENCY.md#failed-or-bad-update) with this check's result, never previous.
 
 ```bash
 sudo /var/lib/ares/at previous
 sudo /var/lib/ares/at title
 ```
 
-Require `PASS previous`, **Previous AresOS queued for the next start** and `PASS title` with **… runs; older AresOS … starts next, after the restart**; save that title, old titles are INVALID. Then `sudo /var/lib/ares/at reboot`, requiring `PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start`, **F12** (or **Fn+F12**) → **Bazzite**, and repeat the check box: the previous release must be booted and `PASS check` must show **Return to … confirmed after the restart**. Tell the maintainer; the newer release stays installed beside it. To go **forward again** later, use the last box: **forward** makes the newer release the next start again. If the older release misbehaves too: [rollback to plain Bazzite](INSTALL-PROCEDURES.md#rollback-from-running-aresos); if nothing works, **F12** → **Windows Boot Manager** → Help.
+Require `PASS previous`, **Previous AresOS queued for the next start** and `PASS title` with **… runs; older AresOS … starts next, after the restart**. Save that title. Old titles are INVALID. On release 28, [save and close the Minecraft home](#save-the-minecraft-home-before-restarting). Then run `sudo /var/lib/ares/at reboot`. Require `PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start`. Press **F12** (or **Fn+F12**) → **Bazzite**, then repeat the check box. The previous release must be booted and `PASS check` must show **Return to … confirmed after the restart**. Tell the maintainer. To go **forward again** later, use the last box. If the older release misbehaves too, [roll back to plain Bazzite](INSTALL-PROCEDURES.md#rollback-from-running-aresos). If nothing works, **F12** → **Windows Boot Manager** → Help.
+
+  For this update, **previous** takes you back to release 27's desktop. Your Minecraft home files are there again when you return to release 28.
 
 - [ ] **Forward again, or back from plain Bazzite** (no new release): on the older AresOS after **previous**, on plain Bazzite, or on any system the boot menu started, [enter tty3 and become administrator](INSTALL-REFERENCE.md#console) (on Bazzite as `ares-recovery` with the installer's German layout), then Return to this update route. This box runs **forward**: it makes the newest installed AresOS the next start from every system, never installs a release, removes nothing and needs no stick, login or network.
 
@@ -392,8 +410,10 @@ sudo /var/lib/ares/at title
 ```
 
 Require `PASS forward` and `PASS title`. Save the title; older titles are INVALID. Then by what forward says:
-  - **Newest installed AresOS starts next**, with the release (the title: **… starts next, after the restart**, or on that AresOS itself **… runs and now starts next; no restart is waiting**): `sudo /var/lib/ares/at reboot`, requiring `PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start`, **F12** (or **Fn+F12**) → **Bazzite**, no boot-menu choice, and repeat the check box: `PASS check` must show **Forward to … confirmed after the restart**.
+  - **Newest installed AresOS starts next**, with the release (the title: **… starts next, after the restart**, or on that AresOS itself **… runs and now starts next; no restart is waiting**): on release 28, [save and close the Minecraft home](#save-the-minecraft-home-before-restarting) before `sudo /var/lib/ares/at reboot`. Require `PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start`. Press **F12** (or **Fn+F12**) → **Bazzite**, no boot-menu choice, and repeat the check box. `PASS check` must show **Forward to … confirmed after the restart**.
   - **… already starts next; nothing changed**: nothing was needed and nothing was recorded, so no confirmation line is needed (one can still appear for an earlier change). With **It runs now** you are there. With **It does not run yet: it starts at the next restart**, restart as in the bullet above, with no boot-menu choice. Either way the box is complete with `PASS check` showing that AresOS with **… runs and starts next**.
+
+  Back on release 28, open the **Terminal** app before `at check`. Keep it open until the PASS lines appear.
 
 From plain Bazzite, **previous** goes to the older AresOS the same way: **Previous AresOS queued for the next start**, and after the restart its check shows **Return to … confirmed after the restart**; or **… already starts next; nothing changed**, complete as above. A STOP → [A tools command stopped](EMERGENCY.md#a-tools-command-stopped); Return to this update route only after Help.
 

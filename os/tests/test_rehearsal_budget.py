@@ -9,6 +9,23 @@ import rehearsal_guard as guard
 
 
 class BudgetTest(unittest.TestCase):
+    def test_release28_untimed_checks_job_uses_sixty_minutes(self):
+        ledger = guard.PACKAGES['42']
+        run = dict(id=1, event='workflow_dispatch', display_title=ledger['titles']['checks'], head_sha='a' * 40,
+                   created_at='2026-11-20T00:00:00Z', run_attempt=1, status='completed', conclusion='cancelled')
+        job = dict(name='Regression checks only (no image build or VM)', conclusion='cancelled', steps=[])
+
+        def api(path):
+            if path.startswith('actions/runs?'):
+                return dict(workflow_runs=[run])
+            return dict(total_count=1, jobs=[job])
+
+        guard.configure('42')
+        self.addCleanup(guard.configure, '11c')
+        with patch.object(guard, 'api', side_effect=api):
+            result = guard.budget(0)
+        self.assertEqual(result['consumed_minutes'], 60)
+
     def test_part_b_reservation_keeps_legacy_limits_and_covers_owner_limits(self):
         workflow = yaml.load((pathlib.Path(__file__).resolve().parents[2] /
                               '.github/workflows/os-image.yml').read_text(), Loader=yaml.BaseLoader)

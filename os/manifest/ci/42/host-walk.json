@@ -53,11 +53,11 @@
       "path": "briefs/14zze-checkout-bytes.md"
     },
     {
-      "sha256": "c56feddc7c0463289b02e165098182f4d3b617f30a7c2c13db93621589fd147e",
+      "sha256": "7edf4c00c47189ec44f876be9275a96015a8ffdfe1f87ba98f08149081e0560f",
       "path": "docs/EMERGENCY.md"
     },
     {
-      "sha256": "157859765d3687f92075735305ec986fd2067c4dbd01be1f8514df2cc586f7de",
+      "sha256": "ba17b1fdd9155fb39eba2e75f9a4986ce4c01d28311f2067dfee63fefa7ab2b8",
       "path": "docs/INSTALL.md"
     },
     {
@@ -65,7 +65,7 @@
       "path": "docs/install-tools/OwnerTools.psm1"
     },
     {
-      "sha256": "21820f72d679346288ad411cf0f68ab02104b550117ec549c01793b797791028",
+      "sha256": "cb303948bfea8308cc5d6b31bbcb7304135c96bdcdd8b92bbd6eeb44f5e1de3d",
       "path": "os/ci/checkout_sources.py"
     },
     {
@@ -169,7 +169,7 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "4b4f662d94fce5086111b77de1311e0d3c7eb7e6be2c5cafa9c0b2ef40cf5dac",
+      "sha256": "86951ccb992f16fc56cfee70dee13b1794398dcfe18013b9011baa98512c18f5",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
@@ -833,7 +833,7 @@
       "path": "os/tests/serial_pty.py"
     },
     {
-      "sha256": "74d708a2f68cf704cbdb8009a35da9e07eaeb13eeee5097890a3aa66713e639e",
+      "sha256": "e787eda4296128b6329d98e907a0ce2bdb624bdf085442ae51b647064c9db820",
       "path": "os/tests/test_checkout_sources.py"
     },
     {
@@ -973,7 +973,7 @@
       "path": "os/tests/test_owner_media.py"
     },
     {
-      "sha256": "6a8a77d7d3d17a5a571f10b4287253ea54678d8f8c8c68f42b7102ea76186f0a",
+      "sha256": "3a78889e8c80ad4919f723879035374ba99f51a61e0110551f7cf90c64b5584e",
       "path": "os/tests/test_owner_path.py"
     },
     {
@@ -1041,7 +1041,7 @@
       "path": "os/tests/test_owner_walk.py"
     },
     {
-      "sha256": "4ee9b09289650953bf319a2976579d6aed58cf0e737350af5d4f16fc1d6408fa",
+      "sha256": "345c1c2e5935bbc61fa2917e6cf4e112e4f348f0ed597bbf757a95f30cdd908b",
       "path": "os/tests/test_rehearsal_budget.py"
     },
     {

@@ -1397,3 +1397,228 @@ also applied. `git diff --check` passed. No file over 500 MB was found in `.work
 **PLAN-GAP 5 — local commit blocked.** Git returned `Read-only file system` when staging tried to create the
 worktree's index lock. The edits and receipt are in the worktree at `e54b4d2f`. No commit, push or dispatch was made.
 The live installer and the package 42 route still need hosted rehearsal 4.
+
+### Final review fixes (Codex gpt-6.2-sol)
+
+Rehearsal 4's input is `c1dba9f9d739fdfec3a99a87d47b34a91009e6ca`. These are local
+worktree edits. The release 28 image record, payload, tools and VM route were left at their rehearsed bytes.
+
+1. **Finding 2, Terminal after restart.** On release 28 the owner opens the **Terminal** app before going
+   to tty3 and keeps it open until the PASS lines of `at check`. The guide and card cover update, forward
+   and failed-update checks. The same requirement is in the layout, boot-menu and diagnostic procedures.
+   Tools-only checks on release 28 need it too. `previous` returns to release 27's desktop. The Minecraft
+   home files are there again when the owner returns to release 28. The tool checks for the desktop
+   `foot` process, and the VM's SETUP terminal supplies it.
+2. **Finding 3, export without the stick.** The routine and staged update boxes show the exact stick
+   and local-copy result lines. The staged box requires both PASS lines and the result for the owner's
+   route. It tells him to save the provisional title off the laptop before restarting. The local copy
+   in `/run/ares-records` disappears on restart.
+3. **Finding 1, save before restart.** The released AresOS Esc menu has no **Save and Quit** and does not
+   pause the game. A window that covers the home can trigger Minecraft's save on pause, but the mod
+   hides the corner saving text. The visible path is a normal close. The shipped labwc binding maps
+   **Alt+F4** to **Close**. Inspection with `javap -c -p` of the local Minecraft 26.2 jars showed
+   `Minecraft.runTick` handling `Window.shouldClose` with `stop`. After `run` returns, the client
+   calls `exitWorldAndClose`, then waits for the integrated server thread to exit. The server's
+   `stopServer` saves players and calls `saveAllChunks` with flush before closing the levels. The
+   shipped supervisor waits for a normal JVM exit, then opens recovery with **Minecraft was closed.
+   Nothing is wrong.** The guide makes that visible result the prerequisite to rebooting out of the
+   release 28 home. It covers the update's reboot, previous, forward, rollback and failed-update
+   restarts. The stock rollback and layout procedures link to the same step.
+4. **Install hold.** Both Stage C status cells use **STOP for a fresh install or reinstall.** The dates
+   and results for the checked installer stay in the history. The signed update on an existing
+   installation has its own row. Its release 28 rehearsal and laptop update are still pending in this edit.
+5. **Finding 4, rehearsal record.** Package 42 takes precedence once its `source-bindings.json` exists.
+   The test exercises the record step with a fixture, verifies the exact tables became active, and checks
+   that a subsequent edit becomes pending. The live receipt test reads the qualified host receipt from
+   Git even after the current host walk is refreshed. The real record step is still for the lead.
+6. **Finding 5, historical tests.** The image source tests compare the fixed main cut `fba94b25` to the
+   published source `7d5fbbf2`. They use the published build inputs to check source coverage. The release
+   gate still checks the live release branch against its merge base.
+7. **Finding 7, checks accounting.** Package 42 charges 60 minutes for an untimed checks job, matching the
+   regressions job's limit. The tests tie the limits together and exercise the fallback charge. The
+   rehearsal preflight already has 50 minutes at `c1dba9f9`. The four rehearsals and the 345-minute
+   rehearsal job limit stay as recorded.
+8. **Finding 6, known limit.** Packages 22c, 22d and 27 have no open PRs. Their rehearsal modes run only
+   on their own package branches. After this merge, a branch based on the merged code reads release 28
+   by default. Before rerunning an older mode, bind its preflight, target, bundles and expected versions
+   to its own release history, then refresh its host receipt. Updating the receipt alone cannot fix
+   the R13/R27 assertions in `os/ci/owner_vm.py`.
+
+**PLAN-GAP — save acknowledgement in the shipped session.** The manual close is traceable in the
+released sources and Minecraft bytecode. The recovery message reports a normal game exit. Rehearsal 4
+uses a planted, idle world and does not exercise a live edit followed by **Alt+F4**. I did not exercise
+it on the owner's desktop. Release 28's `at reboot` requests a reboot directly and its supervisor
+receives the stop signal without asking the game to save. If the normal-close message does not appear,
+the restart steps send the owner to Help. A later released image needs a save acknowledged before the
+session stops. Main has package 25's guardian work. That code is outside the release 28 image.
+
+#### Lead's record after rehearsal 4 passes
+
+Accept the hosted evidence first. Read the stock rewind, protected-disk and firmware audits, same-head
+native/model gates, private pull and auth cleanup, the no-terminal STOP, the home hashes, Control and the
+release 28 rehearsal result listed above. The result and binding tables must both name the actual run
+head below. Keep the published release record and the existing tools fingerprint.
+
+Run this from the package worktree with the final review fixes present. Set `run` to the accepted
+rehearsal's numeric run ID. The archive in `.work/` extracts only the files needed for the record.
+The fixed selector runs from the current checkout, and rebind reads the qualified files and waiting
+list from the archive.
+
+```bash
+set -euo pipefail
+run=REPLACE_WITH_PASSING_RUN_ID
+qualified=c1dba9f9d739fdfec3a99a87d47b34a91009e6ca
+test "$(gh run view "$run" --repo Ares-Empire/AresOS --json status,conclusion,headSha,headBranch \
+  --jq '[.status,.conclusion,.headSha,.headBranch] | join(" ")')" = "completed success $qualified pkg/42-release-28"
+mkdir -p .work
+record_work=$(mktemp -d .work/42-record.XXXXXX)
+gh run download "$run" --repo Ares-Empire/AresOS --name two-disk-evidence --dir "$record_work/evidence"
+python3 -B - "$record_work" "$qualified" "$run" <<'PY'
+import json
+from pathlib import Path
+import runpy
+import subprocess
+import sys
+
+scratch, commit, run = Path(sys.argv[1]), sys.argv[2], sys.argv[3]
+evidence = scratch / 'evidence/two-disk'
+result = json.loads((evidence / 'release-28-rehearsal-result.json').read_bytes())
+bindings = evidence / '42-bound-sources.json'
+bound = json.loads(bindings.read_bytes())
+released = json.loads(subprocess.check_output(['git', 'show', f'{commit}:os/manifest/releases/28.json']))
+assert result['status'] == 'passed' and result['qualified'] is True and result['real_commit']['equal'] is True
+assert result['commit'] == bound['commit'] == commit and bound['package'] == '42'
+assert result['release_28'] == released['reference'] and result['tools_version'] == 5
+assert result['tools'] == 'df89ac336e13db84934505551ba28163cbd60fa5b3b9fb0ec97b9585945896c6'
+
+sys.path.insert(0, str(Path('os/ci').resolve()))
+import checkout_sources as checkout
+
+prior_path = 'os/manifest/ci/22d/source-bindings.json'
+walk_path = 'os/manifest/ci/42/host-walk.json'
+pending_path = 'os/manifest/ci/16/pending-rebind.json'
+record_path = 'os/manifest/ci/42/source-bindings.json'
+prior = json.loads(subprocess.check_output(['git', 'show', f'{commit}:{prior_path}']))
+tables = [(table['name'], table['sources']) for table in bound['tables']]
+union = checkout.merge(tables)
+paths = {row['path'] for row in union}
+paths.update(row['path'] for table in prior['tables'] for row in table['sources'])
+paths.update((prior_path, walk_path, pending_path))
+tree = subprocess.check_output(['git', 'ls-tree', '-r', '--name-only', '-z', commit]).decode().split('\0')
+paths.update(name for name in tree if name.rsplit('/', 1)[-1] == '.gitattributes')
+snapshot = scratch / 'qualified'
+snapshot.mkdir()
+with subprocess.Popen(['git', 'archive', commit, '--', *sorted(paths.intersection(tree))],
+                      stdout=subprocess.PIPE) as archive:
+    subprocess.run(['tar', '-xf', '-', '-C', str(snapshot)], stdin=archive.stdout, check=True)
+    assert archive.wait() == 0
+
+tool = runpy.run_path('reviews/27-first-update-release/rebind.py')
+tool['rebind']('42', bindings, run, root=snapshot)
+assert checkout.active_tables(snapshot) == tables
+assert checkout.verify(snapshot, union) == len(union)
+assert json.loads((snapshot / record_path).read_bytes())['tables'] == bound['tables']
+waiting = json.loads((snapshot / pending_path).read_bytes())
+assert waiting['walk'] == record_path and not any(waiting[key] for key in ('changes', 'files', 'removed'))
+print('PASS package 42 active tables match the qualified bytes and the waiting list is empty')
+PY
+test ! -e os/manifest/ci/42/source-bindings.json
+cp "$record_work/qualified/os/manifest/ci/42/source-bindings.json" os/manifest/ci/42/
+cp "$record_work/qualified/os/manifest/ci/16/pending-rebind.json" os/manifest/ci/16/
+git diff --exit-code "$qualified" -- os/owner-tools os/manifest/release.json os/manifest/releases/28.json \
+  os/manifest/base.json docs/OWNER-TOOLS.md
+```
+
+Keep the archive record's exact tables. Update the package 42 signed-update row with the passing run
+and its qualified head after accepting the evidence. The live-game close and the laptop update have
+their own evidence. Keep the install hold. Preserve main's newer `os/ci/vm.py` and
+`os/config/usr/libexec/aresos-desktop` in the merge. Once the guide and merge edits are in place, rerun
+the following in the resulting worktree. The differences from the qualified rehearsal, including
+those two main files and the bound review edits, belong on the new waiting list. A refreshed host walk
+records only the resulting local checkout. The VM evidence stays tied to `c1dba9f9`. Retain the package
+branch ref after the squash merge, as for package 27. Full CI checkouts use it to fetch the fixed
+published and rehearsal Git objects.
+
+```bash
+git diff --name-status "$qualified" -- os/ci/vm.py os/config/usr/libexec/aresos-desktop
+python3 -B reviews/27-first-update-release/rebind.py pending "42 final review fixes"
+python3 -B reviews/27-first-update-release/rebind.py pending "42 merge retains main's newer VM and desktop supervisor"
+python3 -B reviews/42-release-28/walk-host.py
+for module in test_checkout_sources test_owner_equality; do
+  helper_status=0
+  pgrep -a -u ares -x ksshaskpass || helper_status=$?
+  test "$helper_status" -eq 1 || exit 1
+  python3 -B -m unittest discover -s os/tests -p "$module.py" || exit 1
+done
+```
+
+Require no output from each password-helper check before its module. Inspect the new waiting paths
+before the lead commits them. When the announcement commit is reachable from `origin/main`, verify
+its bytes and fingerprint before announcing it. Set `announced` to its full commit hash.
+
+```bash
+git merge-base --is-ancestor "$announced" refs/remotes/origin/main
+git diff --exit-code "$qualified" "$announced" -- os/owner-tools docs/OWNER-TOOLS.md os/manifest/release.json \
+  os/manifest/releases/28.json os/manifest/base.json
+git show "$announced:os/owner-tools/payload/SHA256SUMS" | sha256sum
+```
+
+The last command must give
+`df89ac336e13db84934505551ba28163cbd60fa5b3b9fb0ec97b9585945896c6`. Keep the run's evidence private
+and retain only reviewed, non-sensitive records in Git.
+
+#### Local verification
+
+`python3 -B reviews/27-first-update-release/rebind.py pending "42 final review fixes"` printed
+`pending: 40 bound files differ from the active bindings, 0 removed`.
+`python3 -B reviews/42-release-28/walk-host.py` printed
+`PASS package 42 host walk (release-28): 270 sources; no VM started`.
+
+`checkout_sources.verify_git` replayed all 270 rows in the historical host walk from `c1dba9f9`.
+The shell blocks in the lead instructions passed `bash -n`, and the embedded Python compiled.
+The actual package 42 record waits on the accepted rehearsal.
+
+The modules ran one at a time with `python3 -B -m unittest discover -s os/tests -p <module>.py`.
+`pgrep -a -u ares -x ksshaskpass` printed nothing before each module.
+`test_ways_back_model` used `ARESOS_MODEL_SCOPE=slice`. It processed 120,000 states,
+discovered 173,130, covered 3,185,862 edges and reached all eight journal outcomes.
+The first owner-path run found stale wording assertions and a missing German key label. The first
+owner-equality run caught a descriptive command name formatted as an invocation. The guide and
+assertions were corrected, and both modules were rerun.
+
+| Module | Tests | Seconds | Result |
+| --- | ---: | ---: | --- |
+| `test_release28` | 94 | 25.657 | OK |
+| `test_release28_rehearsal` | 44 | 35.003 | OK |
+| `test_release28_control` | 15 | 4.153 | OK |
+| `test_checkout_sources` | 9 | 1.150 | OK |
+| `test_owner_equality` | 12 | 105.521 | OK |
+| `test_owner_path` | 49 | 1.155 | OK |
+| `test_owner_sources` | 13 | 48.458 | OK |
+| `test_owner_walk` | 34 | 405.598 | OK |
+| `test_rehearsal_budget` | 5 | 0.035 | OK |
+| `test_owner_guard` | 12 | 0.057 | OK |
+| `test_ways_back_model` | 26 | 172.215 | OK |
+| `test_release27` | 41 | 6.695 | OK |
+| `test_ci_api_permissions` | 4 | 3.051 | OK |
+| `test_ci_step_environment` | 4 | 12.899 | OK |
+| `test_grub_bls` | 6 | 0.307 | OK |
+| `test_installer_webui` | 9 | 0.002 | OK |
+| `test_job_accounting` | 11 | 0.005 | OK |
+| `test_keyboard_release` | 5 | 0.003 | OK |
+| `test_organization_budget` | 19 | 0.013 | OK |
+| `test_owner_bootstrap` | 13 | 1.272 | OK |
+| `test_owner_entry` | 3 | 0.334 | OK |
+| `test_owner_session` | 16 | 0.267 | OK |
+| `test_owner_staged_release` | 7 | 0.046 | OK |
+| `test_owner_step_limits` | 4 | 0.012 | OK |
+| `test_probe_native` | 4 | 0.002 | OK |
+| `test_rehearsal_history` | 9 | 0.012 | OK |
+| `test_rehearsal_retry` | 7 | 0.035 | OK |
+| `test_stock_prepare` | 7 | 0.028 | OK |
+| `test_system_keyboard` | 7 | 0.011 | OK |
+| `test_tools_local_wiring` | 42 | 57.531 | OK |
+| `test_ways_back_probe` | 57 | 154.072 | OK |
+
+All 31 modules passed, for 588 tests and zero skips.
+`git diff --check` passed. No file over 500 MB was found in `.work/`.
