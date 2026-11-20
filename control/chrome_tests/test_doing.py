@@ -73,6 +73,7 @@ class Steps(Pages):
         self.cut = None       # an input on this element cuts the connection after it ran
         self.native = None    # the open native dialog's facts
         self.attempts = []    # every command the service tried to send, and when
+        self.reached = []     # when each input in `inputs` passed its last time check, right before its dispatch
 
     # --- the page -----------------------------------------------------------
 
@@ -167,9 +168,11 @@ class Steps(Pages):
         tab, element = reference['tab'], int(reference['element'][1:])
         if self.setup:
             time.sleep(self.setup)
-        if self.end is not None and time.monotonic() >= self.end:
+        checked = time.monotonic()
+        if self.end is not None and checked >= self.end:
             # background.js: the last thing before the dispatch; nothing reaches the page.
             raise Refused('expired', 'the time of this input ran out before its dispatch; nothing was dispatched')
+        self.reached.append(checked)
         self.dispatched.append(('input', copy.deepcopy(args)))
         verb = args['input']['verb']
         self.inputs.append((verb, element, {key: value for key, value in args['input'].items() if key not in ('verb', 'discard_unsaved')}))
@@ -576,18 +579,82 @@ class Doing(unittest.TestCase):
 
     # --- time ---------------------------------------------------------------------------
 
+    def timed(self, steps, dispatch, slow=None):
+        """`steps` with the dispatch second at `dispatch`: the result, the cut, and what came after the cut.
+
+        The cut is the list's own clock at that second. A step starts where
+        `run_steps` lets it, right after its check of the second; an input is
+        dispatched where the fake extension's last check passed (`reached`).
+        Those two are what the rule bounds. A command merely attempted after
+        the cut isn't: the bridge or the extension answers it `expired` and
+        nothing is dispatched (`attempts` keeps it). `slow(name, cut)` runs
+        after every command the fake answers.
+        """
+        clocks, starts = [], []
+
+        class Clock(doing.Deadline):
+            def __init__(self):
+                super().__init__()
+                clocks.append(self)
+        act, call = doing.Doing.act, self.browser.call
+
+        def started(doer, index, step):
+            starts.append(time.monotonic())
+            return act(doer, index, step)
+
+        def answered(name, **args):
+            reply = call(name, **args)
+            if slow:
+                slow(name, clocks[0].at(dispatch))
+            return reply
+        self.browser.call = answered
+        with patch.object(doing, 'DISPATCH', dispatch), patch.object(doing, 'Deadline', Clock), patch.object(doing.Doing, 'act', started):
+            result = self.do(steps)
+        [clock] = clocks
+        cut = clock.at(dispatch)
+        return result, cut, {'starts': [when for when in starts if when >= cut],
+                             'dispatches': [when for when in self.browser.reached if when >= cut]}
+
     def test_no_step_starts_after_the_dispatch_second_and_not_run_counts_the_rest(self):
         refs = self.refs()
         self.browser.effects[2] = lambda _: time.sleep(.12)
-        with patch.object(doing, 'DISPATCH', .5):
-            started = time.monotonic()
-            result = self.do([{'do': 'fill', 'ref': refs['Name'], 'text': str(index)} for index in range(20)])
+        result, _, late = self.timed([{'do': 'fill', 'ref': refs['Name'], 'text': str(index)} for index in range(20)], .5)
         ran = len(result['steps'])
         self.assertTrue(1 <= ran < 20, ran)
         self.assertEqual(self.outcomes(result), ['done'] * ran)
         self.assertEqual((result['deadline'], result['not_run'], len(self.browser.inputs)), (True, 20 - ran, ran))
-        late = [name for name, when in self.browser.attempts if when >= started + .5 and name in ('facts', 'input')]
-        self.assertEqual(late, [], 'no step starts after the cut: not even its facts are asked for')
+        # Where the cut falls in a step depends on the machine: a step that started before it may have its
+        # input answered `expired` after it, which dispatched nothing and counts in not_run (the cases below).
+        self.assertEqual(late, {'starts': [], 'dispatches': []}, 'no step starts and no input is dispatched after the cut')
+
+    def test_after_a_step_whose_page_work_runs_past_the_cut_no_step_starts(self):
+        # The cut is a second in, so the three quick steps before it end well before it on a loaded machine too.
+        refs = self.refs()
+
+        def slow(name, cut):
+            if name == 'input' and len(self.browser.inputs) == 3:
+                time.sleep(max(0.0, cut + .05 - time.monotonic()))  # the third input's page work ends after the cut
+        result, cut, late = self.timed([{'do': 'fill', 'ref': refs['Name'], 'text': str(index)} for index in range(20)], 1, slow)
+        self.assertEqual(late, {'starts': [], 'dispatches': []})
+        self.assertEqual(self.outcomes(result), ['done'] * 3)
+        self.assertEqual((result['deadline'], result['not_run'], len(self.browser.inputs)), (True, 17, 3))
+        self.assertEqual([name for name, when in self.browser.attempts if when >= cut and name in ('facts', 'input')], [],
+                         'a fourth step never started: not even its facts were asked for')
+
+    def test_a_step_started_before_the_cut_whose_input_comes_after_it_dispatches_nothing_and_counts_in_not_run(self):
+        # The case that made the test above fail on a loaded machine (PROGRESS, step 3b, latency): the fourth
+        # step started before the cut and its input was attempted after it. The bridge refused it unsent.
+        refs = self.refs()
+
+        def slow(name, cut):
+            if name == 'facts' and len(self.browser.inputs) == 3:
+                time.sleep(max(0.0, cut + .05 - time.monotonic()))  # the fourth step's facts come back after the cut
+        result, cut, late = self.timed([{'do': 'fill', 'ref': refs['Name'], 'text': str(index)} for index in range(20)], 1, slow)
+        self.assertEqual(late, {'starts': [], 'dispatches': []})
+        self.assertEqual(self.outcomes(result), ['done'] * 3)
+        self.assertEqual((result['deadline'], result['not_run'], len(self.browser.inputs)), (True, 17, 3))
+        self.assertEqual([name for name, when in self.browser.attempts if when >= cut and name in ('facts', 'input')], ['input'],
+                         'the fourth step started before the cut and its input was attempted after it, and refused')
 
     def test_an_input_answered_expired_dispatched_nothing_counts_in_not_run_and_its_operation_says_so(self):
         refs = self.refs()
