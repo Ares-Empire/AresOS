@@ -95,8 +95,11 @@ Ares-Empire/AresOS --interval 300` in a background shell.
      unexplained daily-profile reconnect timeouts, a known limit: watch for it in step 6's runs); checks_only
      44640281276; 10 of 12 control runs used. For the security review: C9 compares against a probe-only start,
      because Chrome calls the update service itself (our ID: zero non-file mentions). `linux-aresos` has the
-     CI-only `os/` diff and was asked whether R28 is published. **Next: step 6**, which merges main first (as
-     agreed above), then the rehearsal checks, the two final greens, README, the report text.
+     CI-only `os/` diff: **read clean** (01:40). R28 is published privately but pkg/42 isn't on main yet (Fri
+     afternoon, after its third rehearsal); `linux-aresos` messages when it is. **Step 6a running** (Codex
+     `18cb-step6a`): rehearsal checks, README, report text with placeholders, `checks_only`; no control run.
+     **6b after pkg/42 is on main:** merge main (as agreed above), the two final greens (2 control runs left),
+     fill the placeholders.
 4. **Package 28** (#72): held until right after R29's cut, then merge and retarget #116 to main.
 5. **Board:** #386 (N8 and N9 follow-up, one re-pin), #298 (live Chrome setup with him). #337 and #385 done.
 6. **Budget (`mac-capacity`, 06:50):** Claude about 2% a day for this lead; one Claude agent at a time; no Claude
