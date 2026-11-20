@@ -63,8 +63,8 @@ def record(digest='28' * 32, identity=walk.IDENTITY, daily_wheel=True):
 class LedgerTest(unittest.TestCase):
     def test_the_kind_is_recorded_with_cap_3_and_22ds_bounds(self):
         # Step 3 recorded it with cap 0; step 6 raised it to the brief's three rehearsal runs.
-        self.assertEqual(LEDGER['dispatch_caps'][MODE], 5)
-        self.assertEqual((LEDGER['dispatch_caps']['checks'], LEDGER['minute_cap']), (10, 2400))
+        self.assertEqual(LEDGER['dispatch_caps'][MODE], 6)
+        self.assertEqual((LEDGER['dispatch_caps']['checks'], LEDGER['minute_cap']), (11, 2400))
         self.assertIn('Step 6 (2026-11-19, the lead): release-28 from 0 to 3', LEDGER['budget'])
         self.assertEqual(LEDGER['job_bounds'][MODE], guard.PACKAGES['22d']['job_bounds']['tools-local'])
         self.assertEqual(LEDGER['titles'][MODE], 'Two-disk rehearsal (release-28)')
@@ -76,8 +76,11 @@ class LedgerTest(unittest.TestCase):
     def test_the_cap_stops_the_dispatch_after_it(self):
         run = dict(event='workflow_dispatch', head_sha='a' * 40, run_attempt=1, status='completed', conclusion='failure',
                    created_at='2026-11-17T18:00:00Z', id=1, display_title=LEDGER['titles'][MODE])
+        # One timed step, so the guard charges the job's 10 minutes, not its 345-minute bound: seven unaccountable
+        # runs would pass the 2400-minute cap before the dispatch cap this test is about.
         job = dict(name='Pinned live ISO inspection and two-disk rehearsal', conclusion='failure',
-                   started_at='2026-11-17T18:00:00Z', completed_at='2026-11-17T18:10:00Z', steps=[])
+                   started_at='2026-11-17T18:00:00Z', completed_at='2026-11-17T18:10:00Z',
+                   steps=[dict(name='Set up job', started_at='2026-11-17T18:00:00Z', completed_at='2026-11-17T18:10:00Z')])
         guard.configure('42')
         self.addCleanup(guard.configure, '11c')
         api = lambda path: dict(workflow_runs=[run]) if path.startswith('actions/runs?') else dict(total_count=1, jobs=[job])
@@ -87,14 +90,15 @@ class LedgerTest(unittest.TestCase):
                     self.assertRaisesRegex(AssertionError, MODE + ' dispatch allowance exhausted'):
                 guard.budget(0)
             self.assertEqual(guard.budget(0)['dispatch_counts'][MODE], 1)
-        # Cap 5 (step 6, then 2026-11-20 twice; rehearsal 4 stopped on the walk's login rule): the sixth stops.
-        runs = [dict(run, id=n) for n in range(1, 7)]
+        # Cap 6 (step 6, then 2026-11-20 three times; rehearsal 4 stopped on the walk's login rule, rehearsal 5 on a
+        # stalled serial console): the seventh stops.
+        runs = [dict(run, id=n) for n in range(1, 8)]
         api = lambda path: dict(workflow_runs=runs) if path.startswith('actions/runs?') else dict(total_count=1, jobs=[job])
         with patch.object(guard, 'api', side_effect=api):
             with self.assertRaisesRegex(AssertionError, MODE + ' dispatch allowance exhausted'):
                 guard.budget(0)
             del runs[-1]
-            self.assertEqual(guard.budget(0)['dispatch_counts'][MODE], 5)
+            self.assertEqual(guard.budget(0)['dispatch_counts'][MODE], 6)
 
 
 class DispatchTest(unittest.TestCase):
