@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
+import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 import {harnessTools} from '../chrome/ci/harness-tools.mjs';
-import {observerCommands} from '../chrome/ci/harness-observer.mjs';
+import {instrumentFixtureObserver} from '../chrome/ci/harness-observer.mjs';
 
 const ok=data=>({ok:true,data,pending:{items:[]}});
 const outline=(text,other={})=>ok({reads:[{untrusted_content:{outline:text,...other}}]});
@@ -85,10 +86,21 @@ test('native rows and tabs come from the observer and the action uses the public
 
 test('the instrumented observer returns native identity and cleanup without field values',async()=>{
   const document={frame:3,document:'native-reader-document',nodes:[{id:6,name:'Send',role:'button',value:'fixture value'}]};
-  const dispatch=runInNewContext('(async (command,expires=null)=>{const {tab}=command;'+observerCommands+'})',{
+  const source=readFileSync(new URL('../chrome/extension/background.js',import.meta.url),'utf8');
+  const dispatchStart='async function dispatch(command,expires=null) {';
+  const replaceOnce=(background,before,after)=>{
+    assert.equal(background.split(before).length,2);
+    return background.replace(before,()=>after);
+  };
+  assert.equal(instrumentFixtureObserver(source,dispatchStart,replaceOnce),source);
+  const instrumented=instrumentFixtureObserver(source,dispatchStart,replaceOnce,true);
+  const start=instrumented.indexOf(dispatchStart);
+  const end=instrumented.indexOf('\n}',start)+2;
+  let deadline=null;
+  const dispatch=runInNewContext(instrumented.slice(start,end)+'\ndispatch',{
     session:'native-session',releasing:new Set([7]),
     everyTab:async()=>({session:'native-session',tabs:[{tab:7,front:true,active:true,group:false,index:2,url:'http://fixture.test/?case=compose'}]}),
-    facts:async (...args)=>{assert.deepEqual(args,[7,null,'outline',null]);return {frames:[document],dialog:null};},
+    facts:async (...args)=>{assert.deepEqual(args,[7,null,'outline',deadline]);return {frames:[document],dialog:null};},
     sha256Hex:async text=>createHash('sha256').update(text).digest('hex'),
   });
   const list=JSON.parse(JSON.stringify(await dispatch({name:'fixture_observe_tabs'})));
@@ -104,6 +116,8 @@ test('the instrumented observer returns native identity and cleanup without fiel
   document.nodes.push({id:8,role:'text',text:['parser settled']});
   const changed=await dispatch({name:'fixture_observe_page',tab:7});
   assert.notEqual(changed.rows[0].reference.view,first.rows[0].reference.view);
+  deadline=123;
+  await dispatch({name:'fixture_observe_page',tab:7},deadline);
 });
 
 test('loss reports must remain in the raw step, bare error, and matching kept tab envelope',async()=>{
