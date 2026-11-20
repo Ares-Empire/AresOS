@@ -605,7 +605,8 @@ def test1_zones(fe, backend):
 
 
 def test1_output_off(fe, admin):
-    """The last part of test 1, late in the run: the right output stays off from here on (see control_reenable)."""
+    """The last part of test 1, late in the run: the right output stays off from here on (see
+    control_output_cycle for why it is not switched on again)."""
     global ZONES
     T = "test1"
     backend = start_backend(admin)
@@ -627,34 +628,42 @@ def test1_output_off(fe, admin):
     session.release()
     session.shut()
     stop(backend, signal.SIGINT)
-    return right
 
 
-def control_reenable(right):
-    """Not a test of the backend. The first run of this harness enabled the disabled headless output again
-    and labwc aborted (wlroots: head_send_state: Assertion `found' failed). This looks at when it does."""
-    def alive():
-        pump(1.0)
-        return procs["labwc"].poll() is None
+def control_output_cycle():
+    """Not a test of the backend's rules, and it decides nothing about the run's result. The first run of this
+    harness switched a headless output off and on again and labwc aborted (wlroots: head_send_state:
+    Assertion `found' failed). This shows when: a fresh labwc each time, with nobody else on
+    zwlr_output_manager_v1, with a client that only listens there, and with the backend."""
+    def fresh_labwc():
+        stop("labwc")
+        for stale in (f"{RUNTIME}/{DISPLAY_NAME}", f"{RUNTIME}/{DISPLAY_NAME}.lock"):
+            if os.path.exists(stale):
+                os.unlink(stale)
+        start_labwc()
+        pump(0.5)
 
-    def verdict():
-        return "keeps running" if alive() else f"aborts: {lines_of('labwc')[-1] if lines_of('labwc') else '(no message)'}"
+    def cycle():
+        right = max(randr_outputs().items(), key=lambda item: item[1][2] + item[1][0])[0]
+        for number, step in enumerate(("--off", "--on", "--off", "--on"), 1):
+            tool(["wlr-randr", "--output", right, step])
+            pump(0.7)
+            if procs["labwc"].poll() is not None:
+                return f"labwc aborts at step {number} ({step}): {(lines_of('labwc') or ['(no message)'])[-1]}"
+        return "labwc keeps running"
 
-    for step in ("--on", "--off", "--on"):
-        tool(["wlr-randr", "--output", right, step])
-        info(f"control: no backend runs; 'wlr-randr --output {right} {step}': labwc {verdict()}")
-        if not alive():
-            return
-    tool(["wlr-randr", "--output", right, "--off"])
+    fresh_labwc()
+    info(f"control: nobody else on zwlr_output_manager_v1; wlr-randr switches an output off, on, off, on: {cycle()}")
+    fresh_labwc()
+    spawn("output-listener", [WLH, "outputs"], CLIENT_ENV)
     pump(0.5)
+    info(f"control: a client that only listens on zwlr_output_manager_v1 is connected; off, on, off, on: {cycle()}")
+    stop("output-listener")
+    fresh_labwc()
     start_bus()
     backend = start_backend(Bus("stranger-3"))
-    for step in ("--on", "--off", "--on"):
-        tool(["wlr-randr", "--output", right, step])
-        info(f"control: the backend runs (started with the output off); 'wlr-randr --output {right} {step}': labwc {verdict()}; "
-             f"the backend saw {log_of(backend).count('retired a mode')} mode(s) and {log_of(backend).count('retired a head')} head(s) retired")
-        if not alive():
-            break
+    info(f"control: the backend is connected; off, on, off, on: {cycle()}; "
+         f"the backend saw {log_of(backend).count('retired a mode')} mode(s) and {log_of(backend).count('retired a head')} head(s) retired")
     stop(backend, signal.SIGINT)
 
 
@@ -1037,13 +1046,19 @@ def isolation_of_clients():
         handle.write("\n".join(sockets) + "\n")
 
 
-def setup():
-    global vptr, vkbd, ZONES
-    start_bus()
+def start_labwc():
+    """A headless labwc with two outputs. It is given the private bus only so that its key binding can reach
+    the backend, and told not to update any activation environment."""
     spawn("labwc", ["labwc", "-C", f"{ENV['XDG_CONFIG_HOME']}/labwc"],
           {**ENV, "WLR_BACKENDS": "headless", "WLR_RENDERER": "pixman", "WLR_HEADLESS_OUTPUTS": "2", "WLR_LIBINPUT_NO_DEVICES": "1", "LABWC_UPDATE_ACTIVATION_ENV": "0"})
     if not wait_for(lambda: os.path.exists(f"{RUNTIME}/{DISPLAY_NAME}"), 10):
         raise RuntimeError(f"labwc did not start: {log_of('labwc')[-600:]}")
+
+
+def setup():
+    global vptr, vkbd, ZONES
+    start_bus()
+    start_labwc()
     offered = tool(["wayland-info"]).stdout
     needed = ["zwlr_layer_shell_v1", "zwp_pointer_constraints_v1", "zwp_relative_pointer_manager_v1", "ext_data_control_manager_v1",
               "zwlr_output_manager_v1", "zwlr_virtual_pointer_manager_v1", "zwp_virtual_keyboard_manager_v1"]
@@ -1100,12 +1115,15 @@ def main():
         fe = run("test4", test4_teardown, fe, backend) or fe
         run("test3", test3_kill_and_watchdog, fe, stranger, backend)
         run("test7", test7_logs, fe, stranger, stranger)
-        right = run("test1", test1_output_off, fe, stranger)
+        run("test1", test1_output_off, fe, stranger)
         run("review1-finding2", review2_bus_loss, fe, stranger)
         run("review1-finding4", review4_signals)
         code = 1 if any(line.startswith("FAIL") for line in results) else 0
-        if right:
-            run("control", control_reenable, right)
+        # After the result is settled: it restarts labwc, and may see it abort.
+        try:
+            control_output_cycle()
+        except Exception as error:
+            info(f"control: could not be run: {type(error).__name__}: {error}")
     except Exception as error:
         traceback.print_exc()
         results.append(f"UNUSABLE {type(error).__name__}: {error}")

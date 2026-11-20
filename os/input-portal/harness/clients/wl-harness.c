@@ -9,6 +9,7 @@
 //                         axis STEPS     turn the wheel by STEPS clicks
 //                         key CODE 0|1   release or press a key (evdev code), with the modifier state that follows
 //                       It answers each line with OK once the compositor has taken it.
+//   wl-harness outputs  a client that binds zwlr_output_manager_v1 and only listens, until it is stopped
 //
 // A virtual device lives as long as its process: labwc's seat has a pointer and a keyboard only while a
 // device of that kind exists, and a client that holds a pointer lock loses it with the seat's pointer. So
@@ -25,6 +26,7 @@
 #include <wayland-client.h>
 #include <xkbcommon/xkbcommon.h>
 #include "virtual-keyboard-unstable-v1-client-protocol.h"
+#include "wlr-output-management-unstable-v1-client-protocol.h"
 #include "wlr-virtual-pointer-unstable-v1-client-protocol.h"
 #include "xdg-shell-client-protocol.h"
 
@@ -35,6 +37,8 @@ static struct wl_seat *seat;
 static struct xdg_wm_base *wm_base;
 static struct zwlr_virtual_pointer_manager_v1 *pointer_manager;
 static struct zwp_virtual_keyboard_manager_v1 *keyboard_manager;
+static struct zwlr_output_manager_v1 *output_manager;
+static bool wants_outputs;
 
 static void die(const char *why)
 {
@@ -64,6 +68,8 @@ static void registry_global(void *data, struct wl_registry *registry, uint32_t n
 		pointer_manager = wl_registry_bind(registry, name, &zwlr_virtual_pointer_manager_v1_interface, 1);
 	} else if (!strcmp(interface, zwp_virtual_keyboard_manager_v1_interface.name)) {
 		keyboard_manager = wl_registry_bind(registry, name, &zwp_virtual_keyboard_manager_v1_interface, 1);
+	} else if (wants_outputs && !strcmp(interface, zwlr_output_manager_v1_interface.name)) {
+		output_manager = wl_registry_bind(registry, name, &zwlr_output_manager_v1_interface, version < 4 ? version : 4);
 	}
 }
 
@@ -347,12 +353,38 @@ static int run_input(bool is_keyboard)
 	return 0;
 }
 
+// ---- the output listener -----------------------------------------------------------------------------------
+
+// It sends nothing after the bind and releases nothing: libwayland makes the head and mode objects as they
+// are announced and drops their events.
+static void outputs_head(void *d, struct zwlr_output_manager_v1 *m, struct zwlr_output_head_v1 *head) {}
+static void outputs_done(void *d, struct zwlr_output_manager_v1 *m, uint32_t serial) {}
+static void outputs_finished(void *d, struct zwlr_output_manager_v1 *m) {}
+
+static const struct zwlr_output_manager_v1_listener outputs_listener = {
+	.head = outputs_head,
+	.done = outputs_done,
+	.finished = outputs_finished,
+};
+
+static int run_outputs(void)
+{
+	if (!output_manager) {
+		die("the compositor lacks zwlr_output_manager_v1");
+	}
+	zwlr_output_manager_v1_add_listener(output_manager, &outputs_listener, NULL);
+	while (wl_display_dispatch(display) >= 0) {
+	}
+	return 0;
+}
+
 int main(int argc, char **argv)
 {
 	bool is_window = argc == 2 && !strcmp(argv[1], "window");
 	bool is_input = argc == 3 && !strcmp(argv[1], "input") && (!strcmp(argv[2], "pointer") || !strcmp(argv[2], "keyboard"));
-	if (!is_window && !is_input) {
-		fprintf(stderr, "usage: wl-harness window | wl-harness input pointer|keyboard\n");
+	wants_outputs = argc == 2 && !strcmp(argv[1], "outputs");
+	if (!is_window && !is_input && !wants_outputs) {
+		fprintf(stderr, "usage: wl-harness window | wl-harness input pointer|keyboard | wl-harness outputs\n");
 		return 2;
 	}
 	display = wl_display_connect(NULL);
@@ -363,6 +395,9 @@ int main(int argc, char **argv)
 	wl_registry_add_listener(registry, &registry_listener, NULL);
 	if (wl_display_roundtrip(display) < 0) {
 		die("the registry did not answer");
+	}
+	if (wants_outputs) {
+		return run_outputs();
 	}
 	return is_window ? run_window() : run_input(!strcmp(argv[2], "keyboard"));
 }

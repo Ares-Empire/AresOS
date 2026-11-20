@@ -48,6 +48,14 @@ the wrong program, secrets in a log, a capture with no way out, a change to the 
 - **A stop of the bus stops the backend.** When the bus connection ends, every session is closed and the process
   exits with an error (REVIEW-1, finding 2). The next call from a frontend starts it again through D-Bus activation.
 
+- **The chord's modifier keys reach the remote first.** Super and Shift are down before Escape, so the client gets
+  those two presses over EIS. labwc takes Escape for its binding and runs `--release`; the two releases reach the
+  client or the local window, whichever the timing gives. Whether Deskflow leaves them pressed on the other machine
+  is package (c)'s to check.
+- **Under labwc two of the losses can't happen on their own** (REVIEW-1, finding 5): labwc keeps the seat's pointer
+  whatever devices exist, and closes a layer surface only with its output, which is a change of screens. The code
+  reports both; only the portal's side of it is tested.
+
 ## Screens and barriers
 
 - **A barrier that partly faces another screen is refused whole**, not cut down to its free part. With the laptop
@@ -58,10 +66,17 @@ the wrong program, secrets in a log, a capture with no way out, a change to the 
   (x 0 to 1920 next to x 1600 to 3520), the first one's right edge lies inside the desktop and a barrier there is
   still placed. Screens overlap only in a mirrored or hand-made layout, and Deskflow sets its barriers on the
   outer edges of the whole desktop. Not fixed: low harm.
+- **labwc aborts when a headless output is switched off and on again while a client stays connected to
+  `zwlr_output_manager_v1`** (wlroots 0.19.3: `head_send_state: Assertion 'found' failed`). The backend is such a
+  client; one that only listens does the same, and with nobody connected labwc keeps running
+  (`evidence/step3-harness/results.txt`, the control lines). Not known for a real output, which has a list of
+  modes where a headless one has none. Package (c) must try it on real outputs before it ships; the fix, if one is
+  needed, is in labwc or in how long the backend keeps that protocol open.
+- **The EIS region is the size of the screens' bounding box, at (0, 0)** (upstream's). With a layout that doesn't
+  start at (0, 0) the region and the zones' coordinates differ by that offset.
 - **A head counts only with a current mode and a `wl_output` of the same name.** A head the compositor describes
   without a current mode is no zone. Not checked in step 2: whether labwc gives an output without a mode list
-  (a headless one) a current mode. If it doesn't, step 3's harness sees no zones, and `src/wayland/heads.rs`
-  needs the size from somewhere else.
+  (a headless one) a current mode. Step 3's harness shows it does: both headless outputs are zones.
 - **Logical sizes are computed, not asked for:** mode, transform and scale through wlroots' own arithmetic. The
   protocol carries the scale in 1/256 steps. labwc's scales are set through that same protocol, so they are on
   that grid; a compositor scale off the grid could differ from the computed size by a pixel.

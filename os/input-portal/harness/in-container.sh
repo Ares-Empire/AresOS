@@ -10,7 +10,9 @@ mkdir -p "$EV"
 
 # ---- isolation first: before anything is set or started -----------------------------------------------------
 env | sort > "$EV/isolation-start-env.txt"
-cat /proc/self/mountinfo > "$EV/isolation-mounts.txt"
+# Every mount point with its filesystem type (the sources are podman's own storage paths on the host).
+awk '{ for (i = 1; i <= NF; i++) if ($i == "-") { print $5, $(i + 1); break } }' /proc/self/mountinfo \
+    > "$EV/isolation-mounts.txt"
 
 fail=0
 must() { # must <what> <command...>

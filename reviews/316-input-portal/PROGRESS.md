@@ -190,57 +190,173 @@ All of it ran in rootless podman containers of the pinned image, with no host fo
 - **The log test installs a process-wide subscriber** (`portal.rs`, the last test): with a per-thread one,
   tracing switches off lines that another test's thread reaches first. It is the only test that does.
 
+## Step 3, the harness and tests 1 to 7: done (2026-11-20, Claude Fable 5.2)
+
+`main` was merged in first (`82c4a589`, 36 commits).
+
+| Commit | What |
+|---|---|
+| `7e846c9f` | REVIEW-1's findings 1 to 5 in the backend, with six new unit tests (72 in all). |
+| `1422d60e` | Findings 6 to 9 and the new capture limits in `KNOWN-LIMITS.md`; the `UPSTREAM.md` row. |
+| `1d5b4789` | The harness in its first working state; a debug line when labwc retires a head or a mode. |
+| the commit after it | The harness as it ran, its evidence (`evidence/step3-harness/`, `evidence/step3-build.txt`), this file. |
+
+### REVIEW-1, findings 1 to 5
+
+REVIEW-1 is Codex's static review of steps 1 and 2 (gpt-6.2-astra, high). The lead's triage (2026-11-19): fix 1
+to 5 with a test each; 6 to 9 are known limits (`KNOWN-LIMITS.md` has them with the reasons).
+
+| | The fix, in `os/input-portal/src/` | Its test |
+|---|---|---|
+| 1 | Every arming has a number that is never used twice (`Session::arming`, `portal.rs`): `Arm` carries it and a crossing reports it back. Every crossing has a number of its own (`wayland/state.rs`). The portal accepts a crossing only for the session armed by that very arming, `AttachEis` and `EndCapture` name the crossing, and `Disarm` ends a crossing in flight and drops its buffered input (at most 256 events are held back). | Unit: `a_crossing_queued_for_a_closed_session_never_reaches_a_new_session_with_its_path`, `every_arming_has_its_own_number_and_a_crossing_of_an_earlier_one_is_refused`. The harness can't hold a crossing in the queue, so it has no test of its own for the race. |
+| 2 | When the watch on the frontend's name ends, `State::bus_lost` closes every session and releases the capture, and `serve` ends the process with an error. | Unit: `losing_the_bus_closes_every_session_gives_the_input_back_and_stops_the_backend`. Harness `review1-finding2`: the bus killed while a session is armed and during a capture; the backend exits, EIS is disconnected, the next crossing stays local. |
+| 3 | A crossing starts unconfirmed. `Activated` is sent only when labwc's `locked` has come for this lock and, for a session with the keyboard, the barrier's surface has keyboard focus (`confirm_if_held`). After 500 ms without that, input goes back and what was held is dropped. Losing keyboard focus later ends such a capture. | Unit: `a_crossing_is_a_capture_only_once_the_lock_and_the_granted_keyboard_are_held`. Harness test 2: the backend's log has "asked", "lock granted", "keyboard focus", "held" in that order before `Activated`, and the window receives nothing from the crossing on. The timeout itself has no test: labwc always granted the grab. |
+| 4 | Signals go to the unique bus name of the frontend that made the sessions (`Inner::frontend`, `send_signal_to`), never as a broadcast. A caller that passes the frontend check under a new name first ends the old owner's sessions. | Unit: `every_signal_goes_to_the_frontend_that_made_the_session_and_to_nobody_else`. Harness `review1-finding4`: a second connection subscribed to every signal on the bus for the whole run received none of the portal's (the frontend received 55). |
+| 5 | A closed layer and a seat that loses its pointer end the capture through the same path as an unlock (`lose_capture`): `CaptureLost` with the crossing's number, so EIS stops and the frontend gets `Deactivated`. | Unit: `a_lost_capture_ends_only_the_capture_it_names` (the portal's side). The harness has no trigger: labwc keeps the seat's pointer whatever devices exist (shown in `review1-finding5`) and closes a layer surface only with its output, which is a change of screens anyway. |
+
+### The harness (`os/input-portal/harness/`)
+
+```sh
+os/input-portal/dev/container.sh build <backend dir>            # the backend, as before
+os/input-portal/harness/run.sh image                            # once, and after a change to clients/
+os/input-portal/harness/run.sh run <backend dir> <new evidence dir>
+```
+
+About two minutes. Exit 0 when every check passed, 1 when one failed, 2 when the setup could not be used.
+
+- **Isolation.** One throwaway rootless container: `--network=none` (its own network namespace, so no abstract
+  socket of the host either), no `-v`, no `--device`, no host environment, a 15-minute limit. The harness and the
+  backend go in as a tar stream and the evidence comes back as one. `in-container.sh` checks before anything
+  starts: no display, bus or runtime variable; only the loopback interface; no `/dev/input`, `/dev/uinput`,
+  `/dev/dri`, X11 folder, `/run/user`, system bus or home folder; no socket anywhere (20 checks,
+  `isolation.txt`). Then it makes a scratch `HOME` and `XDG_RUNTIME_DIR`. `driver.py` starts every process with
+  an environment it builds itself, and checks each one's `/proc/<pid>/environ` and every socket in the container
+  before the first test. labwc is told not to update an activation environment. The backend and its allow-list are
+  installed into the container's own `/usr`. Cleanup stops the driver's own processes and removes that one
+  container.
+- **The compositor.** Package 311's RPM from the local image `localhost/aresos-labwc:311e` (311's own build of
+  2026-11-19; nothing was rebuilt): `labwc-0.9.6-1.fc44.aresos1.x86_64.rpm`, SHA-256
+  `8f9f4ea2ab3163ee2a760624cd10d7ceb105a3c84f1d980ed73cbea7aba565c6`. The image build refuses a labwc whose
+  loaded bytes differ from `os/labwc/labwc.lock.json` on this branch (`main`'s, merged as `67e1e60c`): both
+  binaries match. Headless, two outputs, pixman, wlroots 0.19.3. Its `rc.xml` binds `W-S-Escape` to
+  `/usr/libexec/aresos-input-portal --release` and nothing else.
+- **The test clients** (`clients/`, compiled into the image): `eis-receiver` (libei; binds every capability and
+  prints what it receives), `wl-harness window` (a full-screen window that prints its input), `wl-harness input
+  pointer|keyboard` (`zwlr_virtual_pointer_v1` and `zwp_virtual_keyboard_v1` with real evdev codes and the
+  default keymap), `wl-harness outputs` (only for the control below). `driver.py` is the frontend: one bus
+  connection owns `org.freedesktop.portal.Desktop` and calls in the real order, a second one makes the refused
+  calls and listens. 311's `lock-probe.c` was read for the virtual pointer and the window; the clients are new
+  because the tests need them to stay alive and to be driven step by step.
+
+### Results: 81 checks, all passed
+
+`evidence/step3-harness/results.txt` has every line; the same folder has the backend's logs (`backend-1.log` to
+`backend-7.log`), each EIS receiver's log, the window's, labwc's, and the signals each bus connection received.
+The run that counts used the build without the cache (`evidence/step3-build.txt`): binary SHA-256
+`f4b3fbdd7bd00a6ca00b508634f6d99b5a910f1bfe07aa469211f417245928c8`, the same file as the cached build.
+
+| Test | Checks | What was shown |
+|---|---|---|
+| Setup, isolation | 5 (and 20 in `isolation.txt`) | labwc offers the seven protocols; every process has the private bus and display only. |
+| 1 | 18 | GetZones equals `wlr-randr`; the EIS region is the zones' bounding box; four outer barriers placed and each crossing activates the right one at the right edge, the edge between the outputs is refused; a scale change and disabling an output each bring `ZonesChanged`, a new zone set, refusal of the old one, no capture on the old edge, new EIS devices with the new region, and new barriers that capture without another `Enable`. |
+| 2 | 8 | `Activated` after lock and keyboard focus; motion, button, scroll and keys over EIS with the activation's number; the window receives none of it, and receives input before and after. |
+| 3 | 9 | `Release`, `--release`, `--disarm`, **Super+Shift+Escape through the virtual keyboard under the grab**, SIGKILL and the idle watchdog (3 s here) each end the capture, and pointer and keyboard are local again. |
+| 4 | 8 | After `Close`, after the EIS connection dies (before a crossing and during a capture) and after the frontend's connection drops: session closed, EIS disconnected, a new crossing stays local. |
+| 5 | 3 | `wl-copy` text is offered with its types and read through the fd; a session's write is what `wl-paste` prints. |
+| 6 | 8 | An unlisted and an empty `app_id` refused; all 15 methods refuse the second bus name, with no fd; of two sessions only the armed one is activated and receives input; the other session's `SelectionWrite` for the owner's serial is refused; a pointer-only session's receiver gets no keyboard and no key. |
+| 7 | 15 | A run at `trace` with `WAYLAND_DEBUG` and `REIS_DEBUG` set: no clipboard marker or type, key code, button code, motion value, crossing coordinate or release hint in the log, in any error text or in `--status`/`--release` output; no wire dump. |
+| REVIEW-1 | 7 | Findings 2, 4 and the part of 5 that can be reached (above). |
+
+**The chord works.** With the backend holding the exclusive keyboard grab, Super_L, Shift_L and Escape pressed
+through `zwp_virtual_keyboard_v1` made labwc run `--release`; the capture ended (`Deactivated`) and input was
+local again. The EIS receiver saw Super and Shift go down (and, in this run, up again); Escape never reached it.
+
+### What the tests found
+
+- **In the backend: nothing after the REVIEW-1 fixes.** Every failure of the first runs was the harness's own
+  (an EIS region expected at the layout's origin, a session path with a `-`, a second copy of a clipboard fd kept
+  open by the test frontend, a mark taken before the pointer was in place).
+- **labwc aborts when a headless output is switched off and on again while any client stays connected to
+  `zwlr_output_manager_v1`.** `labwc: types/wlr_output_management_v1.c:777: head_send_state: Assertion 'found'
+  failed`, at the first `--on` after an `--off`. The control at the end of the run (three fresh labwcs, `results.txt`):
+  with nobody else connected labwc keeps running; with `wl-harness outputs` connected (it binds the manager and
+  only listens) it aborts; with the backend connected it aborts the same way. The backend released nothing and
+  was sent no `finished` (it logs both: 0 and 0). So this is labwc's or wlroots' own fault, but the backend is
+  such a client and runs for the whole session. **Not known: whether a real output does it too.** A headless
+  output has no list of modes, and the assertion is in the mode lookup, so a real monitor may well be fine. It
+  has to be tried on real outputs before package (c) ships: a labwc abort ends the session. The harness therefore
+  leaves the output off after its test.
+
+### Decisions
+
+- **`Activated` waits for keyboard focus too**, as the review asked, and a capture with the keyboard ends when the
+  focus goes. A session with the pointer only needs just the lock.
+- **Bus loss ends the process.** A backend without its bus can serve nobody and nobody can stop it.
+- **`EndCapture` names its crossing** (the way out and shutdown name none and end whatever is there), so a late
+  command can't end a newer capture, and an EIS handle for a crossing that is over is answered with
+  `CaptureLost`, so the portal never counts a session as capturing that isn't.
+- **The harness tools are written here, not taken from packages** (`wlrctl`, `wtype`, `wev`): the keys had to be
+  real evdev codes pressed one after the other, and the devices had to stay alive (labwc's seat changes with
+  them). Fedora ships no copy of the virtual-keyboard protocol's XML, so its wire format is written out in
+  `clients/virtual-keyboard-unstable-v1.xml`.
+- **`cargo audit` was not run again:** `Cargo.lock` is unchanged since step 2.
+
+### What the tests don't show
+
+- **Findings 1 and 5 and finding 3's timeout have unit tests only** (the table above says why).
+- **The real frontend.** `driver.py` receives the unicast signals through GDBus, as xdg-desktop-portal would,
+  but xdg-desktop-portal itself was not run. Its routing, and that it gets every signal, is package (c)'s.
+- **Real outputs, real input devices, fractional scale on a real panel, Deskflow.** All (c)'s.
+- **`trace` has no lines of its own:** the backend logs nothing at that level, so the verbose log is its debug
+  log (52 lines in the run).
+
+## Report (for the lead; agents can't write `REPORT.md`)
+
+- **Done:** steps 1 to 3 of `briefs/316-input-portal.md`. The vendored backend reads the screens from labwc,
+  holds the trust model, has REVIEW-1's five fixes, 72 unit tests, and a headless harness whose 81 checks pass on
+  package 311's labwc.
+- **Verified:** `dev/container.sh build` without the cache (72 tests, no warning); `harness/run.sh run`
+  (`evidence/step3-harness/results.txt`: 81 passed, 0 failed); the two tables above.
+- **Not verified:** everything under "What the tests don't show", and the labwc abort on real outputs.
+- **JUDGMENT-CALL:** none that changes how AresOS feels. The decisions above are technical.
+- **PLAN-GAP:** the brief's test 7 says `RUST_LOG=trace`; the backend reads `ARESOS_INPUT_PORTAL_LOG` (step 2's
+  decision) and the harness sets both. The brief's harness outline has no word on what the compositor does when
+  an output comes back; that is where labwc aborted.
+- **Open questions:** does labwc abort on a real output that is switched off and on while the backend runs? If
+  it does, either labwc is patched (package 311's stage) or the backend stops holding `zwlr_output_manager_v1`
+  open (reads the screens when it needs them, which is a change to step 2's design).
+
+### What package (c) must do, from this package
+
+1. **First: the output check on real hardware (VM with a real or virtual DRM output, then the laptop).** With the
+   backend running, `wlr-randr --output <external> --off`, then `--on`, and unplug and replug the monitor. labwc
+   must keep running. Do it before anything else of (c) is built on this backend.
+2. Install the binary to `/usr/libexec/aresos-input-portal`, the portal file and the D-Bus service file, and the
+   allow-list to `/usr/share/aresos/input-portal/allowed-apps`: root-owned, mode 0644, with Deskflow's proven
+   `app_id` and nothing else.
+3. Bind `W-S-Escape` to `/usr/libexec/aresos-input-portal --release` in `rc.xml`, as the harness's `rc.xml` does
+   (`evidence/step3-harness/labwc-rc.xml`). labwc must have the session bus's address in its environment for that
+   command to reach the backend; prove it on the real session.
+4. Check with the real xdg-desktop-portal that it receives the backend's signals (they are addressed to its
+   unique bus name) and closes its copy of every clipboard fd it passes on.
+5. Check what the Mac sees of the chord: Super and Shift go down on the remote before Escape releases the capture.
+   Deskflow should let them go when it is deactivated; if they stick, pick another way to release them.
+6. When the bus goes away the backend exits; the next call activates it again. Check that with the real session's
+   bus and `WAYLAND_DISPLAY`.
+7. How sharing is turned on and off, and closing the sessions when it is turned off (the allow-list is read only
+   when a session is made).
+
 ## Left, in order
-
-### Step 3, the harness and tests 1 to 7 (next)
-
-**First, REVIEW-1's fixes (Codex gpt-6.2-astra high, static review of steps 1 and 2; the lead's triage by the bar, 2026-11-19).** Fix these before the harness, and give each a test in the harness (or a unit test where the harness can't reach it):
-- **Finding 1:** give each arming and each crossing a unique token, check it when EIS is attached, and make disarming a session discard its pending capture and buffered input. Test: close a session while its crossing is queued, then a new session with the same path and barrier ID receives nothing.
-- **Finding 2:** when the frontend watch ends for any reason (including losing the bus), treat it as frontend loss and tear down every session; if the bus is gone, release any capture and exit. Test: kill the private bus while a capture is armed and while one is active; the next crossing stays local.
-- **Finding 3:** report `Activated` only after labwc confirms the lock (`locked`) and, for a keyboard grant, the barrier has keyboard focus. If the lock fails or doesn't come within a short timeout, restore local input and drop the pending events. Test: tests 2 and 3 check the order.
-- **Finding 4:** send `Activated`, `Deactivated`, `ZonesChanged` and the clipboard signals only to the frontend's unique bus name. Test: a second bus connection subscribed to them receives none.
-- **Finding 5:** when the active layer closes or the pointer capability goes away, report `CaptureLost` the same way an unlock does, so EIS stops and the frontend gets `Deactivated`.
-
-Into `KNOWN-LIMITS.md`, not fixed (low harm): finding 6 (a clipboard read racing its own session's teardown can hand that same allowed client a pipe for a newer selection), finding 7 (a dependency's error-path warning can log scroll axis values, never keys or text), finding 8 (with overlapping outputs a barrier on an inner edge is accepted; Deskflow sets barriers on outer edges), finding 9 (an allowed receiver can get extra devices within its grant).
-
-- `main` is merged in (`32050773`). The binary: `dev/container.sh build <dir>` leaves `<dir>/aresos-input-portal`
-  and `<dir>/data/` (the portal file, the service file, `allowed-apps`).
-- **The allow-list** is read from `/usr/share/aresos/input-portal/allowed-apps` and nowhere else. In the harness
-  container write it there, owned by root (the container's), mode 0644, with the test client's `app_id`. A file
-  with another owner or a group/world write bit allows nobody.
-- **The frontend client** must own `org.freedesktop.portal.Desktop` on the private bus before its first call.
-  Every other caller gets `org.freedesktop.DBus.Error.AccessDenied`, on InputCapture, Clipboard and
-  `Session.Close`. When that connection drops, every session is closed.
-- **The order is enforced:** `CreateSession2`, `RequestClipboard` (only before `Start`), `Start`, `ConnectToEIS`
-  (only after `Start`), `GetZones`, `SetPointerBarriers` with that zone set, `Enable`. Out of order is a D-Bus
-  error.
-- **With two outputs side by side** the edge between them is refused (`failed_barriers`); use an outer edge for
-  the crossing. Barrier ends are inclusive, as in the specification (`y2 = y + h - 1`); `y2 = y + h` is accepted
-  too and cut to the output.
-- **After an output change:** `ZonesChanged`, every barrier gone, `SetPointerBarriers` with the old zone set
-  fails. The armed session stays armed: new barriers with the new zone set are placed at once, without another
-  `Enable`. The EIS receiver sees its devices removed and new ones with the new region.
-- **After `Close`, frontend loss or EIS death** the backend emits `Closed` on the impl Session object, removes
-  it, and disconnects the EIS receiver.
-- **Logs:** `ARESOS_INPUT_PORTAL_LOG=trace` (test 7). `RUST_LOG` does nothing. The backend's own
-  `WAYLAND_DEBUG`/`REIS_DEBUG` are removed at start; the harness's clients can still use them for themselves.
-- **Names:** control interface `org.aresos.InputPortal.Control` at `/org/aresos/InputPortal/Control`
-  (`--release`, `--disarm`, `--status`); layer namespace `aresos-input-barrier`; EIS seat `aresos-capture`,
-  devices `aresos-capture-pointer` and `aresos-capture-keyboard`.
-- **The backend needs `zwlr_output_manager_v1`** and waits up to five seconds at start for its first `done`.
-- **Build and test:** `os/input-portal/dev/container.sh build --cache <a new empty dir>`; before a result counts,
-  once without `--cache`. Unit tests run inside the build, with no Wayland display and no bus.
-- A plain `-v` mount of a repo or scratch folder into a rootless container is denied by SELinux on the laptop.
-  Send files in as a tar stream, as `dev/container.sh` does, or build them into the harness image.
-- `podman run` from an agent's shell needs `--cgroups=disabled`.
-- Add a row to `UPSTREAM.md` for every change, and new limits to `KNOWN-LIMITS.md`.
 
 ### Step 4
 
-Only if step 3 leaves something. The last step writes the report here.
+Nothing of step 3 is left. A step 4 is needed only if the reviews (a fresh Fable reviewer, then Codex) ask for
+changes, or if the lead wants the labwc abort looked at before (c): then start from the control at the end of
+`harness/driver.py` (`control_output_cycle`), which reproduces it in about ten seconds.
 
-## Podman, after step 2
+## Podman, after step 3
 
-Kept, as after step 1: the builder image (`7cc1f85e641d`, 928 MB) and the two cache volumes
-(`aresos-input-portal-registry`, `aresos-input-portal-target`). Step 2 made no image and no volume, ran no
-`rmi` and no `prune`, and left no container (every run used `--rm`).
+Kept: the builder image and the two cache volumes, as after step 2; `localhost/aresos-labwc:311e` (311's, only
+read); and one new image, `localhost/aresos-input-portal-harness:316` (the harness; remove it with
+`podman rmi localhost/aresos-input-portal-harness:316` when the package is merged). The two earlier builds of
+that image were removed by their IDs. No container is left (every run used `--rm`), and no `prune` was run.

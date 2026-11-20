@@ -1,0 +1,89 @@
+PASS setup this labwc offers every protocol the backend and the harness use
+PASS setup the probe window is full-screen on the first output and receives local input
+PASS setup labwc was told not to update any activation environment, and did not
+PASS isolation each of the harness's 6 processes (backend-1, dbus-daemon, labwc, vinput-keyboard, vinput-pointer, window) has the private bus, the scratch runtime dir and home, and only the private labwc as display
+PASS isolation the only sockets in the container are the harness's own (the private bus, labwc's Wayland socket and labwc's own Xwayland)
+PASS test1 GetZones gives the two outputs as wlr-randr reports them
+PASS test1 the EIS pointer's region covers exactly those outputs
+PASS test1 barriers on four outer edges are accepted, the one between the two outputs is refused
+PASS test1 four barrier surfaces are placed
+PASS test1 the left edge's surface is where the output's edge is: crossing it activates barrier 1 there
+PASS test1 the right edge's surface is where the output's edge is: crossing it activates barrier 2 there
+PASS test1 the top-right edge's surface is where the output's edge is: crossing it activates barrier 3 there
+PASS test1 the bottom-left edge's surface is where the output's edge is: crossing it activates barrier 4 there
+PASS test1 changing an output brings ZonesChanged, and GetZones follows wlr-randr with a new zone set
+PASS test1 barriers for the old zone set are refused
+PASS test1 the old barrier surfaces are gone: the old edge no longer captures
+PASS test1 EIS: the old devices are removed and the new ones carry the new geometry
+PASS test1 barriers for the new zone set capture again, without another Enable
+PASS test1 changing it back brings ZonesChanged and the first zones again
+PASS test2 before the capture the local window receives motion, a button and a key
+PASS test2 crossing the barrier: Activated arrives
+PASS test2 labwc granted the pointer lock and the keyboard focus before Activated was sent (REVIEW-1, finding 3)
+PASS test2 EIS emulation starts with the activation's number
+PASS test2 motion, a button, scroll and keys arrive over EIS
+PASS test2 the local window receives none of them, from the crossing on
+PASS test2 Release: EIS emulation stops
+PASS test2 after the capture the local window receives motion, a button and a key again
+PASS test3 Release ends the capture and the pointer moves locally again
+PASS test3 --release ends the capture (Deactivated with its activation_id) and the pointer moves locally again
+PASS test3 --disarm ends the capture and disarms (Deactivated, Disabled) and the pointer moves locally again
+PASS test3 after --disarm a crossing stays local
+PASS test3 Super+Shift+Escape, pressed through the virtual keyboard while the backend holds the grab, ends the capture
+PASS test3 and the pointer and the keyboard are local again
+INFO test3 the chord's keys as the EIS receiver saw them: ['KEY 125 1', 'KEY 42 1', 'KEY 42 0', 'KEY 125 0']
+PASS test5 text copied with wl-copy is offered to the session: SelectionOwnerChanged with its MIME types
+PASS test5 a read through the session's transfer file descriptor gets the text
+PASS test5 a write through the session lands on the selection: wl-paste shows it
+PASS test6 an app_id that is not on the allow-list is refused, and no file descriptor comes back
+PASS test6 the empty app_id is refused, and no file descriptor comes back
+PASS test6 neither left a session behind
+PASS test6 a bus name that isn't the frontend is refused on all 15 methods, InputCapture, Clipboard and Session.Close, and gets no file descriptor
+PASS test6 the frontend's session is untouched by them and still captures
+PASS test6 enabling a second session disarms the first (Disabled); a crossing activates the second only, and the first receives no input
+PASS test6 a clipboard transfer is announced to the owning session only; the first session's SelectionWrite with its serial is refused with no file descriptor, the owner's works
+PASS test6 an EIS receiver that binds every capability gets only what Start granted: no keyboard on the seat, no keyboard device, no key
+INFO review1-finding5 the only pointer device was removed during a capture: labwc kept the seat's capabilities (SEAT_CAPS pointer=1 keyboard=1)
+PASS review1-finding5 with the pointer device gone and back the capture still ends on Release, and input is local again
+PASS test4 Close: the session is closed and its EIS receiver disconnected
+PASS test4 after Close a crossing stays local
+PASS test4 the EIS connection dies before a crossing: the session is closed
+PASS test4 and a crossing stays local
+PASS test4 the EIS connection dies during a capture: Deactivated, the session is closed, input is local again
+PASS test4 and a new crossing stays local
+PASS test4 the frontend connection drops: its session is closed and its EIS receiver disconnected
+PASS test4 and a crossing stays local
+PASS test3 killing the backend ends the capture: the pointer and the keyboard are local again
+PASS test3 the idle watchdog (set to 3 s) ends a capture that carries no input
+PASS test3 and the pointer and the keyboard are local again
+PASS test7 the marked run really happened: clipboard read and written, a capture with keys, motion, a button and scroll over EIS
+INFO test7 the verbose log has 52 lines: {'TRACE': 0, 'DEBUG': 22, 'INFO': 26, 'WARN': 4, 'ERROR': 0}
+PASS test7 the verbose log is there, with the backend's debug lines
+PASS test7 WAYLAND_DEBUG and REIS_DEBUG in the backend's environment switch no wire dump on
+PASS test7 no line of the verbose log carries the clipboard marker or its type
+PASS test7 no error or command output carries the clipboard marker or its type
+PASS test7 no line of the verbose log carries a key code
+PASS test7 no error or command output carries a key code
+PASS test7 no line of the verbose log carries the button code
+PASS test7 no error or command output carries the button code
+PASS test7 no line of the verbose log carries a motion value
+PASS test7 no error or command output carries a motion value
+PASS test7 no line of the verbose log carries the crossing's coordinate
+PASS test7 no error or command output carries the crossing's coordinate
+PASS test7 no line of the verbose log carries the release hint
+PASS test7 no error or command output carries the release hint
+PASS test1 disabling an output brings ZonesChanged and leaves one zone, as wlr-randr reports it
+PASS test1 barriers for the zone set with two outputs are refused
+PASS test1 EIS has the one output's geometry
+PASS test1 the edge that faced the disabled output is an outer edge now: its barrier is accepted and captures
+PASS review1-finding2 the bus dies while a session is armed: the backend closes the session (EIS disconnected) and exits with an error
+PASS review1-finding2 and the next crossing stays local
+PASS review1-finding2 the bus dies during a capture: the backend gives the input back and exits with an error
+PASS review1-finding2 and the next crossing stays local
+INFO review1-finding4 the frontend connections received {'Activated': 21, 'Deactivated': 6, 'Disabled': 2, 'ZonesChanged': 3, 'SelectionOwnerChanged': 6, 'SelectionTransfer': 3, 'Closed': 14}; the strangers heard 42 NameOwnerChanged broadcasts
+PASS review1-finding4 the frontend received every kind of portal signal
+PASS review1-finding4 a second bus connection, subscribed to every signal on the bus for the whole run, received none of them
+INFO control: nobody else on zwlr_output_manager_v1; wlr-randr switches an output off, on, off, on: labwc keeps running
+INFO control: a client that only listens on zwlr_output_manager_v1 is connected; off, on, off, on: labwc aborts at step 2 (--on): labwc: types/wlr_output_management_v1.c:777: head_send_state: Assertion `found' failed.
+INFO control: the backend is connected; off, on, off, on: labwc aborts at step 2 (--on): labwc: types/wlr_output_management_v1.c:777: head_send_state: Assertion `found' failed.; the backend saw 0 mode(s) and 0 head(s) retired
+SUMMARY 81 passed, 0 failed, exit 0

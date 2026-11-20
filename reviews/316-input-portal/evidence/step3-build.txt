@@ -1,0 +1,9 @@
+os/input-portal/dev/container.sh build <dir>, without --cache, on the tree of commit 1d5b4789 (src/ unchanged since then)
+   Compiling aresos-input-portal v0.1.0 (/src)
+    Finished `release` profile [optimized] target(s) in 43.52s
+   Compiling aresos-input-portal v0.1.0 (/src)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 20.92s
+     Running unittests src/main.rs (tmp/tmp.DcosCVUlQN/target/debug/deps/aresos_input_portal-38ddb74718dfb38e)
+test result: ok. 72 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+exit 0
+aresos-input-portal sha256 f4b3fbdd7bd00a6ca00b508634f6d99b5a910f1bfe07aa469211f417245928c8, 8062536 bytes; the cached build of the same source gave the same file

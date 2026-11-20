@@ -52,6 +52,7 @@ Every change to this folder gets a row here, with the commit that made it.
 | `0da6e78a` | `src/wayland/mod.rs`: a barrier's span includes its last pixel, as the portal specification counts it (the right edge of a 1080-high zone is `y1=0, y2=1079`). Upstream's surface ended one pixel short. |
 | `1636ae4b` | `src/portal.rs`: when the report of new screens is handled, only barriers set for an older zone set are cleared. |
 | `7e846c9f` | REVIEW-1's findings 1 to 5 (`src/portal.rs`, `src/wayland/mod.rs`, `src/wayland/state.rs`, `src/main.rs`). Every arming and every crossing has a number of its own: a crossing is accepted only for the session armed by the arming it names, EIS is attached only to the crossing it was accepted for, and `Disarm` ends a crossing in flight with its buffered input (upstream named a crossing by session path and barrier ID, and kept the capture). `Activated` is sent once the compositor has granted the lock and, with the keyboard, keyboard focus (upstream: when the lock was requested); a grab that doesn't come in 500 ms, a lost keyboard focus, a closed layer and a lost pointer all end the capture and are reported like an unlock. Signals are sent to the frontend's unique bus name (upstream broadcast them). When the bus connection ends, every session is closed and the process exits. |
+| `1d5b4789` | `src/wayland/heads.rs`: a debug line when the compositor retires a head or a mode, so a log shows whether it ever did. Added, no upstream file touched: `harness/` (the headless harness of brief 316, "Tests"). |
 
 ## Activation
 
