@@ -2,6 +2,7 @@
 import ast
 import contextlib
 import gzip
+import hashlib
 import importlib.util
 import io
 import json
@@ -13,6 +14,7 @@ import re
 import shutil
 import socket
 import stat
+import struct
 import subprocess
 import sys
 import tarfile
@@ -2004,7 +2006,195 @@ class ReleaseChecksTest(unittest.TestCase):
         with self.assertRaises(SystemExit):
             self.module.main(['nonsense'])
         self.assertEqual(list(self.module.CHECKS),
-                         ['service_user', 'unit', 'claude_code_files', 'folders', 'state_folders'])
+                         ['service_user', 'unit', 'claude_code_files', 'folders', 'state_folders', 'chrome_links',
+                          'chrome_bundle', 'chrome_other_ids', 'chrome_sites', 'gh', 'chrome_polkit'])
+
+
+class ChromeReleaseChecksTest(unittest.TestCase):
+    """18c-b's release rehearsal on a stand-in root, without Chrome or a CI layer."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.openssl = shutil.which('openssl')
+        pack = load(ROOT / 'control/chrome/packaging/pack.py', 'release_check_pack')
+
+        def sign(archive):
+            def openssl(*args, data=None):
+                return subprocess.run([cls.openssl, *args], input=data, capture_output=True, check=True).stdout
+
+            key = openssl('genpkey', '-algorithm', 'RSA', '-pkeyopt', 'rsa_keygen_bits:2048')
+            public = openssl('pkey', '-pubout', '-outform', 'DER', data=key)
+            signed = pack._field(1, hashlib.sha256(public).digest()[:16])
+            with tempfile.TemporaryDirectory() as work:
+                content = pathlib.Path(work) / 'signed-data'
+                content.write_bytes(b'CRX3 SignedData\0' + struct.pack('<I', len(signed)) + signed + archive)
+                signature = openssl('dgst', '-sha256', '-sign', '/dev/stdin', str(content), data=key)
+            return public, signed, signature
+
+        with mock.patch.object(pack, '_sign_with_fresh_key', sign):
+            cls.bundle, cls.extension = pack.pack(ROOT / 'control/chrome/extension')
+
+    def setUp(self):
+        self.module = load(CONTROL_CI / 'release_checks.py', 'chrome_release_checks')
+        work = self.enterContext(tempfile.TemporaryDirectory())
+        self.root = pathlib.Path(work)
+        self.enterContext(mock.patch.object(self.module, 'ROOT', self.root))
+        for name, data in self.bundle.items():
+            self.write(f'{self.module.BUNDLE}/{name}', data)
+        for name, target in self.module.CHROME_LINKS.items():
+            for rel in (name, 'usr/' + name):
+                link = self.root / rel
+                link.parent.mkdir(parents=True, exist_ok=True)
+                link.symlink_to(target)
+        self.sites = self.write(self.module.SITES, b'{"format":1,"hosts":["rehearsal.invalid"]}\n', 0o640)
+        self.action = self.write(self.module.CHROME_ACTION, b'<policyconfig/>\n')
+        self.gh = self.write(self.module.GH, b'#!/bin/sh\nprintf "gh version 2.103.3 (fixture)\\n"\n', 0o755)
+        self.gh.with_name('openssl').symlink_to(self.openssl)
+        gh_hash = self.module.sha256(self.gh)
+        self.write(self.module.GH_LOCK, json.dumps(dict(nevra='gh-2.103.3-1.x86_64', binary_sha256=gh_hash)).encode())
+        self.record = dict(chrome_extension=dict(self.extension), gh=dict(version='2.103.3', binary_sha256=gh_hash),
+                           files={'/' + self.module.CHROME_ACTION: dict(mode='0644',
+                                                                      sha256=self.module.sha256(self.action))})
+        self.write_record()
+
+    def write(self, name, data, mode=0o644):
+        path = self.root / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
+        path.chmod(mode)
+        return path
+
+    def write_record(self):
+        self.write(self.module.RECORD, json.dumps(self.record).encode())
+
+    def test_both_links_must_exist_and_match_the_image(self):
+        self.assertTrue(self.module.chrome_links()[0])
+        for name, target in self.module.CHROME_LINKS.items():
+            for rel in (name, 'usr/' + name):
+                with self.subTest(path=rel):
+                    path = self.root / rel
+                    path.unlink()
+                    self.assertFalse(self.module.chrome_links()[0])
+                    path.write_text(target)
+                    self.assertFalse(self.module.chrome_links()[0])
+                    path.unlink()
+                    path.symlink_to('/wrong')
+                    self.assertFalse(self.module.chrome_links()[0])
+                    path.unlink()
+                    path.symlink_to(target)
+
+    def test_every_manifest_and_record_must_name_the_package_id(self):
+        self.assertTrue(self.module.chrome_bundle()[0])
+        identity = self.extension['id']
+        for name in ('policy.json', 'update.xml', 'native-host.json'):
+            with self.subTest(name=name):
+                path = f'{self.module.BUNDLE}/{name}'
+                self.write(path, self.bundle[name].replace(identity.encode(), b'a' * 32))
+                ok, value = self.module.chrome_bundle()
+                self.assertFalse(ok)
+                self.assertTrue(value['signature_verified'])
+                self.write(path, self.bundle[name])
+        self.record['chrome_extension']['id'] = 'a' * 32
+        self.write_record()
+        self.assertFalse(self.module.chrome_bundle()[0])
+
+    def test_changed_signed_bytes_and_invalid_header_fail(self):
+        path = f'{self.module.BUNDLE}/extension.crx'
+        good = self.bundle['extension.crx']
+        self.write(path, good[:-1] + bytes([good[-1] ^ 1]))
+        ok, value = self.module.chrome_bundle()
+        self.assertFalse(ok)
+        self.assertFalse(value['signature_verified'])
+        self.write(path, good[:12])
+        self.assertFalse(self.module.run(['chrome_bundle'])['chrome_bundle']['ok'])
+
+    def test_other_ids_including_the_test_probe_fail(self):
+        self.assertTrue(self.module.chrome_other_ids()[0])
+        managed = self.module.CHROME_ETC + '/policies/managed'
+        probe = self.write(managed + '/probe.json', b'{"ExtensionInstallForcelist":["' + b'b' * 32 + b';file:///probe"]}')
+        self.assertEqual(self.module.chrome_other_ids(), (False, dict(foreign={
+            '/' + managed + '/probe.json': ['b' * 32]})))
+        probe.unlink()
+        escaped = self.write(managed + '/escaped.json', b'{"ExtensionSettings":{"' + b'\\u0063' * 32 + b'":{}}}')
+        self.assertFalse(self.module.chrome_other_ids()[0])
+        escaped.unlink()
+        (self.root / managed / ('d' * 32)).mkdir()
+        self.assertFalse(self.module.chrome_other_ids()[0])
+
+    def test_only_the_unchanged_base_kde_host_may_name_its_ids(self):
+        name = self.module.KDE_HOST
+        contents = json.dumps({'allowed_origins': ['chrome-extension://' + 'e' * 32 + '/']}).encode()
+        path = self.write(name, contents)
+        self.write('usr/' + name, contents)
+        self.assertTrue(self.module.chrome_other_ids()[0])
+        path.write_bytes(contents.replace(b'e' * 32, b'f' * 32))
+        self.assertFalse(self.module.chrome_other_ids()[0])
+
+    def test_sites_metadata_and_hash_without_hosts(self):
+        actual_stat = pathlib.Path.lstat
+        pairs = [(0, 250), (1, 250), (0, 0)]
+        with mock.patch.object(self.module.grp, 'getgrnam', return_value=types.SimpleNamespace(gr_gid=250)):
+            for uid, gid in pairs:
+                with self.subTest(uid=uid, gid=gid):
+                    info = types.SimpleNamespace(st_mode=actual_stat(self.sites).st_mode, st_uid=uid, st_gid=gid)
+                    with mock.patch.object(pathlib.Path, 'lstat', return_value=info):
+                        ok, value = self.module.chrome_sites()
+                    self.assertEqual(ok, (uid, gid) == (0, 250))
+                    self.assertEqual(value['sha256'], self.module.sha256(self.sites))
+                    self.assertNotIn('rehearsal.invalid', json.dumps(value))
+            self.sites.chmod(0o644)
+            with mock.patch.object(pathlib.Path, 'lstat', return_value=types.SimpleNamespace(
+                    st_mode=actual_stat(self.sites).st_mode, st_uid=0, st_gid=250)):
+                self.assertFalse(self.module.chrome_sites()[0])
+            self.sites.unlink()
+            self.assertFalse(self.module.run(['chrome_sites'])['chrome_sites']['ok'])
+            self.sites.symlink_to(self.action)
+            ok, value = self.module.chrome_sites()
+            self.assertFalse(ok)
+            self.assertIsNone(value['sha256'])
+
+    def test_sites_hash_has_its_own_line(self):
+        info = types.SimpleNamespace(st_mode=stat.S_IFREG | 0o640, st_uid=0, st_gid=250)
+        output = io.StringIO()
+        with mock.patch.object(pathlib.Path, 'lstat', return_value=info), \
+                mock.patch.object(self.module.grp, 'getgrnam', return_value=types.SimpleNamespace(gr_gid=250)), \
+                contextlib.redirect_stdout(output):
+            self.assertEqual(self.module.main(['chrome_sites']), 0)
+        row, marker, verdict = output.getvalue().splitlines()
+        self.assertTrue(json.loads(row)['chrome_sites']['ok'])
+        self.assertEqual(marker, 'CONTROL_CHROME_SITES_SHA256 ' + self.module.sha256(self.sites))
+        self.assertEqual(verdict, 'CONTROL_RELEASE_CHECKS_PASS')
+
+    def test_gh_version_must_match_both_records(self):
+        self.assertTrue(self.module.gh()[0])
+        self.record['gh']['version'] = '2.103.4'
+        self.write_record()
+        self.assertFalse(self.module.gh()[0])
+        self.record['gh']['version'] = '2.103.3'
+        self.write_record()
+        with mock.patch.object(self.module.subprocess, 'run', return_value=types.SimpleNamespace(
+                returncode=0, stdout='gh version 2.103.4 (fixture)\n')):
+            self.assertFalse(self.module.gh()[0])
+
+    def test_gh_hash_must_match_before_running_the_binary(self):
+        self.gh.write_bytes(self.gh.read_bytes() + b'# changed\n')
+        with mock.patch.object(self.module.subprocess, 'run') as run:
+            self.assertFalse(self.module.gh()[0])
+        run.assert_not_called()
+
+    def test_polkit_action_must_equal_the_record(self):
+        self.assertTrue(self.module.chrome_polkit()[0])
+        self.action.chmod(0o600)
+        self.assertFalse(self.module.chrome_polkit()[0])
+        self.action.chmod(0o644)
+        self.action.write_bytes(b'<policyconfig><!-- changed --></policyconfig>\n')
+        self.assertFalse(self.module.chrome_polkit()[0])
+
+    def test_ci_guest_checks_everything_except_the_probe_free_scan(self):
+        actions, _ = layer(self.root)
+        with mock.patch.object(actions, 'release_checks', return_value=({}, dict(stdout=''))) as checks:
+            actions.release({})
+        self.assertEqual(set(checks.call_args.args), set(self.module.CHECKS) - {'chrome_other_ids'})
 
 
 if __name__ == '__main__':

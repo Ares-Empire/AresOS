@@ -205,7 +205,9 @@ def claude_code_files(request):
 
 # Agreed change 12: the rehearsal's check actions, run here exactly as the rehearsal would run them.
 def release(request):
-    results, result = release_checks()
+    # Both CI guests have the probe policy and host. The release rehearsal has neither.
+    results, result = release_checks('service_user', 'unit', 'claude_code_files', 'folders', 'state_folders',
+                                     'chrome_links', 'chrome_bundle', 'chrome_sites', 'gh', 'chrome_polkit')
     summary = {name: value['ok'] for name, value in results.items()}
     return dict(returncode=0, summary=summary, files=files_out({'release-checks.json': results,
                                                                 'release-checks.txt': result['stdout']}))
