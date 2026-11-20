@@ -128,9 +128,12 @@ Ares-Empire/AresOS --interval 300` in a background shell.
    (`briefs/20-store-oracle-reads.md` on local branch `brief/317-store-oracle-reads`, worktree
    `~/AresOS-317-brief`, not pushed). Next: read it, push to main, one Claude review (Opus), one Codex review
    (astra), then build. T298 (live Chrome setup with him). #337 and #385 done.
-6. **Budget (`mac-capacity`, 06:50):** Claude about 2% a day for this lead; one Claude agent at a time; no Claude
-   agent waiting on CI (shell watchers do that); Opus by default, Fable only for installs, rollback, credentials
-   and security. Codex may take Sol builds again within about 12% a day (meter in `~/.codex/sessions/`). Doc-only
+6. **Budget (`mac-capacity`, Fri 08:42 and 08:48):** Claude week 41%, about 10% for all five leads until Sat
+   08:00; one Claude agent at a time per lead; no Claude agent waiting on CI (shell watchers do that); Opus by
+   default, Fable where the design needs it. **Codex ran at twice its fair pace:** keep it for cross-reviews and
+   the builds that need it (each run pushes and stops), and give the rest to Claude Opus agents. So 28a step 4
+   (report, known limits, pass 2) goes to an Opus agent (`28a-step4.held.txt` is its basis); the package and
+   security reviews stay on Codex astra. Meter: `~/.codex/sessions/`. Doc-only
    commits on a PR into main end with `[skip ci]` (every push re-runs Control CI, and Control Chrome never cancels
    a superseded run).
 
