@@ -1,5 +1,54 @@
 # Package 28a: Chrome acting progress
 
+## Step 3a, fix 2
+
+2026-11-20. Draft PR #116. Both installs and both qualification repeats on `c64d7367`
+failed the same two cases. [Control Chrome](https://github.com/Ares-Empire/AresOS/actions/runs/44661058968) ·
+[Qualification](https://github.com/Ares-Empire/AresOS/actions/runs/44661067429)
+
+- **Group 7 typed read, `76a1f74f`.** The four core logs report `ReferenceError` at
+  `fixture.mutate`. The step 3a migration dropped `fixture` from the case's arguments and
+  its caller. Both now pass the shared fixture again. The mutation acknowledgment, one-call
+  approval, replay refusal, changed-list question and fresh approval follow the step 2 case.
+- **Group 8 navigation, `76a1f74f`.** Each failed review boundary log records two
+  `prepare_control` begins, one per attempt, with a single flat `Page.reload` dispatch after
+  the second. The next row is `Page.frameStartedNavigating` for the requested tab and URL.
+  The policy install shows the dispatch and event at lines 54282–54283. All four receivers
+  record two loads of the dirty page. The green review artifacts show the same flat dispatch
+  format for `Page.navigate` and `Page.navigateToHistoryEntry`, with tab-tagged start events.
+  The helper now checks one ordered sequence of command begins and CDP dispatches, including
+  zero dispatches on refusal. Start events verify the tab and URL for reload and cross-document
+  movement. The watched fragment Forward checks the exact tab address, reply tab and one load.
+- **Restart tracebacks, `75bc1428`.** The green runs on `35f7af24` had zero. The failed
+  logs show 139 in Chrome and 191 in qualification, clustered during the three Group 9
+  service cuts and the read-reference restart. Step 3a moved the reconnect poll to the
+  admin observer, which called `admin.py` while the killed daemon's socket was still down.
+  Reconnect waits for public `chrome_tabs` before checking native focus, tab and cleanup state.
+  [Green Control Chrome](https://github.com/Ares-Empire/AresOS/actions/runs/44639875539) ·
+  [Green qualification](https://github.com/Ares-Empire/AresOS/actions/runs/44639888962)
+
+**Verified locally.** Portable Node `--test --test-concurrency=2 control/chrome_tests/*.test.mjs`
+passed 641/641 in 17.551 s. Python `-B -m unittest` passed 151 tests in 58.192 s across
+`test_questions test_policy test_engine test_doing test_loss_errors test_small_tools
+test_qualification_shards` and the six `test_qualification_fixture.ShippedHistory` cases
+outside its nested state sample. `test_going` passed 24 tests in 13.490 s. The trace replay
+passed 16 windows from six hosted review artifacts. `python3 -B control/generate.py --check`
+reported matching artifacts, and `git diff --check` passed. The two qualification fixture
+cases that invoke the state sample and the browser cases remain for hosted verification.
+No file over 500 MB remains in `.work/`.
+
+**Dispatched once each on `75bc1428`.** The `linux-tools` lead owns the hosted verdicts.
+[Control Chrome 44671559502](https://github.com/Ares-Empire/AresOS/actions/runs/44671559502) ·
+[Qualification 44671559627](https://github.com/Ares-Empire/AresOS/actions/runs/44671559627)
+
+**JUDGMENT-CALLs.** Use the existing browser events and fixture reports for exact-tab
+evidence. All changes are confined to the CI harness.
+
+**PLAN-GAPs.** The original trace assumed one CDP audit shape. The flat dispatch rows
+carry methods and parameters, and their corresponding Chrome start events carry the tab.
+The failed matrix exited this case before its address and Forward checks. The new hosted
+runs cover their full public sequences. [Harness map](HARNESS-MAP.md)
+
 ## Step 3a, fix
 
 2026-11-20. Draft PR #116. The two hosted runs passed on `35f7af24` and regressed
