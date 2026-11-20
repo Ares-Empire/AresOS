@@ -38,16 +38,17 @@ function matchingRefs(outline,name){
   });
 }
 
-export function harnessTools({wire,modern,eventually,currentTab}){
+export function harnessTools({wire,modern,eventually,currentTab,observe}){
   async function outline(tab,query={}){
     const result=await wire('chrome_read',{tab,...query});
     if(!result.ok)return result;
     const [entry]=result.data.reads;
     if(entry.error)return failure(result,entry.error.code,entry.error.message,entry.untrusted_content);
-    return {...result,data:entry};
+    return {...result,data:{...entry,version_notice:result.data.version_notice}};
   }
 
   async function readRows(tab=currentTab()){
+    if(await modern())return (await observe('page',tab)).rows;
     let tree='',cursor;
     do{
       const result=await wire('read',{tab,...(cursor?{cursor}:{})});
@@ -56,6 +57,19 @@ export function harnessTools({wire,modern,eventually,currentTab}){
       cursor=result.data.cursor;
     }while(cursor);
     return tree.split('\n').filter(line=>line.startsWith('{')).map(JSON.parse);
+  }
+
+  async function readPage(tab=currentTab(),query={}){
+    let cursor,pages=[];
+    do{
+      const result=await wire('chrome_read',{tab,max:40000,...query,...(cursor?{cursor}:{})});
+      assert.ok(result.ok,JSON.stringify(result.error));
+      const entry=result.data.reads[0];
+      assert.ok(entry&&!entry.error,JSON.stringify(entry?.error));
+      pages.push(result);
+      cursor=entry.cursor;
+    }while(cursor);
+    return {pages,text:pages.map(page=>page.data.reads[0].untrusted_content.outline).join('')};
   }
 
   async function selectedTarget(row,rows){
@@ -127,7 +141,7 @@ export function harnessTools({wire,modern,eventually,currentTab}){
   }
 
   async function rpc(action,args={},options={}){
-    if(action.startsWith('chrome_')||action.startsWith('control_')||options.legacy||!await modern())return wire(action,args);
+    if(action.startsWith('chrome_')||action.startsWith('control_')||!await modern())return wire(action,args);
     if(TOOLS_WITH_REFS.has(action)){
       const tab=args.reference?.tab??args.tab;
       if(action==='upload'){
@@ -196,21 +210,22 @@ export function harnessTools({wire,modern,eventually,currentTab}){
       if(!entry||!['done','timeout'].includes(entry.outcome))return doResult(result);
       return {...result,data:{condition_met:entry.outcome==='done'}};
     }
-    if(action==='find'||action==='read'&&options.fullOutline){
+    if(action==='tabs')return {ok:true,data:await observe('tabs')};
+    if(action==='find'||action==='read'){
       const {tab,text,...query}=args;
-      const result=await outline(tab,action==='find'?{...query,find:text}:{...query,full:true,max:16000});
+      const result=await outline(tab,action==='find'?{...query,find:text}:options.fullOutline?{...query,full:true,max:16000}:query);
       if(!result.ok)return result;
       const {data}=result;
-      return {...result,data:{...data,untrusted_content:{...data.untrusted_content,tree:data.untrusted_content.outline}}};
+      let {dialog}=data.untrusted_content;
+      if(dialog&&options.nativeDialog){
+        const seen=(await observe('page',tab)).dialog;
+        assert.ok(seen,'the public dialog is still open in the exact tab');
+        assert.deepEqual(dialog,{kind:seen.kind,text:seen.text});
+        dialog=seen;
+      }
+      return {...result,data:{...data,untrusted_content:{...data.untrusted_content,dialog,tree:data.untrusted_content.outline}}};
     }
-    const result=await wire(action,args);
-    if(action==='read'&&result.ok&&result.data.untrusted_content.dialog){
-      const {dialog}=result.data.untrusted_content;
-      const shown=await outline(args.tab);
-      assert.ok(shown.ok,JSON.stringify(shown.error));
-      assert.deepEqual(shown.data.untrusted_content.dialog,{kind:dialog.kind,text:dialog.text});
-    }
-    return result;
+    return wire(action,args);
   }
 
   async function call(action,args={},options={}){
@@ -219,5 +234,5 @@ export function harnessTools({wire,modern,eventually,currentTab}){
     return result.data;
   }
 
-  return {rpc,call,readRows,target,selectedTarget};
+  return {rpc,call,readRows,readPage,target,selectedTarget};
 }

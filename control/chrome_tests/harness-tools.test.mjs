@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
+import {runInNewContext} from 'node:vm';
 import {harnessTools} from '../chrome/ci/harness-tools.mjs';
+import {observerCommands} from '../chrome/ci/harness-observer.mjs';
 
 const ok=data=>({ok:true,data,pending:{items:[]}});
 const outline=(text,other={})=>ok({reads:[{untrusted_content:{outline:text,...other}}]});
@@ -11,11 +14,11 @@ const lossMessage='This action may discard work. Nothing was done; inspect the l
 const lossEntry={code:'reload_required',message:lossMessage};
 const loss={act:'first_input',fields:[{description:'field "Draft"',by:'owner'}],more_fields:0,frames_uninspected:0,media:false};
 
-function harness(respond,{modern=true}={}){
+function harness(respond,{modern=true,observe}={}){
   const requests=[];
   return {requests,...harnessTools({
     wire:async(name,args)=>{requests.push([name,args]);return respond(name,args);},
-    modern:async()=>modern,eventually:async check=>check(),currentTab:()=>7,
+    modern:async()=>modern,eventually:async check=>check(),currentTab:()=>7,observe,
   })};
 }
 
@@ -51,17 +54,56 @@ test('an ordinary dialog is shown at observation time and its separate preparati
   const dialog={id:'native-one',kind:'prompt',text:'Continue?'};
   const held={approval:{question:'Send exact form?'}};
   const h=harness(name=>{
-    if(name==='read')return ok({untrusted_content:{dialog}});
     if(name==='chrome_read')return outline('',{dialog:{kind:dialog.kind,text:dialog.text}});
     return ok({steps:[{do:'dialog',outcome:'done',operation_id:'answer'}],prepared:[held],untrusted_content:{stopped:[]}});
-  });
-  await h.call('read',{tab:7});
+  },{observe:async(kind,tab)=>{assert.deepEqual([kind,tab],['page',7]);return {dialog};}});
+  assert.equal((await h.call('read',{tab:7},{nativeDialog:true})).untrusted_content.dialog,dialog);
   const result=await h.call('dialog',{tab:7,expected:dialog,accept:true,text:'Yes'});
   assert.equal(result.approval,undefined);
   assert.deepEqual(result.followups,[held]);
   assert.deepEqual(h.requests,[
-    ['read',{tab:7}],['chrome_read',{tab:7}],['chrome_do',{tab:7,steps:[{do:'dialog',accept:true,text:'Yes'}]}],
+    ['chrome_read',{tab:7}],['chrome_do',{tab:7,steps:[{do:'dialog',accept:true,text:'Yes'}]}],
   ]);
+});
+
+test('native rows and tabs come from the observer and the action uses the public reference',async()=>{
+  const rows=[row('e7')],items=[{tab:7,cleanup_pending:true}];
+  const observations=[];
+  const h=harness(name=>name==='chrome_read'?outline('button "Send" bcdft7'):action({outcome:'done'}),{
+    observe:async(kind,tab)=>{observations.push([kind,tab]);return kind==='page'?{rows}:{items};},
+  });
+  assert.equal((await h.call('tabs')).items,items);
+  const selected=await h.target('Send');
+  assert.equal(selected.reference,rows[0].reference);
+  await h.call('click',selected);
+  assert.deepEqual(observations,[['tabs',undefined],['page',7]]);
+  assert.deepEqual(h.requests,[
+    ['chrome_read',{tab:7,find:'Send',max:40000}],
+    ['chrome_do',{tab:7,steps:[{do:'click',ref:'bcdft7'}]}],
+  ]);
+});
+
+test('the instrumented observer returns native identity and cleanup without field values',async()=>{
+  const document={frame:3,document:'native-reader-document',nodes:[{id:6,name:'Send',role:'button',value:'fixture value'}]};
+  const dispatch=runInNewContext('(async (command,expires=null)=>{const {tab}=command;'+observerCommands+'})',{
+    session:'native-session',releasing:new Set([7]),
+    everyTab:async()=>({session:'native-session',tabs:[{tab:7,front:true,active:true,group:false,index:2,url:'http://fixture.test/?case=compose'}]}),
+    facts:async (...args)=>{assert.deepEqual(args,[7,null,'outline',null]);return {frames:[document],dialog:null};},
+    sha256Hex:async text=>createHash('sha256').update(text).digest('hex'),
+  });
+  const list=JSON.parse(JSON.stringify(await dispatch({name:'fixture_observe_tabs'})));
+  assert.deepEqual(list.items,[{tab:7,focused:true,active:true,controlled:false,cleanup_pending:true,index:2,url:'http://fixture.test/?case=compose'}]);
+  const first=await dispatch({name:'fixture_observe_page',tab:7});
+  assert.doesNotMatch(JSON.stringify(first),/fixture value/);
+  assert.equal(first.rows[0].reference.element,'e6');
+  assert.equal(first.rows[0].reference.frame,3);
+  assert.equal(first.rows[0].reference.document,'native-reader-document');
+  assert.equal(first.rows[0].reference.session,'native-session');
+  const same=await dispatch({name:'fixture_observe_page',tab:7});
+  assert.equal(same.rows[0].reference.view,first.rows[0].reference.view);
+  document.nodes.push({id:8,role:'text',text:['parser settled']});
+  const changed=await dispatch({name:'fixture_observe_page',tab:7});
+  assert.notEqual(changed.rows[0].reference.view,first.rows[0].reference.view);
 });
 
 test('loss reports must remain in the raw step, bare error, and matching kept tab envelope',async()=>{

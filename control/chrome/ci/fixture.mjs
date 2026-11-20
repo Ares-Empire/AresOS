@@ -93,6 +93,12 @@ export async function fixtures(options={}) {
       script=`fetch('/receive?case=loaded-${id}',{method:'POST'});${mode==='dirty'?"document.querySelector('input').value='Unsaved';":''}${mode==='react'?reactField(id):''}${mode==='blank-editor'?"const child=document.createElement('iframe');document.body.append(child);child.contentDocument.designMode='on';child.contentDocument.body.textContent='Unsaved iframe draft';":''}document.querySelector('#play').onclick=()=>{${mode==='detached-media'?"const media=new Audio('/tone.wav');media.loop=true;globalThis.fixtureMedia=media;return media.play().then(()=>fetch('/receive?case=playing-"+id+"',{method:'POST'}));":mode==='web-audio'?"const audio=new AudioContext(),oscillator=audio.createOscillator();oscillator.connect(audio.destination);oscillator.start();globalThis.fixtureMedia=audio;return audio.resume().then(()=>fetch('/receive?case=playing-"+id+"',{method:'POST'}));":"return document.querySelector('audio').play().then(()=>fetch('/receive?case=playing-"+id+"',{method:'POST'}));"}};`;
     } else if(kind==='features') {
       body='<form><input aria-label="First" name="first" value="Original first"><input aria-label="Second" name="second" value="Original second"><select name="choice" aria-label="Choice"><option value="a">First option</option><option value="b">Second option</option><option value="c" disabled>Disabled option</option></select><input type="hidden" name="hidden" value="Hidden field"><input type="checkbox" name="tick" aria-label="Tick"></form><a href="/download?id='+url.searchParams.get('id')+'">Download fixture</a><p>Findable synthetic paragraph</p>';
+      if(url.searchParams.get('id')==='tools')script=`
+        const report=()=>fetch('/compat-report',{method:'POST',body:JSON.stringify({id:'tools',phase:'fields',
+          first:document.querySelector('[name=first]').value,second:document.querySelector('[name=second]').value,
+          hidden:document.querySelector('[name=hidden]').value})});
+        document.querySelector('form').addEventListener('input',report);report();
+      `;
     } else if(kind==='compose') {
       body='<label>Message<textarea aria-label="Message">Existing synthetic draft</textarea></label><button>Send</button><p aria-label="Preview">Read-only preview</p>';
       script=`document.querySelector('button').onclick=()=>fetch('/receive?case=compose',{method:'POST',body:document.querySelector('textarea').value});`;

@@ -23,7 +23,7 @@ fs.writeFileSync('/out/launch.json',JSON.stringify(args));
 const descriptor=fs.openSync('/out/chrome.txt','a');
 let chrome;
 // Brief 28a, item 8 step 1d: brief 20's replaced tools are chrome_old_<verb>, offered only behind the CI-only switch,
-// and brief 28's read is chrome_read. The measured old arm and the remaining native evidence use these aliases.
+// and brief 28's read is chrome_read. Only the measured old arm and the legacy catalogue use these aliases.
 // A runtime from before the switch still names them as before. The service's own tool list says which.
 let offered;
 function catalogue(){
@@ -44,8 +44,12 @@ async function toolName(action){
   if(action==='outline'&&!names.has('outline'))return 'chrome_read';
   return 'chrome_'+(names.has('old_'+action)?'old_'+action:action);
 }
-async function wire(action,arguments_={}) {
-  const name=await toolName(action);
+async function wire(action,arguments_={},measured=false) {
+  let name=action;
+  if(measured)name=await toolName(action);
+  else if(action==='outline')name=(await catalogue()).has('outline')?'chrome_outline':'chrome_read';
+  else if(!action.startsWith('chrome_')&&!action.startsWith('control_'))name='chrome_'+action;
+  if(!measured)assert.ok(!name.startsWith('chrome_old_'),'legacy tools are confined to comparison and catalogue cases');
   return new Promise((resolve,reject)=>{
     const socket=net.createConnection('/run/aresos-tools/act.sock');let buffer='';
     socket.setTimeout(20000,()=>socket.destroy(Error('Tool response timeout')));
@@ -58,8 +62,31 @@ async function wire(action,arguments_={}) {
 async function eventually(fn,label,timeout=15000){const until=Date.now()+timeout;let error;while(Date.now()<until){try{const value=await fn();if(value)return value;}catch(e){error=e;}await delay(150);}throw Error(label+': '+error?.message);}
 let tab;const baseline={};
 const modern=async()=>(await catalogue()).has('do');
-const {rpc,call,readRows:read,target,selectedTarget}=harnessTools({wire,modern,eventually,currentTab:()=>tab});
-async function nav(kind,host='fixture',options){const url=(host==='localhost'?'http://localhost':'http://'+host+'.test')+':8765/?case='+kind;await call('navigate',{tab,url,discard_unsaved:true},options);await eventually(async()=>{const page=await call('read',{tab});return page.untrusted_content.url===url&&page.characters>0;},'fixture document committed');await delay(250);}
+function adminRequest(request){
+  return JSON.parse(execFileSync('sudo',['-n','/usr/bin/python3','/workspace/control/chrome/ci/admin.py',JSON.stringify(request)],{encoding:'utf8',maxBuffer:4*1024*1024}));
+}
+function observe(observe,tab){
+  const result=adminRequest({observe,tab});
+  assert.ok(result.ok,JSON.stringify(result));
+  return result.data;
+}
+const oldWire=(action,args)=>wire(action,args,true);
+async function oldCatalogue(verb,args){
+  assert.ok(['downloads','history','bookmarks'].includes(verb));
+  const result=await oldWire(verb,args);
+  assert.ok(result.ok,JSON.stringify(result));
+  return result.data;
+}
+const {rpc,call,readRows:read,readPage,target,selectedTarget}=harnessTools({wire,modern,eventually,currentTab:()=>tab,observe});
+async function settled(url,tab){
+  await eventually(async()=>{
+    const page=await call('read',{tab});
+    const native=(await call('tabs')).items.find(item=>item.tab===tab);
+    return native?.url===url&&page.characters>0;
+  },'fixture document committed');
+  await delay(250);
+}
+async function nav(kind,host='fixture'){const url=(host==='localhost'?'http://localhost':'http://'+host+'.test')+':8765/?case='+kind;await call('navigate',{tab,url,discard_unsaved:true});await settled(url,tab);}
 const counts=kind=>fixture.arrivals.filter(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')===kind).length;
 async function run(){
 try {
@@ -96,9 +123,9 @@ try {
     await call('submit',prepared.approval);assert.equal(counts('compose'),1);console.log('GROUP 1 what asks PASS: zero before approval, one after, no replay');
   });
   if(process.env.LATENCY_PROBE==='true')assertChecksPassed(smokeResults);
-  if(process.env.LATENCY_PROBE==='true'&&process.env.EFFICIENCY_PROBE==='true'){await efficiencyProbe({rpc:wire,eventually,counts,getTab:()=>tab,toolName});return;}
+  if(process.env.LATENCY_PROBE==='true'&&process.env.EFFICIENCY_PROBE==='true'){await efficiencyProbe({rpc:oldWire,eventually,settled,counts,getTab:()=>tab,toolName});return;}
   if(process.env.LATENCY_PROBE==='true'){
-    const measured=harnessTools({wire,modern:()=>false,eventually,currentTab:()=>tab});
+    const measured=harnessTools({wire:oldWire,modern:()=>false,eventually,currentTab:()=>tab});
     await latencyProbe({call:measured.call,target:measured.target,nav,eventually,getTab:()=>tab});return;
   }
   // Brief 28, item 4: group 14's time cases, in the core shard while nothing is
@@ -133,7 +160,7 @@ try {
     await nav('activation');await call('click',await target('Continue'));await delay(100);assert.equal(counts('activation'),0);console.log('GROUP 2 wrapped non-cancellable activation PASS: no delivery and never resumed');
   });
   await smoke('GROUP 7 show-password',async()=>{
-    await nav('password');const view=JSON.stringify(await read());assert.doesNotMatch(view,/SENTINEL_PRIVATE_PASSWORD_20/);await call('click',await target('Show'));assert.doesNotMatch(JSON.stringify(await read()),/SENTINEL_PRIVATE_PASSWORD_20/);console.log('GROUP 7 password presence and show-password PASS');
+    await nav('password');assert.doesNotMatch(JSON.stringify(await readPage()),/SENTINEL_PRIVATE_PASSWORD_20/);await call('click',await target('Show'));assert.doesNotMatch(JSON.stringify(await readPage()),/SENTINEL_PRIVATE_PASSWORD_20/);console.log('GROUP 7 password presence and show-password PASS');
   });
   await smoke('GROUP 13 ordinary-click fetch',async()=>{
     await nav('residual');const rows=await read();const unlabeled=rows.find(row=>row.expected.role==='button');await call('click',await selectedTarget(unlabeled,rows));await eventually(()=>counts('residual-click')===1,'residual fetch');console.log('GROUP 13 residual ordinary-click fetch OBSERVED, NOT HELD');baseline.residual=true;
@@ -174,7 +201,7 @@ try {
     forgedPasses++;console.log('GROUP 7 page forgery PASS',attack,'receiver: 0 before, 1 after, 1 after replay');
   });
   baseline.forgery=forgedPasses===3;
-  const admin=(action,arguments_)=>{const result=JSON.parse(execFileSync('sudo',['-n','/usr/bin/python3','/workspace/control/chrome/ci/admin.py',JSON.stringify({action,arguments:arguments_})],{encoding:'utf8'}));assert.ok(result.ok,JSON.stringify(result));return result.data;};
+  const admin=(action,arguments_)=>{const result=adminRequest({action,arguments:arguments_});assert.ok(result.ok,JSON.stringify(result));return result.data;};
   const caller=async(verb,args)=>{
     if(verb==='upload'&&await modern()){
       assert.equal(typeof args.ref,'string','select a public reference before upload');
@@ -234,7 +261,7 @@ try {
     if(command==='kill_host'){const lines=execFileSync('ps',['-u','1000','-o','pid=,args='],{encoding:'utf8'}).split('\n');for(const line of lines)if(line.includes('/usr/libexec/aresos-control/chrome/native_host.py'))process.kill(Number(line.trim().split(/\s+/)[0]),'SIGKILL');return;}
     return JSON.parse(execFileSync('sudo',['-n','/usr/bin/python3','/workspace/control/chrome/ci/admin.py',JSON.stringify(command)],{encoding:'utf8'}));
   };
-  await matrices({smokeResults,call,read,nav,target,selectedTarget,counts,eventually,tab,setTab:value=>{tab=value;},fixture,admin,rpc,caller,ownerNavigate,ownerOpenTab,ownerClickPage,ownerOpenPopup,nativeDonor,closeNativeDonor,baseline,envelopeResults,
+  await matrices({smokeResults,call,read,readPage,nav,settled,target,selectedTarget,counts,eventually,tab,setTab:value=>{tab=value;},fixture,admin,observe,oldCatalogue,rpc,caller,ownerNavigate,ownerCloseTab:owner.close,ownerOpenTab,ownerClickPage,ownerOpenPopup,nativeDonor,closeNativeDonor,baseline,envelopeResults,
     popupControl:async(command,value)=>{
       const state=async()=>{await lifecycle({fixture:'control_status'});const value=JSON.parse(fs.readFileSync('/out/control-status.json'));fs.appendFileSync('/out/popup-controls.jsonl',JSON.stringify(value)+'\n');return value;};
       if(command==='state')return state();

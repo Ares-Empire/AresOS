@@ -12,7 +12,7 @@ test "$(uname -s)" = Linux
 latency_container() {
   local revision="$1" out="$2"
   shift 2
-  timeout --signal=TERM --kill-after=30s 50m docker run --rm --network none --cap-add SYS_ADMIN --security-opt seccomp=unconfined --security-opt apparmor=unconfined --shm-size=512m --tmpfs /scratch:rw,size=256m,mode=1777 -e INSTALL_MODE=policy -e LATENCY_PROBE=true -e LATENCY_PRIVACY -e LATENCY_BASELINE="$revision" -e QUALIFICATION_VERSION -e GITHUB_RUN_ID -e GITHUB_SHA "$@" -v "$out:/out" "aresos-latency-$revision"
+  timeout --signal=TERM --kill-after=30s 50m docker run --rm --network none --cap-add SYS_ADMIN --security-opt seccomp=unconfined --security-opt apparmor=unconfined --shm-size=512m --tmpfs /scratch:rw,size=256m,mode=1777 -e INSTALL_MODE=policy -e CHROME_FIXTURE_OBSERVER=true -e LATENCY_PROBE=true -e LATENCY_PRIVACY -e LATENCY_BASELINE="$revision" -e QUALIFICATION_VERSION -e GITHUB_RUN_ID -e GITHUB_SHA "$@" -v "$out:/out" "aresos-latency-$revision"
 }
 
 case "${1:-pair}" in

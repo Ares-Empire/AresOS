@@ -16,7 +16,7 @@ import net from 'node:net';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {setTimeout as delay} from 'node:timers/promises';
-import {boundaryLog,completeIngress} from './ingress-scan.mjs';
+import {auditRows,boundaryLog,completeIngress} from './ingress-scan.mjs';
 import {hostileGrammar} from './outline-checks.mjs';
 import {canonicalBytes} from './efficiency-probe.mjs';
 import {F4_FILLED,HOSTILE} from './efficiency-fixtures.mjs';
@@ -41,8 +41,6 @@ export function lineOf(outline,start){
 export function refOf(outline,start){const line=lineOf(outline,start),found=line.match(REFERENCE);assert.ok(found,'a reference on '+line);return found[1];}
 const outcomes=result=>result.steps.map(step=>step.outcome);
 const pad=index=>String(index).padStart(2,'0');
-const auditRows=(offset,key)=>boundaryLog.since(offset).split('\n').slice(0,-1)
-  .filter(line=>line.startsWith('{"'+key+'":')).map(line=>JSON.parse(line));
 
 export async function actMatrix({check:report,call,rpc,nav,counts,eventually,fixture,admin,lifecycle,restoreControl,ownerNavigate,ownerOpenTab,ownerClickPage,ownerType,ownerKey,ownerDismiss,getTab,setTab}){
   fs.mkdirSync(OUT,{recursive:true});

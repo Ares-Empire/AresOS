@@ -17,13 +17,13 @@ import {recheck3Matrices} from './recheck3-matrices.mjs';
 import {recheck2Matrices} from './recheck2-matrices.mjs';
 import {reviewMatrices} from './review-matrices.mjs';
 import {popupMatrices} from './popups.mjs';
-import {actMatrix} from './act-matrix.mjs';
+import {actMatrix,refOf} from './act-matrix.mjs';
 import {collectSiteResults} from './site-results.mjs';
 import {receiverSnapshot} from './receiver-evidence.mjs';
 import {allTabs} from './tabs.mjs';
 import {pendingCheck,recordCheck,writePartialResults,assertChecksPassed} from './failure.mjs';
 
-export async function matrices({call,read,nav,target,selectedTarget,counts,eventually,tab,setTab:syncTab=()=>{},fixture,admin,rpc,caller,ownerNavigate,ownerOpenTab,ownerClickPage,ownerOpenPopup,popupEvidence,popupControl,nativeDonor,closeNativeDonor,ownerKey,ownerType,ownerChooseFile,ownerDismiss,ownerHistory,ownerBookmark,lifecycle,restoreControl,stopClick,baseline,isolationAfter,envelopeResults,smokeResults}) {
+export async function matrices({call,read,readPage,nav,settled,target,selectedTarget,counts,eventually,tab,setTab:syncTab=()=>{},fixture,admin,observe,oldCatalogue,rpc,caller,ownerNavigate,ownerCloseTab,ownerOpenTab,ownerClickPage,ownerOpenPopup,popupEvidence,popupControl,nativeDonor,closeNativeDonor,ownerKey,ownerType,ownerChooseFile,ownerDismiss,ownerHistory,ownerBookmark,lifecycle,restoreControl,stopClick,baseline,isolationAfter,envelopeResults,smokeResults}) {
   const results=[];let trustOperation;const shard=process.env.BROWSER_SHARD||null;
   // The owner helpers (ownerNavigate and the others) close over the driver's
   // own current tab, so a matrix that moves to another tab tells the driver
@@ -67,13 +67,13 @@ export async function matrices({call,read,nav,target,selectedTarget,counts,event
     }
   });
   if(runs('core'))await destinationMatrix({check:inBlock('core'),nav,call,target,approval,fixture,receiverEvidence,eventually});
-  if(runs('core'))await lateReaderMatrix({check:inBlock('core'),nav,call,rpc,read,target,fixture,eventually,ownerNavigate,getTab:()=>tab});
-  if(runs('core'))await lateBindingMatrix({check:inBlock('core'),call,rpc,read,target,fixture,eventually,ownerNavigate,getTab:()=>tab});
+  if(runs('core'))await lateReaderMatrix({check:inBlock('core'),nav,call,readPage,ownerNavigate,getTab:()=>tab});
+  if(runs('core'))await lateBindingMatrix({check:inBlock('core'),call,rpc,read:readPage,target,fixture,eventually,ownerNavigate,getTab:()=>tab});
   if(runs('core'))await animatedDefaultMatrix({check:inBlock('core'),nav,call,target,approval,receiverEvidence,eventually,fixture,getTab:()=>tab,setTab,nativeDonor,closeNativeDonor});
   if(process.env.DESTINATION_PROBE==='true'){console.log('Post-18d destination and late-reader probes; not full acceptance');assertChecksPassed([...smokeResults,...results]);return;}
   if(runs('recheck3'))await recheck3Matrices({check:inBlock('recheck3'),nav,call,rpc,target,approval,receiverEvidence,fixture,eventually,getTab:()=>tab,setTab,nativeDonor,closeNativeDonor});
   if(runs('recheck2'))await recheck2Matrices({check:inBlock('recheck2'),nav,call,rpc,target,approval,receiverEvidence,fixture,eventually,getTab:()=>tab,setTab,nativeDonor,closeNativeDonor,ownerKey,lifecycle,restoreControl});
-  if(runs('review'))await reviewMatrices({check:inBlock('review'),nav,call,rpc,target,read,counts,eventually,approval,receiverEvidence,fixture,getTab:()=>tab,setTab,selectedTarget,ownerKey,ownerType,ownerChooseFile,admin,ownerNavigate,ownerDismiss,nativeDonor,closeNativeDonor,lifecycle});
+  if(runs('review'))await reviewMatrices({check:inBlock('review'),nav,call,rpc,target,read,counts,eventually,approval,receiverEvidence,fixture,getTab:()=>tab,setTab,selectedTarget,ownerKey,ownerType,ownerChooseFile,admin,observe,ownerNavigate,ownerCloseTab,ownerDismiss,nativeDonor,closeNativeDonor,lifecycle});
   if(runs('recheck2'))await popupMatrices({check:inBlock('recheck2'),call,rpc,nav,counts,eventually,getTab:()=>tab,setTab,fixture,ownerOpenPopup,popupEvidence,popupControl,approval,read,selectedTarget});
   // Brief 28a, groups 14 and 15 (act-matrix.mjs): the new tools, at the end of the recheck2 shard, the
   // shortest of the long shards; its last case restarts the service and Chrome.
@@ -99,7 +99,7 @@ export async function matrices({call,read,nav,target,selectedTarget,counts,event
       const id='taken-'+mode;await call('release_tab',{tab});await ownerNavigate('http://fixture.test:8765/?case=take-state&id='+id+'&mode='+mode);
       await eventually(()=>counts('loaded-'+id)===1,'taken page initial load');
       if(mode==='media'){ownerKey();await eventually(()=>counts('playing-'+id)===1,'native media started');}
-      await call('take_tab',{tab});const before=await target('Continue');await read();await read();assert.equal(counts('loaded-'+id),1,'taking and reading never reload');
+      await call('take_tab',{tab});const before=await target('Continue');await readPage();await readPage();assert.equal(counts('loaded-'+id),1,'taking and reading never reload');
       const first=await rpc('click',before);assert.equal(first.ok,false);
       if(mode==='clean')assert.equal(first.error.code,'stale_reference');
       else{assert.equal(first.error.code,'reload_required');assert.equal(counts('loaded-'+id),1,'dirty and playing pages are preserved until explicit repeat');const repeated=await rpc('click',{...before,discard_unsaved:true});assert.equal(repeated.ok,false);assert.equal(repeated.error.code,'stale_reference');}
@@ -107,9 +107,10 @@ export async function matrices({call,read,nav,target,selectedTarget,counts,event
     }
     await call('release_tab',{tab});await ownerNavigate('http://fixture.test:8765/?case=take-post');ownerKey();
     await eventually(()=>counts('taken-post')===1,'one native POST loaded the document');await call('take_tab',{tab});const denied=await rpc('click',await target('Continue'));assert.equal(denied.ok,false);assert.match(denied.error.message,/form submission|request method/);await delay(150);assert.equal(counts('taken-post'),1,'refusal must not resubmit POST');
-    await call('navigate',{tab,url:'http://fixture.test:8765/?case=features&id=post-history',discard_unsaved:true},{legacy:true});await eventually(async()=>String((await call('read',{tab})).untrusted_content.url).includes('id=post-history'),'GET after POST');assert.equal((await rpc('navigate',{tab,direction:'back'})).ok,false);assert.equal(counts('taken-post'),1,'history must not resubmit POST');
+    const get='http://fixture.test:8765/?case=features&id=post-history';await ownerNavigate(get,{tab});await settled(get,tab);
+    const back=await rpc('navigate',{tab,direction:'back'});assert.equal(back.ok,false);assert.match(back.error.message,/form-loaded history entry.*resubmit/);assert.equal(counts('taken-post'),1,'history must not resubmit POST');
   });
-  if(runs('adapters'))results.push(...await collectSiteResults(()=>(import('./sites/matrices.mjs').then(({siteMatrices})=>siteMatrices({call,read,nav,target,selectedTarget,counts,eventually,tab,fixture,admin,rpc,lifecycle})))));
+  if(runs('adapters'))results.push(...await collectSiteResults(()=>(import('./sites/matrices.mjs').then(({siteMatrices})=>siteMatrices({call,read,nav,settled,target,selectedTarget,counts,eventually,tab,fixture,admin,rpc,lifecycle})))));
   await check('GROUP 1 submit compose deletion and free-input matrix',async()=>{
     for(const tag of ['default','submit','override','external','empty','invalid','clobbered'])for(const key of ['click','Enter','Space','field']){
       const id='submit-'+tag+'-'+key;await nav('action-matrix&mode=submit&id='+id+'&tag='+tag);
@@ -331,26 +332,32 @@ export async function matrices({call,read,nav,target,selectedTarget,counts,event
     const send=await call('click',await target('Send'));await fixture.mutate('upload-bytes','text');await delay(100);const changed=await rpc('submit',send.approval);assert.ok(!changed.ok||changed.data.operation.state==='failed');assert.equal(counts('after-upload'),0);
   });
   await check('GROUP 6 exclusions through frame, popup, redirect, taking and history',async()=>{
-    await nav('frame-excluded');assert.doesNotMatch(JSON.stringify(await read()),/EXCLUDED_PAGE_SENTINEL_20/);
+    await nav('frame-excluded');assert.doesNotMatch(JSON.stringify(await readPage()),/EXCLUDED_PAGE_SENTINEL_20/);
     await nav('popup-excluded');await call('click',await target('Continue'));await delay(250);
     const tabs=await allTabs(call);const excludedPopups=tabs.items.filter(item=>item.url?.includes('approval.test'));assert.equal(excludedPopups.length,1,'excluded popup must exist');for(const item of excludedPopups){const result=await rpc('take_tab',{tab:item.tab});assert.equal(result.ok,false);}
     await ownerNavigate('http://fixture.test:8765/?case=compose');await call('take_tab',{tab});
     await call('navigate',{tab,url:'http://fixture.test:8765/?case=redirect',discard_unsaved:true});await delay(400);const redirected=await rpc('read',{tab});assert.equal(redirected.ok,false);
     await ownerNavigate('http://approval.test:8765/?case=excluded');assert.equal((await rpc('take_tab',{tab})).ok,false);
     await ownerNavigate('http://fixture.test:8765/?case=compose');await call('take_tab',{tab});
-    const back=await rpc('navigate',{tab,direction:'back'});assert.equal(back.ok,false);assert.doesNotMatch(JSON.stringify(await read()),/EXCLUDED_PAGE_SENTINEL_20/);
+    const back=await rpc('navigate',{tab,direction:'back'});assert.equal(back.ok,false);assert.doesNotMatch(JSON.stringify(await readPage()),/EXCLUDED_PAGE_SENTINEL_20/);
   });
   await check('GROUP 7 all password kinds across open closed and cross-site roots',async()=>{
-    await nav('password-matrix');assert.doesNotMatch(JSON.stringify(await read()),/SENTINEL_PRIVATE_PASSWORD_20/);
+    await nav('password-matrix');const page=await readPage(tab,{full:true});
+    assert.doesNotMatch(JSON.stringify(page.pages),/SENTINEL_PRIVATE_PASSWORD_20/);
+    const forms=await Promise.all(page.text.split('\n').filter(line=>/^\s*form\b/.test(line))
+      .map(line=>refOf(line,'form')).map(ref=>readPage(tab,{ref})));
+    assert.equal(forms.length,6,'one public form for each root and frame');
     for(const prefix of ['top','cross'])for(let index=0;index<3;index++){
-      const selected=await target('Submit '+prefix+' '+index),id='password-'+prefix+'-'+index;
-      const form=await call('read_form',{tab,reference:selected.reference});assert.doesNotMatch(JSON.stringify(form),/SENTINEL_PRIVATE_PASSWORD_20/);
-      assert.match(JSON.stringify(form),/Public draft/,'a typed field empty when the reader met its root is read once the page fills it');
+      const label='Submit '+prefix+' '+index,selected=await target(label),id='password-'+prefix+'-'+index;
+      const form=forms.find(form=>form.text.includes('button "'+label+'"'));
+      assert.ok(form,'the public form contains '+label);
+      assert.doesNotMatch(JSON.stringify(form.pages),/SENTINEL_PRIVATE_PASSWORD_20/);
+      assert.match(form.text,/Public draft/,'a typed field empty when the reader met its root is read once the page fills it');
       const prepared=await call('click',selected);assert.doesNotMatch(JSON.stringify(prepared),/SENTINEL_PRIVATE_PASSWORD_20/);
       await approval(prepared,id);
     }
-    await call('click',await target('Show'));await call('click',await target('Show cross'));assert.doesNotMatch(JSON.stringify(await read()),/SENTINEL_PRIVATE_PASSWORD_20/);
-    await call('release_tab',{tab});await call('take_tab',{tab});assert.doesNotMatch(JSON.stringify(await read()),/SENTINEL_PRIVATE_PASSWORD_20/);
+    await call('click',await target('Show'));await call('click',await target('Show cross'));assert.doesNotMatch(JSON.stringify(await readPage(tab,{full:true})),/SENTINEL_PRIVATE_PASSWORD_20/);
+    await call('release_tab',{tab});await call('take_tab',{tab});assert.doesNotMatch(JSON.stringify(await readPage(tab,{full:true})),/SENTINEL_PRIVATE_PASSWORD_20/);
     const ingress=completeIngress(fs.readFileSync('/out/browser-boundary.jsonl','utf8'));
     assert.ok(ingress.some(row=>row?.reader_ingress),'test build must record sensitive native getter ingress');
     const protocol=protocolEvents(ingress);assert.ok(protocol.length,'test build must audit incoming protocol events');
@@ -358,7 +365,8 @@ export async function matrices({call,read,nav,target,selectedTarget,counts,event
     for(const file of ['browser-boundary.jsonl','tool.jsonl','service.txt'])assert.doesNotMatch(file==='browser-boundary.jsonl'?JSON.stringify(completeIngress(fs.readFileSync('/out/'+file,'utf8'))):fs.readFileSync('/out/'+file,'utf8'),/SENTINEL_PRIVATE_PASSWORD_20/,file);
   });
   await check('GROUP 6 schemes links and forward routes',async()=>{
-    await nav('features&id=repeat-reload',undefined,{legacy:true});let previous=(await target('First')).reference.document;
+    const repeat='http://fixture.test:8765/?case=features&id=repeat-reload';await ownerNavigate(repeat,{tab});await settled(repeat,tab);
+    let previous=(await target('First')).reference.document;
     for(let index=0;index<2;index++){await call('navigate',{tab,direction:'reload'});await eventually(async()=>{const fresh=(await target('First')).reference.document;if(fresh===previous)return false;previous=fresh;return true;},'fresh guarded GET reload');}
     for(const method of ['get','post'])for(const override of [false,true]){
       const id='excluded-form-'+method+'-'+override;
@@ -462,8 +470,8 @@ export async function matrices({call,read,nav,target,selectedTarget,counts,event
     for(const [verb,label,args]of [['fill','Amount',{text:'1'}],['click','Continue',{}],['upload','File',{path:'/fixture.txt'}]]){const reply=await rpc(verb,{...await target(label),...args});notice(reply);assert.equal(reply.error.code,'readonly_site');}
     await nav('site&id=conservative-gmail','gmail');const generic=await call('click',await target('Send'));assert.equal(generic.approval.description.untrusted_content.page_state.adapter,null);assert.equal((await rpc('submit_trusted',generic.approval)).ok,false);assert.equal(counts('conservative-gmail-Send'),0);
     await approval(generic,'conservative-gmail-Send');
-    await nav('password-matrix');assert.doesNotMatch(JSON.stringify(await read()),/SENTINEL_PRIVATE_PASSWORD_20/);
-    const show=await call('click',await target('Show'));assert.ok(show.approval);await call('submit',show.approval);assert.doesNotMatch(JSON.stringify(await read()),/SENTINEL_PRIVATE_PASSWORD_20/);
+    await nav('password-matrix');assert.doesNotMatch(JSON.stringify(await readPage(tab,{full:true})),/SENTINEL_PRIVATE_PASSWORD_20/);
+    const show=await call('click',await target('Show'));assert.ok(show.approval);await call('submit',show.approval);assert.doesNotMatch(JSON.stringify(await readPage(tab,{full:true})),/SENTINEL_PRIVATE_PASSWORD_20/);
     for(const file of ['browser-boundary.jsonl','tool.jsonl','service.txt'])assert.doesNotMatch(file==='browser-boundary.jsonl'?JSON.stringify(completeIngress(fs.readFileSync('/out/'+file,'utf8'))):fs.readFileSync('/out/'+file,'utf8'),/SENTINEL_PRIVATE_PASSWORD_20/,file);
     await lifecycle({fixture:'qualification',mode:'password_exclusion'});
     assert.equal((await rpc('read',{tab})).ok,false);
@@ -483,22 +491,39 @@ export async function matrices({call,read,nav,target,selectedTarget,counts,event
     fs.writeFileSync('/out/view-measurements.json',JSON.stringify(measurement,null,2));console.log('VIEW MEASURED',JSON.stringify(measurement));
   });
   await check('FEATURE tools forms options find wait fill_form scroll and full catalogues',async()=>{
-    await nav('features&id=tools');const first=await target('First');const form=await call('read_form',{tab,reference:first.reference});
-    assert.match(JSON.stringify(form),/Hidden field/);assert.match(JSON.stringify(form),/Disabled option/);assert.match(JSON.stringify(form),/Second option/);
+    await nav('features&id=tools');
+    const page=await readPage(tab,{full:true}),form=await readPage(tab,{ref:refOf(page.text,'form')});
+    const fields=()=>fixture.compatibility.filter(row=>row.id==='tools'&&row.phase==='fields');
+    await eventually(()=>fields().some(row=>row.hidden==='Hidden field'),'the page has the hidden value');
+    assert.match(form.text,/hidden: "hidden"/);assert.doesNotMatch(JSON.stringify([page.pages,form.pages]),/Hidden field/);
+    assert.match(form.text,/option "Disabled option".*disabled/);assert.match(form.text,/option "Second option"/);
     for(const value of ['missing','c'])assert.equal((await rpc('select',{...await target('Choice'),value})).ok,false);
     const found=await call('find',{tab,text:'Findable synthetic paragraph'});assert.match(found.untrusted_content.tree,/Findable synthetic paragraph/);
     assert.equal((await call('wait',{tab,text:'Findable synthetic paragraph',timeout_ms:500})).condition_met,true);
     assert.equal((await call('wait',{tab,text:'Never present sentinel',timeout_ms:50})).condition_met,false);
     const filled=await call('fill_form',{fields:[{...await target('First'),text:'Changed first'},{...await target('Second'),text:'Changed second'}]});assert.equal(filled.remaining,0);
-    assert.match(JSON.stringify(await read()),/Changed first/);assert.match(JSON.stringify(await read()),/Changed second/);
+    const changed=await readPage(tab,{full:true});
+    assert.match(changed.text,/Changed first/);assert.match(changed.text,/Changed second/);
+    await eventually(()=>fields().some(row=>row.first==='Changed first'&&row.second==='Changed second'&&row.hidden==='Hidden field'),'the page received both fills and its hidden value is intact');
     await call('scroll',{...await target('First'),x:0,y:80});
     for(let index=0;index<12;index++){
       await nav('features&id=catalogue-'+index);ownerBookmark();await delay(100);
       const download=await call('click',await target('Download fixture'));assert.ok(!download.approval);
     }
     for(const verb of ['downloads','history','bookmarks']){
+      const text=verb==='downloads'?'synthetic-':'fixture.test';
+      let next,entries=[],expected;
+      do{
+        const page=await call('chrome_library',{kind:verb,text,limit:2,...(next?{cursor:next}:{})});
+        assert.equal(page.kind,verb);assert.ok(page.untrusted_content.items.length<=2);
+        expected??=page.total;assert.equal(page.total,expected,'one immutable library snapshot');
+        entries.push(...page.untrusted_content.items);next=page.cursor;
+      }while(next);
+      assert.equal(entries.length,expected,verb+' every library item');assert.ok(entries.length>=12);
+      assert.ok(entries.every(item=>typeof item.ref==='string'));
+      if(verb==='downloads')assert.ok(entries.every(item=>item.file.includes('synthetic-')));
       let cursor,items=[],total;
-      do{const page=await call(verb,{text:verb==='downloads'?'synthetic-':'fixture.test',limit:2,...(cursor?{cursor}:{})});assert.ok(page.items.length<=2);total??=page.total;assert.equal(page.total,total,'one immutable catalogue snapshot');items.push(...page.items);cursor=page.cursor;}while(cursor);
+      do{const page=await oldCatalogue(verb,{text,limit:2,...(cursor?{cursor}:{})});assert.ok(page.items.length<=2);total??=page.total;assert.equal(page.total,total,'one immutable catalogue snapshot');items.push(...page.items);cursor=page.cursor;}while(cursor);
       assert.equal(items.length,total,verb+' every snapshot item');assert.equal(new Set(items.map(item=>item.id)).size,total,verb+' no repeated catalogue items');assert.ok(items.length>=12,verb+' complete catalogue: '+items.length);
       if(verb==='downloads')assert.ok(items.every(item=>item.filename?.includes('synthetic-')));
     }
@@ -539,7 +564,7 @@ export async function matrices({call,read,nav,target,selectedTarget,counts,event
   // Brief 28, group 14, at the end of the core shard, after every case of brief 20 that uses the tab: the new read's
   // cases (outline-read.mjs), then the password cases (unread-matrix.mjs), whose last step leaves a submission stopped.
   if(runs('core'))await outlineReadMatrix({check:inBlock('core'),call,rpc,nav,target,getTab:()=>tab,setTab,lifecycle,restoreControl,fixture,eventually,envelopeResults});
-  if(runs('core'))await unreadMatrix({check:inBlock('core'),call,rpc,read,nav,target,counts,approval,fixture,eventually,ownerNavigate,ownerKey,ownerType,getTab:()=>tab});
+  if(runs('core'))await unreadMatrix({check:inBlock('core'),call,rpc,nav,target,counts,approval,fixture,eventually,ownerNavigate,ownerKey,ownerType,getTab:()=>tab});
   if(runs('core'))await outlineAskingMatrix({check:inBlock('core'),call,rpc,read,fixture,eventually,ownerNavigate,getTab:()=>tab});
   await check('GROUP 7 no listening port after tool suite',async()=>isolationAfter());
   const precedence=fs.existsSync('/out/chrome-precedence.json')?JSON.parse(fs.readFileSync('/out/chrome-precedence.json')):null;

@@ -68,6 +68,11 @@ export function ownerUI({call,currentTab,window,eventually,exec=execFileSync}){
       await select(tab);exec('xdotool',['key','--clearmodifiers','ctrl+w']);
       await eventually(async()=>!await tabInfo(tab),'owner closes opener');return replacement;
     },
+    async close(tab){
+      await select(tab);
+      exec('xdotool',['key','--clearmodifiers','ctrl+w']);
+      await eventually(async()=>!await tabInfo(tab),'owner closes the exact tab');
+    },
     async popupWindow(id){
       assert.match(id,/^[a-z0-9-]+$/);let previous;
       return eventually(()=>{

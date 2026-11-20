@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import {instrumentLatencyBackground,instrumentLatencyReader} from './latency-instrument.mjs';
 import {instrumentInputBoundary} from './input-boundary.mjs';
 import {instrumentOwnerGuard} from './owner-evidence.mjs';
+import {observerCommands} from './harness-observer.mjs';
 import {generateKeyPairSync} from 'node:crypto';
 import {packageExtension} from '../packaging/pack.mjs';
 if(process.platform !== 'linux' || process.env.GITHUB_ACTIONS !== 'true' || !fs.existsSync('/.dockerenv'))throw Error('CI Linux container only');
@@ -59,7 +60,8 @@ async function content(tab, frame, command, parameters={},browserDocument=null,e
   if(process.env.ACT_INPUT_BOUNDARY==='true')background=instrumentInputBoundary(background,exactly);
   // The latency pair's historical runtime (ab7aba92) gets this file too; its dispatch takes no time.
   const dispatchStart=['async function dispatch(command,expires=null) {','async function dispatch(command) {'].find(text=>background.includes(text));
-  fs.writeFileSync(extension+'/background.js',exactly(background,dispatchStart, dispatchStart+`
+  const observer=process.env.CHROME_FIXTURE_OBSERVER==='true'&&background.includes('async function everyTab()')?observerCommands:'';
+  fs.writeFileSync(extension+'/background.js',exactly(background,dispatchStart, dispatchStart+observer+`
     if(command.name==='fixture_network_restart'){
       const tab=command.tab;await stop();
       await chrome.declarativeNetRequest.updateSessionRules({addRules:[{id:2,priority:2,action:{type:'block'},condition:{tabIds:[tab],urlFilter:'|'+defaultBlock,resourceTypes:['main_frame','sub_frame','ping','other']}}]});

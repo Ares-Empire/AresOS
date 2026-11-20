@@ -100,12 +100,13 @@ jobs:
         env:
           INSTALL_MODE: policy
           BROWSER_SHARD: ${{ matrix.shard }}
+          CHROME_FIXTURE_OBSERVER: 'true'
           ACT_INPUT_BOUNDARY: ${{ matrix.shard == 'recheck2' && 'true' || 'false' }}
           QUALIFICATION_VERSION: ${{ matrix.version }}
           RUNTIME_COMMIT: ${{ matrix.commit }}
         run: |
           mkdir -p .work/20-chrome/ci
-          timeout --signal=TERM --kill-after=30s 120m docker run --rm --network none --cap-add SYS_ADMIN --security-opt seccomp=unconfined --security-opt apparmor=unconfined --shm-size=512m -e INSTALL_MODE -e BROWSER_SHARD -e ACT_INPUT_BOUNDARY -e QUALIFICATION_VERSION -e RUNTIME_COMMIT -e GITHUB_RUN_ID -e GITHUB_SHA -v "$PWD/.work/20-chrome/ci:/out" qualification
+          timeout --signal=TERM --kill-after=30s 120m docker run --rm --network none --cap-add SYS_ADMIN --security-opt seccomp=unconfined --security-opt apparmor=unconfined --shm-size=512m -e INSTALL_MODE -e BROWSER_SHARD -e CHROME_FIXTURE_OBSERVER -e ACT_INPUT_BOUNDARY -e QUALIFICATION_VERSION -e RUNTIME_COMMIT -e GITHUB_RUN_ID -e GITHUB_SHA -v "$PWD/.work/20-chrome/ci:/out" qualification
       - name: Full Python file partition
         if: ${{ startsWith(matrix.shard, 'python-') }}
         env:

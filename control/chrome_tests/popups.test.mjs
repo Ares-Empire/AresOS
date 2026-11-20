@@ -59,7 +59,10 @@ function browser({race='late',answer=extension,records=null,attach='after-naviga
     fixture:{arrivals,hold:id=>{holds.set(id,true);return ()=>{holds.delete(id);const popup=byId(id);if(popup?.waiting)gate(popup);};}},
     boundary:{size:()=>log.length,since:offset=>{looks++;for(const popup of popups.values())if(popup.start&&!popup.admitted&&looks>=2)admit(popup);return log.slice(offset);}},
     popupEvidence:async id=>({window:'native-'+id,X:0,Y:0,WIDTH:620,HEIGHT:480}),
-    popupControl:async command=>{
+    popupControl:async (command,id)=>{
+      if(command==='close-popup'){
+        assert.equal(id,'popup-typed-late');assert.ok(byId(id));popups.delete(byId(id).tab);return;
+      }
       assert.equal(command,'state');
       const installs=[...popups.values()].filter(popup=>popup.controlled&&popup.loaded).flatMap(popup=>[...(popup.start?[{tab:popup.tab,document:popup.start,install:'late',ready:false}]:[]),{tab:popup.tab,document:popup.document,install:popup.path,ready:popup.path==='document_start'}]);
       return {installs:records?records(installs,popups):installs};

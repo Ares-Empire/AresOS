@@ -122,7 +122,8 @@ export async function popupMatrices({check,call,rpc,nav,counts,eventually,getTab
       assert.equal(loads.length,2);assert.ok(loads.every(load=>load.opener));assert.equal(loads[1].name,loads[0].name);
       assert.deepEqual(await popupEvidence(id,'after'),nativeBefore,'native popup window, position and size remain intact');
       await approval(await call('click',fresh),id);await eventually(()=>counts('flow-'+id)===1,'opener receives postMessage after reload');evidence(id,'guarded 0/1/1 and opener complete'+(path?' on the '+path+' path':''));
-      await call('close_tab',{tab:popup.tab,discard_unsaved:true},{legacy:mode==='typed-late'});
+      if(mode==='typed-late')await popupControl('close-popup',id);
+      else await call('close_tab',{tab:popup.tab,discard_unsaved:true});
     }
   });
   await check('GROUP 8 opener badges and per-popup Stop preserve windows documents and focus',async()=>{

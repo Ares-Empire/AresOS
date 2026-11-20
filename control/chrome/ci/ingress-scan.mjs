@@ -31,3 +31,8 @@ export function completeIngress(text){
 // Protocol commands legitimately return null; retain those rows for the value
 // scan while selecting event records independently.
 export function protocolEvents(rows){return rows.filter(row=>row?.protocol_event).map(row=>row.protocol_event);}
+
+export function auditRows(offset,key,log=boundaryLog){
+  return log.since(offset).split('\n').slice(0,-1)
+    .filter(line=>line.startsWith('{"'+key+'":')).map(line=>JSON.parse(line));
+}

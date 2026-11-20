@@ -82,6 +82,7 @@ jobs:
         env:
           INSTALL_MODE: ${{ matrix.install }}
           BROWSER_SHARD: ${{ matrix.shard }}
+          CHROME_FIXTURE_OBSERVER: 'true'
           ACT_INPUT_BOUNDARY: ${{ matrix.shard == 'recheck2' && 'true' || 'false' }}
           QUALIFICATION_VERSION: ${{ needs.package.outputs.version }}
           DESTINATION_PROBE: ${{ inputs.destination_probe && 'true' || 'false' }}
@@ -89,7 +90,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p .work/20-chrome/ci
-          timeout --signal=TERM --kill-after=30s 120m docker run --rm --network none --cap-add SYS_ADMIN --security-opt seccomp=unconfined --security-opt apparmor=unconfined --shm-size=512m -e INSTALL_MODE -e BROWSER_SHARD -e ACT_INPUT_BOUNDARY -e QUALIFICATION_VERSION -e INJECTION_PROBE -e DESTINATION_PROBE -e GITHUB_RUN_ID -e GITHUB_SHA -v "$PWD/.work/20-chrome/ci:/out" aresos-chrome-fixture
+          timeout --signal=TERM --kill-after=30s 120m docker run --rm --network none --cap-add SYS_ADMIN --security-opt seccomp=unconfined --security-opt apparmor=unconfined --shm-size=512m -e INSTALL_MODE -e BROWSER_SHARD -e CHROME_FIXTURE_OBSERVER -e ACT_INPUT_BOUNDARY -e QUALIFICATION_VERSION -e INJECTION_PROBE -e DESTINATION_PROBE -e GITHUB_RUN_ID -e GITHUB_SHA -v "$PWD/.work/20-chrome/ci:/out" aresos-chrome-fixture
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:

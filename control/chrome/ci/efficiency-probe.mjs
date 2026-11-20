@@ -73,7 +73,7 @@ export const TASKS=[
       const opened=await call('open',{url:fixtureUrl('f7','&page=1')});state.tab=opened.untrusted_content.tab;
       const page=await call('wait',{tab:state.tab,text:'Results page 1',timeout_ms:8000});assert.equal(page.condition_met,true);
     },
-    async after({rpc,state}){if(state.tab!==undefined)assert.ok((await rpc('close_tab',{tab:state.tab,discard_unsaved:true})).ok);}},
+    async after({rpc,state}){await closeTab(rpc,state.tab);}},
   // Brief 20 can't send F4: Save's approval would carry the form's facts, the
   // 200 options of Country among them (14,380 bytes alone), over the 16,384
   // bytes an approval may hold (run 43698395453). Its tools, used as well as
@@ -182,7 +182,12 @@ async function dropPrepared(rpc,approval){
   const dropped=await rpc('chrome_drop',{operation_id:approval.operation_id});assert.ok(dropped.ok,JSON.stringify(dropped.error));
   await rpc('chrome_notice_ack',{operation_id:approval.operation_id});
 }
-async function closeTab(rpc,tab){if(tab!==undefined)assert.ok((await rpc('close_tab',{tab,discard_unsaved:true})).ok,'close tab '+tab);}
+async function closeTab(rpc,tab){
+  if(tab===undefined)return;
+  const result=await rpc('chrome_close',{tabs:[tab],discard_unsaved:true});
+  assert.ok(result.ok,'close tab '+tab);
+  assert.deepEqual(result.data.closed.map(item=>item.tab),[tab]);
+}
 
 // Group 16's acting rows (brief 28a): each with the new tools and exactly the calls of its row. The
 // row names its baseline task; efficiency-summary.py (ACT_ROWS) holds the budgets.
@@ -265,18 +270,14 @@ export const LATENCY_TASKS=[
 
 // `toolName` is browser.mjs's: the tool the service runs for a harness verb. Without
 // it (the browser-free test) a verb names chrome_<verb>.
-export async function efficiencyProbe({rpc,eventually,counts,getTab,out='/out',toolName=async action=>action.startsWith('chrome_')?action:'chrome_'+action}){
+export async function efficiencyProbe({rpc,eventually,settled,counts,getTab,out='/out',toolName=async action=>action.startsWith('chrome_')?action:'chrome_'+action}){
   const record=fs.openSync(out+'/efficiency-calls.jsonl','a'),timing=fs.openSync(out+'/efficiency-tasks.jsonl','a');
   const tab=getTab();
   async function open(url){
-    const result=await rpc('open',{url});assert.ok(result.ok,JSON.stringify(result));
-    const opened=result.data.untrusted_content.tab;await loaded(opened,url);return opened;
+    const result=await rpc('chrome_open',{url});assert.ok(result.ok,JSON.stringify(result));
+    const opened=result.data.tab;await settled(url,opened);return opened;
   }
-  async function loaded(tabId,url){
-    await eventually(async()=>{const page=await rpc('read',{tab:tabId});return page.ok&&page.data.untrusted_content.url===url&&page.data.characters>0;},'efficiency fixture committed');
-    await delay(250);
-  }
-  async function nav(url){const result=await rpc('navigate',{tab,url,discard_unsaved:true});assert.ok(result.ok,JSON.stringify(result));await loaded(tab,url);}
+  async function nav(url){const result=await rpc('chrome_go',{tab,url,discard_unsaved:true});assert.ok(result.ok,JSON.stringify(result));await settled(url,tab);}
   async function perform(task,run,context){
     const tools=[],names=[];let index=0;
     // `refusal` is the one error code a call must end in; any other outcome,
@@ -326,7 +327,7 @@ export async function efficiencyProbe({rpc,eventually,counts,getTab,out='/out',t
     // Three tabs show F1, F2 and F3, then more tabs until 25 are open in all.
     const tabs=[];for(const name of ['f1','f2','f3'])tabs.push(await open(fixtureUrl(name)));
     await rounds(all.filter(task=>task.phase==='tabs'),{tabs});
-    const listed=async()=>{let cursor,count=0;do{const result=await rpc('tabs',{limit:10,...(cursor?{cursor}:{})});assert.ok(result.ok);count+=result.data.items.length;cursor=result.data.cursor;}while(cursor);return count;};
+    const listed=async()=>{const result=await rpc('chrome_tabs');assert.ok(result.ok);return result.data.total;};
     for(let id=1,count=await listed();count<EFFICIENCY_TAB_COUNT;id++,count++)await open(fixtureUrl('tab','&id='+id));
     assert.equal(await listed(),EFFICIENCY_TAB_COUNT);assert.ok(tabTitle(1).length>=28&&tabTitle(1).length<=32);
     await rounds(all.filter(task=>task.phase==='many'),{tabs});

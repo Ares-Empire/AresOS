@@ -1,8 +1,7 @@
 // Brief 28, group 14's password cases ("Passwords, in group 14 and in
 // password_exclusion"), in the named inventory (verdicts.mjs): two cases in
 // group 7 (password_exclusion) and the refused forms in group 3 (binding).
-// Each reads through brief 20's tools and through the internal action
-// chrome_outline (the test-only switch, run.sh). The fixtures are
+// Each reads through the public outline. The fixtures are
 // unread-fixtures.mjs; the recording is group 7's (password-ingress.js).
 // They run last in the core shard: the final step leaves a page submission
 // stopped in its document, which no later case may meet.
@@ -17,12 +16,9 @@ const address=(mode,id,variant='')=>'password-unread&mode='+mode+'&id='+id+(vari
 // A reference ends its line: five consonants of this run, then its number.
 const REFERENCE=/ ([bcdfghjklmnpqrstvwxyz]{5}\d+)$/;
 const count=(text,part)=>text.split(part).length-1;
-// Brief 20's rows of the fields with this name: a field row says what its value is, or that it isn't read.
-const fields=(rows,label)=>rows.filter(row=>row.expected.name===label&&['value','value_status','password'].some(key=>key in row.expected));
-const unread=(row,label)=>{assert.equal(row.expected.value,undefined,label);assert.equal(row.expected.value_status,'filled',label);assert.equal(row.expected.password,undefined,label);};
 const WITHHELD=/This form holds unread typed text; send it yourself/;
 
-export async function unreadMatrix({check,call,rpc,read,nav,target,counts,approval,fixture,eventually,ownerNavigate,ownerKey,ownerType,getTab}){
+export async function unreadMatrix({check,call,rpc,nav,target,counts,approval,fixture,eventually,ownerNavigate,ownerKey,ownerType,getTab}){
   const evidence=[];
   const clean=(name,value)=>{const text=JSON.stringify(value??null);assert.doesNotMatch(text,SECRET,name+' holds the password');return text;};
   // One call of the new read. The whole result is checked for the password before anything else is looked at.
@@ -34,20 +30,19 @@ export async function unreadMatrix({check,call,rpc,read,nav,target,counts,approv
     return text;
   };
   // Every surface, on the driver's tab: the outline, the whole page, a form by
-  // ref, find and until for the password itself, several tabs; and of brief
-  // 20's tools a read and a find. No argument names the whole password, so a
+  // ref, find and until for the password itself, and several tabs.
+  // No argument names the whole password, so a
   // request can't put it into a log either.
   const surfaces=async(name,tab,others=[])=>{
     const first=await entryOf(name+': outline',{tab}),whole=await full(name+': full',tab);
     const forms=whole.split('\n').filter(line=>line.trimStart().startsWith('form')).map(line=>line.match(REFERENCE)?.[1]).filter(Boolean);
-    for(const ref of forms.slice(0,4))await entryOf(name+': a form by ref',{tab,ref,max:40000});
+    const formReads=[];
+    for(const ref of forms.slice(0,4))formReads.push(await entryOf(name+': a form by ref',{tab,ref,max:40000}));
     for(const find of ['PRIVATE_PASSWORD','SENTINEL'])await outline(name+': find',{tab,find});
     const waited=await entryOf(name+': until',{tab,until:{text:'PRIVATE_PASSWORD_20'},timeout_ms:1000});
     assert.equal(waited.until_met,false,name+': a password value never meets until');
     if(others.length)assert.equal((await outline(name+': several tabs',{tabs:[tab,...others]})).length,others.length+1);
-    const rows=await read();clean(name+': chrome_read',rows);
-    clean(name+': chrome_find',await call('find',{tab,text:'PRIVATE_PASSWORD'},{legacy:true}));
-    return {first,whole,rows,forms:forms.length};
+    return {first,whole,formReads,forms:forms.length};
   };
   // Group 7's recording: what the content script's own reads returned, every
   // reply and event the extension handled, every tool result and the
@@ -85,7 +80,7 @@ export async function unreadMatrix({check,call,rpc,read,nav,target,counts,approv
   const lateRoot=async(id,variant,typed)=>{
     await call('release_tab',{tab:getTab()});await ownerNavigate('http://fixture.test:8765/?case=compose&id='+id);await call('take_tab',{tab:getTab()});
     await nav(address('late',id,variant));
-    const before=await read();clean('before the root: chrome_read',before);
+    const before=await full('before the root: full',getTab());
     await fixture.mutate(id,'review-change');
     await eventually(()=>fixture.compatibility.some(row=>row.id===id&&row.phase==='late-ready'),'the component attached its root: '+id);
     for(const text of typed){ownerType(text);ownerKey(true);}
@@ -125,19 +120,8 @@ export async function unreadMatrix({check,call,rpc,read,nav,target,counts,approv
       // The limit, shown honestly: the editable area unmasked before the reader came is read; the textarea with the same history is not.
       assert.ok(taken.whole.includes(LIMIT),'the known limit: an unmasked editable area labelled "Value" is read');
       assert.equal(count(taken.whole,'"Value" (filled, not read)'),1,'a textarea unmasked before the reader came stays unread');
-      // Brief 20's read of the same tab.
-      const codes=fields(taken.rows,'Code');assert.equal(codes.length,made,'chrome_read rows named Code: '+codes.length);
-      for(const row of codes)unread(row,'Code');
-      for(const label of NAMED)for(const row of fields(taken.rows,label)){assert.equal(row.expected.password,true,label);assert.equal(row.expected.value,undefined,label);}
-      for(const label of ['Verification code','Stored','Recovery phrase','Private key','Box'])assert.ok(fields(taken.rows,label).length>=1,'chrome_read shows the field '+label);
-      for(const type of Object.keys(TYPED_KINDS)){const row=fields(taken.rows,'Kind '+type)[0];assert.ok(row,type);unread(row,'Kind '+type);}
-      assert.equal(fields(taken.rows,'Kind empty')[0]?.expected.value_status,'empty');
-      assert.equal(fields(taken.rows,'Draft area')[0]?.expected.value,DRAFT_AREA);
-      const values=fields(taken.rows,'Value');assert.equal(values.length,2,'the two fields labelled Value');
-      assert.ok(values.some(row=>row.expected.value===LIMIT)&&values.some(row=>row.expected.value===undefined&&row.expected.value_status==='filled'),JSON.stringify(values.map(row=>row.expected)));
-      const form=await call('read_form',{tab,reference:codes[0].reference});clean('taken tab: chrome_read_form',form);
-      // No typed value of the unwatched document is in anything either read returned.
-      const returned=JSON.stringify([taken.first,taken.whole,taken.rows,form]);
+      // No typed value of the unwatched document is in a public page or form.
+      const returned=JSON.stringify([taken.first,taken.whole,...taken.formReads]);
       for(const value of [...Object.values(TYPED_KINDS),TYPED_AREA])assert.ok(!returned.includes(value),'a typed value of an unwatched document was returned: '+value);
       // Claude's own tab watched the fields from the start: none shows a value, the named ones are password lines, a plain field is read.
       const watched=await full('watched tab: full',watchedTab);
@@ -171,7 +155,6 @@ export async function unreadMatrix({check,call,rpc,read,nav,target,counts,approv
         assert.ok(reloaded.includes(signin),'after the reload the named field still isn\'t read');
         assert.equal(count(reloaded,'"Code"'),total);assert.ok(!reloaded.includes(PROBE),'after the reload no field that was a password field shows its value');
         assert.equal(count(reloaded,'password "Code" (not read)')+count(reloaded,'"Code" (filled, not read)'),total);
-        const rows=await read();assert.equal(fields(rows,'Note')[0]?.expected.value,NOTE);assert.ok(!JSON.stringify(rows).includes(PROBE));
       }
       assert.equal(count(probed.kept,'"Code" (filled, not read)'),total,'the history rule keeps the probe value out');assert.ok(!probed.kept.includes(PROBE));
       assert.equal(count(probed.off,'"Code" = "'+PROBE+'"'),total,'without the history rule every field made plain shows its value');
@@ -185,8 +168,7 @@ export async function unreadMatrix({check,call,rpc,read,nav,target,counts,approv
     // The owner types the password into the field labelled "Password", into the one labelled "Code" and into the textarea; Enter makes each plain.
     const before=await lateRoot(id,'password',[PASSWORD,PASSWORD,PASSWORD]);
     // The name rule in a watched document, before the root exists: the sign-in code known by its name, the named textareas, the mask.
-    for(const label of NAMED)for(const row of fields(before,label)){assert.equal(row.expected.password,true,label);assert.equal(row.expected.value,undefined,label);}
-    for(const label of ['Verification code','Stored','Recovery phrase','Private key','Box'])assert.ok(fields(before,label).length>=1,'chrome_read shows the field '+label);
+    for(const label of NAMED)assert.ok(before.includes('password "'+label+'" (not read)'),'before the root: '+label);
     const tab=getTab(),met=await surfaces('late root',tab);
     assert.equal(count(met.whole,'password "Password" (not read)'),2,'kept out by its name: the editable area of the page and the late root\'s field');
     assert.equal(count(met.whole,'"Code" (filled, not read)'),1,'kept out because it held text when the reader first met its root');
@@ -195,9 +177,6 @@ export async function unreadMatrix({check,call,rpc,read,nav,target,counts,approv
     for(const label of NAMED)assert.ok(met.whole.includes('password "'+label+'" (not read)'),'watched: '+label);
     const comment=met.whole.split('\n').find(line=>line.includes('"Comment"'));
     assert.ok(comment&&!comment.includes('not read')&&!comment.includes('(empty)'),'a field that was empty at the first meeting is watched from then on: '+comment);
-    const code=fields(met.rows,'Code');assert.equal(code.length,1);unread(code[0],'Code');
-    const notes=fields(met.rows,'Notes');assert.equal(notes.length,1);unread(notes[0],'Notes');
-    const passwords=fields(met.rows,'Password');assert.ok(passwords.length>=1);for(const row of passwords)assert.equal(row.expected.password,true);
     // Claude doesn't type into the field it may not read.
     const refused=await rpc('fill_form',{fields:[{...await target('Code'),text:'Overwritten'}]}),refusal=clean('a fill on the unread field',refused);
     assert.ok(refused.ok===false||refused.data.state==='refused',refusal);assert.match(refusal,/owner_signin|does not type into it either/);
@@ -206,7 +185,6 @@ export async function unreadMatrix({check,call,rpc,read,nav,target,counts,approv
     const later=await full('late root, after the fill',tab);
     assert.ok(later.includes('"Comment" = "PUBLIC_COMMENT_28"'),'the field that was empty at the first meeting is read');
     assert.equal(count(later,'"Code" (filled, not read)'),1);assert.equal(count(later,'"Notes" (filled, not read)'),1);
-    clean('late root: chrome_read after the fill',await read());
     recording('the late root','PUBLIC_COMMENT_28');
     evidence.push({case:'late',refused,outline:later.split('\n').slice(0,40)});
   });
@@ -221,7 +199,7 @@ export async function unreadMatrix({check,call,rpc,read,nav,target,counts,approv
       assert.equal(await waitingFor(id),undefined,name+': no operation waits that chrome_submit could run');
       evidence.push({case:'form',name,result});
     };
-    const draftUnread=async()=>{const rows=await read();assert.doesNotMatch(JSON.stringify(rows),new RegExp(LATE_DRAFT));const draft=fields(rows,'Draft');assert.equal(draft.length,1);unread(draft[0],'Draft');};
+    const draftUnread=async()=>{const text=await full('unread draft',getTab());assert.doesNotMatch(text,new RegExp(LATE_DRAFT));assert.equal(count(text,'"Draft" (filled, not read)'),1);assert.equal(count(text,'"Draft"'),1);};
     // 1. The late root holds a form: the draft that held text at the first meeting, a second field and Send.
     const id='brief28-form';await lateRoot(id,'form',[LATE_DRAFT]);await draftUnread();
     const tab=getTab(),send=async name=>notSent(name,await rpc('click',await target('Send')),id);
@@ -236,7 +214,7 @@ export async function unreadMatrix({check,call,rpc,read,nav,target,counts,approv
     assert.equal(await waitingFor(id),undefined,'no operation waits after the draft changed');
     await send('a click on Send after the draft changed');
     // 2. The same form with a known password field in place of the unread one still asks, and sends once.
-    const known='brief28-known';await lateRoot(known,'known',[]);clean('known password form: chrome_read',await read());
+    const known='brief28-known';await lateRoot(known,'known',[]);await full('known password form: full',getTab());
     const prepared=await call('click',await target('Send'));clean('the question of a form with a password field',prepared);
     assert.ok(prepared.approval,JSON.stringify(prepared));await approval(prepared,known);
     // 3. A form prepared while every field was readable. While the approval waits, the page moves the late root's filled draft into it.

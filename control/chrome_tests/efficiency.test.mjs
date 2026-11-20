@@ -166,11 +166,11 @@ function fakeService(){
     if(action==='submit'){received.set('efficiency-f4-'+new URL(page).searchParams.get('id'),1);return {ok:true,data:{operation:{id:args.operation_id,state:'done'}}};}
     if(action==='chrome_drop'||action==='chrome_notice_ack')return {ok:true,data:{operation:{id:args.operation_id,state:'failed'}}};
     if(action==='chrome_tabs')return {ok:true,data:{seen:'tabsk1',total:tabs,cursor:null,untrusted_content:{list:Array.from({length:tabs},(_,index)=>index+' claude "'+tabTitle(index)+'" fixture.test:8765/?…').join('\n')},version_notice:null}};
-    if(action==='navigate'){page=args.url;f2Page=0;f5Clicked=false;f7=Number(new URL(args.url).searchParams.get('page')||1);return {ok:true,data:{}};}
-    if(action==='open'){tabs++;page=args.url;return {ok:true,data:{untrusted_content:{tab:nextTab++}}};}
-    if(action==='close_tab'){tabs--;return {ok:true,data:{}};}
+    if(action==='chrome_go'){page=args.url;f2Page=0;f5Clicked=false;f7=Number(new URL(args.url).searchParams.get('page')||1);return {ok:true,data:{}};}
+    if(action==='open'){tabs++;page=args.url;f7=1;return {ok:true,data:{untrusted_content:{tab:nextTab++}}};}
+    if(action==='chrome_close'){tabs--;return {ok:true,data:{closed:args.tabs.map(tab=>({tab}))}};}
     if(action==='tabs'){const offset=Number(args.cursor||0),items=Array.from({length:Math.min(10,tabs-offset)},(_,index)=>({tab:offset+index}));return {ok:true,data:{items,total:tabs,cursor:offset+10<tabs?String(offset+10):null}};}
-    if(action==='read'&&name==='f2'){f2Page++;return f2Page<4?view(trees.f2,{cursor:'c'+f2Page}):view(f2Cell(199,5));}
+    if(action==='read'&&name==='f2'){f2Page++;return f2Page<3?view(trees.f2,{cursor:'c'+f2Page}):view(f2Cell(199,5));}
     if(action==='read'&&name==='f5'&&f5Clicked)return view('refreshed item 4');
     if(action==='read'||action==='find')return view(name==='f7'?trees.f7.replace('page 1','page '+f7):trees[name]||'');
     if(action==='read_form')return {ok:true,data:{untrusted_content:{form:'Synthetic value 0 Synthetic value 79'},cursor:null}};
@@ -183,7 +183,7 @@ function fakeService(){
     throw Error('unexpected '+action);
   }
   // The receiver: F4 arrives once when chrome_submit sends it.
-  return {rpc,calls,tabCount:()=>tabs,counts:kind=>received.get(kind)||0};
+  return {rpc,calls,tabCount:()=>tabs,settled:async url=>assert.equal(page,url),counts:kind=>received.get(kind)||0};
 }
 
 // The fake reads every page at once, so `loaded` must see the address.
@@ -191,13 +191,13 @@ const probeRpc=(service,change=()=>null)=>async(action,args)=>{
   const changed=change(action,args);if(changed)return changed;
   const result=await service.rpc(action,args);if(action==='read'&&result.data?.untrusted_content&&!result.data.characters)result.data.characters=1;return result;
 };
-const probeOptions=(rpc,out,counts)=>({rpc,eventually:async(fn,label)=>{assert.ok(await fn(),label);},counts,getTab:()=>1,out});
+const probeOptions=(service,rpc,out,counts)=>({rpc,settled:service.settled,eventually:async(fn,label)=>{assert.ok(await fn(),label);},counts,getTab:()=>1,out});
 
 test('every task makes exactly the calls of its plan, recorded and timed, and the tabs reach 25',async()=>{
   const out=fs.mkdtempSync(path.join(os.tmpdir(),'pkg28-efficiency-'));
   try{
     const service=fakeService();
-    await efficiencyProbe(probeOptions(probeRpc(service),out,service.counts));
+    await efficiencyProbe(probeOptions(service,probeRpc(service),out,service.counts));
     const timings=fs.readFileSync(out+'/efficiency-tasks.jsonl','utf8').trim().split('\n').map(line=>JSON.parse(line));
     const calls=fs.readFileSync(out+'/efficiency-calls.jsonl','utf8').trim().split('\n').map(line=>JSON.parse(line));
     const all=[...TASKS,...OUTLINE_TASKS,...ACT_TASKS,...LATENCY_TASKS].filter(task=>!task.retired);
@@ -260,7 +260,7 @@ test('a side whose click on Save comes back any other way fails the run, and a f
   ]){
     const out=fs.mkdtempSync(path.join(os.tmpdir(),'pkg28-efficiency-'));
     const service=fakeService();
-    try{await assert.rejects(efficiencyProbe(probeOptions(probeRpc(service,change),out,receiver(service))),message);}
+    try{await assert.rejects(efficiencyProbe(probeOptions(service,probeRpc(service,change),out,receiver(service))),message);}
     finally{fs.rmSync(out,{recursive:true,force:true});}
   }
 });
