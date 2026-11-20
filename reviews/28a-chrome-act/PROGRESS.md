@@ -1,5 +1,182 @@
 # Package 28a: Chrome acting progress
 
+## Step 3b, latency
+
+2026-11-20. Draft PR #116. Built by a Claude agent (claude-opus-5-5) for the `linux-tools` lead. Commits
+`7dd773c0` (product) and `c2a20dcb` (group 16). Evidence: the latency and efficiency artifacts of step 3a's
+[Control Chrome 44671559502](https://github.com/Ares-Empire/AresOS/actions/runs/44671559502) (`75bc1428`, old
+single-purpose tools timed) and step 3b's [Control Chrome 44684296519](https://github.com/Ares-Empire/AresOS/actions/runs/44684296519)
+(`25809d99`, `chrome_do` and `chrome_go` timed).
+
+### Where the time goes
+
+Fresh history, plain profile, median ms of 60 samples, from each run's `latency-summary.json` and
+`latency-service.jsonl` (the gate's own spans; the bridge per command is summed per sample). The audit profile
+shows the same split within a few ms; the 1,000 and 4,000 phases are 5 to 25 ms slower.
+
+| Span | `asking_click` old | `asking_click` new | `navigate` old | `navigate` new |
+|---|---:|---:|---:|---:|
+| client_total | 13.71 | 125.68 | 31.79 | 362.30 |
+| service_total | 12.84 | 124.82 | 30.85 | 361.48 |
+| service_without_bridge | 7.29 | **107.54** | 5.99 | **306.76** |
+| bridge_round_trip | 5.62 | 17.33 | 24.87 | 54.82 |
+| extension_total | 3.60 | 10.65 | 20.90 | 43.90 |
+| frame_facts | 2.10 | 3.90 | absent | 3.80 |
+| page_observation | absent | absent | 12.85 | 11.40 |
+| compose_binding | 0.20 | 0.20 | absent | absent |
+| store_write | 1.31 | 1.06 | 2.24 | 1.63 |
+| client_outside_service | 0.81 | 0.87 | 0.90 | 0.86 |
+| Bridge commands (count) | facts 1, validity 2 | tab_context 1, page_state 5, outline 2, facts 1, validity 2 | tab_context 1, navigate 1 | tab_context 2, page_state 6, outline 2, navigate 1, queued_steps 1 |
+
+- **`asking_click`, +112 ms.** About 100 ms is one fixed sleep in `Doing.settle`. With nothing dispatched in
+  the call (the click is prepared), no look ran after the step, so the report's quiet check had no first look and
+  slept one poll (100 ms) between two page states. The other 12 ms are `chrome_do`'s report reads around the
+  question: the outline before the step, a quiet look, and the outline after it (url, title, `changed` in the
+  reply), plus one page state taken twice (`Doing.run` asked `page_state` and then `outline_view`, which asks it
+  again). The asking path (`payload`, `binding`, `prepare`, `facts`, `validity`) costs what it did.
+- **`navigate`, +330 ms.** 300 ms are three 100 ms poll sleeps in `Going.wait`. All 180 samples of each profile
+  make the same looks: one page state before the navigation, four in the wait, one with the closing outline. The
+  wait's first look, right after the navigate reply (it takes about 15 ms), doesn't see the page's final token
+  yet; the second, 100 ms later, does; quiet then needs it unchanged for 150 ms (brief 28, "Quiet"), which the 100 ms
+  poll saw only at the fourth look, 200 ms later. The other ~30 ms are the new call's reads: the `outline` for the
+  taken-tab reload check, the wait's page states and the closing outline (the reply's page). Brief 20's navigate
+  returned after the navigate command; the old flow read the page in a second call, outside the timed span.
+- `free_click` through `chrome_do` stays within its ceiling (575.35 / 579.06, the 525 ms hold included).
+
+### Waste removed (`7dd773c0`)
+
+- **`Doing.run` / `Doing.settle`:** the outline before the first step now gives both the list's start and the
+  report's first look (the token it was taken with); the separate `page_state` before it is gone. When no step
+  ran, a page whose token hasn't moved since is reported at once. A page that moved still waits for two equal
+  looks, and a step that ran still has the look after it. New test
+  `test_an_asking_first_step_on_a_still_page_is_reported_without_waiting_for_another_look`: no sleep, three page
+  states, and one poll when the page moved without a step. It fails on the old code (`[0.1] != []`).
+- **`Going.wait`:** once the page has arrived and is ready, the next look comes when the token has been unchanged
+  for 150 ms, not at the next 100 ms poll after that. Quiet, arrival, `until` and the poll are unchanged.
+  New test `test_loaded_is_seen_once_the_token_was_still_for_quiet_not_a_poll_after_it`: 150 ms of sleeps from
+  a still page, and 250 ms when the token moves at the second look. It fails on the old code (`0.2 != 0.15`).
+- Nothing in the asking path, the hold, the 525 ms wait, the reads' contents or any assertion changed.
+  `latency-targets.json` and `latency-reference.json` are untouched.
+
+**Expected effect (projected from 44684296519, not measured; run 44705819383 measures it):** `asking_click`
+about 24 / 26 ms fresh and 40 / 42 ms at 4,000, under its 60 / 100 ceilings and under the frozen reference's
+regression thresholds (31.8 / 47.6 fresh, 55.0 / 74.6 at 4,000). `navigate` about 312 / 319 fresh and 335 / 346
+at 4,000: still over 100 / 150.
+
+### Ceiling proposal: `navigate` (the lead decides)
+
+What remains of `navigate` is inherent: the navigation's wait until loaded (arrived, ready, the token still
+for 150 ms) and the page in the reply, the work brief 20's flow did in a second call. After the fix about 250 ms
+of it are fixed sleeps (the 100 ms poll until the final token is seen, then the 150 ms quiet), which don't vary
+with the runner, and 60 to 95 ms are work.
+
+PR #27's rule (`reviews/20-chrome/REPORT.md`, "Latency proposal", run 43466571812, accepted in
+`briefs/20-post-18d-g.md`): ceilings "allow runner noise while bounding routine free actions below one second".
+Short calls got about 1.6 to 1.75 times their median and 1.9 to 2.1 times their p95, rounded up (read 20.6 /
+29.6 to 35 / 60, navigate 62.2 / 78.8 to 100 / 150, asking click 34.3 / 47.6 to 60 / 100). Calls dominated by a
+fixed wait got the wait plus that margin on the rest (click 590.7 / 604.3 to 650 / 750).
+
+Applied the second way to `navigate`: worst projected work 87 ms median, 96 ms p95 (4,000, audit); 250 + 1.75 x
+87 = 402 and 250 + 2.1 x 96 = 452. **Proposed `navigate`: 400 / 450 ms** (from 100 / 150). 500 ms would be the
+p95 with the click's absolute margin.
+
+| `navigate` | Old (3a), plain / audit | New (3b), plain / audit | Projected after `7dd773c0` | Ceiling now | Proposed |
+|---|---|---|---|---|---|
+| Fresh | 31.79 / 36.83, 35.78 / 49.46 | 362.30 / 369.19, 365.09 / 371.07 | 312 / 319, 315 / 321 | 100 / 150 | 400 / 450 |
+| 1,000 | 37.67 / 40.67, 38.99 / 50.85 | 369.94 / 373.79, 370.31 / 373.01 | 320 / 324, 320 / 323 | 100 / 150 | 400 / 450 |
+| 4,000 | 47.58 / 54.14, 51.42 / 69.23 | 385.15 / 387.69, 387.16 / 395.76 | 335 / 338, 337 / 346 | 100 / 150 | 400 / 450 |
+
+`asking_click` needs no new ceiling if 44705819383 confirms the projection: 3a 13.71 / 14.57 fresh and 27.44 /
+31.85 at 4,000; 3b 125.68 / 127.35 and 141.89 / 143.70; projected 24 / 26 and 40 / 42; ceiling 60 / 100.
+
+**A new ceiling alone won't pass the gate.** `latency-check.py` also fails a call whose median and p95 both cross
+1.5 x / 1.75 x the frozen reference's (`latency-reference.json`, run 43502970342) plus 10 / 20 ms. The
+reference's `navigate` is 34.9 / 49.8 fresh and 52.8 / 54.8 at 4,000, so the thresholds are 62 to 92 ms median
+and 96 to 158 ms p95; `navigate` at 312 to 346 crosses both in every phase whatever the ceiling. Options for the
+lead: (a) take a new reference from a green run of the final head (both profiles; PR #27's came from run
+43502970342's summaries), so the regression check guards the new `navigate` from now on; (b) compare `navigate` without its
+fixed wait, as the gate does for inputs' 525 ms (it needs a service span for the wait, harness only; the work
+part alone, about 62 ms fresh, would still sit near the 62 ms threshold); (c) leave `navigate` out of the
+reference comparison and keep only its ceilings. My recommendation is (a).
+
+### Group 16 (`c2a20dcb`)
+
+The brief's check that stays: "each task with the new tools' own median of that run", where "that run" is the
+side-by-side comparison whose id and numbers go into the baseline file. Those numbers were never written there:
+`efficiency-baseline.json` held only brief 28's comparison (run 44226934670), so the lead's reading had nothing to
+compare with.
+
+- `efficiency-baseline.json`: the three comparison entries of run 44671559502 (`75bc1428`, the last run with both
+  tool sets, comparison and rows all passing) are appended to `latency_comparisons` exactly as that run's
+  `efficiency-measured.json` wrote them. The frozen part's digest is unchanged (only `latency_comparisons` may grow).
+  New medians: F1 first read 191.6, F5 click with report 668.0, F4 six fills and Save up to the question 4,495.5 ms.
+- `efficiency-summary.py`: `TIMED_TASKS` is the brief's three tasks (`outline_f1_first_read`,
+  `act_f5_free_click`, `act_f4_to_question`). Each task's median of this run's five measured samples fails above
+  1.5 times its recorded new-tools median (`COMPARISON_RUN = "44671559502"`); at it, it passes. The per-sample
+  check against the same run's median is gone. A task without five samples, or without exactly one recorded
+  entry of that run, is a miss.
+- Tests (`test_efficiency.py`): at the line passes and 0.001 ms above fails, for each task; a sample 20 times the
+  median doesn't fail; missing samples, a missing, doubled or other-run entry are misses; the baseline's entries are
+  the three tasks with the brief's 1.10 x + 50 rule recomputed. Mutations, each failing the tests: `>=` for `>`,
+  the limit on this run's median, the old per-sample check, and accepting a doubled entry.
+- Replayed on 3b's own efficiency artifact (44684296519): every row holds. F1 85.3 ms (allowed 287.4), F5 600.4
+  (allowed 1,002.0), F4 4,263.0 (allowed 6,743.25).
+
+### Verified locally
+
+- Portable Node `--test --test-concurrency=2 control/chrome_tests/*.test.mjs`: 642 passed, 0 failed (19.5 s).
+- `PYTHONPATH=control:control/chrome_tests python3 -B -m unittest test_going test_doing test_engine
+  test_excluded_sites_28a test_operation_projection test_loss_errors test_small_tools test_policy
+  test_field_descriptions test_questions test_latency test_efficiency`: 261 tests, one failure,
+  `test_doing ... test_no_step_starts_after_the_dispatch_second_and_not_run_counts_the_rest`, which is a
+  pre-existing flake on this laptop (below). Every other module passed; `test_going test_doing test_efficiency`
+  again after the last edit: 77 tests, the same single flake.
+- `python3 -B control/generate.py --check`: `Generated artifacts match definitions`. `git diff --check` passed.
+- No browser ran locally. Scratch is in `.work/pkg28a-3b-lat/` (the four artifacts, about 100 MB).
+
+### Dispatched once on `c2a20dcb`
+
+Not waited on; the `linux-tools` lead owns the results.
+
+- [Control Chrome 44705819383](https://github.com/Ares-Empire/AresOS/actions/runs/44705819383)
+- [Control Chrome qualification 44705823983](https://github.com/Ares-Empire/AresOS/actions/runs/44705823983)
+- [Control Base 44705828872](https://github.com/Ares-Empire/AresOS/actions/runs/44705828872)
+- [Control Mail 44705834097](https://github.com/Ares-Empire/AresOS/actions/runs/44705834097)
+- [Repo privacy 44705838823](https://github.com/Ares-Empire/AresOS/actions/runs/44705838823)
+
+The latency jobs of 44705819383 will still fail on `navigate` (ceiling and reference) until the lead decides
+above; `asking_click` should pass.
+
+### JUDGMENT-CALLs
+
+- **The comparison run recorded is 44671559502** (step 3a, `75bc1428`), not a step 1d run (44463920809 also
+  passed the comparison). It is the last run with both tool sets, on the code nearest the final one. Its medians
+  are higher than a run of the new tools alone (each round there also ran brief 20's tasks), so 1.5 times them is
+  loose: today's F1 read is 0.30 of its limit.
+- **Three timed tasks, not twelve.** The brief's check covers the comparison's three tasks, and the baseline
+  records new-tools medians only for them. Step 3b timed all twelve public tasks against the same run. The other
+  nine keep their call and character budgets but no time check; adding them would need their medians in
+  `latency_comparisons`, which records comparisons, not single medians.
+- **The poll stays 100 ms.** Looking every 25 ms until the page is first ready would cut up to about 75 more ms
+  from `navigate`, at up to four times the page states during a slow load; each one walks every
+  frame's fields. Not done; the lead's call.
+
+### PLAN-GAPs
+
+- The step-1 comparison's id and numbers never went into `efficiency-baseline.json` (step 1d's reports say no
+  efficiency-baseline file changed). Done now with 3a's run (above).
+- `navigate` can't meet PR #27's ceilings: brief 28a's "Loaded" (the token still for 150 ms) alone is longer than
+  the 100 ms median ceiling. The budget table's "PR #27's latency gate stays within its ceilings" needs the lead's
+  new `navigate` ceiling and a decision on the frozen reference (above).
+- `test_doing`'s `test_no_step_starts_after_the_dispatch_second_and_not_run_counts_the_rest` fails on this loaded
+  laptop about half the time, with and without `7dd773c0` (old code 9 of 12, new 6 of 12, interleaved). Each
+  step there takes about 160 ms instead of 120; the fourth starts at about 490 ms, before the 500 ms cut, and its
+  `input` is attempted at 511 to 520 ms, where the fake bridge answers it expired and nothing is dispatched (three
+  steps `done`, 17 `not_run`). The test counts that refused attempt as a step started after the cut. The product
+  is right; the test's bound should count step starts and dispatched inputs, not attempts. Not changed here.
+- The within-run growth step 3b found (each read slower in each later round) is still open; the new check no
+  longer looks at single samples.
+
 ## Step 3b, fix
 
 2026-11-20. Draft PR #116. Fix commits `3893f613` and `fb34fb6f`.
