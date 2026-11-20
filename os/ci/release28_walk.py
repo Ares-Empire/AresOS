@@ -545,7 +545,7 @@ def control(guest, stage, vm):
     login = value['login']
     assert login['roots'] == ['greetd.service', 'systemd-user-sessions.service'], 'STOP: missing login roots'
     graph = login['graph']
-    pending, seen = list(login['roots']), set()
+    pending, seen, masked_units, required = list(login['roots']), set(), set(), set()
     while pending:
         name = pending.pop()
         assert name != 'aresos-toold.service', 'STOP: Control service delays login'
@@ -559,14 +559,20 @@ def control(guest, stage, vm):
         # Optional After= units (for example home.mount on an Atomic image) can be absent. They cannot delay
         # login; a missing root or an unreadable graph still stops the walk.
         absent = properties.get('LoadState') == 'not-found' and name not in login['roots'] and not dependencies
-        # A masked unit never starts, so it cannot delay login: the stock base masks systemd-remount-fs.service
-        # (rehearsal 4, run 44729393652; the laptop's release 27 too). Its own ordering is still followed, so
-        # Control behind it still stops the walk; a masked login root stops it as before.
+        # A masked unit never starts, so as an ordering-only reference it cannot delay login: the stock base
+        # masks systemd-remount-fs.service (rehearsal 4, run 44729393652; the laptop's release 27 too). Its own
+        # ordering is still followed, so Control behind it still stops the walk; a masked login root, or a
+        # masked unit another login unit requires (which would keep that unit from starting), stops it.
         masked = properties.get('LoadState') == 'masked' and name not in login['roots']
+        if masked:
+            masked_units.add(name)
+        required.update(dep for key in ('Requires', 'Requisite', 'BindsTo') for dep in properties.get(key, '').split())
         assert (row['status'] == 0 and (properties.get('LoadState') == 'loaded' or masked)) \
             or (absent and row['status'] in (0, 1)), 'STOP: login dependency query failed: ' + name
         pending.extend(dependencies)
     assert set(graph) == seen, 'STOP: login graph has unvisited entries'
+    assert not masked_units & required, 'STOP: login dependency query failed: a login unit requires masked ' \
+        + ', '.join(sorted(masked_units & required))
     return dict(checks=results, login=login, checker_sha256=hashlib.sha256(source.encode()).hexdigest())
 
 
