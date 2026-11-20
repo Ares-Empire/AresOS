@@ -4,8 +4,7 @@ Brief 18c-b's control/chrome_tests/test_excluded_sites_placeholder.py (PR #76)
 calls every Chrome tool while the owner's excluded-sites list is refused and
 fails on a tool that is neither refused nor named. It isn't on this branch's
 base, so this package carries the same sweep for its own list: the nineteen
-tools, the owner-only chrome_sites and brief 20's replaced tools under their
-chrome_old_ names. Each must answer chrome_settings_unavailable before any call
+tools and the owner-only chrome_sites. Each must answer chrome_settings_unavailable before any call
 to the browser. When PR #76's test with these entries is on main, this copy
 goes, so the sweep lives in one place (review 6, N8).
 """
@@ -20,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from aresos_control.chrome import exclusions
 from aresos_control.common import Refused
 from aresos_control.definitions import ACTIONS
-from test_engine import Engine, OLD_TOOLS, old_tools  # the fixture's own qualification baseline
+from test_engine import Engine  # the fixture's own qualification baseline
 from test_policy import entry
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -55,7 +54,6 @@ class UnconfiguredChrome:
 PAGE = 'http://page.invalid/'
 REF = 'kqtvm5'
 REFERENCE = {'session': UnconfiguredChrome.session, 'tab': 1, 'frame': 0, 'document': 'document-1', 'view': 'view-1', 'element': 'e1'}
-TARGET = {'reference': REFERENCE, 'expected': {}}
 PREPARED = object()  # replaced by the approval of an operation the test writes into the store
 
 # Every tool that reads or changes a page, with arguments valid for its input.
@@ -77,24 +75,6 @@ SWEPT = {
     'chrome_submit_trusted': PREPARED,
     # Owner-only, but it checks an address against the list.
     'chrome_sites readonly': {'command': 'readonly', 'site': PAGE},
-    # Brief 20's replaced tools, for as long as the CI-only switch offers them (item 8, step 3 removes them).
-    'chrome_old_tabs': {}, 'chrome_old_downloads': {}, 'chrome_old_bookmarks': {}, 'chrome_old_history': {},
-    'chrome_old_take_tab': {'tab': 1}, 'chrome_old_release_tab': {'tab': 1}, 'chrome_old_close_tab': {'tab': 1},
-    'chrome_old_open': {'url': PAGE},
-    'chrome_old_navigate': {'tab': 1, 'url': PAGE},
-    'chrome_old_read': {'tab': 1},
-    'chrome_old_find': {'tab': 1, 'text': 'word'},
-    'chrome_old_read_form': {'tab': 1, 'reference': REFERENCE},
-    'chrome_old_wait': {'tab': 1},
-    'chrome_old_click': TARGET,
-    'chrome_old_fill': {**TARGET, 'text': 'text'},
-    'chrome_old_select': {**TARGET, 'value': 'one'},
-    'chrome_old_check': {**TARGET, 'checked': True},
-    'chrome_old_press': {**TARGET, 'key': 'Enter'},
-    'chrome_old_scroll': {**TARGET, 'x': 0, 'y': 10},
-    'chrome_old_upload': {**TARGET, 'path': '/work/fixture.txt'},
-    'chrome_old_fill_form': {'fields': [{**TARGET, 'text': 'text'}]},
-    'chrome_old_dialog': {'tab': 1, 'expected': {}, 'accept': False},
 }
 
 # The tools that answer while the list is refused, each with its reason: brief
@@ -125,7 +105,6 @@ class Sweep(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(dir=WORK)
         root = Path(self.temp.name)
         self.mock = patch('aresos_control.engine.Boundary'); self.mock.start()
-        old_tools().start()
         self.engine = Engine(root / 'state', root / 'evidence')
         self.chrome = self.engine.adapters['chrome']
         self.bridge = self.chrome.bridge = UnconfiguredChrome()
@@ -165,7 +144,7 @@ class Sweep(unittest.TestCase):
         return {'typed_read': True, 'read_connection': self.bridge.connection_identity, 'binding': binding}
 
     def test_the_two_tables_cover_the_tool_list_exactly(self):
-        tools = {action.name for action in ACTIONS if action.app == 'chrome'} | set(OLD_TOOLS)
+        tools = {action.name for action in ACTIONS if action.app == 'chrome'}
         named = {name.split()[0] for name in [*SWEPT, *ANSWER_ANYWAY]}
         self.assertEqual(tools - named, set(), 'A Chrome tool is neither refused by the excluded-sites placeholder nor named as '
                          'answering anyway. Decide which (brief 18c-b, item 1) before it ships: a tool that reads or changes a page '

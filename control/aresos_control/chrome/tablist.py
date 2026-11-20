@@ -48,7 +48,7 @@ def address(url):
 
 def every_tab(chrome):
     """The extension's all-tabs reply, checked: one row per tab, from this connection."""
-    reply = chrome.bridge.call('tabs', all=True)
+    reply = chrome.bridge.call('tabs')
     rows = reply.get('tabs') if isinstance(reply, dict) else None
     if reply.get('session') != chrome.bridge.session or not isinstance(rows, list) or \
             not all(isinstance(row, dict) and type(row.get('tab')) is int and type(row.get('window')) is int and

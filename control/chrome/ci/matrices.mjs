@@ -23,7 +23,7 @@ import {receiverSnapshot} from './receiver-evidence.mjs';
 import {allTabs} from './tabs.mjs';
 import {pendingCheck,recordCheck,writePartialResults,assertChecksPassed} from './failure.mjs';
 
-export async function matrices({call,read,readPage,nav,settled,target,selectedTarget,counts,eventually,tab,setTab:syncTab=()=>{},fixture,admin,observe,oldCatalogue,rpc,caller,ownerNavigate,ownerCloseTab,ownerOpenTab,ownerClickPage,ownerOpenPopup,popupEvidence,popupControl,nativeDonor,closeNativeDonor,ownerKey,ownerType,ownerChooseFile,ownerDismiss,ownerHistory,ownerBookmark,lifecycle,restoreControl,stopClick,baseline,isolationAfter,envelopeResults,smokeResults}) {
+export async function matrices({call,read,readPage,nav,settled,target,selectedTarget,counts,eventually,tab,setTab:syncTab=()=>{},fixture,admin,observe,rpc,caller,ownerNavigate,ownerCloseTab,ownerOpenTab,ownerClickPage,ownerOpenPopup,popupEvidence,popupControl,nativeDonor,closeNativeDonor,ownerKey,ownerType,ownerChooseFile,ownerDismiss,ownerHistory,ownerBookmark,lifecycle,restoreControl,stopClick,baseline,isolationAfter,envelopeResults,smokeResults}) {
   const results=[];let trustOperation;const shard=process.env.BROWSER_SHARD||null;
   // The owner helpers (ownerNavigate and the others) close over the driver's
   // own current tab, so a matrix that moves to another tab tells the driver
@@ -522,10 +522,6 @@ export async function matrices({call,read,readPage,nav,settled,target,selectedTa
       assert.equal(entries.length,expected,verb+' every library item');assert.ok(entries.length>=12);
       assert.ok(entries.every(item=>typeof item.ref==='string'));
       if(verb==='downloads')assert.ok(entries.every(item=>item.file.includes('synthetic-')));
-      let cursor,items=[],total;
-      do{const page=await oldCatalogue(verb,{text,limit:2,...(cursor?{cursor}:{})});assert.ok(page.items.length<=2);total??=page.total;assert.equal(page.total,total,'one immutable catalogue snapshot');items.push(...page.items);cursor=page.cursor;}while(cursor);
-      assert.equal(items.length,total,verb+' every snapshot item');assert.equal(new Set(items.map(item=>item.id)).size,total,verb+' no repeated catalogue items');assert.ok(items.length>=12,verb+' complete catalogue: '+items.length);
-      if(verb==='downloads')assert.ok(items.every(item=>item.filename?.includes('synthetic-')));
     }
   });
   await check('GROUP 8 actual popup Stop button drops all prepared work',async()=>{

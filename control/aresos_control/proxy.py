@@ -72,8 +72,7 @@ class Proxy:
                         self.client.request({"method": "saved", "app": self.app, "outcome": "refused", 'export_id': admission['export_id']})
                     raise
                 return self.report_saved(self.app, saved, admission['export_id'])
-            # Brief 28a, item 6: chrome_upload reads `path` as before; chrome_old_upload exists only behind the test-only switch.
-            if self.app == "chrome" and verb in {"upload", "old_upload"}:
+            if self.app == "chrome" and verb == "upload":
                 if self.files is None:
                     raise Refused("file_refused", "No caller folders configured for Chrome uploads.")
                 data, file_ref = self.files.read(arguments["path"])

@@ -314,14 +314,6 @@ class Acting(unittest.TestCase):
         self.assertNotIn('ref', operation['payload']['input'])
         self.assertNotIn('tab', operation['payload']['input'])
 
-    def test_brief_20s_reference_and_expected_keep_working_until_the_switch(self):
-        self.read()
-        reference = {'session': SESSION, 'tab': 1, 'frame': 0, 'document': self.browser.outlines[1]['frames'][0]['document'], 'element': 'e2'}
-        facts = self.browser.call('facts', reference=reference)
-        self.chrome.call('old_click', {'reference': reference, 'expected': facts['frames'][0]['target']})
-        with self.assertRaises(Refused):
-            self.chrome.call('old_click', {'reference': reference, 'expected': {**facts['frames'][0]['target'], 'name': 'Other'}})
-        self.assertEqual(len(self.browser.dispatched), 1)
 
 
 if __name__ == '__main__':

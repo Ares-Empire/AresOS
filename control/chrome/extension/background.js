@@ -976,7 +976,7 @@ async function pageState(tab,expires=null){
   if(dialogs.has(tab))return {...base,dialog:true};
   return {...base,dialog:false,document:frames.find(frame=>frame.frameId===0)?.documentId||null,ready,token:await sha256Hex(JSON.stringify(parts))};
 }
-const WITHHELD_FORM='this form holds unread typed text; send it yourself, or reload the tab first with chrome_navigate direction=reload (it reports unsaved text first), then read it again';
+const WITHHELD_FORM='this form holds unread typed text; send it yourself, or reload the tab first using chrome_go with to: reload (it reports unsaved text first), then read it again';
 function refuseWithheldSubmission(snapshot,reference,command){
   const frame=snapshot.frames.find(frame=>frame.frame===reference.frame),target=frame?.target;
   const verb=command.input?.verb,key=command.input?.key?.split('+').at(-1);
@@ -1046,14 +1046,7 @@ async function collection(command) {
     let items;
     if(command.name==='downloads')items=await chrome.downloads.search({limit:10001,query:command.text?[command.text]:[]});
     else if(command.name==='history')items=await chrome.history.search({text:command.text||'',startTime:0,maxResults:10001});
-    else if(command.name==='bookmarks')items=await chrome.bookmarks.search(command.text||{});
-    else {
-      const focused=new Set((await chrome.windows.getAll()).filter(window=>window.focused).map(window=>window.id));
-      // audible and muted are Chrome's own tab flags, the same `audible` the
-      // discard report reads, so Claude can see sound before closing or
-      // navigating a tab and a run can tell the flag apart from the report.
-      items=(await chrome.tabs.query({})).map(tab=>({tab:tab.id,window:tab.windowId,index:tab.index,active:tab.active,focused:focused.has(tab.windowId),title:tab.title,url:tab.url,controlled:controlled.has(tab.id)&&(controlled.get(tab.id).virtualGroup||tab.groupId===groupId),cleanup_pending:releasing.has(tab.id),audible:tab.audible===true,muted:tab.mutedInfo?.muted===true}));
-    }
+    else items=await chrome.bookmarks.search(command.text||{});
     if(items.length>10000 || JSON.stringify(items).length>8*1024*1024)throw Error('refused: this complete list exceeds the 10000-item or 8 MiB snapshot bound; narrow the search');
     const now=Date.now();record={id:crypto.randomUUID(),key,items,time:now,created:now};
     for(const [id,value]of listSnapshots)if(now-value.time>=300000 || now-value.created>=1800000)listSnapshots.delete(id);
@@ -1123,9 +1116,9 @@ async function dispatch(command,expires=null) {
   }
   if(command.name==='queued_steps')return stepStates(tab).flatMap(current=>[...current.steps?.values()||[]]).slice(0,513);
   if(!excludedHosts)throw Error('refused: owner-only excluded-sites setting is unavailable');
-  if(command.name==='tabs'&&command.all===true)return everyTab();
+  if(command.name==='tabs')return everyTab();
   if(command.name==='show')return showTab(tab);
-  if (['tabs','downloads','history','bookmarks'].includes(command.name))return collection(command);
+  if (['downloads','history','bookmarks'].includes(command.name))return collection(command);
   if (command.name === 'take_tab') { if(command.seen!==undefined)await stillSeen(tab,command.seen); return take(tab); }
   if (command.name === 'release_tab') return release(tab);
   if (command.name === 'stop') return stop();

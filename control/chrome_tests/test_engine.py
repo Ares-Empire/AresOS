@@ -11,38 +11,19 @@ from unittest.mock import patch
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from aresos_control.engine import Engine
-from aresos_control.definitions import Action, BY_NAME
-from aresos_control.chrome.definitions import OLD, OLD_VERBS, old_actions
+from aresos_control.definitions import BY_NAME
 from aresos_control.chrome.policy import HOSTS
 from test_policy import entry
 import qualification_fixture
+from response_checks import check_responses
+
+check_responses()
 
 ROOT=Path(__file__).resolve().parents[2]
 WORK=ROOT/'.work/20-chrome'; WORK.mkdir(parents=True,exist_ok=True)
 # The held records below are the fixtures' own, so every Chrome these tests
 # start trusts the fixture baseline, never what the shipped copy holds (#79).
 qualification_fixture.install(WORK/'fixture-runtime')
-
-
-# Brief 28a, item 8 step 1d: brief 20's replaced tools are callable as
-# chrome_old_<verb> only behind the CI-only switch, which a test process
-# doesn't set. Only the old catalogue tests patch in those entries.
-OLD_TOOLS={action.name:action for action in old_actions(Action)}
-
-
-def old_tools():
-    """Brief 20's replaced tools in the engine's catalogue, as the test-only switch offers them."""
-    return patch.dict(BY_NAME,OLD_TOOLS)
-
-
-def old(verb):
-    """A brief 20 verb as the service names it now: old_<verb> for a replaced tool, the rest unchanged."""
-    return OLD+verb if verb in OLD_VERBS else verb
-
-
-def tool(name):
-    """A brief 20 tool's name as the service names it now: chrome_old_<verb> for a replaced tool."""
-    return 'chrome_'+old(name.removeprefix('chrome_')) if name.startswith('chrome_') else name
 
 
 def fixture_target(chrome, browser):
@@ -133,6 +114,8 @@ class Browser:
         if name in {'facts','read','outline'}:
             result=copy.deepcopy(self.facts)
             for frame in result['frames']:
+                if 'rows' in frame:
+                    frame['view_digest'] = hashlib.sha256(json.dumps(frame.pop('rows'), sort_keys=True).encode()).hexdigest()
                 frame.update(reader=self.reader, fingerprint=self.fingerprint())
                 if name=='outline':
                     frame.update(scroll=0,height=100,omitted=0,watched=True)
@@ -155,10 +138,9 @@ class Browser:
             self.addresses[args['tab']]=args['url']
         if name=='close_tab':
             self.dispatched.append((name,args));return {'closed':args['tab']}
-        if name=='tabs' and args.get('all'):
+        if name=='tabs':
             return {'session':self.session,'tabs':[{'tab':1,'window':1,'whose':'claude','group':True,
                 'title':'Fixture','url':self.addresses.get(1,self.facts['url'])}]}
-        if name=='tabs': return {'items':[{'tab':1,'url':self.facts['url'],'title':'Fixture'}]}
         self.dispatched.append((name,args))
         return {'checked':True,'dispatched':True,'steps':[]}
     def close(self): pass

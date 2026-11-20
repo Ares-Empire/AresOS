@@ -11,25 +11,13 @@ The sizes of what a session loads are measured from the same tree: tool
 descriptions plus the server instructions, and tool names plus input schemas
 as compact JSON.
 
-Group 16's second half, the read rows: each task of the new read
-(chrome_read, OUTLINE_ROWS) is checked against its budget and against the
-baseline's task of the same row (efficiency-baseline.json): its calls and its
-characters in every measured run may be no more than the budget's and the
-baseline's. Its time may be no more than 1.10 times brief 20's median for the
-same row in the same run plus 50 ms, the latency comparison's rule; for the
-first read of F1 that comparison is the one the brief names, and it is written
-as an entry for the baseline file's latency_comparisons. The step fails when a
-row misses, after the record is written.
-
-Brief 28a (item 8, step 1d) adds the acting rows (ACT_ROWS: chrome_open,
-chrome_do, chrome_submit and chrome_tabs against their budgets and the frozen
-baseline's rows), the side-by-side latency comparison of three tasks timed with
-brief 20's tools (chrome_old_<verb>) and the new ones in the same run
-(COMPARISONS), and the size rows of what a session loads (SIZE_ROWS, against
-main's catalogue at 28a's start). Each call is named by the tool the service
-ran; a record without those names (from before 28a) names chrome_<verb>.
+Group 16 compares calls and characters with the frozen baseline and the brief's
+budgets. Every measured sample of each public task must be at most 1.5 times
+that task's median in the same run. The recorded old and new measurements
+remain in efficiency-baseline.json.
 """
 import json
+import math
 import statistics
 import sys
 from pathlib import Path
@@ -54,9 +42,8 @@ OUTLINE_ROWS = {
     "outline_f3_find_link": {"baseline": "f3_find_link", "calls": 1, "characters": 800},
     "outline_three_tabs": {"baseline": "three_tabs", "calls": 1, "characters": None},
 }
-# "Latency": the new read takes at most this times brief 20's median plus this, in one run.
-SLOWER, SLACK_MS = 1.10, 50.0
-COMPARED = "outline_f1_first_read"
+MEASURED_RUNS = 5
+WITHIN_RUN_LIMIT = 1.5
 
 
 def received(result):
@@ -130,7 +117,7 @@ def summarize(directory):
             "characters_per_run": totals,
             "characters_per_call": [int(statistics.median(column)) for column in zip(*(run["characters"] for run in per_run))],
             "milliseconds": round(statistics.median(run["milliseconds"] for run in per_run), 1),
-            "milliseconds_per_run": [round(run["milliseconds"], 1) for run in per_run],
+            "milliseconds_per_run": [run["milliseconds"] for run in per_run],
             "warmup_milliseconds": [round(run["milliseconds"], 1) for run in tasks[name]["warmup"]],
         }
         measured = sorted({key for run in per_run for key in run["measures"]})
@@ -138,43 +125,31 @@ def summarize(directory):
             out[name]["measures_per_run"] = {key: [run["measures"].get(key) for run in per_run] for key in measured}
     return {
         "format": FORMAT,
-        "what": "Brief 28's efficiency baseline: brief 20's tools on the group 16 fixtures, used as well as they allow "
-                "(control/chrome/ci/efficiency-probe.mjs). Characters are the JSON text of each tool result as "
-                "Claude receives it; wall time is the median of the measured runs after one warm-up. A task whose "
-                "outcome is \"refused\" ends in the refusal listed: brief 20's tools can't finish that row.",
+        "what": "Group 16's public Chrome tasks. Characters are counted as Claude receives them. "
+                "Wall time is the median of the measured runs after a warm-up.",
         "run_id": runner.get("run_id"),
         "sha": runner.get("sha"),
         "runner": {key: runner.get(key) for key in ("runner", "cpu", "cpus", "memory_bytes", "node", "chrome")},
         "measured_runs": len(next(iter(tasks.values()))["measured"]) if tasks else 0,
         "tasks": out,
         "sizes": sizes(),
-        "latency_comparisons": [],
     }
 
 
 def read_rows(summary, baseline):
-    """Group 16's read rows of this run: each new-read task against its budget and its baseline row.
-
-    Returns the rows, the latency comparison (an entry for the baseline file's
-    latency_comparisons) and the misses, each a sentence; no miss means the rows hold.
-    """
+    """Check the read rows against their budgets and the frozen baseline."""
     tasks, frozen = summary["tasks"], baseline["tasks"]
     rows, misses = {}, []
     for name, row in OUTLINE_ROWS.items():
         if name not in tasks:
             misses.append("%s: not measured" % name)
             continue
-        new, base, now = tasks[name], frozen[row["baseline"]], tasks.get(row["baseline"])
-        if now is None:
-            misses.append("%s: brief 20's %s was not measured in this run" % (name, row["baseline"]))
-            continue
+        new, base = tasks[name], frozen[row["baseline"]]
         if (new["row"], new["outcome"]) != (base["row"], "done"):
             misses.append("%s: row %r, outcome %s; expected the baseline's row %r, done" % (name, new["row"], new["outcome"], base["row"]))
         most = max(new["characters_per_run"])
-        limit_ms = round(SLOWER * now["milliseconds"] + SLACK_MS, 1)
         checks = [("calls", new["calls"], row["calls"]), ("calls against the baseline", new["calls"], base["calls"]),
-                  ("characters in a run against the baseline", most, base["characters"]),
-                  ("milliseconds against brief 20's in this run", new["milliseconds"], limit_ms)]
+                  ("characters in a run against the baseline", most, base["characters"])]
         if row["characters"] is not None:
             checks.insert(1, ("characters in a run", most, row["characters"]))
         for what, measured, allowed in checks:
@@ -182,24 +157,8 @@ def read_rows(summary, baseline):
                 misses.append("%s: %s %s, allowed %s" % (name, what, measured, allowed))
         rows[name] = {"row": new["row"], "baseline": row["baseline"], "budget": {"calls": row["calls"], "characters": row["characters"]},
                       "calls": new["calls"], "characters": new["characters"], "most_characters_in_a_run": most,
-                      "milliseconds": new["milliseconds"], "baseline_calls": base["calls"], "baseline_characters": base["characters"],
-                      "brief_20_milliseconds_this_run": now["milliseconds"], "milliseconds_allowed": limit_ms}
-    comparison = None
-    if COMPARED in rows:
-        old, new = tasks[OUTLINE_ROWS[COMPARED]["baseline"]], tasks[COMPARED]
-        comparison = {"run_id": summary["run_id"], "sha": summary["sha"], "row": new["row"], "runs": summary["measured_runs"],
-                      "old": {"tool": label(old, "chrome_old_read"), "milliseconds": old["milliseconds"], "milliseconds_per_run": old["milliseconds_per_run"]},
-                      "new": {"tool": label(new, "chrome_read"), "milliseconds": new["milliseconds"], "milliseconds_per_run": new["milliseconds_per_run"]},
-                      "rule": "new median <= %.2f x old median + %d ms" % (SLOWER, SLACK_MS),
-                      "allowed_milliseconds": rows[COMPARED]["milliseconds_allowed"],
-                      "passed": new["milliseconds"] <= rows[COMPARED]["milliseconds_allowed"]}
-    return rows, comparison, misses
-
-
-def label(task, default):
-    """The tools a task's calls ran, as one label; `default` when the summary carries none."""
-    tools = task.get("tools") or [default]
-    return tools[0] if len(set(tools)) == 1 else ", ".join(dict.fromkeys(tools))
+                      "milliseconds": new["milliseconds"], "baseline_calls": base["calls"], "baseline_characters": base["characters"]}
+    return rows, misses
 
 
 # Brief 28a, group 16's acting rows: each task, the frozen baseline's task of the same row, its budget
@@ -213,13 +172,7 @@ ACT_ROWS = {
     "act_f5_free_click": {"baseline": "f5_free_click", "calls": 1, "characters": 2500},
     "act_list_25_tabs": {"baseline": "list_25_tabs", "calls": 1, "characters": 3500},
 }
-# Brief 28a, "Latency: old and new in one run": each timed task with the new tools, and the same
-# work with brief 20's tools measured in the same run.
-COMPARISONS = {
-    "outline_f1_first_read": "f1_first_read",
-    "act_f5_free_click": "f5_free_click",
-    "act_f4_to_question": "f4_old_to_question",
-}
+TIMED_TASKS = (*OUTLINE_ROWS, *ACT_ROWS, "act_f4_to_question")
 INSTRUCTIONS_MOST, EVERY_APP_MOST = 2800, 4096
 
 
@@ -258,32 +211,23 @@ def act_rows(summary, baseline):
     return rows, misses
 
 
-def percentile(values, share=0.95):
-    """Nearest-rank percentile of a run's samples."""
-    ordered = sorted(values)
-    return ordered[max(0, min(len(ordered) - 1, -(-int(share * 100) * len(ordered) // 100) - 1))]
-
-
-def comparisons(summary):
-    """The side-by-side latency comparison: entries for the baseline file's latency_comparisons, and misses."""
-    tasks, entries, misses = summary["tasks"], [], []
-    for new_name, old_name in COMPARISONS.items():
-        new, old = tasks.get(new_name), tasks.get(old_name)
-        if new is None or old is None:
-            misses.append("%s: not compared, %s was not measured in this run" % (new_name, old_name if old is None else new_name))
+def latency_rows(summary):
+    """Require all five samples for each task to stay within 1.5 times their median."""
+    rows, misses = {}, []
+    for name in TIMED_TASKS:
+        task = summary["tasks"].get(name)
+        samples = task.get("milliseconds_per_run", []) if task else []
+        if len(samples) != MEASURED_RUNS or not all(type(ms) in {int, float} and math.isfinite(ms) and ms > 0 for ms in samples):
+            misses.append("%s: expected %d measured samples with positive milliseconds" % (name, MEASURED_RUNS))
             continue
-        allowed = round(SLOWER * old["milliseconds"] + SLACK_MS, 1)
-        entry = {"run_id": summary["run_id"], "sha": summary["sha"], "row": new["row"], "runs": summary["measured_runs"],
-                 "old": {"task": old_name, "tool": label(old, "brief 20"), "calls": old["calls"], "milliseconds": old["milliseconds"],
-                         "p95_milliseconds": percentile(old["milliseconds_per_run"]), "milliseconds_per_run": old["milliseconds_per_run"]},
-                 "new": {"task": new_name, "tool": label(new, "chrome_read"), "calls": new["calls"], "milliseconds": new["milliseconds"],
-                         "p95_milliseconds": percentile(new["milliseconds_per_run"]), "milliseconds_per_run": new["milliseconds_per_run"]},
-                 "rule": "new median <= %.2f x old median + %d ms" % (SLOWER, SLACK_MS),
-                 "allowed_milliseconds": allowed, "passed": new["milliseconds"] <= allowed}
-        if not entry["passed"]:
-            misses.append("%s: median %s ms against brief 20's %s ms in this run, allowed %s" % (new_name, new["milliseconds"], old["milliseconds"], allowed))
-        entries.append(entry)
-    return entries, misses
+        median = statistics.median(samples)
+        allowed = WITHIN_RUN_LIMIT * median
+        most = max(samples)
+        rows[name] = {"median_milliseconds": median, "most_milliseconds": most, "allowed_milliseconds": allowed,
+                      "milliseconds_per_run": samples}
+        if most > allowed:
+            misses.append("%s: slowest sample %.3f ms, allowed %.3f ms (1.5 times the run median)" % (name, most, allowed))
+    return rows, misses
 
 
 def size_rows(sizes_now, start=None):
@@ -309,12 +253,12 @@ def main(argv):
         raise SystemExit(__doc__)
     summary = summarize(argv[1])
     baseline = json.loads(BASELINE.read_text())
-    rows, comparison, misses = read_rows(summary, baseline)
+    rows, misses = read_rows(summary, baseline)
     acting, act_misses = act_rows(summary, baseline)
-    compared, compared_misses = comparisons(summary)
+    latency, latency_misses = latency_rows(summary)
     sized, size_misses = size_rows(summary["sizes"])
-    summary.update(read_rows=rows, latency_comparison=comparison, read_row_misses=misses,
-                   act_rows=acting, act_row_misses=act_misses, latency_comparisons=compared, comparison_misses=compared_misses,
+    summary.update(read_rows=rows, read_row_misses=misses,
+                   act_rows=acting, act_row_misses=act_misses, latency_rows=latency, latency_misses=latency_misses,
                    size_rows=sized, size_row_misses=size_misses)
     target = Path(argv[2]) if len(argv) == 3 else Path(argv[1]) / "efficiency-measured.json"
     target.write_text(json.dumps(summary, indent=2) + "\n")
@@ -322,15 +266,14 @@ def main(argv):
         print("EFFICIENCY %s: %d calls, %d characters, %.1f ms, %s" % (name, task["calls"], task["characters"], task["milliseconds"],
                                                                  task["outcome"]))
     print("EFFICIENCY sizes:", json.dumps(summary["sizes"]))
-    print("EFFICIENCY latency comparison:", json.dumps(comparison))
-    for entry in compared:
-        print("EFFICIENCY side by side:", json.dumps(entry))
-    every = misses + act_misses + compared_misses + size_misses
+    for name, row in latency.items():
+        print("EFFICIENCY latency", name, json.dumps(row))
+    every = misses + act_misses + latency_misses + size_misses
     for miss in every:
         print("EFFICIENCY MISS", miss)
     if every:
         raise SystemExit("Group 16's rows missed %d check(s); see EFFICIENCY MISS above." % len(every))
-    print("EFFICIENCY rows hold:", ", ".join([*rows, *acting, *(entry["new"]["task"] for entry in compared), *sized]))
+    print("EFFICIENCY rows hold:", ", ".join([*rows, *acting, *sized]))
 
 
 if __name__ == "__main__":

@@ -1,9 +1,9 @@
-"""Steps 0a and 1d: every instruction kept while text moves, and the switched catalogue pinned.
+"""Chrome instruction coverage and the final step 3b catalogue pins.
 
 The baseline is frozen from package 28 at cd2ce599: main's Chrome instructions,
 each sentence of them mapped to where it is stated now (`rules`), and main's
-sizes. Step 1d adds brief 28a item 7's list of rules (`item7_rules`) with their
-homes, and the final sizes of the nineteen tools (`final_sizes`).
+sizes. The fixture records item 7's rules and their new homes, plus the pinned
+sizes of the nineteen tools.
 main-ask-rules.json is the verbatim generated file on main at 7417c19a, so
 shallow CI needs no Git history.
 """
@@ -16,7 +16,7 @@ import sys
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from aresos_control.definitions import COMMON_INSTRUCTIONS, instructions_for, tools_for
+from aresos_control.definitions import BY_NAME, COMMON_INSTRUCTIONS, instructions_for, tools_for
 from aresos_control.boundary_policy import asking_rules
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -32,11 +32,11 @@ def document():
     tools = tools_for('chrome')
     instructions = instructions_for('chrome')
     final = BASELINE['final_sizes']
-    out = ['# Chrome tool descriptions and instructions (package 28a, step 1d)', '',
+    out = ['# Chrome tool descriptions and instructions (package 28a, step 3b)', '',
            'Exactly as `instructions_for(\'chrome\')` and `tools_for(\'chrome\')` give them, which are the generated',
            '`control/generated/chrome-instructions.txt` and `chrome-tools.json`. Written by `document()` in',
            '`control/chrome_tests/test_instruction_rules.py`, which fails when this file and the catalogue differ.', '',
-           '| | Main at this package\'s start | Step 1d |', '|---|---:|---:|']
+           '| | Main at this package\'s start | Step 3b |', '|---|---:|---:|']
     for key, label in (('tools', 'Tools offered'), ('descriptions', 'Descriptions'), ('instructions', 'Server instructions'),
                        ('descriptions_and_instructions', 'Descriptions plus instructions'),
                        ('names_and_input_schemas', 'Names plus input schemas (compact JSON)')):
@@ -51,6 +51,23 @@ def document():
 class InstructionRules(unittest.TestCase):
     def test_tool_descriptions_document_is_exactly_as_generated(self):
         self.assertEqual(DOCUMENT.read_text(), document())
+
+    def test_no_catalogue_or_tool_text_names_a_removed_tool(self):
+        removed = (
+            'find', 'read_form', 'wait', 'click', 'fill', 'fill_form', 'select', 'check', 'press', 'scroll',
+            'dialog', 'navigate', 'take_tab', 'release_tab', 'close_tab', 'downloads', 'bookmarks', 'history',
+        )
+        self.assertTrue({'chrome_' + name for name in removed}.isdisjoint(BY_NAME))
+        self.assertFalse(any(name.startswith('chrome_old_') for name in BY_NAME))
+        names = '|'.join(removed)
+        retired = re.compile(r'(?<![a-z0-9])(?:mcp__chrome__|chrome[_ ])(?:' + names + r'|old_[a-z_]+|outline)(?![a-z0-9_])')
+        texts = {'instructions': instructions_for('chrome'),
+                 **{name: action.description for name, action in BY_NAME.items() if action.app == 'chrome'}}
+        for name in ('control/aresos_control/chrome/adapter.py', 'control/chrome/extension/background.js'):
+            texts[name] = (ROOT / name).read_text()
+        for name, text in texts.items():
+            with self.subTest(name=name):
+                self.assertNotRegex(text, retired)
 
     def test_map_accounts_for_the_complete_old_chrome_text(self):
         rules = BASELINE['rules']
@@ -106,8 +123,8 @@ class InstructionRules(unittest.TestCase):
         self.assertEqual(hashlib.sha256(COMMON_INSTRUCTIONS.encode()).hexdigest(), BASELINE['common_sha256'])
         self.assertTrue(instructions_for('chrome').startswith(COMMON_INSTRUCTIONS + '\n\n'))
 
-    def test_the_switched_catalogue_is_pinned(self):
-        # Step 1d: the nineteen tools, their names, inputs, results and hints, apart from the descriptions
+    def test_the_final_catalogue_is_pinned(self):
+        # The nineteen tools, their names, inputs, results and hints, apart from the descriptions
         # the size pins below count. A change fails here until the pin moves on purpose.
         from aresos_control.chrome.loss import ERROR
         final = BASELINE['final_sizes']

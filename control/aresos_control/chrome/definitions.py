@@ -1,30 +1,8 @@
 """Chrome action descriptions; app-wide rules are MCP instructions."""
-import os
-
 from ..definitions import obj, string, array, APPROVAL, OP, BLOB, PAGE, PREPARED_RESULT, OP_RESULT, CURSOR
-from .policy import WORDS, WORD_LIST_VERSION
-from .loss import ERROR, LOSS, UNTRUSTED
-
-# Brief 28a, item 8 step 1d: brief 20's replaced tools stay callable as
-# chrome_old_<verb>, and only in a process started with brief 28's test-only
-# switch, for the CI browser groups and the side-by-side latency run until
-# step 3 removes them. The CI container's run.sh sets it for the service and
-# the browser harness; the packaged service, CLI and MCP wrappers start with
-# `env -i`, so it never reaches them, and generate.py refuses to run while it
-# is set. The service, the MCP proxy and the aresos command each build their
-# own catalogue at import, so each needs it in its own environment.
-OUTLINE_SWITCH = 'ARESOS_TEST_CHROME_OUTLINE'
-OLD = 'old_'
-
-
-def outline_switch():
-    return os.environ.get(OUTLINE_SWITCH) == '1'
-
+from .loss import ERROR, LOSS
 
 TAB = {'type': 'integer', 'minimum': 0}
-REF = obj({'session': string(64), 'tab': TAB, 'frame': TAB, 'document': string(128), 'view': string(128), 'element': string(32)})
-EXPECT = {'type': 'object'}
-TARGET = {'reference': REF, 'expected': EXPECT}
 DISCARD = {'discard_unsaved': {'type': 'boolean'}}
 # Cross-tool rules only (brief 28a, item 7), with CLIPBOARD_NOTICE appended by
 # instructions_for. Every rule of one tool lives in its description below;
@@ -157,15 +135,6 @@ DO_RESULT = obj({
     'version_notice': NOTICE,
     'error': FAILED},
     ['tab', 'steps', 'not_run', 'deadline', 'prepared', 'unknown', 'loaded', 'untrusted_content', 'version_notice'])
-# fill_form's result: every field done, or where it stopped. A loss refusal's
-# report sits under untrusted_content.loss with its step (brief 28a, item 5b).
-FILL_FORM_RESULT = {'anyOf': [
-    obj({'completed': array({'type': 'object'}, 32), 'remaining': {'type': 'integer', 'minimum': 0}}),
-    obj({'state': {'type': 'string', 'enum': ['partial', 'refused']}, 'completed': array({'type': 'object'}, 32),
-         'next_field': {'type': 'integer', 'minimum': 0}, 'reason': {'type': 'string'}, 'untrusted_content': UNTRUSTED},
-        ['state', 'completed', 'next_field', 'reason'])]}
-
-
 def actions(Action):
     """Brief 28a, item 7: the nineteen actions Claude is offered, then the owner-only chrome_sites."""
     result = []
@@ -241,54 +210,4 @@ def actions(Action):
         'Owner lists or changes read-only sites and exact adapter-kind permissions. allow names a recently approved operation; revoke names the entry id. Requires sudo on admin.sock. '
         "The owner's Chrome details page lists, revokes and marks sites read-only directly; its allow and read-only off ask for his password in a polkit dialog, once for each change.",
         owner=True)
-    return result
-
-
-# Brief 20's tools the new list replaces (item 8, step 3 removes them), each
-# offered as chrome_old_<verb> only behind the test-only switch.
-OLD_VERBS = ('tabs', 'downloads', 'bookmarks', 'history', 'take_tab', 'release_tab', 'close_tab', 'open', 'navigate',
-             'read', 'find', 'read_form', 'wait', 'click', 'fill', 'select', 'check', 'press', 'scroll', 'upload',
-             'fill_form', 'dialog')
-
-
-def old_actions(Action):
-    """Brief 20's replaced tools as chrome_old_<verb>, with their inputs, purposes and results unchanged."""
-    result = []
-    def add(verb, effect, schema, purpose, output=None):
-        result.append(Action('chrome', OLD + verb, effect, schema, purpose, False, output or {'type': 'object'}, error=ERROR))
-    for verb, purpose in {
-        'tabs': 'List all tab titles, addresses, native window/position, active/focused state, Claude-group membership and whether each tab is playing sound (audible) or muted; no page content is read. ' + POPUP_NOTICE,
-        'downloads': 'List Chrome downloads and the paths Chrome chose. Changes nothing; Chrome saves normally.',
-        'bookmarks': 'Find bookmark addresses and titles, read-only.',
-        'history': 'Find visited addresses and titles, read-only.'}.items():
-        add(verb, 'read', obj({'text': string(), **PAGE['properties']}, []), purpose)
-    for verb, purpose in {'take_tab': 'Take the chosen owner tab into the visible Claude group.',
-        'release_tab': 'End control and drop prepared work without dispatch. A cleanup_pending result means native restoration is still waiting; the owner must close its dialog or, if needed, the tab.',
-        'close_tab': 'Close only a Claude tab; prepared work is dropped. Unsaved typing or playing media is reported first; discard_unsaved=true closes anyway.'}.items():
-        add(verb, 'change', obj({'tab': TAB, **(DISCARD if verb == 'close_tab' else {})}, ['tab']), purpose)
-    add('open', 'change', obj({'url': string()}), 'Open a web address or about:blank in a new Claude tab. Navigation is free.')
-    add('navigate', 'change', obj({'tab': TAB, 'url': string(), 'direction': {'type': 'string', 'enum': ['back', 'forward', 'reload']}, **DISCARD}, ['tab']),
-        'Navigate a Claude tab by address or one history direction. Only http, https and about:blank; settings and approval pages refuse. '
-        'reload never reloads a form-loaded document. Every direction and an address report unsaved typing or playing media as reload_required until repeated with discard_unsaved=true.')
-    for verb, extra, purpose in [('read', {}, 'Read a compact structural page tree with roles, names, safe values, states and boxes; passwords are excluded before extraction. Views are paged at 16000 characters.'),
-        ('find', {'text': string()}, 'Find visible text across readable frames. Returns exact references and a bounded page.'),
-        ('read_form', {'reference': REF}, 'Read every field and option of one form, including hidden fields and password presence only.'),
-        ('wait', {'text': string(), 'element':obj({'role':string(64),'name':string()},[]), 'timeout_ms': {'type': 'integer', 'minimum': 0, 'maximum': 8000}}, 'Wait for text or a stable view, then return the page; never acts.')]:
-        add(verb, 'read', obj({'tab': TAB, 'cursor': string(512), **extra}, ['tab'] + (['text'] if verb == 'find' else ['reference'] if verb == 'read_form' else [])), purpose)
-    for verb, extra, purpose in [('click', {}, 'Click this exact control once if free, or prepare asking input without clicking.'),
-        ('fill', {'text': {'type': 'string', 'maxLength': 20000}}, 'Replace field text; line breaks insert text, never Enter keys. A page-started submission is prepared separately.'),
-        ('select', {'value': string()}, 'Choose one exact option; classifies before input and checks any page-started submission.'),
-        ('check', {'checked': {'type': 'boolean'}}, 'Set one checkbox or radio state, with expected current state.'),
-        ('press', {'key': string(64)}, 'Press a key on this control. Enter in compose and Delete outside editing ask; focused send controls ask for Enter and Space.'),
-        ('scroll', {'x': {'type': 'integer'}, 'y': {'type': 'integer'}}, 'Scroll at this element by CSS pixels.'),
-        ('upload', {'path': string(), 'file': BLOB}, 'Prepare uploading a caller-side immutable file snapshot. Path and hash appear in approval; never opens a home path in the service.')]:
-        required = list(TARGET) + [k for k in extra if k != 'file']
-        add(verb, 'change', obj({**TARGET, **extra, **DISCARD}, required), purpose)
-    add('fill_form', 'change', obj({'fields': {**array(obj({**TARGET, **DISCARD, 'text': {'type': 'string', 'maxLength': 20000}}, ['reference','expected','text']), 32),'minItems':1}}),
-        'Fill exact fields in order, classifying each separately. Stops at the first prepared or stopped step and reports completed fields; never replays earlier input.', output=FILL_FORM_RESULT)
-    add('dialog', 'change', obj({'tab': TAB, 'expected': EXPECT, 'accept': {'type': 'boolean'}, 'text': {'type': 'string', 'maxLength': 4096}}, ['tab', 'expected', 'accept']),
-        'Answer or dismiss Chrome alert, confirm or prompt. Accepting listed confirmation text prepares its own operation unless exactly named by an approved site adapter. '
-        'A dialog opened through an outside native function always asks with its exact chosen answer and an unguarded-continuation warning, with no trusted exemption. '
-        'A dialog already open before taking the tab is handed to the owner within a bounded wait; ask him to answer it himself.')
-    assert [action.verb for action in result] == [OLD + verb for verb in OLD_VERBS]
     return result

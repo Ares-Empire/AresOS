@@ -1,10 +1,10 @@
-# Chrome tool descriptions and instructions (package 28a, step 1d)
+# Chrome tool descriptions and instructions (package 28a, step 3b)
 
 Exactly as `instructions_for('chrome')` and `tools_for('chrome')` give them, which are the generated
 `control/generated/chrome-instructions.txt` and `chrome-tools.json`. Written by `document()` in
 `control/chrome_tests/test_instruction_rules.py`, which fails when this file and the catalogue differ.
 
-| | Main at this package's start | Step 1d |
+| | Main at this package's start | Step 3b |
 |---|---:|---:|
 | Tools offered | 30 | 19 |
 | Descriptions | 5,085 | 5,975 |

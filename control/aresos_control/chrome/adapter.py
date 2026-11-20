@@ -11,7 +11,7 @@ from urllib.parse import urlsplit
 from ..adapters import NothingLeft
 from ..common import RESULT_LIMIT, Refused, canonical, digest, visible, require_question
 from ..definitions import BY_NAME
-from ..paging import fragment_window, ordered_page
+from ..paging import ordered_page
 from ..warnings import check_result
 from . import confirm
 from . import descriptions
@@ -26,7 +26,6 @@ from . import view as outline_view
 from .bridge import Bridge
 from .committed import Projection
 from .deadline import COMMANDS, NOT_READ, UNCHECKED, UNTIL, Deadline
-from .definitions import OLD
 from .exclusions import owner_hosts
 from .policy import allowed_url, classify, HOSTS, hostname, canonical_key, key_input, explicit_effect
 from .qualification import Qualification, switches
@@ -69,7 +68,7 @@ def outline_query(args):
         raise Refused('invalid_input', 'timeout_ms bounds the wait of until; give until with it.')
 
 
-WITHHELD_FORM=('This form holds unread typed text; send it yourself, or reload the tab first with chrome_navigate direction=reload '
+WITHHELD_FORM=('This form holds unread typed text; send it yourself, or reload the tab first using chrome_go with to: reload '
                '(it reports unsaved text first), then read it again.')
 
 
@@ -93,7 +92,8 @@ def owner_refusal(message):
 
 
 def view_identity(facts):
-    return digest([facts.get('control'),[{k: frame.get(k) for k in ['frame','document','revision','url','title','scroll','rows','editable']}
+    # Held submissions and fresh questions still compare their private view.
+    return digest([facts.get('control'),[{k: frame.get(k) for k in ['frame','document','revision','url','title','scroll','view_digest','editable']}
                    for frame in facts['frames']]])
 
 
@@ -180,7 +180,7 @@ class Chrome:
 
     @contextmanager
     def call_time(self, request=None):
-        """Brief 28, item 4: the one deadline of a chrome_read call (brief 28's chrome_outline until 28a's step 1d).
+        """Brief 28, item 4: the one deadline of a chrome_read call.
 
         `engine.request` opens it for a chrome_read request before its first
         look at pending and closes it when the response is built; `outline`
@@ -538,66 +538,10 @@ class Chrome:
             raise refusal from None
         return self.engine.reserve('chrome', 'submit', payload)
 
-    def read(self, verb, args):
-        mode = self.mode()
-        facts = self.bridge.call('read', tab=args['tab'])
-        self.allowed_url(facts['url'])
-        if not facts.get('dialog'):
-            queued=self.bridge.call('queued_steps',tab=args['tab'])
-            self.reconcile_checks(facts,queued)
-            self.steps(queued,args['tab'])
-        token = view_identity(facts)
-        condition_met=True
-        if verb == 'wait':
-            deadline=time.monotonic()+args.get('timeout_ms',1000)/1000
-            previous=None;stable=0
-            while True:
-                rows=[row for frame in facts['frames'] for row in frame['rows']]
-                text_ok=not args.get('text') or args['text'] in canonical(rows)
-                element=args.get('element')
-                element_ok=not element or any(all(row.get(key)==value for key,value in element.items()) for row in rows)
-                stable=stable+1 if token==previous else 0
-                condition_met=text_ok and element_ok and (bool(args.get('text') or element) or stable>=2)
-                if condition_met or time.monotonic()>=deadline:break
-                previous=token;time.sleep(.05)
-                facts=self.bridge.call('read',tab=args['tab']);token=view_identity(facts)
-        rows = []
-        for frame in facts['frames']:
-            self.allowed_url(frame.get('effective_url',frame['url']))
-            if verb == 'read_form':
-                reference = args['reference']
-                if reference['view'] != token:
-                    raise Refused('stale_reference', 'Page changed; read again.')
-                if frame['frame'] != reference['frame']:
-                    continue
-                single = self.bridge.call('facts', reference=reference)
-                selected = next(f for f in single['frames'] if f['frame'] == reference['frame'])
-                encoded = canonical(visible(selected['form']))
-                offset,end,cursor,status = fragment_window(digest([token,'form',selected['form']]),len(encoded),args.get('cursor'),16000)
-                if status:raise Refused('stale_reference','Form changed; read again without the cursor.')
-                content={'form':visible(selected['form'])} if len(encoded)<=16000 else {'form_json_fragment':encoded[offset:end]}
-                return {'untrusted_content':content,'characters':len(encoded),'offset':offset,'cursor':cursor,'version_notice':mode['notice']}
-            for row in frame['rows']:
-                if verb == 'find' and args['text'].casefold() not in canonical(row).casefold():
-                    continue
-                reference = {'session':facts['session'],'tab':facts['tab'],'frame':frame['frame'],'document':frame['document'],'view':token,'element':row['element']}
-                rows.append({'reference':reference,'expected':{k:v for k,v in row.items() if k != 'text'},'text':row.get('text','')})
-        lines = [canonical(visible(row)) for row in rows]
-        tree = '\n'.join(lines) or '(empty readable page)'
-        cursor_token=digest([token,verb,args.get('text')])
-        offset, end, cursor, status = fragment_window(cursor_token, len(tree), args.get('cursor'), 16000)
-        # Unlike catalogue paging, a page-view cursor must never silently restart.
-        if status:
-            raise Refused('stale_reference', 'Page changed; read again without the cursor.')
-        return {'tab':facts['tab'],'document':[(frame['frame'],frame['document']) for frame in facts['frames']],
-                'untrusted_content':{'url':visible(facts['url']),'title':visible(facts['title']),'tree':tree[offset:end],'dialog':visible(facts.get('dialog'))},
-                'view':token,'characters':len(tree),'offset':offset,'cursor':cursor,'version_notice':mode['notice'],**({'condition_met':condition_met} if verb=='wait' else {})}
-
     def outline(self, args):
         """Brief 28's read, offered as chrome_read since brief 28a's step 1d (item 1).
 
-        Each tab goes through the checks of `read` above and then the view
-        module's order: View, render, Reading, fit. Every command it sends
+        Each tab goes through the view module's order: View, render, Reading, fit. Every command it sends
         carries its time left (item 4, `deadline.py`): the call's to second 7,
         and with `tabs` each tab's share of it.
         """
@@ -1325,13 +1269,6 @@ class Chrome:
         return self.allow_id(operation), {'adapter':adapter,'kind_hash':adapter['kind_hash'],'revoked':False}, operation
 
     def call(self, verb, args):
-        """Brief 28a, item 7: the new tool list, each to the private entry steps 1a to 1c built.
-
-        Brief 20's replaced tools reach `old_call` as chrome_old_<verb>, which
-        only a process started with the test-only switch offers (item 8, 1d).
-        """
-        if verb.startswith(OLD):
-            return self.old_call(verb[len(OLD):], args)
         if verb=='read_typed_fields':
             require_question(args)
             # Values belong only to this response, never the replayable operation.
@@ -1374,43 +1311,6 @@ class Chrome:
             return self.free('release_tab', tab=args['tab'])
         if verb == 'upload': return self.upload(args)
         raise Refused('invalid_input', 'Unknown action; inspect the tool list.')
-
-    def old_call(self, verb, args):
-        """Brief 20's replaced tools as they were, reached only as chrome_old_<verb> until item 8's step 3."""
-        if verb in {'read','read_form','find','wait'}: return self.read(verb,args)
-        if verb in {'tabs','downloads','bookmarks','history'}:
-            self.mode()
-            reply = self.bridge.call(verb,**args)
-            return visible(reply) | {'untrusted_content':True}
-        if verb == 'fill_form':
-            for field in args['fields']:
-                self.payload('fill',field)
-            completed=[]
-            for index,field in enumerate(args['fields']):
-                try:
-                    current=self.bridge.call('facts',reference=field['reference'])
-                    frame=next(frame for frame in current['frames'] if frame['frame']==field['reference']['frame'])
-                    expected={**field['expected'],'box':frame['target']['box'],'onscreen':frame['target']['onscreen']}
-                    fresh={**field,'reference':{**field['reference'],'view':view_identity(current)},'expected':expected}
-                    result=self.old_call('fill',fresh);completed.append(result)
-                    if result.get('approval') or result.get('followups'):break
-                except Refused as exc:
-                    stopped={'state':'partial' if completed else 'refused','completed':completed,'next_field':index,'reason':str(exc)}
-                    if exc.untrusted_content is not None:
-                        stopped['untrusted_content']=loss.at_step(exc,index)
-                    return stopped
-            return {'completed':completed,'remaining':len(args['fields'])-len(completed)}
-        if verb in {'open','navigate','take_tab','release_tab','close_tab'}:
-            self.mode(acting=True)
-            if 'url' in args: self.allowed_url(args['url'])
-            return self.free(verb,**args)
-        if verb == 'dialog':
-            payload=self.dialog_payload(args)
-        else:
-            payload, _ = self.payload(verb,args)
-        if payload['kind']:
-            return self.engine.reserve('chrome','submit',payload)
-        return self.free(verb,payload)
 
     def dialog_payload(self, args):
         """Brief 20's dialog branch of `call`: its own facts, classification and payload (chrome_do's dialog step too)."""

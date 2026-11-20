@@ -45,17 +45,17 @@ function lifecycleFixture(){
 async function spin(f,expression){for(let count=0;count<200&&!f.run(expression);count++)await Promise.resolve();assert.equal(!!f.run(expression),true,expression);}
 
 test('tab catalogue reports native position and distinguishes active tabs from focused windows',async()=>{
-  const f=fixture();f.run("chrome.windows={getAll:async()=>[{id:5,focused:true},{id:6,focused:false}]};chrome.tabs.query=async()=>[{id:7,windowId:5,index:1,active:true,groupId:-1,title:'Owner fixture',url:'http://fixture.test/'},{id:8,windowId:6,index:0,active:true,groupId:-1,title:'Popup fixture',url:'http://popup.test/'}];controlled.set(8,{epoch:'popup',virtualGroup:true,window:6});");
-  const result=await f.run("collection({name:'tabs',limit:10})");const rows=JSON.parse(JSON.stringify(result.items));
-  assert.deepEqual(rows.map(({tab,window,index,active,focused,controlled})=>({tab,window,index,active,focused,controlled})),[
-    {tab:7,window:5,index:1,active:true,focused:true,controlled:false},
-    {tab:8,window:6,index:0,active:true,focused:false,controlled:true},
+  const f=fixture();f.run("excludedHosts=[];chrome.windows={getAll:async()=>[{id:5,type:'normal',focused:true,tabs:[{id:7,index:1,active:true,groupId:-1}]},{id:6,type:'popup',focused:false,tabs:[{id:8,index:0,active:true,groupId:-1}]}]};controlled.set(8,{epoch:'popup',virtualGroup:true,window:6});");
+  const {tabs}=JSON.parse(JSON.stringify(await f.run("dispatch({name:'tabs'})")));
+  assert.deepEqual(tabs.map(({tab,window,index,active,front,group})=>({tab,window,index,active,front,group})),[
+    {tab:7,window:5,index:1,active:true,front:true,group:false},
+    {tab:8,window:6,index:0,active:true,front:false,group:true},
   ]);
 });
 test('tab catalogue reports Chrome\'s own audible and muted flags, false when Chrome gives none',async()=>{
-  const f=fixture();f.run("chrome.windows={getAll:async()=>[{id:5,focused:true}]};chrome.tabs.query=async()=>[{id:7,windowId:5,index:0,active:true,groupId:-1,title:'Playing',url:'http://fixture.test/',audible:true,mutedInfo:{muted:false}},{id:8,windowId:5,index:1,active:false,groupId:-1,title:'Muted',url:'http://fixture.test/muted',audible:false,mutedInfo:{muted:true,reason:'user'}},{id:9,windowId:5,index:2,active:false,groupId:-1,title:'Silent',url:'http://fixture.test/silent'}];");
-  const rows=JSON.parse(JSON.stringify((await f.run("collection({name:'tabs',limit:10})")).items));
-  assert.deepEqual(rows.map(({tab,audible,muted})=>({tab,audible,muted})),[{tab:7,audible:true,muted:false},{tab:8,audible:false,muted:true},{tab:9,audible:false,muted:false}]);
+  const f=fixture();f.run("excludedHosts=[];chrome.windows={getAll:async()=>[{id:5,type:'normal',focused:true,tabs:[{id:7,index:0,audible:true,mutedInfo:{muted:false}},{id:8,index:1,audible:false,mutedInfo:{muted:true,reason:'user'}},{id:9,index:2}]}]};");
+  const {tabs}=JSON.parse(JSON.stringify(await f.run("dispatch({name:'tabs'})")));
+  assert.deepEqual(tabs.map(({tab,audible,muted})=>({tab,audible,muted})),[{tab:7,audible:true,muted:false},{tab:8,audible:false,muted:true},{tab:9,audible:false,muted:false}]);
 });
 
 function startupFixture(){
@@ -802,12 +802,12 @@ test('P17 losing password history in a surviving browser document refuses reads'
 });
 
 function latePopupFixture(){
-  const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'popup',popupNeedsReload:true});requireTab=async()=>({url:'http://popup.test/'});globalThis.committed=false;globalThis.installed=false;globalThis.injections=[];globalThis.messages=[];chrome.webNavigation={getAllFrames:async()=>[{frameId:0,parentFrameId:-1,documentId:committed?'popup-document':'initial-blank',url:committed?'http://popup.test/':'about:blank'}]};chrome.scripting.executeScript=async request=>{injections.push(request);installed=true;};chrome.tabs.sendMessage=async(tab,message,options)=>{messages.push({message,options});if(!installed)throw Error('Could not establish connection. Receiving end does not exist.');return {ok:true,data:message.command==='set_control'?{controlled:true}:{document:'private-popup',origin:'http://popup.test',url:'http://popup.test/',rows:[{name:'Continue'}]}};};");return f;
+  const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'popup',popupNeedsReload:true});requireTab=async()=>({url:'http://popup.test/'});globalThis.committed=false;globalThis.installed=false;globalThis.injections=[];globalThis.messages=[];chrome.webNavigation={getAllFrames:async()=>[{frameId:0,parentFrameId:-1,documentId:committed?'popup-document':'initial-blank',url:committed?'http://popup.test/':'about:blank'}]};chrome.scripting.executeScript=async request=>{injections.push(request);installed=true;};chrome.tabs.sendMessage=async(tab,message,options)=>{messages.push({message,options});if(!installed)throw Error('Could not establish connection. Receiving end does not exist.');return {ok:true,data:message.command==='set_control'?{controlled:true}:{document:'private-popup',origin:'http://popup.test',url:'http://popup.test/',view_digest:'fixture-view-digest'}};};");return f;
 }
 
 test('a popup committing after admission acquires a reader without reloading its document',async()=>{
   const f=latePopupFixture();await f.run('lateReader(7)');assert.equal(f.run('injections.length'),0);
-  f.run('committed=true');const page=await f.run('facts(7)');assert.equal(page.frames.length,1);assert.equal(page.frames[0].rows[0].name,'Continue');assert.equal(page.needs_reload,true,'first act still requires the normal guarded reload');
+  f.run('committed=true');const page=await f.run('facts(7)');assert.equal(page.frames.length,1);assert.equal(page.frames[0].view_digest,'fixture-view-digest');assert.equal(page.needs_reload,true,'first act still requires the normal guarded reload');
   assert.equal(f.run('injections.length'),1);assert.deepEqual(JSON.parse(f.run('JSON.stringify(injections[0].target)')),{tabId:7,documentIds:['popup-document']});
   assert.equal(f.run("messages.every(value=>value.options.documentId==='popup-document'&&!('frameId'in value.options))"),true);
   await f.run('facts(7)');assert.equal(f.run('injections.length'),1,'a healthy reader is never reinstalled');
@@ -1289,7 +1289,7 @@ test('post18df final native boundary refuses forms holding withheld content even
   for(const late of [false,true]){
     const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});globalThis.effects=[];globalThis.snapshot={tab:7,frames:[{frame:0,document:'doc',target:{element:'e1',name:'Send',submit:true},form:{element:'f1',action:'http://fixture.test/receive',method:'post',fields:[]}}]};facts=async()=>snapshot;content=async(tab,frame,name)=>{if(name==='arm'&&globalThis.late)snapshot.frames[0].form.fields.push({unknown_history:true,value_status:'filled'});return {finished:true}};pointer=async()=>({x:1,y:1});chrome.tabs={get:async()=>({active:true})};chrome.webNavigation={getAllFrames:async()=>[{frameId:0}]};chrome.debugger={sendCommand:async()=>effects.push('input')};globalThis.approved=JSON.parse(JSON.stringify(binding(snapshot,{frame:0},'send',false)));");
     f.run(`globalThis.late=${late};${late?'':"snapshot.frames[0].form.fields.push({unknown_history:true,value_status:'filled'});"}`);
-    await assert.rejects(f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'click'},kind:'send',binding:approved})"),/send it yourself, or reload the tab first with chrome_navigate direction=reload/);assert.equal(f.run('effects.length'),0);
+    await assert.rejects(f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'click'},kind:'send',binding:approved})"),/send it yourself, or reload the tab first using chrome_go with to: reload/);assert.equal(f.run('effects.length'),0);
   }
 });
 
@@ -1891,7 +1891,7 @@ test('28a 6: every tab at once, whose by who opened it, with its marks and what 
       {id:9,type:'popup',focused:false,tabs:[{id:450,index:0,active:true,title:'Pay',url:'http://pay.test/',groupId:-1}]},
       {id:11,type:'devtools',focused:false,tabs:[{id:460,index:0,active:true,title:'DevTools',url:'devtools://devtools/',groupId:-1}]}];}};
     claudeOpened.add(431);claudeOpened.add(450);controlled.set(431,{epoch:'a'});controlled.set(408,{epoch:'b'});controlled.set(450,{epoch:'c',virtualGroup:true});`);
-  const reply=JSON.parse(JSON.stringify(await f.run("dispatch({name:'tabs',all:true})")));
+  const reply=JSON.parse(JSON.stringify(await f.run("dispatch({name:'tabs'})")));
   assert.deepEqual(plain(f,'asked'),{populate:true,windowTypes:['normal','popup']});
   assert.equal(reply.session,'fixture-session');
   assert.deepEqual(reply.tabs.map(row=>[row.tab,row.window,row.whose,row.group,row.document]),[
@@ -1902,7 +1902,7 @@ test('28a 6: every tab at once, whose by who opened it, with its marks and what 
   assert.deepEqual(row(413),{tab:413,window:3,popup:false,front:true,active:false,index:1,pinned:true,audible:true,muted:false,asleep:false,
     title:'Radio',url:'http://radio.test/live?q=1',document:null,group:false,whose:'his'},'the full address: the service writes the short form');
   assert.deepEqual([row(408).audible,row(408).muted,row(440).asleep,row(450).popup,row(440).front],[true,true,true,true,false]);
-  await assert.rejects(f.run("chrome.windows.getAll=async()=>[{id:3,type:'normal',tabs:Array.from({length:10001},(_,index)=>({id:index,index}))}];dispatch({name:'tabs',all:true})"),/more than 10000 tabs/);
+  await assert.rejects(f.run("chrome.windows.getAll=async()=>[{id:3,type:'normal',tabs:Array.from({length:10001},(_,index)=>({id:index,index}))}];dispatch({name:'tabs'})"),/more than 10000 tabs/);
 });
 
 test('28a 6: open and a controlled tab\'s new target are Claude\'s; a closed tab is forgotten',async()=>{

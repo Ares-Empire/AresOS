@@ -27,12 +27,7 @@ while arguments and arguments[0].startswith('--'):
     elif flag=='--timed':timed=True
     else:raise SystemExit('Unknown flag '+flag)
 verb,text=arguments
-# Brief 28a, item 8 step 1d: brief 20's replaced tools are old_<verb> behind the CI-only switch, and brief 28's
-# read is chrome_read; the callers keep their old verbs until step 2 moves the helpers (browser.mjs toolName).
-from aresos_control.definitions import BY_NAME
-if verb.startswith('chrome_'):verb=verb.removeprefix('chrome_')
-elif verb=='outline' and 'chrome_outline' not in BY_NAME:verb='read'
-elif 'chrome_old_'+verb in BY_NAME:verb='old_'+verb
+verb=verb.removeprefix('chrome_')
 start=time.monotonic()
 if command:
     printed=io.StringIO()

@@ -59,7 +59,7 @@ as his own user under the permissions he sets; our tools only add safe saving an
 |---|---|---|---|
 | Read, change, create, rename, move and delete files in his home and projects | Claude Code's own file tools and terminal | as in normal Claude Code | first (decisions 17 and 24): as his own user, as on any OS |
 | Save a mail attachment | `mail_attachment_save` (rule 4.4) | change | first: into the folder named (`~/Downloads` by default) under a safe name, never over an existing file, never into a hidden folder or a start-up place, without execute bits |
-| Chrome's own downloads | Chrome, as normal; `chrome_library` lists them | read | first: Chrome saves them where it always does (decision 25) |
+| Chrome's own downloads | Chrome, as normal. `chrome_library` with `kind: downloads` lists them | read | first: Chrome saves them where it always does (decision 25) |
 | Attach or upload a local file | `mail_compose`, `chrome_upload` (rule 4.4) | change | first: the question shows the real path and the hash, and exactly those bytes are sent |
 | Run terminal commands | Claude Code's terminal | as in normal Claude Code | first, under his permissions; Claude Code's sandbox is an option he can turn on (`sandbox.enabled`, then `autoAllowBashIfSandboxed: true`, decision 17); it keeps commands away from the tool service only with `allowUnsandboxedCommands: false`, no excluded commands, Unix sockets not allowed and the service's socket folder denied for reads, and even then best-effort (CONTROL.md section 7) |
 | Start the session with skip-permissions | `claude --dangerously-skip-permissions` | | first (decisions 23 and 24): sends, deletes and submits through our tools still ask (managed ask rules) |
@@ -97,7 +97,7 @@ in Chrome ([`CONTROL.md`](../design/CONTROL.md) section 6).
 | Take one of the owner's tabs into the Claude group; give it back | `chrome_take`, `chrome_release` | change | first |
 | Open a page in a new Claude tab; close a Claude tab | `chrome_open`, `chrome_close` | change | first |
 | Back, forward, reload, go to any web address (his, from a page, or one Claude wrote) | `chrome_go`; `chrome_open` with a link's `ref` | change | first, free (decision 25; data in an address isn't held); only `https:`, `http:` and `about:blank`, never `javascript:`, `data:`, `file:`, `chrome:` or app schemes |
-| Read the page as structure with positions; paged; text search | `chrome_read` (`find` for the search) | read | first; text read by the extension's own script, never screenshots; password fields excluded before anything is read |
+| Read the page as structure with positions; paged; text search | `chrome_read` (`find` for text search, `until` to wait for text) | read | first; text read by the extension's own script, never screenshots; password fields excluded before anything is read |
 | Read one form with all its options | `chrome_read` with the form's `ref` | read | first |
 | Frames from other sites, shadow DOM, dialogs on the page | `chrome_read` | read | first |
 | Read up to five tabs in one call, to compare them | `chrome_read` (`tabs`) | read | first |
@@ -105,29 +105,29 @@ in Chrome ([`CONTROL.md`](../design/CONTROL.md) section 6).
 | Fill a whole form in one call | `chrome_do` | change | first |
 | Several steps in one call (click, type, choose, tick, press, scroll, answer a dialog, wait), with what they changed | `chrome_do` | change | first: each step as its own action would run it; the call stops at the first step that asks |
 | Searches on any site (a search form sent as an address) | `chrome_do` | change | first, free |
-| Submit a form (a submit button, Enter in a form's field, a submission the page's script starts while handling Claude's click, key, filling, choosing or ticking) | the action, then `chrome_submit` | send | first: asks before it runs; the question shows the site, the button, the destination and every field as the page shows it; it runs only if the page still shows that, checked right before the input; a stopped submission resumes once, as the same kind of submission, without repeating Claude's input |
-| Click a control labelled send, post, publish, reply, comment, buy, pay, order, book, subscribe, delete, remove, discard, clear, empty or trash (and the German words) | the action, then `chrome_submit` | send or delete | first: asks before the click |
-| Enter, Ctrl+Enter or Cmd+Enter in a message or compose field | `chrome_do` (`press`), then `chrome_submit` | send | first: asks; line breaks in Claude's text go in through `chrome_fill`, never as Enter |
+| Submit a form (a submit button, Enter in a form's field, a submission the page's script starts while handling Claude's click, key, filling, choosing or ticking) | `chrome_do`, then `chrome_submit` | send | first: asks before it runs; the question shows the site, the button, the destination and every field as the page shows it; it runs only if the page still shows that, checked right before the input; a stopped submission resumes once, as the same kind of submission, without repeating Claude's input |
+| Click a control labelled send, post, publish, reply, comment, buy, pay, order, book, subscribe, delete, remove, discard, clear, empty or trash (and the German words) | `chrome_do`, then `chrome_submit` | send or delete | first: asks before the click |
+| Enter, Ctrl+Enter or Cmd+Enter in a message or compose field | `chrome_do` (`press`, or `fill` for line breaks), then `chrome_submit` | send | first: asks; line breaks in Claude's text go in through `chrome_fill`, never as Enter |
 | Delete or Backspace outside text editing (on a selected item, card or object) | `chrome_do` (`press`), then `chrome_submit` | delete | first: asks (decision 14) |
-| A control without a label that deletes something kept only in the browser | the ordinary click | change | free (decision 14, the gap accepted) |
+| A control without a label that deletes something kept only in the browser | `chrome_do` (`click`) | change | free (decision 14, the gap accepted) |
 | The page's own script activating a send, buy or delete control while handling Claude's input | | | stopped before delivery and reported to Claude, never resumed; if the action is wanted, Claude acts on the control itself, which asks |
 | A page that sends on its own after an ordinary action (autosave, an icon button that posts, typing indicators, read receipts) | | | not held, as with Claude in Chrome (decision 25) |
 | Page dialogs (alert, confirm, prompt) | `chrome_do` (`dialog`) | change | first; accepting a confirmation with a listed word asks on its own, unless the approved operation named exactly that confirmation in advance (an adapter) |
 | Upload a local file | `chrome_upload`, then `chrome_submit` | send | first: asks; the question shows the path and the hash, and the field gets exactly that copy |
-| Downloads: list them and where Chrome saved them | `chrome_library` | read | first; Chrome downloads as normal |
-| Bookmarks and history: find addresses | `chrome_library` | read | first |
+| Downloads: list them and where Chrome saved them | `chrome_library` (`kind: downloads`) | read | first; Chrome downloads as normal |
+| Bookmarks and history: find addresses | `chrome_library` (`kind: bookmarks` or `history`) | read | first |
 | Drop a prepared operation | `chrome_drop` | change | first |
 | "Don't ask again" for a kind of action | `chrome_submit_trusted` | send, free | first, for kinds a site adapter names ("GitHub: star"), bound to site, account and parameters and checked against the page; set and revoked only by the owner; never for deleting or paying, and WhatsApp messages ask each time (decisions 15 and 16); for mail see Mail |
 | See and revoke "don't ask again" entries; mark sites read-only | `chrome_sites`; the extension's details page | owner | owner: Claude can't write these lists |
 | Popups and new tabs a page opens | joins the Claude group | | first |
 | Sign in to a site | | owner | owner: Claude stops and asks him to sign in; password values are never read and passwords never pass through Claude |
-| Pay, order, transfer money | the action, then `chrome_submit` | send | first, always asking (decision 15) |
+| Pay, order, transfer money | `chrome_do`, then `chrome_submit` | send | first, always asking (decision 15) |
 | Stop Claude in Chrome at once | the Stop button in the extension's popup | owner | first: ends control, sends nothing |
 | Calls, Safe Browsing, his own extensions, Chrome's updates | | | work as normal: Chrome isn't changed |
 | Drag and drop, hover menus | `chrome_drag`, `chrome_hover` | change | later: after the tool-user rounds show where they're needed |
 | Canvas editors and maps (text drawn, not in the page structure) | site adapter, or a last-resort picture | | later: per site, as the rounds show |
 | Save or print a page as PDF | `chrome_export_pdf` to an allowed folder | change | later |
-| Add and remove bookmarks | `chrome_bookmarks` | change | later |
+| Add and remove bookmarks | | change | later |
 | Windows: move tabs between windows | | | later |
 | Site adapters | per site | | first: Gmail, WhatsApp Web, GitHub, his bank (read-only), Gemini and Deezer (decisions 9 and 25) |
 | Gmail in Chrome: send a mail | `chrome_submit` through the Gmail adapter | send | first, asking, the question reading like a mail (To, Cc, Bcc, subject, text, attachments from the compose); "don't ask again" bound to an exact recipient set, compared with the compose at the moment of sending (decision 15) |

@@ -767,6 +767,11 @@
     for(let node=actual;node;node=node.parentElement || node.getRootNode().host)if(node===element)return true;
     return false;
   }
+  function viewDigest(rows) {
+    // Compare the same repaired row facts for an internal recheck without sending the rows.
+    const encoded = JSON.stringify(rows, (key, value) => typeof value === 'string' ? wellFormed(value) : value);
+    return sha256((fingerprintEncoder ??= new TextEncoder()).encode(encoded));
+  }
   function snapshot(elementId) {
     const element = elementId ? elements.get(elementId) : null;
     if (elementId && (!element || !element.isConnected)) throw Error('stale_reference: element is gone; read again');
@@ -786,7 +791,7 @@
     const editable = nodes.filter(node => node.matches('input,textarea,select,[contenteditable]') && !['hidden','button','submit','reset','image','file'].includes(node.type)).map(field);
     // Brief 28a, item 2: `facts` also says which reader instance numbered the
     // element, and gives the target's fingerprint beside its facts.
-    return {document: documentId, reader: readerInstance, revision, url: location.href, origin:globalThis.origin, title: document.title, scroll: {x:scrollX,y:scrollY}, rows,
+    return {document: documentId, reader: readerInstance, revision, url: location.href, origin:globalThis.origin, title: document.title, scroll: {x:scrollX,y:scrollY}, view_digest: viewDigest(rows),
       target: element ? targetFacts(element) : null, ...(element ? {fingerprint: fingerprint(element)} : {}), form: element ? formFacts(element.form || (element.tagName === 'FORM' ? element : null), implicitSubmitter(element) || element) : null,
       editable, typed_fields:typedFields(), compose:element?composeText(element,nodes):null, selected_files:nodes.filter(node=>html(node,HTMLInputElement,'input')&&node.type==='file').map(field), embeds:nodes.filter(node=>node.tagName==='IFRAME').map(embedding), item: element ? itemText(element) : '', item_fields:element?itemFields(element,nodes):[], adapter: adapterRead(nodes, element), trace: traces.splice(0)};
   }

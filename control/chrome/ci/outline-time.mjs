@@ -1,6 +1,5 @@
 // Brief 28, item 4 and group 14's time cases, through the real transports: the
-// MCP proxy and the aresos command (call.py), never a fake bridge. They read with
-// chrome_outline, which the test-only switch registers in this container. They
+// MCP proxy and the aresos command (call.py). They read with chrome_read and
 // run in the core shard right after GROUP 1, while nothing is pending yet, so
 // the approval of the last case is the first row of a result's pending page;
 // they leave nothing pending or unacknowledged, and stay outside the named

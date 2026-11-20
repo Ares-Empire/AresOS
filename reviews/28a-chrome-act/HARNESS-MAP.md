@@ -194,3 +194,27 @@ The sites below are due to go with the old catalogue in 3b.
 The alias selection in `browser.mjs` and `call.py` and frozen comparison
 labels in `efficiency-summary.py` and its test data are names or routing,
 rather than additional dispatched cases.
+
+### Step 3b removal
+
+- The 16 catalogue-contract sites retired. The feature matrix still visits all
+  three public library catalogues. The never-list sweep still covers the public
+  catalogue. The upload test checks the caller snapshot, and the public read
+  tests keep their deadline and pending checks. The catalogue tests now check
+  absence, including when the former switch is in the environment.
+- The 24 comparison sites now use public calls or have no live task.
+  `browser.mjs` uses `harness-tools.mjs` for the current latency leg and keeps
+  the historical runtime's own unprefixed tools for the runner comparison.
+  The historical and current sample counts and ceilings stay in the existing
+  latency gate. Group 16 retains the frozen plans as data. It runs each public
+  task with one warm-up and five measured samples, and compares every measured
+  sample with 1.5 times its task's median in the run.
+- `test_outline_action` also had private close and release routes outside the
+  inventory. Its public close and release cases keep reference cleanup and
+  prove a refused close preserves the references. The two private old-click
+  cases retire with their handler. The pending deadline fixture issues a
+  short reference before it prepares the operation.
+- The structured loss tests use the public navigation, batch and close shapes.
+  The close cases carry malformed, hostile and indistinguishable labels through
+  the real bridge parser and the public reply. The refactored catalogue checks
+  for absence replace the temporary proxy, CLI and engine alias probes.

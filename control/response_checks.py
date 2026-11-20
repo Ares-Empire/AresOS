@@ -1,7 +1,14 @@
 """Shared test harness: check successful and failed service replies at the boundary."""
 from functools import wraps
 
-from jsonschema import Draft202012Validator
+try:
+    from jsonschema import Draft202012Validator
+except ModuleNotFoundError as exc:
+    if exc.name != 'jsonschema':
+        raise
+    Draft202012Validator = None
+
+from aresos_control.common import validate
 
 from aresos_control.definitions import BY_NAME
 from aresos_control.engine import Engine
@@ -21,7 +28,15 @@ def transport_response(result):
     assert receive(frame) == result
     return result
 
-VALIDATORS = {name: Draft202012Validator(action.tool()['outputSchema']) for name, action in BY_NAME.items()}
+def response_validator(schema):
+    # The plain Chrome and qualification shards also run with the standard library alone.
+    # generate.py checks that every output schema fits the service validator's subset.
+    if Draft202012Validator is None:
+        return lambda result: validate(result, schema, 'response')
+    return Draft202012Validator(schema).validate
+
+
+VALIDATORS = {name: response_validator(action.tool()['outputSchema']) for name, action in BY_NAME.items()}
 
 
 def validate_response(value, result):
@@ -29,7 +44,7 @@ def validate_response(value, result):
     if isinstance(value, dict) and value.get('method') == 'call':
         name = value.get('action')
         if isinstance(name, str) and name in VALIDATORS:
-            VALIDATORS[name].validate(result)
+            VALIDATORS[name](result)
     return result
 
 

@@ -75,7 +75,7 @@ class EfficiencySummaryTest(unittest.TestCase):
         self.assertEqual(result["measured_runs"], 5)
         self.assertEqual(result["run_id"], "123")
         self.assertEqual(result["runner"]["cpus"], 4)
-        self.assertEqual(result["latency_comparisons"], [])
+        self.assertNotIn("latency_comparisons", result)
 
     def test_characters_are_the_median_of_the_measured_runs(self):
         for run, size in enumerate([1, 10, 20, 30, 40, 50]):
@@ -162,7 +162,7 @@ def probe_tasks():
         body = block[head.end():heads[index + 1].start() if index + 1 < len(heads) else len(block)]
         tasks.append({"name": head.group(1), "row": head.group(2).replace("\\'", "'"),
                       "plan": re.findall(r"'([a-z_]+\*?)'", head.group(3)),
-                      "refusals": re.findall(r"\{refusal:'([a-z_]+)'\}", body)})
+                      "refusals": re.findall(r"refusals:\['([a-z_]+)'\]", body)})
     return tasks
 
 
@@ -272,7 +272,6 @@ class ReadRowsTest(unittest.TestCase):
             "outline_f1_first_read": ("f1_first_read", 1, 6000), "outline_f1_everything": ("f1_everything", 3, 75000),
             "outline_f1_fields": ("f1_fields", 1, 6000), "outline_f2_table": ("f2_table", 1, 14400 + 7 * 1200 + 800),
             "outline_f3_find_link": ("f3_find_link", 1, 800), "outline_three_tabs": ("three_tabs", 1, None)})
-        self.assertEqual((summary.SLOWER, summary.SLACK_MS, summary.COMPARED), (1.10, 50.0, "outline_f1_first_read"))
         tasks = outline_tasks()
         self.assertEqual([task["name"] for task in tasks], list(summary.OUTLINE_ROWS))
         for task in tasks:
@@ -287,9 +286,6 @@ class ReadRowsTest(unittest.TestCase):
         tasks = {}
         for name, row in summary.OUTLINE_ROWS.items():
             base = self.baseline["tasks"][row["baseline"]]
-            old = dict(base, tools=["chrome_old_" + tool.removeprefix("chrome_") for tool in base["tools"]],
-                       milliseconds=100.0, milliseconds_per_run=[100.0] * 5)
-            tasks[row["baseline"]] = old
             characters = min(row["characters"] or base["characters"], base["characters"]) - 10
             tasks[name] = {"row": base["row"], "outcome": "done", "calls": 1, "tools": ["chrome_read"], "characters": characters,
                            "characters_per_run": [characters] * 5, "milliseconds": 150.0, "milliseconds_per_run": [150.0] * 5}
@@ -297,15 +293,11 @@ class ReadRowsTest(unittest.TestCase):
             change(tasks)
         return {"run_id": "7", "sha": "abc", "measured_runs": 5, "tasks": tasks}
 
-    def test_rows_that_hold_give_no_miss_and_the_comparison_entry(self):
-        rows, comparison, misses = summary.read_rows(self.run_of(), self.baseline)
+    def test_rows_that_hold_give_no_miss(self):
+        rows, misses = summary.read_rows(self.run_of(), self.baseline)
         self.assertEqual(misses, [])
         self.assertEqual(list(rows), list(summary.OUTLINE_ROWS))
         self.assertEqual(rows["outline_f2_table"]["budget"], {"calls": 1, "characters": 23600})
-        # Brief 28a, step 1d: each side is named by the tool the service ran.
-        self.assertEqual(comparison["old"]["tool"], "chrome_old_read")
-        self.assertEqual(comparison["new"]["tool"], "chrome_read")
-        self.assertEqual((comparison["run_id"], comparison["allowed_milliseconds"], comparison["passed"]), ("7", 160.0, True))
 
     def test_each_miss_fails_the_rows(self):
         def edit(name, **values):
@@ -317,19 +309,14 @@ class ReadRowsTest(unittest.TestCase):
             # worse than the baseline: three tabs has no character budget of its own
             (edit("outline_three_tabs", characters_per_run=[55302] * 5), "characters in a run against the baseline 55302, allowed 55301"),
             (edit("outline_f3_find_link", characters_per_run=[801] * 5), "characters in a run 801, allowed 800"),
-            # slower than 1.10 x brief 20's median in this run plus 50 ms
-            (edit("outline_f1_first_read", milliseconds=160.1), "milliseconds against brief 20's in this run 160.1, allowed 160.0"),
             (edit("outline_f2_table", outcome="refused"), "outline_f2_table: row"),
             (lambda tasks: tasks.pop("outline_f1_fields"), "outline_f1_fields: not measured"),
-            (lambda tasks: tasks.pop("f3_find_link"), "outline_f3_find_link: brief 20's f3_find_link was not measured in this run"),
         ]
         for change, expected in cases:
             with self.subTest(expected=expected):
-                _, _, misses = summary.read_rows(self.run_of(change), self.baseline)
+                _, misses = summary.read_rows(self.run_of(change), self.baseline)
                 self.assertEqual(len(misses), 1, misses)
                 self.assertIn(expected, misses[0])
-        _, comparison, _ = summary.read_rows(self.run_of(edit("outline_f1_first_read", milliseconds=160.1)), self.baseline)
-        self.assertFalse(comparison["passed"])
 
     def test_the_step_fails_after_writing_the_record(self):
         with tempfile.TemporaryDirectory(prefix="pkg28-read-rows-") as directory:
@@ -345,7 +332,7 @@ class ReadRowsTest(unittest.TestCase):
 
 
 class ActRowsTest(unittest.TestCase):
-    """Brief 28a, group 16: the acting rows, the side-by-side latency comparison and the size rows (efficiency-summary.py)."""
+    """Group 16 acting budgets, within-run latency and catalogue sizes."""
 
     def setUp(self):
         self.baseline = json.loads(summary.BASELINE.read_text())
@@ -358,8 +345,6 @@ class ActRowsTest(unittest.TestCase):
             "act_list_25_tabs": ("list_25_tabs", 1, 3500)})
         self.assertEqual(summary.ACT_ROWS["act_f4_fill_send"]["measures"], {"approval_bytes": 9000})
         self.assertFalse(summary.ACT_ROWS["act_f4_fill_send"]["compare_characters"], "F4's baseline is a refusal")
-        self.assertEqual(summary.COMPARISONS, {"outline_f1_first_read": "f1_first_read", "act_f5_free_click": "f5_free_click",
-                                               "act_f4_to_question": "f4_old_to_question"})
         self.assertEqual((summary.INSTRUCTIONS_MOST, summary.EVERY_APP_MOST), (2800, 4096))
         tasks = listed_tasks("ACT_TASKS")
         self.assertEqual([task["name"] for task in tasks], list(summary.ACT_ROWS))
@@ -370,19 +355,13 @@ class ActRowsTest(unittest.TestCase):
                 self.assertEqual(len(task["plan"]), row["calls"], "the row names exactly its calls")
                 self.assertTrue(all(not step.endswith("*") for step in task["plan"]))
         timed = listed_tasks("LATENCY_TASKS")
-        self.assertEqual([task["name"] for task in timed], ["f4_old_to_question", "act_f4_to_question"])
-        self.assertEqual(timed[0]["row"], timed[1]["row"])
-        self.assertEqual(timed[1]["plan"], ["do"])
-        self.assertEqual(timed[0]["plan"], ["fill_form", "find", "find*", "click"])
-
-    def test_brief_20s_f4_task_is_retired_from_the_runs_and_kept_as_the_baselines_definition(self):
-        source = (ROOT / "chrome/ci/efficiency-probe.mjs").read_text()
-        self.assertEqual(source.count("retired:true"), 1)
-        self.assertIn("{name:'f4_fill_send',row:'F4: fill 6 fields and send the form',plan:['read','fill_form','find','find*','click'],retired:true,", source)
-        self.assertIn(".filter(task=>!task.retired)", source)
+        self.assertEqual([task["name"] for task in timed], ["act_f4_to_question"])
+        self.assertEqual(timed[0]["plan"], ["do"])
+        self.assertEqual(summary.TIMED_TASKS, (*summary.OUTLINE_ROWS, *summary.ACT_ROWS, "act_f4_to_question"))
+        self.assertEqual((summary.MEASURED_RUNS, summary.WITHIN_RUN_LIMIT), (5, 1.5))
 
     def run_of(self, change=None):
-        """A summary where every acting row and comparison holds; `change` edits its tasks."""
+        """A summary where every acting row holds; `change` edits its tasks."""
         tasks = {}
         for name, row in summary.ACT_ROWS.items():
             base = self.baseline["tasks"][row["baseline"]]
@@ -392,11 +371,6 @@ class ActRowsTest(unittest.TestCase):
                            "milliseconds_per_run": [150.0] * 5}
             if "measures" in row:
                 tasks[name]["measures_per_run"] = {"approval_bytes": [7300] * 5}
-        for new, old in summary.COMPARISONS.items():
-            tasks.setdefault(new, {"row": "F4: six fills", "calls": 1, "tools": ["chrome_do"], "milliseconds": 150.0,
-                                   "milliseconds_per_run": [140.0, 150.0, 150.0, 160.0, 170.0]})
-            tasks[old] = {"row": "F4: six fills", "calls": 4, "tools": ["chrome_old_fill_form", "chrome_old_find", "chrome_old_click"],
-                          "milliseconds": 100.0, "milliseconds_per_run": [100.0] * 5}
         if change:
             change(tasks)
         return {"run_id": "8", "sha": "def", "measured_runs": 5, "tasks": tasks}
@@ -407,13 +381,6 @@ class ActRowsTest(unittest.TestCase):
         self.assertEqual(list(rows), list(summary.ACT_ROWS))
         self.assertEqual(rows["act_f4_fill_send"]["measures"]["approval_bytes"]["most"], 7300)
         self.assertEqual(rows["act_f4_fill_send"]["baseline_outcome"], "refused")
-        entries, missed = summary.comparisons(self.run_of())
-        self.assertEqual(missed, [])
-        self.assertEqual([entry["new"]["task"] for entry in entries], list(summary.COMPARISONS))
-        self.assertEqual([entry["old"]["task"] for entry in entries], list(summary.COMPARISONS.values()))
-        entry = entries[2]
-        self.assertEqual((entry["allowed_milliseconds"], entry["passed"], entry["new"]["p95_milliseconds"]), (160.0, True, 170.0))
-        self.assertEqual(entry["old"]["tool"], "chrome_old_fill_form, chrome_old_find, chrome_old_click")
 
     def test_each_miss_fails_the_rows(self):
         def edit(name, **values):
@@ -437,17 +404,28 @@ class ActRowsTest(unittest.TestCase):
         # F4's characters aren't compared with brief 20's refusal.
         _, misses = summary.act_rows(self.run_of(edit("act_f4_fill_send", characters_per_run=[90000] * 5)), self.baseline)
         self.assertEqual(misses, [])
-        for change, expected in [(edit("act_f4_to_question", milliseconds=160.1), "act_f4_to_question: median 160.1 ms against brief 20's 100.0 ms"),
-                                 (lambda tasks: tasks.pop("f5_free_click"), "act_f5_free_click: not compared, f5_free_click was not measured")]:
-            with self.subTest(expected=expected):
-                entries, misses = summary.comparisons(self.run_of(change))
-                self.assertEqual(len(misses), 1, misses)
-                self.assertIn(expected, misses[0])
 
-    def test_the_percentile_is_the_nearest_rank(self):
-        self.assertEqual(summary.percentile([5.0, 1.0, 4.0, 2.0, 3.0]), 5.0)
-        self.assertEqual(summary.percentile(list(range(1, 21))), 19)
-        self.assertEqual(summary.percentile([7.0]), 7.0)
+    def test_every_task_has_five_trials_and_uses_its_own_same_run_median(self):
+        tasks = {name: {"milliseconds_per_run": [90, 99, 100, 101, 150]} for name in summary.TIMED_TASKS}
+        tasks["act_f4_to_question"]["milliseconds_per_run"] = [900, 999, 1000, 1010, 1500]
+        run = {"tasks": tasks}
+        rows, misses = summary.latency_rows(run)
+        self.assertEqual(misses, [])
+        self.assertEqual(list(rows), list(summary.TIMED_TASKS))
+        self.assertEqual(rows["act_f4_to_question"]["allowed_milliseconds"], 1500)
+        for name in summary.TIMED_TASKS:
+            with self.subTest(name=name):
+                samples = tasks[name]["milliseconds_per_run"]
+                samples[-1] += 0.001
+                _, missed = summary.latency_rows(run)
+                self.assertEqual(len(missed), 1, missed)
+                self.assertIn(name + ": slowest sample", missed[0])
+                samples[-1] -= 0.001
+
+        tasks["outline_f1_first_read"]["milliseconds_per_run"].pop()
+        del tasks["act_f4_to_question"]
+        _, misses = summary.latency_rows(run)
+        self.assertEqual([miss.split(":")[0] for miss in misses], ["outline_f1_first_read", "act_f4_to_question"])
 
     def test_the_size_rows_hold_for_this_catalogue_and_fail_above_mains(self):
         rows, misses = summary.size_rows(summary.sizes())
@@ -470,15 +448,15 @@ class ActRowsTest(unittest.TestCase):
                 # A record from 28a names each call itself; the timing carries the names and a measure.
                 record.calls[-1]["action"] = "chrome_do"
                 record.tasks[-1].update(names=["chrome_do"], measures={"approval_bytes": 10 + run})
-                record.task("f1_first_read", run, [("read", page("x"))], 50)
-                record.calls[-1]["action"] = "chrome_old_read"
-                record.tasks[-1]["names"] = ["chrome_old_read"]
+                record.task("outline_f1_first_read", run, [("outline", page("x"))], 50)
+                record.calls[-1]["action"] = "chrome_read"
+                record.tasks[-1]["names"] = ["chrome_read"]
             record.write()
             result = summary.summarize(directory)
             self.assertEqual(result["tasks"]["act_f5_free_click"]["tools"], ["chrome_do"])
-            self.assertEqual(result["tasks"]["f1_first_read"]["tools"], ["chrome_old_read"])
+            self.assertEqual(result["tasks"]["outline_f1_first_read"]["tools"], ["chrome_read"])
             self.assertEqual(result["tasks"]["act_f5_free_click"]["measures_per_run"], {"approval_bytes": [11, 12, 13, 14, 15]})
-            record.calls[-1]["action"] = "chrome_read"
+            record.calls[-1]["action"] = "chrome_tabs"
             record.write()
             with self.assertRaises(ValueError):
                 summary.summarize(directory)

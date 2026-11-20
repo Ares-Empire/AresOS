@@ -543,10 +543,10 @@ class Questions(unittest.TestCase):
         # Brief 28a, item 7: a rule of chrome_do's sends, so its description holds it now.
         self.assertIn('A form holding a (filled, not read) field refuses its send, discard_unsaved too: chrome_go to=reload, then read.',
                       BY_NAME['chrome_do'].description)
-        self.assertNotIn('chrome_navigate',instructions)
+        self.assertNotIn('chrome_go', instructions)
 
     def test_step0a_chrome_instructions_fit_the_package_budget(self):
-        # Pinned again at 28a's step 1d with the switched catalogue (test_instruction_rules pins every total).
+        # Step 3b keeps this pin next to the final catalogue totals in test_instruction_rules.
         from aresos_control.definitions import COMMON_INSTRUCTIONS, instructions_for
         from aresos_control.chrome.definitions import SHARED
         self.assertEqual(len(COMMON_INSTRUCTIONS),1762)
@@ -570,12 +570,12 @@ class Questions(unittest.TestCase):
         frame=self.browser.facts['frames'][0];frame['form']={'element':'form1','action':'https://fixture.test/receive','method':'post','fields':[{'element':'field1','type':'text','unknown_history':True,'value_status':'filled'}]}
         self.browser.facts['needs_reload']=True
         result=self.call('click',self.target());self.assertFalse(result['ok'],result);self.assertEqual(result['error']['code'],'refused')
-        self.assertIn('send it yourself, or reload the tab first with chrome_navigate direction=reload',result['error']['message']);self.assertEqual(self.browser.dispatched,[])
+        self.assertIn('send it yourself, or reload the tab first using chrome_go with to: reload',result['error']['message']);self.assertEqual(self.browser.dispatched,[])
 
     def test_post18df_form_added_withheld_field_and_changed_value_cannot_use_waiting_approval(self):
         frame=self.browser.facts['frames'][0];frame['form']={'element':'form1','action':'https://fixture.test/receive','method':'post','fields':[{'element':'field1','type':'text','value':'Old draft'}]}
         approval=self.prepare();frame['form']['fields'][0]={'element':'field1','type':'text','unknown_history':True,'value_status':'filled'}
-        result=self.call('submit',approval);self.assertFalse(result['ok'],result);self.assertIn('send it yourself, or reload the tab first with chrome_navigate direction=reload',result['error']['message']);self.assertEqual(self.browser.dispatched,[])
+        result=self.call('submit',approval);self.assertFalse(result['ok'],result);self.assertIn('send it yourself, or reload the tab first using chrome_go with to: reload',result['error']['message']);self.assertEqual(self.browser.dispatched,[])
         state,reads=self.typed_browser();typed=self.call('prepare_read_typed_fields',{'tab':1})['data']['approval'];self.assertTrue(self.call('read_typed_fields',typed)['ok'])
         self.assertEqual(len(reads),1);self.assertFalse(self.call('click',self.target())['ok']);self.assertEqual(self.browser.dispatched,[])
 

@@ -1,5 +1,4 @@
-// Brief 28, group 14 in the browser: reading and references, through the
-// internal action chrome_outline (the test-only switch, run.sh). They are
+// Brief 28, group 14 in the browser: reading and references through chrome_read. These are
 // named cases of the core shard (verdicts.mjs): the password case in group 7
 // (password_exclusion), the others beside brief 20's FEATURE and VIEW cases.
 // They leave nothing pending: each case closes the tabs it opened, and

@@ -5,7 +5,9 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import {webcrypto,createHash} from 'node:crypto';
 
-function fixture(fields,{subtle=true,NativeBlob=Blob,protectedPeer=()=>false,watched=true,typing=null}={}) {
+const readerSource=fs.readFileSync('control/chrome/extension/reader.js','utf8');
+
+function fixture(fields,{showPrivateRows=true,subtle=true,NativeBlob=Blob,protectedPeer=()=>false,watched=true,typing=null}={}) {
   let calls=0,fileSequence=0,clipboardInfo=null;const timers=[];
   let base='https://fixture.test/';
   class NativeNode {get baseURI(){return base;}}
@@ -53,11 +55,14 @@ function fixture(fields,{subtle=true,NativeBlob=Blob,protectedPeer=()=>false,wat
       typedBy(node){const marks=typing?.marks.get(node);return marks?{release:0,...marks}:null;},typedByClaude(node){typing?.marks.set(node,{owner:false,...typing.marks.get(node),claude:true,release:typing.releases});},
       get typingGap(){return typing?typing.releases>0:undefined;},get typingReleases(){return typing?.releases;},typingUnconfirmed(node){return !!typing?.unconfirmed?.has(node);},direct(){}},
     origin:'https://fixture.test',location:{href:'https://fixture.test/'},scrollX:0,scrollY:0,innerWidth:100,innerHeight:100});
-  vm.runInContext(fs.readFileSync('control/chrome/extension/reader.js','utf8'),context);
+  // Inspect the input to the private comparison for the field safety tests.
+  // The production reader sends only its digest.
+  const source=showPrivateRows?readerSource.replace('view_digest: viewDigest(rows),','view_digest: viewDigest(rows), rows,'):readerSource;
+  vm.runInContext(source,context);
   function read(){let result;listener({command:'read'},{id:'fixture'},value=>result=value);assert.equal(result.ok,true,JSON.stringify(result));return result;}
   function command(message){let result;listener(message,{id:'fixture'},value=>result=value);return result;}
   const readAsync=()=>new Promise(resolve=>listener({command:'read'},{id:'fixture'},resolve));
-  return {nodes,document,Element,setBase:value=>{base=value;},atPoint:node=>{document.elementFromPoint=()=>node;},textarea:node=>Object.setPrototypeOf(node,HTMLTextAreaElement.prototype),setClipboard:value=>{clipboardInfo=value},observeAsync:()=>new Promise(resolve=>listener({command:'observe'},{id:'fixture'},resolve)),designMode:value=>{document.designMode=value},generic:node=>Object.setPrototypeOf(node,Element.prototype),reinject:()=>{readerAPI.dispose();vm.runInContext(fs.readFileSync('control/chrome/extension/reader.js','utf8'),context);},read,readAsync,command,form:(element,submitter)=>readerAPI.form(element,submitter),observationOptions,expire:()=>{for(const fn of timers.splice(0))fn();},mutations:()=>observer.records,calls:()=>calls};
+  return {nodes,document,Element,setBase:value=>{base=value;},atPoint:node=>{document.elementFromPoint=()=>node;},textarea:node=>Object.setPrototypeOf(node,HTMLTextAreaElement.prototype),setClipboard:value=>{clipboardInfo=value},observeAsync:()=>new Promise(resolve=>listener({command:'observe'},{id:'fixture'},resolve)),designMode:value=>{document.designMode=value},generic:node=>Object.setPrototypeOf(node,Element.prototype),reinject:()=>{readerAPI.dispose();vm.runInContext(source,context);},read,readAsync,command,form:(element,submitter)=>readerAPI.form(element,submitter),observationOptions,expire:()=>{for(const fn of timers.splice(0))fn();},mutations:()=>observer.records,calls:()=>calls};
 }
 
 test('group7 protected values never reach a getter, source attribute, trace or binding',()=>{
@@ -961,4 +966,19 @@ test('X1 sibling: a generic role never copies native control child text around w
     assert.equal(result.data.rows[0].name,'Notes');
     assert.equal(result.data.typed_fields.fields.length,1);
   }
+});
+
+
+test('private view comparisons keep the repaired row facts without sending the rows',()=>{
+  const field={attrs:{'aria-label':'Draft'}};
+  const f=fixture([field],{showPrivateRows:false});
+  const before=f.read().data;
+  assert.equal(Object.hasOwn(before,'rows'),false);
+  assert.match(before.view_digest,/^[0-9a-f]{64}$/);
+  assert.equal(f.command({command:'facts',element:'e1'}).data.view_digest,before.view_digest);
+  f.nodes[0].attrs['aria-label']='Draft \ud800';
+  const changed=f.read().data.view_digest;
+  assert.notEqual(changed,before.view_digest);
+  f.nodes[0].attrs['aria-label']='Draft \ufffd';
+  assert.equal(f.read().data.view_digest,changed);
 });

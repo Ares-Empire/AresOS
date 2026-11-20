@@ -35,7 +35,7 @@ from aresos_control.chrome.deadline import CALL, COMMANDS, FIRST_LOOK, LAST_LOOK
 from aresos_control.daemon import Daemon
 from aresos_control.definitions import BY_NAME
 from aresos_control.protocol import READ_TIMEOUT
-from test_engine import WORK, old_tools
+from test_engine import WORK, fixture_target
 from test_outline_action import Outlines, engine_with, small
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -330,7 +330,7 @@ class Read(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(dir=WORK)
         self.clock = Clock()
         self.patches = [patch('aresos_control.engine.Boundary'), patch.object(adapter_module, 'time', self.clock),
-                        patch.object(deadline_module, 'time', self.clock), old_tools()]
+                        patch.object(deadline_module, 'time', self.clock)]
         for item in self.patches:
             item.start()
         self.browser = Timed(self.clock)
@@ -364,11 +364,7 @@ class Read(unittest.TestCase):
 
     def prepare(self):
         """Seed a reserved approval before timing the read's pending checks."""
-        frame = self.browser.facts['frames'][0]
-        target = {'reference': {'session': self.browser.session, 'tab': 1, 'frame': 0, 'document': frame['document'],
-                                'view': adapter_module.view_identity(self.browser.facts), 'element': 'e1'},
-                  'expected': dict(frame['target'])}
-        payload, _ = self.chrome.payload('click', target)
+        payload, _ = self.chrome.payload('click', fixture_target(self.chrome, self.browser))
         result = self.engine.reserve('chrome', 'submit', payload)
         self.assertTrue(all(row[2] is None for row in self.browser.sent))
         self.browser.sent.clear()
@@ -451,15 +447,6 @@ class Read(unittest.TestCase):
             self.read(tabs=[1, 2])
         self.assertEqual((caught.exception.code, str(caught.exception)), ('not_read', NOT_READ))
         self.assertEqual(self.seconds(), COMMANDS)
-
-    def test_brief_20s_read_carries_no_time_with_an_approval_outstanding(self):
-        self.prepare()
-        self.browser.costs['validity'] = 1.5
-        result = self.request('chrome_old_read', tab=1)
-        self.assertTrue(result['ok'], result)
-        self.assertTrue(self.browser.named('validity'))
-        self.assertTrue(all(row[2] is None for row in self.browser.sent), self.browser.sent)
-        self.assertEqual([row['validity'] for row in result['pending']['items']], ['current'])
 
     def test_brief_28s_internal_name_is_gone_and_opens_no_clock(self):
         # Brief 28a, item 8 step 1d: the read is chrome_read; chrome_outline exists nowhere, switch or not.

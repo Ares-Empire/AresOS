@@ -42,7 +42,7 @@ class Tabs(Pages):
 
     def call(self, name, **args):
         tab = args.get('tab')
-        if name == 'tabs' and args.get('all') is True:
+        if name == 'tabs':
             self.calls.append((name, None))
             return {'session': self.session, 'tabs': copy.deepcopy(self.rows)}
         if name == 'tab_context' and tab not in self.outlines:
@@ -461,8 +461,7 @@ if __name__ == '__main__':
 
 
 class ProxyUpload(unittest.TestCase):
-    """Brief 28a, item 6: the proxy's file branch for chrome_upload reads `path` as before; behind the CI-only
-    switch chrome_old_upload goes the same way (step 1d)."""
+    """The caller takes a file snapshot for chrome_upload."""
     BLOB = {'sha256': 'a' * 64, 'size': 4, 'name': 'note.txt', 'real_path': '/home/owner/Downloads/note.txt'}
 
     class Client:
@@ -487,12 +486,7 @@ class ProxyUpload(unittest.TestCase):
         self.assertTrue(proxy.call(verb, arguments)['ok'])
         return proxy.client.sent
 
-    def test_the_new_upload_and_the_old_one_read_the_path_on_the_callers_side(self):
-        from test_engine import old_tools
+    def test_upload_reads_the_path_on_the_callers_side(self):
         path = '/home/owner/Downloads/note.txt'
         sent = self.upload('upload', {'tab': 1, 'ref': 'kqtvm5', 'path': path})
         self.assertEqual(sent, [('upload', 'chrome', b'text'), ('call', 'chrome_upload', {'tab': 1, 'ref': 'kqtvm5', 'path': path, 'file': self.BLOB})])
-        target = {'reference': {'session': 's', 'tab': 1, 'frame': 0, 'document': 'd', 'view': 'v', 'element': 'e1'}, 'expected': {}}
-        with old_tools():
-            sent = self.upload('old_upload', {**target, 'path': path})
-        self.assertEqual(sent, [('upload', 'chrome', b'text'), ('call', 'chrome_old_upload', {**target, 'path': path, 'file': self.BLOB})])

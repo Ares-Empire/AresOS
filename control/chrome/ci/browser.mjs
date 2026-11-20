@@ -22,9 +22,7 @@ assert.ok(!args.some(arg=>arg==='--no-sandbox'||arg.startsWith('--remote-debuggi
 fs.writeFileSync('/out/launch.json',JSON.stringify(args));
 const descriptor=fs.openSync('/out/chrome.txt','a');
 let chrome;
-// Brief 28a, item 8 step 1d: brief 20's replaced tools are chrome_old_<verb>, offered only behind the CI-only switch,
-// and brief 28's read is chrome_read. Only the measured old arm and the legacy catalogue use these aliases.
-// A runtime from before the switch still names them as before. The service's own tool list says which.
+// The historical latency runtime still speaks the original tool vocabulary.
 let offered;
 function catalogue(){
   offered??=new Promise((resolve,reject)=>{
@@ -38,18 +36,8 @@ function catalogue(){
   });
   return offered;
 }
-async function toolName(action){
-  if(action.startsWith('control_')||action.startsWith('chrome_'))return action;
-  const names=await catalogue();
-  if(action==='outline'&&!names.has('outline'))return 'chrome_read';
-  return 'chrome_'+(names.has('old_'+action)?'old_'+action:action);
-}
-async function wire(action,arguments_={},measured=false) {
-  let name=action;
-  if(measured)name=await toolName(action);
-  else if(action==='outline')name=(await catalogue()).has('outline')?'chrome_outline':'chrome_read';
-  else if(!action.startsWith('chrome_')&&!action.startsWith('control_'))name='chrome_'+action;
-  if(!measured)assert.ok(!name.startsWith('chrome_old_'),'legacy tools are confined to comparison and catalogue cases');
+async function wire(action,arguments_={}) {
+  const name=action==='outline'?'chrome_read':action.startsWith('chrome_')||action.startsWith('control_')?action:'chrome_'+action;
   return new Promise((resolve,reject)=>{
     const socket=net.createConnection('/run/aresos-tools/act.sock');let buffer='';
     socket.setTimeout(20000,()=>socket.destroy(Error('Tool response timeout')));
@@ -67,13 +55,6 @@ function adminRequest(request){
 }
 function observe(observe,tab){
   const result=adminRequest({observe,tab});
-  assert.ok(result.ok,JSON.stringify(result));
-  return result.data;
-}
-const oldWire=(action,args)=>wire(action,args,true);
-async function oldCatalogue(verb,args){
-  assert.ok(['downloads','history','bookmarks'].includes(verb));
-  const result=await oldWire(verb,args);
   assert.ok(result.ok,JSON.stringify(result));
   return result.data;
 }
@@ -123,10 +104,9 @@ try {
     await call('submit',prepared.approval);assert.equal(counts('compose'),1);console.log('GROUP 1 what asks PASS: zero before approval, one after, no replay');
   });
   if(process.env.LATENCY_PROBE==='true')assertChecksPassed(smokeResults);
-  if(process.env.LATENCY_PROBE==='true'&&process.env.EFFICIENCY_PROBE==='true'){await efficiencyProbe({rpc:oldWire,eventually,settled,counts,getTab:()=>tab,toolName});return;}
+  if(process.env.LATENCY_PROBE==='true'&&process.env.EFFICIENCY_PROBE==='true'){await efficiencyProbe({rpc:wire,eventually,settled,counts,getTab:()=>tab});return;}
   if(process.env.LATENCY_PROBE==='true'){
-    const measured=harnessTools({wire:oldWire,modern:()=>false,eventually,currentTab:()=>tab});
-    await latencyProbe({call:measured.call,target:measured.target,nav,eventually,getTab:()=>tab});return;
+    await latencyProbe({call,target,eventually,getTab:()=>tab});return;
   }
   // Brief 28, item 4: group 14's time cases, in the core shard while nothing is
   // pending, in Control Chrome's own runs only (the qualification run sets
@@ -273,7 +253,7 @@ try {
     assert.ok((await call('tabs',{limit:10})).items.some(item=>item.tab===tab&&item.url?.includes(marker)));
     await call('take_tab',{tab});return tab;
   };
-  await matrices({smokeResults,call,read,readPage,nav,settled,target,selectedTarget,counts,eventually,tab,setTab:value=>{tab=value;},fixture,admin,observe,oldCatalogue,rpc,caller,ownerNavigate,ownerCloseTab:owner.close,ownerOpenTab,ownerClickPage,ownerOpenPopup,nativeDonor,closeNativeDonor,baseline,envelopeResults,
+  await matrices({smokeResults,call,read,readPage,nav,settled,target,selectedTarget,counts,eventually,tab,setTab:value=>{tab=value;},fixture,admin,observe,rpc,caller,ownerNavigate,ownerCloseTab:owner.close,ownerOpenTab,ownerClickPage,ownerOpenPopup,nativeDonor,closeNativeDonor,baseline,envelopeResults,
     popupControl:async(command,value)=>{
       const state=async()=>{await lifecycle({fixture:'control_status'});const value=JSON.parse(fs.readFileSync('/out/control-status.json'));fs.appendFileSync('/out/popup-controls.jsonl',JSON.stringify(value)+'\n');return value;};
       if(command==='state')return state();
