@@ -249,7 +249,7 @@ class EfficiencyBaselineTest(unittest.TestCase):
         entries = [entry for entry in self.baseline["latency_comparisons"] if entry["run_id"] == summary.COMPARISON_RUN]
         self.assertEqual([entry["new"]["task"] for entry in entries], list(summary.TIMED_TASKS))
         self.assertEqual([entry["old"]["task"] for entry in entries], ["f1_first_read", "f5_free_click", "f4_old_to_question"])
-        self.assertEqual({entry["sha"] for entry in entries}, {"75bc1428beca49573d42c01b8f6b90ff17759cb2"})
+        self.assertEqual({entry["sha"] for entry in entries}, {"a2ad7c7d7954f971f0d7f8c71d9bd8dccbef7f24"})
         for entry in entries:
             with self.subTest(task=entry["new"]["task"]):
                 self.assertEqual(entry["runs"], summary.MEASURED_RUNS)
@@ -260,8 +260,8 @@ class EfficiencyBaselineTest(unittest.TestCase):
                 self.assertEqual(entry["allowed_milliseconds"], round(1.10 * entry["old"]["milliseconds"] + 50, 1))
                 self.assertTrue(entry["passed"])
                 self.assertLessEqual(entry["new"]["milliseconds"], entry["allowed_milliseconds"])
-        # Brief 28's own comparison stays first, as committed.
-        self.assertEqual(self.baseline["latency_comparisons"][0]["run_id"], "44226934670")
+        # Brief 28's own comparison stays first, as committed, and that run's three entries follow it alone.
+        self.assertEqual([entry["run_id"] for entry in self.baseline["latency_comparisons"]], ["44226934670"] + [summary.COMPARISON_RUN] * 3)
 
 
 def listed_tasks(name="OUTLINE_TASKS"):
@@ -379,7 +379,7 @@ class ActRowsTest(unittest.TestCase):
         self.assertEqual(timed[0]["plan"], ["do"])
         # "Latency: old and new in one run": the first read of F1, a free click with its report, F4 up to the question.
         self.assertEqual(summary.TIMED_TASKS, ("outline_f1_first_read", "act_f5_free_click", "act_f4_to_question"))
-        self.assertEqual((summary.MEASURED_RUNS, summary.RECORDED_LIMIT, summary.COMPARISON_RUN), (5, 1.5, "44671559502"))
+        self.assertEqual((summary.MEASURED_RUNS, summary.RECORDED_LIMIT, summary.COMPARISON_RUN), (5, 1.5, "44463920809"))
 
     def run_of(self, change=None):
         """A summary where every acting row holds; `change` edits its tasks."""
@@ -442,9 +442,9 @@ class ActRowsTest(unittest.TestCase):
         rows, misses = summary.latency_rows(run, self.baseline)
         self.assertEqual(misses, [], "at the line passes; a sample far above this run's median isn't a miss")
         self.assertEqual(list(rows), list(summary.TIMED_TASKS))
-        self.assertEqual(rows["outline_f1_first_read"]["recorded_median_milliseconds"], 191.6)
-        self.assertEqual(rows["act_f5_free_click"]["recorded_median_milliseconds"], 668.0)
-        self.assertEqual(rows["act_f4_to_question"]["recorded_median_milliseconds"], 4495.5)
+        self.assertEqual(rows["outline_f1_first_read"]["recorded_median_milliseconds"], 176.8)
+        self.assertEqual(rows["act_f5_free_click"]["recorded_median_milliseconds"], 666.1)
+        self.assertEqual(rows["act_f4_to_question"]["recorded_median_milliseconds"], 4340.9)
         for name in summary.TIMED_TASKS:
             with self.subTest(name=name):
                 self.assertEqual(rows[name]["median_milliseconds"], rows[name]["allowed_milliseconds"])
@@ -453,7 +453,7 @@ class ActRowsTest(unittest.TestCase):
                 _, missed = summary.latency_rows(run, self.baseline)
                 self.assertEqual(len(missed), 1, missed)
                 self.assertIn(name + ": median ", missed[0])
-                self.assertIn("in run 44671559502", missed[0])
+                self.assertIn("in run 44463920809", missed[0])
                 tasks[name]["milliseconds_per_run"] = saved
 
     def test_a_timed_task_without_its_samples_or_its_recorded_median_is_a_miss(self):

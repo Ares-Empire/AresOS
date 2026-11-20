@@ -46,10 +46,10 @@ OUTLINE_ROWS = {
 }
 MEASURED_RUNS = 5
 # Brief 28a, "Latency: old and new in one run": the three tasks timed with brief 20's tools and the new ones
-# in one run, and that run (step 3a's 75bc1428, the last with both tool sets). Its entries in the baseline
-# file's latency_comparisons hold the new tools' medians the check that stays compares with.
+# in one run, and that run: step 1's comparison (step 1d, a2ad7c7d; the lead, linux-tools, 2026-11-20). Its
+# entries in the baseline file's latency_comparisons hold the new tools' medians the check that stays compares with.
 TIMED_TASKS = ("outline_f1_first_read", "act_f5_free_click", "act_f4_to_question")
-COMPARISON_RUN = "44671559502"
+COMPARISON_RUN = "44463920809"
 RECORDED_LIMIT = 1.5
 
 
