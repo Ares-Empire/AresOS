@@ -84,6 +84,16 @@ His guideline: "hub wise the main next step is make it a functional, usable home
 - **#361** (the Minecraft-look study) was dropped: it is `linux-desktop`'s brief 312 (board #374). The hub's part, the review against the checklist above, is **#410**.
 - `linux-laptop-home` has 56's jar hash (it confirmed at 13:55).
 
+## Owner name scrub (T433, his answer 2026-11-20: "Scrub to 'the owner'")
+
+- **PR127** (branch `docs/owner-name-scrub`, worktree `~/AresOS-owner-name-scrub`): his first name becomes "the owner" in 13 current files on main. `AGENTS.md` rule 6 and `CLAUDE.md` get the rule.
+- **Review:** Codex `gpt-6-luna` medium, read-only, running (`../AresOS-scrub-review-1.last.md`).
+- **Held** until `mac-capacity`'s freeze ends (after its 13:43 reading). The PR rewrites six lines of `linux-aresos`'s `HANDOFF.md` during R28. Before merging, check that R28 isn't mid-edit.
+- **After the merge:**
+  - `board leave` a note for `aresos`, `tools`, `desktop`, `laptop-home` and `aresos-control`: pull before editing, write "the owner" from now on, and scrub their unmerged branches before merging;
+  - `board done T433`.
+- **An idea for `mac-capacity`:** aresync's privacy check uses one terms list for every repo, so his name can't go on it without blocking private repos. A list for public repos only would guard this one.
+
 ## Coming to the shell protocol
 
 - **`world_clicked`, a new 1.x request from the mod** (`linux-desktop`, B312 step 3, 2026-11-20; `docs/design/COMPONENTS.md` 4.3 on `pkg/312-component-study`).
