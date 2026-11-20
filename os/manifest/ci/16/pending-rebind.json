@@ -45,12 +45,13 @@
     "42 step 6: the stock rewind (the live session installs the base image; the guide stops at the ISO line)",
     "42 step 6: the Web UI pins move to the 2026-11-17 live ISO (PLAN-GAP 3)",
     "42 step 6 fix 1: the cross-review's six findings",
-    "42 step 6 fix 1: the cross-review's six findings; R28 VM step 290"
+    "42 step 6 fix 1: the cross-review's six findings; R28 VM step 290",
+    "42 step 6: checks cap 6, regressions job 60 minutes"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
     {
-      "sha256": "ae7bea3f27e38818ca17d39bb70f4a7efa522727c1e754ea461399019b6ed67f",
+      "sha256": "0647f133f87297b7edf5150c6e1e1c0c13db3af240768087a24ac1b94fbf9bf0",
       "path": ".github/workflows/os-image.yml"
     },
     {
@@ -90,7 +91,7 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "edcae47a22a76cd5d9fcb861ad653b81f501da787fa540b8e5f26ba2e8a7fd57",
+      "sha256": "8728b5bc99bb9ec8ccff1e353447f0b7cff4785c082557e6c7550c63a0123af3",
       "path": "os/ci/rehearsal-packages.json"
     },
     {

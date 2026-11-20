@@ -64,8 +64,9 @@ jobs:
     runs-on: ubuntu-24.04
     # The suite explores a bounded slice of 22c's ways-back model; the full model
     # runs in the model job below (22c stage 1b, addition 1). Main's suite needs
-    # about 23 minutes; run 43669481694 was cut at 25 (22d step 2).
-    timeout-minutes: 40
+    # about 23 minutes; run 43669481694 was cut at 25 (22d step 2). Package 42's suite took 27 to 38
+    # minutes and run 44710509866 was cut at 40, in test_ways_back_probe (2026-11-20).
+    timeout-minutes: 60
     permissions:
       contents: read
       packages: read
