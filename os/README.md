@@ -127,7 +127,11 @@ makes its CRX, policy, update manifest and host manifest under a fresh signing
 key which is discarded. The two Chrome entries in `/etc` are fixed links into
 that folder. Each build therefore has a different extension ID and signature;
 `control.json` records `chrome_build` and `chrome_extension`, and the checks
-bind the signed payload and rendered files to this checkout.
+bind the signed payload and rendered files to this checkout. Chrome shows a
+pinned AresOS Chrome button and marks the browser as managed. On the next
+start after an update or rollback, Chrome installs the booted image's helper.
+Profile continuity after replacement belongs to brief 28b's in-session
+confirmation.
 The image carries no excluded-sites list. At boot tmpfiles creates
 `/var/lib/aresos-control/chrome-excluded-sites.json` as a refused format-0
 placeholder; Chrome reads and actions stay refused until the owner writes
@@ -147,6 +151,12 @@ records the commit, every installed file's mode and SHA-256, every wheel and
 every vendored file; `ci/image-checks.sh` holds the image to that record and
 `ci/check-image.sh` holds the record to the checkout (`build.sh control-tree`
 recomputes it). Claude Code itself is not in the image.
+
+In the booted release rehearsal, pass `ci/control/release_checks.py` to the
+image's `python3 -I` as root. It checks the merged Chrome links, extension ID
+and CRX signature, excluded-sites file metadata, pinned `gh`, and recorded
+polkit action. `CONTROL_CHROME_SITES_SHA256` reports the digest of the list
+without displaying any hosts, for comparison across the update and rollback.
 
 The `ares` account is UID 1001 and, since the owner's 2026-11-09 decision
 ("Like Windows", package 21), a member of `wheel` behind its own password. The
