@@ -2,7 +2,18 @@
 
 The baton for the next `linux-hub` session: the Minecraft home screen and the mod's hub side. Read it after `STATE.md`, and overwrite it when you pick it up.
 
-Written 2026-11-19 by `linux-hub` (Claude Opus 5.5), after package 56. The session was cleared at `mac-capacity`'s request. Picked up the same day at 12:20 by a fresh `linux-hub` (Claude Opus 5.5).
+Written Fri 2026-11-20 13:50 by `linux-hub` (Claude Opus 5.5), before a clear at `mac-capacity`'s request.
+
+## Resume here
+
+1. **B318 is done and merged** (PR126, `4105952a`): no step or review is left. Nothing of the hub is running: no Claude agent and no Codex job.
+2. **PR127, the owner name scrub,** is reviewed SAFE (see below). Merge it after `mac-capacity` lifts the freeze, and only when R28 isn't mid-edit on `HANDOFF.md`. Then:
+   - leave the board notes listed below;
+   - run `board done T433`;
+   - remove the worktree `~/AresOS-owner-name-scrub`.
+3. **Then wait for R28 on the laptop** (`linux-aresos` says when). After that:
+   - the try-out with the owner and the boot-to-home timing (T365, T362);
+   - the read-only look at the running game's audio backend for T364 (B318's open question).
 
 ## Where things stand
 
@@ -28,13 +39,10 @@ Written 2026-11-19 by `linux-hub` (Claude Opus 5.5), after package 56. The sessi
   - The cut was taken Thu 12:00: main `fba94b25` into `pkg/42` as `7f896b62`.
   - Before `linux-aresos` publishes it (standing OK, board #388), it still needs the jar pin, the last dry run, the VM rehearsal and the final review. Installing it (`at update`) is Patrik's own step.
   - The hub waits for `linux-aresos` to say R28 is on the laptop.
-- **B318 is running** (Fri 2026-11-20): why 49's frozen games died on thaw, the first item of T364. Worktree `~/AresOS-318-thaw-watchdog`, branch `pkg/318-thaw-watchdog`, brief `briefs/318-thaw-watchdog.md` (on the branch).
-  - **The finding so far,** read-only from the journal: each game had one rtkit realtime thread (OpenAL Soft's mixer, priority 1), and rtkit's `RLIMIT_RTTIME` is 200 ms soft and hard. The rigs run OpenAL Soft's `null` backend (`ALSOFT_DRIVERS=null`), which catches up every sample after a stall without sleeping. The kernel's SIGKILL leaves no log line.
-  - **The GPU is cleared:** its D0 lines came from the rig's own `nvidia-smi`, before the thaws.
-  - **The experiment:** B1 keeps the thread realtime; A1 and A2 demote it with `chrt --reset-on-fork --other` after the freeze.
-  - **The open product question:** whether the real backend (PipeWire or Pulse) catches up the same way. Step 4 answers it from the source only.
-  - **Reviews:** brief review 1 (Opus) was READY WITH CHANGES, all taken in. There was no Codex brief review, to halve Codex use. The package gets a Codex `gpt-6.2-sol` `high` review.
-  - **Progress:** step 1, the rig and its offline tests, is on an Opus agent. Steps 2–4 follow, each on a fresh agent.
+- **B318 merged** (PR126, `4105952a`, Fri 2026-11-20): why 49's frozen games died on thaw, the first item of T364. STATE.md has the line.
+  - **Next for T364:** once R28 runs the home on the laptop, read the running game read-only: the log's "OpenAL initialized on device" line, its loaded audio libraries (`/proc/<pid>/maps`) and its realtime threads. That tells which backend the product uses.
+  - **Then:** the swap side (`linux-aresos`) and prefetch on wake, in the sleeping-world study. The supervisor's demotion goes into that design.
+  - **The rig** stays in `~/AresOS-318-thaw-watchdog` (`.work/pkg318` holds its base world). Before reusing it, fix the two Known limits in `reviews/318-thaw-watchdog/FINDINGS.md`.
 - `~/AresOS-try` is `hub-try`'s checkout: leave it alone, because `hub-try --update` moves it.
 - **B25** (the guardian, PR125, `61a66d78`, rides R29) doesn't change the jar. Its supervisor refuses to start a game while `aresos-guardian.service` isn't active. `hub-try` needs no stand-in for it, because `run-hub.sh` never starts the supervisor (`aresos-desktop`): it runs only the helper and the dev client, and the helper has no guardian check. A future tool that runs `aresos-desktop` outside the real system would need a stand-in `SYSTEMCTL`, as the guardian loop tests use.
 
@@ -86,6 +94,23 @@ His guideline: "hub wise the main next step is make it a functional, usable home
 - **#335** (build the laptop home) was dropped: it is package 53, owned by `linux-laptop-home`.
 - **#361** (the Minecraft-look study) was dropped: it is `linux-desktop`'s brief 312 (board #374). The hub's part, the review against the checklist above, is **#410**.
 - `linux-laptop-home` has 56's jar hash (it confirmed at 13:55).
+
+## Owner name scrub (T433, his answer 2026-11-20: "Scrub to 'the owner'")
+
+- **PR127** (branch `docs/owner-name-scrub`, worktree `~/AresOS-owner-name-scrub`): his first name becomes "the owner" in 13 current files on main. `AGENTS.md` rule 6 and `CLAUDE.md` get the rule.
+- **Review:** Codex `gpt-6-luna` medium, **SAFE** (`reviews/owner-name-scrub/REVIEW-1.md` on the branch).
+- **Held** until `mac-capacity`'s freeze ends (after its 13:43 reading). The PR rewrites six lines of `linux-aresos`'s `HANDOFF.md` during R28. Before merging, check that R28 isn't mid-edit.
+- **After the merge:**
+  - `board leave` a note for `aresos`, `tools`, `desktop`, `laptop-home` and `aresos-control`: pull before editing, write "the owner" from now on, and scrub their unmerged branches before merging;
+  - `board done T433`.
+- **An idea for `mac-capacity`:** aresync's privacy check uses one terms list for every repo, so his name can't go on it without blocking private repos. A list for public repos only would guard this one.
+
+## Coming to the shell protocol
+
+- **`world_clicked`, a new 1.x request from the mod** (`linux-desktop`, B312 step 3, 2026-11-20; `docs/design/COMPONENTS.md` 4.3 on `pkg/312-component-study`).
+  - **Why:** window layouts that cover the world need it. The shell keeps its own record of which window is where, and a window dragged out by its own bar (Chrome) leaves that record stale. The request corrects it.
+  - **When:** it is planned for a later layouts package. Nothing is needed now, but the hub, as the mod's protocol side, reviews it when it comes.
+- **B23c's Super-release check** went to `linux-aresos` on the board: does Super held through a drag open the search on release?
 
 ## Held
 

@@ -1,0 +1,2 @@
+$ bash -n reviews/318-thaw-watchdog/rig/*.sh reviews/318-thaw-watchdog/frames/build.sh
+exit 0 (8 rig scripts + frames/build.sh)

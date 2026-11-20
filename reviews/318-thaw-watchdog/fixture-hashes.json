@@ -1,0 +1,8 @@
+{
+  "flat": {
+    "aggregate_tree_sha256": "edc40f2f727e2d774941734e8241f7658415db00ff270d6c62c0fbd6eb8365d9",
+    "files": 59,
+    "bytes": 20680842,
+    "manifest": "#AresOS flat home provisioning v1; keep with this save\n#Fri Nov 20 09:29:46 CET 2026\nhome=flat\nseed=0\nversion=1\nx=0\ny=63\nyaw=180.0\nz=0\n"
+  }
+}
