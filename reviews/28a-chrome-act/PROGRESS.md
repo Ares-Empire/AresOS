@@ -1,5 +1,102 @@
 # Package 28a: Chrome acting progress
 
+## Step 3a
+
+2026-11-20. Draft PR #116, branch `pkg/28a-chrome-act`. Started at `c6ce541c`.
+
+### Done
+
+- `e6737d29` moved browser evidence to public reads, fixture reports, the boundary
+  and service audit, and a CI-only observer. `70d7e5fb` moved service fixtures to
+  the public actions and reconciled the map. The shipped extension, service,
+  generated catalogue, instructions and asking path match the starting head.
+- Portable Node `--test --test-concurrency=2 control/chrome_tests/*.test.mjs`
+  passed **640/640** in **17.585 s**.
+- `PYTHONPATH=control:control/chrome_tests python3 -m unittest test_questions test_policy
+  test_engine test_doing test_qualification_fixture test_qualification_service
+  test_field_descriptions test_operation_projection test_sites test_owner_confirm
+  test_outline_time test_qualification_shards test_loss_errors test_small_tools
+  test_outline_action test_excluded_sites_28a test_efficiency test_acting_references`
+  ran **339 tests in 129.154 s** and printed `OK`, with an HTTP 403 `ResourceWarning`.
+  The final pass followed fixes to the fake browser and native host's timed-reply support.
+- `python3 control/generate.py --check` printed `Generated artifacts match definitions`.
+  `git diff --check c6ce541c` passed. The generated ask rules match `origin/main`.
+  The fixture admin and service scripts and the process-cut test file compile.
+
+### Gaps and evidence channels
+
+| Gap | Evidence |
+|---|---|
+| Password, revealed and unread fields, including the taken form | Public full, find, until, multi-tab and form-ref results, plus the existing getter, protocol, question and receiver checks. |
+| Session, frame, reader element and document IDs, parser settle, and native dialog details | Admin-only observations from the CI copy. Short action refs still come from the public read. |
+| Exact tab address, active/focused tab, index, sound and native cleanup | The same CI observer and the existing owner-window observations. |
+| Selected file, feature-form hidden value and two filled texts | Fixture receiver. Public full and form-ref reads check the field name, options and absence of the hidden value. |
+| Preexisting-dialog handoff's operation ID | Committed take audit rows and the public operation status for that exact ID. |
+| Before-first-reload, address navigation and dirty history Forward | Public loss results, browser boundary command order, exact native addresses and fixture load counts. The dirty restored page's acknowledged Forward either moves once or stops on unproven request-method evidence. A watched dirty history fixture independently requires the direct Forward refusal and successful acknowledged repeat. |
+| Taken-POST transition to GET, script POST to the popup opener and leaving the cross-frame password fixture | Owner navigation in the exact same tab. The asserted POST attempts and history refusals stay public and the receiver counts stay in place. |
+| Owner-opened borrowed child and forced-late popup cleanup | Owner tab or native popup close after the case's receiver and control checks. |
+| Library snapshot and entries | Public paged-library checks for downloads, bookmarks and history alongside the temporary native-catalogue tests. |
+
+### Retired with the old tools
+
+- Group 7's JSON read, form and find assertions carry through its public full,
+  form-ref, find, until, multi-tab, question and record cases. The feature form's
+  hidden-value assertion uses its receiver and public nondisclosure checks.
+- The three native catalogue snapshot-ID assertions carry through the corresponding
+  public library paging, address-ref and file checks.
+- The map names the temporary switch, settings gate, caller upload, untimed read,
+  legacy input binding and loss-envelope contract cases and the tests that
+  carry their properties. [Harness map](HARNESS-MAP.md#retired-with-the-old-tools)
+
+### Remaining legacy calls
+
+**40 source call sites** can reach `chrome_old_` wire names. The old comparisons
+account for 24 and the legacy catalogue tests account for 16, including the
+feature loop over all three native catalogues. Two additional private adapter
+calls exercise the old click shape. The map names every site and counts loops
+once per source expression. [Call-site inventory](HARNESS-MAP.md#remaining-chrome_old_-call-sites)
+
+### Runs
+
+Each workflow was dispatched once on `70d7e5fb`. The `linux-tools` lead owns the verdicts.
+
+- Control Chrome **44654244144**. [Run](https://github.com/Ares-Empire/AresOS/actions/runs/44654244144)
+- Control Chrome qualification **44654244071**. [Run](https://github.com/Ares-Empire/AresOS/actions/runs/44654244071)
+
+### Left, in order
+
+1. **Step 3b.** Remove the old tools and switch, retire the named legacy
+   contracts and comparison call sites, and update the remaining text and
+   generated size pins as the brief directs. Keep the public `chrome_show`
+   exception and add the planned Chrome response checks.
+
+### What the code doesn't show
+
+The two hosted verdicts and the Chrome-specific native timing and history behavior
+await the lead's inspection. No local browser, fault-surface module or standalone
+state suite ran. The qualification fixture ran its existing in-process restore
+sample. No file over 500 MB remains in `.work/`.
+
+### JUDGMENT-CALLs
+
+- The CI-native observer is opt-in and admin-only. It uses the current outline
+  reader and returns identities and metadata. Page field values come from the
+  fixture receiver. Moving these facts into public replies would widen Claude's
+  surface. The observer can be removed with a harness rewrite.
+- Forward tests exercise the restored document's public guard and a watched
+  document's Forward loss independently. The watched fixture's two history entries
+  share one document, which keeps the Forward loss check independent of Chrome's
+  restoration and method evidence. The observed first-input warning is recorded
+  in [Known limits](KNOWN-LIMITS.md#forward-after-a-restored-draft).
+
+### PLAN-GAPs
+
+- The requested navigation can encounter `first_input` before its own loss
+  action. Public replies and the boundary trace show which check ran. The
+  watched reload, address and Forward rows retain the direct loss-action checks.
+- The old native catalogue IDs and temporary alias contracts remain for 3b.
+  The public library checks address refs and complete paging.
+
 ## Step 2, fix 2
 
 2026-11-20. Draft PR #116. The failures reproduced in both install modes and both stable
