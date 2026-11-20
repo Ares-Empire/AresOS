@@ -67,7 +67,7 @@ export async function matrices({call,read,readPage,nav,settled,target,selectedTa
     }
   });
   if(runs('core'))await destinationMatrix({check:inBlock('core'),nav,call,target,approval,fixture,receiverEvidence,eventually});
-  if(runs('core'))await lateReaderMatrix({check:inBlock('core'),nav,call,readPage,ownerNavigate,getTab:()=>tab});
+  if(runs('core'))await lateReaderMatrix({check:inBlock('core'),nav,call,readPage,fixture,ownerNavigate,getTab:()=>tab});
   if(runs('core'))await lateBindingMatrix({check:inBlock('core'),call,rpc,read:readPage,target,fixture,eventually,ownerNavigate,getTab:()=>tab});
   if(runs('core'))await animatedDefaultMatrix({check:inBlock('core'),nav,call,target,approval,receiverEvidence,eventually,fixture,getTab:()=>tab,setTab,nativeDonor,closeNativeDonor});
   if(process.env.DESTINATION_PROBE==='true'){console.log('Post-18d destination and late-reader probes; not full acceptance');assertChecksPassed([...smokeResults,...results]);return;}

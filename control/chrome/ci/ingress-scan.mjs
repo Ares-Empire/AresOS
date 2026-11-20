@@ -32,7 +32,8 @@ export function completeIngress(text){
 // scan while selecting event records independently.
 export function protocolEvents(rows){return rows.filter(row=>row?.protocol_event).map(row=>row.protocol_event);}
 
-export function auditRows(offset,key,log=boundaryLog){
+export function auditRows(offset,keys,log=boundaryLog){
+  const prefixes=[keys].flat().map(key=>'{"'+key+'":');
   return log.since(offset).split('\n').slice(0,-1)
-    .filter(line=>line.startsWith('{"'+key+'":')).map(line=>JSON.parse(line));
+    .filter(line=>prefixes.some(prefix=>line.startsWith(prefix))).map(line=>JSON.parse(line));
 }

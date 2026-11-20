@@ -1,7 +1,26 @@
 // Pure fixture scheduling regression; no browser or profile is accessed.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {guardedHandoffClick,guardedOtherTabClick} from '../chrome/ci/review-matrices.mjs';
+import {guardedHandoffClick,guardedOtherTabClick,navigationTrace} from '../chrome/ci/review-matrices.mjs';
+
+test('navigation audit checks dispatch order and attributes the starts to the exact tab',()=>{
+  const tab=7,before='http://fixture.test/draft',after='http://fixture.test/next';
+  const command=command=>({command,phase:'begin'});
+  const dispatch=method=>({method,parameters:{},phase:'dispatched'});
+  const start=(tabId,navigationType,url)=>({protocol_event:{source:{tabId},method:'Page.frameStartedNavigating',params:{navigationType,url}}});
+  const log=rows=>({since:()=>rows.map(row=>JSON.stringify(row)+'\n').join('')});
+  const steps=['prepare_control','Page.reload','navigate','Page.navigate'];
+  const starts=[['reload',before],['differentDocument',after]];
+  const guard=command('prepare_control'),reload=dispatch('Page.reload');
+  const move=command('navigate'),navigate=dispatch('Page.navigate');
+  const reloadStart=start(tab,'reload',before),moveStart=start(tab,'differentDocument',after);
+  const unrelated={protocol_command:{source:{tabId:tab},method:'Page.enable',phase:'dispatched'}};
+  navigationTrace(0,tab,steps,starts,log([guard,unrelated,reload,reloadStart,move,navigate,moveStart]));
+  navigationTrace(0,tab,['prepare_control'],[],log([guard,unrelated]));
+  assert.throws(()=>navigationTrace(0,tab,steps,starts,log([guard,move,reload,reloadStart,navigate,moveStart])),/native dispatch in order/);
+  assert.throws(()=>navigationTrace(0,tab,steps,starts,log([guard,reload,start(tab+1,'reload',before),move,navigate,moveStart])),/exact tab/);
+  assert.throws(()=>navigationTrace(0,tab,['prepare_control'],[],log([guard,reload])),/native dispatch in order/);
+});
 
 function scenario({inputError,initialError}={}){
   const before={reference:{document:'old',view:'old-view'},expected:{name:'Ready'}};

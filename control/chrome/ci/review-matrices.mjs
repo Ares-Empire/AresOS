@@ -22,12 +22,25 @@ const lostFields=report=>report.fields.map(field=>field.description+' (typed by 
 const asksOwner=report=>report.fields.some(field=>field.by==='owner')||report.media||report.frames_uninspected>0;
 const onlyField=(report,field)=>{assert.deepEqual(lostFields(report),[field],JSON.stringify(report));assert.equal(report.more_fields+report.frames_uninspected,0);assert.equal(report.media,false);};
 
-function navigationTrace(offset,tab,commands,effects){
-  const relevant=auditRows(offset,'command').filter(row=>row.phase==='begin'&&['prepare_control','navigate'].includes(row.command));
-  const protocol=auditRows(offset,'protocol_command').map(row=>row.protocol_command)
-    .filter(row=>row.source?.tabId===tab&&row.phase==='dispatched'&&['Page.reload','Page.navigate','Page.navigateToHistoryEntry'].includes(row.method));
-  assert.deepEqual(relevant.map(row=>row.command),commands,'guard and navigation commands in order');
-  assert.deepEqual(protocol.map(row=>row.method),effects,'native navigation effects in order in the exact tab');
+const navigationMethods=new Set(['Page.reload','Page.navigate','Page.navigateToHistoryEntry']);
+export function navigationTrace(offset,tab,expected,starts=[],log=boundaryLog){
+  const rows=auditRows(offset,['command','method','protocol_command','protocol_event'],log);
+  const sequence=rows.flatMap(row=>{
+    if(row.phase==='begin'&&['prepare_control','navigate'].includes(row.command))return [row.command];
+    // cdp() dispatches are flat. preloadCommand() wraps its separate calls.
+    const dispatch=row.protocol_command??row;
+    return dispatch.phase==='dispatched'&&navigationMethods.has(dispatch.method)?[dispatch.method]:[];
+  });
+  assert.deepEqual(sequence,expected,'guard, navigation and native dispatch in order');
+  if(starts.length){
+    // The dispatch rows omit the tab. Chrome's start events identify it even
+    // if the next navigation supersedes the first document before it finishes.
+    const addresses=new Set(starts.map(([,url])=>url));
+    const observed=rows.flatMap(({protocol_event:event})=>
+      event?.method==='Page.frameStartedNavigating'&&addresses.has(event.params.url)
+        ?[[event.source.tabId,event.params.navigationType,event.params.url]]:[]);
+    assert.deepEqual(observed,starts.map(([type,url])=>[tab,type,url]),'navigation starts in order in the exact tab');
+  }
 }
 
 export async function guardedOtherTabClick({rpc,call,childTarget,eventually}){
@@ -271,7 +284,8 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
     }
     // Final F6: a requested reload in a taken tab uses the first-input guard.
     for(const mode of ['dirty','web-audio','clean']){
-      const id='final-navigate-reload-'+mode,tab=getTab();await call('release_tab',{tab});await ownerNavigate('http://fixture.test:8765/?case=take-state&id='+id+'&mode='+mode);
+      const id='final-navigate-reload-'+mode,tab=getTab(),url='http://fixture.test:8765/?case=take-state&id='+id+'&mode='+mode;
+      await call('release_tab',{tab});await ownerNavigate(url,{tab});
       await eventually(()=>counts('loaded-'+id)===1,'owner page loaded');
       if(mode==='web-audio'){ownerKey();await eventually(()=>counts('playing-'+id)===1,'Web Audio playback started');await delay(500);}
       await call('take_tab',{tab});
@@ -281,17 +295,17 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       if(mode==='clean')await delay(3500);
       if(mode!=='clean'){
         const offset=boundaryLog.size(),first=await rpc('navigate',{tab,direction:'reload'});const report=lossReport(first,'first_input');
-        navigationTrace(offset,tab,['prepare_control'],[]);
+        navigationTrace(offset,tab,['prepare_control']);
         if(mode==='dirty')assert.equal(report.fields[0]?.description,'field "Draft"',JSON.stringify(report));else assert.equal(report.media,true,JSON.stringify(report));
         assert.doesNotMatch(JSON.stringify(first.error),/Saved/,'labels only, never values');await delay(500);assert.equal(counts('loaded-'+id),1,'the owner page stays until the explicit repeat');
       }
       const offset=boundaryLog.size(),reloaded=await rpc('navigate',{tab,direction:'reload',...(mode==='clean'?{}:{discard_unsaved:true})});assert.equal(reloaded.ok,true,JSON.stringify(reloaded));
       await eventually(()=>counts('loaded-'+id)===2,'navigate reload '+mode);
-      navigationTrace(offset,tab,['prepare_control'],['Page.reload']);
+      navigationTrace(offset,tab,['prepare_control','Page.reload'],[['reload',url]]);
       if(mode==='dirty'){
         const offset=boundaryLog.size(),refused=await rpc('navigate',{tab,direction:'reload'});
         onlyField(lossReport(refused,'reload'),'field "Draft" (typed by the owner)');
-        navigationTrace(offset,tab,['navigate'],[]);assert.equal(counts('loaded-'+id),2);
+        navigationTrace(offset,tab,['navigate']);assert.equal(counts('loaded-'+id),2);
       }
     }
     // A requested address in a taken tab follows its guarded reload.
@@ -300,7 +314,8 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
     // (the report) apart from the harness (which tab the owner played in).
     const soundRow=async(id,tab)=>{const row=(await allTabs(call)).items.find(row=>row.tab===tab);console.log(id,'tab before the act',JSON.stringify({tab,url:row?.url,audible:row?.audible,muted:row?.muted,controlled:row?.controlled,active:row?.active}));return row;};
     for(const mode of ['dirty','web-audio','clean']){
-      const id='final-discard-navigate-url-'+mode,next=id+'-next',tab=getTab();await call('release_tab',{tab});await ownerNavigate('http://fixture.test:8765/?case=take-state&id='+id+'&mode='+mode,{tab});
+      const id='final-discard-navigate-url-'+mode,next=id+'-next',tab=getTab(),before='http://fixture.test:8765/?case=take-state&id='+id+'&mode='+mode;
+      await call('release_tab',{tab});await ownerNavigate(before,{tab});
       await eventually(()=>counts('loaded-'+id)===1,'owner page loaded');
       if(mode==='web-audio'){ownerKey();await eventually(()=>counts('playing-'+id)===1,'Web Audio playback started');await delay(500);}
       await call('take_tab',{tab});const url='http://fixture.test:8765/?case=take-state&id='+next+'&mode=clean';
@@ -310,14 +325,14 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
         if(mode==='web-audio')await soundRow(id,tab);
         // Before its first reload a taken tab's text fields count as unsaved.
         const offset=boundaryLog.size(),first=await rpc('navigate',{tab,url});const report=lossReport(first,'first_input');
-        navigationTrace(offset,tab,['prepare_control'],[]);
+        navigationTrace(offset,tab,['prepare_control']);
         assert.equal(report.fields[0]?.description,'field "Draft"',JSON.stringify(report));assert.doesNotMatch(JSON.stringify(first.error),/Saved/,'labels only, never values');
         if(mode==='web-audio')assert.equal(report.media,true,JSON.stringify(report));
         await delay(500);assert.equal(counts('loaded-'+id),1);assert.equal(counts('loaded-'+next),0,'the owner page stays until the explicit repeat');
       }
       const offset=boundaryLog.size(),moved=await rpc('navigate',{tab,url,...(mode==='clean'?{}:{discard_unsaved:true})});assert.equal(moved.ok,true,JSON.stringify(moved));
       await eventually(()=>counts('loaded-'+next)===1,'navigate to an address '+mode);
-      navigationTrace(offset,tab,['prepare_control','navigate'],['Page.reload','Page.navigate']);
+      navigationTrace(offset,tab,['prepare_control','Page.reload','navigate','Page.navigate'],[['reload',before],['differentDocument',url]]);
     }
     // discard_unsaved: chrome_close_tab gives the same report in a tab Claude
     // opened, whose reader watched from the start, and closes only with the flag.
@@ -374,20 +389,21 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
           const firstInput=forward.error?.untrusted_content?.loss?.act==='first_input';
           const report=lossReport(forward,firstInput?'first_input':'forward');
           assert.ok(asksOwner(report),'the restored draft or uninspected frame requires disclosure');
-          navigationTrace(offset,tab,[firstInput?'prepare_control':'navigate'],[]);
+          navigationTrace(offset,tab,[firstInput?'prepare_control':'navigate']);
           await delay(500);assert.equal(await address(),page(1),'the restored page stays after refusal');
           const acknowledge=boundaryLog.size();
           const moved=await rpc('navigate',{tab,direction:'forward',discard_unsaved:true});
           if(firstInput&&!moved.ok){
             assert.equal(moved.error.code,'refused');
             assert.match(moved.error.message,/request method is unknown/);
-            navigationTrace(acknowledge,tab,['prepare_control'],[]);
+            navigationTrace(acknowledge,tab,['prepare_control']);
             assert.equal(await address(),page(1),'unknown request method leaves the restored page in place');
           }else{
             assert.equal(moved.ok,true,JSON.stringify(moved));
             await eventually(async()=>await address()===page(2),'forward dirty');
-            navigationTrace(acknowledge,tab,firstInput?['prepare_control','navigate']:['navigate'],
-              firstInput?['Page.reload','Page.navigateToHistoryEntry']:['Page.navigateToHistoryEntry']);
+            const guarded=firstInput?['prepare_control','Page.reload']:[];
+            const starts=firstInput?[['reload',page(1)]]:[];
+            navigationTrace(acknowledge,tab,[...guarded,'navigate','Page.navigateToHistoryEntry'],[...starts,['historyDifferentDocument',page(2)]]);
           }
         }
       }finally{await call('close_tab',{tab,discard_unsaved:true});setTab(main);}
@@ -407,12 +423,13 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
         const offset=boundaryLog.size(),forward=await rpc('navigate',{tab,direction:'forward'});
         onlyField(lossReport(forward,'forward'),'field "Draft" (typed by the owner)');
         assert.doesNotMatch(JSON.stringify(forward.error),/Unsaved|Saved/);
-        navigationTrace(offset,tab,['navigate'],[]);
+        navigationTrace(offset,tab,['navigate']);
         await delay(500);assert.equal(await address(),url,'the watched draft stays until the explicit repeat');
         const acknowledged=boundaryLog.size();
         const moved=await rpc('navigate',{tab,direction:'forward',discard_unsaved:true});assert.equal(moved.ok,true,JSON.stringify(moved));
         await eventually(async()=>await address()===next,'forward arrived at the second entry');
-        navigationTrace(acknowledged,tab,['navigate'],['Page.navigateToHistoryEntry']);
+        assert.equal(moved.data.tab,tab);
+        navigationTrace(acknowledged,tab,['navigate','Page.navigateToHistoryEntry']);
         assert.equal(counts('loaded-'+id),1,'the history move never reloaded the document');
       }finally{await call('close_tab',{tab,discard_unsaved:true});}
     }

@@ -9,7 +9,7 @@ const fieldLine=(text,label)=>{
   const line=text.split('\n').find(line=>line.includes(' "'+label+'"'));
   assert.ok(line,'the public form shows '+label);return line.trimStart();
 };
-export async function lateReaderMatrix({check,nav,call,readPage,ownerNavigate,getTab}){
+export async function lateReaderMatrix({check,nav,call,readPage,fixture,ownerNavigate,getTab}){
   const evidence=[];
   await check('GROUP 7 POST18D credentials and revealed passwords stay unreadable before take reload',async()=>{
     for(const watched of [false,true]){
