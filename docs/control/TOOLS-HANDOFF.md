@@ -81,7 +81,11 @@ Ares-Empire/AresOS --interval 300` in a background shell.
      Its runs (Chrome 44654244144, qualification 44654244071) are **red everywhere** (03:20): extension calls
      answer "Cannot access 'tab' before initialization", likely the CI-copy observer; plus two Python pins
      (`test_latency`, `test_state_mutations` S6 and S12). A shell chain (`chain.sh` in the scratchpad) runs Codex
-     `28a-step3a-fix`, then **3b** (prompt `28a-step3b.txt`) only if the fix's two runs are green. The builder may not touch `docs/design/`: **after 3b, add
+     `28a-step3a-fix`, then **3b** (prompt `28a-step3b.txt`) only if the fix's two runs are green. Fri 04:52: the fix
+     (`c64d7367`) is **red in two cases only** (Chrome 44661058968, qualification 44661067429): GROUP 7 POST18D typed
+     reads (`fixture is not defined`, late-reader-matrix.mjs:64) and GROUP 8 REVIEW iframe drafts (3a's new
+     `navigationTrace` finds no `Page.reload` row although the page reloaded). Fix round 2 (`28a-step3a-fix2.txt`,
+     gpt-6.2-sol) runs in the same chain, then 3b if green. A third red round goes to astra. The builder may not touch `docs/design/`: **after 3b, add
      `chrome_show`'s exception to CONTROL.md line 753 yourself** ("Nothing of ours ever opens a window or takes
      the focus", except `chrome_show`, which brings a tab to the front for him). Then step 2
      (HARNESS-MAP), step 3b (removal; CONTROL.md line 753 "nothing of ours ... takes the focus" needs `chrome_show`'s exception;
