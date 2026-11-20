@@ -171,4 +171,4 @@ One fresh agent per step. Each step commits, pushes, and keeps `reviews/312-comp
 
 `~/ares-empire/EMPIRE.md` (the design language; readable on this machine), `CLAUDE.md`, `AGENTS.md`, `docs/design/WINDOWS.md`, `docs/design/HUB.md` (sections 1 and 2), `docs/design/LAPTOP-HOME.md` (sections 2, 5, 6 and 11), and `STATE.md` around lines 160 to 230 (R29, 23c, 53 and 311). Read only the sections you need; these files are long.
 
-**Model:** Fable 5.2 for every step: unscoped design work, per the repo's rule and `mac-capacity`'s confirmation.
+**Model:** Fable 5.2 for every step: unscoped design work, per the repo's rule and `mac-capacity`'s confirmation. **As run:** step 1 on Fable 5.2; steps 2 to 4 on Opus 5.5, since `mac-capacity` moved them on Friday 2026-11-20 because the Claude week was over pace. All four steps were done that day, and the package then went to a fresh review.
