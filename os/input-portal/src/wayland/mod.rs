@@ -91,27 +91,41 @@ impl PlacedBarrier {
 
 /// Commands sent to the Wayland thread.
 pub enum WaylandCmd {
-    /// Put one session's barrier surfaces on screen. Replaces any existing set.
+    /// Put one session's barrier surfaces on screen. Replaces any existing set,
+    /// and ends whatever capture came from it.
     ///
     /// `zone_set` is the snapshot the barriers were checked against; if the
-    /// screens have changed since, nothing is placed. `session` comes back in
-    /// [`WaylandEvent::Activated`], so a crossing names the session whose
-    /// barrier it was.
+    /// screens have changed since, nothing is placed. `session` and `arming`
+    /// come back in [`WaylandEvent::Activated`]: `arming` is a number the portal
+    /// never uses twice, so a crossing names the one arming it came from and
+    /// can't be taken for a later one of the same session path.
     Arm {
         session: String,
+        arming: u64,
+        /// Whether the session was granted the keyboard. If so, a crossing only
+        /// counts once the barrier's surface has keyboard focus.
+        keyboard: bool,
         zone_set: u32,
         barriers: Vec<Barrier>,
     },
-    /// Tear every barrier surface down, freeing the screen edges.
+    /// Tear every barrier surface down, freeing the screen edges. A crossing
+    /// that came from them ends too, and the input buffered for it is dropped.
     Disarm,
-    /// Attach the EIS connection that captured input should be written to.
+    /// Attach the EIS connection that the input of crossing `crossing` should
+    /// be written to.
     ///
-    /// The pointer is already locked by the time this arrives — locking happens
-    /// the instant the barrier is crossed so no motion is lost to the round trip
-    /// through the portal — so this only hands over the destination.
-    AttachEis(crate::eis_server::EisHandle),
+    /// The pointer is already locked by the time this arrives. If that crossing
+    /// is over by then, nothing is attached and the portal is told
+    /// ([`WaylandEvent::CaptureLost`]).
+    AttachEis {
+        crossing: u64,
+        eis: crate::eis_server::EisHandle,
+    },
     /// Release the pointer and give the local cursor back.
     EndCapture {
+        /// The crossing to end, so a late command can't end a newer capture.
+        /// `None` ends whatever is captured (the way out, and shutdown).
+        crossing: Option<u64>,
         /// Where to leave the cursor, in global logical coordinates.
         cursor_hint: Option<(f64, f64)>,
     },
@@ -139,7 +153,7 @@ impl std::fmt::Debug for WaylandCmd {
         f.write_str(match self {
             Self::Arm { .. } => "Arm",
             Self::Disarm => "Disarm",
-            Self::AttachEis(_) => "AttachEis",
+            Self::AttachEis { .. } => "AttachEis",
             Self::EndCapture { .. } => "EndCapture",
             Self::ClipboardRead { .. } => "ClipboardRead",
             Self::ClipboardClaim { .. } => "ClipboardClaim",
@@ -153,7 +167,7 @@ impl std::fmt::Debug for WaylandEvent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self {
             Self::Activated { .. } => "Activated",
-            Self::CaptureLost => "CaptureLost",
+            Self::CaptureLost { .. } => "CaptureLost",
             Self::OutputsChanged => "OutputsChanged",
             Self::ClipboardSelection { .. } => "ClipboardSelection",
             Self::ClipboardSend { .. } => "ClipboardSend",
@@ -164,17 +178,23 @@ impl std::fmt::Debug for WaylandEvent {
 
 /// Events raised by the Wayland thread.
 pub enum WaylandEvent {
-    /// The pointer crossed a barrier that was armed for `session`. Position is
-    /// in global logical coordinates.
+    /// The pointer crossed a barrier that was armed for `session` by the arming
+    /// `arming`, and the compositor has granted the grab: the pointer is locked
+    /// and, for a session with the keyboard, the barrier has keyboard focus.
+    /// `crossing` names this capture from here on. Position is in global
+    /// logical coordinates.
     Activated {
         session: String,
+        arming: u64,
+        crossing: u64,
         barrier_id: u32,
         position: (f64, f64),
     },
-    /// Capture ended without the client asking, so the portal still has to emit
-    /// `Deactivated`. Happens when the compositor drops the lock or the user
-    /// hits the escape combination.
-    CaptureLost,
+    /// The capture of `crossing` ended without the portal asking, so the portal
+    /// still has to emit `Deactivated`. Happens when the compositor drops the
+    /// lock, closes the surface or takes the pointer or the keyboard focus
+    /// away, on the idle watchdog and on the escape combination.
+    CaptureLost { crossing: u64 },
     /// A new snapshot of the screens was committed; zones and barriers are
     /// stale. Any capture has been ended and every barrier surface removed.
     OutputsChanged,

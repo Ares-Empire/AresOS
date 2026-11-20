@@ -57,9 +57,68 @@ struct BarrierSurface {
     drawn: bool,
 }
 
-/// State held while input is being redirected to the client.
+/// How long a crossing may wait for the compositor to grant the pointer lock
+/// (and, for a session with the keyboard, keyboard focus) before input goes
+/// back to the local screen.
+const GRAB_TIMEOUT: std::time::Duration = std::time::Duration::from_millis(500);
+
+/// How many events a crossing may hold back until the portal has attached the
+/// session's EIS connection. More than this is dropped: nobody types that much
+/// in the moment between a crossing and its handover.
+const MAX_PENDING_EVENTS: usize = 256;
+
+/// The session a set of barrier surfaces was put up for.
+#[derive(Clone)]
+struct Armed {
+    session: String,
+    /// The portal's number for this arming; a crossing reports it back.
+    arming: u64,
+    /// Whether the session was granted the keyboard.
+    keyboard: bool,
+}
+
+/// What the compositor has granted a crossing so far.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct Grab {
+    wants_keyboard: bool,
+    locked: bool,
+    focused: bool,
+}
+
+impl Grab {
+    /// True once local windows can no longer receive what the session was
+    /// granted: the pointer is locked, and for a session with the keyboard the
+    /// barrier's surface has keyboard focus.
+    fn held(self) -> bool {
+        self.locked && (self.focused || !self.wants_keyboard)
+    }
+}
+
+/// Which capture `end_capture` ended.
+struct Ended {
+    crossing: u64,
+    /// The portal was told about it (`Activated`).
+    confirmed: bool,
+}
+
+/// State held from the moment a barrier is crossed.
+///
+/// It starts unconfirmed: the lock has been asked for, and the portal knows
+/// nothing yet. Only when the compositor has granted the grab does the portal
+/// hear `Activated`. Until then a failure just gives the input back.
 struct Capture {
     barrier_id: u32,
+    /// The arming the crossed surface belonged to.
+    armed: Armed,
+    /// This crossing's own number, unique for the life of the process.
+    crossing: u64,
+    /// Where the barrier was crossed, in global logical coordinates.
+    position: (f64, f64),
+    grab: Grab,
+    /// `Activated` was sent: the grab is held and the portal knows this capture.
+    confirmed: bool,
+    /// Until when an unconfirmed crossing may wait for its grab.
+    deadline: std::time::Instant,
     lock: zwp_locked_pointer_v1::ZwpLockedPointerV1,
     layer: LayerSurface,
     origin: (i32, i32),
@@ -103,7 +162,9 @@ struct AppState {
     screens: SharedScreens,
     surfaces: Vec<BarrierSurface>,
     /// The session whose barriers `surfaces` are.
-    armed_for: Option<String>,
+    armed_for: Option<Armed>,
+    /// The number the next crossing gets.
+    next_crossing: u64,
     capture: Option<Capture>,
     /// Absent when the compositor does not advertise `ext-data-control`, which
     /// costs the clipboard but nothing else.
@@ -156,7 +217,24 @@ impl AppState {
         })
     }
 
+    /// Remove every barrier surface, and whatever capture came from them.
+    ///
+    /// The portal disarms when the armed session is closed, disabled or
+    /// replaced. A crossing that is still waiting for its grab, or one the
+    /// portal has not attached an EIS connection to yet, belongs to that
+    /// session: it ends here, and the input buffered for it is dropped with it.
     fn disarm(&mut self) {
+        if let Some(ended) = self.end_capture(None) {
+            debug!(
+                confirmed = ended.confirmed,
+                "disarmed with a capture in flight: it ends and its buffered input is dropped"
+            );
+            if ended.confirmed {
+                let _ = self.event_tx.send(WaylandEvent::CaptureLost {
+                    crossing: ended.crossing,
+                });
+            }
+        }
         if !self.surfaces.is_empty() {
             debug!("tearing down {} barrier surface(s)", self.surfaces.len());
         }
@@ -167,15 +245,15 @@ impl AppState {
 
     fn arm(
         &mut self,
-        session: String,
+        armed: Armed,
         zone_set: u32,
         barriers: &[crate::portal::Barrier],
         qh: &QueueHandle<Self>,
     ) {
-        if self.capture.is_some() {
-            debug!("ignoring Arm while a capture is in progress");
-            return;
-        }
+        // A new arming replaces everything of the one before it, a capture
+        // included: the portal arms only when, as far as it knows, the session
+        // isn't capturing, so a capture here is one it has not heard of yet and
+        // will refuse (its arming number is the old one).
         self.disarm();
 
         // The barriers were checked against one snapshot. If the screens have
@@ -194,7 +272,7 @@ impl AppState {
         if !rejected.is_empty() {
             warn!("{} barrier(s) do not lie on an outer output edge: {rejected:?}", rejected.len());
         }
-        self.armed_for = Some(session);
+        self.armed_for = Some(armed);
 
         for p in placed {
             match self.create_surface(&p, qh) {
@@ -298,13 +376,14 @@ impl AppState {
     /// Take over the pointer and keyboard the moment a barrier is crossed.
     ///
     /// This runs before the portal is told anything, so the round trip through
-    /// D-Bus cannot leak pointer motion onto the local screen.
+    /// D-Bus cannot leak pointer motion onto the local screen. The portal hears
+    /// of it only once the compositor has granted the grab (`confirm_if_held`).
     fn begin_capture(&mut self, index: usize, position: (f64, f64), qh: &QueueHandle<Self>) {
         if self.capture.is_some() {
             return;
         }
         // A surface that was armed for nobody has nobody to capture for.
-        let Some(session) = self.armed_for.clone() else {
+        let Some(armed) = self.armed_for.clone() else {
             return;
         };
         let Some(pointer) = self.pointer.clone() else {
@@ -350,10 +429,22 @@ impl AppState {
         // like the pointer really left.
         pointer.set_cursor(self.last_enter_serial, None, 0, 0);
 
+        let crossing = self.next_crossing;
+        self.next_crossing += 1;
         // Where it was crossed is the cursor's position and stays out of the log.
-        info!(barrier = barrier_id, "barrier crossed, capturing input");
+        info!(barrier = barrier_id, "barrier crossed, asking the compositor for the grab");
         self.capture = Some(Capture {
             barrier_id,
+            grab: Grab {
+                wants_keyboard: armed.keyboard,
+                locked: false,
+                focused: false,
+            },
+            armed,
+            crossing,
+            position,
+            confirmed: false,
+            deadline: std::time::Instant::now() + GRAB_TIMEOUT,
             lock,
             layer,
             origin,
@@ -367,18 +458,41 @@ impl AppState {
             scrolls: 0,
             last_input: std::time::Instant::now(),
         });
+    }
 
+    /// Tell the portal about the crossing once the compositor has granted what
+    /// the session needs. Before that a click could still land in a local
+    /// window, and the client must not be told its screen is active.
+    fn confirm_if_held(&mut self) {
+        let Some(capture) = &mut self.capture else {
+            return;
+        };
+        if capture.confirmed || !capture.grab.held() {
+            return;
+        }
+        capture.confirmed = true;
+        // The idle watchdog counts from here.
+        capture.last_input = std::time::Instant::now();
+        info!(barrier = capture.barrier_id, "the grab is held, capturing input");
         let _ = self.event_tx.send(WaylandEvent::Activated {
-            session,
-            barrier_id,
-            position,
+            session: capture.armed.session.clone(),
+            arming: capture.armed.arming,
+            crossing: capture.crossing,
+            barrier_id: capture.barrier_id,
+            position: capture.position,
         });
     }
 
-    fn attach_eis(&mut self, eis: EisHandle) {
-        let Some(capture) = &mut self.capture else {
-            debug!("EIS handle arrived with no capture in progress");
-            return;
+    fn attach_eis(&mut self, crossing: u64, eis: EisHandle) {
+        let capture = match &mut self.capture {
+            Some(capture) if capture.crossing == crossing && capture.confirmed => capture,
+            _ => {
+                // That crossing is over: lost, or replaced by a newer one. Say
+                // so, so the portal stops counting its session as capturing.
+                debug!("an EIS handle arrived for a crossing that is over");
+                let _ = self.event_tx.send(WaylandEvent::CaptureLost { crossing });
+                return;
+            }
         };
         // Flush whatever happened between the crossing and this handover.
         if !capture.pending.is_empty() {
@@ -391,10 +505,29 @@ impl AppState {
         capture.eis = Some(eis);
     }
 
-    fn end_capture(&mut self, cursor_hint: Option<(f64, f64)>) {
-        let Some(capture) = self.capture.take() else {
+    /// End a capture that nobody asked to end, and tell the portal if it knew
+    /// of it. Every loss takes this one path: the compositor dropping the lock,
+    /// closing the surface, taking the pointer or the keyboard focus away, the
+    /// watchdog, the escape chord, and a grab that never came.
+    fn lose_capture(&mut self, why: &str) {
+        let Some(ended) = self.end_capture(None) else {
             return;
         };
+        warn!(
+            confirmed = ended.confirmed,
+            "{why}: the capture is over, input is local again"
+        );
+        if ended.confirmed {
+            let _ = self.event_tx.send(WaylandEvent::CaptureLost {
+                crossing: ended.crossing,
+            });
+        }
+    }
+
+    /// End the capture, confirmed or not, and say which one it was. The input
+    /// buffered for it is dropped.
+    fn end_capture(&mut self, cursor_hint: Option<(f64, f64)>) -> Option<Ended> {
+        let capture = self.capture.take()?;
 
         // Where along the edge to come back. The client's suggestion is only
         // used when it is actually usable: Synergy 3.7 sends a constant (1, 0)
@@ -432,8 +565,13 @@ impl AppState {
             keys = capture.keys,
             buttons = capture.buttons,
             scrolls = capture.scrolls,
+            confirmed = capture.confirmed,
             "capture ended, pointer released"
         );
+        Some(Ended {
+            crossing: capture.crossing,
+            confirmed: capture.confirmed,
+        })
     }
 
     /// Decide whether a client's `cursor_position` is worth honouring.
@@ -495,7 +633,8 @@ impl AppState {
         }
         match &capture.eis {
             Some(eis) => eis.send(cmd),
-            None => capture.pending.push(cmd),
+            None if capture.pending.len() < MAX_PENDING_EVENTS => capture.pending.push(cmd),
+            None => {}
         }
     }
 
@@ -522,6 +661,13 @@ impl AppState {
         let Some(capture) = &self.capture else {
             return;
         };
+        if !capture.confirmed {
+            // Not a capture yet: did the compositor grant the grab in time?
+            if std::time::Instant::now() >= capture.deadline {
+                self.lose_capture("the compositor did not grant the pointer lock and the keyboard in time");
+            }
+            return;
+        }
         let idle = capture.last_input.elapsed();
         if idle < self.idle_timeout {
             return;
@@ -531,8 +677,15 @@ impl AppState {
             idle_secs = idle.as_secs(),
             "no captured input for the idle timeout, force-releasing the pointer"
         );
-        self.end_capture(None);
-        let _ = self.event_tx.send(WaylandEvent::CaptureLost);
+        self.lose_capture("idle watchdog");
+    }
+
+    /// How long the event loop may sleep before it looks at the capture again.
+    fn tick(&self) -> std::time::Duration {
+        match &self.capture {
+            Some(capture) if !capture.confirmed => std::time::Duration::from_millis(50),
+            _ => std::time::Duration::from_millis(200),
+        }
     }
 }
 
@@ -612,8 +765,10 @@ impl HeadsHandler for AppState {
 
 impl LayerShellHandler for AppState {
     fn closed(&mut self, _: &Connection, _: &QueueHandle<Self>, layer: &LayerSurface) {
+        // The grab went with the surface, and no change of screens has to
+        // follow: the portal must hear of it like any other loss.
         if self.capture.as_ref().is_some_and(|c| &c.layer == layer) {
-            self.end_capture(None);
+            self.lose_capture("the compositor closed the barrier's surface");
         }
         self.surfaces.retain(|s| &s.layer != layer);
     }
@@ -692,7 +847,7 @@ impl SeatHandler for AppState {
     ) {
         match capability {
             Capability::Pointer => {
-                self.end_capture(None);
+                self.lose_capture("the seat lost its pointer");
                 if let Some(p) = self.pointer.take() {
                     p.release();
                 }
@@ -840,27 +995,33 @@ impl PointerConstraintsHandler for AppState {
         &mut self,
         _: &Connection,
         _: &QueueHandle<Self>,
-        _: &zwp_locked_pointer_v1::ZwpLockedPointerV1,
+        lock: &zwp_locked_pointer_v1::ZwpLockedPointerV1,
         _: &wl_surface::WlSurface,
         _: &wl_pointer::WlPointer,
     ) {
-        debug!("pointer lock is active");
+        let Some(capture) = &mut self.capture else {
+            return;
+        };
+        if capture.lock != *lock {
+            return;
+        }
+        debug!("the compositor granted the pointer lock");
+        capture.grab.locked = true;
+        self.confirm_if_held();
     }
 
     fn unlocked(
         &mut self,
         _: &Connection,
         _: &QueueHandle<Self>,
-        _: &zwp_locked_pointer_v1::ZwpLockedPointerV1,
+        lock: &zwp_locked_pointer_v1::ZwpLockedPointerV1,
         _: &wl_surface::WlSurface,
         _: &wl_pointer::WlPointer,
     ) {
         // The compositor can drop the lock on its own, e.g. when the surface
         // loses focus. Capture cannot continue without it.
-        if self.capture.is_some() {
-            warn!("compositor released the pointer lock, ending capture");
-            self.end_capture(None);
-            let _ = self.event_tx.send(WaylandEvent::CaptureLost);
+        if self.capture.as_ref().is_some_and(|c| c.lock == *lock) {
+            self.lose_capture("the compositor released the pointer lock");
         }
     }
 }
@@ -871,11 +1032,20 @@ impl KeyboardHandler for AppState {
         _: &Connection,
         _: &QueueHandle<Self>,
         _: &wl_keyboard::WlKeyboard,
-        _: &wl_surface::WlSurface,
+        surface: &wl_surface::WlSurface,
         _: u32,
         _: &[u32],
         _: &[Keysym],
     ) {
+        let Some(capture) = &mut self.capture else {
+            return;
+        };
+        if capture.layer.wl_surface() != surface {
+            return;
+        }
+        debug!("the barrier's surface has keyboard focus");
+        capture.grab.focused = true;
+        self.confirm_if_held();
     }
 
     fn leave(
@@ -883,9 +1053,21 @@ impl KeyboardHandler for AppState {
         _: &Connection,
         _: &QueueHandle<Self>,
         _: &wl_keyboard::WlKeyboard,
-        _: &wl_surface::WlSurface,
+        surface: &wl_surface::WlSurface,
         _: u32,
     ) {
+        let Some(capture) = &mut self.capture else {
+            return;
+        };
+        if capture.layer.wl_surface() != surface {
+            return;
+        }
+        capture.grab.focused = false;
+        // A session with the keyboard was promised the keys. Once they go to a
+        // local window again the capture is over, whatever the pointer does.
+        if capture.confirmed && capture.grab.wants_keyboard {
+            self.lose_capture("the barrier's surface lost keyboard focus");
+        }
     }
 
     fn press_key(
@@ -901,9 +1083,7 @@ impl KeyboardHandler for AppState {
         }
         if self.is_panic_key(&event) {
             // Not named here: no key name belongs in the log, this one included.
-            warn!("the built-in escape chord was pressed, force-releasing the capture");
-            self.end_capture(None);
-            let _ = self.event_tx.send(WaylandEvent::CaptureLost);
+            self.lose_capture("the built-in escape chord was pressed");
             return;
         }
         self.forward(EisCommand::Key {
@@ -1069,6 +1249,7 @@ pub fn run(
         screens,
         surfaces: Vec::new(),
         armed_for: None,
+        next_crossing: 1,
         capture: None,
         clipboard,
         idle_timeout,
@@ -1094,12 +1275,33 @@ pub fn run(
             match cmd {
                 WaylandCmd::Arm {
                     session,
+                    arming,
+                    keyboard,
                     zone_set,
                     barriers,
-                } => state.arm(session, zone_set, &barriers, &cmd_qh),
+                } => state.arm(
+                    Armed {
+                        session,
+                        arming,
+                        keyboard,
+                    },
+                    zone_set,
+                    &barriers,
+                    &cmd_qh,
+                ),
                 WaylandCmd::Disarm => state.disarm(),
-                WaylandCmd::AttachEis(eis) => state.attach_eis(eis),
-                WaylandCmd::EndCapture { cursor_hint } => state.end_capture(cursor_hint),
+                WaylandCmd::AttachEis { crossing, eis } => state.attach_eis(crossing, eis),
+                WaylandCmd::EndCapture {
+                    crossing,
+                    cursor_hint,
+                } => {
+                    let current = state.capture.as_ref().map(|capture| capture.crossing);
+                    if crossing.is_none() || crossing == current {
+                        state.end_capture(cursor_hint);
+                    } else {
+                        debug!("asked to end a crossing that is already over");
+                    }
+                }
                 WaylandCmd::ClipboardRead { mime_type, reply } => {
                     let fd = state.clipboard.as_ref().and_then(|c| c.read(&mime_type));
                     // The caller is about to block reading this pipe, so the
@@ -1154,10 +1356,12 @@ pub fn run(
     let _ = ready.send(Ok(()));
 
     while !state.exit {
+        // The dispatch timeout doubles as the tick for the watchdog and for a
+        // crossing that is waiting for its grab.
+        let tick = state.tick();
         event_loop
-            .dispatch(std::time::Duration::from_millis(200), &mut state)
+            .dispatch(tick, &mut state)
             .context("Wayland dispatch failed")?;
-        // The dispatch timeout doubles as the watchdog tick.
         state.check_watchdog();
     }
 
@@ -1169,3 +1373,26 @@ pub fn run(
 use smithay_client_toolkit::reexports::calloop::EventLoop;
 use smithay_client_toolkit::reexports::calloop_wayland_source::WaylandSource;
 use smithay_client_toolkit::reexports::protocols as wayland_protocols;
+
+#[cfg(test)]
+mod tests {
+    use super::Grab;
+
+    #[test]
+    fn a_crossing_is_a_capture_only_once_the_lock_and_the_granted_keyboard_are_held() {
+        let grab = |wants_keyboard, locked, focused| Grab {
+            wants_keyboard,
+            locked,
+            focused,
+        };
+        // Pointer only: the lock decides, keyboard focus changes nothing.
+        assert!(!grab(false, false, false).held());
+        assert!(!grab(false, false, true).held());
+        assert!(grab(false, true, false).held());
+        // With the keyboard: both, whichever comes first.
+        assert!(!grab(true, false, false).held());
+        assert!(!grab(true, true, false).held());
+        assert!(!grab(true, false, true).held());
+        assert!(grab(true, true, true).held());
+    }
+}

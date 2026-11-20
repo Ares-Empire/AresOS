@@ -123,6 +123,13 @@ pub struct Session {
     pub enabled: bool,
     /// Non-zero while a capture run is in flight.
     pub activation_id: u32,
+    /// The number of this session's last arming, zero while nothing of it is on
+    /// the screen edges. Never used twice: a crossing counts only if it names
+    /// this number, so one that was queued for an earlier arming, or for an
+    /// earlier session with the same path, is refused.
+    pub arming: u64,
+    /// The Wayland thread's number for the crossing behind the capture run.
+    pub crossing: u64,
     /// Set by `Clipboard.RequestClipboard`, which the spec requires before the
     /// session starts. `Start` reports it back as `clipboard_enabled`, and every
     /// other clipboard method refuses a session that never asked.
@@ -130,8 +137,9 @@ pub struct Session {
 }
 
 impl Session {
-    /// End this session's capture run, if it has one, and return its ID.
-    fn stop_capture(&mut self) -> Option<u32> {
+    /// End this session's capture run, if it has one, and return its ID and
+    /// the crossing it came from.
+    fn stop_capture(&mut self) -> Option<(u32, u64)> {
         let id = std::mem::take(&mut self.activation_id);
         if id == 0 {
             return None;
@@ -139,7 +147,7 @@ impl Session {
         if let Some(eis) = &self.eis {
             eis.send(EisCommand::StopEmulating);
         }
-        Some(id)
+        Some((id, std::mem::take(&mut self.crossing)))
     }
 
     fn has_clipboard(&self) -> bool {
@@ -319,7 +327,7 @@ enum Frontend {
 enum SignalSink {
     Bus,
     #[cfg(test)]
-    Record(Arc<std::sync::Mutex<Vec<Signal>>>),
+    Record(Arc<std::sync::Mutex<Vec<(Option<String>, Signal)>>>),
 }
 
 struct Trust {
@@ -332,6 +340,9 @@ struct Trust {
 #[derive(Default)]
 struct Inner {
     sessions: HashMap<OwnedObjectPath, Session>,
+    /// The unique bus name of the frontend that made every session in
+    /// `sessions`: the one place their signals are sent to.
+    frontend: Option<String>,
     clipboard: ClipboardTracker,
 }
 
@@ -339,6 +350,9 @@ struct Inner {
 pub struct State {
     inner: Arc<Mutex<Inner>>,
     next_activation: Arc<AtomicU32>,
+    next_arming: Arc<std::sync::atomic::AtomicU64>,
+    /// Signalled when the bus connection has ended and the process must stop.
+    stop: Arc<tokio::sync::Notify>,
     wayland: Arc<WaylandHandle>,
     screens: SharedScreens,
     keymap: eis_server::SharedKeymap,
@@ -387,6 +401,8 @@ impl State {
         let state = Self {
             inner: Arc::new(Mutex::new(Inner::default())),
             next_activation: Arc::new(AtomicU32::new(1)),
+            next_arming: Arc::new(std::sync::atomic::AtomicU64::new(1)),
+            stop: Arc::new(tokio::sync::Notify::new()),
             wayland,
             screens,
             keymap,
@@ -448,18 +464,26 @@ impl State {
 
     // ---- signals ----------------------------------------------------------
 
-    async fn emit_all(&self, signals: Vec<Signal>) {
+    /// Send signals to `to`: the unique bus name of the frontend that made the
+    /// sessions they are about, read from `Inner::frontend` under the same lock
+    /// that produced them. They go to that one connection and are never
+    /// broadcast: `Activated` carries the cursor position and the clipboard
+    /// signals carry types and transfer serials, which no other program on the
+    /// bus has any business receiving.
+    async fn emit_all(&self, to: Option<String>, signals: Vec<Signal>) {
         for signal in signals {
-            self.emit(signal).await;
+            self.emit(to.as_deref(), signal).await;
         }
     }
 
-    async fn emit(&self, signal: Signal) {
+    async fn emit(&self, to: Option<&str>, signal: Signal) {
         match &self.trust.signals {
             SignalSink::Bus => {}
             #[cfg(test)]
             SignalSink::Record(sink) => {
-                sink.lock().expect("signal sink").push(signal);
+                sink.lock()
+                    .expect("signal sink")
+                    .push((to.map(str::to_owned), signal));
                 return;
             }
         }
@@ -468,21 +492,26 @@ impl State {
             return;
         };
         let name = signal.name();
-        if let Err(err) = send_signal(conn, signal).await {
+        if let Err(err) = send_signal(conn, to, signal).await {
             error!(signal = name, "failed to emit a portal signal: {err}");
         }
     }
 
     // ---- shared pieces, called with the lock held ---------------------------
 
-    fn arm(&self, session: &Session) {
+    fn arm(&self, session: &mut Session) {
         if session.barriers.is_empty() {
             // Nothing to place; make sure nothing of an earlier set stays up.
+            session.arming = 0;
             self.wayland.send(WaylandCmd::Disarm);
             return;
         }
+        // A new number for every arming, see `Session::arming`.
+        session.arming = self.next_arming.fetch_add(1, Ordering::Relaxed);
         self.wayland.send(WaylandCmd::Arm {
             session: session.handle.as_str().to_owned(),
+            arming: session.arming,
+            keyboard: session.capabilities & CAP_KEYBOARD != 0,
             zone_set: session.zone_set,
             barriers: session.barriers.clone(),
         });
@@ -490,9 +519,11 @@ impl State {
 
     /// Take a session's capture and its barriers away and tell its client.
     fn disarm_session(&self, session: &mut Session, out: &mut Vec<Signal>) {
-        if let Some(activation_id) = session.stop_capture() {
-            self.wayland
-                .send(WaylandCmd::EndCapture { cursor_hint: None });
+        if let Some((activation_id, crossing)) = session.stop_capture() {
+            self.wayland.send(WaylandCmd::EndCapture {
+                crossing: Some(crossing),
+                cursor_hint: None,
+            });
             out.push(Signal::Deactivated {
                 session: session.handle.clone(),
                 activation_id,
@@ -500,6 +531,9 @@ impl State {
         }
         if session.enabled {
             session.enabled = false;
+            session.arming = 0;
+            // Also ends a crossing of this session the portal has not heard of
+            // yet, and drops the input buffered for it.
             self.wayland.send(WaylandCmd::Disarm);
             out.push(Signal::Disabled {
                 session: session.handle.clone(),
@@ -527,15 +561,20 @@ impl State {
         let Some(mut session) = inner.sessions.remove(handle) else {
             return false;
         };
-        if let Some(activation_id) = session.stop_capture() {
-            self.wayland
-                .send(WaylandCmd::EndCapture { cursor_hint: None });
+        if let Some((activation_id, crossing)) = session.stop_capture() {
+            self.wayland.send(WaylandCmd::EndCapture {
+                crossing: Some(crossing),
+                cursor_hint: None,
+            });
             out.push(Signal::Deactivated {
                 session: handle.clone(),
                 activation_id,
             });
         }
         if session.enabled || !inner.sessions.values().any(|s| s.enabled) {
+            // Also ends a crossing of this session that is still on its way
+            // here (the Wayland thread drops it with its buffered input). The
+            // notice of it, when it comes, names an arming no session has.
             self.wayland.send(WaylandCmd::Disarm);
         }
         if let Some(eis) = session.eis.take() {
@@ -580,8 +619,21 @@ impl State {
         }
         let started = v1_capabilities.is_some();
 
+        let mut orphaned = Vec::new();
         {
             let mut inner = self.inner.lock().await;
+            // Every session here was made by one frontend. A caller that passed
+            // the check above under another bus name is a new owner of the
+            // frontend's name: the old owner's sessions end now (the watch on
+            // the name does the same, but may not have run yet), and nobody is
+            // left to tell.
+            if inner.frontend.as_deref() != sender {
+                let stale: Vec<OwnedObjectPath> = inner.sessions.keys().cloned().collect();
+                for old in &stale {
+                    self.remove_session(&mut inner, old, &mut orphaned);
+                }
+                inner.frontend = sender.map(str::to_owned);
+            }
             if inner.sessions.contains_key(handle) {
                 return Err(fdo::Error::Failed("this session already exists".into()));
             }
@@ -600,10 +652,13 @@ impl State {
                     started,
                     enabled: false,
                     activation_id: 0,
+                    arming: 0,
+                    crossing: 0,
                     clipboard_requested: false,
                 },
             );
         }
+        self.emit_all(None, orphaned).await;
 
         // The backend owns the impl-side Session object.
         if let Some(conn) = self.connection() {
@@ -772,8 +827,10 @@ impl State {
     pub async fn enable(&self, sender: Option<&str>, handle: &OwnedObjectPath) -> fdo::Result<()> {
         self.authorize(sender, "Enable").await?;
         let mut out = Vec::new();
+        let to;
         {
             let mut inner = self.inner.lock().await;
+            to = inner.frontend.clone();
             let session = inner.sessions.get(handle).ok_or_else(unknown_session)?;
             if !session.started {
                 // A v2 session has no negotiated capabilities until Start, so arming
@@ -799,7 +856,7 @@ impl State {
                 }
             }
         }
-        self.emit_all(out).await;
+        self.emit_all(to, out).await;
         Ok(())
     }
 
@@ -807,12 +864,15 @@ impl State {
         self.authorize(sender, "Disable").await?;
         let mut inner = self.inner.lock().await;
         let session = inner.sessions.get_mut(handle).ok_or_else(unknown_session)?;
-        if session.stop_capture().is_some() {
-            self.wayland
-                .send(WaylandCmd::EndCapture { cursor_hint: None });
+        if let Some((_, crossing)) = session.stop_capture() {
+            self.wayland.send(WaylandCmd::EndCapture {
+                crossing: Some(crossing),
+                cursor_hint: None,
+            });
         }
         if session.enabled {
             session.enabled = false;
+            session.arming = 0;
             // Free the screen edges; leaving the surfaces up would keep swallowing
             // clicks on the edge pixel column for no reason.
             self.wayland.send(WaylandCmd::Disarm);
@@ -832,13 +892,16 @@ impl State {
         self.authorize(sender, "Release").await?;
         let mut inner = self.inner.lock().await;
         let session = inner.sessions.get_mut(handle).ok_or_else(unknown_session)?;
-        if session.stop_capture().is_none() {
+        let Some((_, crossing)) = session.stop_capture() else {
             return Ok(());
-        }
+        };
         info!(session = %handle.as_str(), "capture released");
         // Unlock the pointer first, then rebuild the barriers so the pointer is
         // back under local control before an edge can trigger again.
-        self.wayland.send(WaylandCmd::EndCapture { cursor_hint });
+        self.wayland.send(WaylandCmd::EndCapture {
+            crossing: Some(crossing),
+            cursor_hint,
+        });
         if session.enabled {
             self.arm(session);
         }
@@ -989,10 +1052,15 @@ impl State {
     pub async fn close_session(&self, sender: Option<&str>, handle: &OwnedObjectPath) -> fdo::Result<()> {
         self.authorize(sender, "Close").await?;
         let mut out = Vec::new();
-        if self.remove_session(&mut *self.inner.lock().await, handle, &mut out) {
-            info!(session = %handle.as_str(), "session closed by the portal");
+        let to;
+        {
+            let mut inner = self.inner.lock().await;
+            to = inner.frontend.clone();
+            if self.remove_session(&mut inner, handle, &mut out) {
+                info!(session = %handle.as_str(), "session closed by the portal");
+            }
         }
-        self.emit_all(out).await;
+        self.emit_all(to, out).await;
         Ok(())
     }
 
@@ -1000,8 +1068,10 @@ impl State {
     /// close its sessions, and a new frontend knows nothing about them.
     pub async fn close_all_sessions(&self, why: &str) {
         let mut out = Vec::new();
+        let to;
         {
             let mut inner = self.inner.lock().await;
+            to = inner.frontend.take();
             let handles: Vec<OwnedObjectPath> = inner.sessions.keys().cloned().collect();
             if !handles.is_empty() {
                 warn!("{why}: closing {} session(s)", handles.len());
@@ -1010,7 +1080,23 @@ impl State {
                 self.remove_session(&mut inner, &handle, &mut out);
             }
         }
-        self.emit_all(out).await;
+        self.emit_all(to, out).await;
+    }
+
+    /// The connection to the bus has ended. Nothing can reach this process any
+    /// more: no `Close`, no `Disable`, no `--release`, no `--disarm`, and no
+    /// notice that the frontend has gone. So everything ends here: every
+    /// session is closed (its barriers go, its EIS connection is cut), whatever
+    /// is captured is released, and `serve` is told to stop the process.
+    pub async fn bus_lost(&self) {
+        self.close_all_sessions("the bus connection ended").await;
+        self.release_everything();
+        self.stop.notify_one();
+    }
+
+    /// Resolves once the bus connection has ended and the sessions are closed.
+    pub async fn wait_for_bus_loss(&self) {
+        self.stop.notified().await;
     }
 
     /// An EIS connection ended. If a session still depends on it, the session is
@@ -1021,8 +1107,10 @@ impl State {
             return;
         };
         let mut out = Vec::new();
+        let to;
         {
             let mut inner = self.inner.lock().await;
+            to = inner.frontend.clone();
             let is_current = inner
                 .sessions
                 .get(&handle)
@@ -1032,7 +1120,7 @@ impl State {
                 warn!(session = %label, "its EIS connection ended: the session is closed");
             }
         }
-        self.emit_all(out).await;
+        self.emit_all(to, out).await;
     }
 
     // ---- the way out --------------------------------------------------------
@@ -1040,19 +1128,23 @@ impl State {
     /// Unlock the pointer and clear the screen edges. Used on shutdown so the
     /// session is never left with a grab owned by a process that is going away.
     pub fn release_everything(&self) {
-        self.wayland
-            .send(WaylandCmd::EndCapture { cursor_hint: None });
+        self.wayland.send(WaylandCmd::EndCapture {
+            crossing: None,
+            cursor_hint: None,
+        });
         self.wayland.send(WaylandCmd::Disarm);
     }
 
     /// End every in-flight capture, returning how many there were.
     async fn force_release(&self, disarm: bool) -> usize {
         let mut out = Vec::new();
+        let to;
         let released = {
             let mut inner = self.inner.lock().await;
+            to = inner.frontend.clone();
             let mut released = 0;
             for session in inner.sessions.values_mut() {
-                if let Some(activation_id) = session.stop_capture() {
+                if let Some((activation_id, _)) = session.stop_capture() {
                     released += 1;
                     out.push(Signal::Deactivated {
                         session: session.handle.clone(),
@@ -1061,6 +1153,7 @@ impl State {
                 }
                 if disarm && session.enabled {
                     session.enabled = false;
+                    session.arming = 0;
                     out.push(Signal::Disabled {
                         session: session.handle.clone(),
                     });
@@ -1068,14 +1161,18 @@ impl State {
             }
             // Unlock first; the client being told afterwards is fine, the point is
             // that the local pointer comes back regardless of what the client does.
-            self.wayland
-                .send(WaylandCmd::EndCapture { cursor_hint: None });
+            // No crossing is named: whatever is captured ends, also a crossing
+            // the portal has not heard of yet.
+            self.wayland.send(WaylandCmd::EndCapture {
+                crossing: None,
+                cursor_hint: None,
+            });
             if disarm {
                 self.wayland.send(WaylandCmd::Disarm);
             }
             released
         };
-        self.emit_all(out).await;
+        self.emit_all(to, out).await;
         if released > 0 {
             warn!("force-released {released} capture(s)");
         }
@@ -1110,10 +1207,15 @@ impl State {
         match event {
             WaylandEvent::Activated {
                 session,
+                arming,
+                crossing,
                 barrier_id,
                 position,
-            } => self.activated(&session, barrier_id, position).await,
-            WaylandEvent::CaptureLost => self.capture_lost().await,
+            } => {
+                self.activated(&session, arming, crossing, barrier_id, position)
+                    .await;
+            }
+            WaylandEvent::CaptureLost { crossing } => self.capture_lost(crossing).await,
             WaylandEvent::OutputsChanged => self.screens_changed().await,
             WaylandEvent::ClipboardSelection {
                 mime_types,
@@ -1128,35 +1230,40 @@ impl State {
         }
     }
 
-    /// The pointer crossed a barrier that was armed for `label`, and the Wayland
-    /// thread already holds the pointer and the keyboard.
+    /// The pointer crossed a barrier that arming `arming` put up for `label`,
+    /// and the Wayland thread holds the pointer and the keyboard.
     ///
-    /// The capture goes on only if that session is still the armed one, set that
-    /// barrier, and has an EIS connection. Otherwise it ends here and now: input
-    /// taken from the user with no session to give it to must go straight back.
-    async fn activated(&self, label: &str, barrier_id: u32, position: (f64, f64)) {
+    /// The capture goes on only if that session is still armed by that very
+    /// arming, set that barrier, and has an EIS connection. Otherwise it ends
+    /// here and now: input taken from the user with no session to give it to
+    /// must go straight back.
+    async fn activated(&self, label: &str, arming: u64, crossing: u64, barrier_id: u32, position: (f64, f64)) {
         let mut out = Vec::new();
+        let to;
         {
             let mut inner = self.inner.lock().await;
+            to = inner.frontend.clone();
             let handle = OwnedObjectPath::try_from(label).ok();
-            let accepted = handle
+            let session = handle
                 .as_ref()
-                .and_then(|handle| inner.sessions.get(handle))
-                .is_some_and(|s| {
+                .and_then(|handle| inner.sessions.get_mut(handle))
+                .filter(|s| {
                     s.enabled
                         && s.activation_id == 0
                         && s.eis.is_some()
+                        // The crossing names the arming it came from. A session
+                        // that was closed, disarmed or armed again since, or a
+                        // new session with the same path, has another number.
+                        && s.arming != 0
+                        && s.arming == arming
                         && s.barriers.iter().any(|b| b.id == barrier_id)
                 });
-            let session = handle
-                .as_ref()
-                .filter(|_| accepted)
-                .and_then(|handle| inner.sessions.get_mut(handle));
             match session {
                 Some(session) => {
                     // Zero means "not capturing", so a wrap skips it.
                     let activation_id = self.next_activation.fetch_add(1, Ordering::Relaxed).max(1);
                     session.activation_id = activation_id;
+                    session.crossing = crossing;
                     if let Some(eis) = &session.eis {
                         // The EIS sequence must equal the activation_id so the client
                         // can line up the event stream with this signal.
@@ -1164,8 +1271,11 @@ impl State {
                             sequence: activation_id,
                         });
                         // The Wayland thread already locked the pointer; this tells it
-                        // where to send what it captures.
-                        self.wayland.send(WaylandCmd::AttachEis(eis.clone()));
+                        // where to send what that crossing captures.
+                        self.wayland.send(WaylandCmd::AttachEis {
+                            crossing,
+                            eis: eis.clone(),
+                        });
                     }
                     out.push(Signal::Activated {
                         session: session.handle.clone(),
@@ -1176,13 +1286,15 @@ impl State {
                 }
                 None => {
                     warn!(session = %label, barrier_id, "a crossing for a session that may not capture: staying local");
-                    self.wayland
-                        .send(WaylandCmd::EndCapture { cursor_hint: None });
+                    self.wayland.send(WaylandCmd::EndCapture {
+                        crossing: Some(crossing),
+                        cursor_hint: None,
+                    });
                     // The Wayland thread holds one capture at a time and it has
                     // just been ended, so a session that still counted as
                     // capturing isn't any more.
                     for session in inner.sessions.values_mut() {
-                        if let Some(activation_id) = session.stop_capture() {
+                        if let Some((activation_id, _)) = session.stop_capture() {
                             out.push(Signal::Deactivated {
                                 session: session.handle.clone(),
                                 activation_id,
@@ -1191,25 +1303,31 @@ impl State {
                     }
                     // Whatever is on the edges is out of step; put back what the
                     // armed session has, or nothing.
-                    match inner.sessions.values().find(|s| s.enabled) {
+                    match inner.sessions.values_mut().find(|s| s.enabled) {
                         Some(armed) => self.arm(armed),
                         None => self.wayland.send(WaylandCmd::Disarm),
                     }
                 }
             }
         }
-        self.emit_all(out).await;
+        self.emit_all(to, out).await;
     }
 
-    /// The grab is already gone (the watchdog, the escape chord, or the
-    /// compositor dropped the lock); tell whichever session owned it so the
-    /// client stops expecting events, and put the barriers back.
-    async fn capture_lost(&self) {
+    /// The grab of `crossing` is already gone (the watchdog, the escape chord,
+    /// or the compositor took the lock, the surface, the pointer or the
+    /// keyboard focus away); tell the session that owned it so the client stops
+    /// expecting events, and put the barriers back.
+    async fn capture_lost(&self, crossing: u64) {
         let mut out = Vec::new();
+        let to;
         {
             let mut inner = self.inner.lock().await;
+            to = inner.frontend.clone();
             for session in inner.sessions.values_mut() {
-                if let Some(activation_id) = session.stop_capture() {
+                if session.activation_id == 0 || session.crossing != crossing {
+                    continue;
+                }
+                if let Some((activation_id, _)) = session.stop_capture() {
                     out.push(Signal::Deactivated {
                         session: session.handle.clone(),
                         activation_id,
@@ -1220,7 +1338,7 @@ impl State {
                 }
             }
         }
-        self.emit_all(out).await;
+        self.emit_all(to, out).await;
     }
 
     /// The snapshot changed. The Wayland thread has already ended any capture
@@ -1235,10 +1353,12 @@ impl State {
         let snapshot = self.screens.current();
         let region = snapshot.region();
         let mut out = Vec::new();
+        let to;
         {
             let mut inner = self.inner.lock().await;
+            to = inner.frontend.clone();
             for session in inner.sessions.values_mut() {
-                if let Some(activation_id) = session.stop_capture() {
+                if let Some((activation_id, _)) = session.stop_capture() {
                     out.push(Signal::Deactivated {
                         session: session.handle.clone(),
                         activation_id,
@@ -1247,6 +1367,7 @@ impl State {
                 if session.zone_set != snapshot.zone_set {
                     session.barriers.clear();
                     session.zone_set = 0;
+                    session.arming = 0;
                 }
                 if let Some(eis) = &session.eis {
                     eis.send(EisCommand::SetRegion(region));
@@ -1256,7 +1377,7 @@ impl State {
                 });
             }
         }
-        self.emit_all(out).await;
+        self.emit_all(to, out).await;
     }
 
     /// What to tell every clipboard session about the selection as it is now.
@@ -1276,20 +1397,20 @@ impl State {
     }
 
     async fn selection_changed(&self, mime_types: Vec<String>, is_ours: bool) {
-        let out = {
+        let (to, out) = {
             let mut inner = self.inner.lock().await;
             inner.clipboard.mime_types = mime_types;
             inner.clipboard.owned_by_session = is_ours;
             // Every session with clipboard access needs to know, so it can offer
             // the new content to the machine on the other end.
-            Self::announce_selection(&inner)
+            (inner.frontend.clone(), Self::announce_selection(&inner))
         };
-        self.emit_all(out).await;
+        self.emit_all(to, out).await;
     }
 
     /// Somebody local is pasting from the selection claim `claim_id` made.
     async fn selection_requested(&self, claim_id: u32, mime_type: String, fd: OwnedFd) {
-        let signal = {
+        let (to, signal) = {
             let mut inner = self.inner.lock().await;
             let owner = inner
                 .clipboard
@@ -1303,18 +1424,21 @@ impl State {
             };
             let serial = inner.clipboard.begin_transfer(&owner, fd);
             debug!(serial, "asking the session for clipboard content");
-            Signal::SelectionTransfer {
-                session: owner,
-                mime_type,
-                serial,
-            }
+            (
+                inner.frontend.clone(),
+                Signal::SelectionTransfer {
+                    session: owner,
+                    mime_type,
+                    serial,
+                },
+            )
         };
-        self.emit(signal).await;
+        self.emit(to.as_deref(), signal).await;
     }
 
     /// Another client took the selection from claim `claim_id`.
     async fn claim_cancelled(&self, claim_id: u32) {
-        let out = {
+        let (to, out) = {
             let mut inner = self.inner.lock().await;
             if claim_id != inner.clipboard.claim_id {
                 return;
@@ -1325,15 +1449,41 @@ impl State {
             clipboard.claim_id = clipboard.claim_id.wrapping_add(1);
             // Nobody is going to answer these now.
             clipboard.clear_transfers();
-            Self::announce_selection(&inner)
+            (inner.frontend.clone(), Self::announce_selection(&inner))
         };
-        self.emit_all(out).await;
+        self.emit_all(to, out).await;
     }
 }
 
-/// Put one signal on the bus.
-async fn send_signal(conn: &zbus::Connection, signal: Signal) -> zbus::Result<()> {
-    let portal = SignalEmitter::new(conn, PORTAL_PATH)?;
+/// Send one signal to the frontend `to` and to nobody else. With nobody to
+/// tell, nothing is sent. A closed session's object is removed either way.
+async fn send_signal(conn: &zbus::Connection, to: Option<&str>, signal: Signal) -> zbus::Result<()> {
+    let closed = match &signal {
+        Signal::SessionClosed { session } => Some(session.clone()),
+        _ => None,
+    };
+    let sent = match to {
+        Some(to) => send_signal_to(conn, to, signal).await,
+        None => {
+            debug!(signal = signal.name(), "no frontend to tell, a signal was dropped");
+            Ok(())
+        }
+    };
+    if let Some(session) = closed {
+        let _ = conn
+            .object_server()
+            .remove::<SessionObject, _>(&session)
+            .await;
+    }
+    sent
+}
+
+/// Put one signal on the bus, addressed to `to`.
+async fn send_signal_to(conn: &zbus::Connection, to: &str, signal: Signal) -> zbus::Result<()> {
+    // A destination makes the bus deliver the signal to that one connection
+    // instead of to everybody whose match rule fits.
+    let to = zbus::names::BusName::try_from(to.to_owned())?;
+    let portal = SignalEmitter::new(conn, PORTAL_PATH)?.set_destination(to.clone());
     let mut options: HashMap<String, Value<'_>> = HashMap::new();
     match signal {
         Signal::Activated {
@@ -1373,13 +1523,8 @@ async fn send_signal(conn: &zbus::Connection, signal: Signal) -> zbus::Result<()
             serial,
         } => Clipboard::selection_transfer(&portal, session.as_ref(), &mime_type, serial).await,
         Signal::SessionClosed { session } => {
-            let emitter = SignalEmitter::new(conn, session.clone().into_inner())?;
-            let closed = SessionObject::closed(&emitter).await;
-            let _ = conn
-                .object_server()
-                .remove::<SessionObject, _>(&session)
-                .await;
-            closed
+            let emitter = SignalEmitter::new(conn, session.into_inner())?.set_destination(to);
+            SessionObject::closed(&emitter).await
         }
     }
 }
@@ -1798,7 +1943,8 @@ pub async fn pump_wayland_events(state: State, mut events: mpsc::UnboundedReceiv
     }
 }
 
-/// Close every session when the frontend's bus name changes hands or is given up.
+/// Close every session when the frontend's bus name changes hands or is given
+/// up, and all of them, for good, when the bus connection itself ends.
 pub async fn watch_frontend(state: State, mut changes: fdo::NameOwnerChangedStream) {
     use futures_util::StreamExt as _;
 
@@ -1814,7 +1960,11 @@ pub async fn watch_frontend(state: State, mut changes: fdo::NameOwnerChangedStre
                 .await;
         }
     }
-    warn!("the bus stopped reporting the frontend's name; frontend loss can no longer be seen");
+    // The stream ends when the connection does, with no last word about the
+    // frontend. From here on nobody could close a session or disarm a barrier,
+    // so that is done now, and the process stops.
+    warn!("the bus connection ended: closing every session and stopping");
+    state.bus_lost().await;
 }
 
 /// The impl-side Session object xdg-desktop-portal closes when it is done.
@@ -1864,7 +2014,7 @@ mod tests {
     struct Rig {
         state: State,
         cmds: calloop::channel::Channel<WaylandCmd>,
-        signals: Arc<std::sync::Mutex<Vec<Signal>>>,
+        signals: Arc<std::sync::Mutex<Vec<(Option<String>, Signal)>>>,
         screens: SharedScreens,
         /// The clients' ends of the EIS connections, kept open.
         eis_clients: Vec<OwnedFd>,
@@ -1912,6 +2062,11 @@ mod tests {
         }
 
         fn signals(&self) -> Vec<Signal> {
+            self.addressed().into_iter().map(|(_, signal)| signal).collect()
+        }
+
+        /// The signals since the last call, each with the bus name it was sent to.
+        fn addressed(&self) -> Vec<(Option<String>, Signal)> {
             std::mem::take(&mut *self.signals.lock().unwrap())
         }
 
@@ -1950,12 +2105,43 @@ mod tests {
         (Some(id), Some((3840, 0, 3840, 1080)))
     }
 
-    fn crossing(session: &OwnedObjectPath, barrier_id: u32) -> WaylandEvent {
+    static NEXT_CROSSING: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+
+    /// What the Wayland thread reports when the pointer crosses `session`'s
+    /// barrier as it is armed right now.
+    async fn crossing_event(state: &State, session: &OwnedObjectPath, barrier_id: u32) -> WaylandEvent {
+        let arming = state
+            .inner
+            .lock()
+            .await
+            .sessions
+            .get(session)
+            .map_or(0, |s| s.arming);
         WaylandEvent::Activated {
             session: session.as_str().to_owned(),
+            arming,
+            crossing: NEXT_CROSSING.fetch_add(1, Ordering::Relaxed),
             barrier_id,
             position: (3839.0, 500.0),
         }
+    }
+
+    async fn cross(state: &State, session: &OwnedObjectPath, barrier_id: u32) {
+        let event = crossing_event(state, session, barrier_id).await;
+        state.handle_event(event).await;
+    }
+
+    /// The Wayland thread lost the capture that is running.
+    async fn lost(state: &State) {
+        let crossing = state
+            .inner
+            .lock()
+            .await
+            .sessions
+            .values()
+            .find(|s| s.activation_id != 0)
+            .map_or(0, |s| s.crossing);
+        state.handle_event(WaylandEvent::CaptureLost { crossing }).await;
     }
 
     fn denied<T>(result: fdo::Result<T>) -> bool {
@@ -2163,7 +2349,7 @@ mod tests {
         let a = rig.session("a").await;
         let b = rig.session("b").await;
         rig.state.enable(Some(FRONTEND), &a).await.unwrap();
-        rig.state.handle_event(crossing(&a, 7)).await;
+        cross(&rig.state, &a, 7).await;
         let activation_id = match &rig.signals()[..] {
             [Signal::Activated { session, activation_id, barrier_id: 7, .. }] if *session == a => *activation_id,
             other => panic!("expected one activation for a, got {other:?}"),
@@ -2198,7 +2384,7 @@ mod tests {
 
         // A crossing that was armed for a, which is no longer the armed session:
         // nobody is activated, the capture ends, and b's barriers go back up.
-        rig.state.handle_event(crossing(&a, 7)).await;
+        cross(&rig.state, &a, 7).await;
         assert!(rig.signals().is_empty());
         let cmds = rig.cmds();
         assert!(matches!(
@@ -2207,25 +2393,25 @@ mod tests {
         ));
 
         // A barrier b never set.
-        rig.state.handle_event(crossing(&b, 8)).await;
+        cross(&rig.state, &b, 8).await;
         assert!(rig.signals().is_empty());
         assert!(matches!(rig.cmds()[0], WaylandCmd::EndCapture { .. }));
 
         // A session that doesn't exist.
-        rig.state.handle_event(crossing(&path("ghost"), 7)).await;
+        cross(&rig.state, &path("ghost"), 7).await;
         assert!(rig.signals().is_empty());
         assert!(matches!(rig.cmds()[0], WaylandCmd::EndCapture { .. }));
 
         // b's own barrier: b, and only b, is activated and gets the input.
-        rig.state.handle_event(crossing(&b, 7)).await;
+        cross(&rig.state, &b, 7).await;
         let signals = rig.signals();
         assert!(matches!(&signals[..], [Signal::Activated { session, barrier_id: 7, .. }] if *session == b));
-        assert!(matches!(&rig.cmds()[..], [WaylandCmd::AttachEis(_)]));
+        assert!(matches!(&rig.cmds()[..], [WaylandCmd::AttachEis { .. }]));
 
         // The Wayland thread never reports a second crossing during a capture. If
         // the two ever fall out of step, the capture ends and the session is told,
         // instead of going on with nowhere to send the input.
-        rig.state.handle_event(crossing(&b, 7)).await;
+        cross(&rig.state, &b, 7).await;
         assert!(matches!(&rig.signals()[..], [Signal::Deactivated { session, .. }] if *session == b));
         let cmds = rig.cmds();
         assert!(matches!(
@@ -2240,7 +2426,7 @@ mod tests {
         let a = rig.session("a").await;
         let b = rig.session("b").await;
         rig.state.enable(Some(FRONTEND), &b).await.unwrap();
-        rig.state.handle_event(crossing(&b, 7)).await;
+        cross(&rig.state, &b, 7).await;
         rig.cmds();
         rig.signals();
 
@@ -2447,7 +2633,7 @@ mod tests {
         let handle = rig.session(name).await;
         let s = &rig.state;
         s.enable(Some(FRONTEND), &handle).await.unwrap();
-        s.handle_event(crossing(&handle, 7)).await;
+        cross(s, &handle, 7).await;
         s.set_selection(Some(FRONTEND), &handle, vec!["text/plain".into()]).await.unwrap();
         let claim_id = s.inner.lock().await.clipboard.claim_id;
         s.handle_event(WaylandEvent::ClipboardSend { claim_id, mime_type: "text/plain".into(), fd: a_pipe() })
@@ -2482,7 +2668,7 @@ mod tests {
 
         // The dead session can never take the pointer again: a crossing that was
         // already on its way stays local, and it can't be enabled.
-        rig.state.handle_event(crossing(handle, 7)).await;
+        cross(&rig.state, handle, 7).await;
         assert!(rig.signals().is_empty());
         let cmds = rig.cmds();
         assert!(matches!(&cmds[..], [WaylandCmd::EndCapture { .. }, WaylandCmd::Disarm]));
@@ -2508,7 +2694,10 @@ mod tests {
         assert_eq!(rig.session_count().await, 0);
         let mut signals = rig.signals();
         signals.retain(|signal| *signal != Signal::SessionClosed { session: idle.clone() });
-        rig.signals.lock().unwrap().extend(signals);
+        rig.signals
+            .lock()
+            .unwrap()
+            .extend(signals.into_iter().map(|signal| (Some(FRONTEND.to_owned()), signal)));
         assert_torn_down(&rig, &handle, activation_id).await;
     }
 
@@ -2534,7 +2723,7 @@ mod tests {
         rig.state.eis_closed(handle.as_str(), eis_id).await;
         assert!(matches!(&rig.cmds()[..], [WaylandCmd::Disarm]));
         assert_eq!(rig.signals(), [Signal::SessionClosed { session: handle.clone() }]);
-        rig.state.handle_event(crossing(&handle, 7)).await;
+        cross(&rig.state, &handle, 7).await;
         assert!(rig.signals().is_empty(), "the next crossing stays local");
         assert!(matches!(rig.cmds()[0], WaylandCmd::EndCapture { .. }));
     }
@@ -2611,7 +2800,7 @@ mod tests {
         rig.cmds();
         s.set_pointer_barriers(Some(FRONTEND), &handle, &[right_edge(1)], zone_set).await.unwrap();
         match &rig.cmds()[..] {
-            [WaylandCmd::Arm { session, zone_set: armed_for, barriers }] => {
+            [WaylandCmd::Arm { session, zone_set: armed_for, barriers, .. }] => {
                 assert_eq!(session, handle.as_str());
                 assert_eq!(*armed_for, zone_set);
                 assert_eq!(barriers.len(), 1);
@@ -2676,7 +2865,7 @@ mod tests {
         // leaves them in force: they are the ones on screen.
         s.handle_event(WaylandEvent::OutputsChanged).await;
         assert_eq!(s.inner.lock().await.sessions[&handle].barriers.len(), 1);
-        s.handle_event(crossing(&handle, 7)).await;
+        cross(s, &handle, 7).await;
         assert!(rig.signals().iter().any(|signal| matches!(signal, Signal::Activated { .. })));
     }
 
@@ -2720,14 +2909,17 @@ mod tests {
         let mut rig = Rig::new();
         let handle = rig.session("logged").await;
         let s = &rig.state;
-        let crossing_at_mark = |session: &str| WaylandEvent::Activated {
+        let crossing_at_mark = |session: &str, arming: u64| WaylandEvent::Activated {
             session: session.to_owned(),
+            arming,
+            crossing: NEXT_CROSSING.fetch_add(1, Ordering::Relaxed),
             barrier_id: 7,
             position: marked_position,
         };
+        let arming_now = || async { s.inner.lock().await.sessions[&handle].arming };
 
         s.enable(Some(FRONTEND), &handle).await.unwrap();
-        s.handle_event(crossing_at_mark(handle.as_str())).await;
+        s.handle_event(crossing_at_mark(handle.as_str(), arming_now().await)).await;
         s.release(Some(FRONTEND), &handle, Some(marked_position)).await.unwrap();
         s.set_selection(Some(FRONTEND), &handle, vec![marked_type.clone()]).await.unwrap();
         let claim_id = s.inner.lock().await.clipboard.claim_id;
@@ -2746,9 +2938,9 @@ mod tests {
         assert!(s.selection_read(Some(STRANGER), &handle, marked_type.clone()).await.is_err());
         assert!(s.set_selection(Some(FRONTEND), &path("ghost"), vec![marked_type.clone()]).await.is_err());
         assert!(s.release(Some(STRANGER), &handle, Some(marked_position)).await.is_err());
-        s.handle_event(crossing_at_mark("/ghost")).await;
-        s.handle_event(crossing_at_mark(handle.as_str())).await;
-        s.handle_event(WaylandEvent::CaptureLost).await;
+        s.handle_event(crossing_at_mark("/ghost", 1)).await;
+        s.handle_event(crossing_at_mark(handle.as_str(), arming_now().await)).await;
+        lost(s).await;
         s.handle_event(WaylandEvent::ClipboardCancelled { claim_id }).await;
         s.handle_event(WaylandEvent::OutputsChanged).await;
         s.close_session(Some(FRONTEND), &handle).await.unwrap();
@@ -2770,6 +2962,173 @@ mod tests {
         for secret in ["8123456", "9234567", "marker"] {
             assert!(!log.contains(secret), "{secret:?} is in the log:\n{log}");
         }
+    }
+
+    // ---- REVIEW-1 ------------------------------------------------------------
+
+    #[tokio::test]
+    async fn a_crossing_queued_for_a_closed_session_never_reaches_a_new_session_with_its_path() {
+        let mut rig = Rig::new();
+        let old = rig.session("same").await;
+        rig.state.enable(Some(FRONTEND), &old).await.unwrap();
+        // The pointer crosses, and the notice is on its way to the portal.
+        let queued = crossing_event(&rig.state, &old, 7).await;
+        rig.cmds();
+
+        rig.state.close_session(Some(FRONTEND), &old).await.unwrap();
+        // Disarm is what makes the Wayland thread drop the crossing and the
+        // input it buffered (no EndCapture: the portal knew of no capture).
+        assert!(matches!(&rig.cmds()[..], [WaylandCmd::Disarm]));
+
+        // A new session with the same path and the same barrier ID, armed.
+        let new = rig.session("same").await;
+        assert_eq!(new, old);
+        rig.state.enable(Some(FRONTEND), &new).await.unwrap();
+        rig.cmds();
+        rig.signals();
+
+        rig.state.handle_event(queued).await;
+        let cmds = rig.cmds();
+        assert!(
+            !cmds.iter().any(|c| matches!(c, WaylandCmd::AttachEis { .. })),
+            "the old crossing gets no EIS connection"
+        );
+        assert!(matches!(&cmds[0], WaylandCmd::EndCapture { crossing: Some(_), .. }));
+        assert!(!rig.signals().iter().any(|s| matches!(s, Signal::Activated { .. })));
+        assert_eq!(rig.state.inner.lock().await.sessions[&new].activation_id, 0);
+
+        // The new session's own crossing counts.
+        cross(&rig.state, &new, 7).await;
+        assert!(rig.cmds().iter().any(|c| matches!(c, WaylandCmd::AttachEis { .. })));
+        assert!(matches!(&rig.signals()[..], [Signal::Activated { session, .. }] if *session == new));
+    }
+
+    #[tokio::test]
+    async fn every_arming_has_its_own_number_and_a_crossing_of_an_earlier_one_is_refused() {
+        let mut rig = Rig::new();
+        let a = rig.session("a").await;
+        rig.state.enable(Some(FRONTEND), &a).await.unwrap();
+        let first = rig.state.inner.lock().await.sessions[&a].arming;
+        let early = crossing_event(&rig.state, &a, 7).await;
+
+        // Disabled and enabled again: armed anew, with a new number.
+        rig.state.disable(Some(FRONTEND), &a).await.unwrap();
+        assert_eq!(rig.state.inner.lock().await.sessions[&a].arming, 0);
+        rig.state.enable(Some(FRONTEND), &a).await.unwrap();
+        let second = rig.state.inner.lock().await.sessions[&a].arming;
+        assert!(first != 0 && second != 0 && first != second);
+        let armed: Vec<u64> = rig
+            .cmds()
+            .iter()
+            .filter_map(|c| match c {
+                WaylandCmd::Arm { arming, .. } => Some(*arming),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(armed, [first, second], "the Wayland thread is given the same numbers");
+        rig.signals();
+
+        rig.state.handle_event(early).await;
+        assert!(rig.signals().is_empty(), "nobody is told of a capture");
+        assert_eq!(rig.state.inner.lock().await.sessions[&a].activation_id, 0);
+    }
+
+    #[tokio::test]
+    async fn a_lost_capture_ends_only_the_capture_it_names() {
+        let mut rig = Rig::new();
+        let a = rig.session("a").await;
+        rig.state.enable(Some(FRONTEND), &a).await.unwrap();
+        cross(&rig.state, &a, 7).await;
+        rig.cmds();
+        rig.signals();
+
+        // The loss of some other crossing changes nothing.
+        rig.state
+            .handle_event(WaylandEvent::CaptureLost { crossing: u64::MAX })
+            .await;
+        assert!(rig.signals().is_empty());
+        assert!(rig.cmds().is_empty());
+        assert_ne!(rig.state.inner.lock().await.sessions[&a].activation_id, 0);
+
+        // The loss of this one (the layer closed, the pointer went away, the
+        // lock was dropped) reaches the client, and the barriers go back up.
+        lost(&rig.state).await;
+        assert!(matches!(&rig.signals()[..], [Signal::Deactivated { session, .. }] if *session == a));
+        assert!(matches!(&rig.cmds()[..], [WaylandCmd::Arm { .. }]));
+        assert_eq!(rig.state.inner.lock().await.sessions[&a].activation_id, 0);
+    }
+
+    #[tokio::test]
+    async fn every_signal_goes_to_the_frontend_that_made_the_session_and_to_nobody_else() {
+        let mut rig = Rig::new();
+        let a = rig.session("a").await;
+        let b = rig.session("b").await;
+        let s = &rig.state;
+        s.enable(Some(FRONTEND), &a).await.unwrap();
+        cross(s, &a, 7).await;
+        s.enable(Some(FRONTEND), &b).await.unwrap();
+        s.handle_event(WaylandEvent::ClipboardSelection {
+            mime_types: vec!["text/plain".into()],
+            is_ours: false,
+        })
+        .await;
+        s.set_selection(Some(FRONTEND), &b, vec!["text/plain".into()])
+            .await
+            .unwrap();
+        let claim_id = s.inner.lock().await.clipboard.claim_id;
+        s.handle_event(WaylandEvent::ClipboardSend {
+            claim_id,
+            mime_type: "text/plain".into(),
+            fd: a_pipe(),
+        })
+        .await;
+        rig.screens.commit(vec![screen("A", 0, 0, 1920, 1080)]);
+        s.handle_event(WaylandEvent::OutputsChanged).await;
+        s.close_session(Some(FRONTEND), &a).await.unwrap();
+
+        let sent = rig.addressed();
+        for name in [
+            "Activated",
+            "Deactivated",
+            "Disabled",
+            "SelectionOwnerChanged",
+            "SelectionTransfer",
+            "ZonesChanged",
+            "SessionClosed",
+        ] {
+            assert!(sent.iter().any(|(_, signal)| signal.name() == name), "{name} was sent");
+        }
+        for (to, signal) in &sent {
+            assert_eq!(to.as_deref(), Some(FRONTEND), "{signal:?}");
+        }
+    }
+
+    #[tokio::test]
+    async fn losing_the_bus_closes_every_session_gives_the_input_back_and_stops_the_backend() {
+        let mut rig = Rig::new();
+        let (busy, _) = busy_session(&mut rig, "busy").await;
+        rig.session("idle").await;
+        rig.cmds();
+        rig.signals();
+
+        rig.state.bus_lost().await;
+        assert_eq!(rig.session_count().await, 0);
+        let cmds = rig.cmds();
+        assert!(
+            cmds.iter().any(|c| matches!(c, WaylandCmd::EndCapture { crossing: None, .. })),
+            "whatever is captured is released"
+        );
+        assert!(matches!(cmds.last(), Some(WaylandCmd::Disarm)), "no barrier stays up");
+
+        // A crossing after that stays local.
+        cross(&rig.state, &busy, 7).await;
+        assert!(!rig.cmds().iter().any(|c| matches!(c, WaylandCmd::AttachEis { .. })));
+        assert!(!rig.signals().iter().any(|s| matches!(s, Signal::Activated { .. })));
+
+        // `serve` waits on this to end the process.
+        tokio::time::timeout(std::time::Duration::from_secs(1), rig.state.wait_for_bus_loss())
+            .await
+            .expect("the backend is told to stop");
     }
 
     #[test]

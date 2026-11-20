@@ -181,14 +181,22 @@ async fn serve() -> Result<()> {
         );
     }
 
-    tokio::signal::ctrl_c()
-        .await
-        .context("failed to wait for shutdown signal")?;
+    let bus_lost = tokio::select! {
+        result = tokio::signal::ctrl_c() => {
+            result.context("failed to wait for shutdown signal")?;
+            false
+        }
+        // The watch on the frontend has closed every session by now.
+        () = state.wait_for_bus_loss() => true,
+    };
     info!("shutting down");
 
     // Never exit leaving the pointer locked.
     state.release_everything();
     tokio::time::sleep(std::time::Duration::from_millis(150)).await;
+    // Without its bus the backend can serve nobody and nobody can stop a
+    // capture: it ends, and the next call from a frontend starts a fresh one.
+    anyhow::ensure!(!bus_lost, "the session bus connection ended");
     Ok(())
 }
 
