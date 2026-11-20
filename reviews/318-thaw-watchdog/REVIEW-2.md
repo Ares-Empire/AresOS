@@ -1,0 +1,11 @@
+Verdict: CHANGES-NEEDED
+
+- **SHOULD-FIX (finding 5)** `reviews/318-thaw-watchdog/FINDINGS.md:209`, `reviews/318-thaw-watchdog/FINDINGS.md:216`, `reviews/318-thaw-watchdog/FINDINGS.md:237` — The revised backend section correctly describes the absence of `null`’s elapsed-time catch-up loop and leaves product behavior open. Later passages still claim that the real backends discard backlog or have non-realtime mixers, and the verification instructions treat the device name as identifying the backend. Carry the narrower wording through the report so the sleeping-world design does not rely on unverified backend selection, scheduling, or thaw behavior.
+- **NIT (finding 4)** `reviews/318-thaw-watchdog/FINDINGS.md:95`, `reviews/318-thaw-watchdog/FINDINGS.md:211` — The body now presents 150 s as a workload-specific extrapolation and removes the one-minute fallback. Update the cross-reference and heading to call it an estimated crossover.
+- **NIT (finding 6)** `reviews/318-thaw-watchdog/FINDINGS.md:29`, `reviews/318-thaw-watchdog/FINDINGS.md:111` — The detailed paragraph now labels the kill timing and teardown explanation as estimates. Both tables still present 197–207 ms as the death time. Label that range as estimated there too.
+
+### Checked
+
+- Reviewed `a6a96e6b` against REVIEW-1 and decision 24. Finding 1 is resolved for the squash-merged tree. The brief uses “the owner,” and the same given name appears in nine files on `origin/main`. Historical cleanup remains a repo-wide decision for the owner.
+- Findings 2 and 3 are acceptable as **Known limits** for this completed measurement rig. The scripted inputs never send the shortcut, whose host effect is limited to dismissing a cover or black screen. A controller SIGKILL during the freeze can leave the rig scopes holding memory until manual cleanup. Both are low-harm paths under the stated bar, and the notes identify what to fix before reusing the rig.
+- Read-only inspection. No files changed, and no game, rig, audio backend, or `sudo` ran.
