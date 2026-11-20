@@ -3,6 +3,215 @@
 Brief: `briefs/18c-b-chrome-image.md` (on `main` since PR #73).
 Branch `pkg/18c-b-chrome`, one builder at a time. Each step is a fresh agent; this file is the handoff.
 
+## Step 5 (2026-11-19 to 2026-11-20), Chrome VM second half
+
+**Handoff to `linux-tools`.** All five Step 5 checks and the existing suites of the two guest passes are green
+on `522c1113`, run 44621559332, attempt 2. **10 of 12 control dispatches used.** Two remain for step 6.
+Code commits are `3d4c6d2d`, `054c915c` and `522c1113`.
+
+### Done
+
+- **Read, `os/ci/control/chrome_actions.py`:** C4 switches A → B → A with a guest-only bind mount and one Chrome
+  profile. Both switches check the native-host manifest, extension version, installed IDs and folders, a real
+  tool read, and the probe refusal. This proves installation and reconnection. The 28b PR owns the combined
+  profile-continuity case, and `linux-tools` assigns the image case when pinning lands.
+- **Read, `os/ci/control/chrome_actions.py`:** C5 changes one signed payload byte or removes the package. The
+  never-held C ID stays absent while browsing and the service stay up. Restoring the package installs C. Both
+  faults are repeated with C already installed. C9 uses a throwaway profile and the probe requests as a positive
+  control, with a probe-only comparison if Chrome itself asks the update service.
+- **Read, `os/ci/control/chrome_actions.py` and `control_vm.py`:** C7 drives the shipped details page and the
+  guest's real agent. QMP handles navigation and the per-run password. The journal check binds the one-shot
+  authorization to the guest session and the exact native host. C8 reuses 18c's terminal driver, managed policy,
+  pinned Claude Code and loopback model double with synthetic input. The server counts actual form POSTs.
+- **Read, `os/ci/control/control_vm.py`:** the sequence follows C11, and the SELinux scan remains last.
+  `os/tests/test_control_vm.py` covers the five checks and the runner's behavior after a failed dialog gate.
+
+### Checks
+
+**Run, attempt 2 of 44621559332 on `522c1113`.**
+
+| Check | PASS line and result | Full-log line |
+|---|---|---|
+| C4 | `CONTROL_CHROME_UPDATE_PASS`. A → B connected at 1.68 s and the old ID and folder were absent by 1.69 s. B → A reached all three observations by 1.66 s. Both current origins matched the host manifest, both tool reads returned “Chrome pass”, and the probe was refused both times. | 4462 |
+| C5 | `CONTROL_CHROME_PACKAGE_FAULT_PASS`. Changed and missing C each had 15 `chrome_unavailable` samples, start and later browsing worked, and the service stayed up. Restored C connected by 1.63 s. The installed copy remained enabled and connected after both faults. | 4464 |
+| C9 | `CONTROL_CHROME_NO_STORE_PASS`. The two guest starts (ours and probe alone) each logged and served two probe requests. Our ID appeared outside `file:` zero times. Both logs contained the same background update-service addresses and IDs. | 4466 |
+| C7 | `CONTROL_CHROME_POLKIT_PASS`. Read-only through cancel, editable after the password, and read-only after cancel on the next attempt. Session 1's journal ties the action and `ONE-SHOT` authorization to the native host PID 7130 and its start time. The guest restored its previous NOTICE level. The runner's scan found zero password matches across 68 files and two archive members at C7, then scanned again at poweroff. | 4475 |
+| C8 | `CONTROL_CHROME_ASK_PASS`. The real managed prompt displayed each service question. Each got one answer. Yes sent one exact synthetic form to the receiver and ended `done`. No sent zero and remained `reserved` until the harness dropped it. | 4477 |
+
+**Run, artifact:** inspected `control/chrome/c7-allow-dialog.png` and `c7-again-dialog.png`. Each names
+`editing.localhost` in the real agent with the password field blank. The C8 answer screens in
+`control/chrome/c8-{yes,no}.tar.gz` show the complete question above the operation ID and description.
+`control/chrome/c2-managed.png` visibly shows “Managed by your organization”.
+`control/chrome/c9-network.json`, the two compressed network logs and `control/chrome/c8-ask.json`
+hold the positive controls and receiver data.
+
+| Earlier check in the Chrome guest | Full-log line |
+|---|---:|
+| `CONTROL_CHROME_POLKIT_PROBE_PASS` | 4441 |
+| `CONTROL_CHROME_FILES_PASS` | 4443 |
+| `CONTROL_CHROME_INSTALL_PASS` | 4447 |
+| `CONTROL_CHROME_SITES_FIRST_USE_PASS` | 4449 |
+| `CONTROL_CHROME_REBOOTED` | 4450 |
+| `CONTROL_CHROME_SITES_REBOOT_PASS` | 4452 |
+| `CONTROL_CHROME_NATIVE_HOST_PASS` | 4454 |
+| `CONTROL_CHROME_SITES_PASS` | 4456 |
+| `CONTROL_GH_PASS` | 4458 |
+| `CONTROL_CHROME_RECORDS_PASS` | 4460 |
+| `CONTROL_CHROME_SELINUX_PASS` | 4479 |
+| `CONTROL_CHROME_VM_POWEROFF_CLEAN` | 4480 |
+| `CHECK_BUILD_CONTROL_CHROME_PASSED` | 4482 |
+
+**Run, earlier 18c pass on the same attempt.** Image files 4395, managed Claude Code files 4397, release checks
+4399, idle record 4401, fixtures 4403, entry points 4405, precondition 4407, MCP install 4409, sandbox 4411,
+ordinary session 4413, Mail 4415, permission record 4417, interactive ask 4418, password scan 4420, SELinux
+4422, storage 4424, restart 4426, clean poweroff 4428 and `CHECK_BUILD_CONTROL_PASSED` 4430.
+
+**Run, attempt 1 of 44590443340 on `3d4c6d2d`.** Line numbers in this section count the full `gh run view
+--log`.
+
+| Check | Result | Full-log line |
+|---|---|---|
+| C4 | Failed waiting for the profile directory to contain exactly two entries. By then B had installed and connected and A was gone from the management listing. The log omitted the directory contents. | 4445–4460 |
+| C5 | `CONTROL_CHROME_PACKAGE_FAULT_PASS`. Changed and missing cases each had 16 refusal samples and both start and later pages loaded. Restored C connected in 1.38 s. The installed copy stayed connected for both faults. | 4462 |
+| C9 | `CONTROL_CHROME_NO_STORE_PASS`. Two probe requests in both the log and server, zero non-file mentions of our ID, and no update-service address or ID added against the probe-only baseline. | 4464 |
+| C7 | The native host's pkcheck was waiting. The saved frame still showed Chrome's “Waiting for your password” line. Escape did not end the pending process within 20 s. The password step was skipped. | 4466–4498 |
+| C8 | Both turns timed out. Each model archive identifies `KeyError('tab')`, reading Chrome's nested `open` result. | 4500–4502 |
+
+The existing 18c pass ended with `CHECK_BUILD_CONTROL_PASSED` at 4414. The Chrome pass printed the probe, C1,
+C2, first-use and reboot parts of C6, C3, full C6, C10, C11 and SELinux PASS lines at 4425, 4427, 4431, 4433,
+4436, 4438, 4440, 4442, 4444 and 4504. It powered off cleanly at 4505.
+
+**Run, attempt 1 of 44605724119 on `054c915c`.**
+
+| Check | Result | Full-log line |
+|---|---|---|
+| C4 | `CONTROL_CHROME_UPDATE_PASS`. Both switches read “Chrome pass” and refused the probe. On A → B the new host connected and the old ID and folder were absent by 1.60 s. On B → A all three were observed by 1.32 s. | 4449 |
+| C5 | `CONTROL_CHROME_PACKAGE_FAULT_PASS`. Both fresh faults blocked the tools and left browsing up, then the restored host connected in 1.37 s. Both installed-copy faults stayed connected. | 4451 |
+| C9 | `CONTROL_CHROME_NO_STORE_PASS`. Two requests in both the log and probe server, no non-file mention of our ID, and the same background update-service addresses and IDs as the probe-only run. | 4453 |
+| C7 | The real agent showed `editing.localhost` for cancel and allow. Escape kept the site read-only and polkit named the actual native host in its failure record. After password entry pkcheck exited, but the journal query found no authorization record. The edit state and repeat request remained unverified. | 4455–4487 |
+| C8 | Yes produced one receiver POST with the expected synthetic text. The 40-row answer capture began inside the description and omitted the service question, so the driver failed the prompt proof. No stopped at the baseline check without a guess about the previous arrival. | 4489–4492 |
+
+**Run, artifact:** inspected `control/chrome/c7-cancel-dialog.png` and `c7-allow-dialog.png`. Each shows
+“Authentication Required”, the full change naming `editing.localhost`, the daily-session identity and a blank
+password field. The second run exercised the actual modal and cancellation, so the third dispatch targets the
+remaining journal and terminal evidence. The second run alone does not prove the password changed the rule.
+
+The existing 18c pass ended with `CHECK_BUILD_CONTROL_PASSED` at 4417. The Chrome pass printed the probe, C1,
+C2, first-use and reboot parts of C6, C3, full C6, C10, C11 and SELinux PASS lines at 4428, 4430, 4434, 4436,
+4439, 4441, 4443, 4445, 4447 and 4494. It powered off cleanly at 4495.
+
+**Run, attempt 1 of 44621559332 on `522c1113`.**
+
+| Check | Result | Full-log line |
+|---|---|---|
+| C4 | `CONTROL_CHROME_UPDATE_PASS`. The switch to B connected and removed A by 1.59 s. The switch back connected by 1.07 s and removed B's folder by 1.08 s. Both reads and probe refusals passed. | 4409 |
+| C5 | Timed out awaiting the probe in a faulted start, then timed out awaiting it again after restoring bundle A. The last successful C5 verdict remains run 44605724119. | 4410–4437 |
+| C9 | Timed out reconnecting the probe on the return from the C9 throwaway profiles to the daily profile. That prevented a C9 verdict. | 4439–4456 |
+| C7 | The daily profile failed to deliver the ordinary page that focuses Chrome. The check stopped before the polkit setup and password. | 4458–4487 |
+| C8 | Both Claude Code sessions started. Chrome returned `chrome_unavailable` on the first tool call, before the form or prompt. | 4489–4491 |
+
+The existing 18c pass ended at 4370. The Chrome pass printed the probe, C1, C2, first-use and reboot parts of
+C6,
+C3, full C6, C10 and SELinux PASS lines at 4381, 4383, 4387, 4389, 4392, 4394, 4396, 4398 and 4493. It powered
+off cleanly at 4494. C11's published-attestation API lookup hit HTTP 403 rate limiting (4399–4400). That is an
+independent infrastructure failure. The guest's Chrome reconnect timeouts have no confirmed cause from this log.
+
+### Runs
+
+| Run / attempt | Head | Result |
+|---|---|---|
+| 44590443340 / 1 | `3d4c6d2d` | **FAIL** in C4, C7 and C8. C5 and C9 and the existing checks passed. |
+| 44605724119 / 1 | `054c915c` | **FAIL** in C7's authorization journal proof and C8's visible-question proof. C4, C5 and C9 passed. |
+| 44621559332 / 1 | `522c1113` | **FAIL**. C11's public lookup was rate-limited. C4 passed. Default-profile reconnect timeouts affected C5, C9, C7 and C8. |
+| 44621559332 / 2 | `522c1113` | **PASS** in both guests. Whole-job infrastructure rerun of the same ID. |
+
+**Run:** each ID was dispatched with `gh workflow run os-image.yml -R Ares-Empire/AresOS --ref
+pkg/18c-b-chrome -f check_build=control` and watched with `gh run watch <id> -R Ares-Empire/AresOS
+--exit-status --interval 300`. Attempt 2 of 44621559332 used `gh run rerun 44621559332 -R Ares-Empire/AresOS`
+after the C11 API limit. Step 5 spent three dispatches for **10/12 used**.
+
+**Run, local:** `python3 -m unittest discover -s os/tests -p 'test_control_vm.py'` printed
+`Ran 86 tests in 2.501s` and `OK`. `python3 -m unittest discover -s control/chrome/ci/install -p
+'test_netlog.py'`
+printed `Ran 11 tests in 0.001s` and `OK`. `git diff --check 20eddb77` returned zero with no output.
+
+### checks_only
+
+Run 44640281276 on `522c1113`, dispatched with `gh workflow run os-image.yml -R Ares-Empire/AresOS --ref
+pkg/18c-b-chrome -f checks_only=true` after the green control rerun. **PASS**, attempt 1. Regression job
+135969284260 printed `Ran 1829 tests in 1414.819s` at full-log line 3851 and `OK (skipped=4)` at 3853.
+`gh run watch 44640281276 -R Ares-Empire/AresOS --exit-status --interval 300` exited zero.
+
+### Left, in order
+
+1. **6:** rehearsal checks, two control greens on the final head, README and full report and guide lines.
+  `linux-tools` coordinates the handoff to `linux-aresos`. The 28b continuity proof remains a release
+  dependency.
+
+### What the code doesn't show
+
+- **Read:** C4's bind mount imitates the package file switch across restarts. A real deployment switch with
+  Chrome open remains unverified.
+- **Read:** the VM runs with synthetic sites and the guest's agent. The laptop's launch context, browser
+  profile, excluded sites and agent remain unverified.
+- **Read:** C8 exercises the managed ask in default mode through the loopback model double with 18c's synthetic
+  session configuration.
+
+### JUDGMENT-CALLs
+
+- **Read:** C4 and C5 use the guest's default profile and swap the four bundle files together. The C9 capture
+  uses its own profiles and the isolated DevTools pipe authorized in step 2b. A later browser change to the
+  update trigger would require updating that CI driver.
+- **Read and run:** C7 waits for the real agent window and checks its title against the run's own probe
+  screenshot before sending QMP input. The first attempt's generic pixel comparison accepted a Chrome redraw.
+  A desktop theme or resolution change could require updating the title crop.
+- **Read and run:** C7 raises only the live guest daemon's logging to INFO and restores its original level and
+  the guest shadow entry before C8. A fresh request after the approved loosening must prompt again. F7 is the
+  sole password case.
+
+### PLAN-GAPs
+
+- **Read:** the pinned Chrome does not schedule short-interval checks on the requested flag. C9 uses the item 2
+  trigger, keeps the network flags exclusive to C9, and requires the log's two requests to agree with the
+  server's count.
+- **Read and run:** polkit 127 defaults to NOTICE and logs its successful one-shot record at INFO. The guest
+  changes its live log level for C7 and restores the previous level. [Polkit 127
+  source](https://github.com/polkit-org/polkit/tree/127/src/polkitbackend)
+- **Run and read:** the 40-row terminal captured the end of a Chrome approval's form description while the
+  question had scrolled off. C8 now resizes only its own driver terminal to 120 rows.
+- **Run and read:** C4's initial directory assertion counted every directory, and the failing log did not list
+  them. The check now filters
+  extension IDs and still demands the current package and probe and the removal of the previous ID. C8's
+  initial script needed the tab from Chrome's `open` result under `untrusted_content`.
+- **Read:** C8 needs the user-scope MCP install on the second overlay. It repeats 18c's setup with the existing
+  test binary and model configuration.
+
+### Known limits found
+
+- **Read:** C4's previous-ID assertion covers loaded extensions and package directories. Chrome may retain an
+  empty preference entry, as item 2 observed. That entry gives neither code nor permission.
+- **Read:** the C9 fallback compares update-service addresses and named IDs with a probe-only start. The item 2
+  policy-negative case stays in the container.
+- **Run:** attempt 1 of 44621559332 lost the daily-profile connection after C4 while C9's isolated
+  profiles still showed probe activity. The same head completed all checks on attempt 2. The first failure's
+  particular browser startup error remains unknown from the retained evidence.
+- **Run:** the full C8 question was visible at 120 rows. At 40 rows, the saved viewport showed the action and
+  answer menu with the question above it. Visibility at the owner's terminal size remains unverified.
+
+### The os/ and os-image.yml diff for linux-aresos
+
+**Read, net from `20eddb77`.**
+
+- `os/ci/control/chrome_actions.py` adds the guest checks and local fixtures.
+- `os/ci/control/control_vm.py` sequences the five checks and handles QMP and evidence.
+- `os/ci/control/sessions.py` accepts the Chrome fixture's model, receiver check and terminal height. Driver
+  model errors surface at the prompt wait. The original 18c callers use the existing defaults.
+- `os/tests/test_control_vm.py` adds targeted check and runner coverage.
+
+The diff is confined to CI and unit tests. `.github/workflows/os-image.yml` and the installed image files
+are unchanged. Scratch evidence is under `.work/18c-b-step5/`. The closing `.work/` scan found no files over
+500 MB.
+
 ## Step 4b (2026-11-19): record of the completed builder runs
 
 **Documentation handoff to `linux-tools` (the lead).** Read from builder commits `3cb3687d` and `1b263438`,
