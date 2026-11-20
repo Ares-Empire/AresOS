@@ -559,8 +559,12 @@ def control(guest, stage, vm):
         # Optional After= units (for example home.mount on an Atomic image) can be absent. They cannot delay
         # login; a missing root or an unreadable graph still stops the walk.
         absent = properties.get('LoadState') == 'not-found' and name not in login['roots'] and not dependencies
-        assert (row['status'] == 0 and properties.get('LoadState') == 'loaded') or (absent and row['status'] in (0, 1)), \
-            'STOP: login dependency query failed: ' + name
+        # A masked unit never starts, so it cannot delay login: the stock base masks systemd-remount-fs.service
+        # (rehearsal 4, run 44729393652; the laptop's release 27 too). Its own ordering is still followed, so
+        # Control behind it still stops the walk; a masked login root stops it as before.
+        masked = properties.get('LoadState') == 'masked' and name not in login['roots']
+        assert (row['status'] == 0 and (properties.get('LoadState') == 'loaded' or masked)) \
+            or (absent and row['status'] in (0, 1)), 'STOP: login dependency query failed: ' + name
         pending.extend(dependencies)
     assert set(graph) == seen, 'STOP: login graph has unvisited entries'
     return dict(checks=results, login=login, checker_sha256=hashlib.sha256(source.encode()).hexdigest())

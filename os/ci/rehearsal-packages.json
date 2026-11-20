@@ -184,8 +184,8 @@
       "dry-run-28": 7,
       "publish-28": 1,
       "resolve": 2,
-      "checks": 8,
-      "release-28": 4
+      "checks": 9,
+      "release-28": 5
     },
     "publish_gate": "Opened on 2026-11-19 under the owner's standing rule (board #388, 2026-11-19: \"Yes, publish on your own\"; STATE.md and CLAUDE.md): publish-28 and publish_cap are 1, so exactly one release_28 dispatch, which publishes at most once. The job publishes only after its own build, the image checks, the first VM pass and the complete image diff against release 27 have passed, and after a fresh review of the cut's fixes. The owner's route in the VM (brief B, release-28) pulls the signed image from the registry, so it runs after the publish; nothing is pinned for the laptop until it passes. Before that: shut until the owner's OK (review 1, B1). A stopped release_28 dispatch still counts as the one publish-28 dispatch and stops every later guard on the branch until a ledger commit records it.",
     "organization_budget": {

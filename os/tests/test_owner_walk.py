@@ -692,6 +692,13 @@ class Release28Session:
                     if name == 'greetd.service': after += ' optional.service'
                     if name == 'optional.service': state, code = 'not-found', 1
                 if 'missing_login_root' in self.faults and name == 'greetd.service': state, code = 'not-found', 1
+                # The stock base masks systemd-remount-fs.service, which other units order after (rehearsal 4).
+                if self.faults & {'masked_login_unit', 'masked_unit_after_control'}:
+                    if name == 'greetd.service': after += ' masked.service'
+                    if name == 'masked.service':
+                        state = 'masked'
+                        after = 'aresos-toold.service' if 'masked_unit_after_control' in self.faults else 'basic.target'
+                if 'masked_login_root' in self.faults and name == 'greetd.service': state = 'masked'
                 if 'failed_login_query' in self.faults and name == 'basic.target': code = 1
                 stdout = f'Id={name}\nLoadState={state}\nAfter={after}\nRequires={requires}\nRequisite=\nBindsTo=\n'
         elif words[0] == 'python3' and words[1] == '-c':
@@ -1364,6 +1371,7 @@ class Release28ProbeTest(unittest.TestCase):
                  'bad_control_folder': 'Control daily folder metadata differs', 'bad_control_owner': 'Control release checker failed',
                  'control_delays_login': 'Control service delays login', 'control_required_login': 'Control service delays login',
                  'failed_login_query': 'login dependency query failed', 'missing_login_root': 'login dependency query failed',
+                 'masked_login_root': 'login dependency query failed', 'masked_unit_after_control': 'Control service delays login',
                  'wrong_owner': 'ownership changed', 'missing_instance': 'inaccessible as ares',
                  'bad_permissions': 'inaccessible as ares', 'stable_changed': 'stable instance',
                  'bad_instance_mode': 'stable instance', 'bad_memory': 'memory.high',
@@ -1372,7 +1380,12 @@ class Release28ProbeTest(unittest.TestCase):
                  'denied_world': 'inaccessible as ares'}
         for fault, error in cases.items():
             with self.subTest(fault=fault), self.assertRaisesRegex(AssertionError, error):
-                walk(route='release-28', control=fault.startswith(('bad_control', 'control_')) or fault in ('failed_login_query', 'missing_login_root'), faults=[fault])
+                walk(route='release-28', control=fault.startswith(('bad_control', 'control_')) or fault in (
+                    'failed_login_query', 'missing_login_root', 'masked_login_root', 'masked_unit_after_control'), faults=[fault])
+
+    def test_a_masked_login_unit_cannot_delay_login_and_passes(self):
+        # Rehearsal 4 (run 44729393652) stopped on release 28's masked systemd-remount-fs.service.
+        walk(route='release-28', control=True, faults=['masked_login_unit'])
 
     def test_removing_the_submitted_kill_no_longer_gets_a_canned_success(self):
         import release28_walk
