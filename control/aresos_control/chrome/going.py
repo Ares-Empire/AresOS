@@ -282,7 +282,11 @@ class Going:
                         return quiet, True
             if now >= end:
                 return False, until_met
-            time.sleep(max(0, min(POLL, end - now)))
+            pause = min(POLL, end - now)
+            if arrived and self.until is None and state.get('ready') is True and token is not None:
+                # Quiet is the token unchanged for QUIET: look again when that time is reached, not a poll after it.
+                pause = min(pause, since + QUIET - now)
+            time.sleep(max(0, pause))
 
     # --- the result --------------------------------------------------------
 

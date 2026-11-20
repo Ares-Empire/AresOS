@@ -169,6 +169,21 @@ class Pages(Extension):
         return [name for name, _ in self.dispatched if not names or name in names]
 
 
+class Clock:
+    """A module's own `time`, moved by its sleeps and by a microsecond for each reading, as a look takes time."""
+
+    def __init__(self):
+        self.now, self.slept = time.monotonic(), []
+
+    def monotonic(self):
+        self.now += 1e-6
+        return self.now
+
+    def sleep(self, seconds):
+        self.slept.append(seconds)
+        self.now += seconds
+
+
 class Going(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(dir=WORK)
@@ -339,6 +354,23 @@ class Going(unittest.TestCase):
         self.assertEqual(self.browser.loads, [('navigate', 1, SITE + '/next')])
         [operation] = self.operation('chrome_navigate')
         self.assertEqual(operation['state'], 'done')
+
+    def test_loaded_is_seen_once_the_token_was_still_for_quiet_not_a_poll_after_it(self):
+        # The new page is there and ready at the first look of the wait, and its token stays.
+        clock = Clock()
+        with patch.object(going, 'time', clock):
+            result = self.chrome.going('go', {'tab': 1, 'url': SITE + '/next'})
+        self.assertTrue(result['loaded'])
+        self.assertTrue(all(0 < pause <= going.POLL for pause in clock.slept), clock.slept)
+        self.assertAlmostEqual(sum(clock.slept), going.QUIET, delta=1e-4)
+        # A token that moves at the wait's second look starts the quiet time again from that look.
+        # Looks: the call's own before the navigation, then the wait's.
+        self.browser.queued.append([2, 1, lambda: self.browser.states[1].update(token='moved')])
+        clock = Clock()
+        with patch.object(going, 'time', clock):
+            result = self.chrome.going('go', {'tab': 1, 'url': SITE + '/third'})
+        self.assertTrue(result['loaded'])
+        self.assertAlmostEqual(sum(clock.slept), going.POLL + going.QUIET, delta=1e-4)
 
     def test_a_fragment_and_back_in_a_single_page_site_arrive_without_a_new_document(self):
         document = self.browser.states[1]['document']

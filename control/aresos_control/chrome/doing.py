@@ -175,8 +175,10 @@ class Doing:
                 raise Refused('take_first', going.TAKE_FIRST)
             try:
                 if self.checked():
-                    self.start = self.bridge.call('page_state', tab=self.tab).get('document')
-                    _, self.before = self.chrome.outline_view(self.tab)
+                    # The look the outline before the first step was taken with: where the list started, and,
+                    # until a step runs, the report's first look at the page (`settle`).
+                    state, self.before = self.chrome.outline_view(self.tab)
+                    self.start, self.token = state.get('document'), state.get('token')
                     self.run_steps()
                 return self.result()
             finally:
@@ -424,7 +426,10 @@ class Doing:
 
         Quiet: ready, and the token the same in two looks in a row. Each input
         has already waited out its hold of half a second, so the look after
-        the last step counts as the first of the two.
+        the last step counts as the first of the two. When no step ran (an
+        asking first step is prepared, the first step was refused), the look
+        the outline before it was taken with is the first: a page that hasn't
+        moved since is reported at once, without a wait for a third look.
         """
         end = min(time.monotonic() + QUIET_MAX, self.clock.at(REPORT))
         token = self.token

@@ -30,7 +30,7 @@ from aresos_control.chrome.references import STALE
 from aresos_control.common import Refused, canonical, validate, visible
 from test_engine import WORK, declared
 from aresos_control.chrome.definitions import DO_RESULT   # after the base's definitions, which import it
-from test_going import SESSION, Pages, arrived_page
+from test_going import SESSION, Clock, Pages, arrived_page
 from test_outline_action import engine_with
 from view_fixtures import SITE, node
 
@@ -331,6 +331,30 @@ class Doing(unittest.TestCase):
         self.assertTrue(submitted['ok'], submitted)
         self.engine.request({'v': 1, 'method': 'call', 'action': 'chrome_submit', 'arguments': prepared['approval']})
         self.assertEqual([(verb, element) for verb, element, _ in self.browser.inputs][2:], [('click', 5)], 'exactly the third, once')
+
+    def test_an_asking_first_step_on_a_still_page_is_reported_without_waiting_for_another_look(self):
+        refs = self.refs()
+        looks = lambda: sum(1 for name, _ in self.browser.attempts if name == 'page_state')
+        before, clock = looks(), Clock()
+        with patch.object(doing, 'time', clock):
+            result = self.do([{'do': 'click', 'ref': refs['Delete']}])
+        self.assertEqual(self.outcomes(result), ['prepared'])
+        self.assertEqual(clock.slept, [], "the look the outline before the step was taken with is the report's first")
+        # One look with the outline before the step, one to see the page still, one with the outline after it.
+        self.assertEqual(looks() - before, 3)
+        self.assertEqual(result['untrusted_content']['changed'], '')
+        # A page that moved after that look, with no step run, still waits for two equal looks.
+        call = self.browser.call
+
+        def moving(name, **args):
+            if name == 'facts':
+                self.browser.states[1]['token'] = 'moved by the page'
+            return call(name, **args)
+        clock = Clock()
+        with patch.object(self.browser, 'call', moving), patch.object(doing, 'time', clock):
+            result = self.do([{'do': 'click', 'ref': refs['Delete']}])
+        self.assertEqual(self.outcomes(result), ['prepared'])
+        self.assertEqual(clock.slept, [doing.POLL])
 
     def test_an_asking_step_too_large_to_ask_about_is_refused_with_chromes_advice(self):
         refs = self.refs()
