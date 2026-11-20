@@ -330,7 +330,8 @@ local again. The EIS receiver saw Super and Shift go down (and, in this run, up 
 
 1. **First: the output check on real hardware (VM with a real or virtual DRM output, then the laptop).** With the
    backend running, `wlr-randr --output <external> --off`, then `--on`, and unplug and replug the monitor. labwc
-   must keep running. Do it before anything else of (c) is built on this backend.
+   must keep running. Do it before anything else of (c) is built on this backend. Never set a custom mode on
+   Patrik's session with the backend running until this passes.
 2. Install the binary to `/usr/libexec/aresos-input-portal`, the portal file and the D-Bus service file, and the
    allow-list to `/usr/share/aresos/input-portal/allowed-apps`: root-owned, mode 0644, with Deskflow's proven
    `app_id` and nothing else.
@@ -345,14 +346,31 @@ local again. The EIS receiver saw Super and Shift go down (and, in this run, up 
    bus and `WAYLAND_DISPLAY`.
 7. How sharing is turned on and off, and closing the sessions when it is turned off (the allow-list is read only
    when a session is made).
+8. Press each binding of the real `rc.xml` (Alt+F4, Alt+Tab, volume, brightness) and upstream's Ctrl+Alt+Escape
+   during a capture, and decide which may stay live (REVIEW-2, finding 1; `KNOWN-LIMITS.md`, "Capture").
+9. The backend follow-ups from the final reviews, best as one step before (c)'s VM test, each with a unit test:
+   drop EIS input once emulation has stopped, without losing the first keys of the next capture (REVIEW-3, 1); end
+   the process when the Wayland connection ends (REVIEW-2, 2); compare the caller with the sessions' frontend in
+   `authorize` (REVIEW-3, 2; REVIEW-2, 3); keep a reused session path's object (REVIEW-2, 4); destroy only the
+   portal's own clipboard source on release (REVIEW-3, 3). None is real harm; each is in `KNOWN-LIMITS.md`.
 
-## Left, in order
+## Final reviews and triage (lead, 2026-11-20)
 
-### Step 4
-
-Nothing of step 3 is left. A step 4 is needed only if the reviews (a fresh Fable reviewer, then Codex) ask for
-changes, or if the lead wants the labwc abort looked at before (c): then start from the control at the end of
-`harness/driver.py` (`control_output_cycle`), which reproduces it in about ten seconds.
+- **REVIEW-2** (fresh Claude Fable 5.2 at `b12a87cd`): **SAFE**, five NITs. It rebuilt without the cache (72 tests,
+  binary SHA-256 `f4b3fbdd…28c8`, identical to step 3's) and reran the harness (81 passed, 0 failed).
+- **REVIEW-3** (Codex `gpt-6.2-sol` high, cross-review at `b12a87cd`): **CHANGES-NEEDED**, one BLOCKING, two
+  SHOULD-FIX, three NITs. It checked the vendor tree and the lockfile; its own build stopped on the sandbox's
+  read-only Podman directory, so it ran no tests.
+- **Sorted by the bar** (`briefs/316-input-portal.md`, "The bar"): none is real harm, so there is no step 4.
+  - REVIEW-3's BLOCKING finding 1: a key or button can reach the session that was capturing after it was told the
+    capture ended, when another session arms in that instant. It was typed during that session's capture and
+    reaches no other program or session; only the listed Deskflow can hold a session. Low harm.
+  - REVIEW-3's 2 and REVIEW-2's 3 (frontend handoff): the new name owner is trusted as the frontend anyway.
+  - REVIEW-3's 3 (clipboard release race): it can lose one just-made local copy, in a window of milliseconds.
+  - REVIEW-2's 2 and 4: dead sharing until restart, and a lost object for a reused path; no input leaks.
+  - REVIEW-2's 1 (labwc bindings live during a capture) and 5 (wording), REVIEW-3's 4 to 6 (harness): limits,
+    wording and harness follow-ups.
+  - All are in `KNOWN-LIMITS.md`; the backend fixes are item 9 and the binding check item 8 above.
 
 ## Podman, after step 3
 
@@ -360,5 +378,3 @@ Kept: the builder image and the two cache volumes, as after step 2; `localhost/a
 read); and one new image, `localhost/aresos-input-portal-harness:316` (the harness; remove it with
 `podman rmi localhost/aresos-input-portal-harness:316` when the package is merged). The two earlier builds of
 that image were removed by their IDs. No container is left (every run used `--rm`), and no `prune` was run.
-
-- **(c), from step 3's labwc abort (lead, 2026-11-20):** with the backend running, unplug and replug the external monitor and switch each output off and on with `wlr-randr`, in the VM and on the laptop; see `KNOWN-LIMITS.md`, "labwc aborts on an output off/on cycle". Never set a custom mode on his session with the backend running until this passes.
