@@ -46,7 +46,7 @@ the wrong program, secrets in a log, a capture with no way out, a change to the 
   checking again. The pipe goes to the frontend that asked, for a session of a listed application that could read
   the clipboard a moment earlier; no other program gets it. Not fixed: low harm.
 - **Ending a session's clipboard claim can erase a newer local copy** (REVIEW-3, finding 3). The release clears the
-  seat's whole selection while the backend still holds its source. If Patrik copies something on the laptop in the
+  seat's whole selection while the backend still holds its source. If the owner copies something on the laptop in the
   instant Deskflow disconnects, before the backend has seen labwc's `Cancelled`, his new copy is cleared. It takes
   a window of milliseconds and loses only that clipboard entry. Not fixed: low harm. Follow-up for (c): destroy
   only the portal's own source.
@@ -81,7 +81,7 @@ the wrong program, secrets in a log, a capture with no way out, a change to the 
   command carries its crossing.
 - **labwc's own key bindings stay live during a capture** (REVIEW-2, finding 1). The release chord works because
   labwc takes a bound key before the barrier's surface sees it, and that holds for every binding in AresOS's
-  `rc.xml`: Alt+F4, Alt+Tab, the volume and brightness keys. Pressed while Patrik works on the Mac, they close or
+  `rc.xml`: Alt+F4, Alt+Tab, the volume and brightness keys. Pressed while the owner works on the Mac, they close or
   switch a window on the laptop instead. Upstream's built-in Ctrl+Alt+Escape still ends a capture too; no test
   presses it. (c) presses each binding of the real `rc.xml` during a capture and decides which may stay.
 

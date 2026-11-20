@@ -331,7 +331,7 @@ local again. The EIS receiver saw Super and Shift go down (and, in this run, up 
 1. **First: the output check on real hardware (VM with a real or virtual DRM output, then the laptop).** With the
    backend running, `wlr-randr --output <external> --off`, then `--on`, and unplug and replug the monitor. labwc
    must keep running. Do it before anything else of (c) is built on this backend. Never set a custom mode on
-   Patrik's session with the backend running until this passes.
+   The owner's session with the backend running until this passes.
 2. Install the binary to `/usr/libexec/aresos-input-portal`, the portal file and the D-Bus service file, and the
    allow-list to `/usr/share/aresos/input-portal/allowed-apps`: root-owned, mode 0644, with Deskflow's proven
    `app_id` and nothing else.

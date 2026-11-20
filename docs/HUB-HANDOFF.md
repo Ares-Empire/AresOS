@@ -37,7 +37,7 @@ Written Fri 2026-11-20 13:50 by `linux-hub` (Claude Opus 5.5), before a clear at
   STATE.md has a line for each.
 - **R28** is the first release with the home screen at boot (packages 23, 23b and 23d, plus 46, 48, 51, 54 and 53a/b inert). Package 56 rides **R29**, as `linux-aresos` asked.
   - The cut was taken Thu 12:00: main `fba94b25` into `pkg/42` as `7f896b62`.
-  - Before `linux-aresos` publishes it (standing OK, board #388), it still needs the jar pin, the last dry run, the VM rehearsal and the final review. Installing it (`at update`) is Patrik's own step.
+  - Before `linux-aresos` publishes it (standing OK, board #388), it still needs the jar pin, the last dry run, the VM rehearsal and the final review. Installing it (`at update`) is the owner's own step.
   - The hub waits for `linux-aresos` to say R28 is on the laptop.
 - **B318 merged** (PR126, `4105952a`, Fri 2026-11-20): why 49's frozen games died on thaw, the first item of T364. STATE.md has the line.
   - **Next for T364:** once R28 runs the home on the laptop, read the running game read-only: the log's "OpenAL initialized on device" line, its loaded audio libraries (`/proc/<pid>/maps`) and its realtime threads. That tells which backend the product uses.
@@ -74,12 +74,12 @@ His guideline: "hub wise the main next step is make it a functional, usable home
   - the PR number for its read of any `os/` diff;
   - notice before any `rc.xml` edit;
   - notice before a mod merge on a cut morning.
-- **`linux-laptop-home`** owns package 53, the laptop-screen home. Patrik chose a native GTK/Cairo drawing (board #375, about 50 MiB) over the web page. It also owns package 25, the guardian. `mod/` is shared with it: it sends the mod files a step touches before the step starts.
+- **`linux-laptop-home`** owns package 53, the laptop-screen home. The owner chose a native GTK/Cairo drawing (board #375, about 50 MiB) over the web page. It also owns package 25, the guardian. `mod/` is shared with it: it sends the mod files a step touches before the step starts.
 - **`linux-desktop`** (formerly linux-deskflow) owns the normal OS pieces: indicators, window buttons, split screen, app switching. It also writes the Minecraft-look component study after the R28 cut (board #361).
   - **What it compares:** two versions side by side:
     - (A) our own pixel art;
     - (B) Minecraft's real textures and font, loaded at runtime from his installed game into a home-folder cache, never committed.
-  - **Who decides:** Patrik chooses once he sees the difference.
+  - **Who decides:** the owner chooses once he sees the difference.
   - **The hub's job:** review the study against the checklist sent on 2026-11-19:
     - no Mojang files committed;
     - sprites on Minecraft's GUI grid;
@@ -114,7 +114,7 @@ His guideline: "hub wise the main next step is make it a functional, usable home
 
 ## Held
 
-- **The companions (board #253):** held until Patrik decides after his try-out.
+- **The companions (board #253):** held until the owner decides after his try-out.
 
 ## How the hub works
 

@@ -25,7 +25,7 @@ Built by Claude. Brief: `briefs/15f-lenovo-firmware-entry.md`. Reviews are in `R
   - `docs/INSTALL.md` and `os/tests/test_owner_path.py`, already in PR #13
   - this package's tools, payload, guide and tests
 - The full suite showed this as two failures, `test_checkout_sources` and `test_owner_step_limits`. On main, `test_checkout_sources` had already been failing since PR #13.
-- Patrik chose to continue the install tonight with the reviewed tools and not rerun the 3–4 hour rehearsal first. The rehearsal can't reproduce Lenovo's entry anyway.
+- The owner chose to continue the install tonight with the reviewed tools and not rerun the 3–4 hour rehearsal first. The rehearsal can't reproduce Lenovo's entry anyway.
 - `os/manifest/ci/16/pending-rebind.json` lists the eleven files with the checkout bytes accepted now.
   - Both tests keep every other bound file strict.
   - A listed file must still differ from the walk and match its recorded bytes, so any further change has to be recorded on purpose.
