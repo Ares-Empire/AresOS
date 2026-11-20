@@ -26,7 +26,7 @@ All four runs went through `schedule.py` on the first attempt: no exit 75, no bu
 | Run | Settings | Exit | Outcome | Valid |
 |---|---|---|---|---|
 | S0 | `setup-flat` creation (`MODE=create CREATE_FLOW=automatic QUIT=1 COVER=0 SHOTS=1`) | 0 | Base world made (`fixture-hashes.json`, `screenshots/`). Not a trial. | n/a |
-| B1 | `RT=keep`, `COVER=300 RECLAIM=600M FREEZE=1` | 1 | Died by SIGKILL 197–207 ms after the thaw write | VALID |
+| B1 | `RT=keep`, `COVER=300 RECLAIM=600M FREEZE=1` | 1 | Died by SIGKILL, estimated 197–207 ms after the thaw write | VALID |
 | A1 | `RT=demote`, otherwise the same | 0 | Alive 60 s after the return request | VALID |
 | A2 | `RT=demote`, otherwise the same | 0 | Alive 60 s after the return request | VALID |
 
@@ -92,7 +92,7 @@ After 267.5 s frozen (the freeze starts 30 s into the 300 s cover), the demoted 
 - **A1:** 347.4 ms of CPU without a voluntary switch, in 350 ms of wall time from the thaw write; at most about 356 ms counting the unsampled edges;
 - **A2:** 349.1 ms by PLAN.md's measure, 354.5 ms counting the 5.4 ms before the first sample, ending by +357 ms.
 
-So the catch-up after this freeze is **about 350–356 ms of CPU, run in one stretch at nearly a full core**, about 1.3 ms of CPU per frozen second. That is 1.75 times the 200 ms limit. Before the freeze the mixer used about 0.45–0.7% of a core while the game ran and paused. Step 4 works out the longest safe freeze from these numbers.
+So the catch-up after this freeze is **about 350–356 ms of CPU, run in one stretch at nearly a full core**, about 1.3 ms of CPU per frozen second. That is 1.75 times the 200 ms limit. Before the freeze the mixer used about 0.45–0.7% of a core while the game ran and paused. Step 4 estimates from these numbers where a `null` thaw would cross the limit.
 
 ## How this differs from package 49's conditions
 
@@ -108,7 +108,7 @@ Package 49's two cover-freeze trials (`reviews/49-memory-cuts/failures/cover-fre
 | Base world | 49's own `setup-flat` base | A new `setup-flat` base from S0 (49b's went with its worktree) |
 | Freeze length | 267.5 s and 268.5 s | 267.5, 267.5 and 267.6 s |
 | Frozen memory | RSS 510 and 494 MiB, scope swap 598 and 599 MiB | RSS 502 (B1), 474 (A1), 421 (A2) MiB; swap 598, 598, 682 MiB |
-| Death after the thaw | 183–204 ms (cover-freeze-2, from its observer); cover-freeze-1 about the same | B1: 197–207 ms |
+| Death after the thaw | 183–204 ms (cover-freeze-2, from its observer); cover-freeze-1 about the same | B1: estimated 197–207 ms |
 | Realtime threads | One per game, priority 1 (rtkit's journal) | One per game, priority 1, `SCHED_RR` with `SCHED_RESET_ON_FORK` |
 
 None of the differences touches the mechanism. 49's deaths came at the same delay after the thaw as B1's, with the same single priority-1 thread and the same `null` backend, so the same watchdog very likely killed them too. The card, which brief review 1 had already cleared, stayed awake here and B1 died anyway. The longer delay before the thaw changes nothing for the mixer: it is frozen until the write.
@@ -206,14 +206,14 @@ Of OpenAL Soft's Linux backends only `null`, ALSA, OSS, JACK, sndio and Solaris 
 - **A laptop sleep is no risk.** libstdc++'s `steady_clock` is `CLOCK_MONOTONIC`, which doesn't advance while the system is suspended (`clock_gettime(2)`). So the `null` mixer sees no gap after a suspend. Only stopping the process while the system runs (a cgroup freeze, `SIGSTOP`) builds a backlog.
 - **The limit can't be raised.** rtkit refuses any process whose hard `RLIMIT_RTTIME` is above 200 ms (`rtkit-daemon.c:142`, `665`), and raising a hard limit needs privilege.
 - **Keep `[pipewire] rt-mix` off** (its default). With it OpenAL would mix on PipeWire's realtime thread (`pipewire.cpp:1728-1730`). Rendering one cycle per call keeps the risk small, but nothing is gained.
-- **An upstream fix** would cap the `null` backend's backlog: drop what is more than a buffer behind, as the real backends do. It would reach the game only through a new LWJGL, so it is nothing to wait for.
+- **An upstream fix** would cap the `null` backend's backlog: drop what is more than a buffer behind instead of rendering it all. It would reach the game only through a new LWJGL, so it is nothing to wait for.
 
-### 3. The longest safe freeze for `null`
+### 3. The estimated crossover for `null`
 
 - The catch-up grows linearly with the frozen time: each frozen second adds a second of samples for the inner loop to render (`null.cpp:75-86`).
 - Measured: 350–356 ms of CPU after 267.5 s frozen, so 1.31–1.33 ms per frozen second. B1 died at about 196–200 ms of it.
 - **200 ms ÷ 1.33 ms per frozen second ≈ 150 s.** This is an extrapolation from one freeze length of one workload: near silence (the covered home screen pauses every sound) on this laptop's CPU. Music, many sources or HRTF cost more per second, and a slower or throttled CPU renders more slowly, so the crossing can come much earlier. No freeze length is shown to be safe; don't use a time limit in place of the demotion.
-- **For the real backend: nothing, by the source.** PipeWire and PulseAudio build no backlog, and their mixer threads aren't realtime, so this number doesn't bound a real-session freeze. Rig and CI runs of the sleeping world all use `null`: they need the demotion (or `rt-prio = 0`), not a time limit.
+- **For the real backends: this number doesn't apply.** Their source has no elapsed-time catch-up loop, so it doesn't bound a real-session freeze; how a real backend behaves after a thaw stays open. Rig and CI runs of the sleeping world all use `null`: they need the demotion (or `rt-prio = 0`), not a time limit.
 
 ### 4. Why the thread is named `Render thread`
 
@@ -232,9 +232,9 @@ Of OpenAL Soft's Linux backends only `null`, ALSA, OSS, JACK, sndio and Solaris 
 
 By the source, the PipeWire backend has no catch-up loop and OpenAL doesn't make its mixer realtime; whether the kill can happen in the product stays open until a real session shows the backend and its threads. b) is the safety net for the fallbacks (ALSA, `null`) and for whatever realtime thread PipeWire adds to the game. Every rig and CI run of the sleeping world uses `null`, so those need b) (or `rt-prio = 0`) to survive a thaw.
 
-Don't make c) the fix: it does nothing for the product's backend, and PipeWire's own module can undo `rt-time-limit = false`. `rt-prio = 0` is a fine one-line choice for a rig that wants long freezes without the demotion code. Keep a) for later. It is the cleanest for the audio (no stream running while frozen), but it costs a mod change, a handshake on every freeze and, with `null`, an rtkit request on every wake. Take it up only if a real-session thaw shows audio trouble.
+Don't make c) the fix: by the source it does nothing for the PipeWire and PulseAudio backends, where OpenAL asks for no realtime, and PipeWire's own module can undo `rt-time-limit = false`. `rt-prio = 0` is a fine one-line choice for a rig that wants long freezes without the demotion code. Keep a) for later. It is the cleanest for the audio (no stream running while frozen), but it costs a mod change, a handshake on every freeze and, with `null`, an rtkit request on every wake. Take it up only if a real-session thaw shows audio trouble.
 
-**Before relying on the source reading,** a real session should show two things without freezing anything: the game log's "OpenAL initialized on device" line (which backend) and the game's realtime threads (policy, priority, `comm`). That runs in the owner's session, so it is his call. A real thaw test is a decision for a later package.
+**Before relying on the source reading,** a real session should show, without freezing anything and read-only: the game log's "OpenAL initialized on device" line (a hint only), the audio libraries the game process has loaded (`/proc/<pid>/maps`), and the game's realtime threads (policy, priority, `comm`). Together these identify the backend and its realtime threads better than the device name alone. Once the release with the home screen runs on the laptop, the lead can read them from the running game. A real thaw test is a decision for a later package.
 
 ## Known limits (review 1)
 
