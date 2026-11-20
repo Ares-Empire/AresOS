@@ -85,9 +85,14 @@ Ares-Empire/AresOS --interval 300` in a background shell.
      (`c64d7367`) is **red in two cases only** (Chrome 44661058968, qualification 44661067429): GROUP 7 POST18D typed
      reads (`fixture is not defined`, late-reader-matrix.mjs:64) and GROUP 8 REVIEW iframe drafts (3a's new
      `navigationTrace` finds no `Page.reload` row although the page reloaded). Fix round 2 (`28a-step3a-fix2.txt`,
-     gpt-6.2-sol) runs in the same chain, then 3b if green. A third red round goes to astra. The builder may not touch `docs/design/`: **after 3b, add
-     `chrome_show`'s exception to CONTROL.md line 753 yourself** ("Nothing of ours ever opens a window or takes
-     the focus", except `chrome_show`, which brings a tab to the front for him). Then step 2
+     gpt-6.2-sol) runs in the same chain, then 3b if green. **Fri 05:04 3a green** on `75bc1428` (Chrome 44671559502,
+     qualification 44671559627). **06:59 3b done** (`25809d99`: 18 tools removed, 19 left; descriptions 5,975,
+     instructions 2,798, combined 8,773; group 16 now fails a sample above 1.5x its task's median in the same run).
+     Pass 1 on 25809d99: boundary 44684294599 and privacy 44684311459 green; Chrome 44684296519, qualification
+     44684299893, base 44684303561, Mail 44684307975 watched by a shell. The lead's `chrome_show` line is in
+     CONTROL.md on the branch (`1c67199b`). Next: Codex step 4 (`28a-step4.txt`: FEATURES' stale `chrome_fill`
+     State cell, REPORT.md, KNOWN-LIMITS, pass 2 = Chrome and qualification again), then the package and security
+     reviews (astra). Reviewers must read 3b's "private view digest" in the reader's native reply. Then step 2
      (HARNESS-MAP), step 3b (removal; CONTROL.md line 753 "nothing of ours ... takes the focus" needs `chrome_show`'s exception;
      `response_checks.check_responses` in the Chrome tests, #122's NIT 2), step 4 (full validation twice), the
      package and security reviews. Red: one Codex Sol fix step that pushes, dispatches once and stops.
