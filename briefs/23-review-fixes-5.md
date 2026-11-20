@@ -28,7 +28,7 @@ The owner already chose this direction: board #170, an unexplained death latches
 
 ## Review bar (owner, 2026-11-11)
 
-Patrik set the bar for AresOS tools: "reasonably safe", like any existing CLI or MCP, not "nothing could ever go wrong". Extra care applies where AresOS adds its own risk.
+The owner set the bar for AresOS tools: "reasonably safe", like any existing CLI or MCP, not "nothing could ever go wrong". Extra care applies where AresOS adds its own risk.
 
 For this package, that extra care covers:
 - a restart loop under memory pressure that could freeze the laptop;

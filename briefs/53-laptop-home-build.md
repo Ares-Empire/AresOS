@@ -83,13 +83,13 @@ Board brief 306, board #335. This is a handoff from `linux-hub` (2026-11-17) to 
   deadlock while closing (render thread in `IntegratedServer.halt`/`executeBlocking`, server at a Fabric test
   barrier). PR #108 (package 54, commit 345ba61d) carries a test-only fix. Until it merges, 53b's and 53d's briefs say
   that a full suite hung in that test is this bug, not theirs.
-- **The safety bar for every review and fix round** (decision 24, as clarified 2026-11-11; Patrik restated it
+- **The safety bar for every review and fix round** (decision 24, as clarified 2026-11-11; the owner restated it
   2026-11-18 through `mac-capacity`: "it needs to be reasonable … safe right? Not every edge case safe? We once wasted
   time on that … genuinely legitimate safety things make sense to do"):
   - Real-harm findings get fixed: data loss, credentials (the view token), system changes, anything hard to undo.
   - Low-harm edge cases go under Known limits or into a follow-up, not into another fix round.
   - Every reviewer brief states this bar.
-- **Brief reviews** (Patrik, 2026-11-18 through `mac-capacity`): one Claude review, then one cross-model review (Codex
+- **Brief reviews** (the owner, 2026-11-18 through `mac-capacity`): one Claude review, then one cross-model review (Codex
   while it lasts), or straight to the Codex one while Claude is tight. Then build. Another round only for a blocking
   design flaw, as a targeted recheck; should-fixes and low-harm edge cases go to the code review or Known limits.
   53a's brief goes straight to one Codex review (Claude at 80% this week).
@@ -125,7 +125,7 @@ Everything open is reviewed SAFE with green checks; nothing runs. STATE.md (pack
 7. **Then** STATE.md and this handoff, worktrees and branches cleaned up, `board done` on #357, #358, #359, #369, #383,
    #384, #387 as each closes, and "ready to clear" to `mac-capacity`.
 
-**Claude budget (Patrik, 2026-11-19 through `mac-capacity`):** about 2% of the week per lead per day; one Claude agent
+**Claude budget (the owner, 2026-11-19 through `mac-capacity`):** about 2% of the week per lead per day; one Claude agent
 at a time; fresh agents with short handoffs; Opus by default, Fable only for installs, rollback, credentials and
 security, so package 25's step 8 goes to Opus (or Codex Sol, within Codex's 12% a day). No agent waits on CI; shell
 watchers do.
