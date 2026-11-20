@@ -334,7 +334,7 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       await eventually(()=>counts('loaded-'+next)===1,'navigate to an address '+mode);
       navigationTrace(offset,tab,['prepare_control','Page.reload','navigate','Page.navigate'],[['reload',before],['differentDocument',url]]);
     }
-    // discard_unsaved: chrome_close_tab gives the same report in a tab Claude
+    // discard_unsaved: chrome_close gives the same report in a tab Claude
     // opened, whose reader watched from the start, and closes only with the flag.
     const main=getTab();
     for(const mode of ['dirty','web-audio','clean']){
