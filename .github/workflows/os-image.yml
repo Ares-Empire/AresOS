@@ -855,7 +855,9 @@ jobs:
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
           unshare -Urm true
       - name: Qualify tools, regressions, rewritten release identity and private access
-        timeout-minutes: 35
+        # The full suite runs here too: 26 to 28 minutes in R28 rehearsals 2 and 3, 38 and over 40 in two
+        # checks runs (package 42, 2026-11-20). 50 keeps a slow runner from costing a rehearsal.
+        timeout-minutes: 50
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REHEARSAL_MODE: ${{ inputs.rehearsal }}

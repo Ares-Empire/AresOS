@@ -202,7 +202,7 @@ class GuardTest(unittest.TestCase):
         self.assertEqual(job['timeout-minutes'],limits)
         steps={s['name']:s for s in job['steps'] if 'name' in s}
         native=steps[guard.NATIVE_STEP]
-        self.assertEqual(native['timeout-minutes'],'35')
+        self.assertEqual(native['timeout-minutes'],'50')
         retry="printf 'Acquire::Retries \"3\";\\n' | sudo tee /etc/apt/apt.conf.d/80ares-playwright-retries >/dev/null"
         browser='.work/browser-env/bin/playwright install --with-deps chromium'
         self.assertEqual(native['run'].count(retry),1)

@@ -41,7 +41,7 @@
       "path": ".gitattributes"
     },
     {
-      "sha256": "0647f133f87297b7edf5150c6e1e1c0c13db3af240768087a24ac1b94fbf9bf0",
+      "sha256": "21ecbd37312e7384c59fb0bb1cf29f03cd415a76f603ac1091d74e07160fcf9c",
       "path": ".github/workflows/os-image.yml"
     },
     {
@@ -169,7 +169,7 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "acbcc2cf2ff2218c1c16dbad9e4dd98d439b53ac281f5fbc1c961a9a07c71182",
+      "sha256": "4b4f662d94fce5086111b77de1311e0d3c7eb7e6be2c5cafa9c0b2ef40cf5dac",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
@@ -949,7 +949,7 @@
       "path": "os/tests/test_owner_format_audit.py"
     },
     {
-      "sha256": "4a456499463cfb75f20c58ae5d7bcacedd972967a372f4468de8c4d9d98a2f1c",
+      "sha256": "f21a72bd306dd245ed3321f261808cc7f2c7488fb3ac9c141d3c12caa6a96724",
       "path": "os/tests/test_owner_guard.py"
     },
     {
@@ -1053,7 +1053,7 @@
       "path": "os/tests/test_rehearsal_retry.py"
     },
     {
-      "sha256": "8b9c79b5945f7c92507b0c14c6795e306e6585e3b6bbedd70d985a3fc7c91e50",
+      "sha256": "63493064a9481c1e36c8573fb3822bd56fb91fe4b3d6595bc757d3859ca85f0c",
       "path": "os/tests/test_release28_rehearsal.py"
     },
     {

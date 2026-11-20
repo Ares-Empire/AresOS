@@ -47,12 +47,13 @@
     "42 step 6 fix 1: the cross-review's six findings",
     "42 step 6 fix 1: the cross-review's six findings; R28 VM step 290",
     "42 step 6: checks cap 6, regressions job 60 minutes",
-    "42 step 6: checks cap 7; test_ways_back_model binds the 60-minute regressions job"
+    "42 step 6: checks cap 7; test_ways_back_model binds the 60-minute regressions job",
+    "42 step 6: the rehearsal preflight step 35 -> 50 minutes; checks cap 8"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
     {
-      "sha256": "0647f133f87297b7edf5150c6e1e1c0c13db3af240768087a24ac1b94fbf9bf0",
+      "sha256": "21ecbd37312e7384c59fb0bb1cf29f03cd415a76f603ac1091d74e07160fcf9c",
       "path": ".github/workflows/os-image.yml"
     },
     {
@@ -92,7 +93,7 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "acbcc2cf2ff2218c1c16dbad9e4dd98d439b53ac281f5fbc1c961a9a07c71182",
+      "sha256": "4b4f662d94fce5086111b77de1311e0d3c7eb7e6be2c5cafa9c0b2ef40cf5dac",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
@@ -172,7 +173,7 @@
       "path": "os/tests/test_owner_equality.py"
     },
     {
-      "sha256": "4a456499463cfb75f20c58ae5d7bcacedd972967a372f4468de8c4d9d98a2f1c",
+      "sha256": "f21a72bd306dd245ed3321f261808cc7f2c7488fb3ac9c141d3c12caa6a96724",
       "path": "os/tests/test_owner_guard.py"
     },
     {
