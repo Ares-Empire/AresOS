@@ -11,7 +11,7 @@ import urllib.error
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from aresos_control.chrome import adapter
-from aresos_control.chrome.adapter import Chrome, view_identity
+from aresos_control.chrome.adapter import Chrome
 from aresos_control.chrome.bridge import Bridge
 from aresos_control.chrome.policy import CORE_GROUPS, HOSTS
 from aresos_control.chrome import qualification as q
@@ -32,7 +32,6 @@ class Service(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory(dir=WORK)
         self.root = Path(self.temporary.name)
         self.boundary = patch('aresos_control.engine.Boundary'); self.boundary.start()
-        self.old = test_engine.old_tools(); self.old.start()
         self.engine = Engine(self.root/'state', self.root/'evidence')
         self.chrome = self.engine.adapters['chrome']
         self.peer = test_engine.Browser()
@@ -42,18 +41,16 @@ class Service(unittest.TestCase):
         self.set_record(entry(build=self.build))
 
     def tearDown(self):
-        self.engine.close(); self.old.stop(); self.boundary.stop(); self.temporary.cleanup()
+        self.engine.close(); self.boundary.stop(); self.temporary.cleanup()
 
     def set_record(self, *entries):
         self.engine.store.write({'chrome:qualification': {'format': 1, 'entries': list(entries)}}, 'chrome_fixture', 'Synthetic qualification state')
 
     def call(self, verb, args=None, admin=False):
-        return self.engine.request({'v':1, 'method':'call', 'action':'chrome_'+test_engine.old(verb), 'arguments':args or {}}, admin)
+        return test_engine.fixture_call(self.engine, verb, args, admin)
 
     def target(self):
-        frame = self.peer.facts['frames'][0]
-        return {'reference': {'session': self.peer.session, 'tab': 1, 'frame': 0, 'document': frame['document'],
-                              'view': view_identity(self.peer.facts), 'element': 'e1'}, 'expected': copy.deepcopy(frame['target'])}
+        return test_engine.fixture_target(self.chrome, self.peer)
 
     def restart_from_image(self, shipped):
         """Start the service again, keeping its store, from an installed image whose shipped copy is shipped."""
@@ -145,7 +142,7 @@ class Service(unittest.TestCase):
         self.assert_activation('check', {'role':'checkbox'}, {'checked':True})
 
     def test_conservative_list_choice_asks_then_dispatches_once(self):
-        self.assert_activation('select', {'role':'combobox'}, {'value':'b'})
+        self.assert_activation('select', {'role':'combobox','options':[{'value':'b','label':'B','disabled':False}]}, {'value':'b'})
 
     def test_conservative_enter_control_asks_then_dispatches_once(self):
         self.assert_activation('press', {}, {'key':'Enter'})

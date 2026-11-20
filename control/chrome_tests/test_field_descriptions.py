@@ -19,7 +19,6 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from aresos_control.chrome.adapter import view_identity
 from aresos_control.chrome.bridge import Bridge
 from aresos_control.chrome import projection
 from aresos_control.common import validate, visible
@@ -92,7 +91,15 @@ class Host:
             for frame in facts['frames']:
                 if element in self.targets and command.get('reference', {}).get('frame') == frame['frame']:
                     frame['target'] = copy.deepcopy(self.targets[element])
+                    frame.update(reader=f"reader-{frame['frame']}", fingerprint=element[1:].zfill(32))
             return {'ok': True, 'data': facts}
+        if name == 'tab_context':
+            return {'ok': True, 'data': {key: self.facts[key] for key in ('tab','session','url','control')}}
+        if name == 'page_state':
+            return {'ok': True, 'data': {'session': SESSION, 'tab': 1, 'control': 'control-1', 'queued': False,
+                                         'dialog': False, 'document': 'native-0', 'address': 'a' * 64, 'ready': True, 'token': 'token-1'}}
+        if name == 'outline':
+            return {'ok': True, 'data': {**self.facts, 'frames': []}}
         if name == 'validity':
             return {'ok': True, 'data': {'document': 'document-0', 'control': 'control-1', 'element_present': True}}
         if name == 'queued_steps':
@@ -122,7 +129,6 @@ class Descriptions(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(dir=fixture.WORK)
         self.root = Path(self.temp.name)
         self.mock = patch('aresos_control.engine.Boundary'); self.mock.start()
-        self.old = fixture.old_tools(); self.old.start()
         self.engine = Engine(self.root / 'state', self.root / 'evidence')
         self.chrome = self.engine.adapters['chrome']
         self.chrome.read_owner_hosts = lambda: []
@@ -137,10 +143,11 @@ class Descriptions(unittest.TestCase):
         self.engine.store.write({'chrome:qualification': record}, 'chrome_test_setup', 'Synthetic qualification, test store only')
 
     def tearDown(self):
-        self.engine.close(); self.old.stop(); self.mock.stop(); self.temp.cleanup()
+        self.engine.close(); self.mock.stop(); self.temp.cleanup()
 
     def call(self, name, args=None):
-        return self.engine.request({'v': 1, 'method': 'call', 'action': fixture.tool(name), 'arguments': args or {}})
+        with patch('aresos_control.chrome.bridge.select.select', lambda r, w, x, t: (r, w, x)):
+            return self.engine.request({'v': 1, 'method': 'call', 'action': name, 'arguments': args or {}})
 
     def public(self, result, name):
         """The result as the engine, the socket, and the MCP/CLI text give it; each must agree."""
@@ -148,7 +155,7 @@ class Descriptions(unittest.TestCase):
         for form in forms:
             self.assertTrue(form['ok'], form)
             self.assertEqual(form, forms[1])
-            validate(form, BY_NAME[fixture.tool(name)].tool()['outputSchema'], 'result')
+            validate(form, BY_NAME[name].tool()['outputSchema'], 'result')
         return forms[2]['data']
 
     def ask(self):
@@ -314,11 +321,21 @@ class Descriptions(unittest.TestCase):
 
     # A send, its free inputs, and every place a description lists fields (item 3a's).
 
-    def reference(self, element, frame=0):
-        facts = self.host.answer({'name': 'facts', 'reference': {'element': element, 'frame': frame}})['data']
-        place = next(item for item in facts['frames'] if item['frame'] == frame)
-        return {'reference': {'session': SESSION, 'tab': 1, 'frame': frame, 'document': place['document'],
-                              'view': view_identity(facts), 'element': element}, 'expected': copy.deepcopy(place['target'])}
+    def step(self, verb, element, **arguments):
+        facts = self.host.answer({'name': 'facts', 'reference': {'element': element, 'frame': 0}})['data']
+        frame = facts['frames'][0]
+        refs = self.chrome.references
+        refs.connect(SESSION)
+        ref = refs.issue(1, 0, frame['document'], frame['reader'], int(element[1:]))
+        refs.returned(1, [(ref, '', frame['fingerprint'])])
+        result = self.call('chrome_do', {'tab': 1, 'steps': [{'do': verb, 'ref': ref, **arguments}]})
+        return self.public(result, 'chrome_do')
+
+    def prepare_step(self, verb, element, **arguments):
+        result = self.step(verb, element, **arguments)
+        self.assertEqual([step['outcome'] for step in result['steps']], ['prepared'])
+        [prepared] = result['prepared']
+        return prepared['approval']
 
     def page(self, **frame):
         self.host.facts['frames'] = [page_frame(**frame)]
@@ -329,7 +346,7 @@ class Descriptions(unittest.TestCase):
         self.page(form={'element': 'e4', 'action': SITE + '/save', 'method': 'post', 'encoding': 'application/x-www-form-urlencoded',
                         'target': '', 'browsing_target': '_self', 'search': False, 'fields': fields})
         self.host.targets['e6'] = target('e6', 'Note', value='second text')
-        prepared = self.public(self.call('chrome_press', {**self.reference('e6'), 'key': 'Enter'}), 'chrome_press')['approval']
+        prepared = self.prepare_step('press', 'e6', key='Enter')
         self.assertIn("send 'Note' (2 of 2) using Enter to " + SHOWN + '/save', prepared['question'])
         state = prepared['description']['untrusted_content']['page_state']
         self.assertEqual([field['description'] for field in state['form']['fields']], ['"Note" (1 of 2)', '"Note" (2 of 2)', '"Save"'])
@@ -351,7 +368,7 @@ class Descriptions(unittest.TestCase):
         self.page(form={'element': 'e4', 'action': SITE + '/save', 'method': 'post', 'encoding': 'application/x-www-form-urlencoded',
                         'target': '', 'browsing_target': '_self', 'search': False, 'fields': fields})
         self.host.targets['e6'] = target('e6', '')
-        prepared = self.public(self.call('chrome_press', {**self.reference('e6'), 'key': 'Enter'}), 'chrome_press')['approval']
+        prepared = self.prepare_step('press', 'e6', key='Enter')
         self.assertIn("send 'Enter' (unnamed single-line field (2 of 2)) using Enter", prepared['question'])
 
     def test_every_listed_place_of_a_description_and_a_field_listed_twice(self):
@@ -363,7 +380,7 @@ class Descriptions(unittest.TestCase):
                   selected_files=[files('e10'), files('e11')])
         self.host.targets['e7'] = target('e7', 'Send', role='button', editable=False, submit=True,
                                          page_dialog={'element': 'e3', 'kind': 'dialog', 'text': 'Send the amounts?', 'button': 'Send', 'fields': dialog_fields})
-        prepared = self.public(self.call('chrome_click', self.reference('e7')), 'chrome_click')['approval']
+        prepared = self.prepare_step('click', 'e7')
         state = prepared['description']['untrusted_content']['page_state']
         self.assertEqual([field['description'] for field in state['form']['fields']],
                          ['"Amount" (1 of 2)', '"Amount" (2 of 2)', '"Attachment" (1 of 2)', '"Attachment" (2 of 2)'])
@@ -377,7 +394,7 @@ class Descriptions(unittest.TestCase):
         self.page(item='Unit price 25 Pay', item_fields=[control('e5', 'Quantity', type='number', value='1'),
                                                          control('e6', 'Quantity', type='number', value='2')])
         self.host.targets['e7'] = target('e7', 'Pay', role='button', editable=False)
-        prepared = self.public(self.call('chrome_click', self.reference('e7')), 'chrome_click')['approval']
+        prepared = self.prepare_step('click', 'e7')
         state = prepared['description']['untrusted_content']['page_state']
         self.assertEqual([field['description'] for field in state['item_fields']], ['"Quantity" (1 of 2)', '"Quantity" (2 of 2)'])
         # A send outside a form binds every frame's editable fields; two frames alike still differ by position.
@@ -386,7 +403,7 @@ class Descriptions(unittest.TestCase):
                                      page_frame(3, notes, title='Notes', editable=[control('e1', 'Message', value='left')]),
                                      page_frame(4, notes, title='Notes', editable=[control('e1', 'Message', value='right')])]
         self.host.targets['e2'] = target('e2', 'Send', role='button', editable=False)
-        prepared = self.public(self.call('chrome_click', self.reference('e2')), 'chrome_click')['approval']
+        prepared = self.prepare_step('click', 'e2')
         state = prepared['description']['untrusted_content']['page_state']
         self.assertEqual([(item['frame'], field['description']) for item in state['editable'] for field in item['fields']],
                          [(0, '"Message" (1 of 3)'), (3, '"Message" (2 of 3)'), (4, '"Message" (3 of 3)')])
@@ -441,8 +458,10 @@ class Descriptions(unittest.TestCase):
         self.page(form={'element': 'e4', 'action': SITE + '/save', 'method': 'post', 'encoding': 'application/x-www-form-urlencoded',
                         'target': '', 'browsing_target': '_self', 'search': False, 'fields': fields})
         self.host.targets['e6'] = target('e6', 'Note', value='')
-        result = self.public(self.call('chrome_fill', {**self.reference('e6'), 'text': 'typed'}), 'chrome_fill')
-        operation = self.engine.store.get('op:' + result['operation_id'])
+        result = self.step('fill', 'e6', text='typed')
+        [outcome] = result['steps']
+        self.assertEqual(outcome['outcome'], 'done')
+        operation = self.engine.store.get('op:' + outcome['operation_id'])
         state = operation['approval']['description']['untrusted_content']['page_state']
         self.assertEqual([field['description'] for field in state['form']['fields']], ['"Note" (1 of 2)', '"Note" (2 of 2)'])
         self.assertEqual(state['target']['description'], '"Note" (2 of 2)')

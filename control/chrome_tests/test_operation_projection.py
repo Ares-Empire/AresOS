@@ -143,7 +143,8 @@ class Projection(unittest.TestCase):
     tearDown = test_field_descriptions.Descriptions.tearDown
     call = test_field_descriptions.Descriptions.call
     public = test_field_descriptions.Descriptions.public
-    reference = test_field_descriptions.Descriptions.reference
+    step = test_field_descriptions.Descriptions.step
+    prepare_step = test_field_descriptions.Descriptions.prepare_step
 
     def host_page(self, **frame):
         self.host.facts['url'] = PAGE
@@ -175,7 +176,7 @@ class Projection(unittest.TestCase):
 
     def test_a_prepared_operation_shows_public_addresses_and_records_short_ones_while_the_payload_keeps_them_whole(self):
         self.addressed_page()
-        prepared = self.public(self.call('chrome_click', self.reference('e6')), 'chrome_click')['approval']
+        prepared = self.prepare_step('click', 'e6')
         state = prepared['description']['untrusted_content']['page_state']
         self.assert_hidden(prepared)
         # The public form: the ordinary query shows, the sign-in parts are marked.
@@ -202,19 +203,21 @@ class Projection(unittest.TestCase):
     def test_a_link_and_a_send_outside_a_form_show_public_addresses(self):
         self.addressed_page()
         self.host.facts['frames'][0]['form'] = None
-        prepared = self.public(self.call('chrome_click', self.reference('e7')), 'chrome_click')
+        prepared = self.step('click', 'e7')
+        [dispatched] = prepared['steps']
+        self.assertEqual(dispatched['outcome'], 'done')
         # A free link: the committed description and the result.
-        operation = self.operation(prepared['operation_id'])
+        operation = self.operation(dispatched['operation_id'])
         state = operation['approval']['description']['untrusted_content']['page_state']
         self.assertEqual(state['target']['href'], 'fixture.test/go?v=…&q=red+shoes')
         self.assertEqual(operation['payload']['binding']['target']['href'], LINK)
-        self.assertEqual(prepared['untrusted_content']['page']['url'], 'fixture.test/shop?q=red+shoes&code=…#access_token=…')
+        self.assertEqual(prepared['untrusted_content']['url'], 'fixture.test/shop?q=red+shoes&code=…#access_token=…')
         self.assertIn('red', canonical(prepared), 'a result shows an ordinary query')
         self.assertNotIn('red', canonical(operation['stages']['page']), 'its record does not')
         self.assert_hidden(prepared, operation['approval'], operation['stages'], self.log())
         # A send outside a form: every frame's editable fields with their frame's address.
         self.host.targets['e2'] = target('e2', 'Send', role='button', editable=False)
-        asked = self.public(self.call('chrome_click', self.reference('e2')), 'chrome_click')['approval']
+        asked = self.prepare_step('click', 'e2')
         self.assert_hidden(asked)
         state = asked['description']['untrusted_content']['page_state']
         self.assertEqual([item['url'] for item in state['editable']], ['fixture.test/shop?q=red+shoes&code=…#access_token=…', 'frame.test/reset/…?session=…'])
@@ -227,21 +230,26 @@ class Projection(unittest.TestCase):
                   'effective_url': DIALOG, 'dialog': {'kind': 'confirm', 'text': 'Delete this?', 'frame': 0, 'frame_url': DIALOG, 'button': 'OK'}}
         answer = self.host.answer
         self.host.answer = lambda command: {'ok': True, 'data': copy.deepcopy(native)} if command['name'] == 'dialog_facts' else answer(command)
-        prepared = self.public(self.call('chrome_dialog', {'tab': 1, 'expected': native['dialog'], 'accept': True}), 'chrome_dialog')['approval']
+        self.chrome.references.dialog_shown(1, {key: native['dialog'][key] for key in ('kind', 'text')})
+        result = self.public(self.call('chrome_do', {'tab': 1, 'steps': [{'do': 'dialog', 'accept': True}]}), 'chrome_do')
+        self.assertEqual([step['outcome'] for step in result['steps']], ['prepared'])
+        prepared = result['prepared'][0]['approval']
         self.assert_hidden(prepared)
         self.assertEqual(prepared['description']['untrusted_content']['page_state']['dialog']['frame_url'], 'frame.test/dialog?state=…')
         self.assertEqual(self.operation(prepared['operation_id'])['payload']['binding']['dialog']['frame_url'], DIALOG)
         # A navigation's committed description; the payload keeps the address it navigated to.
-        self.host.answer = lambda command: ({'ok': True, 'data': {'session': SESSION, 'tab': 1, 'url': PAGE, 'title': 'Shop', 'frames': [{'frame': 0, 'url': PAGE, 'document': 'd'}]}}
-                                            if command['name'] == 'tab_context' else
-                                            {'ok': True, 'data': {'navigated': True, 'page': {'available': True, 'url': LINK}}}
-                                            if command['name'] == 'navigate' else answer(command))
-        result = self.public(self.call('chrome_navigate', {'tab': 1, 'url': LINK}), 'chrome_navigate')
-        operation = self.operation(result['operation_id'])
+        def navigate(command):
+            if command['name'] == 'navigate':
+                self.host.facts['url'] = LINK
+                return {'ok': True, 'data': {'navigated': True, 'page': {'available': True, 'url': LINK}}}
+            return answer(command)
+        self.host.answer = navigate
+        result = self.public(self.call('chrome_go', {'tab': 1, 'url': LINK, 'timeout_ms': 0}), 'chrome_go')
+        [operation] = [op for _, op in self.engine.store.iter_items('op:') if op['action']=='chrome_navigate']
         self.assert_hidden(result, operation['approval'], operation['stages'], self.log())
         self.assertEqual(operation['payload']['url'], LINK)
         self.assertEqual(operation['payload']['before']['url'], PAGE)
-        self.assertEqual(result['untrusted_content']['page']['url'], 'fixture.test/go?v=…&q=red+shoes')
+        self.assertEqual(result['untrusted_content']['url'], 'fixture.test/go?v=…&q=red+shoes')
         self.assertEqual(operation['stages']['page']['page']['url'], 'fixture.test/go?…')
 
     def test_a_typed_read_question_shows_the_public_form(self):
@@ -279,7 +287,7 @@ class Projection(unittest.TestCase):
 
     def test_f4_is_asked_once_within_9000_bytes_and_its_payload_keeps_every_option(self):
         self.f4()
-        prepared = self.public(self.call('chrome_click', self.reference('e32')), 'chrome_click')['approval']
+        prepared = self.prepare_step('click', 'e32')
         state = prepared['description']['untrusted_content']['page_state']
         country = next(field for field in state['form']['fields'] if field['label'] == 'Country')
         self.assertEqual(country['chosen'], [{'label': 'Country 7', 'value': 'c7', 'selected': True, 'disabled': False}])
@@ -302,8 +310,8 @@ class Projection(unittest.TestCase):
     def test_f4_with_its_options_left_whole_is_refused_as_on_main(self):
         self.f4()
         with patch.object(projection, 'lists', lambda value, choosing=None: value):
-            result = self.call('chrome_click', self.reference('e32'))
-        self.assertEqual(result['error']['code'], 'asking_input_too_large')
+            result = self.step('click', 'e32')
+        self.assertEqual(result['steps'][0]['code'], 'asking_input_too_large')
         self.assertEqual(list(self.engine.store.iter_items('op:')), [])
 
     def test_conservative_f4_with_affected_item_fields_fits_but_whole_options_refuse(self):
@@ -316,8 +324,7 @@ class Projection(unittest.TestCase):
         field = next(field for field in fields if field['label'] == 'Country')
         self.host.targets[field['element']] = target(field['element'], 'Country', role='combobox', editable=False,
                                                      value=field['value'], options=field['options'])
-        args = {**self.reference(field['element']), 'value': 'c12'}
-        prepared = self.public(self.call('chrome_select', args), 'chrome_select')['approval']
+        prepared = self.prepare_step('select', field['element'], value='c12')
         measured = size(prepared)
         print('Conservative F4 with item_fields: %d bytes / 14000, ASK_LIMIT %d' % (measured, ASK_LIMIT))
         self.assertLess(measured, ASK_LIMIT)
@@ -328,8 +335,8 @@ class Projection(unittest.TestCase):
         self.assertEqual(len(binding['item_fields']), 26)
         before = list(self.engine.store.iter_items('op:'))
         with patch.object(projection, 'lists', lambda value, choosing=None: value):
-            refused = self.call('chrome_select', args)
-        self.assertEqual(refused['error']['code'], 'asking_input_too_large')
+            refused = self.step('select', field['element'], value='c12')
+        self.assertEqual(refused['steps'][0]['code'], 'asking_input_too_large')
         self.assertEqual(list(self.engine.store.iter_items('op:')), before, 'whole options reserve nothing')
         self.assertEqual(self.host.sent('input'), [], 'neither preparation dispatches input')
 
@@ -339,7 +346,7 @@ class Projection(unittest.TestCase):
         dialog_list = select('e42', 'Account', options(3, chosen=(2,), prefix='Account ', value='a'))
         self.f4(f4_fields() + [many, none])
         self.host.targets['e32']['page_dialog'] = {'element': 'e44', 'kind': 'dialog', 'text': 'Save?', 'button': 'Save', 'fields': [dialog_list]}
-        prepared = self.public(self.call('chrome_click', self.reference('e32')), 'chrome_click')['approval']
+        prepared = self.prepare_step('click', 'e32')
         state = prepared['description']['untrusted_content']['page_state']
         fields = {field['label']: field for field in state['form']['fields']}
         self.assertEqual([option['value'] for option in fields['Toppings']['chosen']], ['t1', 't3'])
@@ -349,14 +356,14 @@ class Projection(unittest.TestCase):
         # An affected item's fields.
         self.host.facts['frames'] = [page_frame(item='Unit price 25 Pay', item_fields=[select('e43', 'Quantity', options(9, chosen=(3,), prefix='', value='q'))])]
         self.host.targets['e45'] = target('e45', 'Pay', role='button', editable=False)
-        prepared = self.public(self.call('chrome_click', self.reference('e45')), 'chrome_click')['approval']
+        prepared = self.prepare_step('click', 'e45')
         state = prepared['description']['untrusted_content']['page_state']
         self.assertEqual(([option['value'] for option in state['item_fields'][0]['chosen']], state['item_fields'][0]['option_count']), (['q3'], 9))
         self.assert_lists(state, self.operation(prepared['operation_id'])['payload']['binding'])
         # The editable fields of a send outside a form.
         self.host.facts['frames'] = [page_frame(editable=[control('e1', 'Message', value='hi'), select('e2', 'Country', options(200, chosen=(7,)))])]
         self.host.targets['e3'] = target('e3', 'Send', role='button', editable=False)
-        prepared = self.public(self.call('chrome_click', self.reference('e3')), 'chrome_click')['approval']
+        prepared = self.prepare_step('click', 'e3')
         state = prepared['description']['untrusted_content']['page_state']
         self.assertEqual(state['editable'][0]['fields'][1]['option_count'], 200)
         self.assert_lists(state, self.operation(prepared['operation_id'])['payload']['binding'])
@@ -369,7 +376,7 @@ class Projection(unittest.TestCase):
                 field = select('e21', 'Country', items)
                 self.f4([field if item['element'] == 'e21' else item for item in f4_fields()])
                 self.host.targets['e21'] = target('e21', 'Country', role='combobox', editable=False, value=field['value'], options=items)
-                prepared = self.public(self.call('chrome_select', {**self.reference('e21'), 'value': value}), 'chrome_select')['approval']
+                prepared = self.prepare_step('select', 'e21', value=value)
                 shown = prepared['description']['untrusted_content']['page_state']['target']
                 self.assertEqual([option['label'] for option in shown['choosing']], [expected])
                 self.assertEqual(shown['chosen'], [option for option in items if option['selected']])
@@ -381,8 +388,10 @@ class Projection(unittest.TestCase):
         self.host.facts['frames'] = [page_frame()]
         self.host.targets['e9'] = target('e9', 'Size', role='combobox', editable=False, value='m',
                                          options=[{'label': size, 'value': size.lower(), 'selected': size == 'M', 'disabled': False} for size in 'SML'])
-        result = self.public(self.call('chrome_select', {**self.reference('e9'), 'value': 's'}), 'chrome_select')
-        committed = self.operation(result['operation_id'])['approval']['description']['untrusted_content']['page_state']['target']
+        result = self.step('select', 'e9', value='s')
+        [dispatched] = result['steps']
+        self.assertEqual(dispatched['outcome'], 'done')
+        committed = self.operation(dispatched['operation_id'])['approval']['description']['untrusted_content']['page_state']['target']
         self.assertEqual([option['label'] for option in committed['choosing']], ['S'])
         self.assertEqual(committed['option_count'], 3)
         self.assertNotIn('options', committed)
@@ -391,7 +400,7 @@ class Projection(unittest.TestCase):
 
     def act(self, element):
         """The private step entry (Chrome.act), with the reference resolved to the host's facts."""
-        reference = self.reference(element)['reference']
+        reference = {'session': SESSION, 'tab': 1, 'frame': 0, 'document': self.host.facts['frames'][0]['document'], 'element': element}
         def acting(tab, ref):
             facts, frame = self.chrome.facts(reference)
             return facts, frame, reference

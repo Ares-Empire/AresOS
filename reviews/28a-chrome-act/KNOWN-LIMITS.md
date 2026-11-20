@@ -8,6 +8,16 @@ accepted under decision 24. Browser coverage and unfinished acceptance remain in
 
 ## Limits found while building package 28a
 
+### Forward after a restored draft
+
+- **Forward can meet the first-input reload guard after Back restores a prior
+  document.** Step 2's policy and external installs and both qualification
+  repeats reported first-input loss on the restored dirty page. *Harm:* Claude
+  gets a reload warning and the page stays at its prior address. *Accepted:*
+  the guard preserves the draft and the owner can decide how to proceed.
+  Step 3a checks this refusal and separately checks Forward on a watched
+  document with a draft and two history entries.
+
 ### Shared image maps — step 2
 
 - **A map shared by multiple images uses the first matching image.** The outline and input

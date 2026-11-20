@@ -220,7 +220,8 @@ class Questions(unittest.TestCase):
             return original(name,**args)
         self.browser.call=request
         free=self.call('check',{**self.target(),'checked':True});self.assertTrue(free['ok'],free)
-        status=self.engine.operation(free['data']['operation_id'],'chrome')
+        [step]=free['data']['steps'];self.assertEqual(step['outcome'],'unchanged')
+        status=self.engine.operation(step['operation_id'],'chrome')
         self.assertIn('unchanged',status['stages']);self.assertNotIn('dispatched',status['stages'])
         self.browser.version='159.0.1.0'
         prepared=self.call('check',{**self.target(),'checked':True});self.assertTrue(prepared['ok'],prepared)
@@ -515,10 +516,18 @@ class Questions(unittest.TestCase):
                           ('navigate',{'tab':1,'direction':'forward'}),('navigate',{'tab':1,'direction':'forward','discard_unsaved':True}),
                           ('close_tab',{'tab':1}),('close_tab',{'tab':1,'discard_unsaved':True})]:
             self.browser.dispatched.clear()
-            result=self.call(verb,args);self.assertTrue(result['ok'],result)
-            self.assertEqual(self.browser.dispatched,[(verb,args)])
-        for verb,args in [('navigate',{'tab':1,'direction':'reload','discard_unsaved':'yes'}),('close_tab',{'tab':1,'discard_unsaved':1})]:
-            self.assertFalse(self.call(verb,args)['ok'],'the choice is a boolean')
+            command={**args,'discard_unsaved':args.get('discard_unsaved',False)}
+            if verb=='navigate':
+                query={key:value for key,value in args.items() if key!='direction'}
+                if 'direction' in args:query['to']=args['direction']
+                result=self.call('go',{**query,'timeout_ms':0},public=True)
+            else:
+                result=self.call('close',{'tabs':[args['tab']],**{key:args[key] for key in ('discard_unsaved',) if key in args}},public=True)
+                self.assertEqual([entry['tab'] for entry in result['data']['closed']],[1])
+            self.assertTrue(result['ok'],result)
+            self.assertEqual(self.browser.dispatched,[(verb,command)])
+        for verb,args in [('go',{'tab':1,'to':'reload','discard_unsaved':'yes'}),('close',{'tabs':[1],'discard_unsaved':1})]:
+            self.assertFalse(self.call(verb,args,public=True)['ok'],'the choice is a boolean')
         from aresos_control.definitions import BY_NAME, instructions_for
         instructions=instructions_for('chrome')
         # Brief 28a, item 7: the tools that carry the flag now (chrome_do's is the first input's reload).

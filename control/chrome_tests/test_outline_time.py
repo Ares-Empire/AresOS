@@ -363,17 +363,17 @@ class Read(unittest.TestCase):
                 if (name is None or sent == name) and (tab is None or at == tab)]
 
     def prepare(self):
-        """A reserved approval, prepared by brief 20's click (no clock: its commands carry no time)."""
+        """Seed a reserved approval before timing the read's pending checks."""
         frame = self.browser.facts['frames'][0]
         target = {'reference': {'session': self.browser.session, 'tab': 1, 'frame': 0, 'document': frame['document'],
                                 'view': adapter_module.view_identity(self.browser.facts), 'element': 'e1'},
                   'expected': dict(frame['target'])}
-        result = self.request('chrome_old_click', **target)
-        self.assertTrue(result['ok'], result)
+        payload, _ = self.chrome.payload('click', target)
+        result = self.engine.reserve('chrome', 'submit', payload)
         self.assertTrue(all(row[2] is None for row in self.browser.sent))
         self.browser.sent.clear()
         self.start = self.clock.now
-        return result['data']['approval']['operation_id']
+        return result['approval']['operation_id']
 
     def test_every_command_of_one_tab_carries_the_time_to_second_seven(self):
         read = self.read(tab=1)['reads'][0]
