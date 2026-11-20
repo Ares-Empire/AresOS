@@ -1,4 +1,5 @@
 """Inspect downloaded ISO bytes; do not infer installer behavior from old docs."""
+import gzip
 import hashlib
 import http.client
 import json
@@ -8,6 +9,8 @@ import subprocess
 import time
 import urllib.error
 import urllib.request
+
+import stock_image
 
 WORK = pathlib.Path('.work/installer').resolve()
 EVIDENCE = pathlib.Path('evidence/installer').resolve()
@@ -220,16 +223,23 @@ def main():
             assert {path.rsplit('/', 1)[1] for path in localization} == {
                 'localed.py', 'utils.py', 'installation.py', 'localization_interface.py'}, 'Pinned localization source unavailable: STOP'
             localization_sources = []
+            embedded = None
             for path in selected:
                 raw = subprocess.check_output(['unsquashfs', '-cat', str(squash), path])
                 assert len(raw) < 2 * 1024 * 1024
                 (EVIDENCE / path.replace('/', '_')).write_bytes(raw)
+                if path == 'var/lib/containers/storage/overlay-images/images.json':
+                    # The image this ISO would install by itself: its record, or another ISO to qualify.
+                    embedded = stock_image.check_embedded(stock_image.embedded_rows(json.loads(raw)), live)
                 if path in localization:
                     localization_sources.append(dict(sha256=hashlib.sha256(raw).hexdigest(),
                         path=path, bytes=len(raw)))
                 print(path + '\n' + raw.decode(errors='replace'), flush=True)
             (EVIDENCE / 'localization-source.json').write_text(json.dumps(dict(
                 iso_sha256=observed['downloaded_sha256'], sources=localization_sources), indent=2) + '\n')
+            assert embedded, 'STOP: the live ISO carries no stock image index'
+            (EVIDENCE / 'embedded-stock.json').write_text(json.dumps(dict(
+                iso_sha256=observed['downloaded_sha256'], **embedded), indent=2) + '\n')
             map_path = 'usr/share/cockpit/anaconda-webui/index.js.map'
             assert map_path in paths, 'Pinned UI source map unavailable; do not guess its version'
             raw = subprocess.check_output(['unsquashfs', '-cat', str(squash), map_path])
@@ -247,9 +257,20 @@ def main():
                 destination.write_text(content)
                 sources.append(dict(sha256=hashlib.sha256(content.encode()).hexdigest(), path=str(relative)))
             assert sources, 'No application sources in pinned UI source map'
+            # The bundle served beside this map, unpacked as a browser receives it. installer_webui.py
+            # pins both; this run's evidence is where a requalified pin comes from. Evidence only.
+            bundle = {}
+            for candidate in ('usr/share/cockpit/anaconda-webui/index.js', 'usr/share/cockpit/anaconda-webui/index.js.gz'):
+                if candidate in paths:
+                    packed = subprocess.check_output(['unsquashfs', '-cat', str(squash), candidate])
+                    served = gzip.decompress(packed) if candidate.endswith('.gz') else packed
+                    bundle = dict(bundle_path=candidate, bundle_sha256=hashlib.sha256(served).hexdigest(), bundle_bytes=len(served))
+                    break
             (EVIDENCE / 'webui-source-map.json').write_text(json.dumps(dict(
-                source_map_sha256=hashlib.sha256(raw).hexdigest(), sources=sources), indent=2) + '\n')
+                source_map_sha256=hashlib.sha256(raw).hexdigest(), **bundle, sources=sources), indent=2) + '\n')
             print(f'Extracted {len(sources)} actual pinned Web UI sources for command/selector inspection', flush=True)
+            # Nothing reads the extracted image again; the stock image and its store need the room.
+            squash.unlink()
 
 
 if __name__ == '__main__':

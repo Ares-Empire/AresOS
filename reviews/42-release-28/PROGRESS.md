@@ -992,3 +992,234 @@ export line, and the guide equality check verifies the version 5 line and its up
 `test_owner_update` module and `test_owner_reset` remain for hosted checks, along with the two excluded modules
 `test_inherited_homebrew` and `test_sysusers`. All work is in the worktree. HEAD remains `3ae3716a`, with no push
 or dispatch. `.work/` has no file over 500 MB.
+
+## Step 6: the stock rewind (2026-11-20, Claude Fable 5.2)
+
+The pinned live ISO (`bd043223…`) installs Bazzite `49ded650…`; the laptop and the owner tools need
+`ed93d215…` (`base.json`). The harness now gives the unmodified installer that image. Nothing is committed,
+pushed or dispatched.
+
+### PLAN-GAP 3: the installer's web pages are pinned to the previous ISO (stops rehearsal 4 before it installs)
+
+Read this before dispatching. It is not part of the stock rewind, and the rewind does not fix it.
+
+- `installer_webui.Pages.completion_source()` requires the served `index.js` and `index.js.map` to equal
+  `UI_BUNDLE_SHA256` (`9e456995…`) and `UI_SOURCE_MAP_SHA256` (`de301b46…`). Those are the previous ISO's installer
+  (the same map hash is in `os/manifest/ci/11n/b-1/installer/webui-source-map.json`, ISO `776b76f3…`).
+- The new ISO's map is `9c3f8f28461619452bc89d966fcc944bd8ef9a39d4cc073275faccd6388b8e24` (run 44644689353,
+  `installer/webui-source-map.json`). So every two-disk mode stops with "Served installer bundle changed" in the first
+  live session, at the latest after the review page and before anything is installed. Rehearsal 3 stopped at minute 3, before it
+  got there. The ISO pin commit (`3ae3716a`) says the rehearsal's own inspection and installation requalify the web
+  route; for the pinned pages they stop instead.
+- What the new sources show (checked against the run's `installer/webui-source/`): `completion_selectors()` returns
+  the same four selectors; the ids the driver clicks are built from the same pieces in the same files (destination,
+  keyboard dialog, time zone, accounts, encryption, review). 69 of 102 source files changed, 20 are new, 2 are gone.
+  `liveinst` is unchanged; `webui-desktop`, `cockpit-coproc-wrapper.sh` and `webui-cockpit-ws.service` changed but
+  still serve on `127.0.0.1:80` with the same Firefox profile path.
+- What is missing: the served bundle's hash (the evidence never held it; a failing run does not write it either) and
+  a run through the new pages. I did not move the pins: that qualifies a new installer, which needs a run and is the
+  lead's call. The inspection now records `bundle_sha256` beside `source_map_sha256` (evidence only), so any run
+  that gets through the inspection step gives both values, also an inspection-only run (`rehearsal=inspect`, about
+  10 minutes, no VM; this branch's job condition admits only `release-28`, so it needs another branch).
+- Advice: get the bundle hash from an inspection, move the two pins in a small step, then a `probe` run if the caps
+  and branches allow one (live session through the review page, no installation). The probe also runs the whole
+  stock rewind up to the proof of the image, and the stock CLI probe on it. Only then rehearsal 4.
+- Not checkable from the evidence, same risk: `require_supported_live_kickstart` needs the new anaconda's `--help`
+  to still say a live kickstart is unsupported; `keyboard_proof` runs against anaconda's localization code, where
+  `installation.py` and `localed.py` changed (the hashes are read from each run's own inspection, so no pin stops it).
+- Another way out, if it exists: the owner's installer stick. If it still holds the previous ISO byte for byte
+  (`776b76f3…`), a copy kept as a private file would bring the laptop's real installer back, and neither this
+  gap nor the stock rewind would be needed. Only the owner can check that.
+
+### The design: (a), the live session's store holds the base image before the installer starts
+
+The new ISO is a different Bazzite generation: its live root is `45.20261117.1` (Fedora 45, kernel
+`7.3.4-300.fc45`), the base image is `44.20261012.1` (Fedora 44). That decides it:
+
+- With **(b)** or **(c)** the installer first installs 45, and everything it writes around the image stays from 45:
+  the boot loader on the EFI partition (the walk drives GRUB's menu, and the stock probe pins stock's
+  `grub2 2.12-66.fc44`), and `/etc`, merged from 45 down onto 44. (c) adds 45's first boot and its services.
+  A rehearsal on that system could pass or fail where the laptop would not.
+- With **(a)** the unmodified installer does every step on the base image, as the laptop's installation did, and
+  its own `%post` (`bootc switch --mutate-in-place … --transport registry …:stable`) sets the laptop's origin. The
+  first boot of the target is stock `ed93d215…`'s first boot.
+
+How it runs (`os/ci/stock_image.py`, called from `two_disk_vm.py`):
+
+1. **Host, before each live boot** (`stock_share`): at least 24 GiB free, then
+   `skopeo copy --src-no-creds --preserve-digests --retry-times 3 docker://ghcr.io/ublue-os/bazzite-nvidia-open@sha256:ed93d215… oci:.work/installer/stock-share/image:stock`.
+   `verify()` then checks, in Python, that the layout holds exactly that one manifest, that its bytes hash to the
+   digest in `base.json`, and that every blob has the size and the SHA-256 the manifest names, with no blob missing or
+   extra. No tag is ever used for the fetch. An empty 32 GiB sparse file `store.raw` is put beside it.
+2. **QEMU, live boots only:** the directory is a virtio-9p share (`mount_tag=aresos-stock`, PCI slot 8). No
+   installed boot gets it (`stock_args`, tested for both Guest classes).
+3. **Live session, first thing in `live_inventory`** (`substitute_stock`), each a command with its own evidence:
+   - `-stock-embedded`: the ISO's own image, read from its store's `images.json` before any container tool opens the
+     store. It must be exactly `ghcr.io/ublue-os/bazzite-nvidia-open:stable` at `49ded650…`, the new `embedded_stock`
+     record of the live ISO in `installer-isos.json`. Anything else stops: that is another ISO to qualify. The
+     inspection step checks the same record from the squashfs, before any VM.
+   - `-stock-share`: mount the share at `/run/aresos-stock`.
+   - `-stock-store`: `mkfs.ext4` on `store.raw` and loop-mount it over `/var/lib/containers/storage`.
+   - `-stock-copy`: the ISO's own `skopeo --insecure-policy copy oci:/run/aresos-stock/image:stock
+     containers-storage:ghcr.io/ublue-os/bazzite-nvidia-open:stable`.
+4. **The check that was failing, unchanged:** `podman image inspect …:stable` must print `ed93d215…` (`-payload`).
+   The printed digest goes into `stock-rewind.json`; then the host deletes the fetched layout.
+5. **The installer runs as before.** After it finishes the store and the share are unmounted (`-stock-release`,
+   a lazy unmount is recorded, never a stop), and after the live session is closed the host deletes the share.
+6. **First stock boot** (`offline-first-stock`, from the snapshot the route already takes; no new guest command):
+   `stock_rewind_booted` requires no transaction, nothing staged, pinned or queued; one or two deployments, all the
+   same commit with digest `ed93d215…`; origin exactly
+   `ostree-image-signed:docker://ghcr.io/ublue-os/bazzite-nvidia-open:stable`. It completes `stock-rewind.json`.
+
+### Facts it was checked against
+
+- **Memory:** the VM has 6144 MB and the live root is a RAM overlay; the image is 5,634,826,157 bytes in 128 gzip
+  layers (`skopeo inspect --raw`, whose bytes hash to `ed93d215…`) and 12.5 GB in 284,000 files unpacked (the
+  laptop's own stock deployment, read only). So the store cannot be in the live root; it is a file on the runner.
+- **Every command exists on this ISO** (`installer/squashfs-files.txt` of run 44644689353): `mkfs.ext4`, `mount`,
+  `losetup`, `lsblk`, `findmnt`, `df`, `skopeo`, `podman`, `python3`; `fs/9p/9p.ko`, `net/9p/9pnet_virtio.ko` and
+  `drivers/block/loop.ko` for `7.3.4-300.fc45.x86_64`, the kernel that run's console shows booted.
+- **QEMU:** the runner has 8.2.2 (`rehearsal-host-packages.txt`). `-fsdev local` with `virtio-9p-pci` is what
+  `two_disk_vm.Guest` has used for the credential share since package 11, with the same mount options.
+- **No disk for anyone:** OVMF has no 9p driver, so no firmware boot option appears (the audit only requires that
+  options name attached devices). The store is a loop device like `loop0`, the live image, which the installer
+  never offered. `disk_names` ignores it (tested on rehearsal 3's `lsblk` plus the loop row), the pages are driven
+  by disk id, and the review fails closed on any disk but the target.
+- **The origin and the commit:** the ISO's kickstart and `%post` are those of the previous ISO (the kickstart
+  differs by one blank line). A real first stock boot after the previous ISO (`os/tests/fixtures/keyboard/stock-two-*.json`)
+  has two serials of commit `aa669eff…` with exactly this origin, the laptop has the same, and the switch runs on a
+  built disk recorded the same commit (`os/manifest/ci/06e/full-1/switch/result.json`). The new check is tested on
+  that capture.
+- **The console:** the live shell puts an OSC 3008 sequence directly before a command's first output (rehearsal
+  3's `-payload.txt`), so the digest is parsed without line anchors.
+
+### Requirements 6 to 8
+
+- **Other users of the ISO's cached stock:** `stock_recipe_probe` and `stock_probe.py` run only in the `probe` modes
+  (`two_disk_vm.py probe`, `owner_vm.py probe`: packages 11c, 13, 14, 16), never in 22c, 22d, 27 or 42. They read
+  `/var/lib/containers/storage` after `live_inventory`, so they now see the base image and their pins (the base
+  digest, `ostree 2026.4-1.fc44`, `grub2-common 2.12-66.fc44`, `rpm-ostree 2026.3`, `uupd 1.5.0`) stay true as
+  written. `stock_probe.py` is unchanged. `keyboard_vm.py` installs through `td.install` and is covered the same way.
+- **Time:** fetch 1 to 3 minutes, check under 1, copy into the store an estimated 4 to 10, release under 1: about
+  8 to 15 minutes more in the 315-minute step. I left the timeouts alone. No release-28 walk has run through, so its
+  length is unknown (22c's whole job took 216 minutes, 22d's 130); the job cap of 360 leaves at most 15 more.
+- **Disk:** about 21 GB more for the minutes of the copy (the fetched layout and the store), about 15 GB more
+  while the installer runs (the store alone), nothing after the live session. The host stops before the VM with less
+  than 24 GiB free (the store beside the first installation of about 10 GB). The inspection now deletes its extracted
+  `squashfs.img` (8.7 GB, read by nothing else), so the run's later peak is lower than before. The sparse files
+  (target 49 GiB, store 32 GiB) only take what is written. The evidence grows by a few small files (bound 180 MB).
+- **The guide:** `docs/INSTALL-REFERENCE.md` no longer lists an ISO to download. One STOP line says the installer
+  is no longer published and a fresh install waits for a checked one. `installer-isos.json` keeps the harness's
+  record. No test bound the removed row itself: `test_owner_equality` only requires every hash on an owner page to
+  be a manifest pin, and the page now has one hash fewer.
+
+### Known limits
+
+1. Rehearsal 4 stops at the web pages until PLAN-GAP 3 is closed.
+2. A loop file on a 9p share is new in this harness and no run has shown it. If it fails, the run stops in
+   `-stock-store` or `-stock-copy`, minutes into the first live session, with the command's output in the evidence.
+3. The installer is Fedora 45's anaconda installing a Fedora 44 image. Upstream never shipped that pair; the laptop
+   was installed by 44's. Any design has this, since the old ISO is gone.
+4. The flatpaks and the files the installer itself writes come from the new ISO.
+5. The image in the store carries no signature (the ISO's own had one). The installer does not check it
+   (`--no-signature-verification`); the digest is the proof.
+6. `stock_commit.equal` (the booted commit against `aa669eff…`) is recorded and printed, not required: a newer
+   importer may write other metadata around the same files.
+7. `stock-rewind.json` is completed in the owner's route only. `part-b` and the keyboard rehearsal get the
+   substitution and the payload check, and keep their own first-boot checks.
+8. Each live boot fetches again (the two-order probe twice).
+
+### What rehearsal 4 must show
+
+- `installer/embedded-stock.json` and `two-disk/protected-second-install-stock-embedded.json`: `49ded650…`.
+- `two-disk/stock-image-host.json`: `digest` `ed93d215…`, 128 layers, `credentials` `none`.
+- `…-stock-store.txt`: an ext4 on a loop device at `/var/lib/containers/storage`; `…-stock-copy.txt`: 128 layers
+  copied and about 13 GB used; `…-payload.txt`: `sha256:ed93d215…`.
+- `boot-2-devices.json`: `stock-image-device` at `pci:00:08.0`; no later boot has it.
+- The installation completes, `…-stock-release.json` (`lazy` should be false), and the audits after the live session pass.
+- `two-disk/stock-rewind.json`: `status` `passed`, `booted.digest` `ed93d215…`, `booted.origin` the laptop's,
+  one or two deployments of one commit, and `stock_commit.equal` true. If it is false, compare before trusting a pass.
+- `offline-first-stock-link`: every interface without carrier, as before.
+
+### Verified locally
+
+`rebind.py pending '42 step 6: the stock rewind (the live session installs the base image; the guide stops at
+the ISO line)'` printed `pending: 38 bound files differ from the active bindings, 0 removed`. `walk-host.py`
+printed `PASS package 42 host walk (release-28): 270 sources; no VM started` (`os/ci/stock_image.py` is the new
+source). Modules ran one at a time with `python3 -B -m unittest discover -s os/tests -p '<module>.py'`;
+`pgrep -a -u ares -x ksshaskpass` printed nothing before each; the model ran with `ARESOS_MODEL_SCOPE=slice`.
+
+| Module | Result |
+| --- | --- |
+| `test_stock_image` | 27 OK in 0.099 s |
+| `test_two_disk_vm` | 29 OK in 0.190 s |
+| `test_keyboard_vm` | 5 OK in 0.007 s |
+| `test_keyboard_walk` | 3 OK in 1.364 s |
+| `test_rehearsal_auth` | 9 OK in 0.078 s |
+| `test_installer_download` | 12 OK in 0.311 s |
+| `test_installer_webui` | 9 OK in 0.008 s |
+| `test_stock_probe` | 3 OK in 0.001 s |
+| `test_checkout_sources` | 8 OK in 1.080 s |
+| `test_owner_path` | 48 OK in 1.172 s |
+| `test_owner_entry` | 3 OK in 0.365 s |
+| `test_release28` | 94 OK in 25.003 s |
+| `test_release28_rehearsal` | 44 OK in 34.379 s |
+| `test_release28_control` | 15 OK in 4.726 s |
+| `test_owner_walk` | 34 OK in 401.459 s |
+| `test_ways_back_probe` | 57 OK in 149.359 s |
+| `test_tools_local_wiring` | 42 OK in 54.648 s |
+| `test_owner_equality` | 11 OK in 100.062 s |
+| `test_owner_sources` | 13 OK in 140.376 s |
+| `test_control_image` | 15 OK in 4.691 s |
+| `test_owner_devices_native` | 14 OK in 1.987 s |
+| `test_release27` | 41 OK in 6.459 s |
+| `test_release_squash_binding` | 7 OK in 0.055 s |
+| `test_ways_back_compatibility` | 21 OK in 67.618 s |
+| `test_ways_back_model` | 26 OK in 175.050 s. Slice processed 120,000 states and discovered 173,130, covering 3,185,862 edges and all eight journal outcomes. |
+| `test_build_tools` | 3 OK in 0.112 s |
+| `test_ci_api_permissions` | 4 OK in 3.076 s |
+| `test_grub_bls` | 6 OK in 0.308 s |
+| `test_owner_console` | 15 OK in 1.247 s |
+| `test_loop_nodes` | 7 OK in 0.255 s |
+| `test_owner_hidden` | 11 OK in 6.216 s |
+| `test_owner_login` | 18 OK in 1.442 s |
+| `test_owner_layout_adapter` | 5 OK in 0.016 s |
+| `test_owner_reliable_typing` | 15 OK in 2.199 s |
+| `test_keyboard_proof` | 5 OK in 0.028 s |
+| `test_owner_read_diagnostics` | 6 OK in 0.161 s |
+| `test_owner_guard` | 12 OK in 0.057 s |
+| `test_ci_step_environment` | 4 OK in 12.847 s |
+| `test_probe_native` | 4 OK in 0.002 s |
+| `test_serial_staging` | 19 OK in 32.991 s |
+| `test_owner_capabilities` | 6 OK in 0.166 s |
+| `test_owner_counter_flush` | 7 OK in 0.046 s |
+| `test_owner_diagnostics` | 9 of 10 pass in 0.954 s; 1 error, the same on the committed tree (below) |
+| `test_owner_key_counter` | 11 OK in 1.803 s |
+| `test_owner_ps2` | 18 OK in 0.498 s |
+| `test_owner_staged_release` | 7 OK in 0.045 s |
+| `test_aresos_desktop` | 189 OK in 169.154 s (1 skipped) |
+| `test_owner_session` | 16 OK in 0.247 s |
+| `test_rehearsal_budget` | 4 OK in 0.035 s |
+| `test_owner_sudo_idle` | 13 OK in 0.041 s |
+
+`test_owner_diagnostics` has one error, `test_last_install_step_failure_has_no_premature_success_record`
+(`owner.Stop: Unsafe private setup directory: uninstalled`). It is not from this step: the same module on an
+extracted copy of the committed tree (`git archive` of `f787ab0b`) gives the same single error, and neither the
+test nor `owner.py` is changed here. My reading of the cause, not checked on another Python: the laptop's Python
+3.14.8 has `Path.lstat` call `os.lstat` directly, so the test's stand-in on `Path.stat` (`private_metadata`) no
+longer reaches `owned_directory`. That is the class AGENTS.md names ("test code against Python 3.14"); the hosted
+checks-only run decides.
+
+A first batch was stopped during `test_owner_walk` for one more edit (the evidence lines of the live session's
+commands now end in `|| true`, so only the checks can stop a run). Its temp folder under `os/tests` was removed.
+The table is the full rerun on the final code, after the bindings and the walk above.
+
+### What the code doesn't show
+
+- Nothing here ran in a VM. The live session's commands were checked for syntax and content, and against the ISO's
+  file list; the host's fetch ran only as `skopeo inspect --raw` of the manifest.
+- `walk-host.py` now binds `os/ci/stock_image.py`. The walk's stand-in for the installation writes the live
+  session's record, and its first stock boot (the real two-serial capture) goes through the new check.
+- `test_keyboard_vm` patches the host's share away: it is about the keyboard fixture, and the share has its own tests.
+- Branches 22c, 22d and 27 get the rewind when they merge this one; none of them can install until then.
+- `.work/` has no file over 500 MB.

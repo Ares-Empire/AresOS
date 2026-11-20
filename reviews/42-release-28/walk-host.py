@@ -22,7 +22,9 @@ import release28_walk
 
 # Read by this package's walk and harness in addition to package 22d's set.
 ADDED = {'os/ci/control/release_checks.py', 'os/ci/release28_walk.py', 'os/tests/test_release28_rehearsal.py', 'reviews/42-release-28/walk-host.py',
-         'os/manifest/releases/27.json', 'os/config/usr/libexec/aresos-desktop'}
+         'os/manifest/releases/27.json', 'os/config/usr/libexec/aresos-desktop',
+         # Step 6, the stock rewind: the harness module that gives the installer the base image.
+         'os/ci/stock_image.py'}
 ROUTES = ('release-28',)
 
 

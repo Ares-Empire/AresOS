@@ -14,6 +14,10 @@
     "url": "https://download.bazzite.gg/bazzite-nvidia-open-stable-live-amd64.iso",
     "checksum_source": "https://download.bazzite.gg/bazzite-nvidia-open-stable-live-amd64.iso-CHECKSUM",
     "picker_source": "https://raw.githubusercontent.com/ublue-os/bazzite.gg/main/content/themes/betheme-child/script135.js",
-    "bytes": 9088845824
+    "bytes": 9088845824,
+    "embedded_stock": {
+      "reference": "ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+      "digest": "sha256:49ded650b432c2943bb940cedc91950ad150b7c73a7f2bb12e08a34590446e82"
+    }
   }
 ]

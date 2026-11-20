@@ -1270,8 +1270,14 @@ def walk(ps2=False, route='qualification', control=False, faults=()):
         stack.enter_context(patch.object(vm.Guest, 'network_up', False))
         for module in (vm.td, vm.sw):
             stack.enter_context(patch.object(module, 'EVIDENCE', pathlib.Path(temporary)))
-        for name in ('install', 'restore_windows_order'):
-            stack.enter_context(patch.object(vm.td, name))
+        # The install's stand-in leaves what the real one leaves: the live session's stock rewind record
+        # (the base image under the ISO's name), which the first stock boot completes.
+        base = vm.td.stock_image.base()
+        host = dict(status='prepared', source='docker://' + base['reference'], credentials='none', digest=base['digest'],
+                    layers=128, blobs=130, bytes=5634826157)
+        stack.enter_context(patch.object(vm.td, 'install', side_effect=lambda *args: vm.td.save(
+            'stock-rewind', vm.td.stock_image.rewind(vm.td.LIVE, host, base['digest']))))
+        stack.enter_context(patch.object(vm.td, 'restore_windows_order'))
         # The host-side boot entry edit after the install (SerialConsolePinTest covers it).
         stack.enter_context(patch.object(vm, 'pin_serial_console', side_effect=lambda: checks.append('stock-serial-console')))
         stack.enter_context(patch.object(vm.td, 'marker', side_effect=lambda audit,name,**kw: markers.append(name)))

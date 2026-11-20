@@ -63,9 +63,10 @@ Use the stricter recovery budget: **at most two failed login submissions total f
 
 Use [installer-isos.json](../os/manifest/installer-isos.json) and [media-tools.json](../os/manifest/media-tools.json). Only the live nvidia-open ISO is on the initial path; no legacy ISO/raw VM disk substitution.
 
+**STOP: there is no installer to download right now.** Bazzite replaced its installer on 2026-11-17 and no longer publishes the one this guide was checked with. The new one installs a newer Bazzite, which the AresOS tools refuse after the drive is already written. A fresh install waits until a new installer has been checked; until then there is nothing to download or try here.
+
 | File | Download / fresh publisher check | Pinned SHA-256 |
 | --- | --- | --- |
-| `bazzite-nvidia-open-stable-live-amd64.iso` | [ISO](https://download.bazzite.gg/bazzite-nvidia-open-stable-live-amd64.iso), [checksum](https://download.bazzite.gg/bazzite-nvidia-open-stable-live-amd64.iso-CHECKSUM) | `bd043223c30a1814534797d46328ce651d29925d2412fda7700200bc8b49f82e` |
 | `FedoraMediaWriter-win64-5.3.2.exe` | [EXE](https://github.com/FedoraQt/MediaWriter/releases/download/5.3.2/FedoraMediaWriter-win64-5.3.2.exe), [release API assets[].digest](https://api.github.com/repos/FedoraQt/MediaWriter/releases/tags/5.3.2) | `f53e0c1108f83a99ad0d7a9aee846822093b1afe595c78f13b22ba779d9f4bd4` |
 
 On install day require the filename and **all 64 hash characters** to match both pin and fresh official source. `stable` is mutable. Missing version/source or any difference → [Help](#help) for maintainer requalification; never replace a pin yourself. Hash each complete download before running/writing:

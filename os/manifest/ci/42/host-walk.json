@@ -85,7 +85,7 @@
       "path": "os/ci/grub_bls.py"
     },
     {
-      "sha256": "13ab9ba9879a7cf628daaa326643df109da61cbd297663e5b711f0c9e6331057",
+      "sha256": "4d3a298b882d70a6c516552121dd52ce2cc5c58287bb8393002199a4ebd962b9",
       "path": "os/ci/installer_inspect.py"
     },
     {
@@ -149,7 +149,7 @@
       "path": "os/ci/owner_read_diagnostics.py"
     },
     {
-      "sha256": "c2d9b51764642b4ec2ffcd44c82bb34b9bab0acd84cd50a81867b2c68097d2c2",
+      "sha256": "c23e7f4c59a1100281a71981d840b251aad9d3ec388a03b0e68f3690736797ae",
       "path": "os/ci/owner_vm.py"
     },
     {
@@ -193,6 +193,10 @@
       "path": "os/ci/serial_transport.py"
     },
     {
+      "sha256": "6a23f0febce2fcedca5977e71427500bc09bf7696f9c490e96380f34195e9d5e",
+      "path": "os/ci/stock_image.py"
+    },
+    {
       "sha256": "3d977e51e019a1a6c44d5d2068f537264050e791ed4d3e1fa6b272e5c67d536f",
       "path": "os/ci/switch_vm.py"
     },
@@ -201,7 +205,7 @@
       "path": "os/ci/tools_local.py"
     },
     {
-      "sha256": "b5d9829624a123b0bb94c24bf362e674619c1d7b95bf59f781da9080afc29f5b",
+      "sha256": "055848c79625e73e7fcd82df4dcdb113bb980ba60102668f0af3c0cb0e980b26",
       "path": "os/ci/two_disk_vm.py"
     },
     {
@@ -533,7 +537,7 @@
       "path": "os/manifest/ci/14/parser-sources/source-files.zip"
     },
     {
-      "sha256": "64e1731473ae5f59e0c03f6603b6914c023fee7a921887a0d2397163ab3b5c49",
+      "sha256": "bd601e4904850384647e44c700aade3cc5c8da1cff95e93cf3c91e7c096a01f3",
       "path": "os/manifest/installer-isos.json"
     },
     {
@@ -1033,7 +1037,7 @@
       "path": "os/tests/test_owner_update.py"
     },
     {
-      "sha256": "8cbfc685e3fc373672d26f1fcf5aa8d0502acea8c5180ae2e4524b5a473f6ea8",
+      "sha256": "c84b14cdf9e6e0df971d4bdcc7cf1d58eeb7770aae9a31c0e0dfde96083d7f61",
       "path": "os/tests/test_owner_walk.py"
     },
     {
@@ -1109,7 +1113,7 @@
       "path": "reviews/27-first-update-release/walk-host.py"
     },
     {
-      "sha256": "81502babef1eb26d558a661becd298fdb45eb75da6f2d7de52415eaf4e56cc84",
+      "sha256": "0fc41dc5c58b59cb1138ced13ace40a3b44bb67dfd944223cfb3389c700630fe",
       "path": "reviews/42-release-28/walk-host.py"
     }
   ]

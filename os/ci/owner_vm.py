@@ -134,6 +134,9 @@ class Guest(td.Guest):
             args += ['-device', 'virtio-serial-pci,id=owner-webui-bus,addr=0x7',
                 '-chardev', f'socket,id=owner-webui,path={path},server=on,wait=off',
                 '-device', 'virtserialport,bus=owner-webui-bus.0,chardev=owner-webui,name=ares.webui']
+            # The base image for the installer (stock_image.py): image bytes only, never a credential,
+            # and only in the live session. An installed boot has no share at all.
+            args += self.stock_args()
         return args
 
     def boot_args(self):
@@ -1152,6 +1155,9 @@ def prepare_and_switch(audit, media, password, hashed, release, commands=None):
         status = raw['bootc']['status']
         assert raw['rpm']['transaction'] is None and not status.get('staged') and not status.get('rollbackQueued')
         assert not any(d.get('staged') or d['pinned'] for d in raw['rpm']['deployments'])
+        # The ISO's own image is no longer the laptop's: the installed stock must be the base image
+        # with the laptop's origin, and nothing else (two_disk_vm.stock_rewind_booted).
+        td.stock_rewind_booted(raw)
         guest.assert_offline('offline-first-stock-link')
         td.save('offline-first-stock-result', dict(status='passed', hardware_setup_finished=True, staged=False,
             rollback_queued=False, tools_attached=False, network_up=False))

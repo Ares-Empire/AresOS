@@ -41,7 +41,8 @@
     "42 step 6: test_owner_sources keeps main()'s umask 077 from leaking into later modules (checks-only 44597381061: 116 hosted failures); test_control_image and test_owner_devices_native read the cut's -B lines and step 3's workflow line",
     "42 step 6: the live ISO requalified: upstream replaced bazzite-nvidia-open-stable-live-amd64.iso on 2026-11-17 16:50 GMT (bd043223…, 9088845824 bytes; the pinned 776b76f3… is gone, Bazzite keeps no old ISOs); rehearsal 44612480026 stopped at the inspection",
     "42 step 6: announced R28 and tools version 5 payload",
-    "42 step 6: release-28 3 to 4 and checks 3 to 5 (rehearsals 44612480026 and 44625380879 stopped before the owner's route: the rotated live ISO, then no payload commit on the head)"
+    "42 step 6: release-28 3 to 4 and checks 3 to 5 (rehearsals 44612480026 and 44625380879 stopped before the owner's route: the rotated live ISO, then no payload commit on the head)",
+    "42 step 6: the stock rewind (the live session installs the base image; the guide stops at the ISO line)"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -56,6 +57,10 @@
     {
       "sha256": "789b3cac9593f2f1274b3c5d5246451058908926dc0f134a05d60ba298a2b3c0",
       "path": "docs/INSTALL.md"
+    },
+    {
+      "sha256": "4d3a298b882d70a6c516552121dd52ce2cc5c58287bb8393002199a4ebd962b9",
+      "path": "os/ci/installer_inspect.py"
     },
     {
       "sha256": "25aafc803e15b96793ba9b42fa7066e3efad7d5d544238b9fcaf0828a7f57df2",
@@ -74,7 +79,7 @@
       "path": "os/ci/owner_media.py"
     },
     {
-      "sha256": "c2d9b51764642b4ec2ffcd44c82bb34b9bab0acd84cd50a81867b2c68097d2c2",
+      "sha256": "c23e7f4c59a1100281a71981d840b251aad9d3ec388a03b0e68f3690736797ae",
       "path": "os/ci/owner_vm.py"
     },
     {
@@ -90,7 +95,7 @@
       "path": "os/ci/rehearsal_guard.py"
     },
     {
-      "sha256": "b5d9829624a123b0bb94c24bf362e674619c1d7b95bf59f781da9080afc29f5b",
+      "sha256": "055848c79625e73e7fcd82df4dcdb113bb980ba60102668f0af3c0cb0e980b26",
       "path": "os/ci/two_disk_vm.py"
     },
     {
@@ -114,7 +119,7 @@
       "path": "os/manifest/ci/14/14zze-preflight/local-privacy.py"
     },
     {
-      "sha256": "64e1731473ae5f59e0c03f6603b6914c023fee7a921887a0d2397163ab3b5c49",
+      "sha256": "bd601e4904850384647e44c700aade3cc5c8da1cff95e93cf3c91e7c096a01f3",
       "path": "os/manifest/installer-isos.json"
     },
     {
@@ -178,7 +183,7 @@
       "path": "os/tests/test_owner_update.py"
     },
     {
-      "sha256": "8cbfc685e3fc373672d26f1fcf5aa8d0502acea8c5180ae2e4524b5a473f6ea8",
+      "sha256": "c84b14cdf9e6e0df971d4bdcc7cf1d58eeb7770aae9a31c0e0dfde96083d7f61",
       "path": "os/tests/test_owner_walk.py"
     },
     {
