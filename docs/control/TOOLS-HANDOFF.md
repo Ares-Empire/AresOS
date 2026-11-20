@@ -5,11 +5,23 @@ handover `mac-aresos-control` wrote on 2026-11-12. A fresh session that takes ov
 (item 6, the control layer), then the board (`board`, topic `tools`). Docs are claims: check `git log`, `gh pr list`
 and `git worktree list` first.
 
-## Resume here (2026-11-19 19:50, `linux-tools` after a clear)
+## Resume here (2026-11-20 10:50, `linux-tools`, clean break)
 
 The detail behind every line is in `~/codex-queue/linux-tools/QUEUE.md` (newest entries at the top of the dated
 list). Shell watchers started by the old session are gone: start new ones with `gh run watch <id> -R
 Ares-Empire/AresOS --interval 300` in a background shell.
+
+**Now (Fri 10:50):** no new Claude agent until `mac-capacity` messages after its 13:43 reading (R28 alone runs
+meanwhile). Then, in order:
+- **28a step 4:** read the five runs on `c2a20dcb` (Chrome 44705819383, qualification 44705823983, base
+  44705828872, Mail 44705834097, privacy 44705838823), fill their results into the RESULTS line of
+  `~/codex-queue/linux-tools/28a-step4-opus.txt`, and start it as one Opus agent (it holds the lead's latency
+  decisions). Anything red other than `navigate`'s latency: a fresh fix round first. After step 4 pushes, watch
+  its pass 1, then dispatch pass 2 (Chrome and qualification again on the same head), then the Codex astra
+  package and security reviews.
+- **B317 revision:** Sat after 08:00, one Fable agent from `~/codex-queue/linux-tools/317-revise-1.txt`, only
+  after messaging `mac-capacity` one line and getting "go".
+- **18c-b step 6b** when `linux-aresos` says pkg/42 is on main (item 3).
 
 1. **R28: cut taken 12:05 (main `fba94b25` with #111 and #122, merged into pkg/42 as `7f896b62`).** #111 and #122 ride R28 if merged by 10:00 and
    Control CI is green **on main's merge commit**; send `linux-aresos` that commit and the results. If either goes
