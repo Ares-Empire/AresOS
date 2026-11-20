@@ -52,7 +52,8 @@
     "42 final review fixes",
     "42 final review fixes, round 2",
     "42 step 6: the walk accepts masked non-root login units (rehearsal 4); rehearsal cap 5, checks cap 9",
-    "42 step 6: masked login units only as ordering; ledger note"
+    "42 step 6: masked login units only as ordering; ledger note",
+    "42: test_checkout_sources reads the record's commit only where it is present; checks cap 10"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -101,7 +102,7 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "5e77479000699cb81a7d05c0d703619d8d1934a9735f3ef00b024a30abb9407c",
+      "sha256": "7bd3805cbc8782f1b5417d28244ee5a2dc317530583160e676eb22920f3d77be",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
@@ -165,7 +166,7 @@
       "path": "os/owner-tools/payload/release.json"
     },
     {
-      "sha256": "54cba71b7915e9e360976c863e046906a2f889cde12cde545514237f0a0ffcad",
+      "sha256": "15ef2cb5b4bb0631cbaf38ae83e30bc5d769fd3243e8d299325a69cf795fba11",
       "path": "os/tests/test_checkout_sources.py"
     },
     {

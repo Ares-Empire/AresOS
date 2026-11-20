@@ -156,8 +156,12 @@ class CheckoutSourcesTest(unittest.TestCase):
         record = active_record(ROOT)
         package = record['package']
         walk_path = f'os/manifest/ci/{package}/host-walk.json'
+        # A squash-merged package's own commit (22d's 89bc0658) is in no branch a CI checkout fetches: there the
+        # receipt comes from the tree. Wherever the commit is present (the laptop's suite) it is read from Git.
+        present = 'commit' in record and subprocess.run(
+            ['git', 'cat-file', '-e', f"{record['commit']}:{walk_path}"], cwd=ROOT, capture_output=True).returncode == 0
         raw = (subprocess.check_output(['git', 'show', f"{record['commit']}:{walk_path}"], cwd=ROOT)
-               if 'commit' in record else (ROOT / walk_path).read_bytes())
+               if present else (ROOT / walk_path).read_bytes())
         walk = json.loads(raw)
         self.assertEqual(walk['status'],'passed')
         self.assertFalse(walk['stick_across_reboot'])
