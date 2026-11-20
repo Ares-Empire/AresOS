@@ -1117,7 +1117,7 @@ class ScopeTest(unittest.TestCase):
         # The checks-only job runs the suite without the full model; its 25 minutes became 40 in
         # 22d step 2, when main's suite needed about 23 and run 43669481694 was cut at 25.
         # The model job has room over the slowest hosted model seen (1275 s, run 43547375701).
-        self.assertEqual((checks['timeout-minutes'], model['timeout-minutes']), ('40', '35'))
+        self.assertEqual((checks['timeout-minutes'], model['timeout-minutes']), ('60', '35'))
         ledger = json.loads((ROOT / 'os/ci/rehearsal-packages.json').read_text())['22c']
         self.assertEqual(ledger['job_bounds']['checks'], 40)  # an unaccountable checks job costs the larger bound
 

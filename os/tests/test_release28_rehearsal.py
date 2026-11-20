@@ -64,7 +64,7 @@ class LedgerTest(unittest.TestCase):
     def test_the_kind_is_recorded_with_cap_3_and_22ds_bounds(self):
         # Step 3 recorded it with cap 0; step 6 raised it to the brief's three rehearsal runs.
         self.assertEqual(LEDGER['dispatch_caps'][MODE], 4)
-        self.assertEqual((LEDGER['dispatch_caps']['checks'], LEDGER['minute_cap']), (6, 2400))
+        self.assertEqual((LEDGER['dispatch_caps']['checks'], LEDGER['minute_cap']), (7, 2400))
         self.assertIn('Step 6 (2026-11-19, the lead): release-28 from 0 to 3', LEDGER['budget'])
         self.assertEqual(LEDGER['job_bounds'][MODE], guard.PACKAGES['22d']['job_bounds']['tools-local'])
         self.assertEqual(LEDGER['titles'][MODE], 'Two-disk rehearsal (release-28)')

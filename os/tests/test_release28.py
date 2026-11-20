@@ -2026,11 +2026,11 @@ class Guard42Test(unittest.TestCase):
         titles = guard.PACKAGES['42']['titles']
         with self.assertRaisesRegex(AssertionError, 'STOP: resolve dispatch allowance exhausted'):
             self.run_main('ci', 'resolve', [titles['resolve'], titles['resolve']])
-        # Step 6 raised the checks cap to 3, then 5, then 6 (the model gate needs one on each rehearsal head;
-        # run 44710509866 hit the regressions job's time limit): the seventh stops.
-        self.assertIn('42-dispatch-authorization.json', self.run_main('ci', 'checks', [titles['checks']] * 5))
+        # Step 6 raised the checks cap to 3, then 5, 6 and 7 (the model gate needs one on each rehearsal head;
+        # run 44710509866 hit the regressions job's time limit, 44717214380 a test binding it): the eighth stops.
+        self.assertIn('42-dispatch-authorization.json', self.run_main('ci', 'checks', [titles['checks']] * 6))
         with self.assertRaisesRegex(AssertionError, 'STOP: checks dispatch allowance exhausted'):
-            self.run_main('ci', 'checks', [titles['checks']] * 6)
+            self.run_main('ci', 'checks', [titles['checks']] * 7)
         # A check build of another kind is no dispatch this ledger knows: its own guard names its title.
         with self.assertRaisesRegex(AssertionError, r"STOP: run 50 is titled 'OS image check build \(build, never published\)'"):
             self.run_main('ci', 'resolve', [], title='OS image check build (build, never published)')

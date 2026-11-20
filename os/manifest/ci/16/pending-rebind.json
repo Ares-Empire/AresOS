@@ -46,7 +46,8 @@
     "42 step 6: the Web UI pins move to the 2026-11-17 live ISO (PLAN-GAP 3)",
     "42 step 6 fix 1: the cross-review's six findings",
     "42 step 6 fix 1: the cross-review's six findings; R28 VM step 290",
-    "42 step 6: checks cap 6, regressions job 60 minutes"
+    "42 step 6: checks cap 6, regressions job 60 minutes",
+    "42 step 6: checks cap 7; test_ways_back_model binds the 60-minute regressions job"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -91,7 +92,7 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "8728b5bc99bb9ec8ccff1e353447f0b7cff4785c082557e6c7550c63a0123af3",
+      "sha256": "acbcc2cf2ff2218c1c16dbad9e4dd98d439b53ac281f5fbc1c961a9a07c71182",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
