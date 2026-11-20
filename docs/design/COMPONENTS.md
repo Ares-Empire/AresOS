@@ -53,7 +53,7 @@ nothing about what it does. That is how A and B fit the same pieces today, and h
 without rebuilding them.
 
 **One look at a time.** After step 1 the owner chose a setting for it: A, B or C, with B as the default (the brief,
-"Patrik's decision after step 1"). C is the game's own controls where the game has them, and B elsewhere. Section
+"The owner's decision after step 1"). C is the game's own controls where the game has them, and B elsewhere. Section
 4.7 designs this setting and the indicator's two; section 4.2 says what the frame needs from it. No Ares-apps look in this study.
 
 ### The look pack
@@ -585,7 +585,7 @@ game's buttons have no red state.
 C put a light grey band, the colour of the game's chests, above every program: unmistakably the game, and furthest
 from Chrome's and GNOME's own bars. The title's letters are the same in all three unless B's way b is built.
 
-**What the frame needs from the look setting** (Patrik's decision after step 1: the look A, B or C, default B; place
+**What the frame needs from the look setting** (the owner's decision after step 1: the look A, B or C, default B; place
 and size apply to the indicator, not to the frame. Section 4.7 designs the settings themselves.)
 
 - **One theme name for all looks.** `rc.xml` names the theme `AresOS`. The image ships look A as

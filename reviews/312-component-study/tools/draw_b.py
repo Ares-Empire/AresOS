@@ -432,7 +432,7 @@ def password_sheet(b, c):
 INDEX = '''# Version B's mockups (package 312): private
 
 Every picture here contains Minecraft's textures or font. Nothing in this folder is ever committed, attached to a
-pull request or put on a public page. The lead (`linux-desktop`) shows them to Patrik on a private page.
+pull request or put on a public page. The lead (`linux-desktop`) shows them to the owner on a private page.
 Made by `reviews/312-component-study/tools/draw_b.py` from the mod's development copy of the game, read-only.
 All values are made up.
 

@@ -9,7 +9,7 @@
 The repo is public, and nothing from Mojang may enter it (repo hard rule 2). The study has two looks (below), and B is made of Mojang's pixels. So:
 
 - **Public** (committed, in the PR, its description and commit messages): text, version A's own art, and mockups made only of A's art on plain backgrounds or backdrops you draw yourself. B is described in words and referred to by mockup IDs (`B-01`, `B-02`, …), never shown.
-- **Private** (never committed or attached anywhere): every image that contains a single pixel or glyph from the game. That includes B's mockups, any A-and-B comparison sheet, anything drawn over the game's world, and crops or composites of the game screenshots already in `reviews/`. These go only into `~/.local/state/aresos-dev/312-look-b/`, named `B-NN-<piece>.png` with a `B-INDEX.md` listing each ID, what it shows and the A mockup it pairs with. The lead (`linux-desktop`) authorizes this folder for the study, reads it after each step, and puts the images on a private artifact page for Patrik.
+- **Private** (never committed or attached anywhere): every image that contains a single pixel or glyph from the game. That includes B's mockups, any A-and-B comparison sheet, anything drawn over the game's world, and crops or composites of the game screenshots already in `reviews/`. These go only into `~/.local/state/aresos-dev/312-look-b/`, named `B-NN-<piece>.png` with a `B-INDEX.md` listing each ID, what it shows and the A mockup it pairs with. The lead (`linux-desktop`) authorizes this folder for the study, reads it after each step, and puts the images on a private artifact page for the owner.
 - **Before every push:** run `git diff --cached --stat` and `git status`, and confirm that nothing staged came from the game jar, the extracted files, or the private folder. Say in `PROGRESS.md` that you checked.
 
 ## Output
@@ -28,9 +28,9 @@ The repo is public, and nothing from Mojang may enter it (repo hard rule 2). The
 - In his words, not "just replicate windows in a different color but actually make a unique, useful OS". Propose good features of our own.
 - He answers best when a question is about something he will see or do. Technical calls that can change later are yours: decide them with a reason and record them.
 
-## Two looks, side by side, for Patrik to choose
+## Two looks, side by side, for the owner to choose
 
-Patrik isn't sure our own pixel art is the right call: "currently its just my private OS … maybe we decide when we know what the look difference is" (relayed by `linux-hub`, 2026-11-19). The study shows both versions on the same pieces, says what each costs, and recommends one. He chooses.
+The owner isn't sure our own pixel art is the right call: "currently its just my private OS … maybe we decide when we know what the look difference is" (relayed by `linux-hub`, 2026-11-19). The study shows both versions on the same pieces, says what each costs, and recommends one. He chooses.
 
 - **A: our own pixel art,** committed to the repo. A starting point exists: package 31's unshipped "Ares-Block" study (`docs/design/WINDOWS.md`, "Ares-Block", and `reviews/window-design-v1/03-block.png`): flat greys, a 2×2 pixel grid, sunken button slots, and the OFL pixel font Jersey 10 (its tested file and checksum are in WINDOWS.md). Build on it or say why not.
 - **B: Minecraft's real textures and font, loaded at runtime** from the game the AresOS desktop installs through Prism (the managed instance `AresDesktop`, created by `os/config/usr/libexec/aresos-desktop`; its version is pinned in `os/minecraft/desktop.lock.json`).
@@ -46,7 +46,7 @@ Patrik isn't sure our own pixel art is the right call: "currently its just my pr
 
 **Drawing B's mockups during the study:** this laptop has no `AresDesktop` instance yet. Read B's textures and font read-only from the mod's development copy of the game: `~/.gradle/caches/fabric-loom/26.2/minecraft-client.jar` and the asset index and objects under `~/.gradle/caches/fabric-loom/assets/`. Extract only into the private folder. If those files aren't there, draw no B mockups: describe B in words and tell the lead. Never fall back to `~/.minecraft`, `~/.lunarclient`, another checkout, or a download of the game.
 
-## Patrik's decision after step 1 (board #409, Thursday 2026-11-19)
+## The owner's decision after step 1 (board #409, Thursday 2026-11-19)
 
 His words: "the Minecraft designs are too good to pass over. We use those. But: we make a setting so that it's customizable to use either our own, Minecraft textures or Minecraft buttons (so A B or C). You can just build one for now but if it's not much work we do all. And place: also a setting. Default Top Centre but switchable. Same with size. I think most OS do it this way. Again: if making only 1 set option rn is much simpler we can do that and note the other things as to come later". He also said the designs were "so good".
 
@@ -55,16 +55,16 @@ What this means for steps 2 to 4:
 - **Settings:** the look (A, B or C; default B), the indicator's place (default top centre, switchable), and its size (default medium, 3x). Design where these settings live, how he changes them, and how a change takes effect, as part of the function/look split. For each, say whether it is cheap to build with the first package or should come later, so the build can ship one default first and the rest after.
 - **Public and private still holds:** B and C contain the game's pixels, so their pictures stay private, and everything committed shows A.
 
-## Patrik's decision after step 2 (board T432, Friday 2026-11-20)
+## The owner's decision after step 2 (board T432, Friday 2026-11-20)
 
 Asked whether windows should wear the Minecraft-look frame and follow the look setting, instead of the black-and-gold Ares-Crown frame he chose on 2026-11-13 (board #206), he answered "Yes, follow the look". The window frame follows the look setting (A, B or C; default B), as `docs/design/COMPONENTS.md` 4.2 draws it. Ares-Crown stays the shipped frame until the frame package replaces it.
 
 ## Function and look stay separate
 
-Patrik: "at some point we wanna add the completely diff look in ares app style (not necessarily prio but just a thing once functionality is there)" (relayed by `mac-capacity`, 2026-11-18).
+The owner: "at some point we wanna add the completely diff look in ares app style (not necessarily prio but just a thing once functionality is there)" (relayed by `mac-capacity`, 2026-11-18).
 
 - Design every piece so its function is separate from its look. Colours, shapes, pixel art and fonts live in a replaceable theme layer, so the Ares-style look can come later without rebuilding the pieces.
-- One look setting (A, B, C; see Patrik's decision above) replaces the earlier "no theme switcher" rule. Do not design or build the Ares-style look now; it would become one more value of the same setting later.
+- One look setting (A, B, C; see the owner's decision above) replaces the earlier "no theme switcher" rule. Do not design or build the Ares-style look now; it would become one more value of the same setting later.
 - A and B should both fit this layer, as two sets of art for the same pieces.
 - Say what this separation costs, and where the theme layer lives for each kind of piece.
 
@@ -78,7 +78,7 @@ Design within what exists, and name anything that needs new work:
 
 ## Scales
 
-Distinguish source pixels (the art), GUI units (Minecraft's: 1 unit = 1 source pixel × scale; buttons are 20 units high) and screen pixels. The laptop's screen is 1920×1080 (WINDOWS.md). Show each mockup at stated integer scales (for example 2× and 3×) and say which you'd ship. Patrik's effective game GUI scale isn't recorded; list it as something the lead confirms, not a question for him.
+Distinguish source pixels (the art), GUI units (Minecraft's: 1 unit = 1 source pixel × scale; buttons are 20 units high) and screen pixels. The laptop's screen is 1920×1080 (WINDOWS.md). Show each mockup at stated integer scales (for example 2× and 3×) and say which you'd ship. The owner's effective game GUI scale isn't recorded; list it as something the lead confirms, not a question for him.
 
 ## Fixed limits
 
@@ -112,7 +112,7 @@ Distinguish source pixels (the art), GUI units (Minecraft's: 1 unit = 1 source p
 **The brightness and volume indicator** (first, `linux-aresos`, 2026-11-18). The keys are already bound in `rc.xml` (lines 23 to 29: brightness up and down, volume up and down, speaker mute, microphone mute). Define: which of these actions show it, the level and mute states it shows (speaker and microphone separately), what holding a key does, when it disappears, which screen it appears on (brightness belongs to the laptop panel, which may not be the screen he is looking at), and what it shows when there is no device to control. Use made-up values in mockups.
 
 **Password window** (the owner tools' check, `docs/INSTALL.md` around line 269, `docs/OWNER-TOOLS.md`)
-- Its title bar is ksshaskpass's fixed **Enter SSH Credentials**. Inside: the full label **AresOS owner tools `<8 hex>`: `<action>`** (for example `AresOS owner tools dcbc375f: install these tools, then check and title`), then **Password:**, **OK** and **Cancel**. Patrik compares the 8 characters against his phone.
+- Its title bar is ksshaskpass's fixed **Enter SSH Credentials**. Inside: the full label **AresOS owner tools `<8 hex>`: `<action>`** (for example `AresOS owner tools dcbc375f: install these tools, then check and title`), then **Password:**, **OK** and **Cancel**. The owner compares the 8 characters against his phone.
 - Show all of it in both looks, with a long action, and prove nothing is cut off or hard to read at the planned scales.
 - labwc styles only its frame; the body is a Qt dialog. Say what styling the body would take, and mark its build as needing its own review on the owner tools' checked path.
 
@@ -123,13 +123,13 @@ Distinguish source pixels (the art), GUI units (Minecraft's: 1 unit = 1 source p
 
 ## What exists today (checked against main on 2026-11-19)
 
-- **The world:** the flat home is set to noon with the weather off when it is made (`mod/src/main/java/dev/aresos/world/FlatHome.java` around line 76; HUB.md 2.1), so the home looks like a bright day. Patrik chose day over night for the laptop home too, because "the superflat world isn't dark" (LAPTOP-HOME.md section 11).
+- **The world:** the flat home is set to noon with the weather off when it is made (`mod/src/main/java/dev/aresos/world/FlatHome.java` around line 76; HUB.md 2.1), so the home looks like a bright day. The owner chose day over night for the laptop home too, because "the superflat world isn't dark" (LAPTOP-HOME.md section 11).
 - **Colours:** the Ares-Crown frame (`os/config/usr/share/themes/Ares-Crown/labwc/themerc`): wall `#0d0d10`, ink `#f3f1ea`, quiet ink `#a6a39a`, gold `#edca77` (hover). The laptop home's palette (LAPTOP-HOME.md 2.5) adds quiet ink `#6f6b62` and gold `#cfa24f`. App group colours (`mod/src/main/java/dev/aresos/catalogue/AppGroup.java`): `#3AB3DA`, `#FF6257`, `#C774F2`, `#FED83D`.
 - **The window frame:** `docs/design/WINDOWS.md`; package 31's screenshots in `reviews/31-window-frame/`, and the earlier design options in `reviews/window-design-v1/`.
 - **Fonts** in `os/config/usr/share/fonts/aresos/`: Space Grotesk (OFL). R29's image package adds JetBrains Mono (OFL), agreed for package 53.
 - **The mod's interface:** vanilla widgets (`Button.builder`, 200 by 20 GUI units, in `AresOsMenuScreen.java`; `EditBox` for the Apps search; vanilla's header, footer and menu blur) with its own list drawing in `AppsScreen.java`: translucent white dividers (`0x50FFFFFF`) and row hover (`0x30FFFFFF`), item icons, and a check sprite. Its textures and font come from the game at runtime.
 - **The desktop:** labwc's title bar has the standard buttons (`menu:iconify,max,close`), and Alt+Tab goes through `NextWindow`. No indicators, overview or layout menu.
-- **Patrik's earlier choices to respect:** package 48 kept vanilla buttons on purpose; apps are "dimmed until used, lit when open"; "apps don't necessarily have to be Minecraft houses"; no Speed effect, because it widens the field of view.
+- **The owner's earlier choices to respect:** package 48 kept vanilla buttons on purpose; apps are "dimmed until used, lit when open"; "apps don't necessarily have to be Minecraft houses"; no Speed effect, because it widens the field of view.
 
 ## What the document contains
 
@@ -139,7 +139,7 @@ Distinguish source pixels (the art), GUI units (Minecraft's: 1 unit = 1 source p
 4. **For each piece, what it is built from:** which renderer, which existing interface, what new work it needs, and roughly how big its build package is.
 5. **B's runtime contract** (above).
 6. **A against B:** what he would notice, what each costs to build and keep, the risks (B on game updates, B if AresOS is shared), and a recommendation.
-7. **Questions for Patrik:** only things he can judge from what he will see, each as a choice between pictures or behaviours, one short sentence each, with a recommendation and the mockup IDs to look at. The lead posts them; you never run `board`.
+7. **Questions for the owner:** only things he can judge from what he will see, each as a choice between pictures or behaviours, one short sentence each, with a recommendation and the mockup IDs to look at. The lead posts them; you never run `board`.
 8. **What the next hub session checks** (below), with the answer for each.
 
 ## What the next hub session checks
@@ -163,8 +163,8 @@ One fresh agent per step. Each step commits, pushes, and keeps `reviews/312-comp
 
 ## Tools and limits on what you run
 
-- Draw with Python's PIL (12.3) or ImageMagick (`magick`). Keep pixel art crisp: integer scales, nearest-neighbour scaling. If you need HTML, render it with headless Chrome using a fresh throwaway profile (`--user-data-dir=` a new folder under `/tmp`), never Patrik's.
-- Work only from files and static mock values. Don't build the mod, run Gradle, start the game or a client test, take screenshots of Patrik's screen, or press or run the brightness, volume or password commands. Don't edit or reload the running session, the image, the theme, `rc.xml` or the mod. Run nothing with `sudo`.
+- Draw with Python's PIL (12.3) or ImageMagick (`magick`). Keep pixel art crisp: integer scales, nearest-neighbour scaling. If you need HTML, render it with headless Chrome using a fresh throwaway profile (`--user-data-dir=` a new folder under `/tmp`), never the owner's.
+- Work only from files and static mock values. Don't build the mod, run Gradle, start the game or a client test, take screenshots of the owner's screen, or press or run the brightness, volume or password commands. Don't edit or reload the running session, the image, the theme, `rc.xml` or the mod. Run nothing with `sudo`.
 - Committed screenshots in `reviews/` may be looked at for reference; any crop or composite of them is private (above).
 
 ## Read before designing
