@@ -96,8 +96,10 @@ Ares-Empire/AresOS --interval 300` in a background shell.
      44640281276; 10 of 12 control runs used. For the security review: C9 compares against a probe-only start,
      because Chrome calls the update service itself (our ID: zero non-file mentions). `linux-aresos` has the
      CI-only `os/` diff: **read clean** (01:40). R28 is published privately but pkg/42 isn't on main yet (Fri
-     afternoon, after its third rehearsal); `linux-aresos` messages when it is. **Step 6a running** (Codex
-     `18cb-step6a`): rehearsal checks, README, report text with placeholders, `checks_only`; no control run.
+     afternoon, after its third rehearsal); `linux-aresos` messages when it is. **Step 6a done (01:51):**
+     rehearsal checks `dbeaff72` (11 tests), README `dac9ed88`, report text with 6b placeholders `dd3f0007`;
+     checks_only 44645747088 green; no control run. `linux-aresos` has its `os/` diff and the release-brief
+     request. For the security review: the stock KDE host's IDs pass only while its manifest equals the image's.
      **6b after pkg/42 is on main:** merge main (as agreed above), the two final greens (2 control runs left),
      fill the placeholders.
 4. **Package 28** (#72): held until right after R29's cut, then merge and retarget #116 to main.
