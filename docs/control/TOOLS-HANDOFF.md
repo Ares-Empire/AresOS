@@ -135,12 +135,13 @@ Ares-Empire/AresOS --interval 300` in a background shell.
    (`briefs/20-store-oracle-reads.md` on local branch `brief/317-store-oracle-reads`, worktree
    `~/AresOS-317-brief`). **On main at `29f79ee5`.** Codex astra review running (09:32, answer in the
    scratchpad). **Review 1 NOT READY** (`reviews/20-store-oracle-reads/BRIEF-REVIEW-1.md`, four BLOCKERs on N8's
-   drop rule and N9's read/write line). Next: one fresh reviser (Fable if `mac-capacity` gives a go, asked Fri
-   10:00; else Opus or hold), then one Claude review (Opus) of the revision, then build. T298 (live Chrome setup with him). #337 and #385 done.
+   drop rule and N9's read/write line). Next: **one fresh Fable reviser on Sat after 08:00** (`mac-capacity`,
+   Fri 10:02: message it one line just before starting and wait for "go"), handed only the brief, the four
+   blockers and the files they touch; then one Claude review (Opus) of the revision, then build. T298 (live Chrome setup with him). #337 and #385 done.
 6. **Budget (`mac-capacity`, Fri 09:55):** three Fable agents at once (08:44-09:30, ours was B317's writer) cost
    8% of the week. Until Sat 08:00: one Opus agent at a time per lead (R28 first). **Fable only after
    `mac-capacity`'s go, one across all leads.** Order here: the running 28a latency agent, then 28a step 4
-   (Opus), then B317's revision (model per `mac-capacity`) and its Claude review. Earlier (Fri 08:42 and 08:48): Claude week 41%, about 10% for all five leads until Sat
+   (Opus), then B317's Fable revision on Sat after 08:00 (after `mac-capacity`'s go) and its Claude review. Earlier (Fri 08:42 and 08:48): Claude week 41%, about 10% for all five leads until Sat
    08:00; one Claude agent at a time per lead; no Claude agent waiting on CI (shell watchers do that); Opus by
    default, Fable where the design needs it. **Codex ran at twice its fair pace:** keep it for cross-reviews and
    the builds that need it (each run pushes and stops), and give the rest to Claude Opus agents. So 28a step 4
