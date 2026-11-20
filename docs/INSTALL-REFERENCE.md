@@ -61,9 +61,9 @@ Use the stricter recovery budget: **at most two failed login submissions total f
 
 ## Media checksums
 
-Use [installer-isos.json](../os/manifest/installer-isos.json) and [media-tools.json](../os/manifest/media-tools.json). Only the live nvidia-open ISO is on the initial path; no legacy ISO/raw VM disk substitution.
+**STOP for a fresh install or reinstall.** Bazzite no longer publishes the installer this guide was checked with. Its replacement installs a newer Bazzite. The AresOS tools refuse it after the drive is already written. Wait until a new installer has been checked. There is nothing to download or try now.
 
-**STOP: there is no installer to download right now.** Bazzite replaced its installer on 2026-11-17 and no longer publishes the one this guide was checked with. The new one installs a newer Bazzite, which the AresOS tools refuse after the drive is already written. A fresh install waits until a new installer has been checked; until then there is nothing to download or try here.
+The repository's current installer record is for rehearsals only. The [media tools record](../os/manifest/media-tools.json) gives the writer's details.
 
 | File | Download / fresh publisher check | Pinned SHA-256 |
 | --- | --- | --- |

@@ -505,9 +505,9 @@ command -v runuser curl python3 busctl ss liveinst
 def stock_share():
     """The host's side of the stock rewind, around one live boot: fetch, check, share, discard."""
     share = WORK / stock_image.SHARE
-    save('stock-image-host', stock_image.prepare(share))
-    Guest.stock_share = share
     try:
+        save('stock-image-host', stock_image.prepare(share))
+        Guest.stock_share = share
         yield
     finally:
         Guest.stock_share = None
@@ -799,7 +799,7 @@ def stock_unit_names():
 
 
 def stock_recipe_probe(guest):
-    stock_inventory(guest, 'stock-updater-inventory')
+    stock_inventory(guest, 'live-session-updater-inventory')
     guest.command('stock-recipe-tools', 'set -e; for tool in systemctl podman pgrep runuser getent python3; do command -v "$tool"; done')
     source = pathlib.Path('os/ci/stock_probe.py').read_text()
     digest = json.loads(pathlib.Path('os/manifest/base.json').read_text())['reference'].split('@', 1)[1]
@@ -813,10 +813,11 @@ def stock_recipe_probe(guest):
     save('cached-stock-cli-probe', proof)
     source = pathlib.Path('os/release/pause-stock-updates.sh').read_text().split("<<'PAUSE_STOCK'\n", 1)[1].split('\nPAUSE_STOCK', 1)[0]
     program = source.split("if __name__ == '__main__':", 1)[0]
-    program += "\npause_units()\npause_units()\nprint('REAL_STOCK_UNIT_PAUSE_IDEMPOTENT_PROBE_PASSED')\n"
-    output = guest.command('stock-unit-pause-probe', 'python3 -c ' + shlex.quote(program))
-    assert 'REAL_STOCK_UNIT_PAUSE_IDEMPOTENT_PROBE_PASSED' in output
-    save('stock-recipe-probe', dict(status='passed', tools_and_help=True, real_unit_pause_twice=True,
+    program += "\npause_units()\npause_units()\nprint('LIVE_SESSION_UNIT_PAUSE_IDEMPOTENT_PROBE_PASSED')\n"
+    output = guest.command('live-session-unit-pause-probe', 'python3 -c ' + shlex.quote(program))
+    assert 'LIVE_SESSION_UNIT_PAUSE_IDEMPOTENT_PROBE_PASSED' in output
+    save('stock-recipe-probe', dict(status='passed', tools_and_help=True,
+         live_session=dict(os='Fedora 45', updater_inventory='live-session-updater-inventory.json', unit_pause_twice=True),
          cli_context="the base image in the live session's store (stock_image.py); pull never, network none, read-only, no owner credentials",
          pending_cleanup='read-only help plus real-status mocked native regressions; no OSTree deployment in live probe'))
 

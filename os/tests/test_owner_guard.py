@@ -212,7 +212,7 @@ class GuardTest(unittest.TestCase):
         self.assertEqual(steps['Install pinned rehearsal tools on disposable runner']['timeout-minutes'],
             "${{ (inputs.rehearsal == 'update' || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick' || github.ref_name == 'pkg/42-release-28' && inputs.rehearsal == 'release-28')) && 40 || 20 }}")
         self.assertEqual(steps['Prepare disposable file disks and qualify the real live environment']['timeout-minutes'],
-            "${{ (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick' || github.ref_name == 'pkg/42-release-28' && inputs.rehearsal == 'release-28') && 315 || inputs.rehearsal == 'update' && 270 || inputs.rehearsal == 'owner-tools' && 200 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 106 || 80 }}")
+            "${{ github.ref_name == 'pkg/42-release-28' && inputs.rehearsal == 'release-28' && 290 || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick') && 315 || inputs.rehearsal == 'update' && 270 || inputs.rehearsal == 'owner-tools' && 200 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 106 || 80 }}")
         reservation=limits.replace('&& 70','&& 72').replace('|| 40','|| 42')
         self.assertIn(reservation,steps['Reserve the separate 11c minute budget (including privacy checks)']['run'])
         self.assertEqual(steps['Require completed native preflight before any package 13 VM']['run'],

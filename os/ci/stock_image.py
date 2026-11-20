@@ -42,13 +42,14 @@ DEVICE = 'stock-image-device'
 SLOT = 8
 GUEST_SHARE = '/run/aresos-stock'
 GUEST_STORE = '/var/lib/containers/storage'
+GUEST_INSTALL_TMP = '/var/tmp'
 # A sparse file: the runner only stores what the live session writes. The image is 5.6 GB in 128
 # compressed layers and 12.5 GB in 284,000 files unpacked (the laptop's own stock deployment).
 STORE_BYTES = 32 * 1024 ** 3
-# What must be free on the runner before a live boot: the unpacked store (about 15 GB with its
-# filesystem) beside either the fetched layout (5.6 GB, dropped once the store has proven the
-# image) or the first installation on the target (about 10 GB).
-FREE_BYTES = 24 * 1024 ** 3
+# At copy time the full store, verified layout and temporary blobs need up to 43 GiB.
+# Once both blob copies are gone, the 32 GiB store and 49 GiB target can grow together.
+# The ISO and already allocated disk blocks are accounted for by the free-space reading.
+FREE_BYTES = 88 * 1024 ** 3
 FETCH_TIMEOUT = 900
 STORE_TIMEOUT = 600
 COPY_TIMEOUT = 2700
@@ -159,7 +160,8 @@ def prepare(share, fetch=fetch):
     assert not set(str(share)) & set(',:'), 'STOP: unexpected stock share path'
     discard(share)
     free = shutil.disk_usage(share.parent).free
-    assert free >= FREE_BYTES, f'STOP: {free} bytes free on the runner; the stock image and its store need {FREE_BYTES}'
+    assert free >= FREE_BYTES, f'STOP: {free} bytes free on the runner; the stock rewind and installation need {FREE_BYTES}'
+    print(f'Stock rewind: {free} bytes free on the runner before fetch (minimum {FREE_BYTES})', flush=True)
     reference = base()
     share.mkdir(mode=0o700)
     fetch(reference, share / 'image')
@@ -195,6 +197,9 @@ def store_command():
     # The live root is a RAM-backed overlay, far too small for the unpacked image. A file on the
     # share holds the store instead; a loop device is no disk for the installer (as loop0 is none).
     # Lines ending in `|| true` are evidence only; every other line is a check that stops the run.
+    # The installer's image proxy exports layers through /var/tmp even without TMPDIR.
+    # Keep that scratch on ext4 for normal Unix permissions and temporary-file semantics.
+    install_tmp = GUEST_STORE + '/rehearsal-tmp'
     return f'''set -e
 if mountpoint -q {GUEST_STORE}; then echo 'containers-storage is already a mount'; exit 1; fi
 test -s {GUEST_STORE}/overlay-images/images.json
@@ -206,8 +211,15 @@ test "$(findmnt -n -o FSTYPE {GUEST_STORE})" = ext4
 device=$(findmnt -n -o SOURCE {GUEST_STORE})
 test "$(lsblk -ndo TYPE "$device")" = loop
 test ! -e {GUEST_STORE}/overlay-images
+install -d -m 1777 {install_tmp}
+if selinuxenabled; then chcon --reference={GUEST_INSTALL_TMP} {install_tmp}; fi
+mount --bind {install_tmp} {GUEST_INSTALL_TMP}
+test "$(stat -c %d:%i {GUEST_INSTALL_TMP})" = "$(stat -c %d:%i {install_tmp})"
+storage=$(podman info --format '{{{{.Store.GraphRoot}}}} {{{{.Store.RunRoot}}}} {{{{.Store.GraphDriverName}}}}')
+printf '%s\\n' "$storage"
+test "$storage" = '{GUEST_STORE} /run/containers/storage overlay'
 losetup --list "$device" || true
-df -B1 --output=source,fstype,size,avail,target {GUEST_STORE} || true
+df -B1 --output=source,fstype,size,avail,target {GUEST_STORE} {GUEST_INSTALL_TMP} || true
 echo STOCK_STORE_MOUNTED
 '''
 
@@ -217,14 +229,19 @@ def copy_command():
     # the installer's own signature policy has nothing to say about a local layout. The proof is
     # the digest the store reports afterwards (two_disk_vm.live_inventory's payload check).
     return f'''set -e
+test "$(findmnt -n -o FSTYPE {GUEST_SHARE})" = 9p
+scratch=$(mktemp -d {GUEST_SHARE}/copy.XXXXXXXX)
+trap 'rm -rf -- "$scratch"' EXIT
 log=/run/aresos-stock-copy.log
-if ! skopeo --insecure-policy copy oci:{GUEST_SHARE}/image:stock containers-storage:{INSTALLED} > "$log" 2>&1; then
+if ! TMPDIR="$scratch" skopeo --tmpdir "$scratch" --insecure-policy copy oci:{GUEST_SHARE}/image:stock containers-storage:{INSTALLED} > "$log" 2>&1; then
     tail -n 40 "$log"
     exit 1
 fi
 tail -n 3 "$log"
 grep -c '^Copying blob ' "$log" || true
 df -B1 --output=used,avail {GUEST_STORE} || true
+rm -rf -- "$scratch"
+trap - EXIT
 echo STOCK_IMAGE_COPIED
 '''
 
@@ -232,7 +249,7 @@ echo STOCK_IMAGE_COPIED
 def release_command():
     # After the installer finished. Never a reason to stop: the installation no longer reads the store.
     return f'''sync
-for mount in {GUEST_STORE} {GUEST_SHARE}; do
+for mount in {GUEST_INSTALL_TMP} {GUEST_STORE} {GUEST_SHARE}; do
     for n in 1 2 3 4 5; do
         if umount "$mount"; then break; fi
         sleep 2
@@ -266,6 +283,8 @@ def rewind(live, host, observed):
                 substituted=dict(reference=INSTALLED, digest=observed, source=host['source'],
                                  credentials=host['credentials'], layers=host['layers'], bytes=host['bytes'],
                                  store='ext4 in a runner file on a virtio-9p share, loop-mounted at ' + GUEST_STORE,
+                                 copy_scratch='temporary directory on the virtio-9p share',
+                                 installer_scratch=GUEST_INSTALL_TMP + ' bind-mounted from the ext4 store',
                                  copied_by="the live session's own skopeo"),
                 installer_files_changed=False, installed_system_online=False)
 
@@ -283,10 +302,25 @@ def booted(record, snapshot):
     # bazzite-hardware-setup may leave a second serial of the same commit, as on the laptop.
     assert 1 <= len(deployments) <= 2, 'STOP: the first stock boot has other deployments'
     for d in deployments:
+        assert type(d['booted']) is bool and type(d['pinned']) is bool, 'STOP: invalid deployment flags at the first stock boot'
         assert not d.get('staged') and not d['pinned'], 'STOP: a staged or pinned deployment at the first stock boot'
         assert (d['checksum'], d['osname']) == (running['checksum'], running['osname']) \
             and d['container-image-reference-digest'] == reference['digest'], 'STOP: a deployment that is not the base image'
         assert d['container-image-reference'] == ORIGIN, "STOP: the stock origin is not the laptop's"
+    rollback = next((d for d in deployments if not d['booted']), None)
+    for name, row in (('booted', running), ('rollback', rollback)):
+        slot = status.get(name)
+        message = f'STOP: bootc/rpm-ostree {name} disagreement'
+        assert (slot is None) == (row is None), message
+        if slot is None:
+            continue
+        identity = slot['ostree']
+        assert type(identity['deploySerial']) is int and type(row['serial']) is int, message
+        assert (identity['checksum'], identity['deploySerial'], identity['stateroot']) == (
+            row['checksum'], row['serial'], row['osname']), message
+        assert slot['pinned'] is row['pinned'] and slot['image']['imageDigest'] == row['container-image-reference-digest'], message
+        assert slot['image']['image']['image'] == row['container-image-reference'].removeprefix('ostree-image-signed:docker://'), message
+    assert rollback is None or rollback['serial'] != running['serial'], 'STOP: duplicate first stock deployment identity'
     return dict(record, status='passed',
                 booted=dict(digest=status['booted']['image']['imageDigest'], origin=running['container-image-reference'],
                             checksum=running['checksum'], serial=running['serial']),

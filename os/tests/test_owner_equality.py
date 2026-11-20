@@ -69,6 +69,7 @@ def check_fingerprints(documents, fingerprint):
 
     Image/media pins are distinct from the tools manifest. Checking all full
     hashes catches an extra stale copy even when the correct copy remains.
+    A source for a hash establishes provenance only.
     Historical package-14 receipts stay superseded, not rewritten.
     """
     pins=set()
@@ -151,6 +152,31 @@ class EqualityTest(unittest.TestCase):
         check_fingerprints(fingerprint_documents(),fingerprint)
         self.assertEqual(hashlib.sha256((ROOT/'os/owner-tools/payload/SHA256SUMS').read_bytes()).hexdigest(),fingerprint)
         self.assertIn('-I -B', (ROOT/'os/owner-tools/at').read_text())
+
+    def test_rehearsal_iso_is_absent_from_the_owner_route_and_the_install_hold_precedes_the_erase(self):
+        records = json.loads((ROOT / 'os/manifest/installer-isos.json').read_text())
+        live, = [row for row in records if row['kind'] == 'live']
+        self.assertIs(live['rehearsal_only'], True)
+        guide, reference, card = [
+            (ROOT / 'docs' / name).read_text() for name in ('INSTALL.md', 'INSTALL-REFERENCE.md', 'EMERGENCY.md')
+        ]
+        for page in (guide, reference, card):
+            self.assertNotIn('installer-isos.json', page)
+            for key in ('sha256', 'filename', 'url', 'checksum_source'):
+                self.assertNotIn(live[key], page)
+
+        start, step2 = guide.split('## 2. Prepare and test the installer stick', 1)
+        step2 = step2.split('## 3.', 1)[0]
+        step4 = guide.split('## 4. Install and prepare corrected stock', 1)[1].split('## 5.', 1)[0]
+        media = reference.split('## Media checksums', 1)[1]
+        for section in (start, step2, step4, media, card):
+            self.assertIn('Bazzite no longer publishes the installer this guide was checked with.', section)
+            self.assertIn('new installer has been checked', section)
+            self.assertIn('There is nothing to download or try now.', section)
+        self.assertLess(step2.index('**STOP.**'), step2.index('**Schreiben**'))
+        self.assertLess(step4.index('**STOP for a fresh install or reinstall.**'), step4.index('**Reinstall only'))
+        self.assertIn('**Erase data and install** requires a newly checked installer and all PASS results.', step4)
+        self.assertLess(card.index('**STOP before reinstalling.**'), card.index('**Use entire disk**'))
 
     def test_bootstrap_is_byte_equal_to_the_block_exercised_by_package_14_tamper_tests(self):
         commands=json.loads((ROOT/'os/owner-tools/commands.json').read_text())

@@ -41,7 +41,7 @@
       "path": ".gitattributes"
     },
     {
-      "sha256": "84ba39e0f3d2bdc429d59416c6753799eb01dff8a93fb975cbfc8c099816cd0a",
+      "sha256": "ae7bea3f27e38818ca17d39bb70f4a7efa522727c1e754ea461399019b6ed67f",
       "path": ".github/workflows/os-image.yml"
     },
     {
@@ -53,11 +53,11 @@
       "path": "briefs/14zze-checkout-bytes.md"
     },
     {
-      "sha256": "ea92841f2bd786ce5cbcc25a7d69ae163f6d00f8e2558c04fb5467f66a6c6574",
+      "sha256": "c56feddc7c0463289b02e165098182f4d3b617f30a7c2c13db93621589fd147e",
       "path": "docs/EMERGENCY.md"
     },
     {
-      "sha256": "789b3cac9593f2f1274b3c5d5246451058908926dc0f134a05d60ba298a2b3c0",
+      "sha256": "157859765d3687f92075735305ec986fd2067c4dbd01be1f8514df2cc586f7de",
       "path": "docs/INSTALL.md"
     },
     {
@@ -193,7 +193,7 @@
       "path": "os/ci/serial_transport.py"
     },
     {
-      "sha256": "6a23f0febce2fcedca5977e71427500bc09bf7696f9c490e96380f34195e9d5e",
+      "sha256": "23498b1df4b40eccd9c79785182f71666bbb1f1bc8b07c33c535480d1b9a6692",
       "path": "os/ci/stock_image.py"
     },
     {
@@ -205,7 +205,7 @@
       "path": "os/ci/tools_local.py"
     },
     {
-      "sha256": "055848c79625e73e7fcd82df4dcdb113bb980ba60102668f0af3c0cb0e980b26",
+      "sha256": "98355dd5a7642f24341169143ddc4b53a5b8edbf6f049759a3a84f2a9b8bbbaf",
       "path": "os/ci/two_disk_vm.py"
     },
     {
@@ -537,7 +537,7 @@
       "path": "os/manifest/ci/14/parser-sources/source-files.zip"
     },
     {
-      "sha256": "bd601e4904850384647e44c700aade3cc5c8da1cff95e93cf3c91e7c096a01f3",
+      "sha256": "1cd232035fdf317522612281b3d59596f5111ba692c5db2d2050fe9145fcf260",
       "path": "os/manifest/installer-isos.json"
     },
     {
@@ -929,7 +929,7 @@
       "path": "os/tests/test_owner_entry.py"
     },
     {
-      "sha256": "897c16cff99dc466d501b520c2ca1c2331c3b82073720040c82c80af411b7fcb",
+      "sha256": "0bf735c9669c079eaaa0b2d2dfc98f44aa2d50c5054fe8706218f64cc32bf228",
       "path": "os/tests/test_owner_equality.py"
     },
     {
@@ -949,7 +949,7 @@
       "path": "os/tests/test_owner_format_audit.py"
     },
     {
-      "sha256": "3113f433c1a0ef60b9685ed1dc3fd3c81a671824c076fcf70f70bdd1b6d0e40f",
+      "sha256": "4a456499463cfb75f20c58ae5d7bcacedd972967a372f4468de8c4d9d98a2f1c",
       "path": "os/tests/test_owner_guard.py"
     },
     {
@@ -1041,7 +1041,7 @@
       "path": "os/tests/test_owner_walk.py"
     },
     {
-      "sha256": "ef950c0ab2f33e0d612e35ecfe018a2d5e7499ac9a1dff12478b360a3a517e2d",
+      "sha256": "4ee9b09289650953bf319a2976579d6aed58cf0e737350af5d4f16fc1d6408fa",
       "path": "os/tests/test_rehearsal_budget.py"
     },
     {
@@ -1053,7 +1053,7 @@
       "path": "os/tests/test_rehearsal_retry.py"
     },
     {
-      "sha256": "cccff9e865faaf2deb6e2b08ae9accf5f63348c007b8be1345ba2366b410952b",
+      "sha256": "02270bc0042ed2ebfc3aa262e2ba7b803ab8945fd109cf369827c5931636961f",
       "path": "os/tests/test_release28_rehearsal.py"
     },
     {
@@ -1109,7 +1109,7 @@
       "path": "reviews/22d-tools-without-stick/walk-host.py"
     },
     {
-      "sha256": "801ef3f411a13ac6cb694e1442390f42659263d3064d107aaefb94f926a7dc0d",
+      "sha256": "26cf4455a70bf589cabb7f8637bb0d9c4f734564fa3d99adfa52b0843e7fe1b6",
       "path": "reviews/27-first-update-release/walk-host.py"
     },
     {

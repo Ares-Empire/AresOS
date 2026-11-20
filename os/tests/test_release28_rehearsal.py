@@ -163,7 +163,9 @@ class JobGatesTest(unittest.TestCase):
         world = inputs()
         self.assertEqual(base.workflow_text(JOB['timeout-minutes'], world), bound)
         vm, = [step for step, _ in steps if 'os/ci/owner_vm.py' in step['run']]
-        self.assertLess(int(base.workflow_text(vm['timeout-minutes'], world)), int(bound))
+        vm_minutes = int(base.workflow_text(vm['timeout-minutes'], world))
+        self.assertEqual(vm_minutes, 290)
+        self.assertGreaterEqual(int(bound) - vm_minutes, 45 + 10)
         self.assertTrue(all('secrets.GHCR_READ_TOKEN' not in json.dumps(step) for step, _ in steps))
 
 

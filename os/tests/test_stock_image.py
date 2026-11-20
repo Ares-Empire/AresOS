@@ -275,24 +275,52 @@ class GuestCommandTest(unittest.TestCase):
             'if mountpoint -q /var/lib/containers/storage', 'test -s /var/lib/containers/storage/overlay-images/images.json',
             'mkfs.ext4 -q -F -E nodiscard,lazy_itable_init=1,lazy_journal_init=1 /run/aresos-stock/store.raw', 'mount -o loop /run/aresos-stock/store.raw /var/lib/containers/storage',
             'test "$(findmnt -n -o FSTYPE /var/lib/containers/storage)" = ext4', 'test "$(lsblk -ndo TYPE "$device")" = loop',
-            'test ! -e /var/lib/containers/storage/overlay-images')]
+            'test ! -e /var/lib/containers/storage/overlay-images',
+            'install -d -m 1777 /var/lib/containers/storage/rehearsal-tmp',
+            'mount --bind /var/lib/containers/storage/rehearsal-tmp /var/tmp',
+            'test "$(stat -c %d:%i /var/tmp)"',
+            'test "$storage" = \'/var/lib/containers/storage /run/containers/storage overlay\'')]
         self.assertEqual(order, sorted(order))
         self.assertNotIn('tmpfs', source)
 
     def test_copy_uses_the_local_layout_and_the_name_the_kickstart_installs(self):
         source = stock_image.copy_command()
-        self.assertIn('skopeo --insecure-policy copy oci:/run/aresos-stock/image:stock '
+        self.assertIn('TMPDIR="$scratch" skopeo --tmpdir "$scratch" --insecure-policy copy oci:/run/aresos-stock/image:stock '
                       'containers-storage:ghcr.io/ublue-os/bazzite-nvidia-open:stable > "$log" 2>&1', source)
         self.assertTrue(source.rstrip().endswith('echo STOCK_IMAGE_COPIED'))
         kickstart = 'ostreecontainer --url=ghcr.io/ublue-os/bazzite-nvidia-open:stable --transport=containers-storage'
         self.assertIn(stock_image.INSTALLED, kickstart)
         self.assertEqual(stock_image.fetch_command(stock_image.base(), '/w/image')[-1], 'oci:/w/image:stock')
 
+    def test_copy_removes_runner_scratch_on_success_and_failure(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as scratch, \
+                patch.object(stock_image, 'GUEST_SHARE', shlex.quote(scratch)):
+            log_path = pathlib.Path(scratch) / 'copy.log'
+            source = stock_image.copy_command().replace('/run/aresos-stock-copy.log', shlex.quote(str(log_path)))
+            for expected in (0, 1):
+                with self.subTest(exit_status=expected):
+                    shell = f'''findmnt() {{ echo 9p; }}
+df() {{ :; }}
+skopeo() {{
+    test "$1" = --tmpdir && test "$2" = "$TMPDIR" && test -d "$2" || return 2
+    printf 'Copying blob fixture\\n' > "$2/blob"
+    cat "$2/blob"
+    printf '%s\\n' "$2"
+    return {expected}
+}}
+'''
+                    result = subprocess.run(['bash', '-c', shell + source], capture_output=True, text=True)
+                    log = log_path.read_text().splitlines()
+                    self.assertEqual(result.returncode, expected, result.stderr)
+                    self.assertEqual(log[0], 'Copying blob fixture')
+                    self.assertEqual(pathlib.Path(log[1]).parent, pathlib.Path(scratch))
+                    self.assertFalse(pathlib.Path(log[1]).exists())
+
     def test_release_never_stops_the_run_and_reports_a_lazy_unmount(self):
         source = stock_image.release_command()
         self.assertNotIn('set -e', source)
         self.assertNotIn('exit', source)
-        self.assertLess(source.index('/var/lib/containers/storage'), source.index('/run/aresos-stock;'))
+        self.assertIn('for mount in /var/tmp /var/lib/containers/storage /run/aresos-stock;', source)
         self.assertTrue(source.rstrip().endswith('echo STOCK_SHARE_RELEASED'))
         guest = Mock()
         for output, lazy in (('STOCK_SHARE_RELEASED', False), ('STOCK_LAZY_UNMOUNT /run/aresos-stock\nSTOCK_SHARE_RELEASED', True)):
@@ -381,11 +409,15 @@ class HarnessTest(unittest.TestCase):
             self.assertIsNone(td.Guest.stock_share)
             prepare.assert_called_once_with(self.directory / stock_image.SHARE)
             discard.assert_called_once_with(self.directory / stock_image.SHARE)
-        # No image, no live boot: the guest is never constructed.
+        # A failed fetch can leave a partial layout. Discard it without constructing a guest.
+        share = self.directory / stock_image.SHARE
+        share.mkdir()
+        (share / 'partial').touch()
         with patch.object(stock_image, 'prepare', side_effect=AssertionError('STOP: a fetched blob differs from its digest')), \
                 patch.object(td, 'Guest') as guest, self.assertRaisesRegex(AssertionError, 'differs from its digest'):
             td.install(Mock(), 'password', 'hash')
         guest.assert_not_called()
+        self.assertFalse(share.exists())
 
     def guest(self, rows=None):
         guest = Mock()
@@ -542,10 +574,29 @@ class HarnessTest(unittest.TestCase):
         def other(snapshot):
             for row in snapshot['rpm']['deployments']:
                 row['checksum'] = 'b' * 64
+            for name in ('booted', 'rollback'):
+                snapshot['bootc']['status'][name]['ostree']['checksum'] = 'b' * 64
         with patch('builtins.print') as shown:
             result = self.booted(other)
         self.assertEqual(result['stock_commit'], dict(observed='b' * 64, recorded=stock_image.RECORDED_COMMIT, equal=False))
         self.assertIn('STOCK COMMIT DIFFERS FROM THE RECORDED ONE', shown.call_args.args[0])
+
+    def test_first_stock_boot_refuses_disagreement_between_the_status_tools(self):
+        for name in ('booted', 'rollback'):
+            changes = (
+                lambda slot: slot['ostree'].update(checksum='b' * 64),
+                lambda slot: slot['ostree'].update(deploySerial=3),
+                lambda slot: slot['ostree'].update(stateroot='other'),
+                lambda slot: slot['image']['image'].update(image=stock_image.NAME + ':other'),
+                lambda slot: slot.update(pinned=True),
+            )
+            for i, change in enumerate(changes):
+                with self.subTest(slot=name, case=i), self.assertRaisesRegex(AssertionError, f'{name} disagreement'):
+                    self.booted(lambda s: change(s['bootc']['status'][name]))
+        with self.assertRaisesRegex(AssertionError, 'rollback disagreement'):
+            self.booted(lambda s: s['bootc']['status'].update(rollback=None))
+        with self.assertRaisesRegex(AssertionError, 'rollback disagreement'):
+            self.booted(lambda s: s['bootc']['status']['rollback']['image'].update(imageDigest=ISO_IMAGE))
 
     def test_a_first_boot_without_the_live_sessions_record_stops(self):
         with self.assertRaisesRegex(AssertionError, 'no stock rewind record'):

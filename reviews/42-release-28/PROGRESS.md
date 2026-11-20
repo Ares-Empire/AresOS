@@ -1235,3 +1235,165 @@ The table is the full rerun on the final code, after the bindings and the walk a
 - `test_keyboard_vm` patches the host's share away: it is about the keyboard fixture, and the share has its own tests.
 - Branches 22c, 22d and 27 get the rewind when they merge this one; none of them can install until then.
 - `.work/` has no file over 500 MB.
+
+### Fix 1 (cross-review, Codex gpt-6.2-sol)
+
+1. **Live-session scratch and runner space.** The guest copy creates a private directory on the 9p share and passes it
+   to Skopeo as both `--tmpdir` and `TMPDIR`. It removes the directory on success or failure. Using the share gives the
+   blocks directly back to the runner. The host also discards an incomplete share if the fetch or guest fails.
+   The installer still runs its own kickstart and post-scripts. The live store now backs a bind mount at `/var/tmp` until
+   installation ends. The image proxy can write a temporary layer export there even without `TMPDIR`. Ext4 provides the
+   permissions and file operations the importer expects. The harness checks the bind and the effective overlay store
+   before the copy, and removes the bind before releasing the store.
+
+   The inspector evidence from run 44644689353 lists the rootful vendor `storage.conf` files under
+   `usr/share/containers`, with no `etc/containers/storage.conf` override. The ISO's overlay image index is on the graph
+   root. The packaged Fedora rootful drop-in has the same byte length as the listed file. Its additional image
+   store is a read-only lookup under `/usr/lib/containers/storage`. The overlay run root in `/run` held runtime
+   metadata. The new command requires graph root
+   `/var/lib/containers/storage`, run root `/run/containers/storage` and driver `overlay`. Layer unpacking and staging use
+   the loop-backed graph root. The kickstart uses `ostreecontainer --transport=containers-storage` and its target-side
+   post-script sets the signed registry origin in place. The source lists and launcher show small live `/tmp` logs and
+   UI state. The upstream Anaconda deploy path puts the OSTree repository and its import staging on the target.
+   Containers/image defaults large file scratch to `/var/tmp` and can reconstruct a layer there when reading the store.
+   That is also the default `image_copy_tmp_dir` in containers.conf. The bind covers those defaults without relying
+   on the installer's launcher to preserve a shell variable.
+   [ISO inspection](https://github.com/Ares-Empire/AresOS/actions/runs/44644689353)
+   [Anaconda deploy task](https://github.com/rhinstaller/anaconda/blob/main/pyanaconda/modules/payloads/payload/rpm_ostree/installation.py)
+   [Containers/image temporary directory](https://github.com/containers/image/blob/main/internal/tmpdir/tmpdir.go)
+   [Store source](https://github.com/containers/image/blob/main/storage/storage_src.go)
+   [Store destination](https://github.com/containers/image/blob/main/storage/storage_dest.go)
+   [Overlay staging](https://github.com/containers/storage/blob/main/drivers/overlay/overlay.go)
+   [Packaged rootful drop-in](https://sources.debian.org/src/golang-github-containers-common/0.69.1-1/rpm/00-storage-rootful.conf/)
+   [Containers configuration](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)
+   [OSTree importer](https://github.com/bootc-dev/bootc/blob/main/crates/ostree-ext/src/container/store.rs)
+
+   At the copy peak, the verified layout and temporary blobs are about 5.25 GiB each, alongside up to 32 GiB in
+   `store.raw` including unpacked layers and staging. That is about 42.5 GiB of new allocation. Both blob copies are
+   gone before Anaconda starts. At the install peak, the full store and the full 49 GiB target would use 81 GiB
+   together. The protected 50 GiB disk had 79,470,592 bytes allocated (0.074 GiB) and the target had zero allocated
+   in rehearsal 3's live-boot QMP evidence. If a live boot already has a full target, the copy peak includes that
+   49 GiB of existing allocation and reaches 91.5 GiB across the target, store and blob copies.
+
+   The runner logs show 124 GiB free on the root filesystem after cleanup in 44644689353, 43737933979 and
+   43597505549. The retained ISO used 9,088,851,968 allocated bytes (8.47 GiB). Inspection removes its extracted
+   squashfs before the VM step. The private preflight image layout has also been removed. Allow 4 GiB for further
+   host allocations, including tools and browsers, evidence, extracted boot kernel and initrd, firmware and the
+   128 MiB tools stick. This puts the
+   R28 install peak at about 94 GiB of growth after runner cleanup, or about 104 GiB for a copy beside a full target.
+   With the ISO and protected disk counted and that allowance set aside, estimated free space before the first
+   stock fetch is about 111 GiB. `FREE_BYTES` is 88 GiB (94,489,280,512 bytes), giving 7 GiB beyond the maximum
+   new store-plus-target growth. The guard reads the actual filesystem before fetching and records that reading.
+   [R28 rehearsal 3](https://github.com/Ares-Empire/AresOS/actions/runs/44644689353)
+   [22d complete walk](https://github.com/Ares-Empire/AresOS/actions/runs/43737933979)
+   [22c complete walk](https://github.com/Ares-Empire/AresOS/actions/runs/43597505549)
+
+   **PLAN-GAP 4 — historical disk samples.** The earlier logs have a rounded post-cleanup `df -h` reading.
+   They have no host sample at first live boot or the peak. The later free space and peaks above are estimates
+   using the logged reading, allocated disk bytes and file size bounds. Rehearsal 4 must show the exact free-byte
+   gate and the guest store usage, and prove the live 9p copy, loop store, installer and cleanup.
+
+2. **First stock boot.** The receipt joins the bootc booted and rollback slots to the rpm-ostree rows by checksum,
+   serial and stateroot, and checks the reference, digest and pin. A missing or extra rollback slot stops the receipt.
+   The retained fixture with just bootc's booted checksum changed now fails. If both views agree on a different
+   historical commit, `stock_commit.equal` is still false and recorded. Compare the imported tree before trusting
+   that result for the laptop.
+
+3. **Time.** The release-28 pre-step times were 37m00s in 44644689353 and 37m03s in 44625380879. Run 44612480026
+   stopped at ISO inspection at 32m50s before reaching the VM step. The complete VM steps took 91m12s for 22d
+   (43737933979, with 36m10s before it) and 186m46s for 22c (43597505549, with 28m40s before it).
+   The R28 job and both guard reservations stay at the approved ledger bound of 345 minutes, below the hosted
+   360-minute maximum. The R28 VM step gets 225 minutes, leaving 110 for setup and preflight and 10 for cleanup
+   and upload. The five explicitly timed preflight steps total at most 107 minutes. Other preflight steps took
+   at most 154 seconds across these R28 logs. Cleanup and upload in the complete walks took 8 and 13 seconds.
+   R28's route makes one live install. Allowing 15 minutes for each of two rewinds, including fetch, verification,
+   store copy and release, takes the 91m12s route to about 121 minutes or the longer 186m46s comparison to about
+   217 minutes. These are estimates. The VM step limit still allows for the route's extra R28 boots and checks.
+   [Hosted job time limit](https://docs.github.com/en/actions/reference/limits)
+   [R28 rehearsal 1](https://github.com/Ares-Empire/AresOS/actions/runs/44612480026)
+   [R28 rehearsal 2](https://github.com/Ares-Empire/AresOS/actions/runs/44625380879)
+   [R28 rehearsal 3](https://github.com/Ares-Empire/AresOS/actions/runs/44644689353)
+
+   **Lead, 2026-11-20: the VM step gets 290, not 225.** 225 leaves about 8 minutes over the 217-minute estimate,
+   and a walk cut by its step limit costs the last rehearsal. Preflight measured 37 minutes in both R28 runs
+   that reached the VM step; the 107-minute worst case of its own step limits is not what happens. So: 45 for setup
+   and preflight, 290 for the VM step, 10 for cleanup and upload, inside the unchanged 345. If a preflight ever runs
+   past 45 minutes, the job limit can cut the step's last minutes and the upload: a known limit, cheaper than a
+   walk stopped short.
+
+   The same arithmetic exposes the old limits. At its observed pre-step time, 22d's 315-minute step would reach
+   about minute 351 against its 345-minute job. 22c would have about 1m20s after its step cap. Their limits stay
+   as recorded for their own branches.
+
+4. **Inherited sources.** Package 27's host walk now binds `os/ci/stock_image.py`. Packages 27, 22c and 22d
+   regenerate their receipts on their own merge heads.
+
+5. **Fresh-install hold.** The owner's guide stops at the Stage C notice, installer download, reinstall path
+   and erase. The emergency card and media reference carry the same hold. The live ISO manifest record has
+   `rehearsal_only: true`. Tests check that the owner pages offer none of that record's download identifiers
+   and put the hold before writing or erasing. The generic hash check establishes where each printed hash came from.
+
+6. **Probe labels.** The updater inventory and two real pause calls are saved under Fedora 45 live-session
+   evidence. The cached CLI probe still records its separate check of the Fedora 44 stock image.
+
+#### Verification
+
+`python3 -B reviews/27-first-update-release/rebind.py pending "42 step 6 fix 1: the cross-review's six findings"`
+printed `pending: 39 bound files differ from the active bindings, 0 removed`.
+`python3 -B reviews/42-release-28/walk-host.py` printed `PASS package 42 host walk (release-28): 270 sources; no VM started`.
+Every hash in the refreshed receipt matched its worktree file. The 22c, 22d and 27 receipts were left for their merge heads.
+
+`python3 -B -m unittest discover -s os/tests -p '<module>.py'` ran one module at a time.
+`pgrep -a -u ares -x ksshaskpass` printed nothing before each invocation. The model used `ARESOS_MODEL_SCOPE=slice`.
+
+| Module | Tests | Time | Result |
+| --- | ---: | ---: | --- |
+| `test_aresos_desktop` | 189 | 166.860 s | OK, 1 skipped |
+| `test_build_tools` | 3 | 0.108 s | OK |
+| `test_checkout_sources` | 8 | 1.070 s | OK |
+| `test_ci_api_permissions` | 4 | 3.000 s | OK |
+| `test_ci_step_environment` | 4 | 12.779 s | OK |
+| `test_grub_bls` | 6 | 0.308 s | OK |
+| `test_installer_webui` | 9 | 0.002 s | OK |
+| `test_keyboard_proof` | 5 | 0.033 s | OK |
+| `test_keyboard_vm` | 5 | 0.010 s | OK |
+| `test_owner_bootstrap` | 13 | 1.271 s | OK |
+| `test_owner_capabilities` | 6 | 0.168 s | OK |
+| `test_owner_devices_native` | 14 | 1.756 s | OK |
+| `test_owner_entry` | 3 | 0.332 s | OK |
+| `test_owner_equality` | 12 | 104.514 s | OK |
+| `test_owner_guard` | 12 | 0.058 s | OK |
+| `test_owner_login` | 18 | 1.414 s | OK |
+| `test_owner_path` | 48 | 1.153 s | OK |
+| `test_owner_session` | 16 | 0.305 s | OK |
+| `test_owner_sources` | 13 | 49.734 s | OK |
+| `test_owner_staged_release` | 7 | 0.046 s | OK |
+| `test_owner_walk` | 34 | 403.653 s | OK |
+| `test_probe_native` | 4 | 0.002 s | OK |
+| `test_rehearsal_auth` | 9 | 0.077 s | OK |
+| `test_rehearsal_budget` | 4 | 0.034 s | OK |
+| `test_release27` | 41 | 6.870 s | OK |
+| `test_release28` | 94 | 24.873 s | OK |
+| `test_release28_control` | 15 | 4.130 s | OK |
+| `test_release28_rehearsal` | 44 | 34.859 s | OK |
+| `test_release_squash_binding` | 7 | 0.055 s | OK |
+| `test_stock_image` | 29 | 0.121 s | OK |
+| `test_stock_prepare` | 7 | 0.032 s | OK |
+| `test_system_keyboard` | 7 | 0.011 s | OK |
+| `test_tools_local_wiring` | 42 | 57.317 s | OK |
+| `test_ways_back_model` | 26 | 171.200 s | OK |
+| `test_ways_back_probe` | 57 | 153.401 s | OK |
+
+35 modules ran 815 tests, with 814 passing and 1 skipped. The model slice processed 120,000
+states, discovered 173,130, covered 3,185,862 edges and reached all eight journal outcomes.
+The first stock-image run reported two failures because the new shell stand-in wrote a marker to a
+file without printing it. The corrected stand-in passed on success and failure and checked scratch removal
+in both cases. The table records the rerun.
+
+The grep hit in `test_owner_update` is a workflow identity string. The module does not read the workflow file and
+the laptop rules exclude running it. The laptop's exclusions for `test_inherited_homebrew` and `test_sysusers`
+also applied. `git diff --check` passed. No file over 500 MB was found in `.work/`.
+
+**PLAN-GAP 5 — local commit blocked.** Git returned `Read-only file system` when staging tried to create the
+worktree's index lock. The edits and receipt are in the worktree at `e54b4d2f`. No commit, push or dispatch was made.
+The live installer and the package 42 route still need hosted rehearsal 4.

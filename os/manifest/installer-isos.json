@@ -10,6 +10,7 @@
   {
     "sha256": "bd043223c30a1814534797d46328ce651d29925d2412fda7700200bc8b49f82e",
     "kind": "live",
+    "rehearsal_only": true,
     "filename": "bazzite-nvidia-open-stable-live-amd64.iso",
     "url": "https://download.bazzite.gg/bazzite-nvidia-open-stable-live-amd64.iso",
     "checksum_source": "https://download.bazzite.gg/bazzite-nvidia-open-stable-live-amd64.iso-CHECKSUM",
