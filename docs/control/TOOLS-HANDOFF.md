@@ -91,8 +91,12 @@ Ares-Empire/AresOS --interval 300` in a background shell.
    - **19:40: step 5 running** on Codex gpt-6.2-sol xhigh (`18cb-step5`, prompt in `~/codex-queue/linux-tools/`,
      log `~/AresOS-18cb-step5.log`): C4 as connection only (28b isn't merged, so CROSS-5's pin case stays with
      28b's PR), C5, C9, then C7 (F7's loosening dialog only) and C8; at most 3 control runs, then `checks_only`.
-     It dispatches and watches its own runs. When it ends: send `linux-aresos` the `os/` diff from its PROGRESS
-     section, then step 6.
+     **Green (Fri 01:18):** five PASS lines in control 44621559332 attempt 2 (attempt 1: a GitHub 403 in C11, plus
+     unexplained daily-profile reconnect timeouts, a known limit: watch for it in step 6's runs); checks_only
+     44640281276; 10 of 12 control runs used. For the security review: C9 compares against a probe-only start,
+     because Chrome calls the update service itself (our ID: zero non-file mentions). `linux-aresos` has the
+     CI-only `os/` diff and was asked whether R28 is published. **Next: step 6**, which merges main first (as
+     agreed above), then the rehearsal checks, the two final greens, README, the report text.
 4. **Package 28** (#72): held until right after R29's cut, then merge and retarget #116 to main.
 5. **Board:** #386 (N8 and N9 follow-up, one re-pin), #298 (live Chrome setup with him). #337 and #385 done.
 6. **Budget (`mac-capacity`, 06:50):** Claude about 2% a day for this lead; one Claude agent at a time; no Claude
