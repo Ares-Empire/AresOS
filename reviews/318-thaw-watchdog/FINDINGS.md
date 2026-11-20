@@ -1,6 +1,6 @@
 # 318: findings
 
-Brief: `briefs/318-thaw-watchdog.md`. Plan and verdict rules: `PLAN.md`, committed in `eb499fb3` before S0 and unchanged since. Steps 2 and 3 by a Claude Opus 5.5 builder on 2026-11-20. **Step 4, the research section (what the sleeping world could do about it), is left to the next agent** and goes at the end of this file.
+Brief: `briefs/318-thaw-watchdog.md`. Plan and verdict rules: `PLAN.md`, committed in `eb499fb3` before S0 and unchanged since. Steps 2 and 3 by a Claude Opus 5.5 builder on 2026-11-20. Step 4, the research by reading only, is the last section, "What the sleeping world could do about it", by a second Claude Opus 5.5 builder the same day.
 
 ## Verdict: WATCHDOG CONFIRMED (the `null` backend only)
 
@@ -124,10 +124,115 @@ Nothing else in PLAN.md needed a change.
 - **No decision is needed for the verdict.** All three trials were valid on the first try, and the rules give WATCHDOG CONFIRMED.
 - **Optional:** a direct sighting of the sender would take `kernel.print-fatal-signals=1` (root) during one more `RT=keep` run. The rules don't need it.
 
-## Step 4: what the sleeping world could do about it
+## Inputs from the runs for step 4
 
-Left to the next agent (the brief's step 4: reading and research only, no product change, no extra runs). Inputs from these runs:
+What the next section builds on:
 - the catch-up after 267.5 s frozen: about 350–356 ms of CPU in one stretch (above);
 - the mixer, when running normally, wakes about 198 times a second;
 - the realtime thread is named `Render thread`, not `alsoft-mixer`, so a supervisor that demotes "OpenAL's thread" by name would miss it: pick realtime threads by policy, as the rig does;
 - after the demotion nothing promoted the thread again within 60 s, with the `null` backend.
+
+## What the sleeping world could do about it
+
+Step 4, by a Claude Opus 5.5 builder on 2026-11-20: reading only. No game or rig run, no real audio backend, nothing changed outside this file. Each claim cites a file and line or a tagged source. **Guess** marks what the sources don't settle.
+
+### The sources
+
+- **The bundled OpenAL Soft is release 1.25.1.** LWJGL 3.4.1's `lwjgl-openal-3.4.1-natives-linux.jar` (from the Gradle cache) holds a `libopenal.so` with the version string `1.1 ALSOFT 1.25.1`, and a `libopenal.so.git` file naming commit `c41d64c6`. That is `kcat/openal-soft`'s commit "Release 1.25.1", the one the tag `1.25.1` points to. The library's extension string lists `ALC_SOFT_pause_device`. OpenAL Soft paths below are at that tag: `https://github.com/kcat/openal-soft/blob/1.25.1/<path>`.
+- **PipeWire 1.6.9**, this laptop's version (`pipewire --version`, rpm `pipewire-libs-1.6.9`): `https://gitlab.freedesktop.org/pipewire/pipewire/-/blob/1.6.9/<path>`.
+- **rtkit 0.11** (rpm `rtkit-0.11`, started without options, so its built-in defaults hold): `https://github.com/heftig/rtkit/blob/v0.11/rtkit-daemon.c`.
+- **LWJGL 3.4.1's `lwjgl-openal-3.4.1.jar`** (read with `javap`), and the mod's sound code under `mod/src`.
+
+### 1. The product's backend doesn't catch up
+
+**Which backend the game picks.** OpenAL Soft tries `pipewire` first, then `pulse`, and `null` last (`alc/alc.cpp:221-271`). The PipeWire backend steps aside only if libpipewire is too old or PipeWire reports no audio nodes (`alc/backends/pipewire.cpp:2215-2237`). In the real session, with PipeWire as the sound server, the game very likely uses the PipeWire backend. **Guess:** nobody has seen it in a real session. The game log's "OpenAL initialized on device …" line would show it (`No Output` is the `null` backend).
+
+| | `null` (the rigs) | PipeWire (most likely the product's) | PulseAudio (the fallback) |
+|---|---|---|---|
+| What sets the pace | the backend's own clock: `steady_clock` from the thread's start (`alc/backends/null.cpp:67-68`) | PipeWire's graph, one `process` call per cycle | the server's write requests |
+| What one wake renders | everything due since the start. An inner loop renders update after update until it has caught up, with no sleep in between (`null.cpp:69-99`) | what the buffer asks for: `pw_buffer::requested` (`pipewire.cpp:1492-1534`), which PipeWire sets to one cycle (`src/pipewire/stream.c:461`) | the `nbytes` the server asks for (`alc/backends/pulseaudio.cpp:751-773`), at most the buffer OpenAL set up: `tlength`, the device's buffer size (`pulseaudio.cpp:1008`, `1055`) |
+| After a long stall | the whole backlog in one go: about 1.3 ms of CPU per frozen second here | no backlog: the cycles missed while frozen are never rendered | at most one buffer |
+| The thread that mixes | the backend's own thread, started with `std::thread` (`null.cpp:120-130`) | the PipeWire thread loop OpenAL creates per device, named `ALSoftP<n>` (`pipewire.cpp:1579-1590`). The stream connects without `PW_STREAM_FLAG_RT_PROCESS` unless `[pipewire] rt-mix = true` (`pipewire.cpp:1728-1730`; default false, `alsoftrc.sample:430-434`). PipeWire then gives the node the `main` loop class and `node.async` (`stream.c:2095-2099`), so `process` runs on that thread loop | libpulse's threaded mainloop thread (`pulseaudio.cpp:337`) |
+| Realtime for that thread | yes. `SetRTPriority()` at the thread's start (`null.cpp:64`) asks the kernel, then rtkit, for `SCHED_RR` priority 1 (`core/helpers.cpp:373-396`, `398-480`, `484-491`) | not from OpenAL: `pipewire.cpp` has no `SetRTPriority` call | not from OpenAL: `pulseaudio.cpp` has no `SetRTPriority` call. **Guess:** libpulse doesn't make it realtime either |
+
+Of OpenAL Soft's Linux backends only `null`, ALSA, OSS, JACK, sndio and Solaris ask for realtime (`null.cpp:64`, `alsa.cpp:460` and `538`, `oss.cpp:286`, `jack.cpp:405`, `sndio.cpp:89`, `solaris.cpp:94`). Whether ALSA catches up after a stall was not read.
+
+**The game may still hold a realtime thread under PipeWire.** PipeWire's client config on this laptop loads `libpipewire-module-rt` into every client (`/usr/share/pipewire/client.conf:45-57`, `flags = [ ifexists nofail ]`). That module makes PipeWire's own data-loop threads realtime through rtkit, and when it uses rtkit it lowers the process's `RLIMIT_RTTIME` to rtkit's 200 ms (`src/modules/module-rt.c:1003-1019`). rtkit's journal on this laptop shows PipeWire clients (`pipewire`, `wireplumber`) at priority 20; the games' grants, all from rigs with `null`, are at priority 1. **Guess:** under PipeWire the game has one such data-loop thread at priority 20. It wakes once per graph cycle and blocks again, and OpenAL's stream doesn't run on it, so it has no backlog to catch up. Only a real session can show whether it exists and what it does after a thaw.
+
+**In short:** by the source, the product's backend drops the backlog instead of catching it up, and its mixer isn't realtime. The kill seen in B1 belongs to the `null` backend (and maybe to ALSA or OSS, not read), not to the product's audio path. Nobody has watched a real-backend thaw.
+
+### 2. Ways to avoid the kill, with their costs
+
+#### a) Pause the device around the freeze (`ALC_SOFT_pause_device`)
+
+- **What it does.** `alcDevicePauseSOFT` stops the backend and marks the device paused (`alc/alc.cpp:3468-3485`). `alcDeviceResumeSOFT` starts it again (`alc.cpp:3488-3532`). LWJGL 3.4.1 has both, `SOFTPauseDevice.alcDevicePauseSOFT(long)` and `alcDeviceResumeSOFT(long)`, and `ALCCapabilities.ALC_SOFT_pause_device` says whether the device offers them (`javap` on `lwjgl-openal-3.4.1.jar`).
+- **With `null`:** the pause joins the mixer thread (`null.cpp:132-137`). The resume starts a new one (`null.cpp:120-130`) whose clock starts then (`null.cpp:67-68`), so there is no backlog. **The new thread asks for realtime again** (`null.cpp:64`): every resume means a new rtkit grant, with a new tid.
+- **With PipeWire:** the pause sets the stream inactive (`pipewire.cpp:1843-1852`), and the resume sets it active again (`pipewire.cpp:1762-1767`). The thread loop is made once per opened device (`pipewire.cpp:1579-1590`), so a resume makes no new thread, and OpenAL asks for no realtime. **Guess:** Minecraft reloading its sound engine closes and reopens the device: a new backend and a new thread loop, still without a realtime request from OpenAL.
+- **What the mod does today doesn't help.** The covered home screen pauses Minecraft's sounds (`mod/src/client/java/dev/aresos/client/HomeScreen.java:91-109`, `SoundManager.pauseAllExcept`). That pauses sources, not the device. The mixer keeps mixing silence, and B1 shows that silence builds a fatal backlog too.
+- **Costs.**
+  - A mod change: an accessor for Minecraft's device handle. **Guess:** the `currentDevice` field of `com.mojang.blaze3d.audio.Library`. The mod has no such accessor today, only a game-test one for `SoundEngine` (`mod/src/gametest/java/dev/aresos/test/mixin/SoundEngineTestAccess.java`).
+  - A handshake before every freeze: the supervisor asks, the mod pauses the device and answers, and only then comes the freeze. A mod that doesn't answer must not block the freeze or the wake, and the mod must resume after every thaw, including a failed one.
+  - With `null`, one rtkit request per wake. rtkit's limits are per user and shared with the owner's session: at most 25 actions in 20 s and 25 supervised threads (`rtkit-daemon.c:151-157`).
+  - It covers only the device Minecraft opened. Any other realtime thread in the game (PipeWire's, for one) is untouched.
+  - In return it is the only way that also stops the stream while frozen. **Guess:** PipeWire's graph doesn't schedule an inactive stream, so the server sees no missed cycles from a frozen game. The kill doesn't need this.
+
+#### b) The supervisor demotes the game's realtime threads (measured in A1 and A2)
+
+- **What it does.** `chrt --reset-on-fork --other --pid 0 <tid>` on each thread of the game whose policy is `SCHED_FIFO` or `SCHED_RR`, with the `Tgid` check, as the rig does. A1 and A2 show that it works with `null`.
+- **Pick threads by policy, not by name.** In this build the mixer is named `Render thread` (point 4), and a realtime thread from PipeWire would carry PipeWire's name.
+- **Demote after the freeze is confirmed, then check again just before the thaw** (the rig's order). A frozen game can't start a new thread between the demotion and the thaw. A thread that is realtime again at the check gets demoted again (the rig marks such a trial INVALID instead).
+- **Does anything promote them again?**
+  - OpenAL asks once, when the mixer thread starts (`null.cpp:64`). The running thread never asks again. A device restart (a resume after a pause, a reset, a reopen, a sound engine reload) makes a new thread that asks again (`null.cpp:120-130`), so the supervisor scans at every freeze instead of remembering tids.
+  - rtkit changes a policy only when asked (`rtkit-daemon.c:765`, its `MakeThreadRealtime` path). On its own it only demotes, when its canary starves (`rtkit-daemon.c:903-1024`).
+  - PipeWire's `module-rt` asks when one of its threads starts (`module-rt.c:845`). **Guess:** it doesn't ask again for a running thread.
+  - Measured with `null`: in A1 and A2, no realtime thread and no new rtkit grant for 60 s after the thaw.
+- **Costs.**
+  - The demoted thread stays a normal thread until the next device restart. That is harmless for `null`, which plays nothing. **Guess:** for a real backend's realtime thread (the PipeWire data loop, if there is one), a little more risk of crackle under heavy load.
+  - Supervisor code: the `Tgid` check, the pre-thaw check, and `--reset-on-fork`, without which an unprivileged `chrt --other` is refused (step 1's test).
+  - No mod change. It works for any backend and any realtime thread.
+
+#### c) `rt-prio = 0` or `rt-time-limit = false` for the game alone, through `ALSOFT_CONF`
+
+- **Where it is read.** OpenAL Soft reads `/etc/openal/alsoft.conf`, the XDG system dirs, `~/.config/alsoft.conf`, an `alsoft.conf` next to the program, and last the file `ALSOFT_CONF` names (`alc/alconfig.cpp:427-530`). Later values win (`alsoftrc.sample:3-4`). So a file set through `ALSOFT_CONF` for the game alone overrides the keys it names and leaves the owner's own file in force for the rest. Both keys are read once, when the library starts (`alc.cpp:499-502`).
+- **`rt-prio = 0`:** `SetRTPriority()` returns at once (`core/helpers.cpp:486-487`; `alsoftrc.sample:201-208`). The mixer stays a normal thread and its catch-up runs to the end, as in A1 and A2. No rtkit request at all.
+- **`rt-time-limit = false`:** OpenAL no longer lowers `RLIMIT_RTTIME` (`helpers.cpp:436-444`; `alsoftrc.sample:210-213`). rtkit then refuses realtime, because it requires a hard limit of at most 200 ms in `/proc/<pid>/limits` (`rtkit-daemon.c:627-673`, checked at `795` and `812`). OpenAL falls back to a nice level of -15 (`helpers.cpp:463-472`), which rtkit grants without that check (`rtkit-daemon.c:835`). This is weaker than `rt-prio = 0`: if anything else in the process lowers the limit first (PipeWire's `module-rt` does, `module-rt.c:1014-1019`) or the game inherits a low one, rtkit grants realtime and the kill is back.
+- **Costs.**
+  - It changes only the backends that ask for realtime: `null` (the rigs) and the fallbacks ALSA and OSS. For PipeWire and PulseAudio it changes nothing.
+  - On an ALSA fallback the mixer would no longer be realtime: more crackle risk under load.
+  - One more file to ship, and an environment variable on the game's launch. **Guess:** anything the game starts directly inherits the variable, so an app using OpenAL Soft started from the game would read the same file.
+
+#### d) Other things found
+
+- **A laptop sleep is no risk.** libstdc++'s `steady_clock` is `CLOCK_MONOTONIC`, which doesn't advance while the system is suspended (`clock_gettime(2)`). So the `null` mixer sees no gap after a suspend. Only stopping the process while the system runs (a cgroup freeze, `SIGSTOP`) builds a backlog.
+- **The limit can't be raised.** rtkit refuses any process whose hard `RLIMIT_RTTIME` is above 200 ms (`rtkit-daemon.c:142`, `665`), and raising a hard limit needs privilege.
+- **Keep `[pipewire] rt-mix` off** (its default). With it OpenAL would mix on PipeWire's realtime thread (`pipewire.cpp:1728-1730`). Rendering one cycle per call keeps the risk small, but nothing is gained.
+- **An upstream fix** would cap the `null` backend's backlog: drop what is more than a buffer behind, as the real backends do. It would reach the game only through a new LWJGL, so it is nothing to wait for.
+
+### 3. The longest safe freeze for `null`
+
+- The catch-up grows linearly with the frozen time: each frozen second adds a second of samples for the inner loop to render (`null.cpp:75-86`).
+- Measured: 350–356 ms of CPU after 267.5 s frozen, so 1.31–1.33 ms per frozen second. B1 died at about 196–200 ms of it.
+- **200 ms ÷ 1.33 ms per frozen second ≈ 150 s.** On this laptop, with `null`, a thaw after more than about two and a half minutes frozen kills the game.
+- **Treat about one minute as safe.** The trials mixed near silence (the covered home screen pauses every sound). Music, many sources or HRTF cost more per second, and a slower or throttled CPU renders more slowly. **Guess** for the margin: each run measured one freeze length.
+- **For the real backend: nothing, by the source.** PipeWire and PulseAudio build no backlog, and their mixer threads aren't realtime, so this number doesn't bound a real-session freeze. It does bound every rig and CI run of the sleeping world, because they all use `null`.
+
+### 4. Why the thread is named `Render thread`
+
+- The source does name it. `althrd_setname(GetMixerThreadName())` comes right after `SetRTPriority()` (`null.cpp:64-65`), with the name `alsoft-mixer` (`core/device.h:413`), and that string is in the binary.
+- But in LWJGL's build `althrd_setname` does nothing. It calls `pthread_setname_np` only if `HAVE_PTHREAD_SETNAME_NP` was found at build time (`common/althrd_setname.cpp:67-74`), and the bundled `libopenal.so` imports no `pthread_setname_np` (`nm -D`: it imports `pthread_setschedparam`, `sched_get_priority_max`, `sched_get_priority_min` and `setrlimit`). So the thread keeps the name Linux gave it, its creator's, and Minecraft opens the device from its `Render thread`.
+- **Guess, why the build lacks it:** the CMake check is `check_symbol_exists(pthread_setname_np pthread.h …)` (`CMakeLists.txt:711`), and the file defines no `_GNU_SOURCE`, which glibc needs before it declares `pthread_setname_np`.
+- So in this build every OpenAL thread that would name itself (`alsoft-mixer`, `alsoft-record`) carries its creator's name, and a supervisor can't find it by name.
+
+### Recommendation for the sleeping world
+
+**Use b).** The supervisor demotes the game's realtime threads, picked by policy, after the freeze is confirmed, and checks again before the thaw. Why:
+- It is the only way measured to work here (A1, A2), and the rig already has the code and its tests.
+- It needs no mod change and no handshake, so a busy or stuck game can't hold up a freeze or a wake.
+- It covers every backend and any realtime thread, whatever its name, including ones nobody knows about yet.
+- Its cost is small: the demoted thread stays a normal thread until the next device restart, which `null` never notices.
+
+By the source, the product's PipeWire backend doesn't catch up and its mixer isn't realtime, so the kill shouldn't happen there at all. b) is the safety net for the fallbacks (ALSA, `null`) and for whatever realtime thread PipeWire adds to the game. Every rig and CI run of the sleeping world uses `null`, so those need b), or freezes under a minute, to survive a thaw.
+
+Don't make c) the fix: it does nothing for the product's backend, and PipeWire's own module can undo `rt-time-limit = false`. `rt-prio = 0` is a fine one-line choice for a rig that wants long freezes without the demotion code. Keep a) for later. It is the cleanest for the audio (no stream running while frozen), but it costs a mod change, a handshake on every freeze and, with `null`, an rtkit request on every wake. Take it up only if a real-session thaw shows audio trouble.
+
+**Before relying on the source reading,** a real session should show two things without freezing anything: the game log's "OpenAL initialized on device" line (which backend) and the game's realtime threads (policy, priority, `comm`). That runs in the owner's session, so it is his call. A real thaw test is a decision for a later package.
