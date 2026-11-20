@@ -124,7 +124,10 @@ Ares-Empire/AresOS --interval 300` in a background shell.
      **6b after pkg/42 is on main:** merge main (as agreed above), the two final greens (2 control runs left),
      fill the placeholders.
 4. **Package 28** (#72): held until right after R29's cut, then merge and retarget #116 to main.
-5. **Board:** #386 (N8 and N9 follow-up, one re-pin), #298 (live Chrome setup with him). #337 and #385 done.
+5. **Board:** T386 (N8 and N9 follow-up, one re-pin): **B317 brief started Fri 08:44** by one Fable writer
+   (`briefs/20-store-oracle-reads.md` on local branch `brief/317-store-oracle-reads`, worktree
+   `~/AresOS-317-brief`, not pushed). Next: read it, push to main, one Claude review (Opus), one Codex review
+   (astra), then build. T298 (live Chrome setup with him). #337 and #385 done.
 6. **Budget (`mac-capacity`, 06:50):** Claude about 2% a day for this lead; one Claude agent at a time; no Claude
    agent waiting on CI (shell watchers do that); Opus by default, Fable only for installs, rollback, credentials
    and security. Codex may take Sol builds again within about 12% a day (meter in `~/.codex/sessions/`). Doc-only
