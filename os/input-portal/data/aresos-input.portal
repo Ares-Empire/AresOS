@@ -1,0 +1,4 @@
+[portal]
+DBusName=org.freedesktop.impl.portal.desktop.aresos-input
+Interfaces=org.freedesktop.impl.portal.InputCapture;org.freedesktop.impl.portal.Clipboard;
+UseIn=AresOS

@@ -1,0 +1,7 @@
+HOME=/root
+HOSTNAME=acfe497ac49f
+PATH=/usr/local/bin:/usr/bin
+PWD=/
+SHLVL=1
+_=/usr/bin/env
+container=oci

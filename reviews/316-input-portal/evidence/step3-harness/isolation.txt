@@ -1,0 +1,20 @@
+PASS isolation the container starts without WAYLAND_DISPLAY
+PASS isolation the container starts without DISPLAY
+PASS isolation the container starts without DBUS_SESSION_BUS_ADDRESS
+PASS isolation the container starts without XDG_RUNTIME_DIR
+PASS isolation the container starts without XDG_DESKTOP_PORTAL_DIR
+PASS isolation the container starts without XDG_CURRENT_DESKTOP
+PASS isolation the container starts without XAUTHORITY
+PASS isolation the container starts without SSH_AUTH_SOCK
+PASS isolation no network interface but loopback (its own network namespace: no abstract socket of the host)
+PASS isolation no /dev/input, or an empty one
+PASS isolation no /dev/uinput, or an empty one
+PASS isolation no /dev/dri, or an empty one
+PASS isolation no /tmp/.X11-unix, or an empty one
+PASS isolation no /run/user, or an empty one
+PASS isolation no /run/dbus, or an empty one
+PASS isolation no /var/run/dbus, or an empty one
+PASS isolation no /home, or an empty one
+PASS isolation no /var/home, or an empty one
+PASS isolation no socket exists anywhere before the harness starts one
+PASS isolation no host home, runtime or X11 folder is mounted
