@@ -76,7 +76,7 @@ are 7), and the same layout code coped.
 | Kind of piece | Who draws it | Function lives in | Look lives in |
 |---|---|---|---|
 | Window frame: title bar, its buttons, border, labwc's menus, Alt+Tab, the snapping preview | labwc | labwc and `rc.xml` (button order, keys, mouse) | A labwc theme folder (`themerc` and one image per button and state), **generated from the look pack** by a script, as `reviews/window-design-v1/draw-buttons.py` generates Ares-Crown's today. Plus five kinds of line in `rc.xml` that labwc keeps outside the theme: the theme's name, the fonts, the corner radius, shadows on or off, the Alt+Tab style. |
-| New pieces: the indicator and the overview | A small layer-shell program each | That program | The look pack, read when the program starts. It copies sprites and letters onto its surface at a whole scale. |
+| New pieces: the indicator and the overview | A small layer-shell program each | That program | The selected look pack, read before each showing, even if the program is still running. It copies sprites and letters onto its surface at a whole scale. |
 | The mod's own screens | The game | The mod | The game's own widgets, as today (package 48 kept vanilla buttons on purpose). A's sprites sit on the game's grid (section 3), so the mod could ship them as its widget textures later; that is the owner's choice then, not part of these builds. |
 | The password windows' insides | Qt (`ksshaskpass`, polkit's KDE agent) | Those programs, unchanged | A Qt style sheet in the image, generated from look A's pack and **the same in every look** (section 4.6; its build needs its own review on the owner tools' checked path). |
 | Programs that draw their own bar (Chrome, GNOME apps, frameless Electron) | The program | The program | Not ours. Only the button-order setting reaches them (`docs/design/WINDOWS.md`). |
@@ -90,9 +90,9 @@ are 7), and the same layout code coped.
    more code in every piece, and every piece must be looked at in each look it ships with.
 3. **labwc keeps part of its look in `rc.xml`.** A change of look is the theme folder, those `rc.xml` lines and the
    image check's pin in one commit, and `rc.xml` changes go to `linux-aresos` first.
-4. **When a change of look shows.** Our programs read the pack when they start, and they are short-lived (the
-   indicator ends a minute after its last use). labwc rereads its theme on `labwc --reconfigure`, so the frame can
-   change while windows are open (section 4.2).
+4. **When a change of look shows.** Our programs load the current pack before showing a surface and redraw a
+   visible surface when the effective look changes (sections 4.7 and 5). labwc rereads its theme on
+   `labwc --reconfigure`, so the frame can change while windows are open (section 4.2).
 5. **labwc cannot do everything a look may want** (no pressed button image, one border colour, soft shadows only;
    WINDOWS.md lists it). A look has to work within that for the frame. Step 2 says what that means for A and B.
 
@@ -225,13 +225,13 @@ it: the file and its licence text in `/usr/share/fonts/aresos/`, the README's li
 
 - **2x for what is attached to a window:** the frame and its buttons. A 20-unit title bar is 40 px, close to
   Ares-Crown's 36 px. At 3x it would be 60 px, far too much of every window.
-- **3x for what floats over everything:** the indicator. It is seen at a glance and from further away, and it sits
-  near the game's own interface, whose pixels are 3 or 4 screen pixels wide.
+- **Medium (3x) by default for the indicator.** It is seen at a glance and from further away, and it sits near the
+  game's own interface, whose pixels are 3 or 4 screen pixels wide.
 
 Each mockup says its scale. `A-05` shows the indicator at 2x, 3x and 4x in real screen pixels.
 
-**For the lead to confirm, not a question for the owner:** the GUI scale his game actually runs at. If it is 4, the
-overlay scale may want to be 4 as well, so that the indicator's pixels match the hotbar's.
+**For the lead:** record the game's actual GUI scale and try small, medium and large beside its hotbar at that
+scale (section 8).
 
 **Rules for every sprite**
 
@@ -352,9 +352,9 @@ centre as its default (board #409; section 4.7).
 
 ![The indicator at 2x, 3x and 4x in real pixels](components/A-05-indicator-scales.png)
 
-2x (350 × 60 px) is the size of a Windows flyout and easy to miss from a chair's distance; 4x (700 × 120 px) is right
-only if his game's interface is also at 4. The owner made the size a setting, with medium (3x) as its default (board
-#409; section 4.7).
+Small (2x, 350 × 60 px) is the size of a Windows flyout and easy to miss from a chair's distance. Large (4x,
+700 × 120 px) is closest to the game's interface at 4x. The desktop defaults to medium (3x), as the owner chose
+(board #409). Check all three sizes beside the world at the game's actual GUI scale (sections 4.7 and 8).
 
 **With the world**
 
@@ -461,7 +461,7 @@ others are flat and quiet. Programs that draw their own bar, such as Chrome and 
 | The gold block | Click: the window menu | Ares-Crown's gold dot, carried over. There is no app icon: labwc sizes an icon by the button box (WINDOWS.md). |
 | The title | Drag: move. Drag to the top edge: maximize. Drag to the left or right edge: half the screen. Double-click: maximize or restore. Right-click: the window menu. | labwc's defaults, and Windows' habits. |
 | Minimize | Click: minimize (below) | |
-| Maximize, restore | Click: maximize or restore. Middle-click: full height only (labwc's default, kept). **Right-click: the layout menu (new).** | `A-11` |
+| Maximize, restore | Click: maximize or restore. Middle-click: full height only (labwc's default, kept). **Right-click opens the menu once layouts ships.** | `A-11` (section 4.3) |
 | Close | Click: close, like Alt+F4 | |
 | The edge | Drag: resize | |
 | Scrolling over the bar | **Nothing (new).** labwc's default rolls the window up into its bar on a scroll down. | |
@@ -492,7 +492,7 @@ palette's rule at work: gold marks the chosen thing.
 
 | Like Windows | Our own |
 |---|---|
-| The title at the left; minimize, maximize and close at the right in that order; close turns red | **Right-click on maximize opens the layout menu**, under the button (`A-11`). Windows 11 shows its layouts when the pointer rests on maximize; labwc cannot react to a resting pointer, and a menu that opens by itself gets in the way. A right-click is deliberate, and it replaces labwc's "maximize only the width", which nobody expects. Section 4.3 gives the menu's rows. |
+| The title at the left; minimize, maximize and close at the right in that order; close turns red | **The layouts package adds a right-click on maximize** that opens the menu under the button (`A-11`). Windows 11 shows its layouts when the pointer rests on maximize. A right-click is deliberate and replaces labwc's "maximize only the width". Section 4.3 gives the menu's rows. |
 | Double-click the title to maximize; drag to the top to maximize, to a side for half the screen | **The world's hotbar holds minimized windows** (below): a minimized app's slot is marked, and clicking it brings its window back. The world is the desktop, so its bar becomes the taskbar. |
 | Alt+F4 closes | No rolling up a window by scrolling over its bar: a Linux habit that looks like a lost window. |
 
@@ -591,8 +591,8 @@ and size apply to the indicator, not to the frame. Section 4.7 designs the setti
 - **One theme name for all looks.** `rc.xml` names the theme `AresOS`. The image ships look A as
   `/usr/share/themes/AresOS/labwc/`, generated from the look pack. For B or C, the sync step (section 5) writes a
   complete theme folder of the same name into `~/.local/share/themes/AresOS/labwc/`, which labwc reads first. For A it
-  removes that folder, and only if it made it. If the game's files are missing or wrong, no folder is written and the
-  frame is A: one piece, never half one look and half another.
+  withdraws the managed folder and layout icon overrides. If the instance or jar fails validation, it invalidates
+  the active cache, withdraws those overrides and reloads labwc so the image's A theme takes over (section 5).
 - **The same geometry in every look:** a 40 px bar, 48 × 40 px buttons, a 2 px edge line, Jersey 10 at 28 pt. So
   `rc.xml` is the same whichever look he picks, a switch changes no image file, and no window's inside moves or
   changes size.
@@ -601,8 +601,9 @@ and size apply to the indicator, not to the frame. Section 4.7 designs the setti
   only when a window first appears (the note in today's `rc.xml`), so the world's "always below" rule is not run
   again. *To verify in a private labwc:* that open windows redraw their frames, and that the world keeps the pointer
   and the keyboard through it.
-- **Cheap first, the rest later.** The frame's first package ships A only, as the image's theme. B and C come with
-  section 5's sync step, which then also writes the theme folder; the switch itself is a folder and one command.
+- **A, B and C in the frame's first package.** A ships in the image, and section 5's sync step gains the B and C
+  theme generator. The package includes Alt+Tab and the first Super+Tab list. The layouts package adds the
+  right-click binding when its menu is ready (sections 4.3 and 6).
 - **Decided: windows follow the look** (the owner on board T432, Friday 2026-11-20: "Yes, follow the look"). Every
   window wears the frame of the chosen look, A, B or C (default B), instead of today's Ares-Crown. Ares-Crown stays
   the shipped frame until the frame's package is built, and is replaced then. Its files stay in git history and are a
@@ -646,15 +647,12 @@ menu.separator.color: #504b5c
 ```
 
 And in `rc.xml` (to `linux-aresos` first): the theme's name `AresOS`, `cornerRadius` 0, Jersey 10 at 28 pt for
-`ActiveWindow`, `InactiveWindow`, `MenuHeader` and `MenuItem`, and a mouse block. It starts with `<default />`, as the
-manual's own example does, so labwc's other mouse bindings stay:
+`ActiveWindow`, `InactiveWindow`, `MenuHeader` and `MenuItem`, and a mouse block to clear title-bar scrolling. It
+starts with `<default />`, as the manual's own example does, so labwc's other mouse bindings stay:
 
 ```xml
 <mouse>
   <default />
-  <context name="Maximize">
-    <mousebind button="Right" action="Click"><action name="ShowMenu" menu="aresos-layouts" atCursor="no" /></mousebind>
-  </context>
   <context name="TitleBar">
     <mousebind direction="Up" action="Scroll"><action name="None" /></mousebind>
     <mousebind direction="Down" action="Scroll"><action name="None" /></mousebind>
@@ -662,9 +660,8 @@ manual's own example does, so labwc's other mouse bindings stay:
 </mouse>
 ```
 
-`atCursor="no"` opens a menu "underneath the window button that opened" it (labwc-actions(5)), and `None` as the only
-action clears a default binding. The `aresos-layouts` menu goes into a `menu.xml` beside `rc.xml`, which AresOS does
-not have yet; section 4.3 gives its rows and four more mouse bindings.
+`None` as the only action clears a default binding. Section 4.3 adds the maximize-button binding and the
+`aresos-layouts` menu together.
 
 **What it is built from**
 
@@ -672,9 +669,9 @@ not have yet; section 4.3 gives its rows and four more mouse bindings.
 |---|---|
 | Draws it | labwc 0.9.6, unchanged. |
 | New: the theme generator | Writes `themerc` and the 36 images from the look pack, as `reviews/window-design-v1/draw-buttons.py` writes Ares-Crown's today. The study's `title_button()` and `window_frame()` in `tools/look.py` are its first draft. |
-| The image | `/usr/share/themes/AresOS/labwc/` with 37 files, Jersey 10 (section 2's list), `rc.xml` and a new `menu.xml`. The image check that pins Ares-Crown's checksum and 37 files (`os/ci/image-checks.sh`, about line 770) moves to the new folder in the same commit. The GTK button-order override and its compiled schemas do not change (same order). Package 31's report stays as history; `docs/design/WINDOWS.md` is updated by that package to describe the new frame and to correct its line on Jersey 10's 21 pt. |
+| The image | `/usr/share/themes/AresOS/labwc/` with 37 files, Jersey 10 (section 2's list) and `rc.xml`. The image check that pins Ares-Crown's checksum and 37 files (`os/ci/image-checks.sh`, about line 770) moves to the new folder in the same commit. The GTK button-order override and its compiled schemas do not change (same order). Package 31's report stays as history; `docs/design/WINDOWS.md` is updated by that package to describe the new frame and to correct its line on Jersey 10's 21 pt. |
 | B and C | The sync step (section 5) writes the theme folder and runs the reconfigure: about 100 more lines there. |
-| Size | One small package for A: the generator (about 150 lines), the image and its checks, the `rc.xml` and `menu.xml` lines, and tests in a private labwc. One or two builder steps. |
+| Size | One package for all three looks: the A generator (about 150 lines), the B and C additions above, the image and its checks, the `rc.xml` lines and tests in a private labwc. |
 
 **What the build must test** (in a private headless labwc, as package 31 did):
 
@@ -682,8 +679,7 @@ not have yet; section 4.3 gives its rows and four more mouse bindings.
 - The bar is 40 px high with Jersey 10 at 28 pt, and a title with `ÄÖÜß` fits it.
 - Each button under the pointer on an active and an inactive window; close red; restore on a maximized window; no edge
   line on a maximized window.
-- A right-click on maximize opens the layout menu under the button; Escape closes it and the window keeps the focus;
-  scrolling over the bar does nothing.
+- Scrolling over the bar does nothing.
 - A change of look: write and remove the home theme folder, reconfigure; open windows change their frame, none moves
   or resizes, and a test client holding a pointer lock keeps it.
 - A half-written home theme folder never appears (the sync step writes a hidden folder and renames it).
@@ -707,9 +703,8 @@ not have yet; section 4.3 gives its rows and four more mouse bindings.
 
 **Not verified** (nothing was run; these come from labwc's manual and must be confirmed by the build's tests): that
 labwc shows a PNG of exactly the button size without scaling it; that Jersey 10 at 28 pt makes a 40 px bar in labwc's
-own text drawing; that open windows redraw their frames on a reconfigure; that a user mouse binding replaces the
-default for the same context and button; that `None` clears the scroll bindings; that labwc's activate request
-restores a minimized window.
+own text drawing; that open windows redraw their frames on a reconfigure; that `None` clears the scroll bindings;
+that labwc's activate request restores a minimized window.
 
 ### 4.3 Window layouts and split screen
 
@@ -741,8 +736,9 @@ whole screen):
 | Its own size | `UnSnap` | as before | Back to where it was and how big. |
 | The whole screen | maximize | 1920 × 1080 | The maximize button, Super+Up or the top edge. Not a menu row: the button is right there. |
 
-Whole percents, so that two places meet exactly at any screen width (66 + 34) and the shell can add them up the same
-way. One table of regions is the source for `rc.xml`'s regions, the menu and the shell's sums (below).
+One table is the source for `rc.xml`'s regions and the menu. The regions use whole percents with shared edges
+(66 % and 34 % meet at the 66 % line). Covering uses the rectangles labwc actually places, including the pixel
+rounding at those edges.
 
 **Share the screen with ▸ (our own: Windows' Snap Assist inside the menu).** The last row opens a list of the other
 windows showing on the same screen, by app and title (a labwc *pipe menu*: the shell writes the list when the row is
@@ -782,17 +778,18 @@ labwc accepts Ctrl, Alt, Shift or Super for it.
 | Named places | `<regions>` in `rc.xml`, in percent of the usable area; `SnapToRegion`, `ToggleSnapToRegion` | The nine regions above. |
 | Dragging | An edge gives a half, within `cornerRange` (50 px) of a corner a quarter, the top edge maximizes (`topMaximize`); with a modifier, the nearest region; a preview after a delay (500 ms by default) | Kept, with the preview after 250 ms, nearer Windows' feel. |
 | Back to its own size | `UnSnap` | "Its own size". |
-| Ask where a window is | `If` and `ForEach` with the conditions `tiled`, `tiled_region`, `maximized`, `iconified`, `identifier`, `monitor` | The keys, the guard, the report to the shell. |
+| Ask where a window is | `If` and `ForEach` with the conditions `tiled`, `tiled_region`, `maximized`, `iconified`, `identifier`, `monitor` | The keys and the guard. |
 | A menu under a button, with icons, written by a program | `ShowMenu` with `atCursor="no"`; `icon=` on menu rows (`<menu><showIcons>`, on by default); pipe menus | The layout menu and "Share the screen with". |
 | Tell programs they are tiled | `notifyClient`, default `always` | Kept: GTK programs then square their corners. |
-| Tell another program where a window is | **Nothing.** The shell's window list (foreign-toplevel) carries maximized, minimized, activated, fullscreen and the screens; none of the other interfaces labwc offers carries a position, a size or a tiled state. | The reason for the record below. |
+| Tell another program where a window is | **Nothing in stock labwc.** The shell's window list (foreign-toplevel) carries maximized, minimized, activated, fullscreen and the screens; it carries no geometry or tiled state. | The covering package adds the report below. |
 | Let another program place a window | **Nothing.** labwc takes no actions from other programs; its command line can only reload or exit. | Why the picker is labwc's menu and not a grid of layout pictures like Windows 11's, which would need a program of our own that labwc cannot obey. |
 
 **The world and the layouts: the covering rule** (the brief's fixed limit, board #373)
 
 The world never takes a place in a layout: the guard above keeps keys and the menu off it, and the build adds
 `fixedPosition="yes"` to the world's window rule, so that labwc's Super+drag cannot move it into one (labwc-config(5):
-"disallows interactive move/resize"). A layout covers the world only when the windows in it fill the world's screen.
+"disallows interactive move/resize"). A layout covers the world only when its windows fill the usable area of the
+world's known output.
 One app in one half leaves the world showing and running in the other half (`A-13`): the free half is the live world,
 which no other desktop has.
 
@@ -800,30 +797,35 @@ which no other desktop has.
 
 *1920 × 1080 at 2x. The preview is A's gold tint with a black, gold and black frame.*
 
-**Where the geometry comes from: the layout feature's own record, kept by the shell.** labwc knows where each window
-is but tells no one (the table above). So the shell keeps a record per window, its place and its screen, filled by
-labwc itself:
+**Where the geometry comes from: the layout feature's own record, kept by the shell.** The covering package adds a
+small labwc action that reports the layout result for the window the action ran on. Stock labwc's `Execute` starts a
+command asynchronously, so a command that looks up the focused window can see a different one.
 
-- Every layout binding (each menu row, each key, the Super+Shift moves) ends with the same block of `If` queries,
-  which asks labwc where the focused window is now (`tiled_region`, or `tiled` for a half from an edge) and runs
-  `aresos-desktop layout-slot <place>` or `layout-slot none`. The shell takes the window and its screen from its own
-  window list at that moment.
+- The report carries the target's foreign-toplevel handle on the shell's Wayland connection, the target's output,
+  its place and the placed frame's rectangle in output coordinates. It also supplies that output's usable rectangle.
+  labwc sends the reports in action order on the same connection as the window list. The shell applies each report
+  to that handle and output. Reports for closed windows or unknown outputs give no place.
+- Each layout key, each menu row and each Super+Shift move reports the result after placement. A move out of a
+  layout reports no place. "Share the screen with" reports once inside each window's action, with two distinct
+  handles. A focus change while a report is in flight cannot change its target.
 - A window **leaves its place** when the shell sees it closed, maximized or fullscreen (it then covers alone, as
-  today), moved to another screen (the next report places it again), or reported somewhere else; and when labwc's
-  frame starts moving or resizing it: the frame's mouse bindings for dragging the title, dragging the edge and
-  Super+drag run `aresos-desktop layout-leave` before `Move` or `Resize`.
+  today), moved to another screen (the next report places it again), or reported somewhere else. The compositor's
+  bindings for dragging the title, dragging the edge and Super+drag clear the place of their own target before
+  `Move` or `Resize`, using the same report. When an output's usable area changes, labwc tells the shell to
+  clear its places and reports the new geometry of windows still placed there.
 - **A minimized window keeps its place but does not fill it,** so its layout has a gap while it is down, and fills it
   again when it comes back (labwc brings it back where it was; *to verify* for a placed window).
 
-**The test.** The world's screen is covered when the places of the not-minimized windows on it together fill it. The
-shell adds whole percents, so a layout fills the screen or it does not, with no rounding. `Windows.covering()` gains
-this test beside maximized and fullscreen, and the world pauses (`shell_covered`) exactly as under a maximized
-window. A window whose screen is not known yet gets no place, so it never counts.
+**The test.** On the world's known output, the shell clips each placed, non-minimized window's rectangle to the
+usable area and takes the union. A layout covers the world when the union fills that area. An overlap counts once
+and any uncovered gap keeps the world running. `Windows.covering()` gains this test beside maximized and fullscreen,
+and the world pauses (`shell_covered`) exactly as under a maximized window. An unknown world output or an unknown
+window output cannot establish coverage by a layout.
 
 **Which windows go down when he returns to the world.** When the world gets the focus (Alt+Tab, the search, the return
-after a close) and a full layout covers it, the shell minimizes every window with a place on that screen, together
-with the maximized and fullscreen ones there (today's rule). A partial layout covers nothing, so nothing in it goes
-down. Floating windows stay above the world, as smaller windows do today. Only windows on a screen known to be the
+after a close) and a full layout covers it, the shell minimizes the placed windows that formed the union, along
+with the maximized and fullscreen windows that cover it under today's rule. A partial layout leaves its windows
+up. Floating windows stay above the world, as smaller windows do today. Only windows on a screen known to be the
 world's are minimized (today's known-output guard, kept).
 
 **A layout comes back whole (our own).** The windows the shell minimized together in one return to the world are
@@ -848,9 +850,10 @@ does this for snap groups from its taskbar. A window he minimized himself never 
 
 1. **Full coverage:** two halves on the world's screen cover it; Alt+Tab to the world minimizes both; Alt+Tab to one
    brings both back and pauses the world again. Also full: two thirds and a third; a half and two quarters; four
-   quarters; a half over two thirds (the places may overlap).
-2. **A gap:** one half; three quarters; the middle alone; a placed window minimized. Not covered, and a click on the
-   world minimizes nothing.
+   quarters; the right half over the left two thirds.
+2. **A gap:** one half; three quarters; the middle alone; a placed window minimized; two windows in the left half;
+   the left two thirds overlapping the middle. The world stays visible and running, and a click on it minimizes
+   nothing.
 3. **Another output:** halves on the laptop with the world on the monitor do not cover it, and the reverse.
 4. **An output not known yet:** a window placed before its screen is named gets no place; the next report after it
    is named counts it.
@@ -861,6 +864,11 @@ does this for snap groups from its taskbar. A window he minimized himself never 
 7. **The guard:** every key and Super+Z on the world, the laptop home and a cover do nothing; Super+drag cannot move
    the world.
 8. **Super:** none of the keys, and (with 23c) Super held through a drag, opens the search.
+9. **The report's target:** delay handling a slot report until another window has focus, then check that the place
+   still belongs to the original window and output. "Share the screen with" reports the original window on the
+   left and the chosen window on the right, each under its own handle and on the correct output.
+10. **The maximize button:** right-click opens the working menu under the button, Escape closes it and keeps the
+    window focused, and picking a row puts that window in the chosen place.
 
 **Focus and input: the layout menu is interactive.** It is labwc's own menu: labwc has the keyboard while it is open;
 the arrow keys and Enter choose, Escape closes it and the window keeps the focus. Opened with the mouse, the press has
@@ -912,13 +920,22 @@ capture is not involved.
         <then><action name="UnSnap" /></then>
         <else><!-- top-right to top-left, bottom-right to bottom-left, otherwise SnapToRegion left --></else>
       </action>
-      <!-- the report: If tiled_region="left" then Execute "aresos-desktop layout-slot left", … else "… none" -->
+      <!-- The covering package adds the layout report for this action's window. -->
     </else>
   </action>
 </keybind>
 ```
 
-`menu.xml` (each row's actions end with the same report):
+In the layouts package, add this context to section 4.2's mouse block. `atCursor="no"` opens the menu below the
+button (labwc-actions(5)).
+
+```xml
+<context name="Maximize">
+  <mousebind button="Right" action="Click"><action name="ShowMenu" menu="aresos-layouts" atCursor="no" /></mousebind>
+</context>
+```
+
+`menu.xml` ships with that binding. The covering package adds the report to each row's actions.
 
 ```xml
 <openbox_menu>
@@ -932,10 +949,11 @@ capture is not involved.
 ```
 
 The pipe menu's rows run `SnapToRegion left` on this window, then a `ForEach` that finds the chosen window by app and
-title (its glob signs escaped) and runs `SnapToRegion right`, `Focus` and `Raise` on it. Section 4.2's mouse block
-gains four bindings that run `aresos-desktop layout-leave` and then do what labwc does by default: `Title` left drag
-(`Move`), `Border` left drag (`Resize`), `Frame` Super+left drag (`Move`) and Super+right drag (`Resize`). The snapping
-preview's lines in A's `themerc`:
+title (its glob signs escaped) and runs `SnapToRegion right`, `Focus` and `Raise` on it. The covering package adds a
+report after each snap, inside the chosen window's `ForEach` for the second snap. It also gives the mouse block four
+bindings that clear the action target's place before labwc's usual action: `Title` left drag (`Move`), `Border` left
+drag (`Resize`), `Frame` Super+left drag (`Move`) and Super+right drag (`Resize`). The snapping preview's lines in
+A's `themerc`:
 
 ```
 snapping.overlay.region.bg.enabled: yes
@@ -954,17 +972,20 @@ snapping.overlay.edge.border.color: #0d0d10,#edca77,#0d0d10
 
 | Part | Who does it | New work |
 |---|---|---|
-| Places, keys, mouse, menu, preview | labwc 0.9.6, unchanged | `rc.xml`, `menu.xml` and `themerc` lines, written from one table of regions |
+| Places, keys, mouse, menu, preview | Stock labwc 0.9.6 | `rc.xml`, `menu.xml` and `themerc` lines, written from one table of regions |
 | The pictograms | the icon theme | the theme generator writes 11 icons per look |
-| `aresos-desktop layout-slot`, `layout-leave`, `layout-partners` | the supervisor's commands, as 23c's `search` | about 100 lines |
+| `aresos-desktop layout-partners` | the supervisor's command, as 23c's `search` | the pipe menu |
+| The layout report | labwc and the shell's Wayland client | an action and an event for the action's window and output |
 | The record, the cover test, the group, `world_clicked` | `aresos-shell` | about 250 lines and the tests above |
 | `world_clicked` | the mod | a few lines where it already handles the click that focuses the world |
 
-**Size: two packages.** (1) **Layouts:** the places, keys, menu, pictograms and "Share the screen with", in labwc and
-the generator; one builder step, tested in a private labwc. It is useful alone: until (2) lands, the world keeps
-running behind a full layout, as it does today. (2) **Layouts cover the world:** the record in the shell, the mod's
-request and the tests above; two builder steps, and it needs the two-output private labwc. It touches covering and
-minimizing, so its review is a careful one.
+**Size: two packages.** (1) **Layouts:** the places, keys, maximize-button binding, working menu, pictograms and
+"Share the screen with", in labwc and the generator. Test in a private labwc. The world keeps running behind a
+full layout until (2) lands. (2) **Layouts cover the world:** the labwc report action, the shell's record and
+coverage test, and the mod's request. This needs a two-output private labwc and a review of the compositor change
+and the covering and minimizing rules. The report action is a patch to labwc's source, carried in AresOS's own
+labwc build (package 311's stage, whose `os/` side `linux-aresos` owns), so it goes to `linux-aresos` before the
+package starts.
 
 **Decisions taken here, with reasons**
 
@@ -974,7 +995,7 @@ minimizing, so its review is a careful one.
 | Halves, quarters, two thirds and a third, the middle; no three columns | Each is used; a third on both sides is too narrow at 1920 px. |
 | Keys snap to named regions, not to edges | Every key's result is known, so the report and the next key are exact. |
 | "Share the screen with" puts this window left | One rule he learns once; Super+arrows swap sides afterwards. |
-| The geometry is the shell's own record, filled by labwc's answers | labwc tells no other program where a window is. |
+| labwc reports the action's own target and the shell keeps the record | Only the compositor knows which window an action placed and on which output. |
 | When unsure, the world runs rather than pauses | A world that runs behind a layout costs power; a paused world in sight looks broken. |
 | A minimized window keeps its place | Its layout comes back as it was. |
 | Returning to the world minimizes a whole full layout | Any part left would leave the world partly hidden. |
@@ -1006,7 +1027,8 @@ and nothing changes. While the frame moves, its window comes forward with an out
   (`order="focus"`, labwc's default and Windows' order): the window he is in first, the one before it second, so a
   quick Alt+Tab swaps the two.
 - **Not in it:** the laptop home (its window rule, LAPTOP-HOME.md section 6), the start-up cover and the shutdown's
-  black screen (for the build: `skipWindowSwitcher="yes"` on their rules).
+  black screen (`skipWindowSwitcher="yes"` on their rules). The first Super+Tab list uses a separate filter
+  (section 4.5).
 - **The world as Home (our own).** Choosing it is how he gets back to the world from a covering app: the shell
   minimizes what covers it (HUB.md section 1; for layouts section 4.3). Today its title is the game's own window
   title; a small later mod change can name the window "Home", which is what the panel then shows.
@@ -1171,14 +1193,19 @@ the framed window, Escape closes the overview.
 **Focus and input.**
 
 - **Who has the keyboard:** the overview, from opening until it closes. It is a layer-shell surface on the overlay layer
-  covering the screen, with keyboard mode `exclusive`, so no other program sees a key meanwhile.
+  covering the screen, with keyboard mode `exclusive`, so no other program sees a key meanwhile. The shell saves
+  the window that had focus before the overview takes the keyboard.
 - **The world** loses the keyboard and the mouse as it does when an app comes forward (package 40's rules: no pause
   menu, the world keeps living). Super+Tab is labwc's key, so the game never sees it.
-- **Escape, Super+Tab or a click outside every card** closes it, and the shell gives the focus back to the window that
-  had it (the shell knows which was active, and uses foreign-toplevel's `activate`). If that was the world, this is the
-  same as going Home with Alt+Tab.
-- **Picking a window:** the shell activates it (back from minimized, with its group, under the covering rule) and the
-  overview closes.
+- **Escape, Super+Tab or a click outside every card** closes it and returns focus to the window that had it when
+  the overview opened. If that was the world, the shell uses the same rules as going Home with Alt+Tab.
+- **Picking a window or Home** closes the overview and gives the chosen window focus, with the usual rules for
+  minimized windows, groups and uncovering the world.
+- **Close before giving focus.** labwc 0.9.6 blocks ordinary keyboard focus changes while the overview holds its
+  exclusive layer. The overview releases the layer and waits for a Wayland round trip on its connection to
+  confirm labwc has processed the release. Then it tells the shell it has released the keyboard and passes the
+  choice, or the request to return to the previous window. Only then does the shell request foreign-toplevel
+  activation and apply the usual covering and group rules.
 - **It is a view of the shell, not a window.** It tells the shell when it has the keyboard (`view_focus`), and the shell
   never lists it, never counts it as covering the world and never minimizes it.
 
@@ -1194,7 +1221,7 @@ interfaces in the installed `/usr/bin/labwc`; nothing was run):
 | A lasting name for each window | `ext_foreign_toplevel_list_v1` | Not needed: the shell's own numbers do |
 | A picture of one window | **No.** It offers `ext_image_copy_capture_manager_v1` with the screen source only (`ext_output_image_capture_source_manager_v1`), not the window source; `zwlr_screencopy_manager_v1` and `zwlr_export_dmabuf_manager_v1` also copy whole screens. A minimized window is on no screen at all. Only labwc's own Alt+Tab draws window pictures. | Why the overview shows icons, titles and marks |
 | Where a window is | No (section 4.3) | Layout places come from the shell's record |
-| A ready list of windows | `client-list-combined-menu`, a built-in menu of every window that focuses the chosen one (labwc-menu(5)) | What ships first |
+| A ready list of windows | `client-list-combined-menu`, a built-in menu of titled windows with a foreign-toplevel handle that focuses the chosen one (labwc-menu(5)) | What ships first, with the rules below |
 | A key that starts a program | `Execute` | Super+Tab |
 | Workspaces | Yes (`GoToDesktop`, `ext_workspace_manager_v1`) | No: AresOS has one desktop, and Windows' virtual desktops are not proposed |
 
@@ -1215,12 +1242,18 @@ known-output guard. New for views, in a 1.3 version of the shell's interface (LA
 
 A window whose app is not in the catalogue gets a plain icon from the look pack.
 
-**What ships first: labwc's list** ([`A-16`](components/A-16-window-list.png)). One `rc.xml` line gives Super+Tab
-labwc's own window list in the middle of the screen, in the look's menu colours: every window by its title, chosen by
-mouse or arrow keys and Enter. It can come with the frame's package (section 4.2) at no extra cost. It has no cards, no
-Home picture, no layouts and no close, and it knows nothing of the shell. Picking a window there is labwc's own
-activate, which the shell already watches, so a layout still comes back whole and picking the world still uncovers it
-(*to verify*). The overview program replaces it on the same key.
+**What ships first: labwc's list** ([`A-16`](components/A-16-window-list.png)). The frame's package gives Super+Tab
+labwc's own window list in the middle of the screen, in the look's menu colours. Pick an app window or the world by
+its title with the mouse or arrow keys and Enter. Picking a window uses labwc's own activate, which the shell
+watches, so a layout still comes back whole and picking the world still uncovers it (*to verify*). The overview
+program replaces the list on the same key.
+
+The combined menu lists titled windows with a foreign-toplevel handle. Its filter is `skipTaskbar="yes"` on
+`aresos.cover` and `aresos.black`, and on the laptop home as already specified in LAPTOP-HOME.md. Alt+Tab uses
+`skipWindowSwitcher="yes"` on those rules (section 4.4). Hiding the covers' handles must preserve the shell's
+start-up and shutdown behaviour. In the frame package, open both switchers with both covers present and check
+that neither cover is listed, normal and minimized apps and the world stay reachable, and the covers still
+appear and clear at the right times without counting as apps or covering the world for the shell.
 
 ```xml
 <!-- first -->
@@ -1252,14 +1285,16 @@ activate, which the shell already watches, so a layout still comes back whole an
 | New in the shell | The five requests above, about 150 lines and their tests |
 | New: the program | About 500 lines: cards, keys, and the look through the same small module the indicator uses |
 | `rc.xml` | One line, to `linux-aresos` first |
-| Size | One package after the layout packages (it shows their groups): two or three builder steps. The first ship, labwc's list, is one line in the frame's package. |
+| Size | One package after the layout packages (it shows their groups): two or three builder steps. The first ship, labwc's list, needs the Super+Tab binding and the cover rules in the frame's package. |
 
 **What the build must test** (a private headless labwc with two outputs, the shell and a stand-in world):
 
-- The world keeps living while it is open; after Escape the world has the keyboard again and takes the pointer back (a
-  test client holding a pointer lock).
-- Picking a minimized window brings it back where it was; picking one window of a group brings the group; picking Home
-  minimizes what covers the world; picking a window on the other screen focuses it there.
+- Open it with the world focused and partly visible beside a placed app. The world keeps living. Escape returns
+  the keyboard and pointer lock to the world and leaves the app where it was.
+- Open it with a covering app focused. Picking Home releases the layer before activation, focuses the world and
+  minimizes the covering app. Check the keyboard and pointer on the world.
+- Picking a minimized window brings it back where it was; picking one window of a group brings the group;
+  picking a window on the other screen focuses it there.
 - Delete closes the framed window, and an app with unsaved work still asks.
 - With 23c's binding: Super+Tab, then Super released, does not open the search.
 - With thirty windows the cards wrap into more columns and the overview scrolls; titles with `ÄÖÜß` are cut with an
@@ -1276,7 +1311,7 @@ activate, which the shell already watches, so a layout still comes back whole an
 | The hotbar's order, not the most recent first | A card stays where it was; Alt+Tab already does recency. |
 | The overview asks the shell, never labwc's window list | One owner of covering, groups and the known-output guard. |
 | Super+Tab | Windows' Task View key, and a chord, so the search keeps lone Super. |
-| labwc's list first | One line, available at once; the program replaces it on the same key. |
+| labwc's list first | A binding and window rules give him a list with the frame package; the program replaces it on the same key. |
 | Started on first use, ends five minutes after it last closed | A GTK program holds about 50 MiB while it runs; staying a while makes the next opening instant. If its first start takes longer than about 300 ms, the build starts it with the session instead. |
 
 **Not verified:** how labwc's window list marks a minimized window, and that picking one there brings it back; that
@@ -1309,34 +1344,32 @@ approximate; colours, letters and sizes are what the style sheet sets.*
 | `sudo` in a terminal | The terminal | When he or Claude types `sudo` | Nothing: the terminal's own text |
 | Signing in after signing out | `agreety` on the text console (greetd) | Rarely: the first session starts by itself | Nothing: the text console |
 
-**How he tells the real window from a fake.** Not by its look. Any program he runs can draw a copy of any window, in
-A, B or C, pixel for pixel, and a game server can draw one inside the world. So the look is never the proof, and this
-design adds no seal, lock or "secure" sign that would suggest it is. Three things count, and the design keeps each of
-them whole:
+**When he types his password for the owner tools.** A desktop window can copy or cover the prompt, even when the
+prompt is styled by the image. A game server can draw a copy inside the world. The title, appearance and position in
+front of other windows are no proof. He types his password only when all three checks pass.
 
 1. **He told Claude to go just now** (INSTALL.md's rule). A password window he did not ask for gets Cancel.
-2. **It is a window of its own** with the frame and "Enter SSH Credentials", above everything, and **never inside the
-   game.** AresOS never asks for his password inside the world: not in the chat, on a sign, in a book, in the AresOS
-   menu or on any screen of the mod, and anything typed there may go to a game server. One rule to remember:
-   a password field in the game is never AresOS's. (Section 8 makes this a check for every build package.)
-3. **The line starts with "AresOS owner tools"** and its 8 characters equal line 1 of `docs/OWNER-TOOLS.md`, which he
-   opens on his phone from his own bookmark.
+2. **The prompt is outside the game.** AresOS never asks for his password in the world, in chat or on any screen
+   of the mod. Anything typed there may go to a game server. Section 8 makes this a check for every build package.
+3. **The line starts with "AresOS owner tools"** and its 8 characters match line 1 of
+   `github.com/Ares-Empire/AresOS/blob/main/docs/OWNER-TOOLS.md`. He types that address into his phone's browser
+   once and saves it as his own bookmark. At the prompt he opens the saved bookmark on his phone, checks that the
+   page says `main`, then compares the 8 characters. He uses neither the laptop nor any link offered at prompt
+   time, including a link from Claude.
 
-INSTALL.md's stated limit stands: the window stops accidents and a Claude that acts without asking, not a Claude that
-has been tricked.
+If any check fails, he presses Cancel. INSTALL.md explains the limits of the owner tools' prompt.
 
 **What must never look like the game: the inside, in every look.** Two reasons:
 
 - Inside the world, many things ask for typed text in the game's look: the chat, signs, anvils, a server's `/login`
   prompt. A password window in the game's look would teach him that game-looking things may ask for his password. One
   that looks like nothing in the game keeps rule 2 easy to follow.
-- B's and C's files live in his home folder, which every program he runs can change. The inside must come only from
-  files in the image, owned by root, so that nothing in his home can change, hide or cover what the window says. A Qt
-  style sheet can even replace a label's words (`qproperty-text`), so where the sheet comes from matters.
+- The helper loads its style sheet and sprites only from root-owned files in the image. This keeps home-folder
+  theme files from restyling the helper or changing its label through Qt properties such as `qproperty-text`.
 
 So the inside is A, from the image, under every look setting. The frame follows the look like every window's frame,
 because labwc styles every frame from one theme and cannot leave one window out (`B-18` shows the window under B's and
-C's frames). The frame carries none of the three things he checks.
+C's frames).
 
 **What can be styled safely**
 
@@ -1380,6 +1413,10 @@ drawing shows otherwise.
 - At 2x, with Qt's own text drawing: the full label, the title, Password:, OK and Cancel, compared with `A-17`; a long
   label wraps to four lines and nothing is cut.
 - Without the sheet, the plain window appears and works. A style sheet in his home folder is never read.
+- With a stand-in prompt, walk through the just-requested, outside-the-game and phone-bookmark checks. Cancel
+  an unexpected prompt, reject an in-game copy, and cancel if the 8 characters differ from line 1 on `main`.
+  Show that a foreground copy carries no trust sign and that the instructions send him to his saved phone
+  bookmark even when a link is offered at prompt time.
 - The polkit agent shows the same style.
 - KDE's eye button in the field, if it appears, works; no "remember" box appears for this prompt.
 - The image check rejects a sheet with `qproperty-`, an image path outside `/usr/share/aresos/look/`, or weak contrast.
@@ -1389,8 +1426,8 @@ drawing shows otherwise.
 | Decision | Why |
 |---|---|
 | The inside is A in every look | The game's look inside a password window teaches the wrong thing, and B's files are his home folder's, which any of his programs can change. |
-| The style comes from the image only | Nothing in his home can change, hide or cover the label. |
-| No trust sign in the look | Any look can be copied; the proof is the three checks above. |
+| The style comes from the image only | Home-folder theme files cannot restyle the helper or change its label. |
+| No trust sign in the look | Any look can be copied. He uses the three checks above. |
 | Jersey 10 for the label | `A-18` shows the sixteen hex characters apart; JetBrains Mono stays the fallback. |
 | 2x | The size of the frame and of every window's text at 2x. |
 | polkit's agent gets the same style | One look for every password window, and the same reasoning applies. |
@@ -1407,10 +1444,10 @@ drawing shows otherwise.
 |---|---|---|---|
 | Look | Our own (A), Minecraft textures (B), Minecraft buttons (C) | Minecraft textures | The frame (through the sync step and labwc's theme folder), the indicator, the overview. Later the Ares-apps look is a fourth value. |
 | Indicator place | Top centre, Bottom centre (above the hotbar) | Top centre | The indicator |
-| Indicator size | Small (2x), Medium (3x), Large (4x) | Medium | The indicator |
+| Indicator size | Small (2x), Medium (3x), Large (4x) | Medium (3x) | The indicator |
 
-The password windows and the mod's own screens read none of them: the first are A (section 4.6), the second always the
-game's.
+The password windows' insides use A (section 4.6), and their frames follow the look. The mod's own screens keep the
+game's look.
 
 **Where they live.** One small file in his home, `~/.config/aresos/desktop.json`, and one program that owns it,
 `/usr/libexec/aresos-settings` (`get`, and `set <name> <value>`). It checks the value, writes the whole file at once (a
@@ -1426,12 +1463,12 @@ when he asks.
 
 **How a change takes effect, at once**
 
-- **The look:** the program runs the sync step for the new look. For B or C it writes the theme folder
-  `~/.local/share/themes/AresOS/labwc/` from B's cache; for A it removes that folder (only its own). Then it runs
-  `labwc --reconfigure`, and open windows get the new frame without moving (section 4.2: labwc's manual says it
-  rereads the theme; *to verify* in a private labwc). The indicator and the overview take the look the next time they
-  show. If B's files are not there yet (the game is not installed yet, or this is the very first session), the setting
-  stays B, everything shows A, and the button reads "Look: Minecraft textures (waiting for the game)".
+- **The look:** the program runs the sync step for the new look. It installs or withdraws the managed theme
+  and layout icon overrides and reloads labwc (section 5). Open windows get the new frame without moving
+  (section 4.2). The indicator and the overview load the effective pack before they next show, even if their
+  programs are still running. If visible when the effective pack changes, they reload and redraw. A missing or
+  invalid jar leaves the chosen setting alone and uses A. With B selected and the game still missing, the button
+  reads "Look: Minecraft textures (waiting for the game)".
 - **Place and size:** nothing to reload. The program shows the indicator once, at once, at the new place and size with
   the current volume, so he sees what he chose (`B-19`).
 
@@ -1468,11 +1505,16 @@ B never searches the disk. It starts from the managed instance and follows what 
 1. **The instance:** `~/.local/share/PrismLauncher/instances/AresDesktop/`, the folder `aresos-desktop` creates and
    checks (`os/config/usr/libexec/aresos-desktop`; the name comes from `os/minecraft/desktop.lock.json`).
 2. **What it pins:** the instance's `patches/net.minecraft.json`. That file comes from the image and is pinned by
-   SHA-256 in the lock file. For 26.2 it names the main jar `com.mojang:minecraft:26.2:client` with its SHA-1 and
-   size (39,193,383 bytes), and the asset index `32` with its SHA-1.
+   SHA-256 in the lock file. Keep the managed instance's expected `patches` link to the image-owned directory
+   and check its target as `aresos-desktop` does. For 26.2 the patch names the main jar
+   `com.mojang:minecraft:26.2:client` with its SHA-1 and size (39,193,383 bytes), and the asset index `32`
+   with its SHA-1.
 3. **The client jar:** Prism keeps libraries by their coordinates, so the jar is
-   `~/.local/share/PrismLauncher/libraries/com/mojang/minecraft/26.2/minecraft-26.2-client.jar`. B checks its size
-   and SHA-1 against step 2 before reading it. A jar that does not match is treated as missing.
+   `~/.local/share/PrismLauncher/libraries/com/mojang/minecraft/26.2/minecraft-26.2-client.jar`. Before opening
+   it, require its resolved path to stay inside the managed Prism storage at `~/.local/share/PrismLauncher/`.
+   Start the check at his resolved home directory so a redirect of the Prism storage root itself is caught.
+   Open read-only with that same directory boundary enforced, then check the opened jar's size and SHA-1 against step 2
+   before using its contents. A redirect outside managed storage fails validation even if the bytes match.
 4. **The asset objects:** `~/.local/share/PrismLauncher/assets/indexes/32.json` lists every object, and each is at
    `assets/objects/<first two characters of its SHA-1>/<SHA-1>`.
 
@@ -1504,22 +1546,28 @@ It contains names and numbers only.
 
 ### When it copies, and how it notices a game update
 
-- **When:** once per session start, after `aresos-desktop` has found the instance whole, a small step (called
-  `aresos-look-b sync` here) runs as him, in the background. The desktop never waits for it, and it is no part of
-  readiness.
+- **When:** at session start and when the look setting changes, a small step (called `aresos-look-b sync` here)
+  runs as him. At startup it checks the instance even if `aresos-desktop` cannot find a whole one. It runs in the
+  background and the desktop never waits for it. Sync runs one at a time and publishes the effective look for
+  the current setting. The two layer-shell programs redraw any visible surface when that look changes.
 - **Where to:** `~/.cache/aresos/look-b/`, readable by him only. It copies only the files the map names, checks each
   (it opens as a PNG, it has the size the map says), and writes a stamp: the jar's SHA-1 and the map's version. The
   new copy is built in a hidden folder and renamed into place, so pieces see a whole cache or none.
-- **Nothing to do:** if the stamp matches the jar and the map, the step ends at once.
-- **The first start:** Prism downloads the game only after he has signed in, so on the very first session there is
-  no jar and every piece is A. The next session start has B. A piece reads its look when it starts, so nothing
-  changes while it is on screen.
+- **Reuse:** validate the instance and jar before trusting the stamp. If it matches the validated jar and map,
+  reuse the cache and apply the selected look.
+- **A missing or invalid instance or jar:** clear the active cache so a previous B or C pack can no longer be
+  used. Withdraw the managed home theme folder and the managed layout icon overrides, then run
+  `labwc --reconfigure` so the image's A theme and icons take over. The indicator and overview drop their old
+  pack and draw A when shown, including on a redraw if already visible (section 4.7). Leave the chosen setting
+  alone so it takes effect when validation succeeds again.
+- **The first start:** Prism downloads the game only after he has signed in, so the first session uses A until a
+  sync finds the installed game and validates it.
 - **A game update:** the image pins the game's version, so the game changes only with a new image. A new version
   means a new jar SHA-1, the stamp no longer matches, and the cache is rebuilt; the old one is deleted after the
   new one is in place.
-- **A file that moved, disappeared or changed size:** the piece that needs it is drawn in A, **as a whole piece**.
-  A piece is never half A and half B. The step records which pieces fell back, in the journal and in the stamp, so
-  a status command can say "look B: 2 pieces on A".
+- **A mapped file inside a valid jar that moved, disappeared or changed size:** the piece that needs it is drawn
+  in A, **as a whole piece**. The step records which pieces fell back, in the journal and in the stamp, so a status
+  command can say "look B: 2 pieces on A".
 - **Before a release with a new game version:** the map can be checked against that version without committing
   anything, in the mod's workflow, which already has the game through the build tool. A missing or resized file
   then fails that check instead of surprising him.
@@ -1528,9 +1576,9 @@ It contains names and numbers only.
 
 | Program | Pieces | B's textures | B's font |
 |---|---|---|---|
-| Layer-shell programs | The indicator and the overview | They read the cache instead of A's pack: the same parts by the same names. Nine-slice by the game's own insets. | They copy letters out of the three sheets using the game's table: a letter is as wide as its rightmost inked column plus one, a space is 4, the shadow is the colour at a quarter one unit down and right. Easy, and exact. |
+| Layer-shell programs | The indicator and the overview | They read the selected look and the current cache before each showing. They use A's pack when the cache or the piece is unavailable. The parts have the same names, with the game's own nine-slice insets in B and C. | They copy letters out of the three sheets using the game's table: a letter is as wide as its rightmost inked column plus one, a space is 4, the shadow is the colour at a quarter one unit down and right. Easy, and exact. |
 | The mod | Its own screens | It is B already: it draws with the running game's widgets. | The game's own. |
-| labwc | The frame, its buttons, menus, Alt+Tab | The sync step writes a **whole labwc theme folder** with the same name (`AresOS`, section 4.2) into `~/.local/share/themes/`, its button images put together from game sprites at the shipped scale. labwc looks in his home before the image, so B's folder wins while it exists and A's returns when it is gone, with no `rc.xml` change. The folder must be complete (labwc fills a missing image with its own grey default, not with A's), and labwc must be told to reload once after the first sync. That labwc reads the home folder first is in its manual (labwc-theme(5)); that the whole switch works is *to verify in a private labwc.* | **labwc cannot read the game's font.** The game's font is letter sheets in the jar, and labwc can only use an installed font by name. Two ways: (a) under B the title bars keep A's Jersey 10; or (b) the sync step builds a real font file from the sheets into `~/.local/share/fonts/`, which needs a font-building library in the image and its own review. I would start with (a). |
+| labwc | The frame, its buttons, menus, Alt+Tab | The sync step writes a **whole labwc theme folder** with the same name (`AresOS`, section 4.2) into `~/.local/share/themes/`, with buttons made from game sprites at the shipped scale. labwc reads the home folder first (labwc-theme(5)). The sync step reloads labwc after installing or withdrawing its theme and icon overrides; withdrawing them brings back A from the image. The switch is *to verify in a private labwc.* | **labwc cannot read the game's font.** The game's font is letter sheets in the jar, and labwc can only use an installed font by name. Two ways: (a) under B the title bars keep A's Jersey 10; or (b) the sync step builds a real font file from the sheets into `~/.local/share/fonts/`, which needs a font-building library in the image and its own review. I would start with (a). |
 | Qt (`ksshaskpass`, polkit's agent) | The password windows' insides | **None, by design:** the inside is A in every look and reads only the image's files (section 4.6). | None. |
 
 **Letters the game's font has.** Its three sheets cover basic Latin (`ascii.png`), accented Latin including
@@ -1540,9 +1588,9 @@ in the system font.
 
 ### What it never touches
 
-- At run time B opens only the files named above, under `~/.local/share/PrismLauncher/`, **read-only**, and writes
-  only to its cache and, for labwc, its own theme folder (marked as its own, so it never overwrites a folder it did
-  not make).
+- At run time B opens the named jar within managed Prism storage and the pinned patch through the expected
+  image-owned link, both **read-only**. It writes to its own cache, theme folder and layout icon overrides. It
+  marks the files it manages so it can withdraw them while leaving other home themes and icons alone.
 - It never reads `~/.minecraft`, `~/.lunarclient` or any other launcher's folder, also not as a fallback (hard
   rule 3). No instance, or an instance that fails its check, means A.
 - The cache is never copied into the repo, an image, a backup or a report.
@@ -1594,8 +1642,9 @@ what each look costs to build and to keep, and in which order to build.
 2. **B's shared work** (section 5) **and B for the indicator,** with C's slider form if it stays cheap there. From
    here the default, B, shows wherever the game is installed.
 3. **The frame in A, B and C** (section 4.2), with Alt+Tab's lines (4.4) and labwc's window list on Super+Tab (4.5's
-   first ship).
-4. **Layouts, then covering** (section 4.3's two packages).
+   first ship), including the separate filters for the two switchers.
+4. **Layouts, then covering** (section 4.3's two packages). Ship the maximize-button binding with the working
+   layout menu. Add the compositor's window-specific reports with covering.
 5. **The overview program** (section 4.5), in A, B and C.
 6. **The settings screen in the mod** (section 4.7).
 7. **The password windows' style** (section 4.6), on its own with a Fable review. It needs only Jersey 10 in the image,
@@ -1606,8 +1655,8 @@ is the default he chose.
 
 **The risks that remain**
 
-- **B and game updates:** above; the per-version check catches a moved file before a release, and a piece whose file is
-  missing is drawn in A as a whole piece (section 5).
+- **B and game updates:** the per-version check catches a moved file before a release. A missing mapped file
+  puts its whole piece on A. A missing or invalid jar withdraws the active B/C cache and overrides (section 5).
 - **B if AresOS is ever shared:** whoever gets it sees A unless they have the game themselves (section 5).
 - **B is never public:** every public picture, the README's included, is A.
 - **The password windows' style changes the owner tools' checked line;** if its review says no, both windows stay plain
@@ -1647,14 +1696,14 @@ sections 4.5 to 4.7. Four things he will notice, for the lead to tell him rather
 
 | Check | Answer |
 |---|---|
-| No Mojang texture or font in any committed file, the pull request or the image | The committed pictures are made by `reviews/312-component-study/tools/draw_a.py` from three things only: flat colours, the letter maps typed into `look.py`, and Jersey 10. B's pictures are written by `draw_b.py` to one fixed folder outside the checkout, and that script has no option to write anywhere else. The staged files were checked before each push of all four steps; the checks are recorded in the pull request's description (#123). The study changes no image file. |
+| No Mojang texture or font in any committed file, the pull request or the image | The committed pictures are made by `reviews/312-component-study/tools/draw_a.py` from three things only: flat colours, the letter maps typed into `look.py`, and Jersey 10. `draw_b.py` names one private destination outside the checkout. The staged files were checked before each push of all four steps; the checks are recorded in the pull request's description (#123). The study changes no image file. |
 | A's art is not traced from the game's | Every A sprite is a small map of letters typed by hand in `look.py`; none was made by opening, copying or redrawing a game file. The game's sprites were looked at in the same steps, for B's pictures, and A's differ from them in shape, size and colour: a square bevelled plate against the game's rounded toast, twenty separate gold steps against a continuous notched bar, a sun, speaker and microphone the game does not have, stone cards against the game's popup panel. Jersey 10 shares no letter bitmap with the game's font (section 2). The overview's app icons and Home picture are our own drawings. |
 | Sprites sit on the GUI grid, so the mod can adopt them | One pixel per GUI unit, whole-unit insets, repeated edges, buttons 20 units high (section 3). The frame's images are 24 × 20 units, doubled for labwc; the layout pictograms 16 × 10; the Home picture 188 × 96. |
 | It sits next to the noon world and the laptop home's day street | `A-06` and `A-07` show it on a drawn scene in the day colours, and the overview's Home picture uses them too. A's dark plate is the same family as the world's name plates and the day look's dark bars. *Still to do by eye:* the real game behind it on the laptop. |
 | Readable at 1920 × 1080 and at the stated scales | `A-04` (over sky and over white), `A-05` (2x, 3x, 4x), `A-08` (over an app). The frame: `A-10`, `A-11`. Layouts and switching: `A-12`, `A-13`, `A-14` (long titles cut). The overview: `A-15` at 2x (long titles cut with an ellipsis). The password window: `A-17`, `A-18` at 2x and 3x. The settings screen: `A-19` at 3x. |
 | The password window shows its full label and "Enter SSH Credentials" | `A-17` and `A-18`: the title in the frame; the full label "AresOS owner tools dcbc375f: install these tools, then check and title" wrapped at spaces onto two lines at 2x and at 3x, and a longer made-up action onto four, with nothing cut; Password:, OK and Cancel. The sixteen hex characters are shown apart at 4x. Under B and C only the frame changes (`B-18`). The build checks it again with Qt's own text drawing (section 4.6). |
-| Passive surfaces never take keyboard focus; interactive ones say who owns input | The indicator: overlay layer, keyboard mode "none", empty input region (section 4.1). The layout menu is labwc's own menu: labwc has the keyboard while it is open, Escape closes it, the window keeps the focus (4.2, 4.3). Alt+Tab is labwc's until Alt is let go or Escape (4.4). The overview has the keyboard (`exclusive`) from Super+Tab until it closes; Escape, Super+Tab or a click outside closes it and the shell gives the focus back to the window that had it (4.5). The password window is a normal window and has the keyboard while it is in front, as today (4.6). The settings screen is the mod's, inside the game (4.7). |
-| Super stays free for the search over the world | The indicator and the frame bind no key; the frame changes two mouse bindings (4.2). The layouts add only chords (Super with an arrow, Super+Shift with an arrow, Super+Z), Alt+Tab adds Shift+Alt+Tab, and the overview adds Super+Tab (4.3 to 4.5). labwc never mistakes a chord for a lone Super. For 23c to test: Super held through a mouse drag, then released; Super+Tab, then Super released. |
+| Passive surfaces never take keyboard focus; interactive ones say who owns input | The indicator: overlay layer, keyboard mode "none", empty input region (section 4.1). The layout menu is labwc's own menu: labwc has the keyboard while it is open, Escape closes it, the window keeps the focus (4.3). Alt+Tab is labwc's until Alt is let go or Escape (4.4). The overview holds the keyboard (`exclusive`) while open. It releases the layer and waits for labwc to process that release before the shell requests focus for the chosen or previous window (4.5). The password window uses normal desktop keyboard focus (4.6). The settings screen is the mod's, inside the game (4.7). |
+| Super stays free for the search over the world | The frame clears two title-bar scroll bindings (4.2). The layouts add only key chords (Super with an arrow, Super+Shift with an arrow, Super+Z), Alt+Tab adds Shift+Alt+Tab, and the overview adds Super+Tab (4.3 to 4.5). labwc never mistakes a chord for a lone Super. For 23c to test: Super held through a mouse drag, then released; Super+Tab, then Super released. |
 
 ### Checks for the build packages
 
@@ -1663,20 +1712,22 @@ must arrange, or that more than one package carries.
 
 **For the lead to settle before the builds** (not questions for the owner)
 
-- The GUI scale his game actually runs at: it decides whether the indicator wants 3x or 4x by default, and how large
-  B's letters look next to the game's.
+- Record the game's actual GUI scale and compare small (2x), medium (3x) and large (4x) beside the world at that
+  scale. With no settings file, check that the desktop indicator starts at medium (3x).
 - Prism's two paths for the client jar and the asset objects, on the first real `AresDesktop` instance (section 5).
 - Whether the session has a bus that can start a program on demand (the indicator, the overview).
 - Every `rc.xml`, `menu.xml` and theme change goes to `linux-aresos` first: the indicator's six key lines, the theme
   name `AresOS`, the fonts, the frame's mouse block, the layout keys and menu, Alt+Tab's lines, Super+Tab.
-- Small ones that can go in before the layout packages: the world's window rule gains `fixedPosition="yes"`; the
-  start-up cover and the shutdown's black screen gain `skipWindowSwitcher="yes"`.
+- The world's window rule gains `fixedPosition="yes"` before layouts. In the frame package, the start-up
+  cover and the shutdown's black screen gain `skipWindowSwitcher="yes"` for Alt+Tab and
+  `skipTaskbar="yes"` for the first Super+Tab list.
 - For 23c: Super held through a mouse drag and then released, and Super+Tab then Super released, must not open the
   search.
 - The image check that pins Ares-Crown's checksum and 37 files moves to the new theme folder in the frame's package;
   `docs/design/WINDOWS.md` is updated there, including its line on Jersey 10's 21 pt.
-- Covering by layouts needs the mod's new `world_clicked` request (section 4.3); the overview needs the shell's 1.3
-  view requests (4.5); the settings screen needs `set_setting` (4.7).
+- Covering by layouts needs labwc's report of the action's window and output and the mod's new `world_clicked`
+  request (section 4.3); the overview needs the shell's 1.3 view requests (4.5); the settings screen needs
+  `set_setting` (4.7).
 
 **Every package**
 
@@ -1692,9 +1743,15 @@ must arrange, or that more than one package carries.
 | Package | Checks |
 |---|---|
 | The indicator and the settings file | A layer surface without a named output lands on the pointer's screen; an empty input region never disturbs a pointer lock; a held key at labwc's repeat rate; brightness on the `eDP` screen and volume on the pointer's; the keys work without the program; place and size come from the file, and a change shows the plate once. |
-| B's shared work | The paths and the jar's SHA-1 and size; the map checked against each game version in the mod's workflow; a missing or resized file puts that piece on A as a whole; a half-written cache or theme folder never appears; the cache is never copied into the repo, an image, a backup or a report. |
-| The frame (with Alt+Tab and the first Super+Tab) | Each image shown 1:1; a 40 px bar with Jersey 10 at 28 pt; a reconfigure redraws open windows without moving them and keeps a pointer lock; a user mouse binding replaces labwc's default and `None` clears the scroll bindings; labwc's activate restores a minimized window; Alt+Tab's tile for a minimized window, the pointer after a cancelled Alt+Tab, and whether the panel takes clicks; labwc's window list on Super+Tab brings back a minimized window and the shell sees it; package 31's list of programs. |
-| Layouts and covering | Section 4.3's list: full coverage, a gap, another output, an output not known yet; `world_clicked`; a layout comes back whole from every route. |
-| The overview | Section 4.5's list, with the shell's 1.3 requests tested on their own first. |
-| The settings screen | Each click moves one setting and shows the change at once; a look change while B's files are missing reads "waiting for the game"; a broken settings file means the defaults. |
-| The password windows' style | Section 4.6's list, a Fable review, and INSTALL.md and OWNER-TOOLS.md changed in the same package. |
+| B's shared work | Check the jar path, SHA-1 and size. With stand-in files, accept the expected image-owned patch link and a valid jar in managed storage. Redirect the library directory or the jar to identical bytes outside that storage and check that sync refuses it before opening the jar. Check the map against each game version in the mod's workflow. A missing or resized mapped file puts its whole piece on A. Keep caches out of the repo, images, backups and reports. |
+| The frame (with Alt+Tab and the first Super+Tab) | Check that each image displays 1:1, the bar is 40 px with Jersey 10 at 28 pt, a reconfigure redraws open windows without moving them or losing a pointer lock, and `None` clears the scroll bindings. Check Alt+Tab's tile for a minimized window, the pointer after a cancelled Alt+Tab, and whether the panel takes clicks. Check that labwc can restore a minimized window from Super+Tab and the shell sees it. With both covers present, neither list shows them, apps and Home remain reachable, and the shell still handles start-up and shutdown without the covers' handles. Run package 31's list of programs. |
+| B and C fallback (shared sync, the frame and layouts) | Start with a working B or C cache and theme installed, with managed layout icon overrides once layouts ships. Remove the jar, then repeat with an invalid jar. Each time, sync invalidates the old cache, withdraws the overrides and reloads labwc. Check that open frames, layout icons, the indicator and the overview use A where shipped, and that the selected setting stays put. A half-written cache or theme folder never appears. |
+| Layouts and covering | Right-click on maximize opens the working menu under the button, Escape keeps focus on that window and choosing a row places it. With covering installed, check full coverage, a gap from duplicate slots or partial overlap, another output and an unknown output. A delayed report after a focus change keeps the original window and output. A share reports both windows under their own handles. Check `world_clicked` and that a layout comes back whole from every route. |
+| The overview | Section 4.5's list, with the shell's 1.3 requests tested on their own first. Pick Home from over a covering app and check that Home takes focus after the layer is released. Cancel over the partly visible, focused world and check that it regains the keyboard and pointer without minimizing the app. |
+| The settings screen | Each click moves one setting and shows the change at once. Switch looks and reopen the indicator and the overview before their one-minute and five-minute idle timeouts. Each draws the new look. A look change while B's files are missing reads "waiting for the game". A broken settings file means the defaults. |
+| The password windows' style | Section 4.6's list, a Fable review, and INSTALL.md and OWNER-TOOLS.md changed in the same package. With stand-in prompts, check that he just asked for it, that it is outside the game and that its 8 characters match line 1 of OWNER-TOOLS.md on GitHub's `main` through his saved phone bookmark. Cancel if a check fails and ignore links offered at prompt time. Confirm the instructions give no trust to the window's position, look or stylesheet. |
+
+**Corrections from REVIEW-1.** Findings and sections changed are 1 (4.3, 8), 2 (4.3, 6, 8), 3 (4.5, 8),
+4 (4.2, 4.7, 5, 6, 8), 6 (4.6, 8), 7 (4.4, 4.5, 6, 8), 8 (1, 4.7, 5, 8), 9 (4.2, 4.3, 6, 8),
+10 (5, 8) and 11 (3, 4.1, 4.7, 8). Finding 5 is a known limit of the drawing tool. It follows a symbolic
+link in the private folder, which only someone who can already write to the owner's home can plant.
