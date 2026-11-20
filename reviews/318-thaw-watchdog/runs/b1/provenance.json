@@ -1,0 +1,33 @@
+{
+  "pid": 3617294,
+  "flags": [
+    "-XX:NativeMemoryTracking=summary",
+    "-XX:MaxHeapFreeRatio=30",
+    "-XX:MinHeapFreeRatio=10",
+    "-XX:StackShadowPages=32",
+    "-Xms256m",
+    "-Xmx1024m"
+  ],
+  "environment": {
+    "MALLOC_ARENA_MAX": "",
+    "GLIBC_TUNABLES": "",
+    "JE_MALLOC_CONF": "",
+    "__NV_PRIME_RENDER_OFFLOAD": "1",
+    "__GLX_VENDOR_LIBRARY_NAME": "nvidia",
+    "__VK_LAYER_NV_optimus": "NVIDIA_only",
+    "ALSOFT_DRIVERS": "null",
+    "DISPLAY": ":1",
+    "WAYLAND_DISPLAY": "wayland-1"
+  },
+  "cgroup": "0::/user.slice/user-1001.slice/user@1001.service/app.slice/pkg318-game-b1-3615455.scope",
+  "executable_sha256": "1bf1aaef01e4f8d7c85d913c60fb2ee4624cbe54d4053254c59657b7ea913b25",
+  "jars_sha256": {
+    "pkg41-frames.jar": "775449023f917ece78fa4ba536c44ae268fdf269074f9cb4220b2ea4349387ad"
+  },
+  "git_objects": {
+    "revision": "eb499fb3cd81bd09661874d40a636a1a75bc9141",
+    "mod_tree": "c0debc098bd068f0caee01ae873eb44f0a86b08b",
+    "helper_blob": "b8903a3c5b2df8c59ff230b64201f90b83851f54",
+    "labwc_blob": "fb9e9e42ccce350653a090630fd28625eb5962d1"
+  }
+}

@@ -1,0 +1,26 @@
+{
+ "pid": 3617294,
+ "mode": "keep",
+ "watch_start_ns": 469181797328123,
+ "return_start_ns": 469181665624454,
+ "sample_end_ns": 469184797328123,
+ "hold_until_ns": 469241665624454,
+ "outcome": "exited",
+ "sampled_threads": [
+  {
+   "tid": 3618139,
+   "recorded_realtime": true
+  }
+ ],
+ "source": null,
+ "note": "already reaped",
+ "exit_detected_ns": 469182197849800,
+ "after_return_ms": 532.225,
+ "after_watch_start_ms": 400.522,
+ "cleanup_start_ns": null,
+ "cleanup_started_before_exit": false,
+ "samples": 41,
+ "gradle_exit_value": 137,
+ "signal": 9,
+ "signal_source": "gradle exit value"
+}

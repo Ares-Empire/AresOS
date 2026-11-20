@@ -1,0 +1,3 @@
+3734625:
+garbage-first heap   total reserved 1048576K, committed 361472K, used 293546K [0x00000000c0000000, 0x0000000100000000)
+ region size 1024K, 18 young (18432K), 1 survivors (1024K)
