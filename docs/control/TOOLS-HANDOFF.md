@@ -99,8 +99,14 @@ Ares-Empire/AresOS --interval 300` in a background shell.
      brief says the gate stays within its ceilings, so this is the lead's call. An Opus agent (09:30) breaks the
      time down by span, fixes waste outside the frozen asking path, proposes ceilings if inherent, and rebuilds
      group 16's check as the brief reads (each task's median against the new-tools median recorded in
-     `efficiency-baseline.json`, fail above 1.5x; 3b built a per-sample check). Step 4 (Opus, from
-     `28a-step4.held.txt`) after that. The lead's `chrome_show` line is in
+     `efficiency-baseline.json`, fail above 1.5x; 3b built a per-sample check). **Done 10:20** (`7dd773c0`,
+     `c2a20dcb`): asking_click's gap was a needless poll sleep (fixed); navigate's is brief 28's 150 ms quiet rule
+     (inherent). Runs on `c2a20dcb`: Chrome 44705819383, qualification 44705823983, base 44705828872, Mail
+     44705834097, privacy 44705838823. **Lead's decisions** (navigate 400/450 and its reference re-taken from
+     44705819383; group 16 on the brief's step-1 run; the flaky test_doing case fixed) are in
+     `~/codex-queue/linux-tools/28a-step4-opus.txt`: step 4 as one Opus agent once those runs report, then
+     pass 2 (Chrome and qualification again) from the lead's shell, then the Codex astra package and security
+     reviews. The lead's `chrome_show` line is in
      CONTROL.md on the branch (`1c67199b`). Next: Codex step 4 (`28a-step4.txt`: FEATURES' stale `chrome_fill`
      State cell, REPORT.md, KNOWN-LIMITS, pass 2 = Chrome and qualification again), then the package and security
      reviews (astra). Reviewers must read 3b's "private view digest" in the reader's native reply. Then step 2
