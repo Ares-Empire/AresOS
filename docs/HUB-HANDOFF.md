@@ -87,7 +87,7 @@ His guideline: "hub wise the main next step is make it a functional, usable home
 ## Owner name scrub (T433, his answer 2026-11-20: "Scrub to 'the owner'")
 
 - **PR127** (branch `docs/owner-name-scrub`, worktree `~/AresOS-owner-name-scrub`): his first name becomes "the owner" in 13 current files on main. `AGENTS.md` rule 6 and `CLAUDE.md` get the rule.
-- **Review:** Codex `gpt-6-luna` medium, read-only, running (`../AresOS-scrub-review-1.last.md`).
+- **Review:** Codex `gpt-6-luna` medium, **SAFE** (`reviews/owner-name-scrub/REVIEW-1.md` on the branch).
 - **Held** until `mac-capacity`'s freeze ends (after its 13:43 reading). The PR rewrites six lines of `linux-aresos`'s `HANDOFF.md` during R28. Before merging, check that R28 isn't mid-edit.
 - **After the merge:**
   - `board leave` a note for `aresos`, `tools`, `desktop`, `laptop-home` and `aresos-control`: pull before editing, write "the owner" from now on, and scrub their unmerged branches before merging;
