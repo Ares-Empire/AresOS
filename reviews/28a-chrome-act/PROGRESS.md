@@ -1,5 +1,42 @@
 # Package 28a: Chrome acting progress
 
+## Step 3a, fix
+
+2026-11-20. Draft PR #116. The two hosted runs passed on `35f7af24` and regressed
+on `70d7e5fb`. The fixes are `de08382a` and `c64d7367`.
+
+| Cause and evidence | Fix |
+|---|---|
+| The admin page observer read `dispatch`'s `tab` before its declaration. The browser boundary recorded `fixture_observe_page` and the shard artifacts reported the same JavaScript refusal in taken-tab first input, compose approval, stopped page steps, and later target selection. Both latency jobs stopped at the first two smoke checks. Both installs' aggregates found zero of nine completed browser shards. The qualification browser artifacts showed the same early refusal. | Bind the observer's tab from its own command. Run the existing regression against the real injection point in the dispatch source, including the default-off case. |
+| Python shard 0's storage-isolation test expected the scratch tmpfs, policy install and latency flags together. The inserted observer flag split that exact sequence. | Put the observer flag after `LATENCY_PROBE=true`. The scratch mount and latency settings retain their values. |
+| Python shard 0 reported **S6 lost queue** surviving. The focused regression reads via `chrome_read` and inspects the committed checks before reading notices. The mutation still removed reconciliation from the legacy reader. | Remove the reconciliation call in `outline_tab` for the mutation. Keep the focused test and its expected failure. |
+| The same shard reported **S12 dialog** surviving. Its focused regression walks public results for a page-text sentinel in trusted content. The mutation still moved the legacy read's dialog into trusted content. | Move the public outline entry's dialog out of `untrusted_content` for the mutation. Keep the sentinel test and its expected failure. |
+
+[Failed Control Chrome](https://github.com/Ares-Empire/AresOS/actions/runs/44654244144) ·
+[Failed qualification](https://github.com/Ares-Empire/AresOS/actions/runs/44654244071)
+
+- **Verified locally.** Portable Node `--test --test-concurrency=2 control/chrome_tests/*.test.mjs`
+  passed **640/640** in **17.334 s**. Python `-B -m unittest` with
+  `test_questions test_policy test_engine test_doing test_latency` and the six
+  `test_qualification_fixture.ShippedHistory` cases outside the nested state sample ran
+  **163 tests in 60.150 s**, `OK`. The two qualification cases that invoke the state
+  sample are covered by the hosted suite. Both mutation replacements match once and
+  compile. `python3 control/generate.py --check` reported matching artifacts.
+  `git diff --check`, `bash -n` on the latency script and `node --check` on preparation
+  passed. No browser, fault-surface or state tests ran locally. No file over 500 MB
+  remains in `.work/`.
+- **Dispatched once each on `c64d7367`.** The `linux-tools` lead owns the hosted verdicts.
+  [Control Chrome 44661058968](https://github.com/Ares-Empire/AresOS/actions/runs/44661058968) ·
+  [Control Chrome qualification 44661067429](https://github.com/Ares-Empire/AresOS/actions/runs/44661067429)
+- **JUDGMENT-CALLs.** Keep the opt-in admin observer as the evidence channel. Binding
+  its command argument fixes the initialization error within the disposable CI copy.
+  This preserves the observation and makes removal a harness-only change.
+- **PLAN-GAPs.** The original observer stand-in declared `tab` before the injection
+  and missed the failure. The mutation inventory also needed to follow the public
+  read migration. The failed review artifacts show the borrowed-alert case abandoned
+  at the observer, followed by owner-navigation timeouts and `take_first` refusals.
+  The new hosted review shard will show whether those later failures recur.
+
 ## Step 3a
 
 2026-11-20. Draft PR #116, branch `pkg/28a-chrome-act`. Started at `c6ce541c`.
