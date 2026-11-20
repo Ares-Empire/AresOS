@@ -182,6 +182,7 @@ where
             return;
         }
         if matches!(event, Event::Finished) {
+            tracing::debug!("the compositor retired a head");
             heads.heads.retain(|entry| &entry.proxy != proxy);
             if proxy.version() >= 3 {
                 proxy.release();
@@ -225,6 +226,7 @@ where
                 }
             }
             Event::Finished => {
+                tracing::debug!("the compositor retired a mode of a head");
                 heads.modes.retain(|(mode, _)| mode != proxy);
                 for entry in &mut heads.heads {
                     if entry.current_mode.as_ref() == Some(proxy) {
