@@ -690,7 +690,8 @@ class Release28Session:
         elif words[0] == 'setsid':
             assert words[1:] == ['-f', *vm.HUB_TERMINAL], 'Wrong Terminal argv'
             self.foot += 1
-            self.doomed_foot = not assigned.get('WAYLAND_DISPLAY')
+            # foot exits at once without a display or when it cannot enter its directory (rehearsal 6; review of 391366a9).
+            self.doomed_foot = not assigned.get('WAYLAND_DISPLAY') or kw.get('cwd') != '/var/home/ares'
             self.events.append('terminal opened')
         elif words[0] == '/usr/bin/fc-match': stdout = self.walk.SPACE_GROTESK
         elif words == ['/usr/bin/python3', '-I', '-']:
@@ -1424,6 +1425,15 @@ class Release28ProbeTest(unittest.TestCase):
                            r"b'/usr/bin/labwc\0--config-dir\0/usr/share/aresos/labwc\0'"))
         self.assertNotEqual(source.count('labwc'), release28_walk.TERMINAL.count('labwc'))
         with patch.object(release28_walk, 'TERMINAL', source), self.assertRaisesRegex(AssertionError, 'has no Wayland display'):
+            walk(route='release-28')
+
+    def test_a_terminal_outside_his_home_exits_and_stops(self):
+        # The serial root shell's directory is the recovery account's, which ares cannot enter: a foot started there
+        # appears and exits. Without the hub's working directory the route must stop with foot's log.
+        import release28_walk
+        source = release28_walk.TERMINAL.replace(",cwd=env['HOME']", '')
+        self.assertNotEqual(source, release28_walk.TERMINAL)
+        with patch.object(release28_walk, 'TERMINAL', source), self.assertRaisesRegex(AssertionError, 'exited at once'):
             walk(route='release-28')
 
     def test_explicit_prism_allowances_preserve_stable_files(self):

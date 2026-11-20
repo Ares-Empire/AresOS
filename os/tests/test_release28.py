@@ -2025,14 +2025,14 @@ class Guard42Test(unittest.TestCase):
         titles = guard.PACKAGES['42']['titles']
         with self.assertRaisesRegex(AssertionError, 'STOP: resolve dispatch allowance exhausted'):
             self.run_main('ci', 'resolve', [titles['resolve'], titles['resolve']])
-        # Step 6 raised the checks cap to 3, then 5, 6, 7, 8, 9, 10, 11 and 12 (the model gate needs one on each rehearsal head;
+        # Step 6 raised the checks cap to 3, then 5, 6, 7, 8, 9, 10, 11, 12 and 13 (the model gate needs one on each rehearsal head;
         # run 44710509866 hit the regressions job's time limit, 44717214380 a test binding it, 44722199520 was
         # cancelled for the preflight step's limit, rehearsal 4 needs a fifth head, 44751479475 a test reading an
         # unfetched commit, rehearsal 5 a stalled serial console, rehearsal 6
-        # the Terminal's environment): the thirteenth stops.
-        self.assertIn('42-dispatch-authorization.json', self.run_main('ci', 'checks', [titles['checks']] * 11))
+        # the Terminal's environment, its review the Terminal's directory): the fourteenth stops.
+        self.assertIn('42-dispatch-authorization.json', self.run_main('ci', 'checks', [titles['checks']] * 12))
         with self.assertRaisesRegex(AssertionError, 'STOP: checks dispatch allowance exhausted'):
-            self.run_main('ci', 'checks', [titles['checks']] * 12)
+            self.run_main('ci', 'checks', [titles['checks']] * 13)
         # A check build of another kind is no dispatch this ledger knows: its own guard names its title.
         with self.assertRaisesRegex(AssertionError, r"STOP: run 50 is titled 'OS image check build \(build, never published\)'"):
             self.run_main('ci', 'resolve', [], title='OS image check build (build, never published)')

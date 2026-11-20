@@ -1875,3 +1875,16 @@ printed `Ran 1 test in 0.063s`, `OK`.
   three seconds after it appeared. The fake: labwc's environ has no display, the supervisor's has it, a foot started
   without a display is seen once and then exits; new cases `supervisor_without_display` and
   `test_a_terminal_from_labwcs_own_environment_stops`. Caps: release-28 7, checks 12.
+- **Review of `391366a9`** (Codex gpt-6.2-sol high, `~/AresOS-42-terminal-fix-review.md`): NOT SAFE, one must-fix.
+  The reopened foot inherited the serial root shell's directory (the recovery account's, which ares cannot enter;
+  package 27's report) through `runuser`, and foot exits when its chdir fails. Fixed: TERMINAL starts it in his
+  home (`cwd`), as the hub's Terminal does (`apps/terminal.json` `"working_directory": "~"`), requires the
+  supervisor's HOME to be `/var/home/ares`, keeps foot's output in `/run/aresos-terminal.log` for the evidence, and
+  checks that the same foot PID still runs three seconds later. The fake's foot also exits when started elsewhere;
+  `test_a_terminal_outside_his_home_exits_and_stops` covers it (the first case of a foot that appears and dies).
+  Checks 13 (checks 12 ran on `391366a9`); rehearsal 7 was not dispatched.
+- **Known limits from that review** (no sure VM failure): a supervisor exiting between its cmdline and environ
+  reads STOPs falsely (teardown only); on `final-28` the SETUP terminal and Control service start with the boot
+  while `at check` and the Control checker query them soon after login (the same moves passed on rehearsal 6's
+  first R28 boot); Prism may rewrite unmodelled files during the final home snapshot; `game_scope` does not assert
+  the kill's result; the PATH probe relies on labwc giving the reopened foot keyboard focus (one retry).
