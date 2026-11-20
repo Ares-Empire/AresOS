@@ -3,6 +3,476 @@
 Brief: `briefs/18c-b-chrome-image.md` (on `main` since PR #73).
 Branch `pkg/18c-b-chrome`, one builder at a time. Each step is a fresh agent; this file is the handoff.
 
+## Step 6a (2026-11-20), rehearsal checks and closing text
+
+### Done
+
+- **Read, `dbeaff72`.** Added the Chrome release rehearsal checks and eleven tests in 18c's existing test
+  module. The 18c CI guest invokes the compatible checks on its probe-bearing disk.
+- **Read, `dac9ed88`.** Updated the OS README and checked the packaging README against item 1. The closing
+  report and guide text are below.
+- **Run, local.** The touched test module printed `Ran 97 tests in 2.468s` and `OK`. Diff and privacy
+  checks passed. At close, `find .work -type f -size +500000000c -print` produced no paths.
+- **Run, Git and PR.** Started at `80e0c0ef` and fetched before editing. Both commits were pushed normally
+  to the existing draft PR #76. The published branch is still based on the same parent history. This step
+  used zero control dispatches, leaving **10 of 12 used**.
+
+### checks_only
+
+**Run, [44645747088](https://github.com/Ares-Empire/AresOS/actions/runs/44645747088), attempt 1 on `dac9ed88`.**
+Dispatched once with `gh workflow run os-image.yml -R Ares-Empire/AresOS --ref pkg/18c-b-chrome -f checks_only=true`.
+The background `gh run watch 44645747088 -R Ares-Empire/AresOS --exit-status --interval 300` exited 0.
+Regression job 135987756036 reported `Ran 1840 tests in 1277.114s` and `OK (skipped=4)` at full-log
+lines 3863 and 3865. The eleven new tests all reported `ok` at lines 2405–2415.
+
+### Left, in order
+
+1. **6b, after linux-aresos merges R28's `pkg/42` into `main`.** Fetch and merge main. Take main's
+   `os/manifest/ci/16/pending-rebind.json`, keep pkg/42's comment and **156** in
+   `.github/workflows/os-image.yml`, and run `python3 os/ci/rebind.py pending "<note>"` with each of the
+   following step 4 notes verbatim and then a separate note for the merge.
+
+   ```text
+   18c-b step 4: the Chrome VM pass (control_vm.py chrome, check-build.sh control-chrome-pass), its actions and test-layer pieces (probe, hand-loaded extension, bundles B and C), the polkit probe, C1, C2 and C6's first use with its reboot.
+   18c-b step 4: os-image.yml gains the Control Chrome VM pass step (25 minutes) in check-build's control mode; the job's control limit 131 to 156.
+   18c-b step 4, round 2: the Chrome pass waits for his session (app helper, polkit agent) after each boot; a check's PASS line sits on its last step.
+   18c-b step 4, round 3: the polkit probe's verdict follows his agent's answer (KDE reports Escape as 1, not authorized), screenshots before, during and after the dialog; C2's managed note from Chrome's menu.
+   18c-b step 4, round 4: a PASS line on a keys step no longer stops the Chrome pass; a stand-in guest runs the whole sequence in os/tests.
+   ```
+
+2. **6b, final Control evidence.** Run the two final Control greens on the merged head and record every
+   PASS line from 18c and 18c-b and the measured VM times. Check for the daily-profile reconnect condition
+   seen in 44621559332 attempt 1.
+3. **6b, final regressions.** Run `checks_only` on the merged head and record the test count.
+4. **6b, close the report.** Fill the marked run IDs, attempts, lines and times below. The lead takes the
+   release rehearsal request to linux-aresos and coordinates 28b's combined proof.
+
+### What the code doesn't show
+
+- **Read, `release_checks.py` at `dbeaff72`.** It reports the current list hash and metadata. The
+  release rehearsal must seed a non-placeholder list and compare its three hashes. The real deployment
+  switch with Chrome open and the laptop's actual sites, agent and terminal size still need evidence.
+- **Read, C4 at `522c1113` and CROSS-5 at `30ff4401`.** 18c-b's package replacement and native
+  connection evidence leaves profile continuity to 28b. The guide uses that future in-session confirmation.
+
+### JUDGMENT-CALLs
+
+- **Read, `dbeaff72`.** The standalone rehearsal uses the image's OpenSSL and trusts only the stock
+  KDE manifest's unchanged image bytes for its IDs. The 18c guest selects compatible checks explicitly
+  because its test policy contains a second ID. This keeps the release verdict independent of the test
+  layer. The report gives the earlier owner-facing and CI choices.
+
+### PLAN-GAPs
+
+- **Read, `chrome_layer.py` at `522c1113` and the brief at `30ff4401`.** Both CI guests have the probe.
+  The release must exercise the default strict scan on a probe-free image. A rollback predating 18c-b
+  also lacks the new installation records. The release brief owns the actual rollback and list comparison.
+
+### The os/ diff for linux-aresos
+
+**Read, net from `80e0c0ef`.**
+
+- `os/ci/control/release_checks.py` adds the six rehearsal actions and hash line.
+- `os/ci/control/actions.py` selects the probe-compatible rehearsal actions in the existing 18c pass.
+- `os/tests/test_control_vm.py` adds eleven tests with real signature verification and failure fixtures.
+- `os/README.md` describes the package, profile handoff and rehearsal.
+
+## For the report
+
+### Done
+
+- **Read, `control/chrome/packaging/pack.py`, its templates and `os/build.sh` at `522c1113`.** The image
+  packs the extension under one fresh RSA key, discards the private key and generates the Chrome policy,
+  update XML and native host manifest for the key's ID. It installs the four files under
+  `/usr/share/aresos/chrome/`, two fixed links in `/etc`, the host relay and the uncached
+  `org.aresos.control.chrome-loosen` polkit action. The image checks bind the bundle to `control.json` and the
+  checkout, verify the signature and scan the image and build log for private-key leftovers.
+- **Read, `control/aresos_control/chrome/exclusions.py` and
+  `control/chrome/packaging/aresos-control-chrome.tmpfiles` at `522c1113`.** First boot makes a format-0
+  excluded-sites placeholder in shared `/var`. The service checks the list on each call, refuses reads and
+  actions until root writes a valid format-1 list, and has read-only access to the file.
+- **Read, `os/gh.lock.json`, `os/build.sh` and `control/chrome/record_build.py` at `522c1113`.** The build
+  extracts only GitHub CLI 2.103.3 from the pinned, signature-checked RPM, restores the prior RPM trust list,
+  and records the binary's SHA-256 and version. The release can use `record_build.py` to record the commit's
+  own archived Control hash, subject to the three-build retention rule.
+- **Read, `os/ci/control/chrome_actions.py` and `os/ci/control/control_vm.py` at `522c1113`.** A separate CI
+  guest covers installation, relay, replacement, package faults, exclusions, polkit, the managed Chrome ask,
+  update requests and the verifier. The probe, extra bundles and synthetic browser data live in the test layer.
+- **Read, `os/ci/control/release_checks.py`, `os/ci/control/actions.py` and
+  `os/tests/test_control_vm.py` at `dbeaff72`, `os/README.md` at `dac9ed88`.** The rehearsal script runs
+  on the image's Python and OpenSSL. It compares the two links and the four ID sources with the signed package,
+  detects foreign extension IDs, supplies a list hash without the hosts, checks the pinned `gh`, and compares the
+  polkit action to the record. The README covers the owner-visible installation, its per-build identity and the
+  rehearsal command. Item 1's packaging README was completed in step 1a (`0fc242e7`).
+
+### Verified
+
+- **Run, local step 6a, `dbeaff72`.** With `TMPDIR` in `.work/18c-b-6a/tmp`,
+  `python3 -B -m unittest discover -s os/tests -p 'test_control_vm.py'` printed
+  `Ran 97 tests in 2.468s` and `OK` (local log lines 3 and 5). The new tests exercise real OpenSSL on a
+  synthetic signed CRX3 and changed payload, disagreements in each ID source, each missing, regular-file or
+  wrong-target link, foreign IDs including a probe and an escaped ID, changed KDE manifest, wrong excluded-sites
+  UID, GID and mode, a missing or linked list and the hash line, mismatched `gh` output and binary, and changed
+  polkit bytes or mode. The existing VM action's test pins its check selection. `git diff --check` exited 0
+  without output. The Repo privacy workflow shell printed `No file holds a home path with a real user name.`
+- **Run, step 6a hosted.** See the checks_only receipt in Step 6a for the run ID, tested head and log lines.
+- **Run, packaging and records, `6b80a139`.** Install proof 44329692789 ran 28 tests (2228), the Node crypto
+  cross-check (2234) and all five browser cases (2306–2310), ending `CONTROL_CHROME_INSTALL_PROOF_PASSED` (2311).
+  Records run 44329693134 ran 21 tests (199) and printed `record_build check passed` (210). The earlier
+  container run 43729218613 exercised the policy-negative control (case 5 PASS at 2297, suite PASS at
+  2298). Step 2b records its detailed result and artifacts in `PROGRESS.md` at `80e0c0ef`.
+- **Run, throwaway image build.** Run 44288748140 on `2e2516b1` passed the independent bundle/key checks
+  (2912–2913), placeholder and image checks (3520, 3549), checkout and build-log checks (3570, 3574), and
+  general image VM (4267). Run 44409288317 on `5a027074` added the successful pinned `gh` RPM, extraction
+  and keyring checks (1561–1564), image binary (2336), checkout (3586) and general image VM (4284). Resolve
+  run 44344811923 on `6b80a139` printed `INFO gh newest=v2.105.0 pinned=gh-2.103.3` (1397).
+- **Run, shared build from 44621559332 attempt 2 on `522c1113`.** RPM payload, signature, extraction and
+  restored trust PASS at 1651–1654, `gh` binary at 2426, CRX and key scan at 3018–3019, preservation and
+  repair by tmpfiles at 3625, checkout matches at 3676–3677 and build-log key scan at 3681. The Control
+  disk was ready at 4387.
+- **Run, Chrome installation and native connection, 44621559332 attempt 2.** Pinned Chrome installed the helper
+  in 1.76 s and connected its native host in 1.83 s on first start (4445–4447). After guest reboot the helper
+  was observed installed at 5.95 s and connected at 6.35 s (4451–4452). C3 checked the daily user's host in
+  Chrome's scope, read the synthetic tab and refused the probe (4454). The A → B → A restarts installed
+  the active helper at 1.59 s and 1.29 s, connected at 1.68 s and 1.66 s and removed the previous ID and its
+  folder by 1.69 s and 1.66 s. Both restored a tool read and refused the probe (4461–4462).
+- **Read, profile continuity, `briefs/18c-b-chrome-image.md` at `30ff4401` and
+  `os/ci/control/chrome_actions.py` at `522c1113`.** The successful connections above predate the
+  profile pin. The combined same-profile replacement, managed confirmation, different-profile refusal and
+  retirement proof belongs to 28b. The lead assigns the combined image C4 after pinning lands. A release
+  containing 28b depends on that proof.
+- **Run, gating and rule changes, 44621559332 attempt 2.** The placeholder blocked tabs, read, open and
+  take before the fixture page saw a request (4449). The written list survived reboot (4452). C6 checked
+  exclusion of the synthetic host and its subdomain, unsafe or missing files, and the service's
+  blocked writes (4455–4456). At C7 the first cancel left the site read-only, the password changed it, and the
+  next request asked again. The authorization journal bound the one-shot approval to the exact native host
+  process. The runner's scan checked 68 files and two archive members at C7 and repeated the scan at poweroff
+  (4475, 4480). C8's Yes sent one matching synthetic form and ended `done`. No sent zero and left the
+  operation reserved before harness cleanup (4477). SELinux was enforcing with no denials naming the checked
+  processes (4479).
+- **Run, package faults and network, 44621559332 attempt 2.** Changed and missing CRX files on a never-held
+  ID kept tools refused for 22.08 s and 21.67 s while browsing worked. Restored C connected in 1.63 s.
+  The already-installed copy kept working under both faults (4463–4464). C9's two explicit checks were asked
+  at 1.97 s and 5.22 s after start. Both captures had two probe requests matching two replies, zero non-file
+  mentions of the helper's ID, and the same observed update-service addresses and named IDs (4465–4466).
+- **Run, measured VM times, 44621559332 attempt 2.** 18c took 575.2 s total, 52.4 s to the channel, 59.3 s idle,
+  233.9 s ordinary sessions, 38.5 s Mail, 118.0 s interactive ask and 43.0 s storage tests (4429). Chrome took
+  400.2 s total, 45.8 s to the channel, 29.7 s from reboot to channel, 15.9 s for C4, 71.2 s for C5, 18.6 s
+  for C9, 66.6 s from C9 PASS to C7 PASS by log timestamps, and 68.9 s for C8 (4466, 4475, 4481). Both
+  guests powered off cleanly (4428, 4480).
+- **Run, screenshots from 44621559332 attempt 2.** In `check-build-evidence` under `control/chrome/`,
+  `c2-pinned.png` and `c2-managed.png` show the pinned button and the menu's “Managed by your organization”
+  (4447). `c7-allow-dialog.png` and `c7-again-dialog.png` show the guest agent naming the synthetic site
+  with an empty password field (4475). The answer screens in `c8-yes.tar.gz` and `c8-no.tar.gz` show the
+  full question at 120 rows (4477). Step 6a read the retained C2 managed and C7 dialog images. Step 5 records
+  the original C8 inspection.
+
+#### Final-head verification to fill in 6b
+
+**Assumed until run.** Final merged head `[6b FINAL_HEAD]`. Final Control green 1
+`[6b RUN_1_ID / ATTEMPT]` and green 2 `[6b RUN_2_ID / ATTEMPT]`. The 522c1113 column is from
+**run 44621559332 attempt 2**. Fill the other columns with full-log line numbers and retain both timing
+rows. Record checks_only as `[6b CHECKS_ONLY_ID / TEST_COUNT / COUNT_LINE / VERDICT_LINE]`. Record the
+final build/check evidence as `[6b CHECK_BUILD_EVIDENCE]`.
+
+| VM marker or timing | 522c1113 | Green 1 | Green 2 |
+|---|---:|---|---|
+| `CONTROL_IMAGE_FILES_PASS` | 4395 | [6b line] | [6b line] |
+| `CONTROL_ETC_CLAUDE_CODE_PASS` | 4397 | [6b line] | [6b line] |
+| `CONTROL_RELEASE_CHECKS_PASS` | 4399 | [6b line] | [6b line] |
+| `CONTROL_IDLE_FOOTPRINT_RECORDED` | 4401 | [6b line] | [6b line] |
+| `CONTROL_FIXTURES_REACHABLE` | 4403 | [6b line] | [6b line] |
+| `CONTROL_ENTRY_POINTS_PASS` | 4405 | [6b line] | [6b line] |
+| `CONTROL_PRECONDITION_PASS` | 4407 | [6b line] | [6b line] |
+| `CONTROL_USER_MCP_INSTALL_PASS` | 4409 | [6b line] | [6b line] |
+| `CONTROL_SERVICE_SANDBOX_PASS` | 4411 | [6b line] | [6b line] |
+| `CONTROL_ORDINARY_SESSION_PASS` | 4413 | [6b line] | [6b line] |
+| `CONTROL_MAIL_FLOWS_PASS` | 4415 | [6b line] | [6b line] |
+| `CONTROL_PERMISSION_REQUEST_RECORDED` | 4417 | [6b line] | [6b line] |
+| `CONTROL_INTERACTIVE_ASK_PASS` | 4418 | [6b line] | [6b line] |
+| `CONTROL_PASSWORDS_PRIVATE_PASS` | 4420 | [6b line] | [6b line] |
+| `CONTROL_SELINUX_AFTER_CHECKS_PASS` | 4422 | [6b line] | [6b line] |
+| `CONTROL_STORAGE_TESTS_PASS` | 4424 | [6b line] | [6b line] |
+| `CONTROL_SERVICE_RESTART_PASS` | 4426 | [6b line] | [6b line] |
+| `CONTROL_VM_POWEROFF_CLEAN` | 4428 | [6b line] | [6b line] |
+| Control VM timing | 4429 | [6b line / time] | [6b line / time] |
+| `CHECK_BUILD_CONTROL_PASSED` | 4430 | [6b line] | [6b line] |
+| `CONTROL_CHROME_POLKIT_PROBE_PASS` | 4441 | [6b line] | [6b line] |
+| `CONTROL_CHROME_FILES_PASS` | 4443 | [6b line] | [6b line] |
+| `CONTROL_CHROME_INSTALL_PASS` | 4447 | [6b line] | [6b line] |
+| `CONTROL_CHROME_SITES_FIRST_USE_PASS` | 4449 | [6b line] | [6b line] |
+| `CONTROL_CHROME_REBOOTED` | 4450 | [6b line] | [6b line] |
+| `CONTROL_CHROME_SITES_REBOOT_PASS` | 4452 | [6b line] | [6b line] |
+| `CONTROL_CHROME_NATIVE_HOST_PASS` | 4454 | [6b line] | [6b line] |
+| `CONTROL_CHROME_SITES_PASS` | 4456 | [6b line] | [6b line] |
+| `CONTROL_GH_PASS` | 4458 | [6b line] | [6b line] |
+| `CONTROL_CHROME_RECORDS_PASS` | 4460 | [6b line] | [6b line] |
+| `CONTROL_CHROME_UPDATE_PASS` | 4462 | [6b line] | [6b line] |
+| `CONTROL_CHROME_PACKAGE_FAULT_PASS` | 4464 | [6b line] | [6b line] |
+| `CONTROL_CHROME_NO_STORE_PASS` | 4466 | [6b line] | [6b line] |
+| `CONTROL_CHROME_POLKIT_PASS` | 4475 | [6b line] | [6b line] |
+| `CONTROL_CHROME_ASK_PASS` | 4477 | [6b line] | [6b line] |
+| `CONTROL_CHROME_SELINUX_PASS` | 4479 | [6b line] | [6b line] |
+| `CONTROL_CHROME_VM_POWEROFF_CLEAN` | 4480 | [6b line] | [6b line] |
+| Chrome VM timing | 4481 | [6b line / time] | [6b line / time] |
+| `CHECK_BUILD_CONTROL_CHROME_PASSED` | 4482 | [6b line] | [6b line] |
+
+### Not verified
+
+- **Read, `os/ci/control/chrome_actions.py` at `522c1113`.** A real deployment switch with Chrome open,
+  followed by an update and rollback rehearsal of the probe-free image and the three hashes, still needs
+  evidence. C4 restarts Chrome around a guest bind mount.
+- **Assumed.** The owner's own profile, excluded sites and dashboard, his installed session's polkit agent,
+  and C8's full visible question at his terminal size still need the live sitting. The 120-row CI capture
+  covers the complete synthetic question.
+- **Read, CROSS-5 at `30ff4401`.** Profile continuity with the real 28b handshake and store awaits the
+  combined proof. Steps 4 and 5 exercised the package and connection with the existing service.
+- **Read, `os/ci/control/actions.py` and `release_checks.py` at `dbeaff72`.** 6a's test root is synthetic.
+  The probe-free deployment view and the actual image's OpenSSL and executable are rehearsal evidence, with
+  the compatible subset due to run in the 6b Control guests.
+
+### JUDGMENT-CALLs
+
+- **Read, brief “The lead's answers” at `30ff4401`.** Board #297 accepted a pinned, non-removable
+  AresOS Chrome helper and the browser's managed notice. User-managed installation would give up the
+  predictable image installation. Changing this later would require revisiting the Chrome policy and C2.
+- **Read, `control/chrome/packaging/` at `522c1113`.** The policy uses `ExtensionSettings` alone, with
+  the fixed file update URL, override and forced pin. The tested form met the need without the
+  `ExtensionInstallForcelist` fallback. A policy change costs a new pack, image audit and browser proof.
+  A fresh in-process RSA key per image was chosen over a permanent key or serialized private PEM.
+  The packer refuses links, special inputs and overwrites, validates version and filenames, disables core
+  files and uses a deflated ZIP with fixed times and modes. Changing key or packaging policy changes the
+  build hash and the replacement behavior. The storage test covers alternate APIs as well as the named ones.
+  Board #355 chose a future managed yes/no question for the replacement instead of accepting it automatically
+  or using a second password dialog. The owner-visible relink and storage exception require 28b's proof.
+- **Read, `exclusions.py`, tmpfiles rules and `test_excluded_sites_placeholder.py` at `522c1113`.** A
+  format-0 placeholder is refused. A format-1 list, including an intentional empty list, opens the gate.
+  The shipped refusal reads “Chrome refuses reads and actions: its owner-only excluded-sites setting is not set
+  up yet, or is missing, not a valid list, unreadable or unsafe; ask the owner to set it up.” The previous
+  wording sounded like a broken install. The alternative of a format-1 empty default would let tools run
+  before setup. Shared `/var` retains the list across deployments. The sweep names the non-page tools and
+  checks every category, while C6 uses the guide's `tee` format with a trailing newline. A change would need
+  the guide, validator and tests to agree again.
+- **Read, `prepare.mjs` and `record_build.py` at `522c1113`.** CI asks the runtime where it reads its list,
+  so writing both paths cannot mask a regression. Record building archives only `control/`, keeps the
+  first time for a repeated commit, lets a later commit take over an equal build hash, and refuses a
+  conflicting commit or a row that would immediately be pruned. Strict UTC time and source-commit equality
+  apply to current and recursively archived manifests. Rows are one per line, newest first. The records workflow
+  runs on matching PR paths against any base, including its own file. Changing these choices affects the release
+  integration and qualification retention rules.
+- **Read, `os/gh.lock.json` and `os/build.sh` at `522c1113`.** The agreed 2.103.3 pin exceeds the
+  verifier minimum 2.102.0. The Fedora version considered in the brief was too old. Extraction avoids RPM
+  installation and its dependencies and checks all scripts and triggers. The full keyring comparison encloses
+  Chrome and `gh`; the import/delete approach supplies the agreed verification of the pinned signature and
+  restored trust. Renewing the pin needs a new payload, key and hash proof. Resolve only reports newer versions.
+- **Read, `control/chrome/ci/install/` and `chrome_actions.py` at `522c1113`.** The Python fixture
+  reuses its Chrome driving and log code in the guest. It keeps a separate browser lock (major mismatch
+  fails, patch mismatch warns). Container case 1 measures the pin against an unpinned image, with a threshold
+  relative to the pinned baseline. C2 uses a screenshot for the pin and managed menu. The policy-installed
+  probe may switch the helper off, so the tests prove the denied uninstall, the recovery on next start,
+  and a genuine denial to the hand-loaded extension. An inability to ask the latter is a failure after the
+  lead's correction. C4 tests loaded IDs and folders and the container test tests whether the previous
+  preference carries code or permission, avoiding an assertion on unrelated browser bookkeeping. A new
+  Chrome version may require fixture and screenshot updates.
+- **Read, `chrome_actions.py` and `control_vm.py` at `522c1113`.** CI generates Chrome's launch with
+  the shell's own scope launcher and the session helper's environment. The desktop launch request would
+  falsely announce a desktop to the guest supervisor. CI adds `--no-first-run`,
+  `--no-default-browser-check` and `--password-store=basic` for the disposable session. The lead
+  authorized `--remote-debugging-pipe` for the isolated hand-loaded and update-check starts, with
+  `--enable-unsafe-extension-debugging` for loading. A pipe avoids a debugging listener. C9 uses
+  throwaway profiles, `--log-net-log`, `--disable-component-update` and the inert
+  `--extensions-update-frequency=30`. It actually triggers two updates by explicit calls roughly three
+  seconds apart and counts the probe's arrivals, which mark actual requests. In the container,
+  `proof.py` also sets `--user-data-dir`, `--start-maximized`, `--gtk-version=3`,
+  `--enable-logging=stderr` and `--disable-background-mode` for isolated profiles and repeatable
+  captures. Its case 5 omits the inert interval flag. These flags and profiles require a recheck
+  if Chrome's updater or debugging behavior changes.
+- **Read, `os/ci/control/chrome_image.py` at `522c1113`.** The image checker has an independent parser
+  and shares the modulus scan with the build-log check. It scans using an image-relative view so ephemeral
+  check mounts do not hide files, and without ASCII whitespace in encoded views so wrapped dumps count.
+  Reusing only the packer's claim would lose the independent proof. A layout or encoding change needs checker
+  tests.
+- **Read, `chrome_actions.py` and `control_vm.py` at `522c1113`.** C4 and C5 swap the four bundle
+  files as a unit in the guest's default profile, while C9 isolates its captures. The bind mount imitates
+  replacement without requiring two shipped deployments. The forthcoming rehearsal owns the real switch.
+  C6 prints first-use and reboot evidence independently and joins them to the later check before the full
+  PASS. The second VM pass depends on a passing 18c step. Changing the order means revisiting the verdict
+  joins and tests.
+- **Read, `chrome_actions.py`, `control_vm.py` and step 4b at `80e0c0ef`.** The guest waits for its
+  session, gives keys a one-second settle and scrolls the Chrome menu to the managed note. Transient
+  sandbox probes keep the unit restrictions and use regular capture files after pipe handoff failed.
+  C11 requires acceptance when an attested record is available. An unexpected refusal remains a failure.
+  Changes to the menu, guest or records need corresponding driver and expectation updates.
+- **Read, `chrome_actions.py` and `control_vm.py` at `522c1113`.** The probe accepts KDE's exit 1 or
+  3 on cancel only with the dialog and session journal proof. C7 matches the real agent title before
+  typing, temporarily enables the live daemon's INFO journal and restores the guest's prior state.
+  The password case is exclusively F7. Matching a generic redraw was inadequate, and a desktop theme or
+  polkit logging change can require a new title crop or observable. C8's 120-row terminal gives the
+  managed question room without changing laptop settings.
+- **Read, `release_checks.py`, `actions.py` and tests at `dbeaff72`.** The default script checks the
+  merged tree as well as the image and uses its OpenSSL through a single standalone script. It permits the
+  existing KDE host's IDs only when that manifest equals the image copy. An unrestricted exemption could
+  hide a stale locally configured ID. The 18c test-layer guest explicitly selects the compatible checks
+  because its probe makes the release-only scan fail by design. A stock host or test-layer layout change
+  would require revisiting this proof. The script checks the hash before running `gh --version` as root and
+  supplies a list digest without reading the host names into evidence.
+
+### PLAN-GAPs
+
+- **Read, `PROGRESS.md` at `80e0c0ef`, steps 1a and 1b.** The actual branch is
+  `pkg/18c-b-chrome`. Item 1's dedicated tests only acquired a workflow in step 2, and its README
+  anticipated the step 1b tool. Historical text still used the old `/etc` list path. The latency pair ran
+  a newer fixture over an older runtime, which refused the list until the fixture asked each runtime for
+  its path (43705955018, step 1b evidence). Item 4 left repeated commits, equal builds and archive scope
+  open. The records tool makes these rules explicit.
+- **Read, `PROGRESS.md` at `80e0c0ef`, steps 2 and 2b.** Chrome itself performs background update
+  requests and did not schedule the requested short interval. The Chrome 157 log contains named IDs in
+  update request headers, in addition to addresses. The proof uses explicit updates, a counted probe and a
+  policy-negative container run. A Chrome lock change alone does not trigger the install workflow.
+  The branch's historical `control/` edits triggered other Control jobs as well.
+- **Read, `PROGRESS.md` at `80e0c0ef`, steps 3a and 3a fix.** The image root is 0555 and root's home
+  link can be unresolved until boot, so the first two checker attempts failed at their filesystem assumptions
+  (44241272420 lines 2924–2934 and 44247363499 lines 2902–2914). The fix follows paths inside the
+  scan root and preserves real read errors. The 18e socket's original bind name and qualification fixture
+  import also had to be reflected in the CI proofs. Main carried the 18c timeout correction.
+- **Read, `PROGRESS.md` at `80e0c0ef`, 3b and 4b.** The older lock fixture omitted `gh`, so the
+  byte-for-byte comparison is separate. The image has completion names containing `gh` that are outside its
+  pinned RPM payload, so the negative check matches the actual payload paths. C11 calls
+  `aresos control log`; the brief's Mail refresh is absent. Transient sandbox outputs required regular file
+  descriptors and the Chrome menu needed a scroll after the key settle (44452254488 and 44468856359).
+- **Read, steps 4 and 5 in `PROGRESS.md` at `80e0c0ef`.** A guest channel can come up before the session
+  agent. KDE uses exit 1 for Escape. The managed text must be seen in the menu. Polkit 127 uses NOTICE
+  by default and emits the successful one-shot record at INFO. A 40-row terminal scrolled the approval
+  question above the capture. The C4 test needed to filter the directory contents to extension IDs, and C8
+  needed the tab nested in `untrusted_content` and the user-scope MCP install on the second overlay. These
+  test corrections are documented with the failed and successful attempts above.
+- **Read, `release_checks.py` at `dbeaff72`, `chrome_layer.py` at `522c1113`, and the brief at
+  `30ff4401`.** The original 18c guest runs on the probe-bearing disk. The full no-other-ID check
+  belongs to the clean release rehearsal. The base KDE manifest is the specific host already allowed by
+  the base contract. A rollback target predating 18c-b can supply a shared-list hash if the release
+  harness reads it, but its image cannot supply the new install records. The release brief must account for
+  that when choosing the rollback evidence.
+
+### Known limits
+
+- **Read, `reviews/20-chrome/KNOWN-LIMITS.md` and `control/chrome/packaging/README.md` at `522c1113`.**
+  The profile's installed extension is user-writable. A same-named per-user native host, a process of the
+  same user posing as the native host, and same-user modification of the installed helper stay within the
+  accepted decision-24 boundary. The same user's process can disturb the host, raise a nuisance password
+  dialog or occupy the single connection while Chrome is closed. That process already runs with his user
+  rights. The dialog names the attempted change and checks his password for every loosening. The host and
+  policy built here live in the image.
+- **Read, step 2b at `80e0c0ef`; run, 44621559332 attempt 2, 4462 and 4466.** Another policy-installed
+  extension can disable ours until Chrome starts again. Changing policy requires root and the tools refuse
+  while disconnected. Chrome may keep an empty preference record for the old ID; the record contains no
+  load path or permissions. Chrome makes its own update requests. C9 compares addresses and named IDs
+  against the probe-only run with two counted probe requests in each. The policy-negative case lives in
+  the container. The guest comparison covers the observed requests.
+- **Run, 44621559332 attempt 1 lines 4399–4400 and 4410–4491.** C11 hit a rate limit. Separately, the daily
+  profile stopped reconnecting after C4 despite C9's isolated profiles showing probe activity, so C5, C9,
+  C7 and C8 could not finish. The retained evidence has no confirmed browser startup cause. Attempt 2 passed
+  all of them (4464–4477).
+- **Read, `chrome_actions.py` at `522c1113`; run, 44621559332 attempt 2 lines 4442, 4455 and 4460.**
+  The VM launches Chrome in the shell scope from the CI service's SELinux context, while the real session
+  agent has its own context. C6 exercises tabs/read for each unsafe file condition. The adapter's wider
+  tool sweep covers the placeholder. C10 checked the verifier's credential paths. C11 observed one accepted
+  refresh result. A request count and the no-published-record fallback remain outside that green run's
+  evidence. The laptop's own context and live-session checks are separate.
+- **Run, 44605724119 attempt 1 lines 4489–4492, and 44621559332 attempt 2 line 4477.** At 40 rows the
+  form description could scroll the question above the viewport. The passing capture has 120 rows.
+  The tool binds the question to the managed operation, and visibility on the owner's screen remains open.
+- **Run, 44435868192 line 4421 and 44621559332 attempt 2 line 4475; read, `confirm.py` at `522c1113`.**
+  KDE's Escape returns the same status as refused authentication. The service says the password was
+  wrong or the request was denied, and the cancellation leaves the read-only state in force.
+- **Read, CONTROL §6 “The bar” and §7 at `30ff4401`.** The agreed MCP boundary leaves direct calls
+  with the user's rights, user-installed permission hooks, requests relayed between sessions, auto mode
+  without profile-ask evidence and sends a page starts after an ordinary click. The image changes here
+  require an owner-approved release, and the guest checks cover the placeholder refusal, password-gated
+  loosening, and the absence of the disposable password in saved evidence.
+
+### Open questions
+
+- **Assumed.** Will the two final merged-head runs stay green, including the daily-profile reconnect and
+  the new checks with image OpenSSL? The 6b rows above hold the open evidence.
+- **Assumed.** Which rollback source will linux-aresos use to prove the three-list-hash check and the
+  browser-side install records, and when will the lead schedule the 28b combined image proof?
+- **Assumed.** At the live sitting, can the owner see the full C8 question in his terminal, and does his
+  session's polkit dialog name the expected change?
+
+### For his guide
+
+**Read, brief “For his guide” and CROSS-5 at `30ff4401`.** Before Claude's first session in his Chrome,
+write the excluded-sites list once. Until then Chrome reads and actions say the owner-only setting is not
+set up yet. Run `sudo tee /var/lib/aresos-control/chrome-excluded-sites.json >/dev/null`, paste or type the
+list on one line, press Enter and then Ctrl-D. Put the dashboard's host first. The dashboard can approve
+Claude's actions, and the tool treats a dashboard omitted from the list as an ordinary site. Add each other
+site to exclude, at most 128 lowercase host names, each covering its subdomains, with no scheme, port or path.
+
+```json
+{"format":1,"hosts":["first.example","second.example"]}
+```
+
+**Read, the same guide.** An empty list opens the tools when there are no sites to exclude.
+
+```json
+{"format":1,"hosts":[]}
+```
+
+**Read, the same guide.** Typing the list into `tee` keeps the hosts out of shell history and preserves the
+existing file's owner, group and mode. Use the same procedure for later changes. The tools read the file at the
+next call. Updates and rollbacks keep it. With Chrome open, `aresos chrome tabs` should list the tabs once
+the profile is ready. If it still reports a missing or invalid setting, check for a capital letter, a scheme,
+a slash or a typographic quote. `sudo cat /var/lib/aresos-control/chrome-excluded-sites.json` shows the
+written file. Repeat the `tee` command to replace it.
+
+**Read, the same guide.** When the list file is missing, `tee` creates it as `root:root` 0644 and the
+tool can read it. Until the next boot repairs the ownership and mode to `root:aresos-tools` 0640, any
+local account can read which sites were excluded. If the folder is missing, run
+`sudo systemd-tmpfiles --create /usr/lib/tmpfiles.d/aresos-control-chrome.conf` and then write the list.
+Until the list is written, the details page's read-only switch answers “Owner list unavailable; use the admin
+command”. “Allow editing” asks for his password in the system dialog. A managed policy file that sets
+`ExtensionSettings` and sorts after `aresos.json` replaces ours. Chrome removes the helper and the tools
+report that Chrome is unavailable.
+
+**Read, CROSS-5 at `30ff4401`.** After 28b and the combined proof, enter the profile's Chrome picker name
+in the helper's local details at setup and correct it after a rename. After an update or rollback replaces
+the helper, start Chrome and make the first Chrome tool call in a Claude Code session. Confirm
+“Keep using Chrome profile <name>?” in the Claude Code permission prompt after checking the displayed
+profile. The system password dialog is for rule loosening. A current Yes keeps using that profile until the
+next replacement. No, cancel or no answer leaves the tools refused, and a stale
+answer has no effect. A normal restart of the accepted installation needs no question. A deliberate switch
+starts from the selected intent in local details and asks in the session to use the other profile instead.
+
+### For linux-aresos's release brief
+
+**Read, `briefs/18c-b-chrome-image.md` at `30ff4401`, “For your next release” and review 2's request.**
+Before the update, have root write a made-up format-1 list, for example
+`{"format":1,"hosts":["rehearsal.invalid"]}`, into
+`/var/lib/aresos-control/chrome-excluded-sites.json` with `sudo tee` as in the owner's guide. If the
+previous release has no folder yet, create it root:root 0755 first. The new image's tmpfiles restores the
+file's group and mode on first boot. Record the SHA-256 of the bytes written before the update. Run the
+new `os/ci/control/release_checks.py` checks after the update and after `previous`, and require both
+`CONTROL_CHROME_SITES_SHA256 <hash>` values to equal the pre-update hash. A placeholder would give the
+same three hashes even if tmpfiles rewrote it at every boot. The release diff and pinning job own the
+per-build bundle record, the release manifest's `control` object (`source_revision` and `chrome_build`)
+and the `record_build.py add` row. The combined profile evidence from 28b is a separate release dependency.
+
+### Proposed edits to CONTROL §6
+
+- **Read, “How the tool reaches Chrome” at `30ff4401`, `chrome_actions.py` at `522c1113`; run,
+  44621559332 attempt 2 lines 4447 and 4462.** Replace “18c-b's case 3/C4 proves the integration” with
+  “18c-b's case 3 and C4 prove installation and the native connection across replacement. 28b owns proof of the
+  managed ask and pin continuity. Run the image C4 with pinning once 28b is integrated.”
+  The resolved 3a checker can be described as complete, with real deployment evidence still due.
+- **Read, `os/build.sh`, `os/google-chrome.lock.json` and `os/README.md` at `dac9ed88`.** In
+  “Chrome stays normal”, say explicitly that the shipped browser version comes from the AresOS image
+  pin. The existing final phrase about Chrome updates as on any machine also reads as covering browser
+  version updates. Add Chrome's managed notice, as observed in C2.
+- **Read, “Where Claude may go” at `30ff4401` and tmpfiles at `522c1113`.** Where the install text
+  says the image makes a placeholder, specify the format-0 structure, that tmpfiles makes it at boot
+  when missing and repairs the metadata while retaining the written contents. The rest of the exclusion
+  and F7 design already describes the built boundary.
+
 ## Step 5 (2026-11-19 to 2026-11-20), Chrome VM second half
 
 **Handoff to `linux-tools`.** All five Step 5 checks and the existing suites of the two guest passes are green
