@@ -3,6 +3,11 @@
 **Decision: 2026-11-13 (board #206).** The owner chose Ares-Crown: "None look crazy tbh but yes crown.
 But chrome shouldn't get the extra bar, other OS don't have that right? It looks weird".
 
+**Superseded 2026-11-20 (board T432):** after the component study drew the window frame, the owner chose "Yes,
+follow the look". Windows will wear the frame of the look setting (A, B or C; by default the Minecraft look), as
+`docs/design/COMPONENTS.md` 4.2 designs it. Ares-Crown stays shipped until that frame is built. Chrome keeping its
+own bar still holds.
+
 Package 31 ships **Ares-Crown as designed**, Space Grotesk with its OFL licence, thumbnail Alt+Tab, and the
 AresOS-scoped GSettings default `appmenu:minimize,maximize,close` for programs with their own bars. The image build
 compiles the schemas. **Chrome keeps its own tab bar**, with all three buttons and no second title bar; there is

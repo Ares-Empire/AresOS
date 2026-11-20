@@ -55,6 +55,10 @@ What this means for steps 2 to 4:
 - **Settings:** the look (A, B or C; default B), the indicator's place (default top centre, switchable), and its size (default medium, 3x). Design where these settings live, how he changes them, and how a change takes effect, as part of the function/look split. For each, say whether it is cheap to build with the first package or should come later, so the build can ship one default first and the rest after.
 - **Public and private still holds:** B and C contain the game's pixels, so their pictures stay private, and everything committed shows A.
 
+## Patrik's decision after step 2 (board T432, Friday 2026-11-20)
+
+Asked whether windows should wear the Minecraft-look frame and follow the look setting, instead of the black-and-gold Ares-Crown frame he chose on 2026-11-13 (board #206), he answered "Yes, follow the look". The window frame follows the look setting (A, B or C; default B), as `docs/design/COMPONENTS.md` 4.2 draws it. Ares-Crown stays the shipped frame until the frame package replaces it.
+
 ## Function and look stay separate
 
 Patrik: "at some point we wanna add the completely diff look in ares app style (not necessarily prio but just a thing once functionality is there)" (relayed by `mac-capacity`, 2026-11-18).
