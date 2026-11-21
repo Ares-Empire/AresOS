@@ -3,6 +3,122 @@
 Brief: `briefs/18c-b-chrome-image.md` (on `main` since PR #73).
 Branch `pkg/18c-b-chrome`, one builder at a time. Each step is a fresh agent; this file is the handoff.
 
+## Review fix round 1 (2026-11-21)
+
+Start `b5091f42`, with step 6b code at `6d610587`. Both reviews were copied byte for byte in `d1a0131a`.
+The package review asked for changes. The security review found six NITs and gave a SAFE verdict.
+[Package review](REVIEW-1.md) · [Security review](SECURITY-REVIEW-1.md)
+
+### Findings and mutations
+
+1. **Review 1 · `620caf83`.** `record_build.py add` keeps the more recent shipment when the build hash
+   matches. The records test creates two commits with the same Control build, adds them in both orders,
+   and calls `check` against the current release manifest in each. It also checks that an equal timestamp
+   preserves the existing row byte for byte. Restoring the former `add` displaced the current row when
+   the older release was added second, so `check` reported `builds.json has no row`. It failed the equal-time check too.
+2. **Review 2 and security NIT 3 · `a58d5366`.** The release checker uses `lstat` on
+   `/usr/share/aresos-install-test` and `/usr/libexec/aresos-install-test`. The clean fixture passes with
+   real CRX verification and key scans. Planting the probe CRX at `probe/extension.crx`, the executable at
+   `/usr/libexec/aresos-install-test/probe-host`, or the four files of bundle B at `bundles/b` under the
+   share root fails individually. Both roots also fail as dangling links. Removing the guard failed all five
+   subtests. Using `Path.exists()` failed the two dangling-link subtests. Changing the checked tag to `:vm`
+   failed the wiring test. `check-build.sh` calls `check-image.sh` against `localhost/aresos:check` in both
+   `build` and `control`, for release and throwaway builds. It checks the image before tagging `:ci` or
+   building the `:vm` overlay. Build mode boots `:vm` for its guardian checks. Control mode adds the Chrome
+   payload layer on top of `:vm` as `:control` and boots that disk. The negative check runs only on `:check`.
+3. **Security NIT 2 · `cdc3b113`.** Container case 4 requires Chrome's
+   `CRX_SIGNATURE_VERIFICATION_FAILED` in the changed package's fresh-start log. The case-level regression
+   passes with that line and refuses an unzip failure or silence, even with a signature error in the missing-package
+   log. Removing the assertion failed both refusal subtests. C5 keeps its install, connection and service
+   checks. Its normal guest launch has no `--enable-logging=stderr`, and the final VM's `c5-fresh-changed.txt`
+   has no signature diagnostic. The container already captures Chrome's explicit stderr logging.
+   [Container log, line 2288](https://github.com/Ares-Empire/AresOS/actions/runs/44893166810) · [VM artifact read](https://github.com/Ares-Empire/AresOS/actions/runs/44900848938/artifacts/14708622963)
+4. **Review 9 · `cdc3b113`.** A child interpreter audits Python file opens for writes during signing. In the
+   reviewer's mutation, signing serialized the fresh synthetic key into a `NamedTemporaryFile`, flushed it,
+   and deleted it before returning. The new audit test failed with `named file opened for writing while signing`.
+   All three existing `NoKeyLeft` tests passed on that mutation. The production signer is untouched.
+5. **Review 7 · `a58d5366`.** C1 checks `control.json` as a regular root-owned `0644` file and records its
+   metadata. The test rejects `0600` and accepts `0644` up to the following contents check. Restoring the
+   ownership-only assertion let `0600` reach the contents check and failed the test. C2 verifies policy
+   installation and host connection. It checks refusal to disable from a hand-loaded extension and refusal
+   to uninstall through the probe. The runner requires the two screenshots to be captured. The toolbar and
+   menu pixels are reviewed from the artifacts.
+   **Artifact read, `44900848938` on `6d610587`.** `control/chrome/c2-pinned.png` shows the square A button
+   left of the Extensions puzzle piece. `control/chrome/c2-managed.png` shows “Managed by your organization”
+   near the bottom of the menu, above “Chrome Enterprise release notes”. [C2 artifacts](https://github.com/Ares-Empire/AresOS/actions/runs/44900848938/artifacts/14708622963)
+6. **Review 10.** Added the eight final pre-fix PR runs and the OS regressions receipt in
+   [Final-head verification](#final-head-verification). Read the resolve and C9 log lines and corrected their
+   descriptions. The C2 visual observations cite the actual artifacts. The draft PR description now covers the
+   package, steps, review outcomes and remaining checks. [Draft PR #76](https://github.com/Ares-Empire/AresOS/pull/76)
+
+### Lead decisions (linux-tools, 2026-11-21)
+
+- **Review 3.** Accepted the probe-only address and ID comparison in case 5 and C9. The risk, reason and
+  update-service ban for the helper are recorded under [Known limits](#known-limits).
+- **Review 4.** C8 question visibility and exact Yes/No behavior at the owner's real terminal size are gates for
+  release and the live sitting. See [Not verified](#not-verified), [For his guide](#for-his-guide) and the
+  [release handoff](#for-linux-aresoss-release-brief) alongside the 28b combined proof.
+- **Review 5.** Run a standalone `check_build=build` on this round's final dispatch head. The lead will add
+  the green receipt, including `CHECK_BUILD_VM_PASSED` from the two guardian boots, after the run completes.
+- **Review 6.** C11's verified published record, pinned signer and one accepted refresh result suffice for
+  this package. Unit tests pin refusal of the wrong signer. The conditional no-published-record path fails
+  closed and makes CI red.
+- **Review 8.** Approved both scope exceptions. The lead directed `prepare.mjs`'s runtime path lookup in
+  step 1b (`32f1126c`) for the latency leg over the older runtime. linux-aresos read the step 6b labwc swap
+  on 2026-11-21 at 14:50 and wants it on `main` before R29's release build. The swap in `6d610587` covers
+  `os/Containerfile`, `os/labwc/stage.py`, `os/tests/test_aresos_desktop.py` and `os/tests/test_labwc_stage.py`.
+- **Security NITs 1, 4, 5 and 6.** Accepted the `gh` telemetry, modulus scanning and numeric `format`
+  limitations described under [Known limits](#known-limits). Keep the real excluded-sites hash out of
+  public evidence, as recorded in the guide and release handoff.
+
+### Verified locally
+
+**Run.** Python 3.14.8, with `TMPDIR` in `.work/review-fix-1/tmp`. All commands below exited 0.
+
+| Command | Result |
+|---|---|
+| `python3 -B -m unittest discover -s control/chrome/ci/install -p 'test_*.py' -v` | `Ran 30 tests` · `OK` |
+| `python3 -B -m unittest discover -s control/chrome/ci/records -p 'test_*.py' -v` | `Ran 23 tests` · `OK` |
+| `python3 -B control/chrome/record_build.py check` | `record_build check passed` |
+| `PYTHONPATH=control python3 -B -m unittest discover -s control/chrome_tests -p 'test_excluded_sites_placeholder.py'` | `Ran 9 tests` · `OK` |
+| `PYTHONPATH=control python3 -B -m unittest discover -s control/chrome_tests -p 'test_exclusions.py'` | `Ran 3 tests` · `OK` |
+| `.work/review-fix-1/node/node --test control/chrome/ci/install/*.test.mjs` | Node v22.15.0 · `# pass 1` · `# fail 0` |
+| `python3 -B -m unittest discover -s os/tests -p 'test_control_image.py'` | `Ran 49 tests` · `OK` |
+| `python3 -B -m unittest discover -s os/tests -p 'test_control_vm.py'` | `Ran 98 tests` · `OK` |
+| `git diff --check` and `git diff --check d1a0131a..HEAD` | No output |
+| Repo privacy workflow's shell check with `RUNNER_TEMP` in `.work/` | `No file holds a home path with a real user name.` |
+| `find .work -type f -size +500000000c -print` | No paths |
+
+The mutation commands used `python3 -B -m unittest -v` against the named test or `test_pack.NoKeyLeft`,
+with the test directory on `PYTHONPATH`. Each mutation was restored before proceeding. The Node binary
+was verified against the v22.15.0 distribution's published SHA-256 and used from `.work/`.
+
+### Left
+
+The lead watches the PR checks and the first control and standalone build dispatches, records their green
+receipts, and dispatches the second control run. This round has two control runs and one build run, separate
+from the brief's twelve Control runs and step 6b's two follow-ups. The reviewers recheck after CI.
+
+**For linux-aresos.** Read `a58d5366` for the release-image absence check, the C1 manifest check, the C2
+capture description and the two corresponding `os/tests` modules. The release phase used for the negative
+check is already wired through `check-image.sh`. The `os/manifest/ci/16/` files and workflow are untouched
+in this round.
+
+### JUDGMENT-CALLs
+
+- Equal shipment times keep the existing same-build row. Breaking ties by commit hash could displace the
+  current manifest despite equal timestamps. Changing this takes a small comparator and test edit, with
+  release records reviewed before any replacement. The lead's release and scope decisions are above.
+
+### PLAN-GAPs
+
+- The original negative check covered the production bundle and policy directories, while the actual
+  payload roots live in the test layer. Both roots now have explicit release checks.
+- The guest's normal Chrome log does not expose the signature refusal in the final artifact. The
+  container test pins the reason and the guest test continues to prove the behavior of the fresh,
+  restored and already-installed copies. The round's final standalone build and the owner's terminal
+  visibility gate are open under the lead's decisions.
+
 ## Step 6b (2026-11-21), release 28 merge and final evidence
 
 ### Done
@@ -538,7 +654,8 @@ lines 3863 and 3865. The eleven new tests all reported `ok` at lines 2405–2415
   (2912–2913), placeholder and image checks (3520, 3549), checkout and build-log checks (3570, 3574), and
   general image VM (4267). Run 44409288317 on `5a027074` added the successful pinned `gh` RPM, extraction
   and keyring checks (1561–1564), image binary (2336), checkout (3586) and general image VM (4284). Resolve
-  run 44344811923 on `6b80a139` printed `INFO gh newest=v2.105.0 pinned=gh-2.103.3` (1397).
+  run [44344811923](https://github.com/Ares-Empire/AresOS/actions/runs/44344811923) on `6b80a139`
+  printed `INFO gh newest=v2.105.0 pinned=gh-2.103.3-1.x86_64` (1397).
 - **Run, shared build from 44621559332 attempt 2 on `522c1113`.** RPM payload, signature, extraction and
   restored trust PASS at 1651–1654, `gh` binary at 2426, CRX and key scan at 3018–3019, preservation and
   repair by tmpfiles at 3625, checkout matches at 3676–3677 and build-log key scan at 3681. The Control
@@ -566,19 +683,23 @@ lines 3863 and 3865. The eleven new tests all reported `ok` at lines 2405–2415
 - **Run, package faults and network, 44621559332 attempt 2.** Changed and missing CRX files on a never-held
   ID kept tools refused for 22.08 s and 21.67 s while browsing worked. Restored C connected in 1.63 s.
   The already-installed copy kept working under both faults (4463–4464). C9's two explicit checks were asked
-  at 1.97 s and 5.22 s after start. Both captures had two probe requests matching two replies, zero non-file
-  mentions of the helper's ID, and the same observed update-service addresses and named IDs (4465–4466).
+  at 1.97 s and 5.22 s after start. The installed-run summary shows two probe requests matching two replies
+  and zero non-file mentions of the helper's ID. It lists the installed run's update-service addresses and
+  named IDs. The PASS indicates the one-way comparison found no additions to the probe-only baseline
+  (4465–4466). [C9 run](https://github.com/Ares-Empire/AresOS/actions/runs/44621559332/attempts/2)
 - **Run, measured VM times, 44621559332 attempt 2.** 18c took 575.2 s total, 52.4 s to the channel, 59.3 s idle,
   233.9 s ordinary sessions, 38.5 s Mail, 118.0 s interactive ask and 43.0 s storage tests (4429). Chrome took
   400.2 s total, 45.8 s to the channel, 29.7 s from reboot to channel, 15.9 s for C4, 71.2 s for C5, 18.6 s
   for C9, 66.6 s from C9 PASS to C7 PASS by log timestamps, and 68.9 s for C8 (4466, 4475, 4481). Both
   guests powered off cleanly (4428, 4480).
-- **Run, screenshots from 44621559332 attempt 2.** In `check-build-evidence` under `control/chrome/`,
-  `c2-pinned.png` and `c2-managed.png` show the pinned button and the menu's “Managed by your organization”
-  (4447). `c7-allow-dialog.png` and `c7-again-dialog.png` show the guest agent naming the synthetic site
-  with an empty password field (4475). The answer screens in `c8-yes.tar.gz` and `c8-no.tar.gz` show the
-  full question at 120 rows (4477). Step 6a read the retained C2 managed and C7 dialog images. Step 5 records
-  the original C8 inspection.
+- **Artifact reads, 44621559332 attempt 2.** Steps 5 and 6a inspected the retained C2 managed and C7 dialog
+  images in `check-build-evidence/control/chrome/`. `c2-managed.png` shows “Managed by your organization”.
+  `c7-allow-dialog.png` and `c7-again-dialog.png` show the guest agent naming the synthetic site with a blank
+  password field. Step 5 read the full question at 120 rows in `c8-yes.tar.gz` and `c8-no.tar.gz`.
+  [Run artifacts](https://github.com/Ares-Empire/AresOS/actions/runs/44621559332/attempts/2)
+- **Artifact read, final Control run 44900848938.** The C2 captures show the square A button in the toolbar
+  and the “Managed by your organization” menu line. The C2 runner requires the captures to succeed.
+  [C2 artifacts](https://github.com/Ares-Empire/AresOS/actions/runs/44900848938/artifacts/14708622963)
 
 #### Final-head verification
 
@@ -612,14 +733,35 @@ checker-selection tests passed (4181 and 4235). The separate full ways-back mode
 **Run, final code head `6d610587`.** See [Step 6b](#follow-up-control-runs) for the hosted
 verdicts, full-log PASS lines, VM timings and daily-profile reconnect result.
 
+**Run, final pre-fix PR checks at `6d610587`.** The package review counted eight successful workflows across
+75 jobs. GitHub reports `success` for all eight. Install passed 28 Python tests, the Node cross-check and five
+browser cases. Records passed 22 tests and the checkout check.
+
+| Workflow | Run |
+|---|---|
+| Control base | [44893166746](https://github.com/Ares-Empire/AresOS/actions/runs/44893166746) |
+| Control boundary | [44893166768](https://github.com/Ares-Empire/AresOS/actions/runs/44893166768) |
+| Control Chrome | [44893166753](https://github.com/Ares-Empire/AresOS/actions/runs/44893166753) |
+| Control Chrome install | [44893166810](https://github.com/Ares-Empire/AresOS/actions/runs/44893166810) |
+| Control Chrome qualification | [44893166818](https://github.com/Ares-Empire/AresOS/actions/runs/44893166818) |
+| Control Chrome records | [44893166754](https://github.com/Ares-Empire/AresOS/actions/runs/44893166754) |
+| Control Mail | [44893166830](https://github.com/Ares-Empire/AresOS/actions/runs/44893166830) |
+| Repo privacy | [44893166787](https://github.com/Ares-Empire/AresOS/actions/runs/44893166787) |
+
+**Read, final pre-fix OS regressions at `b5091f42`.** Run 44908983067 passed. The regression log printed
+`Ran 2461 tests in 1711.071s` (4714) and `OK (skipped=23)` (4716). The separate full ways-back job printed
+`Ran 1 test in 1363.226s` (408) and `OK` (410). [OS regressions](https://github.com/Ares-Empire/AresOS/actions/runs/44908983067)
+
 ### Not verified
 
 - **Read, `os/ci/control/chrome_actions.py` at `522c1113`.** A real deployment switch with Chrome open,
   followed by an update and rollback rehearsal of the probe-free image and the three hashes, still needs
   evidence. C4 restarts Chrome around a guest bind mount.
-- **Assumed.** The owner's own profile, excluded sites and dashboard, his installed session's polkit agent,
-  and C8's full visible question at his terminal size still need the live sitting. The 120-row CI capture
-  covers the complete synthetic question.
+- **Assumed.** The owner's own profile, excluded sites and dashboard, and his installed session's polkit agent
+  still need the live sitting.
+- **Lead release and live-sitting gate, Review 4.** At the owner's actual terminal size, the full C8 question
+  must be visible before he answers. Yes must send exactly the approved contents once and No must send nothing.
+  The 120-row CI capture covers the complete synthetic question. [40-row failure](https://github.com/Ares-Empire/AresOS/actions/runs/44605724119)
 - **Read, CROSS-5 at `30ff4401`.** Profile continuity with the real 28b handshake and store awaits the
   combined proof. Steps 4 and 5 exercised the package and connection with the existing service.
 - **Read, `os/ci/control/actions.py` and `release_checks.py` at `dbeaff72`.** 6a's test root is synthetic.
@@ -761,8 +903,23 @@ verdicts, full-log PASS lines, VM timings and daily-profile reconnect result.
   extension can disable ours until Chrome starts again. Changing policy requires root and the tools refuse
   while disconnected. Chrome may keep an empty preference record for the old ID; the record contains no
   load path or permissions. Chrome makes its own update requests. C9 compares addresses and named IDs
-  against the probe-only run with two counted probe requests in each. The policy-negative case lives in
-  the container. The guest comparison covers the observed requests.
+  against the probe-only run with two counted probe requests in each. The container includes the
+  policy-negative case.
+- **Lead decision, linux-tools, 2026-11-21, Review 3.** The helper remains barred from sending requests to
+  the update service, which is the channel that could carry its ID in a body omitted from the log. Pinned
+  Chrome makes background requests of its own. In the probe-only fallback, case 5 and C9 compare deduplicated
+  addresses and named IDs. A repeated request to an already-seen endpoint can be missed. Count comparisons
+  would be flaky across Chrome's background runs. The possible disclosure is a random per-build extension ID
+  without owner data, so the lead accepted the narrower proof.
+- **Lead decision, linux-tools, 2026-11-21, security NIT 1.** The service's `gh` can send one pseudonymous
+  usage ping per record refresh. The hashed `control/aresos_control/chrome/qualification.py` is outside this
+  package's paths. When that file is next touched, give `gh` `GH_TELEMETRY=false` and an `XDG_STATE_HOME`
+  under the cache.
+- **Lead decision, linux-tools, 2026-11-21, security NIT 4.** The modulus scan is a tripwire for the encodings
+  it knows. Colon-separated hex, decimal and compressed forms are outside its coverage. The signer keeps
+  the private key in memory, and the signing tests check for named-file writes and leaked private bytes.
+- **Lead decision, linux-tools, 2026-11-21, security NIT 5.** The existing `format != 1` comparison accepts
+  `true` and `1.0`. Only root writes the excluded-sites list and the shipped format-0 placeholder is refused.
 - **Run, 44621559332 attempt 1 lines 4399–4400 and 4410–4491.** C11 hit a rate limit. Separately, the daily
   profile stopped reconnecting after C4 despite C9's isolated profiles showing probe activity, so C5, C9,
   C7 and C8 could not finish. The retained evidence has no confirmed browser startup cause. Attempt 2 passed
@@ -793,6 +950,11 @@ verdicts, full-log PASS lines, VM timings and daily-profile reconnect result.
   session's polkit dialog name the expected change?
 
 ### For his guide
+
+**Lead gate, linux-tools, 2026-11-21.** Start the live sitting by checking C8 at the owner's actual terminal
+size with a synthetic form. Before the owner uses Chrome's tools, show the full question in the viewport and
+check both answers. Yes submits the exact approved contents once. No sends nothing. Keep the real excluded-sites
+list and its SHA-256 out of public evidence, since a guessed short list can be checked against the hash.
 
 **Read, brief “For his guide” and CROSS-5 at `30ff4401`.** Before Claude's first session in his Chrome,
 write the excluded-sites list once. Until then Chrome reads and actions say the owner-only setting is not
@@ -848,7 +1010,12 @@ new `os/ci/control/release_checks.py` checks after the update and after `previou
 `CONTROL_CHROME_SITES_SHA256 <hash>` values to equal the pre-update hash. A placeholder would give the
 same three hashes even if tmpfiles rewrote it at every boot. The release diff and pinning job own the
 per-build bundle record, the release manifest's `control` object (`source_revision` and `chrome_build`)
-and the `record_build.py add` row. The combined profile evidence from 28b is a separate release dependency.
+and the `record_build.py add` row.
+
+**Lead gates, linux-tools, 2026-11-21.** Require 28b's combined profile proof and the C8 check at the owner's
+real terminal size before release with Chrome tools enabled. Verify the full question is visible and the
+exact Yes/No behavior holds. Use a made-up list for public rehearsal receipts and keep the SHA-256 of the
+owner's real list out of public evidence.
 
 ### Proposed edits to CONTROL §6
 
@@ -897,11 +1064,11 @@ Code commits are `3d4c6d2d`, `054c915c` and `522c1113`.
 |---|---|---|
 | C4 | `CONTROL_CHROME_UPDATE_PASS`. A → B connected at 1.68 s and the old ID and folder were absent by 1.69 s. B → A reached all three observations by 1.66 s. Both current origins matched the host manifest, both tool reads returned “Chrome pass”, and the probe was refused both times. | 4462 |
 | C5 | `CONTROL_CHROME_PACKAGE_FAULT_PASS`. Changed and missing C each had 15 `chrome_unavailable` samples, start and later browsing worked, and the service stayed up. Restored C connected by 1.63 s. The installed copy remained enabled and connected after both faults. | 4464 |
-| C9 | `CONTROL_CHROME_NO_STORE_PASS`. The two guest starts (ours and probe alone) each logged and served two probe requests. Our ID appeared outside `file:` zero times. Both logs contained the same background update-service addresses and IDs. | 4466 |
+| C9 | `CONTROL_CHROME_NO_STORE_PASS`. The installed run logged and served two probe requests and zero non-file mentions of our ID. The comparison found no added update-service address or named ID against the probe-only baseline. | 4466 |
 | C7 | `CONTROL_CHROME_POLKIT_PASS`. Read-only through cancel, editable after the password, and read-only after cancel on the next attempt. Session 1's journal ties the action and `ONE-SHOT` authorization to the native host PID 7130 and its start time. The guest restored its previous NOTICE level. The runner's scan found zero password matches across 68 files and two archive members at C7, then scanned again at poweroff. | 4475 |
 | C8 | `CONTROL_CHROME_ASK_PASS`. The real managed prompt displayed each service question. Each got one answer. Yes sent one exact synthetic form to the receiver and ended `done`. No sent zero and remained `reserved` until the harness dropped it. | 4477 |
 
-**Run, artifact:** inspected `control/chrome/c7-allow-dialog.png` and `c7-again-dialog.png`. Each names
+**Artifact read, 44621559332 attempt 2.** Inspected `control/chrome/c7-allow-dialog.png` and `c7-again-dialog.png`. Each names
 `editing.localhost` in the real agent with the password field blank. The C8 answer screens in
 `control/chrome/c8-{yes,no}.tar.gz` show the complete question above the operation ID and description.
 `control/chrome/c2-managed.png` visibly shows “Managed by your organization”.
@@ -950,11 +1117,11 @@ C2, first-use and reboot parts of C6, C3, full C6, C10, C11 and SELinux PASS lin
 |---|---|---|
 | C4 | `CONTROL_CHROME_UPDATE_PASS`. Both switches read “Chrome pass” and refused the probe. On A → B the new host connected and the old ID and folder were absent by 1.60 s. On B → A all three were observed by 1.32 s. | 4449 |
 | C5 | `CONTROL_CHROME_PACKAGE_FAULT_PASS`. Both fresh faults blocked the tools and left browsing up, then the restored host connected in 1.37 s. Both installed-copy faults stayed connected. | 4451 |
-| C9 | `CONTROL_CHROME_NO_STORE_PASS`. Two requests in both the log and probe server, no non-file mention of our ID, and the same background update-service addresses and IDs as the probe-only run. | 4453 |
+| C9 | `CONTROL_CHROME_NO_STORE_PASS`. Two requests in both the log and probe server, no non-file mention of our ID, and no update-service address or named ID added against the probe-only baseline. | 4453 |
 | C7 | The real agent showed `editing.localhost` for cancel and allow. Escape kept the site read-only and polkit named the actual native host in its failure record. After password entry pkcheck exited, but the journal query found no authorization record. The edit state and repeat request remained unverified. | 4455–4487 |
 | C8 | Yes produced one receiver POST with the expected synthetic text. The 40-row answer capture began inside the description and omitted the service question, so the driver failed the prompt proof. No stopped at the baseline check without a guess about the previous arrival. | 4489–4492 |
 
-**Run, artifact:** inspected `control/chrome/c7-cancel-dialog.png` and `c7-allow-dialog.png`. Each shows
+**Artifact read, 44605724119 attempt 1.** Inspected `control/chrome/c7-cancel-dialog.png` and `c7-allow-dialog.png`. Each shows
 “Authentication Required”, the full change naming `editing.localhost`, the daily-session identity and a blank
 password field. The second run exercised the actual modal and cancellation, so the third dispatch targets the
 remaining journal and terminal evidence. The second run alone does not prove the password changed the rule.
@@ -1619,7 +1786,7 @@ line numbers are used below; unit-test fixture PASS markers are not image proof.
 | 44323572283 | checks-only round 1, `b3e0c0e5` | FAIL; one failure in 1800 tests (3819–3821), four existing GUI skips. The older-lock fixture has no gh lock: failure/trace 3802–3815. This is our integration failure, not infrastructure. |
 | 44329677029 | checks-only round 2, `6b80a139` | PASS (lead's shell). |
 | 44339552024 | `check_build=build`, `6b80a139` | FAIL; `CONTROL_GH_RPM_PASS`, `CONTROL_GH_INSTALL_PASS`, `CONTROL_GH_KEYRING_PASS` at 1561–1563, then root and daily-account `gh --version` lines; `AssertionError: gh documentation or completions were installed` in `image-checks.sh` 339–341. Fixed by `689d8a48`; no image-check PASS claimed for this run. |
-| 44344811923 | `check_build=resolve`, `6b80a139` | PASS; `INFO gh newest=v2.105.0 pinned=gh-2.103.3` at 1397 (lead's shell). |
+| 44344811923 | `check_build=resolve`, `6b80a139` | PASS. `INFO gh newest=v2.105.0 pinned=gh-2.103.3-1.x86_64` at 1397 (lead's shell). |
 | 44323585982 | PR Control Chrome install | PASS; 28 tests 2229, node:crypto cross-check 2235; five cases PASS 2307–2311; `CONTROL_CHROME_INSTALL_PROOF_PASSED` 2312 |
 | 44323586219 | PR Chrome records | PASS; 21 tests 216; `record_build check passed` 227 |
 | 44323586423 | PR Control boundary | PASS; `PRECEDENCE_OK cases=24` 2060; `CONTROL_INTERACTIVE_ASK_PASS cases=17` 2732 |
