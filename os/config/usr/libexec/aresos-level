@@ -118,27 +118,39 @@ show() {
 }
 
 owned() {
-    [[ $(/usr/bin/timeout 1 /usr/bin/gdbus call --session --timeout 1 --dest org.freedesktop.DBus \
+    local limit
+    printf -v limit '%d.%02d' "$(($1 / 100))" "$(($1 % 100))"
+    [[ $(/usr/bin/timeout "$limit" /usr/bin/gdbus call --session --timeout 1 --dest org.freedesktop.DBus \
         --object-path /org/freedesktop/DBus --method org.freedesktop.DBus.NameHasOwner "$NAME" 2> /dev/null) == '(true,)' ]]
 }
 
-now() { local t=$EPOCHREALTIME; echo $((10#${t//[.,]/})); }
+# /proc/uptime gives monotonic boot time in centiseconds, independent of wall-clock adjustments.
+uptime_cs() {
+    local uptime
+    read -r uptime _ < /proc/uptime || return 1
+    now=$((10#${uptime/./}))
+}
 
 # Starts the program with this request and waits until it owns its name. One that does not own it within 5 s is
 # ended and reaped here, so the launch lock (held by the caller) never lets a second program start beside it.
 launch() {
-    local preload=() pid deadline
+    local preload=() pid now deadline remaining pause
     [[ -e $LAYER_LIBRARY ]] && preload=("LD_PRELOAD=$LAYER_LIBRARY")
+    uptime_cs || return 1
+    deadline=$((now + 500))
     /usr/bin/setsid /usr/bin/env "${preload[@]}" "$INDICATOR" "$seq" "$action" "$level" \
         < /dev/null > /dev/null {launch_lock}>&- &
     pid=$!
-    deadline=$(($(now) + 5000000))
-    while (($(now) < deadline)); do
-        owned && return 0
+    while uptime_cs && ((remaining = deadline - now, remaining > 0)); do
+        if owned "$((remaining < 100 ? remaining : 100))"; then
+            uptime_cs && ((now < deadline)) && return 0
+            break
+        fi
         kill -0 "$pid" 2> /dev/null || break
-        /usr/bin/sleep 0.1
+        uptime_cs && ((remaining = deadline - now, remaining > 0)) || break
+        printf -v pause '0.%02d' "$((remaining < 10 ? remaining : 10))"
+        /usr/bin/sleep "$pause"
     done
-    owned && return 0
     if kill -0 "$pid" 2> /dev/null; then
         kill -TERM "$pid" 2> /dev/null
         for _ in 1 2 3 4 5 6 7 8 9 10; do
