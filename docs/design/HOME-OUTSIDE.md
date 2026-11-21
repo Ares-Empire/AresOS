@@ -654,7 +654,7 @@ from the first version of this note, so the desktop's packages are still 3, 4 an
 | 6 | **Search outside.** The finder as `aresos-search`. Super's one route. The alive beat. The recovery key's third action. `notice`, and a first `aresos-toast` in look A. | Super works over any app and minimizes nothing. | hub, with desktop for the surfaces | 2, 3a, 23c's Super step | M |
 | G2 | **Gate 2's step.** OFF, its records and the two doors in the supervisor, reachable by command only and only in the test rig. The image's command refuses OFF until package 7 ships. | Nothing. | aresos | 1 | S |
 | 7 | **The world-off switch.** The setting, the row in the AresOS menu, the search's first row, Prism's scopes, the memory check on the laptop. Off shows the chosen picture; no still yet. | The switch. | aresos with hub | 6 (so 1, 2 and 3a), gate 2 | M |
-| 4 | **The bar outside.** `aresos-bar` in look A, slots and marks, the app menu, the window requests, and section 8's rule with its zone. | A bar on the picture. Windows stop above it where it reserves its height (section 8's rule; not on the world's screen). The Home slot's menu. | desktop (surface) with hub (content) | 2, 3a, 6 (toasts) | L |
+| 4 | **The bar outside.** `aresos-bar` in look A, slots and marks, the app menu, the window requests, and section 8's rule with its zone. | A bar on the picture. Windows stop above it wherever section 8's rule gives it a zone. The Home slot's menu. | desktop (surface) with hub (content) | 2, 3a, 6 (toasts) | L |
 | 5 | **The bar at the bottom edge.** The strip, reveal and hide, tested against B321's barrier. | The pointer at the bottom edge brings the bar up over an app. | desktop | 4 | M |
 | 3b | **The second screen.** The picture and the bar on the output without the world, and the hotplug rules. | With the monitor in, the laptop screen shows the picture and a bar. | desktop with aresos | 3a, 4, 23c | S |
 | 8 | **Stills and the quiet start.** The lifecycle channel's `still`. A still before every planned stop. The boot path. The world's window minimized until ready. | Boot shows his home at once; it comes alive when ready. | hub (mod) with aresos | 3a, 4 | L |
@@ -736,8 +736,9 @@ look B for the bar, with the desktop's look work; a full layout that counts as f
   package 2 on. The full menu comes with the bar outside.
 - **Home in an off world opens a menu.** It does not start the world by surprise. The first row is "Turn the world
   on".
-- **Windows stop above a visible bar.** On a screen with the bar showing, a maximized window first fits above the
-  bar and then takes the whole screen as the bar slides away.
+- **Windows stop above a bar that reserves its height** (section 8's rule: `shown`, and not the home output while
+  `world` is not `off`). There a maximized window first fits above the bar and then takes the whole screen as the bar
+  slides away. On the home output with the world asleep or starting, the bar shows but reserves nothing.
 
 ### Decided by the lead (review 1's finding 17, review 2's point 4)
 
@@ -831,7 +832,7 @@ back later.
   the window.
 - **With the world awake and a part-screen window over the bottom centre,** the hotbar is behind that window and no
   outside bar comes up. Super's search and Alt+Tab work.
-- **A window maximized on a screen with a visible bar** resizes once more as the bar leaves.
+- **A window maximized on a screen where the bar reserves its height** resizes once more as the bar leaves.
 - **A toast is on the top layer,** so a true full-screen window hides it. A launch that fails meanwhile is in the
   helper's log.
 - **Between packages 7 and 4** an off world has no bar, and until package 5 none over a maximized app. Super's
@@ -1060,7 +1061,8 @@ How a test shows it. The supervisor takes its runner and its clock from outside,
 - **Crash points.** The two of row 4. Each ends in one of its two settled states.
 - **The pending start.** It is made only by his request, survives a replacement, starts once on the first clear
   sample, and is gone after each event of row 5. An old or unreadable sample never admits it.
-- **On a test image,** one pass in a VM (never the owner's laptop before package 7): world off, a reboot, and neither Prism nor Java runs. Then `world on`
+- **On a test image built with gate 2's step and its rig-only command enabled,** one pass in a VM (never the owner's
+  laptop before package 7): world off through that command, a reboot, and neither Prism nor Java runs. Then `world on`
   starts the world.
 
 ### Gate 3: the world gives way first
