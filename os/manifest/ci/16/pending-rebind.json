@@ -1,227 +1,12 @@
 {
-  "status": "rebound by package 22d's rehearsal (run 43737933979); since then 22d's record step changed three test files: os/tests/test_owner_path.py (the pin of 22d's status row), os/tests/test_tools_local_wiring.py (22d's receipt test, frozen after the record step) and os/tests/test_ways_back_probe.py (22c's gate test reads the files changed since 22c's run from the active bindings too); 22d's step 7b changed two more: os/tests/test_checkout_sources.py (package 22c's review 8, finding 3: while a status row says VM REHEARSAL PASSED; NOT ON THE LAPTOP nothing under os/owner-tools/, os/release/ or docs/ waits, and the newest rehearsal's tools equal the payload's) and os/tests/test_owner_equality.py (22d's caller-run lines count as walked); 22d's step 8 merged main in, which changed one more bound file: os/ci/vm.py (main's package 23b: the startup cover's screenshots and session font check in the check build, harness only); they wait for the next rehearsal",
-  "walk": "os/manifest/ci/22d/source-bindings.json",
+  "status": "rebound by package 42's rehearsal",
+  "walk": "os/manifest/ci/42/source-bindings.json",
   "decision": "Integrator, 2026-11-13 (briefs/27b-pending-rebind.md): bound files may change again after package 27's rehearsal; each records its new checkout bytes here until the next VM rehearsal rebinds it. Since package 22d's steps 1 and 2 (integrator, 2026-11-15) tool, guide and workflow files wait here too, besides test files: 22d's own VM rehearsal (brief 22d, step 6) rebinds them; no image file waits. Package 22c's review 8, finding 3 (22d's step 7b): while a row of docs/INSTALL-STATUS.md says VM REHEARSAL PASSED; NOT ON THE LAPTOP, nothing under os/owner-tools/, os/release/ or docs/ may wait: what the laptop gets (the tools, the release scripts, the guides). A harness, workflow or test file changes how a rehearsal runs, not what the laptop gets, and may wait for the next rehearsal (integrator, 2026-11-15, after step 7b: commit 7ef03022). test_checkout_sources refuses a waiting file under those three folders, and refuses tools other than the newest rehearsal's.",
   "changes": [
-    "22d record step: the 22d receipt test frozen after the record step; the 22d status row and its pin in test_owner_path (run 43737933979); 22c's gate test reads the active bindings",
-    "22d step 7b: review 8 finding 3 test; unwalked routine lines",
-    "22d step 7b (integrator): the rehearsed-row rule refuses only waiting tools, release scripts and guides (what the laptop gets), as review 8 proposed",
-    "40: the checks-only job's 40 minutes, as 22d step 2 and 23b: its time limit in os-image.yml (25 to 40) and the 22c ledger's checks bound in os/ci/rehearsal-packages.json (35 to 40); no tool, guide or image file changed",
-    "23b (startup cover), merged with main after package 40: os/ci/vm.py gains the cover's screenshots and session font check in the check build (harness only); the regressions time limit (40 minutes) arrived with package 40 identically",
-    "22d step 8: main merged in (bound files main changed wait for the next rehearsal)",
-    "2026-11-15, board #306 (owner: scrub current files): the owner's machine username became owner in 372 files (reviews/username-scrub/RECORD.md). Three bound files changed, text only: os/manifest/ci/14/14zze-preflight/commit-preflight.py, final-local.py and local-privacy.py (archived preflight tools). No binding table or host walk was edited.",
-    "42 step 1 (release 28's release job, its dry run and the image diff rules): os-image.yml gains the release_28 and dry_run_28 inputs and their two jobs (only on pkg/42-release-28; the dry run has no write permission and no publish step), os/ci/rehearsal-packages.json gains package 42's ledger, rehearsal_guard.py counts it and lets only publish-28 publish, registry_auth.py lets package 42's two kinds read release 27 with the job token, test_owner_staged_release's dispatch helper knows the two new inputs; no tool, guide or image file changed",
-    "42: dry-run cap 2 to 3 (lead, 2026-11-16)",
-    "42: dry-run cap 3 to 4 after a snapshot.ubuntu.com outage (lead, 2026-11-16)",
-    "42 review 1 (B1, S3, N1, N3): package 42's ledger shuts publishing until the owner's OK (publish-28 and publish_cap 0, a publish_gate note); the guard names an unknown run title in a STOP line and refuses publishing while publish_cap allows none; os-image.yml runs the checks guard on pkg/42-release-28, gives check-build a resolve guard step on that branch (actions and packages read, the checkout keeps no token), titles both release 28 inputs together as a dry run, and keeps the old release jobs off release 28's inputs; no tool, guide or image file changed",
-    "42: dry-run cap 4 to 5 after review 1's fixes (fix check SAFE), to prove the new stops on a real build before the cut",
-    "42 step 3: main merged",
-    "42 step 3: the rehearsal mode release-28 (brief B), its wiring, its local walk and host-walk receipt",
-    "42 step 3: the rehearsal mode release-28 (brief B), its wiring, its local walk and host-walk receipt; the tests that pin the workflow's conditions",
-    "42: REVIEW-3 and REVIEW-4 fixes merged",
-    "42: REVIEW-5 and REVIEW-6 fixes merged",
-    "42: main merged (packages 48, 50, the 22d status rows)",
-    "42: package 50's two release-diff rules",
-    "Package 18c's fix round 1, part 2 merged main after 22d's rehearsal (run 43737933979), which bound the workflow without 18c's changes (check_build gains control; the job's limit 127 minutes for control, 120 for the other modes; the Control VM pass step, 12 minutes, and the always() step stopping its fixture servers): they wait again for the next rehearsal; no tool, guide or image file changed",
-    "Package 18c's fix round 1, part 2: the Control VM pass step's limit goes from 12 to 16 minutes (the last passes took 7 min 50 s and 7 min 9 s; the round adds about 2 to 3 minutes for the logout and greetd's auto-login and check 6's two new sessions; about 1.5 times the slower pass with that added); the job's limit and every other mode unchanged; no tool, guide or image file changed",
-    "Package 18c's fix round 1, part 2 (linux-aresos, agreed change 15): the check-build job's limit for check_build=control goes from 127 to 131 minutes and its comment's sum follows the Control VM pass step's 16 minutes, so the job can't cut a slow pass before the step's own limit; every other mode unchanged; no tool, guide or image file changed",
-    "22d and 22c on the laptop (2026-11-17)",
-    "50: boot-only console keymap after Plymouth; vm.py requires boot-key and forced busy-VT repair evidence in the disposable check build",
-    "Package 18c's fix round X2 merged main at 04aef030 (packages 48, 50 and 51): bound files main changed wait for the next rehearsal; os/ci/check-build.sh keeps 18c's control|build split, with 50's console keymap check in the build branch",
-    "42: main merged at 98363516 (#58, 18c Part A and B2; 52's Prism pin; 46; 79): os-image.yml keeps 42's read-only check-build guard and comment with 18c's control limit (131 for control, 120 otherwise)",
-    "42 step 2: Control Part A provenance verification and the full branch-ref guard; the owner-walk model executes Control's stdin checker, validates metadata and login dependencies on both R28 boots. Only these three existing pending rows' checkout hashes were refreshed; no historical bindings rebound, no VM claim.",
-    "42 step 4, the cut's fix: the cut's dry run 44514249982 stopped on 353 bytecode files the Control install's Python rewrote in /usr as root; build.sh runs its Python with -B and the CLI check as nobody, and the dry-run cap goes from 5 to 6 to prove it",
-    "42 step 4, review 11 (Sol SAFE): the unittest.main() guard of test_release28_control.py moves to the end",
-    "42 step 4, dry run 6 (44524016073) stopped at runuser's PAM session in the build container: the Control CLI check switches to nobody with setpriv; dry-run cap 6 to 7",
-    "42 step 4: release_diff allows exactly the cut's build.sh fix (CUT_BYTECODE_FIX, review 11) beside the jar pin; anything else in build.sh still differs from main",
-    "42 step 4: test_release28 lists the cut's build.sh fix beside the jar pin as the branch's allowed source changes",
-    "42 step 5: publish-28 and publish_cap from 0 to 1 under the owner's standing rule (board #388, 2026-11-19); test_release28 and test_release28_rehearsal hold the opened gate (one publish, the publishing kind only)",
-    "42 step 6: release-28 0 to 3, checks 1 to 3 (the model gate on each rehearsal head), minute cap 1200 to 2400; test_release28 and test_release28_rehearsal hold the new caps",
-    "42 step 5: release 28's record (run 44590446680, ghcr.io/ares-empire/aresos@sha256:aa97b2d5…); step 6: the host walk regenerated for it",
-    "42 step 6: test_owner_sources keeps main()'s umask 077 from leaking into later modules (checks-only 44597381061: 116 hosted failures); test_control_image and test_owner_devices_native read the cut's -B lines and step 3's workflow line",
-    "42 step 6: the live ISO requalified: upstream replaced bazzite-nvidia-open-stable-live-amd64.iso on 2026-11-17 16:50 GMT (bd043223…, 9088845824 bytes; the pinned 776b76f3… is gone, Bazzite keeps no old ISOs); rehearsal 44612480026 stopped at the inspection",
-    "42 step 6: announced R28 and tools version 5 payload",
-    "42 step 6: release-28 3 to 4 and checks 3 to 5 (rehearsals 44612480026 and 44625380879 stopped before the owner's route: the rotated live ISO, then no payload commit on the head)",
-    "42 step 6: the stock rewind (the live session installs the base image; the guide stops at the ISO line)",
-    "42 step 6: the Web UI pins move to the 2026-11-17 live ISO (PLAN-GAP 3)",
-    "42 step 6 fix 1: the cross-review's six findings",
-    "42 step 6 fix 1: the cross-review's six findings; R28 VM step 290",
-    "42 step 6: checks cap 6, regressions job 60 minutes",
-    "42 step 6: checks cap 7; test_ways_back_model binds the 60-minute regressions job",
-    "42 step 6: the rehearsal preflight step 35 -> 50 minutes; checks cap 8",
-    "42 final review fixes",
-    "42 final review fixes, round 2",
-    "42 step 6: the walk accepts masked non-root login units (rehearsal 4); rehearsal cap 5, checks cap 9",
-    "42 step 6: masked login units only as ordering; ledger note",
-    "42: test_checkout_sources reads the record's commit only where it is present; checks cap 10",
-    "42: rehearsal 5 stalled on the live serial console; release-28 cap 6, checks cap 11",
-    "42: rehearsal 6 stopped at the Terminal's environment; the walk reads the desktop supervisor's; release-28 cap 7, checks cap 12",
-    "42: the reopened Terminal starts in his home (review of 391366a9); checks cap 13",
-    "42: the reopened Terminal opens on his desktop (rehearsal 7, no monitor); release-28 cap 8, checks cap 14"
+    "42 record: rehearsal 8 (44836654799) qualified a61a393c; INSTALL-STATUS's signed-update row"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
-  "files": [
-    {
-      "sha256": "7ae15d18d32e7cbdda747977c51e5169237e659005d526d95a4e80b8a0cdb715",
-      "path": ".github/workflows/os-image.yml"
-    },
-    {
-      "sha256": "f5da3b5d5fa306e4f83f0393558bcb96745f2da07608aedaa16776daa38f2c75",
-      "path": "docs/EMERGENCY.md"
-    },
-    {
-      "sha256": "301dbd44aa978fe931618c7b320da69c8cd5476b3d015c0dc0d7b96aa693aab4",
-      "path": "docs/INSTALL.md"
-    },
-    {
-      "sha256": "2c34ce941171c6fbf97f030550dbd6302336a0efcfa5658ca50d03cd18caadb1",
-      "path": "os/ci/checkout_sources.py"
-    },
-    {
-      "sha256": "4d3a298b882d70a6c516552121dd52ce2cc5c58287bb8393002199a4ebd962b9",
-      "path": "os/ci/installer_inspect.py"
-    },
-    {
-      "sha256": "2ce3caddddce28824999aa2dbcaa4cc530bac60ce19bce34ac2acfbab6387765",
-      "path": "os/ci/installer_webui.py"
-    },
-    {
-      "sha256": "ced4070c729df759dea81eba91d937c6d0cdc6bad641fd87ba20e4fecf681033",
-      "path": "os/ci/owner_capabilities.py"
-    },
-    {
-      "sha256": "36954898f794a5057868143427dcd56e463e0fd30267151794df181c8576d044",
-      "path": "os/ci/owner_devices.py"
-    },
-    {
-      "sha256": "4a4a2413d072158c759872d19919c64e88d41bc290b2f661a7ddbf68333ac2e6",
-      "path": "os/ci/owner_media.py"
-    },
-    {
-      "sha256": "c23e7f4c59a1100281a71981d840b251aad9d3ec388a03b0e68f3690736797ae",
-      "path": "os/ci/owner_vm.py"
-    },
-    {
-      "sha256": "f71f15f9ed18b47dede5008f16d5ac47aa9a63c8e732f3849ca7a7535f46135a",
-      "path": "os/ci/registry_auth.py"
-    },
-    {
-      "sha256": "96ff4d7b08cd94f97a591ac993489f72c2db976dd51852cc8ba923226fb15a52",
-      "path": "os/ci/rehearsal-packages.json"
-    },
-    {
-      "sha256": "4cffd69c1a2aacf65dd74d829b53e71f76c7a2153f43b52e87691d4c30f55c01",
-      "path": "os/ci/rehearsal_guard.py"
-    },
-    {
-      "sha256": "98355dd5a7642f24341169143ddc4b53a5b8edbf6f049759a3a84f2a9b8bbbaf",
-      "path": "os/ci/two_disk_vm.py"
-    },
-    {
-      "sha256": "7a1ed96eee5c81bd6c810515d74a6666a3ddd6bab804d5247897d5db5eafd589",
-      "path": "os/ci/verify_release.py"
-    },
-    {
-      "sha256": "8e13aa279047545915e430afa53ec8abde59e92db74b0b3451ef3cd3075ed148",
-      "path": "os/ci/vm.py"
-    },
-    {
-      "sha256": "35792a32afaf45805e4a281de1be073856184c31ad507793613a734d6a6d1d3b",
-      "path": "os/manifest/ci/14/14zze-preflight/commit-preflight.py"
-    },
-    {
-      "sha256": "d7fe64f6ddcc77b4d5333258734462098c767ac61982d2f96dc6428594ca56e8",
-      "path": "os/manifest/ci/14/14zze-preflight/final-local.py"
-    },
-    {
-      "sha256": "9a5e0b3fc04d75e2268b7ba17c66d32998fbcb370194b309b1410c2e3ebcb236",
-      "path": "os/manifest/ci/14/14zze-preflight/local-privacy.py"
-    },
-    {
-      "sha256": "1cd232035fdf317522612281b3d59596f5111ba692c5db2d2050fe9145fcf260",
-      "path": "os/manifest/installer-isos.json"
-    },
-    {
-      "sha256": "1738474f8541468854804c02cb02a7ffcbeb5a3b27914ae7b6ceefcd7816b15a",
-      "path": "os/manifest/release.json"
-    },
-    {
-      "sha256": "94c417d9e2c66b918d1455ac052f97b65cbd4ea64720f0e093a1d8e46589087e",
-      "path": "os/owner-tools/commands.json"
-    },
-    {
-      "sha256": "7ea757c9e9d03656f54868db5e12c394da759b0c44db464ed15a592e55ddba74",
-      "path": "os/owner-tools/history.json"
-    },
-    {
-      "sha256": "adf595a62f38137fd768bc26aa439967ac08e7601e1e423c010c5eeefb8680f3",
-      "path": "os/owner-tools/payload/SHA256.json"
-    },
-    {
-      "sha256": "df89ac336e13db84934505551ba28163cbd60fa5b3b9fb0ec97b9585945896c6",
-      "path": "os/owner-tools/payload/SHA256SUMS"
-    },
-    {
-      "sha256": "7ea757c9e9d03656f54868db5e12c394da759b0c44db464ed15a592e55ddba74",
-      "path": "os/owner-tools/payload/history.json"
-    },
-    {
-      "sha256": "1738474f8541468854804c02cb02a7ffcbeb5a3b27914ae7b6ceefcd7816b15a",
-      "path": "os/owner-tools/payload/release.json"
-    },
-    {
-      "sha256": "15ef2cb5b4bb0631cbaf38ae83e30bc5d769fd3243e8d299325a69cf795fba11",
-      "path": "os/tests/test_checkout_sources.py"
-    },
-    {
-      "sha256": "863d2673b18d6a274e4d1ceb52c691e7f7d450227c0a950fc57080df3e1c51be",
-      "path": "os/tests/test_owner_capabilities.py"
-    },
-    {
-      "sha256": "1030289ee102fb0fa68c0d42fd3ed2bbf0505547f132d86938a7160de0e0a02a",
-      "path": "os/tests/test_owner_devices_native.py"
-    },
-    {
-      "sha256": "0bf735c9669c079eaaa0b2d2dfc98f44aa2d50c5054fe8706218f64cc32bf228",
-      "path": "os/tests/test_owner_equality.py"
-    },
-    {
-      "sha256": "f21a72bd306dd245ed3321f261808cc7f2c7488fb3ac9c141d3c12caa6a96724",
-      "path": "os/tests/test_owner_guard.py"
-    },
-    {
-      "sha256": "caf80cd250dff9eae53b2faae7f28e3587fae269a90e035749d20c0d00dd30a5",
-      "path": "os/tests/test_owner_path.py"
-    },
-    {
-      "sha256": "3157af0ef6fb7d0e5af1d4c4e4f97be3f33102879358c1a956e969e473a9e8c8",
-      "path": "os/tests/test_owner_staged_release.py"
-    },
-    {
-      "sha256": "3de66e5739ad7f629f01fa02cdcd74d15f153a0576523beff5bda568ec2964aa",
-      "path": "os/tests/test_owner_update.py"
-    },
-    {
-      "sha256": "98b7197debf45c9515a9523508113b6b26e4e67d5ac947fa4deaeaabe47d262a",
-      "path": "os/tests/test_owner_walk.py"
-    },
-    {
-      "sha256": "edd530d462acb9058586da98c727386f0b3a858153f7a0ff25a6bd7f41d3c7a1",
-      "path": "os/tests/test_rehearsal_budget.py"
-    },
-    {
-      "sha256": "0c6df3559afe851341cd9ab685f98d7539239eb895533b6e3b979ea375a29342",
-      "path": "os/tests/test_tools_local_wiring.py"
-    },
-    {
-      "sha256": "7ff764417bd09eb5cd50609c9eb97e3231eb1ad9a432915e2b558ba5ffdc13f7",
-      "path": "os/tests/test_ways_back_probe.py"
-    },
-    {
-      "sha256": "26cf4455a70bf589cabb7f8637bb0d9c4f734564fa3d99adfa52b0843e7fe1b6",
-      "path": "reviews/27-first-update-release/walk-host.py"
-    }
-  ],
+  "files": [],
   "unwalked_commands": [],
   "unwalked_rule": "Commands added by package 22 are typed by the local walk of package 27's update rehearsal (os/tests/test_owner_walk.py, route update). Package 22c's forward (briefs/22c-forward-command.md) is typed by the local walk of package 22c's rehearsal (route ways-back: from plain Bazzite, after previous, and on the newer AresOS taken in the boot menu) and left this list in stage 2. Package 22d's generated lines (Claude's folder line, the tools-only routine line and the routine export line) are typed by no one: 22d's rehearsal (run 43737933979) ran them through its caller in the desktop session without a terminal, each taken by name from the announced commit's commands.json, and they left this list in 22d's step 7b. test_owner_equality counts a command as walked when a rehearsal's walk types it or, on 22d's route, its caller runs it, and refuses a listed command once it is walked.",
   "rebound": [
@@ -405,6 +190,112 @@
       ],
       "removed": [],
       "rebound_by": "https://github.com/Ares-Empire/AresOS/actions/runs/43737933979"
+    },
+    {
+      "status": "rebound by package 42's rehearsal",
+      "waited_for": "os/manifest/ci/22d/source-bindings.json",
+      "walk": "os/manifest/ci/42/source-bindings.json",
+      "changes": [
+        "22d record step: the 22d receipt test frozen after the record step; the 22d status row and its pin in test_owner_path (run 43737933979); 22c's gate test reads the active bindings",
+        "22d step 7b: review 8 finding 3 test; unwalked routine lines",
+        "22d step 7b (integrator): the rehearsed-row rule refuses only waiting tools, release scripts and guides (what the laptop gets), as review 8 proposed",
+        "40: the checks-only job's 40 minutes, as 22d step 2 and 23b: its time limit in os-image.yml (25 to 40) and the 22c ledger's checks bound in os/ci/rehearsal-packages.json (35 to 40); no tool, guide or image file changed",
+        "23b (startup cover), merged with main after package 40: os/ci/vm.py gains the cover's screenshots and session font check in the check build (harness only); the regressions time limit (40 minutes) arrived with package 40 identically",
+        "22d step 8: main merged in (bound files main changed wait for the next rehearsal)",
+        "2026-11-15, board #306 (owner: scrub current files): the owner's machine username became owner in 372 files (reviews/username-scrub/RECORD.md). Three bound files changed, text only: os/manifest/ci/14/14zze-preflight/commit-preflight.py, final-local.py and local-privacy.py (archived preflight tools). No binding table or host walk was edited.",
+        "42 step 1 (release 28's release job, its dry run and the image diff rules): os-image.yml gains the release_28 and dry_run_28 inputs and their two jobs (only on pkg/42-release-28; the dry run has no write permission and no publish step), os/ci/rehearsal-packages.json gains package 42's ledger, rehearsal_guard.py counts it and lets only publish-28 publish, registry_auth.py lets package 42's two kinds read release 27 with the job token, test_owner_staged_release's dispatch helper knows the two new inputs; no tool, guide or image file changed",
+        "42: dry-run cap 2 to 3 (lead, 2026-11-16)",
+        "42: dry-run cap 3 to 4 after a snapshot.ubuntu.com outage (lead, 2026-11-16)",
+        "42 review 1 (B1, S3, N1, N3): package 42's ledger shuts publishing until the owner's OK (publish-28 and publish_cap 0, a publish_gate note); the guard names an unknown run title in a STOP line and refuses publishing while publish_cap allows none; os-image.yml runs the checks guard on pkg/42-release-28, gives check-build a resolve guard step on that branch (actions and packages read, the checkout keeps no token), titles both release 28 inputs together as a dry run, and keeps the old release jobs off release 28's inputs; no tool, guide or image file changed",
+        "42: dry-run cap 4 to 5 after review 1's fixes (fix check SAFE), to prove the new stops on a real build before the cut",
+        "42 step 3: main merged",
+        "42 step 3: the rehearsal mode release-28 (brief B), its wiring, its local walk and host-walk receipt",
+        "42 step 3: the rehearsal mode release-28 (brief B), its wiring, its local walk and host-walk receipt; the tests that pin the workflow's conditions",
+        "42: REVIEW-3 and REVIEW-4 fixes merged",
+        "42: REVIEW-5 and REVIEW-6 fixes merged",
+        "42: main merged (packages 48, 50, the 22d status rows)",
+        "42: package 50's two release-diff rules",
+        "Package 18c's fix round 1, part 2 merged main after 22d's rehearsal (run 43737933979), which bound the workflow without 18c's changes (check_build gains control; the job's limit 127 minutes for control, 120 for the other modes; the Control VM pass step, 12 minutes, and the always() step stopping its fixture servers): they wait again for the next rehearsal; no tool, guide or image file changed",
+        "Package 18c's fix round 1, part 2: the Control VM pass step's limit goes from 12 to 16 minutes (the last passes took 7 min 50 s and 7 min 9 s; the round adds about 2 to 3 minutes for the logout and greetd's auto-login and check 6's two new sessions; about 1.5 times the slower pass with that added); the job's limit and every other mode unchanged; no tool, guide or image file changed",
+        "Package 18c's fix round 1, part 2 (linux-aresos, agreed change 15): the check-build job's limit for check_build=control goes from 127 to 131 minutes and its comment's sum follows the Control VM pass step's 16 minutes, so the job can't cut a slow pass before the step's own limit; every other mode unchanged; no tool, guide or image file changed",
+        "22d and 22c on the laptop (2026-11-17)",
+        "50: boot-only console keymap after Plymouth; vm.py requires boot-key and forced busy-VT repair evidence in the disposable check build",
+        "Package 18c's fix round X2 merged main at 04aef030 (packages 48, 50 and 51): bound files main changed wait for the next rehearsal; os/ci/check-build.sh keeps 18c's control|build split, with 50's console keymap check in the build branch",
+        "42: main merged at 98363516 (#58, 18c Part A and B2; 52's Prism pin; 46; 79): os-image.yml keeps 42's read-only check-build guard and comment with 18c's control limit (131 for control, 120 otherwise)",
+        "42 step 2: Control Part A provenance verification and the full branch-ref guard; the owner-walk model executes Control's stdin checker, validates metadata and login dependencies on both R28 boots. Only these three existing pending rows' checkout hashes were refreshed; no historical bindings rebound, no VM claim.",
+        "42 step 4, the cut's fix: the cut's dry run 44514249982 stopped on 353 bytecode files the Control install's Python rewrote in /usr as root; build.sh runs its Python with -B and the CLI check as nobody, and the dry-run cap goes from 5 to 6 to prove it",
+        "42 step 4, review 11 (Sol SAFE): the unittest.main() guard of test_release28_control.py moves to the end",
+        "42 step 4, dry run 6 (44524016073) stopped at runuser's PAM session in the build container: the Control CLI check switches to nobody with setpriv; dry-run cap 6 to 7",
+        "42 step 4: release_diff allows exactly the cut's build.sh fix (CUT_BYTECODE_FIX, review 11) beside the jar pin; anything else in build.sh still differs from main",
+        "42 step 4: test_release28 lists the cut's build.sh fix beside the jar pin as the branch's allowed source changes",
+        "42 step 5: publish-28 and publish_cap from 0 to 1 under the owner's standing rule (board #388, 2026-11-19); test_release28 and test_release28_rehearsal hold the opened gate (one publish, the publishing kind only)",
+        "42 step 6: release-28 0 to 3, checks 1 to 3 (the model gate on each rehearsal head), minute cap 1200 to 2400; test_release28 and test_release28_rehearsal hold the new caps",
+        "42 step 5: release 28's record (run 44590446680, ghcr.io/ares-empire/aresos@sha256:aa97b2d5…); step 6: the host walk regenerated for it",
+        "42 step 6: test_owner_sources keeps main()'s umask 077 from leaking into later modules (checks-only 44597381061: 116 hosted failures); test_control_image and test_owner_devices_native read the cut's -B lines and step 3's workflow line",
+        "42 step 6: the live ISO requalified: upstream replaced bazzite-nvidia-open-stable-live-amd64.iso on 2026-11-17 16:50 GMT (bd043223…, 9088845824 bytes; the pinned 776b76f3… is gone, Bazzite keeps no old ISOs); rehearsal 44612480026 stopped at the inspection",
+        "42 step 6: announced R28 and tools version 5 payload",
+        "42 step 6: release-28 3 to 4 and checks 3 to 5 (rehearsals 44612480026 and 44625380879 stopped before the owner's route: the rotated live ISO, then no payload commit on the head)",
+        "42 step 6: the stock rewind (the live session installs the base image; the guide stops at the ISO line)",
+        "42 step 6: the Web UI pins move to the 2026-11-17 live ISO (PLAN-GAP 3)",
+        "42 step 6 fix 1: the cross-review's six findings",
+        "42 step 6 fix 1: the cross-review's six findings; R28 VM step 290",
+        "42 step 6: checks cap 6, regressions job 60 minutes",
+        "42 step 6: checks cap 7; test_ways_back_model binds the 60-minute regressions job",
+        "42 step 6: the rehearsal preflight step 35 -> 50 minutes; checks cap 8",
+        "42 final review fixes",
+        "42 final review fixes, round 2",
+        "42 step 6: the walk accepts masked non-root login units (rehearsal 4); rehearsal cap 5, checks cap 9",
+        "42 step 6: masked login units only as ordering; ledger note",
+        "42: test_checkout_sources reads the record's commit only where it is present; checks cap 10",
+        "42: rehearsal 5 stalled on the live serial console; release-28 cap 6, checks cap 11",
+        "42: rehearsal 6 stopped at the Terminal's environment; the walk reads the desktop supervisor's; release-28 cap 7, checks cap 12",
+        "42: the reopened Terminal starts in his home (review of 391366a9); checks cap 13",
+        "42: the reopened Terminal opens on his desktop (rehearsal 7, no monitor); release-28 cap 8, checks cap 14"
+      ],
+      "files": [
+        ".github/workflows/os-image.yml",
+        "docs/EMERGENCY.md",
+        "docs/INSTALL.md",
+        "os/ci/checkout_sources.py",
+        "os/ci/installer_inspect.py",
+        "os/ci/installer_webui.py",
+        "os/ci/owner_capabilities.py",
+        "os/ci/owner_devices.py",
+        "os/ci/owner_media.py",
+        "os/ci/owner_vm.py",
+        "os/ci/registry_auth.py",
+        "os/ci/rehearsal-packages.json",
+        "os/ci/rehearsal_guard.py",
+        "os/ci/two_disk_vm.py",
+        "os/ci/verify_release.py",
+        "os/ci/vm.py",
+        "os/manifest/ci/14/14zze-preflight/commit-preflight.py",
+        "os/manifest/ci/14/14zze-preflight/final-local.py",
+        "os/manifest/ci/14/14zze-preflight/local-privacy.py",
+        "os/manifest/installer-isos.json",
+        "os/manifest/release.json",
+        "os/owner-tools/commands.json",
+        "os/owner-tools/history.json",
+        "os/owner-tools/payload/SHA256.json",
+        "os/owner-tools/payload/SHA256SUMS",
+        "os/owner-tools/payload/history.json",
+        "os/owner-tools/payload/release.json",
+        "os/tests/test_checkout_sources.py",
+        "os/tests/test_owner_capabilities.py",
+        "os/tests/test_owner_devices_native.py",
+        "os/tests/test_owner_equality.py",
+        "os/tests/test_owner_guard.py",
+        "os/tests/test_owner_path.py",
+        "os/tests/test_owner_staged_release.py",
+        "os/tests/test_owner_update.py",
+        "os/tests/test_owner_walk.py",
+        "os/tests/test_rehearsal_budget.py",
+        "os/tests/test_tools_local_wiring.py",
+        "os/tests/test_ways_back_probe.py",
+        "reviews/27-first-update-release/walk-host.py"
+      ],
+      "removed": [],
+      "rebound_by": "https://github.com/Ares-Empire/AresOS/actions/runs/44836654799"
     }
   ],
   "removed": []

@@ -1897,3 +1897,21 @@ printed `Ran 1 test in 0.063s`, `OK`.
   The fake tracks the VT in front from the QMP keys; a foot started without a monitor writes foot's line and exits.
   New cases: `vt_stays_tty3` (STOP with the log) and `test_a_late_monitor_is_tried_again`. Caps: release-28 8,
   checks 14.
+- **Recheck of `a61a393c`** (Codex gpt-6.2-sol high, `~/AresOS-42-terminal-vt-recheck.md`): SAFE. Known limits:
+  five failed launches can take about 325 s of the serial command's 900 s; the kept log is a 2000-character tail
+  across attempts; the final `game_scope` kill makes the supervisor try a Recovery foot while tty3 is in front (it
+  may hit the same monitor error; the probe's result does not depend on it).
+- **Rehearsal 8 PASSED** (44836654799 on `a61a393c`, 2026-11-21 03:19): `release-28-rehearsal-result.json` status
+  passed, qualified, `real_commit.equal` true, tools version 5 `df89ac33…`, release 28 `aa97b2d5…`, Control checked,
+  protected-disk audits true, deployments checked at every start; the reopened Terminal opened on the first attempt
+  (supervisor 1, display, home, running), the PATH probe without a retry; titles: R28 runs and starts next, then R27
+  after previous, then R28 after forward, each with the menu rows newer AresOS, older AresOS, plain Bazzite
+  `ed93d215…`. `stock-rewind.json` passed: booted `ed93d215…`, two deployments of one commit, `stock_commit.equal`
+  true. Embedded stock `49ded650…` in the ISO and the live session; `offline-first-stock-link` carrier 0.
+  `protected-second-install-stock-release.json` has `lazy` true (rehearsal 4 too): a mount needed `umount -l`
+  after the installer, which `release_command` treats as never a reason to stop.
+- **Record (the lead, 2026-11-21):** the "Lead's record" commands with `run=44836654799` and
+  `qualified=a61a393c` printed `recorded 6 tables, 270 unique sources for package 42; 40 waiting files and 0
+  removed paths moved to the history; pending list empty` and `PASS package 42 active tables match the qualified
+  bytes and the waiting list is empty`; the bound release files equal the qualified head. INSTALL-STATUS's
+  signed-update row: R28 published and rehearsed, laptop update pending; the install hold stays.
