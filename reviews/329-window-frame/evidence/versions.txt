@@ -1,4 +1,4 @@
-25bda69add63fb07e51c5190d7fc914e5de0b977219b268f9eaf2606a927da0e
+3f7a644aa6d03193db6cc01568236a25c6242e12ac8b3d22b71e60fd02bc4090
 labwc-0.9.6-1.fc44.aresos1.x86_64
 wlroots0.19-0.19.3-1.fc44.x86_64
 gtk4-4.22.5-2.fc44.x86_64
@@ -15,7 +15,7 @@ python3-pillow-12.3.0-7.fc44.x86_64
 db9cbd091617048a145d249daa2b815fe7083be6ab66ac26626e21a4e01c3e82  /usr/share/fonts/aresos/Jersey10-Regular.ttf
 Jersey10-Regular.ttf: "Jersey 10" "Regular"
 a7fb7cfe0e8ae7797adc2ab5cd3baf88aa09ec56
-0102041b9884bcb3ad71110893ff9c7e83c773262b7374feaa4606e20fc285fc  /harness/rc.xml
+71eb1f8b99e487b1cd966b0ccb0815a133a66c861895e065c4657c367c085029  /harness/rc.xml
 ffbad8c8760c9ff7be3b092f36974af237f22cf562a32d9df8ca1fed0ae9ad2d  /harness/baseline/rc.xml
 60fabc8452209393ce4267e992603e8c1e66540c50b9fc8cc2de8a8ae488dd04  /usr/share/themes/AresOS/labwc/themerc
 d4f8e8d5f71c2d513f862a2d6ab922c604e982a24fca47cf64a2b57fb8b83c75  /usr/share/themes/Ares-Crown/labwc/themerc

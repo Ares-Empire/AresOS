@@ -116,31 +116,17 @@
     }
   },
   "root": {
-    "rect": [
-      600,
-      220,
-      800,
-      354
-    ],
-    "rows": {
-      "Terminal": [
-        8,
-        10,
-        116,
-        30
-      ],
-      "Reconfigure": [
-        8,
-        10,
-        166,
-        34
-      ],
-      "Exit": [
-        8,
-        10,
-        54,
-        30
-      ]
+    "Left": {
+      "menu_on_press": false,
+      "menu_on_release": false
+    },
+    "Right": {
+      "menu_on_press": false,
+      "menu_on_release": false
+    },
+    "Middle": {
+      "menu_on_press": false,
+      "menu_on_release": false
     }
   }
 }

@@ -5,16 +5,25 @@
       "CONFIGURED 720 500 states=",
       "CONFIGURED 1920 1080 states=maximized,activated"
     ],
-    "before": [
-      "REL 10.00 5.00"
-    ],
+    "before": {
+      "key_events": [
+        "KEY 30 1",
+        "KEY 30 0"
+      ],
+      "motion_events": [
+        "REL 10.00 5.00"
+      ]
+    },
     "cancel_events": [
       "KBD_LEAVE",
       "LEAVE"
     ],
-    "after_cancel": [
-      "REL 10.00 5.00"
-    ],
+    "after_cancel": {
+      "key_events": [],
+      "motion_events": [
+        "REL 10.00 5.00"
+      ]
+    },
     "away_events": [
       "LEAVE",
       "UNLOCKED"
@@ -28,18 +37,30 @@
       "KBD_ENTER",
       "LOCKED"
     ],
-    "after_back": [
-      "REL 10.00 5.00"
-    ]
+    "after_back": {
+      "key_events": [
+        "KEY 30 1",
+        "KEY 30 0"
+      ],
+      "motion_events": [
+        "REL 10.00 5.00"
+      ]
+    }
   },
   "branch": {
     "world_configures": [
       "CONFIGURED 720 500 states=",
       "CONFIGURED 1920 1080 states=maximized,activated"
     ],
-    "before": [
-      "REL 10.00 5.00"
-    ],
+    "before": {
+      "key_events": [
+        "KEY 30 1",
+        "KEY 30 0"
+      ],
+      "motion_events": [
+        "REL 10.00 5.00"
+      ]
+    },
     "panel": {
       "selected": [
         540,
@@ -90,9 +111,12 @@
       "KBD_LEAVE",
       "LEAVE"
     ],
-    "after_cancel": [
-      "REL 10.00 5.00"
-    ],
+    "after_cancel": {
+      "key_events": [],
+      "motion_events": [
+        "REL 10.00 5.00"
+      ]
+    },
     "away_events": [
       "LEAVE",
       "UNLOCKED"
@@ -106,9 +130,15 @@
       "KBD_ENTER",
       "LOCKED"
     ],
-    "after_back": [
-      "REL 10.00 5.00"
-    ],
+    "after_back": {
+      "key_events": [
+        "KEY 30 1",
+        "KEY 30 0"
+      ],
+      "motion_events": [
+        "REL 10.00 5.00"
+      ]
+    },
     "minimized_tile": {
       "box": [
         1380,
@@ -130,6 +160,9 @@
       ]
     },
     "panel_click": {
+      "pointer_output_at_open": "HEADLESS-1",
+      "focused_output_at_open": "HEADLESS-2",
+      "panel_on_pointer_output": false,
       "tile": 3,
       "focus_before_releasing_alt": [
         "overlap"

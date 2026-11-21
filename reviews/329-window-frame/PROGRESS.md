@@ -46,8 +46,9 @@ Dispatched `gh workflow run os-image.yml --ref pkg/329-window-frame -f check_bui
 |---|---|---|
 | `os/config/usr/share/aresos/labwc/rc.xml` | `abf1fde2` | Selects `AresOS`, configures the switcher and adds Shift+Alt+Tab and the two title-bar scroll overrides. |
 | `os/ci/image-checks.sh` | `ed203ac1` | Pins the expanded pack and new theme, checks the frame settings and keeps the Crown pin for R28. |
+| `os/config/usr/share/aresos/labwc/rc.xml`, `os/ci/image-checks.sh` | `2dbcb560` | Clears left, right and middle `Root` presses and checks the exact mouse block. Bare-desktop clicks open no root menu because its Exit item would end the session. |
 
-The R29 release profile belongs to `linux-aresos`. The image adds 37 theme files and 36 pack cells and changes `look.json`. The `rc_xml_settings` delta replaces `theme` and `windowSwitcher`, adds `A-S-Tab`, and adds two `mouse` rows. Keep Crown's files and Space Grotesk for R28's checks and the startup cover, respectively. The R29 guest walk should expect the `AresOS` theme.
+The R29 release profile belongs to `linux-aresos`. The image adds 37 theme files and 36 pack cells and changes `look.json`. The `rc_xml_settings` delta replaces `theme` and `windowSwitcher`, adds the `A-S-Tab` keyboard row and adds three `mouse` rows. They are `<default />`, `TitleBar` with the two scroll overrides, and `Root` with three press no-ops to keep the session-ending Exit item out of bare-desktop clicks. Keep Crown's files and Space Grotesk for R28's checks and the startup cover, respectively. The R29 guest walk should expect the `AresOS` theme.
 
 ## The public and private check
 
@@ -76,3 +77,10 @@ Both GitHub Actions runs report the pushed code and evidence commit `0dbd6256276
 - The PR privacy check passed. The local Podman cleanup removed only the four images built in this run, and there are no files over 500 MB in `.work/`. The remaining merge gates are the fresh review and the `linux-aresos` handoff read.
 
 Before pushing this results-only commit, reran the SHA-256 comparison across all 322 committed file versions and all intermediate versions, including both updated review documents and every picture. Zero private hash matches. The public Look A study and the isolated capture run account for all 211 PNG file versions in the scan.
+
+## Review round 1
+
+- `9f81bd57` records the saved review and measures unbound key delivery around Escape against main's baseline. It checks that the Alt+Tab picker follows keyboard focus with the pointer on the other output and fails a frame run on `[ERROR]` lines from labwc's theme, image and decoration sources. [Saved review](REVIEW-1.md) · [Switcher comparison](evidence/06-switcher.json)
+- `2dbcb560` keeps `<default />` and clears three bare-desktop presses with `None`, as documented in the installed labwc 0.9.6 manuals. No button opened the root menu, and the title-bar drag, close button and edge resize passed in the private compositor. The everyday account and desktop tests do not read the mouse rows. Release 28 reads its published XML, and the package 329 release-diff test pins the new row without changing the classifier. [Menu measurements](evidence/04-menu-rows.json)
+- Both frame reruns passed 38 checks, all 36 button PNG comparisons and eight review sheets. Both indicator reruns passed nine scenarios and 52 checks. The touched rc.xml module passed two tests by discovery, the staged package 329 image assertions passed, and `os/config` had zero `__pycache__` directories. [Run counts](evidence/fix-round-1-results.txt) · [Report](REPORT.md)
+- Before pushing the corrected head, compared every outgoing committed blob version, including intermediate versions and this progress entry, against the ignored lead-provided SHA-256 list. Zero private hash matches. The public Look A study and isolated frame captures account for the outgoing PNGs. There were no files above 500 MB in `.work/`.
