@@ -93,6 +93,30 @@ The mutation commands used `python3 -B -m unittest -v` against the named test or
 with the test directory on `PYTHONPATH`. Each mutation was restored before proceeding. The Node binary
 was verified against the v22.15.0 distribution's published SHA-256 and used from `.work/`.
 
+### Hosted run IDs
+
+Dispatched `os-image.yml` once per mode with `gh workflow run` against `pkg/18c-b-chrome`. GitHub reports
+`workflow_dispatch` and head `0fb805a4` for both. These are the review round's runs. The lead owns their
+verdicts and the remaining Control dispatch.
+
+| Mode | Run |
+|---|---|
+| Control 1 of 2 | [44912649303](https://github.com/Ares-Empire/AresOS/actions/runs/44912649303) |
+| Standalone build | [44912662660](https://github.com/Ares-Empire/AresOS/actions/runs/44912662660) |
+
+The one code push ended at `cdc3b113` and started these eight PR #76 workflows.
+
+| Workflow | Run |
+|---|---|
+| Control base | [44912315588](https://github.com/Ares-Empire/AresOS/actions/runs/44912315588) |
+| Control boundary | [44912315596](https://github.com/Ares-Empire/AresOS/actions/runs/44912315596) |
+| Control Chrome | [44912315592](https://github.com/Ares-Empire/AresOS/actions/runs/44912315592) |
+| Control Chrome install | [44912315594](https://github.com/Ares-Empire/AresOS/actions/runs/44912315594) |
+| Control Chrome qualification | [44912315628](https://github.com/Ares-Empire/AresOS/actions/runs/44912315628) |
+| Control Chrome records | [44912315569](https://github.com/Ares-Empire/AresOS/actions/runs/44912315569) |
+| Control Mail | [44912315497](https://github.com/Ares-Empire/AresOS/actions/runs/44912315497) |
+| Repo privacy | [44912315582](https://github.com/Ares-Empire/AresOS/actions/runs/44912315582) |
+
 ### Left
 
 The lead watches the PR checks and the first control and standalone build dispatches, records their green
