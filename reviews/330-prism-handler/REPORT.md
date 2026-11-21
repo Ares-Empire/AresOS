@@ -1,4 +1,4 @@
-# Package 330 progress
+# Package 330 report: Prism's sign-in handler
 
 ## Done
 
@@ -40,3 +40,11 @@
 ## Judgment calls, plan gaps and open questions
 
 None.
+
+## Reviews and proof
+
+- **Builder:** Codex `gpt-6.2-sol` (high), `387079b1` and `5e0c8829`; fix round `9a0c7349`.
+- **REVIEW-1** (fresh Codex `gpt-6.2-sol` high, at `5e0c8829`): CHANGES-NEEDED, one must-fix: Prism 11.1.1 picks the custom-scheme sign-in only when `xdg-mime`'s default contains its desktop file name. The lead checked the owner's R28 Prism log: with no handler registered, Prism still used `redirect_uri=prismlauncher://oauth/microsoft`. That fits an empty desktop file name in this bundle. The entry was renamed to the upstream ID `org.prismlauncher.PrismLauncher.desktop` anyway, which is right in both cases. **This departs from the brief's file name** (`aresos-prismlauncher.desktop`).
+- **REVIEW-2** (fresh Codex `gpt-6.2-sol` high, at `9a0c7349`): SAFE.
+- **Image build:** `check_build=build` run 44938296580 on `9a0c7349`, green; the new Prism checks ran in it.
+- **Still open:** a live Microsoft sign-in through the browser on the laptop, after R29.
