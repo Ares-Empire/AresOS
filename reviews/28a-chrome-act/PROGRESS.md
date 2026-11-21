@@ -28,6 +28,19 @@ The browser-free option DOM double uses JavaScript's broader whitespace rule. Fi
 therefore missed the difference between generic squeezing and Chrome's option text on the existing H1
 fixture. Running H1 against Chrome and confirming shard completion are part of the lead's hosted verification.
 
+### Dispatched once on `65c515e2`
+
+| Workflow | Run ID |
+|---|---:|
+| `control-chrome.yml` | 44890929446 |
+| `control-chrome-qualification.yml` | 44890932299 |
+| `control-base.yml` | 44890939225 |
+| `control-mail.yml` | 44890941455 |
+| `repo-privacy.yml` | 44890943678 |
+| `control-boundary.yml` | 44890946245 |
+
+The `linux-tools` lead is monitoring these runs.
+
 ## Fix round 1 — 2026-11-21
 
 Draft PR #116, still stacked on `pkg/28-chrome`. Started at `8ad1fdaf` (code `ffbb8c36`); fix code `94330e7e`.
