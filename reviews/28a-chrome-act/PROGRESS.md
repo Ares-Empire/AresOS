@@ -55,6 +55,17 @@ The late-activation handoff also needs to cover an operation whose document is a
 
 The lead owns two hosted passes and the second final look.
 
+### Dispatched once on `8e1fc2e6`
+
+| Workflow | Run ID |
+|---|---:|
+| `control-chrome.yml` | 44906182846 |
+| `control-chrome-qualification.yml` | 44906185545 |
+| `control-base.yml` | 44906187779 |
+| `control-mail.yml` | 44906190268 |
+| `repo-privacy.yml` | 44906192739 |
+| `control-boundary.yml` | 44906194970 |
+
 ## Fix round 1b — 2026-11-21
 
 Draft PR #116 started at `b4cb60ed`. The fixture fix is `375f4f4b`.
