@@ -75,11 +75,9 @@ was removed and the rerun confirmed there was no `__pycache__` under `os/config`
 
 ## Left, in order
 
-1. **Step 3** builds the isolated harness, runs tests 1 to 9 and the package 316 build check, fixes any failures and
-   writes the report in this file. The harness needs the test overrides and PipeWire stand-in described below.
-2. **Hosted evidence.** The lead checks step 1's `checks_only` run 44886308040 for the sandbox tests and reviews the
+1. **Hosted evidence.** The lead checks step 1's `checks_only` run 44886308040 for the sandbox tests and reviews the
    step 2 check build. The layer-loader gate is expected to fail until R29 supplies gtk4-layer-shell.
-3. After step 3 and R29 land, rebase onto main and get a green `check_build=build` with the layer library. The lead
+2. Once R29 lands, rebase onto main and get a green `check_build=build` with the layer library. The lead
    gets the `linux-aresos` OK before merge, then arranges the release and the real laptop checks with the owner.
 
 ## What the code doesn't show
@@ -148,12 +146,9 @@ was removed and the rerun confirmed there was no `__pycache__` under `os/config`
     request logs `aresos-indicator: started`, a colliding launch logs `started while another indicator owns the name`,
     and the delay override logs `waiting before taking the bus name (test)`. Layer shell protocol v1 has the requests
     the indicator uses. [gtk4-layer-shell's protocol](https://github.com/wmww/gtk4-layer-shell/blob/v1.3.0/protocol/wlr-layer-shell-unstable-v1.xml)
-11. **The compositor and the laptop remain unverified.** The unit tests and offscreen painter do not show pointer
-    lock, keyboard focus, click-through, stacking above fullscreen, actual output placement, the sustained repeat
-    rate, cold-launch latency, timing on screen, or full-frame capture pixels. These are step 3's harness checks.
-    The owner and lead check the actual game GUI scale, bottom clearance, real output names, brightness on the real
-    eDP, and how holding the keys feels. The new offscreen painter runs locally here and skips where Pango 1.56,
-    PyGObject, pycairo or Pillow is missing.
+11. **The laptop remains unverified.** The headless compositor results are in the last section. The owner and
+    lead check the actual game GUI scale, bottom clearance, real output names, brightness on the real eDP, and how
+    holding the keys feels. The offscreen painter skips where Pango 1.56, PyGObject, pycairo or Pillow is missing.
 
 ## For linux-aresos
 
@@ -182,11 +177,16 @@ The lead sends this list to `linux-aresos` before merge.
 - **`os/tests/test_aresos_level.py`** (commit `c8f195da`): the former six command strings now live in its `COMMANDS`,
   as the script's commands, with brightness changed by Decision 7 (`--class=backlight`, and brightness down's
   `max` read and raw `--min-value` floor) and volume up's added `set-mute @DEFAULT_AUDIO_SINK@ 0`.
-- **Step 2 image checks.** The startup-commands scan now includes `aresos-level` and requires finding
-  `/usr/libexec/aresos-indicator` in it. The ownership loop includes all three programs. The new checks assert
-  `pw-dump` exists, pin Jersey 10 and the look pack, check the licence and fontconfig, and load
-  `Gtk4LayerShell` as the everyday account. The branch needs R29 for that last check. The release's VM pass should
-  include `fc-match 'Jersey 10'` in the booted guest.
+- **`os/ci/image-checks.sh`, step 2** (commit `6dac8928`). The startup-commands scan now reads `aresos-level`
+  and requires finding `/usr/libexec/aresos-indicator`. The ownership loop adds `aresos-indicator` to the
+  two earlier programs. The new block requires executable `/usr/bin/pw-dump`, checks Jersey 10's exact byte count
+  and SHA-256, checks the OFL copyright and version text, and checks that `fc-match 'Jersey 10'` resolves the
+  installed TTF as the everyday account. It checks the pack's exact file list and SHA-256
+  `386d46534f4c38d5b0d53688628095e47a707bb60be2f902e0b861b447617ede`. It requires the
+  `libgtk4-layer-shell.so.0` file and preloads it for the indicator's GTK 4/Pango/Cairo loader as the everyday
+  account. The loader check requires GTK 4, a layer library major version of at least 1 and the Cairo-only
+  environment. R29 must supply the layer library. The release VM pass should include `fc-match 'Jersey 10'`
+  in the booted guest.
 
 ## The public and private check
 
@@ -197,3 +197,81 @@ The lead sends this list to `linux-aresos` before merge.
   and kept its comparison in memory. The first push attempt hit the Git email privacy hook. The three local commits
   were re-authored with a GitHub noreply address and all 28 file versions were checked again before retrying.
 - Step 2, before pushing the run ID, compared the one staged file (`PROGRESS.md`) by SHA-256. No match.
+- Step 3, before pushing, compared all nine staged harness source files and all 77 staged report and evidence files
+  by SHA-256. Zero matches. The nine incoming file versions from the `origin/main` merge were also checked, with
+  zero matches. Every staged binary is a `grim` capture from the private headless test, with only the fullscreen
+  colour stand-in, empty headless output and public Look A assets. The comparison used the digest field in memory.
+
+## Step 3 report
+
+**Done.** Commit `35fd330c` adds the rootless harness under `os/tests/indicator-harness/` and extends
+package 316's `wl-harness window` with the optional persistent pointer lock and relative-motion listener from
+package 311. The original window invocation still builds with package 316's own Containerfile and client
+compiler flags. The new image uses the labwc RPM from `localhost/aresos-labwc:311e` and Fedora 44's
+`gtk4-layer-shell-1.3.0-1.fc44.x86_64`. The driver and each private labwc inherited one `dbus-run-session`
+address. labwc used the branch's `rc.xml` and the tools at their image paths. The devices and PipeWire graph
+were fixtures written to a scratch home inside the container.
+
+### Verified
+
+- `free -g` showed 7 GiB available before the first build. One container ran at a time.
+- `os/tests/indicator-harness/run.sh image` built both package 316 clients with `-Wall -Werror`; the labwc
+  executable and labnag matched their loaded SHA-256 pins. The labwc RPM was
+  `labwc-0.9.6-1.fc44.aresos1.x86_64`, SHA-256
+  `8f9f4ea2ab3163ee2a760624cd10d7ceb105a3c84f1d980ed73cbea7aba565c6`.
+- `os/tests/indicator-harness/run.sh run .work/320/trial6` exited 0 with 25 isolation checks and 51 checks
+  across the nine tests. The driver also verified the private bus socket and each labwc and client environment.
+  `os/tests/indicator-harness/run.sh run .work/320/confirmation` exited 0 with the same counts. It measured
+  24.4 actions/s with a 608 ms first interval and the plate disappeared 1.552 s after release. Cold latency was
+  at most 290 ms for the pair and 293 ms for the hold.
+  [Results](evidence/results.txt), [confirmation](evidence/confirmation-results.txt) and [package versions](evidence/versions.txt).
+- Ran `python3 -m unittest discover -s os/tests -p '<module>' -v` separately for the three requested modules,
+  without `-B`, against the tracked configuration in disposable rootless containers.
+  `test_aresos_indicator.py` ran 23, OK. `test_aresos_settings.py` ran 20, OK.
+  `test_aresos_level.py` ran 25 in the GTK image, with the no-layer case skipped because the library was installed.
+  The full level module then ran separately in the base client image without the library, with all 25 passing. The nested
+  namespace tests needed the unit containers' `seccomp=unconfined`, `unmask=/proc/*` and `label=disable` options
+  for their private proc and mounts. Both unit containers kept isolated PID and network namespaces and had no
+  devices or host directories passed in. The compositor harness used the regular container settings.
+  [Unit output](evidence/units-with-layer.txt) and [output without the layer library](evidence/units-level-no-layer.txt).
+- `bash -n` passed for the harness shell scripts and the staged diff passed `git diff --cached --check`.
+
+| Test | Result |
+|---|---|
+| 1. Pointer lock | 4/4. The locked fullscreen stand-in received nine relative deltas totalling (90, 45), nine key presses and nine releases. Zero unlocks, absolute motions or input-focus leaves while the 65% and 70% plates appeared, then disappeared. [Capture](evidence/01-pointer-lock-update.png) |
+| 2. Pass-through and stacking | 2/2. After releasing the lock, the fullscreen stand-in received the click at (500, 69) through the visible plate. [Capture](evidence/02-above-fullscreen.png) |
+| 3. Failure paths | 7/7. All 24 key actions changed the fixtures with the indicator removed, nonexecutable, crashing or missing the layer library. The real library reported no layer protocol under private Xwayland. The indicator logged once and exited 1. Zero new toplevels or keyboard leaves. [Xwayland log](evidence/03-xwayland-indicator.log) |
+| 4. Held key | 5/5. Thirteen volume-down actions took the fixture from 100% to 35%. After a 604 ms first interval, observed cadence was 24.1 changes/s. The bar followed the hold and finished at 35%. One process and start line, all key scripts and notifiers drained, plate gone 1.575 s after release. [Final frame](evidence/04-final-repeat-level.png) |
+| 5. Unavailable devices | 6/6. All four messages and their grey icons matched. The LED stayed unchanged. Disabling the laptop output, with its backlight still present, showed “Laptop screen / is off” while the backlight changed. [Screen-off capture](evidence/05-screen-off.png) |
+| 6. Placement | 5/5. Volume and microphone followed the pointer on both headless outputs. Brightness used named `HEADLESS-2` with the pointer on `HEADLESS-1`. [Brightness capture](evidence/06-brightness-edp.png) |
+| 7. Settings | 7/7. Defaults were 525 × 90 px, top-centred with a 24 px margin. Both bottom sizes matched, broken JSON restored defaults and logged once, both settings commands previewed the current volume once, and A, B and C produced identical pixels. [Large bottom preview](evidence/07-preview-indicator-size.png) |
+| 8. Pixels | 9/9. Both 62% route labels matched the study at 2x, 3x and 4x, including the bar's partial step and every opaque sprite pixel outside the text overlay. Jersey 10 needed zero glyph shifts. The fallback glyph's 294, 675 and 1,219 foreground pixels used the pack's ink colour. [4x route capture](evidence/08-4x-headphones.png) |
+| 9. Launch and order | 6/6. One start line and one process for both the cold pair and the cold hold. The first frame was seen within 279 ms and 292 ms of the first press respectively. The newer 65% survived a later stale 25% call. Two delayed attempts ended at the 5 s deadline, the first PID was reaped before the lock passed, and the device changes happened before the wait. The shortened idle interval ended the program and the next key brought it back. [Deadline log](evidence/09-labwc.log) |
+
+### The four open checks in COMPONENTS.md section 8
+
+1. **Unnamed layer placement.** With this patched labwc, the unnamed volume and microphone layers landed on
+   the pointer's output on both sides, even with the fullscreen stand-in on the other output. The named
+   brightness layer appeared on the simulated laptop output.
+2. **Empty input region and pointer lock.** The overlay left the persistent constraint, pointer focus and keyboard
+   focus in place across appearance, update and disappearance. The probe still received input during each phase.
+3. **Held-key repeat.** labwc repeated the virtual keyboard's key itself. The roughly 600 ms delay and roughly 25
+   actions/s followed its normal repeat configuration. The result required no injected repeat presses.
+4. **Session bus and launch.** The checked-in session wrapper provides the bus. Under the same
+   `dbus-run-session` arrangement headlessly, the key changed its level, started the program on an unowned name,
+   and subsequent notifications reached that name over the same bus. The program started from the key, without
+   bus activation.
+
+### Fixes and limits
+
+- The first two runs stopped at the mount gate until it accounted for Podman's standard pseudo-devices and
+  verified the container secrets mount was empty. The first runtime image lacked Cairo's typelib. Adding
+  `gobject-introspection` supplied it. The later trials corrected the sound fixture's `media.class`, waited for
+  the new probe's own announcement after restarting labwc, and included the fallback font's ascent in the colour
+  comparison. The nine tests passed using the same checked-in level, settings and indicator programs as step 2.
+- [Known limits](KNOWN-LIMITS.md) records the fallback glyph near the top border and the PyGObject bus registration
+  deprecation warning with their reasons.
+- The headless captures establish no physical-panel brightness, real hardware audio labels, game GUI scale, hotbar
+  or hearts clearance, or feel of holding the keys. Those remain the lead's checks with the owner. R29 still gates
+  the image library check. No workflow was dispatched in this step. No file over 500 MB remained under `.work/`.
+- **Open questions.** No placement decision arose. The lead still coordinates R29, the image check and the real laptop pass.

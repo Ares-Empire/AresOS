@@ -1,0 +1,30 @@
+test_a_key_held_from_cold_starts_one_program_and_ends_on_the_last_level (test_aresos_level.ColdLaunchTest.test_a_key_held_from_cold_starts_one_program_and_ends_on_the_last_level) ... ok
+test_a_program_that_never_takes_its_name_is_ended_before_the_next_one_starts (test_aresos_level.ColdLaunchTest.test_a_program_that_never_takes_its_name_is_ended_before_the_next_one_starts) ... ok
+test_a_running_indicator_gets_the_call_in_order (test_aresos_level.ColdLaunchTest.test_a_running_indicator_gets_the_call_in_order) ... ok
+test_two_quick_first_presses_start_exactly_one_program (test_aresos_level.ColdLaunchTest.test_two_quick_first_presses_start_exactly_one_program) ... ok
+test_an_unknown_action_changes_nothing (test_aresos_level.CommandsTest.test_an_unknown_action_changes_nothing) ... ok
+test_each_action_runs_exactly_its_commands_in_order (test_aresos_level.CommandsTest.test_each_action_runs_exactly_its_commands_in_order) ... ok
+test_the_script_names_every_program_by_its_absolute_path (test_aresos_level.CommandsTest.test_the_script_names_every_program_by_its_absolute_path) ... ok
+test_a_large_backlight_floors_at_one_percent_of_its_maximum (test_aresos_level.LevelsTest.test_a_large_backlight_floors_at_one_percent_of_its_maximum) ... ok
+test_a_small_backlight_floors_at_one_raw_unit_at_least (test_aresos_level.LevelsTest.test_a_small_backlight_floors_at_one_raw_unit_at_least) ... ok
+test_an_led_is_never_changed_and_brightness_reads_not_available (test_aresos_level.LevelsTest.test_an_led_is_never_changed_and_brightness_reads_not_available) ... ok
+test_no_sound_output_or_microphone_reads_none (test_aresos_level.LevelsTest.test_no_sound_output_or_microphone_reads_none) ... ok
+test_the_readings_are_numbers_and_fixed_words (test_aresos_level.LevelsTest.test_the_readings_are_numbers_and_fixed_words) ... ok
+test_volume_stops_at_100_percent_and_brightness_at_the_maximum (test_aresos_level.LevelsTest.test_volume_stops_at_100_percent_and_brightness_at_the_maximum) ... ok
+test_volume_up_ends_mute_volume_down_and_mute_keep_the_level (test_aresos_level.LevelsTest.test_volume_up_ends_mute_volume_down_and_mute_keep_the_level) ... ok
+test_a_second_key_changes_at_once_while_the_first_read_back_hangs (test_aresos_level.LockTest.test_a_second_key_changes_at_once_while_the_first_read_back_hangs) ... ok
+test_no_layer_library_means_no_preload (test_aresos_level.LockTest.test_no_layer_library_means_no_preload) ... ok
+test_the_change_waits_for_the_lock_at_most_one_second (test_aresos_level.LockTest.test_the_change_waits_for_the_lock_at_most_one_second) ... ok
+test_the_indicator_inherits_neither_lock_and_gets_the_layer_library_first (test_aresos_level.LockTest.test_the_indicator_inherits_neither_lock_and_gets_the_layer_library_first) ... ok
+test_the_sequence_rises_and_a_broken_counter_starts_again (test_aresos_level.LockTest.test_the_sequence_rises_and_a_broken_counter_starts_again) ... ok
+test_with_an_indicator_that_crashes_at_start (test_aresos_level.SurvivesTest.test_with_an_indicator_that_crashes_at_start) ... ok
+test_with_an_indicator_that_is_not_executable (test_aresos_level.SurvivesTest.test_with_an_indicator_that_is_not_executable) ... ok
+test_with_an_indicator_that_never_answers (test_aresos_level.SurvivesTest.test_with_an_indicator_that_never_answers) ... ok
+test_with_an_indicator_that_never_takes_its_name (test_aresos_level.SurvivesTest.test_with_an_indicator_that_never_takes_its_name) ... ok
+test_without_a_session_bus_or_a_runtime_folder (test_aresos_level.SurvivesTest.test_without_a_session_bus_or_a_runtime_folder) ... ok
+test_without_the_indicator (test_aresos_level.SurvivesTest.test_without_the_indicator) ... ok
+
+----------------------------------------------------------------------
+Ran 25 tests in 28.841s
+
+OK

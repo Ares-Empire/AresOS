@@ -1,0 +1,41 @@
+PASS isolation the container starts without WAYLAND_DISPLAY
+PASS isolation the container starts without DISPLAY
+PASS isolation the container starts without DBUS_SESSION_BUS_ADDRESS
+PASS isolation the container starts without XDG_RUNTIME_DIR
+PASS isolation the container starts without XDG_DESKTOP_PORTAL_DIR
+PASS isolation the container starts without XDG_CURRENT_DESKTOP
+PASS isolation the container starts without XAUTHORITY
+PASS isolation the container starts without SSH_AUTH_SOCK
+PASS isolation no network interface but loopback (its own network namespace: no abstract socket of the host)
+PASS isolation no /dev/input, or an empty one
+PASS isolation no /dev/uinput, or an empty one
+PASS isolation no /dev/dri, or an empty one
+PASS isolation no /tmp/.X11-unix, or an empty one
+PASS isolation no /run/user, or an empty one
+PASS isolation no /run/dbus, or an empty one
+PASS isolation no /var/run/dbus, or an empty one
+PASS isolation no /home, or an empty one
+PASS isolation no /var/home, or an empty one
+PASS isolation no socket exists anywhere before the harness starts one
+PASS isolation no host home, runtime or X11 folder is mounted
+PASS isolation only Podman container mounts
+PASS isolation no container secrets
+PASS isolation the container starts without DBUS_SYSTEM_BUS_ADDRESS
+PASS isolation the container starts without LD_PRELOAD
+PASS isolation the container starts without GDK_BACKEND
+labwc-0.9.6-1.fc44.aresos1.x86_64
+wlroots0.19-0.19.3-1.fc44.x86_64
+gtk4-4.22.5-2.fc44.x86_64
+gtk4-layer-shell-1.3.0-1.fc44.x86_64
+python3-gobject-3.56.3-1.fc44.x86_64
+python3-cairo-1.28.0-5.fc44.x86_64
+pango-1.57.1-1.fc44.x86_64
+grim-1.5.0-3.fc44.x86_64
+python3-pillow-12.3.0-7.fc44.x86_64
+8f9f4ea2ab3163ee2a760624cd10d7ceb105a3c84f1d980ed73cbea7aba565c6  /opt/harness/rpm/labwc-0.9.6-1.fc44.aresos1.x86_64.rpm
+296600e6ce91d598cb0e03b20441e9f2157b6061105c979a1af3381344e13cc7  /usr/libexec/aresos-indicator
+27f46a7e9fc88d5d2e9fd960307d501e688ff56836c4275dbc928b45067efd67  /usr/libexec/aresos-level
+1572a902087e504384d96b6f9b1a8a4c1a316c57c0312953d86a7001ceabb69e  /usr/libexec/aresos-settings
+db9cbd091617048a145d249daa2b815fe7083be6ab66ac26626e21a4e01c3e82  /usr/share/fonts/aresos/Jersey10-Regular.ttf
+Jersey10-Regular.ttf: "Jersey 10" "Regular"
+indicator harness: evidence in .work/320/trial6, exit 0
