@@ -1,7 +1,6 @@
 """Package 320's nine checks against the shipped keys, programs and labwc."""
 from collections import Counter
 from contextlib import contextmanager
-import fcntl
 from functools import lru_cache
 import importlib.machinery
 import importlib.util
@@ -19,7 +18,7 @@ import traceback
 from PIL import Image, ImageChops
 
 sys.path[:0] = ['/harness', '/harness/os/tests']
-from level_sandbox import BACKLIGHT, LED
+from level_sandbox import BACKLIGHT, LED, read_device_state, write_device_state
 import pixels
 
 EV = Path('/evidence')
@@ -68,14 +67,12 @@ def until(predicate, description, timeout=4, interval=0.015):
 
 
 def state():
-    with STATE.open() as handle:
-        fcntl.flock(handle, fcntl.LOCK_SH)
-        return json.load(handle)
+    return read_device_state(STATE)
 
 
 def reset_devices(**changes):
     normal = dict(devices=[BACKLIGHT, LED], sink=dict(volume=0.62, mute=False), source=dict(volume=1.0, mute=False))
-    STATE.write_text(json.dumps(normal | changes))
+    write_device_state(STATE, normal | changes)
 
 
 def calls():
