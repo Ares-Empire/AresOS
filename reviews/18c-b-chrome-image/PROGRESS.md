@@ -16,13 +16,303 @@ Branch `pkg/18c-b-chrome`, one builder at a time. Each step is a fresh agent; th
   origin/main...HEAD`, and Repo privacy check passed. The package's added lines were checked for
   personal names after a `git grep -n` over its changed files. See Verified for the counts.
 - **Run, hosted.** Control run [44879115402](https://github.com/Ares-Empire/AresOS/actions/runs/44879115402)
-  timed out in runner tool setup on both attempts. The second Control dispatch is gated on a green first
-  run. **11 of 12 Control dispatches used**, with one failed-jobs rerun on the same ID.
+  timed out in runner tool setup on both attempts. That was the brief's eleventh dispatch, with one
+  failed-jobs rerun on the same ID. The twelfth dispatch and the lead's two follow-ups are below.
 - **Run, hosted.** The first checks_only run [44882775213](https://github.com/Ares-Empire/AresOS/actions/runs/44882775213)
   ran 2456 tests and failed on the merge issues below. The retry
   [44885414951](https://github.com/Ares-Empire/AresOS/actions/runs/44885414951) ran 2461 tests (4705)
   and passed with 23 skips (4707). The separate full ways-back model also passed (403 and 405).
 - **Run, scratch.** `find .work -type f -size +500000000c -print` produced no paths at close.
+
+### Labwc image check follow-up
+
+- **Run, [44888933298](https://github.com/Ares-Empire/AresOS/actions/runs/44888933298), attempt 1 on
+  `c2c0b1dd`.** Runner setup passed. The build installed Fedora's stock labwc (1626) and rebuilt it
+  with `SOURCE_DATE_EPOCH=1773532800` (2375). Both normalized and both loaded hashes matched
+  (2952–2955). `LABWC_INSTALLED` (2992) is emitted after the install-time `rpm -V labwc` passes.
+  The image committed at 3055–3058. After the subordinate IDs check (4698), the image still reported
+  the rebuilt NEVRA (4702–4703), but `rpm -V labwc` reported `..5......    /usr/bin/labwc`
+  (4704–4705) and the step exited 1 (4706). Neither VM started. This was dispatch 12 of the brief's
+  12. The lead authorized two separate follow-up dispatches for this fix.
+- **Read and run, source and comparison.** The labwc stage, lock, install wiring and the labwc
+  verification block were identical on `origin/main` at `15ec5b95` and the failed branch head. The
+  latest main workflow runs were regressions only. The latest package 42 run that built and checked
+  the image, [44590446680](https://github.com/Ares-Empire/AresOS/actions/runs/44590446680), installed
+  Fedora's original RPM (2329) and printed `IMAGE_CHECKS_PASSED` (4298). Its cut predated package 311.
+  The equivalent rebuilt-RPM check passed in the package 311 merge evidence
+  [44511434325](https://github.com/Ares-Empire/AresOS/actions/runs/44511434325) (4531–4534), and in
+  package 25's [44617007417](https://github.com/Ares-Empire/AresOS/actions/runs/44617007417)
+  (4531–4534). The comparable runs show no reproduction on the code merged to main. The current main
+  tip has no direct image-build result.
+- **Inferred cause.** The lower package layer carried Fedora's binary and the final layer carried the
+  swap and new RPM database. The pinned Fedora RPM has `/usr/bin/labwc` at 534800 bytes, mode 0755
+  and mtime 1773532800. The rebuilt RPM uses the same reproducible epoch, and package 311 documented
+  build-to-build variation in debug sections. The digest-only failure is consistent with Podman's
+  fallback layer diff omitting a byte change when file size and other metadata match. The red
+  transaction was 24 bytes larger in total (2984), compared with 40 bytes in package 311's green
+  run (2876). Those are package totals. The failed run did not retain the final binary or log the
+  storage differ it used, so the omitted-file mechanism is inferred from the source and logs.
+  [Podman 4.9.3 layer differ](https://github.com/containers/podman/blob/v4.9.3/vendor/github.com/containers/storage/pkg/archive/changes.go).
+- **Fix, `6d610587`.** `os/Containerfile` runs the pinned package install and the verified labwc
+  swap in one `RUN`. Fedora's labwc was absent from the pinned base and was installed in the packages
+  transaction (red run line 1626). With both installs in one layer, the diff adds the rebuilt file.
+  The stage still checks its package closure and `rpm -V labwc` inside the build, and the image check
+  still checks the committed image. The wiring test pins the shared `RUN`. The mod and Control source
+  stages still use the pinned base and the build commit.
+- **Run, local.** Ran `python3 -B -m unittest discover -s os/tests -p 'test_<module>.py'` one module at
+  a time with `TMPDIR` under `.work/18c-b-step6b/tmp`. `test_labwc_stage.py` gave
+  `Ran 126 tests in 11.671s` and `OK`. `test_aresos_desktop.py` gave
+  `Ran 189 tests in 203.696s` and `OK (skipped=1)`. `test_control_image.py` gave
+  `Ran 48 tests in 6.042s` and `OK`. The workflow's first-`FROM` check, `git diff --check` and
+  the Repo privacy check passed. The signed stock RPM matched its package-lock SHA-256. The header
+  read, `rpm -qp --nosignature --dump`, used a scratch RPM database and did not install it.
+
+### Follow-up Control runs
+
+These two dispatches are separate from the brief's 12. Both used the same head, `6d610587`.
+Run 2 was dispatched after the first watcher exited 0. Each dispatch used
+`gh workflow run os-image.yml -R Ares-Empire/AresOS --ref pkg/18c-b-chrome -f check_build=control`.
+Each background watcher used `gh run watch <id> -R Ares-Empire/AresOS --exit-status --interval 300`.
+The line numbers below are from `gh run view <id> -R Ares-Empire/AresOS --attempt 1 --log`.
+
+| Run | ID | Attempt | Job | Result |
+|---|---|---:|---:|---|
+| 1 | [44893168374](https://github.com/Ares-Empire/AresOS/actions/runs/44893168374) | 1 | 136813151121 | PASS (watch exit 0) |
+| 2 | [44900848938](https://github.com/Ares-Empire/AresOS/actions/runs/44900848938) | 1 | 136836224849 | PASS (watch exit 0) |
+
+| Image, checkout or disk marker | Run 1 line | Run 2 line |
+|---|---:|---:|
+| `CONTROL_GH_PAYLOAD_PASS` | 2948 | 2949 |
+| `CONTROL_GH_RPM_PASS` | 2949 | 2950 |
+| `CONTROL_GH_INSTALL_PASS` | 2950 | 2951 |
+| `CONTROL_GH_KEYRING_PASS` | 2951 | 2952 |
+| PASS Chrome polkit action and agent | 3251 | 3252 |
+| `CONTROL_GH_IMAGE_PASS` | 3712 | 3713 |
+| `CONTROL_CHROME_BUNDLE_PASS` | 4304 | 4305 |
+| `CONTROL_CHROME_KEY_SCAN_PASS` | 4305 | 4306 |
+| PASS signed Chrome bundle and links | 4310 | 4311 |
+| PASS labwc install and RPM verification | 4704 | 4705 |
+| PASS Control file, directory and vendor records | 4859 | 4860 |
+| PASS Claude Code managed files | 4866 | 4867 |
+| PASS only multi-user.target enables the Control service | 4873 | 4874 |
+| PASS boot system user and group | 4891 | 4892 |
+| PASS Control runtime and state directories | 4916 | 4917 |
+| PASS excluded-sites placeholder and unit write boundary | 4946 | 4947 |
+| PASS Control UID, home and allowed folders | 4949 | 4951 |
+| PASS installed launcher and isolation from system Python packages | 4958 | 4958 |
+| PASS image has no fixture CA or hosts | 4973 | 4974 |
+| `IMAGE_CHECKS_PASSED` | 4975 | 4976 |
+| `CONTROL_GH_CHECKOUT_PASS` | 4996 | 4997 |
+| `CONTROL_CHROME_CHECKOUT_PASS` | 4997 | 4998 |
+| `CONTROL_CHROME_BUILD_LOG_PASS` | 5001 | 5002 |
+| `CHECK_BUILD_CONTROL_DISK_READY` | 5709 | 5710 |
+
+The earlier VM column is from 44621559332 attempt 2. A dash marks a missing verdict.
+
+| VM marker or timing | Earlier 522c1113 line | Run 1 line | Run 2 line |
+|---|---:|---:|---:|
+| `CONTROL_IMAGE_FILES_PASS` | 4395 | 5717 | 5718 |
+| `CONTROL_ETC_CLAUDE_CODE_PASS` | 4397 | 5719 | 5720 |
+| `CONTROL_RELEASE_CHECKS_PASS` | 4399 | 5721 | 5722 |
+| `CONTROL_IDLE_FOOTPRINT_RECORDED` | 4401 | 5723 | 5724 |
+| `CONTROL_FIXTURES_REACHABLE` | 4403 | 5725 | 5726 |
+| `CONTROL_ENTRY_POINTS_PASS` | 4405 | 5727 | 5728 |
+| `CONTROL_PRECONDITION_PASS` | 4407 | 5729 | 5730 |
+| `CONTROL_USER_MCP_INSTALL_PASS` | 4409 | 5731 | 5732 |
+| `CONTROL_SERVICE_SANDBOX_PASS` | 4411 | 5733 | 5734 |
+| `CONTROL_ORDINARY_SESSION_PASS` | 4413 | 5735 | 5736 |
+| `CONTROL_MAIL_FLOWS_PASS` | 4415 | 5737 | 5738 |
+| `CONTROL_PERMISSION_REQUEST_RECORDED` | 4417 | 5739 | 5740 |
+| `CONTROL_INTERACTIVE_ASK_PASS` | 4418 | 5740 | 5741 |
+| `CONTROL_PASSWORDS_PRIVATE_PASS` | 4420 | 5742 | 5743 |
+| `CONTROL_SELINUX_AFTER_CHECKS_PASS` | 4422 | 5744 | 5745 |
+| `CONTROL_STORAGE_TESTS_PASS` | 4424 | 5746 | 5747 |
+| `CONTROL_SERVICE_RESTART_PASS` | 4426 | 5748 | 5749 |
+| `CONTROL_VM_POWEROFF_CLEAN` | 4428 | 5750 | 5751 |
+| Control VM timing | 4429 | 5751 | 5752 |
+| `CHECK_BUILD_CONTROL_PASSED` | 4430 | 5752 | 5753 |
+| `CONTROL_CHROME_POLKIT_PROBE_PASS` | 4441 | 5763 | 5764 |
+| `CONTROL_CHROME_FILES_PASS` | 4443 | 5765 | 5766 |
+| `CONTROL_CHROME_INSTALL_PASS` | 4447 | 5769 | 5770 |
+| `CONTROL_CHROME_SITES_FIRST_USE_PASS` | 4449 | 5771 | 5772 |
+| `CONTROL_CHROME_REBOOTED` | 4450 | 5772 | 5773 |
+| `CONTROL_CHROME_SITES_REBOOT_PASS` | 4452 | 5774 | 5775 |
+| `CONTROL_CHROME_NATIVE_HOST_PASS` | 4454 | 5776 | 5777 |
+| `CONTROL_CHROME_SITES_PASS` | 4456 | 5778 | 5779 |
+| `CONTROL_GH_PASS` | 4458 | 5780 | 5781 |
+| `CONTROL_CHROME_RECORDS_PASS` | 4460 | 5782 | 5783 |
+| `CONTROL_CHROME_UPDATE_PASS` | 4462 | 5784 | 5785 |
+| `CONTROL_CHROME_PACKAGE_FAULT_PASS` | 4464 | 5786 | 5787 |
+| `CONTROL_CHROME_NO_STORE_PASS` | 4466 | 5788 | 5789 |
+| `CONTROL_CHROME_POLKIT_PASS` | 4475 | 5797 | 5798 |
+| `CONTROL_CHROME_ASK_PASS` | 4477 | 5799 | 5800 |
+| `CONTROL_CHROME_SELINUX_PASS` | 4479 | 5801 | 5802 |
+| `CONTROL_CHROME_VM_POWEROFF_CLEAN` | 4480 | 5802 | 5803 |
+| Chrome VM timing | 4481 | 5803 | 5804 |
+| `CHECK_BUILD_CONTROL_CHROME_PASSED` | 4482 | 5804 | 5805 |
+
+| Run | 18c total / boot to channel / idle | 18c-b total / boot to channel / reboot to channel |
+|---|---|---|
+| 1 | 531.2 s / 46.4 s / 60.0 s | 383.0 s / 45.3 s / 30.9 s |
+| 2 | 624.1 s / 56.2 s / 59.4 s | 418.9 s / 49.5 s / 33.5 s |
+
+Exact per-step measurements in seconds follow.
+
+Run 1, Control VM timing
+
+```json
+{
+  "boot_to_channel": 46.4,
+  "control-files": 4.6,
+  "control-claude-code-files": 0.6,
+  "control-release": 1.1,
+  "control-idle": 60.0,
+  "control-fixtures": 0.2,
+  "control-entry-points": 3.6,
+  "control-precondition": 1.8,
+  "control-user-mcp": 11.9,
+  "control-service": 0.1,
+  "control-ordinary": 227.3,
+  "control-mail": 34.6,
+  "control-interactive": 108.0,
+  "control-passwords": 0.5,
+  "control-selinux": 0.0,
+  "control-storage-tests": 26.4,
+  "control-restart": 0.9,
+  "total": 531.2
+}
+```
+
+Run 1, Chrome VM timing
+
+```json
+{
+  "boot_to_channel": 45.3,
+  "chrome-session": 10.7,
+  "polkit-before": 0.1,
+  "chrome-polkit-start": 8.2,
+  "polkit-dialog": 0.0,
+  "keys": 1.0,
+  "chrome-polkit-finish": 0.0,
+  "chrome-files": 0.2,
+  "chrome-hand-loaded": 7.1,
+  "chrome-install": 1.7,
+  "c2-pinned": 0.0,
+  "chrome-his-tab": 4.4,
+  "c2-managed": 0.0,
+  "chrome-sites-first-use": 3.2,
+  "reboot_to_channel": 30.9,
+  "reboot": 33.4,
+  "chrome-sites-after-reboot": 21.3,
+  "chrome-host": 2.7,
+  "chrome-sites-later": 7.4,
+  "chrome-gh": 0.4,
+  "chrome-records": 0.4,
+  "chrome-update": 13.7,
+  "chrome-package-fault": 70.1,
+  "chrome-no-store": 16.8,
+  "chrome-edit-start": 3.6,
+  "edit-page-cancel": 14.4,
+  "chrome-edit-wait-cancel": 0.3,
+  "chrome-edit-cancelled": 0.3,
+  "edit-page-allow": 14.4,
+  "chrome-edit-wait-allow": 0.2,
+  "edit-password-allow": 5.2,
+  "chrome-edit-reset": 2.2,
+  "edit-page-again": 14.4,
+  "chrome-edit-wait-again": 0.3,
+  "chrome-edit-again-cancelled": 0.4,
+  "chrome-edit-finish": 0.0,
+  "chrome-ask-form": 65.3,
+  "chrome-selinux": 0.1,
+  "total": 383.0
+}
+```
+
+Run 2, Control VM timing
+
+```json
+{
+  "boot_to_channel": 56.2,
+  "control-files": 4.0,
+  "control-claude-code-files": 0.2,
+  "control-release": 1.3,
+  "control-idle": 59.4,
+  "control-fixtures": 0.2,
+  "control-entry-points": 5.1,
+  "control-precondition": 2.2,
+  "control-user-mcp": 12.9,
+  "control-service": 0.1,
+  "control-ordinary": 233.9,
+  "control-mail": 43.9,
+  "control-interactive": 127.2,
+  "control-passwords": 0.7,
+  "control-selinux": 0.1,
+  "control-storage-tests": 71.6,
+  "control-restart": 1.7,
+  "total": 624.1
+}
+```
+
+Run 2, Chrome VM timing
+
+```json
+{
+  "boot_to_channel": 49.5,
+  "chrome-session": 14.0,
+  "polkit-before": 0.2,
+  "chrome-polkit-start": 8.7,
+  "polkit-dialog": 0.1,
+  "keys": 1.0,
+  "chrome-polkit-finish": 0.1,
+  "chrome-files": 0.4,
+  "chrome-hand-loaded": 8.0,
+  "chrome-install": 2.1,
+  "c2-pinned": 0.0,
+  "chrome-his-tab": 4.4,
+  "c2-managed": 0.1,
+  "chrome-sites-first-use": 4.1,
+  "reboot_to_channel": 33.5,
+  "reboot": 37.2,
+  "chrome-sites-after-reboot": 22.6,
+  "chrome-host": 3.1,
+  "chrome-sites-later": 10.0,
+  "chrome-gh": 0.4,
+  "chrome-records": 0.4,
+  "chrome-update": 15.9,
+  "chrome-package-fault": 71.7,
+  "chrome-no-store": 18.7,
+  "chrome-edit-start": 3.3,
+  "edit-page-cancel": 14.5,
+  "chrome-edit-wait-cancel": 0.6,
+  "chrome-edit-cancelled": 0.3,
+  "edit-page-allow": 14.4,
+  "chrome-edit-wait-allow": 0.3,
+  "edit-password-allow": 5.2,
+  "chrome-edit-reset": 2.3,
+  "edit-page-again": 14.5,
+  "chrome-edit-wait-again": 0.4,
+  "chrome-edit-again-cancelled": 0.3,
+  "chrome-edit-finish": 0.4,
+  "chrome-ask-form": 75.2,
+  "chrome-selinux": 0.1,
+  "total": 418.9
+}
+```
+
+Run 1 did not reproduce the daily-profile reconnect timeouts from 44621559332 attempt 1.
+C4's two switches passed (5784), C5 reconnected after restoring the test bundle and after both
+installed-copy faults (5786), and C9 returned to the daily profile (5788). C7 and C8 completed
+(5797 and 5799). The fresh broken-package refusals in C5 were expected.
+
+Run 2 also passed C4 (5785), C5 (5787), C9 (5789), C7 (5798) and C8 (5800) without a
+daily-profile reconnect timeout. The Chrome VM logs of both runs contain no
+`CONTROL_CHECK_FAILED`, timeout or traceback from those cases.
+
+The builds log the shared package install and swap at 2787 and 2788 respectively. Both
+reproduced all four labwc hash pins (2776–2779 and 2777–2780), installed the rebuilt RPM
+(2974 and 2975), and passed final image RPM verification (4704 and 4705).
+`find .work -type f -size +500000000c -print` returned no paths at close.
 
 ### Merge and conflict resolutions
 
@@ -94,6 +384,10 @@ Branch `pkg/18c-b-chrome`, one builder at a time. Each step is a fresh agent; th
   `os/tests/test_owner_walk.py` enforces that argument list and passes it to the embedded checker.
   Both bound rehearsal paths are now on the pending list. `git diff b8b267e2..c5288fc2 -- os/` is
   five files, 23 insertions and 10 deletions.
+- For the follow-up `c2c0b1dd..6d610587`, read `os/Containerfile` and its wiring tests. The packages
+  stage now follows the labwc RPM stage so the stock install and the swap commit together. The
+  `os/labwc/stage.py` changes update its comments. The labwc NEVRA, hash pins and RPM verification
+  stay in effect. There is no pending binding change for these files.
 
 ## Step 6a (2026-11-20), rehearsal checks and closing text
 
@@ -315,58 +609,11 @@ printed `Ran 2461 tests in 1727.511s` (4705) and `OK (skipped=23)` (4707). The b
 checker-selection tests passed (4181 and 4235). The separate full ways-back model ran one test in
 1046.347 s (403) and passed (405).
 
-**Read, both Control attempt logs.** The image build gave no Chrome audit or Control disk verdict.
-Neither VM started, so the final-head PASS markers, VM timings and reconnect result are unavailable.
-The second Control dispatch stays unused. The `522c1113` receipts below are still from the earlier
-run 44621559332 attempt 2. A dash marks evidence that the final sequence did not produce.
-
-| VM marker or timing | 522c1113 | Final Control 1 | Final Control 2 |
-|---|---:|---|---|
-| `CONTROL_IMAGE_FILES_PASS` | 4395 | — | — |
-| `CONTROL_ETC_CLAUDE_CODE_PASS` | 4397 | — | — |
-| `CONTROL_RELEASE_CHECKS_PASS` | 4399 | — | — |
-| `CONTROL_IDLE_FOOTPRINT_RECORDED` | 4401 | — | — |
-| `CONTROL_FIXTURES_REACHABLE` | 4403 | — | — |
-| `CONTROL_ENTRY_POINTS_PASS` | 4405 | — | — |
-| `CONTROL_PRECONDITION_PASS` | 4407 | — | — |
-| `CONTROL_USER_MCP_INSTALL_PASS` | 4409 | — | — |
-| `CONTROL_SERVICE_SANDBOX_PASS` | 4411 | — | — |
-| `CONTROL_ORDINARY_SESSION_PASS` | 4413 | — | — |
-| `CONTROL_MAIL_FLOWS_PASS` | 4415 | — | — |
-| `CONTROL_PERMISSION_REQUEST_RECORDED` | 4417 | — | — |
-| `CONTROL_INTERACTIVE_ASK_PASS` | 4418 | — | — |
-| `CONTROL_PASSWORDS_PRIVATE_PASS` | 4420 | — | — |
-| `CONTROL_SELINUX_AFTER_CHECKS_PASS` | 4422 | — | — |
-| `CONTROL_STORAGE_TESTS_PASS` | 4424 | — | — |
-| `CONTROL_SERVICE_RESTART_PASS` | 4426 | — | — |
-| `CONTROL_VM_POWEROFF_CLEAN` | 4428 | — | — |
-| Control VM timing | 4429 | — | — |
-| `CHECK_BUILD_CONTROL_PASSED` | 4430 | — | — |
-| `CONTROL_CHROME_POLKIT_PROBE_PASS` | 4441 | — | — |
-| `CONTROL_CHROME_FILES_PASS` | 4443 | — | — |
-| `CONTROL_CHROME_INSTALL_PASS` | 4447 | — | — |
-| `CONTROL_CHROME_SITES_FIRST_USE_PASS` | 4449 | — | — |
-| `CONTROL_CHROME_REBOOTED` | 4450 | — | — |
-| `CONTROL_CHROME_SITES_REBOOT_PASS` | 4452 | — | — |
-| `CONTROL_CHROME_NATIVE_HOST_PASS` | 4454 | — | — |
-| `CONTROL_CHROME_SITES_PASS` | 4456 | — | — |
-| `CONTROL_GH_PASS` | 4458 | — | — |
-| `CONTROL_CHROME_RECORDS_PASS` | 4460 | — | — |
-| `CONTROL_CHROME_UPDATE_PASS` | 4462 | — | — |
-| `CONTROL_CHROME_PACKAGE_FAULT_PASS` | 4464 | — | — |
-| `CONTROL_CHROME_NO_STORE_PASS` | 4466 | — | — |
-| `CONTROL_CHROME_POLKIT_PASS` | 4475 | — | — |
-| `CONTROL_CHROME_ASK_PASS` | 4477 | — | — |
-| `CONTROL_CHROME_SELINUX_PASS` | 4479 | — | — |
-| `CONTROL_CHROME_VM_POWEROFF_CLEAN` | 4480 | — | — |
-| Chrome VM timing | 4481 | — | — |
-| `CHECK_BUILD_CONTROL_CHROME_PASSED` | 4482 | — | — |
+**Run, final code head `6d610587`.** See [Step 6b](#follow-up-control-runs) for the hosted
+verdicts, full-log PASS lines, VM timings and daily-profile reconnect result.
 
 ### Not verified
 
-- **Run, 44879115402 attempts 1 and 2, lines 443 and 445.** Final-head Control VM results are blocked
-  by runner tool setup. The daily-profile reconnect and the compatible release-check subset need the
-  two final greens. The earlier successful runs remain recorded above.
 - **Read, `os/ci/control/chrome_actions.py` at `522c1113`.** A real deployment switch with Chrome open,
   followed by an update and rollback rehearsal of the probe-free image and the three hashes, still needs
   evidence. C4 restarts Chrome around a guest bind mount.
@@ -376,8 +623,8 @@ run 44621559332 attempt 2. A dash marks evidence that the final sequence did not
 - **Read, CROSS-5 at `30ff4401`.** Profile continuity with the real 28b handshake and store awaits the
   combined proof. Steps 4 and 5 exercised the package and connection with the existing service.
 - **Read, `os/ci/control/actions.py` and `release_checks.py` at `dbeaff72`.** 6a's test root is synthetic.
-  The probe-free deployment view and the actual image's OpenSSL and executable are rehearsal evidence, with
-  the compatible subset still awaiting the final Control guests.
+  The strict checks on an actual probe-free deployment belong to the release rehearsal. The compatible
+  subset ran in the Control guest using the image's OpenSSL and executable (run 1 line 5721).
 
 ### JUDGMENT-CALLs
 
@@ -540,8 +787,6 @@ run 44621559332 attempt 2. A dash marks evidence that the final sequence did not
 
 ### Open questions
 
-- **Assumed.** Will the two final merged-head runs stay green, including the daily-profile reconnect and
-  the new checks with image OpenSSL? Tool setup blocked both attempts at the first final run.
 - **Assumed.** Which rollback source will linux-aresos use to prove the three-list-hash check and the
   browser-side install records, and when will the lead schedule the 28b combined image proof?
 - **Assumed.** At the live sitting, can the owner see the full C8 question in his terminal, and does his
