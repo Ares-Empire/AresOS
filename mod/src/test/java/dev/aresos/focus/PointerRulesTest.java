@@ -21,6 +21,17 @@ class PointerRulesTest {
         assertEquals(ENTER_WORLD, PointerRules.click(true, false, false));
     }
 
+    @Test void aDesktopWorldTakesTheMouseOnlyWithTheFocusAndThePointerOnIt() {
+        for (int bits = 0; bits < 8; bits++) {
+            boolean desktop = (bits & 1) != 0, focused = (bits & 2) != 0, over = (bits & 4) != 0;
+            // Outside a connected desktop world Minecraft decides alone; inside it both must hold (package 328a).
+            assertEquals(!desktop || focused && over, PointerRules.mayCapture(desktop, focused, over),
+                    "desktop/focused/over bits: " + bits);
+        }
+        assertFalse(PointerRules.mayCapture(true, true, false), "the pointer rests on an app: Xwayland only confines it");
+        assertFalse(PointerRules.mayCapture(true, false, true), "an app has the keyboard: labwc grants no lock");
+    }
+
     @Test void theHitBoxesFollowAllNineSlotsAtDifferentGuiScales() {
         for (int width : new int[]{320, 427, 640, 1280}) for (int height : new int[]{240, 360, 720}) {
             int left = width / 2 - 90;

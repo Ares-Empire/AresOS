@@ -5,7 +5,7 @@
 
 Every scenario first brings the probe (the test app) to the front with a click on it, as the owner clicks Chrome.
   click     a click on the world beside the probe (the owner's report)
-  alttab    Alt+Tab back to the world while the pointer rests on the probe
+  alttab    the world activated (Alt+Tab's result) while the pointer rests on the probe
   super     Super (the helper's SIGUSR1) while the pointer rests on the probe, then Esc closes the search
   menu      a click on the world, Esc for the menu, the pointer onto the probe, Esc again to close the menu
 Then: 40 small relative moves (MOVES=<n> changes the number) that would carry the hidden pointer across the probe, a left click and a scroll.
@@ -66,15 +66,21 @@ def turned(before, after):
     return sum(1 for v in diff.get_flattened_data() if v) / (1280 * 720 - 640 * 400 - 1280 * 160)
 
 
+locked = False
+
+
+def follow(lines):
+    """Whether Xwayland holds a lock that labwc granted, from the trace lines so far: the world holds the mouse."""
+    global locked
+    for line in lines:
+        if 'zwp_locked_pointer_v1' in line and line.endswith('.locked()'):
+            locked = True
+        elif 'zwp_locked_pointer_v1' in line and (line.endswith('.unlocked()') or line.endswith('.destroy()')):
+            locked = False
+
+
 def grabbed():
-    """Whether the world holds the mouse: then no cursor is drawn anywhere (grim -c and grim give the same picture).
-    (A probe grab of the X pointer is no test: it reported a grab while the game's cursor was normal.)"""
-    pictures = []
-    for cursor in (['-c'], []):
-        path = os.path.join(rig, 'cursor.png')
-        subprocess.run([os.path.join(here, 'in-rig.sh'), rig, 'shot', '/usr/bin/grim', *cursor, path], check=True)
-        pictures.append(Image.open(path).convert('RGB'))
-    return ImageChops.difference(*pictures).getbbox() is None
+    return locked
 
 
 log = os.path.join(rig, 'labwc.log')
@@ -93,12 +99,15 @@ def trace():
 
 def show_trace(title):
     lines = trace()
+    follow(lines)
     say(f'{title}: Xwayland trace ({len(lines)} lines)')
     for line in lines[:24]:
         print('          ' + line)
 
 
-# The probe in front, as the owner's click on Chrome puts it there.
+# The probe in front, as the owner's click on Chrome puts it there. It takes the focus first: while the world holds
+# the mouse the cursor stays where the world was clicked, and a click would land there.
+tool('activate', 'aresos.pkg328.probe')
 vin('abs', 640, 360)
 vin('click', 'left')
 vin('sleep', 0.5)
@@ -109,9 +118,8 @@ if scenario in ('click', 'menu'):
     vin('abs', 100, 100)
     vin('click', 'left')
 elif scenario == 'alttab':
-    vin('key', 'lalt', 'down')
-    vin('key', 'tab')
-    vin('key', 'lalt', 'up')
+    # What labwc's Alt+Tab does in the end (the virtual keyboard's Alt+Tab went through its window switcher late).
+    tool('activate', 'aresos-desktop')
 elif scenario == 'super':
     subprocess.run([os.path.join(here, 'super.sh'), rig], check=True)
 vin('sleep', 1.0)

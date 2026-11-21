@@ -150,5 +150,7 @@ public final class HomeScreen {
         appInFront = false;
         covered = false;
         HomePointer.reset();
+        // Callback-driven tests have no real pointer over the window: they stand for one that is (package 328a).
+        WorldCapture.forTests(session == null && active == null ? null : Boolean.TRUE, false);
     }
 }

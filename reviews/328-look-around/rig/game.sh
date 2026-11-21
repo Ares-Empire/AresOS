@@ -49,6 +49,8 @@ for _ in $(seq 360); do
     sleep 5
 done
 echo "starting: $((kib / 1024)) MiB available" >&2
+# The game maps on the output under the pointer: the left one, where the probe and trial.py expect it.
+/usr/bin/python3 -I "$here/vinput.py" "$RIG" abs 640 360 >/dev/null
 # run-hub.sh starts the helper with --socket in its private folder and the game with the same launch identity.
 "$WT/mod/dev/run-hub.sh" --helper "$RIG/helper" --registry "$RIG/registry" "$@" &
 echo "RUNHUB_PID=$!" >>"$RIG/env"
