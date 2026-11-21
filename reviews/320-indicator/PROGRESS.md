@@ -275,3 +275,32 @@ were fixtures written to a scratch home inside the container.
   or hearts clearance, or feel of holding the keys. Those remain the lead's checks with the owner. R29 still gates
   the image library check. No workflow was dispatched in this step. No file over 500 MB remained under `.work/`.
 - **Open questions.** No placement decision arose. The lead still coordinates R29, the image check and the real laptop pass.
+
+## REVIEW-1 fixes
+
+1. `2d09774c` exports `aresos.Indicator.Show` in `do_dbus_register` before the name is acquired. The new
+   `test_show_is_callable_before_the_startup_handler` sent a second request on a private bus during real
+   GApplication startup. It passed with the fix and returned `UnknownMethod` with the pre-fix indicator.
+2. `41445100` uses monotonic uptime for the five-second ownership deadline, caps each probe to the time left,
+   and ends and waits for a late child under the launch lock. The level module's timeout and serialized retry
+   tests passed, as did harness test 9.
+3. `2d09774c` logs each indicator process at entry. Harness test 9 counted one entry for the cold pair and one
+   for the cold hold. For the delayed launch, a sole blocking waiter acquired the launch lock after 5.176 s
+   and found the child already reaped. The harness checks for handoff between 5.0 and 5.5 s after the key press.
+4. `11eea916` makes the `wpctl` fixture publish the first blocked read's PID. The level test waits for that
+   read to sleep and verifies the second key changed the volume while the same read was still pending.
+
+The timed-out read is recorded in [KNOWN-LIMITS.md](KNOWN-LIMITS.md). The lead's real laptop checks with the
+owner are still pending.
+
+- `python3 -m unittest discover -s os/tests -p '<module>' -v`, run separately without `-B` in disposable
+  rootless containers, reported 24 indicator, 25 level and 20 settings tests, all OK. The level module used the
+  clients image without the layer library so all 25 ran. No `__pycache__` directories were left under `os/config`.
+- `os/tests/indicator-harness/run.sh run .work/320/review-1/harness` and the repeat run with `confirmation` as
+  the evidence folder both exited 0 with 25 isolation checks and 51 checks across nine tests. The private D-Bus
+  check passed both times. The confirmation measured lock handoff at 5.175 s. Both runs reused the existing
+  rootless test image, one container at a time.
+- `bash -n os/config/usr/libexec/aresos-level` and `git diff --cached --check` passed. No file over 500 MB remained
+  under `.work/`.
+- Before pushing, every staged file version in the four commits was compared by SHA-256 against the private
+  digest list. Eight text files were compared, with zero matches.
