@@ -16,6 +16,7 @@ Board brief 328. From the owner's first try-out of R28 (2026-11-21; `docs/HUB-HA
 2. **Afterwards, while the world steers the camera,** no click, scroll or pointer motion reaches another window, wherever the apps stand. When the world lets go (Esc, an app taking focus, Super), the pointer is a normal pointer again.
 3. **The fix stays inside the mod and the preview's test rig.** If the real fix needs `os/` (labwc rules or the compositor), stop, describe the change, and leave it to `linux-desktop`.
    - **Running the game natively on Wayland** instead of Xwayland is out of scope. Say in the report whether it would fix the bug and what else it would change.
+4. **Also check his finding 5** in the same rig: a click on the world beside a part-screen app hid the app. Does the helper's covered-minimize (`os/config/usr/libexec/aresos-shell`, "minimized %d window(s) that covered it") fire for a part-screen window, or does labwc raise the world despite its ToggleAlwaysOnBottom rule? Write which, with the exact condition, in `PROGRESS.md`. Don't fix it here: it's `os/`, and the hub and `linux-desktop` act on your answer. The owner's decision is that the world stays below and a part-screen app stays visible.
 
 ### 328b: prototype A, "click to look"
 
@@ -47,7 +48,7 @@ Board brief 328. From the owner's first try-out of R28 (2026-11-21; `docs/HUB-HA
   - 328b: a click on open world starts look mode without breaking anything; stillness ends it; the cursor then reaches the second output.
   - 328c: a cursor at the left edge turns the view left; at the edge beside the second output it doesn't turn and the cursor crosses.
   - `classic`: today's tests still pass unchanged.
-- **The builds:** `mod/dev/build.sh` twice and `mod/dev/client-test.sh` once per step that changes code. Put other packages' pictures back as before.
+- **The builds:** in every step that changes code, two full passes of build and client tests through the dev scripts, as `AGENTS.md` requires. Add new client tests at the end of the list so the screenshot numbering stays. Put other packages' pictures back as before.
 
 ## Rules
 
