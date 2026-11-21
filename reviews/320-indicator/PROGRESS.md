@@ -81,7 +81,7 @@ was removed and the rerun confirmed there was no `__pycache__` under `os/config`
    REVIEW-1's four findings are resolved (REVIEW-1-RECHECK.md, REVIEW-1-RECHECK-2.md SAFE).
 2. **Done (2026-11-21).** R29's image package (B323, PR135, main `6fe289e4`) brought gtk4-layer-shell. The branch
    was rebased onto it with no conflict and B320's diff unchanged, and the unit tests passed again. Check build
-   44922397439 (`check_build=build`) ran on `36064a9e`.
+   44922397439 (`check_build=build`) was green on `36064a9e`; merged 2026-11-21.
 3. **After merge.** The indicator rides R29 to the laptop. After the owner installs it, check on the real laptop:
    the game's GUI scale beside the plate, the three sizes, the bottom clearance, the real device names,
    brightness on the laptop's own screen, and how a held key's repeat feels.
