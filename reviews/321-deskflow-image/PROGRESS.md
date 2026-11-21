@@ -267,8 +267,9 @@ applied; the file names must sort that way), and a `.patch` file in the folder t
 the build. The spec gets one `Patch<n>:` line each. `os/tests/test_labwc_stage.py`: 131 tests (126 before).
 
 **The release tag moved: `aresos1` to `aresos2`** (`labwc-0.9.6-1.fc44.aresos2.x86_64`). One tag names one set of
-patches: R29 ships `aresos1` to the laptop with 311's patch alone, and `rpm -q labwc` there must tell which labwc
-runs. The image check, the stage and R29's release rule all compare the NEVRA, so a second build under the old tag
+patches: `aresos1` (311's patch alone) is on main today, and `rpm -q labwc` must tell which labwc runs. (Release
+plan, 2026-11-21: this package rides R29 and gates its cut, so R29 ships `aresos2` and the laptop goes from R28's
+Fedora labwc straight to `aresos2`; `aresos1` never reaches the laptop.) The image check, the stage and R29's release rule all compare the NEVRA, so a second build under the old tag
 would pass checks written for the first. Fedora's package notes put the NEVRA into both binaries
 (`.note.package`), so `labnag`'s pins changed too although its code did not (checked against `aresos1`'s
 `labnag`: only `.note.package` and `.note.gnu.build-id` differ, every other section is the same bytes;
@@ -360,8 +361,8 @@ During a capture Ctrl+Alt+Escape is forwarded like every key; the way out is lab
 - **The marks are only in the harness's `rc.xml`.** The image's `rc.xml` gets its two bindings' marks in step 3
   (`linux-aresos`'s file); until then the image's labwc would gate everything, the recovery terminal included.
   Step 3's image check should require exactly those two marks.
-- **For the release rule (`linux-aresos`):** R29's rule for 311 compares the NEVRA `aresos1`, the pins and "every
-  other file byte-exact". The next release needs `aresos2` and the pins above; the file list (64 paths) and every
+- **For the release rule (`linux-aresos`):** R29's rule for 311 compared the NEVRA `aresos1`, the pins and "every
+  other file byte-exact". R29 carries this package, so its rule takes `aresos2` and the pins above; the file list (64 paths) and every
   file but `/usr/bin/labwc`, `/usr/bin/labnag` and the two `.build-id` links are unchanged by this patch.
 - **`os/Containerfile`'s comment on the labwc stage still says "one upstream fix".** The file is `linux-aresos`'s
   and the stage needs no new line, so it was not touched ("For linux-aresos").
@@ -448,7 +449,7 @@ Not touched in step 1c: `os/Containerfile` (the stage copies the whole `labwc/` 
 new line; its comment above the stage still says "one upstream fix" and should name both patches when the file is
 next changed), `os/ci/vm.py`, `os/packages.lock.json`, the image's `rc.xml`. **For `linux-aresos`'s release rule:** the
 lock's shape changed (`patch` to `patches`) and the NEVRA and pins moved; a rule written for `aresos1` must be
-re-aimed for the release that carries this package. R29 itself is not affected: it builds from `main`.
+re-aimed at `aresos2`: R29 carries this package (release plan, 2026-11-21) and gates its cut.
 
 ## For linux-hub
 
@@ -469,7 +470,8 @@ re-aimed for the release that carries this package. R29 itself is not affected: 
 
 What the image gains or changes through this package, for `linux-aresos`'s release notes and checks.
 
-- **labwc (step 1c):** the RPM is `labwc-0.9.6-1.fc44.aresos2.x86_64` (R29: `aresos1`), built with a second patch.
+- **labwc (step 1c):** the RPM is `labwc-0.9.6-1.fc44.aresos2.x86_64` (R28 has Fedora's `labwc-0.9.6-1.fc44`; `aresos1` is
+  on main only and never ships), built with both patches.
   Changed files: `/usr/bin/labwc` (the patch; pins in step 1c above), `/usr/bin/labnag` (only the NEVRA in its
   `.note.package`), and so the two `.build-id` links. Same 64 paths; every other file is Fedora's, byte for byte.
   New behaviour: bindings are off while the input portal's capture surface holds the keyboard, except keybinds
