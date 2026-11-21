@@ -37,7 +37,15 @@ Written Fri 2026-11-20 13:50 by `linux-hub` (Claude Opus 5.5), before a clear at
   - Before `linux-aresos` publishes it (standing OK, board #388), it still needs the jar pin, the last dry run, the VM rehearsal and the final review. Installing it (`at update`) is the owner's own step.
   - The hub waits for `linux-aresos` to say R28 is on the laptop.
 - **B318 merged** (PR126, `4105952a`, Fri 2026-11-20): why 49's frozen games died on thaw, the first item of T364. STATE.md has the line.
-  - **Next for T364:** once R28 runs the home on the laptop, read the running game read-only: the log's "OpenAL initialized on device" line, its loaded audio libraries (`/proc/<pid>/maps`) and its realtime threads. That tells which backend the product uses.
+  - **T364's audio question, answered on the laptop** (Sat 2026-11-21 18:08, R28 `aa97b2d5`, the first SETUP start, read-only): the product uses **OpenAL Soft's PipeWire backend**.
+    - The game log says `OpenAL initialized on device Built-in Audio Analog Stereo`. `/proc/<pid>/maps` holds `libpipewire-0.3` with PipeWire memfds; `libpulse` is loaded too, but nothing of it is in use.
+    - **All 80 game threads are SCHED_OTHER** (`PWEventThread`, `ALSoftP0` and `Sound engine` included). The game's `RLIMIT_RTPRIO` is 0 and its `RLIMIT_RTTIME` is 200 ms.
+    - So the thaw kill from B318 can't happen in the real session. It needs a realtime mixer thread, which only OpenAL Soft's own-thread backends make (null, which the rigs used, and ALSA, the fallback when neither PipeWire nor PulseAudio answers).
+    - The supervisor's demotion stays in the sleeping-world design as a cheap safety net for that fallback, not as a fix the product needs now.
+  - **A memory lead from the same start** (`linux-aresos`'s 23d check, 18:09):
+    - The game scope's anon is about 1019 MiB (`memory.high` 2560 MiB, no `high` events). Prism's scope holds about **418 MiB of anon while the game runs**.
+    - The supervisor writes `CloseAfterLaunch=false` (since package 23), and the game's wrapper runs as Prism's child. Prism's "close after launch" probably only closes windows, so the memory study should check whether Prism can leave, or be replaced for the launch, without losing the wrapper.
+  - **First-start findings that belong to others:** the Microsoft sign-in's browser route has no `prismlauncher://` handler, so the owner used the device code after a retry (`linux-aresos`, T474, R29). The windows still wear Ares-Crown, not the Minecraft look (`linux-desktop`, after B320).
   - **Then:** the swap side (`linux-aresos`) and prefetch on wake, in the sleeping-world study. The supervisor's demotion goes into that design.
   - **The rig** stays in `~/AresOS-318-thaw-watchdog` (`.work/pkg318` holds its base world). Before reusing it, fix the two Known limits in `reviews/318-thaw-watchdog/FINDINGS.md`.
 - `~/AresOS-try` is `hub-try`'s checkout: leave it alone, because `hub-try --update` moves it.
