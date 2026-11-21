@@ -4,7 +4,7 @@
   stage.py fetch <lock folder> <inputs>             labwc-inputs stage: download every input and check it
   stage.py build <lock folder> <inputs> <out>       labwc stage, on the locked fedora:44: the RPM and nothing else,
                                                     once its binaries match the lock's normalized and loaded pins
-  stage.py install <rpm folder> <lock folder>       final stage: our RPM replaces Fedora's labwc
+  stage.py install <rpm folder> <lock folder>       packages stage: our RPM replaces Fedora's labwc
   stage.py resolve <lock folder> <resolved> <out>   check_build=resolve: a candidate from resolve-download.sh's folder
 
 fedora:44 has no Python, so the pinned AresOS base fetches the inputs and install-inputs.sh installs them before
@@ -406,7 +406,7 @@ def install(rpm_folder, lock_folder):
     verify = subprocess.run(['rpm', '-V', 'labwc'], capture_output=True, text=True)
     if verify.returncode != 0 or verify.stdout.strip():
         raise Refusal(f'rpm -V labwc is not clean: {verify.stdout.strip() or verify.stderr.strip()}')
-    # The packages stage listed Fedora's labwc here; the list must name what the image really holds.
+    # The initial packages install listed Fedora's labwc here. Record the result of the swap.
     (MANIFEST / 'packages.txt').write_text('\n'.join(sorted(after)) + '\n')
     shutil.copyfile(lock_folder / LOCK_NAME, MANIFEST / LOCK_NAME)
     print(f'LABWC_INSTALLED {nevra} replaces {fedora}')
