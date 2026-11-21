@@ -48,7 +48,6 @@
       "dev.aresos.test.HomePublishClientGameTest",
       "dev.aresos.test.FreePointerClientGameTest",
       "dev.aresos.test.WorldSearchClientGameTest",
-      "dev.aresos.test.WorldSearchClientGameTest",
       "dev.aresos.test.HomeTryoutClientGameTest",
       "dev.aresos.test.WorldKeepsPointerClientGameTest"
     ]
