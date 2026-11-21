@@ -69,8 +69,9 @@ was removed and the rerun confirmed there was no `__pycache__` under `os/config`
 - A private `dbus-run-session` smoke check with a stand-in GUI and real Gio showed `Show` returning `()`, a second
   instance yielding to the primary, and `NameHasOwner` returning `(false,)` after the shortened idle deadline.
 - No file over 500 MB remained under `.work/`.
-- Hosted check build (`gh workflow run os-image.yml --ref pkg/320-indicator -f check_build=build`): dispatch pending the
-  first step 2 push. The image loader gate requires R29's layer library.
+- Hosted check build (`gh workflow run os-image.yml --ref pkg/320-indicator -f check_build=build`) dispatched once
+  for `25533a6e`. Run [44895737105](https://github.com/Ares-Empire/AresOS/actions/runs/44895737105) was handed
+  over without waiting for a result. The image loader gate requires R29's layer library.
 
 ## Left, in order
 
@@ -193,4 +194,6 @@ The lead sends this list to `linux-aresos` before merge.
   list: no match. Every file in the push is text written in this step; no binary is staged.
 - Step 2, before its first push, compared 28 staged files by SHA-256. No matches. The 17 PNGs are generated from the
   public Look A study and the TTF matches the pinned Google Fonts download. The check read the digest field only
-  and kept its comparison in memory.
+  and kept its comparison in memory. The first push attempt hit the Git email privacy hook. The three local commits
+  were re-authored with a GitHub noreply address and all 28 file versions were checked again before retrying.
+- Step 2, before pushing the run ID, compared the one staged file (`PROGRESS.md`) by SHA-256. No match.
