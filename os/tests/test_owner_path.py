@@ -915,7 +915,8 @@ class OwnerPathTest(unittest.TestCase):
         self.assertIn('**R27 (on the laptop):** `' + laptop + '`', text)
         self.assertIn('**R28 (published):** `' + current + '`', text)
         announced, = [line for line in text.splitlines() if line.startswith('- **R28 ')]
-        self.assertTrue(announced.endswith('The VM rehearsal and laptop update are pending.'))
+        self.assertTrue(announced.endswith('Published privately and rehearsed in the VM on 2026-11-21 (signed-update row below). '
+                                           'The laptop update is pending.'))
         self.assertIn('**R13 (previous):** `' + previous + '`', text)
         rows = [[v.strip() for v in line.strip('|').split('|')]
                 for line in section(text, 'current-gates').splitlines() if line.startswith('| ')]
