@@ -165,6 +165,30 @@ class Add(unittest.TestCase):
         self.assertIn('replacing', outcome)
         self.assertEqual(self.rows(), [row])
 
+    def test_newer_same_build_shipment_matches_the_current_manifest_in_either_order(self):
+        older = self.repo.commit(1)
+        newer = self.repo.commit(1, extra={'README.md': 'outside control/\n'})
+        build = self.repo.expected(newer)
+        self.assertEqual(self.repo.expected(older), build)
+        root = self.repo.path
+        registry = root / record_build.REGISTRY
+        release = root / record_build.RELEASE
+        release.parent.mkdir(parents=True)
+        release.write_text(json.dumps({'source_commit': newer,
+                                        'control': {'source_revision': newer, 'chrome_build': build}}))
+        latest = {'commit': newer, 'build': build, 'shipped_at': T[1]}
+        for order in ([(older, T[0]), (newer, T[1])], [(newer, T[1]), (older, T[0])]):
+            with self.subTest(first=order[0][1]):
+                registry.write_text('{"format":1,"builds":[]}\n')
+                for commit, shipped_at in order:
+                    row, _ = record_build.add(commit, shipped_at, repo=root)
+                self.assertEqual(record_build.check(root)[0], [])
+                self.assertEqual(row, latest)
+                self.assertEqual(record_build.load(registry)['builds'], [latest])
+        before = registry.read_bytes()
+        self.assertEqual(record_build.add(older, T[1], repo=root)[0], latest)
+        self.assertEqual(registry.read_bytes(), before)
+
     def test_bad_input_is_refused_before_anything_is_written(self):
         first = self.repo.commit(1)
         before = self.registry.read_bytes()

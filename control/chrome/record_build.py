@@ -136,7 +136,7 @@ def commit_hash(repo, commit):
 
 def add(commit, shipped_at, expect=None, registry_path=None, repo=ROOT):
     registry_path = Path(registry_path or Path(repo) / REGISTRY)
-    shipped_time(shipped_at)
+    candidate_time = shipped_time(shipped_at)
     if expect is not None and not BUILD.fullmatch(expect):
         raise Refused('--expect must be a 64-hex build hash: ' + repr(expect))
     registry = validate(load(registry_path))
@@ -149,15 +149,17 @@ def add(commit, shipped_at, expect=None, registry_path=None, repo=ROOT):
             if held['build'] != build:
                 raise Refused(f'builds.json records {commit} as {held["build"]}, but it hashes to {build}')
             return held, 'already recorded; builds.json unchanged'
-    # The planner refuses a build named twice. A later commit with the same runtime inputs
-    # (a release that changed nothing under control/) takes over that build's row.
-    rows = [held for held in registry['builds'] if held['build'] != build]
-    replaced = len(rows) != len(registry['builds'])
-    kept = newest(rows + [row])[:KEEP]
+    # The planner refuses a build named twice. Only a more recent shipment with
+    # the same runtime inputs may take over the row for that build.
+    rows = registry['builds']
+    previous = next((held for held in rows if held['build'] == build), None)
+    if previous is not None and shipped_time(previous['shipped_at']) >= candidate_time:
+        return previous, 'same build already has an equally recent or newer shipment; builds.json unchanged'
+    kept = newest([held for held in rows if held is not previous] + [row])[:KEEP]
     if row not in kept:
         raise Refused(f'{shipped_at} is older than the {KEEP} newest recorded builds; it would be pruned at once')
     write(registry_path, {'format': 1, 'builds': kept})
-    return row, 'recorded' + (', replacing the row of an earlier commit with the same build' if replaced else '')
+    return row, 'recorded' + (', replacing the row of an earlier commit with the same build' if previous else '')
 
 
 def check(root=ROOT):
