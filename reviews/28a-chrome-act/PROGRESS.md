@@ -69,10 +69,20 @@ Each mutation failed the named test's assertions. No mutation is in the branch.
   and reason are in [KNOWN-LIMITS.md](KNOWN-LIMITS.md). No claim that an empty report proves there is no loss.
 - Browser timing (in particular group 16 and the latency gate) is only verified by the lead's hosted run.
 
+### Dispatched once on `815af6cc`
+
+| Workflow | Run ID |
+|---|---:|
+| `control-chrome.yml` | 44882899442 |
+| `control-chrome-qualification.yml` | 44882916139 |
+| `control-base.yml` | 44882932291 |
+| `control-mail.yml` | 44882941123 |
+| `repo-privacy.yml` | 44882947439 |
+| `control-boundary.yml` | 44882956573 |
+
 ### Left
 
 - The lead's hosted CI pass and final package and security look. No workflow was watched in this round.
-- Fix-round dispatch IDs to record after the report head is pushed.
 
 ## Step 4
 
