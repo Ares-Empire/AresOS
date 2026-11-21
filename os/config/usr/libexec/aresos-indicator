@@ -1,0 +1,448 @@
+#!/usr/bin/python3
+"""Passive brightness and sound plate, started and notified by aresos-level."""
+from concurrent.futures import ThreadPoolExecutor
+import json
+import os
+from pathlib import Path
+import re
+import runpy
+import subprocess
+import sys
+from types import SimpleNamespace
+
+NAME = 'aresos.indicator'
+OBJECT = '/aresos/indicator'
+NAMESPACE = 'aresos-indicator'
+SETTINGS = '/usr/libexec/aresos-settings'
+PACK = Path('/usr/share/aresos/look')
+PW_DUMP = '/usr/bin/pw-dump'
+SCALES = {'small': 2, 'medium': 3, 'large': 4}
+BRIGHTNESS = ('brightness-up', 'brightness-down')
+VOLUME = ('volume-up', 'volume-down', 'mute', 'show-volume')
+STEPS = 20
+STEP_PERCENT = 5
+SHOW_MS, FLASH_MS, IDLE_MS = 1500, 150, 60000
+INTERFACE = """<node><interface name="aresos.Indicator">
+  <method name="Show">
+    <arg name="sequence" type="t" direction="in"/>
+    <arg name="action" type="s" direction="in"/>
+    <arg name="reading" type="s" direction="in"/>
+  </method>
+</interface></node>"""
+
+
+def log(message):
+    print(f'aresos-indicator: {message}', file=sys.stderr, flush=True)
+
+
+def load_gui():
+    # The launcher preloads the layer library before libwayland-client.
+    os.environ.update(GDK_DISABLE='gl,vulkan', GSK_RENDERER='cairo')
+    import gi
+
+    for namespace, version in (('Gtk4LayerShell', '1.0'), ('Gtk', '4.0'), ('Gdk', '4.0'), ('GdkWayland', '4.0'),
+                               ('Pango', '1.0'), ('PangoCairo', '1.0')):
+        gi.require_version(namespace, version)
+    from gi.repository import Gtk4LayerShell as layer
+    from gi.repository import Gdk, GdkWayland, Gio, GLib, Gtk, Pango, PangoCairo
+    import cairo
+
+    return SimpleNamespace(Gdk=Gdk, GdkWayland=GdkWayland, Gio=Gio, GLib=GLib, Gtk=Gtk,
+                           Pango=Pango, PangoCairo=PangoCairo, cairo=cairo, layer=layer)
+
+
+def look_folder(_look):
+    return PACK
+
+
+def reading_valid(action, reading):
+    if action == 'mic-mute':
+        return reading in ('on', 'off', 'none')
+    if action in BRIGHTNESS:
+        return reading == 'none' or re.fullmatch(r'[0-9]{1,9}', reading) is not None
+    return action in VOLUME and (reading == 'none' or re.fullmatch(r'[0-9]{1,9}( muted)?', reading) is not None)
+
+
+def laptop_monitor(monitors, override=None):
+    for monitor in monitors:
+        connector = monitor.get_connector() or ''
+        if monitor.is_valid() and (connector == override if override else connector.startswith('eDP')):
+            return monitor
+    return None
+
+
+def content(action, reading, laptop, output_name):
+    if action in BRIGHTNESS:
+        if reading == 'none':
+            return 'sun', 'Brightness', 'not available here', 'quiet', None
+        if laptop is None:
+            return 'sun', 'Laptop screen', 'is off', 'quiet', None
+        return 'sun', 'Laptop screen', f'{int(reading)}%', 'value', int(reading)
+    if action == 'mic-mute':
+        if reading == 'none':
+            return 'microphone', 'Microphone', 'none found', 'quiet', None
+        if reading == 'off':
+            return 'microphone-off', 'Microphone', 'off', 'warn', None
+        return 'microphone', 'Microphone', 'on', 'value', None
+    if reading == 'none':
+        return 'speaker', 'Sound', 'no output found', 'quiet', None
+    number, _, muted = reading.partition(' ')
+    level = int(number)
+    if muted:
+        return 'speaker-muted', output_name, 'muted', 'warn', level
+    return 'speaker', output_name, f'{level}%', 'value', level
+
+
+def step_kind(index, level, muted):
+    full, part = divmod(level, STEP_PERCENT)
+    if index < full:
+        return 'muted' if muted else 'lit'
+    return 'part' if index == full and part and not muted else 'unlit'
+
+
+def sink_name(graph):
+    # WirePlumber writes the default node's name in Metadata. The active output Route belongs to the
+    # associated Device, and its device number is the node's card.profile.device, not its global ID.
+    default = next((entry['value']['name'] for obj in graph
+                    if obj.get('props', {}).get('metadata.name') == 'default'
+                    for entry in obj.get('metadata', [])
+                    if entry['subject'] == 0 and entry['key'] == 'default.audio.sink'), None)
+    if not default:
+        return 'Volume'
+    nodes = (obj.get('info', {}).get('props', {}) for obj in graph if obj.get('type') == 'PipeWire:Interface:Node')
+    node = next((props for props in nodes if props.get('node.name') == default
+                 and props.get('media.class') == 'Audio/Sink'), {})
+    device = next((obj.get('info', {}) for obj in graph
+                   if obj.get('type') == 'PipeWire:Interface:Device' and str(obj['id']) == str(node.get('device.id'))),
+                  {})
+    device_props = device.get('props', {})
+    if node.get('device.api', device_props.get('device.api')) == 'bluez5':
+        name = device_props.get('device.alias') or device_props.get('device.description') or node.get('node.description')
+        if isinstance(name, str):
+            return ' '.join(name.replace('\0', '').split())[:256] or 'Volume'
+    profile_device = node.get('card.profile.device')
+    if profile_device is not None:
+        for route in device.get('params', {}).get('Route', []):
+            if route.get('direction') != 'Output' or str(route.get('device')) != str(profile_device):
+                continue
+            info = route.get('info', [])
+            # PipeWire 1.6 writes the SPA dictionary as a count followed by key/value pairs.
+            port = dict(zip(info[1::2], info[2::2])) if isinstance(info, list) else info
+            kind = (route.get('name', '') + ' ' + port.get('port.type', '')).lower()
+            for needle, label in (('headphone', 'Headphones'), ('headset', 'Headphones'),
+                                  ('speaker', 'Speakers'), ('hdmi', 'HDMI')):
+                if needle in kind:
+                    return label
+    profile = node.get('device.profile.name', '').lower()
+    return 'HDMI' if 'hdmi' in profile or 'hdmi' in default.lower() else 'Volume'
+
+
+def output_name():
+    try:
+        result = subprocess.run([PW_DUMP, '-N'], stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                                stderr=subprocess.DEVNULL, timeout=0.3, check=True)
+        return sink_name(json.loads(result.stdout))
+    except (OSError, subprocess.SubprocessError, ValueError, KeyError, TypeError, AttributeError):
+        return 'Volume'
+
+
+def slices(source, target, leading, trailing):
+    return ((0, leading, 0, leading), (leading, source - leading - trailing, leading, target - leading - trailing),
+            (source - trailing, trailing, target - trailing, trailing))
+
+
+class Pack:
+    def __init__(self, cairo, folder):
+        self.cairo = cairo
+        self.data = json.loads((folder / 'look.json').read_text(encoding='utf-8'))
+        self.sizes = SimpleNamespace(**self.data['sizes'])
+        self.images = {name: cairo.ImageSurface.create_from_png(str(folder / part['file']))
+                       for name, part in self.data['sprites'].items()}
+
+    def size(self, name):
+        return self.data['sprites'][name]['size']
+
+    def colour(self, name):
+        hex_value = self.data['colours'][name]
+        return tuple(int(hex_value[i:i + 2], 16) / 255 for i in (1, 3, 5))
+
+    def sprite(self, cr, name, x, y, size=None):
+        source = self.images[name]
+        sw, sh = self.size(name)
+        left, top, right, bottom = self.data['sprites'][name]['insets']
+        width, height = size or (sw, sh)
+        for sx, pw, dx, dw in slices(sw, width, left, right):
+            for sy, ph, dy, dh in slices(sh, height, top, bottom):
+                if not min(pw, ph, dw, dh):
+                    continue
+                pattern = self.cairo.SurfacePattern(source.create_for_rectangle(sx, sy, pw, ph))
+                pattern.set_extend(self.cairo.EXTEND_REPEAT)
+                pattern.set_filter(self.cairo.FILTER_NEAREST)
+                pattern.set_matrix(self.cairo.Matrix(x0=-x - dx, y0=-y - dy))
+                cr.set_source(pattern)
+                cr.rectangle(x + dx, y + dy, dw, dh)
+                cr.fill()
+
+
+class Plate:
+    def __init__(self, gui, pack, scale, state):
+        self.gui, self.pack, self.scale = gui, pack, scale
+        self.icon, label, status, self.tone, self.level = state
+        s = pack.sizes
+        self.text_x = s.pad + s.icon_box + s.gap
+        self.height = s.pad + s.cap + s.row_gap + s.bar_h + s.pad
+        self.context = gui.PangoCairo.FontMap.get_default().create_context()
+        options = gui.cairo.FontOptions()
+        options.set_antialias(gui.cairo.ANTIALIAS_NONE)
+        options.set_hint_style(gui.cairo.HINT_STYLE_NONE)
+        options.set_hint_metrics(gui.cairo.HINT_METRICS_OFF)
+        gui.PangoCairo.context_set_font_options(self.context, options)
+        self.context.set_round_glyph_positions(False)
+        self.font = gui.Pango.FontDescription()
+        font = pack.data['font']
+        self.font.set_family(font['family'])
+        self.font.set_absolute_size(font['em'][0] * scale * gui.Pango.SCALE / font['em'][1])
+        self.label, self.status = self.layout(label), self.layout(status)
+        self.width = self.text_x + s.bar_w + s.pad
+        if self.level is None:
+            self.width = self.text_x + max(self.ink_width(self.label), self.ink_width(self.status)) + s.pad + s.shadow_offset
+            if self.tone == 'quiet':
+                self.icon = pack.data['sprites'][self.icon]['states']['unavailable']
+        else:
+            room = s.bar_w - self.ink_width(self.status) - s.gap
+            if self.ink_width(self.label) > room:
+                self.label.set_width(room * scale * gui.Pango.SCALE)
+                self.label.set_ellipsize(gui.Pango.EllipsizeMode.END)
+
+    def layout(self, text):
+        layout = self.gui.Pango.Layout.new(self.context)
+        layout.set_font_description(self.font)
+        layout.set_single_paragraph_mode(True)
+        layout.set_text(text, -1)
+        return layout
+
+    def ink_width(self, layout):
+        ink, _ = layout.get_pixel_extents()
+        return (ink.x + ink.width + self.scale - 1) // self.scale
+
+    def text(self, cr, layout, x, top, tone):
+        baseline = layout.get_baseline() / self.gui.Pango.SCALE
+        s = self.pack.sizes
+        for offset, colour in ((s.shadow_offset, 'outline'), (0, tone)):
+            cr.move_to((x + offset) * self.scale, (top + s.cap + offset) * self.scale - baseline)
+            # Fill the glyph outlines in one pack colour, including letters from fallback fonts.
+            self.gui.PangoCairo.layout_path(cr, layout)
+            cr.set_source_rgb(*self.pack.colour(colour))
+            cr.fill()
+
+    def draw(self, cr, flash=False):
+        pack, s = self.pack, self.pack.sizes
+        cr.set_antialias(self.gui.cairo.ANTIALIAS_NONE)
+        cr.save()
+        cr.scale(self.scale, self.scale)
+        pack.sprite(cr, 'plate', 0, 0, (self.width, self.height))
+        icon_y = (self.height - s.icon_box) // 2
+        pack.sprite(cr, 'slot', s.pad, icon_y, (s.icon_box, s.icon_box))
+        iw, ih = pack.size(self.icon)
+        pack.sprite(cr, self.icon, s.pad + (s.icon_box - iw) // 2, icon_y + (s.icon_box - ih) // 2)
+        if self.level is not None:
+            bar_y = s.pad + s.cap + s.row_gap
+            pack.sprite(cr, 'slot', self.text_x, bar_y, (s.bar_w, s.bar_h))
+            sw, sh = pack.size('step-lit')
+            sx = self.text_x + (s.bar_w - STEPS * sw - (STEPS - 1) * s.step_gap) // 2
+            sy = bar_y + (s.bar_h - sh) // 2
+            for i in range(STEPS):
+                kind = 'limit' if flash and i == STEPS - 1 else step_kind(i, self.level, self.tone == 'warn')
+                pack.sprite(cr, f'step-{kind}', sx + i * (sw + s.step_gap), sy)
+        cr.restore()
+        if self.level is None:
+            top = (self.height - 2 * s.cap - s.line_gap) // 2
+            self.text(cr, self.label, self.text_x, top, 'ink')
+            self.text(cr, self.status, self.text_x, top + s.cap + s.line_gap, self.tone)
+        else:
+            self.text(cr, self.label, self.text_x, s.pad, 'ink')
+            self.text(cr, self.status, self.text_x + s.bar_w - self.ink_width(self.status), s.pad, self.tone)
+
+
+def layer_window(gui, plate, place, monitor):
+    window = gui.Gtk.Window(decorated=False, resizable=False, focusable=False)
+    layer = gui.layer
+    layer.init_for_window(window)
+    if not layer.is_layer_window(window):
+        window.destroy()
+        raise RuntimeError('window did not become a layer surface')
+    layer.set_namespace(window, NAMESPACE)
+    layer.set_layer(window, layer.Layer.OVERLAY)
+    layer.set_keyboard_mode(window, layer.KeyboardMode.NONE)
+    layer.set_exclusive_zone(window, -1)
+    edge = layer.Edge.TOP if place == 'top' else layer.Edge.BOTTOM
+    layer.set_anchor(window, edge, True)
+    layer.set_margin(window, edge, getattr(plate.pack.sizes, f'{place}_margin') * plate.scale)
+    if monitor is not None:
+        layer.set_monitor(window, monitor)
+    window.add_css_class(NAMESPACE)
+    window.set_default_size(plate.width * plate.scale, plate.height * plate.scale)
+    # Also apply this if the library realizes a fresh GdkSurface when outputs change.
+    window.connect_after('realize', lambda w: w.get_surface().set_input_region(gui.cairo.Region()))
+    window.realize()
+    if not layer.is_layer_window(window):
+        window.destroy()
+        raise RuntimeError('window did not stay a layer surface')
+    return window
+
+
+class Indicator:
+    def __init__(self, gui, app, display, settings):
+        self.gui, self.app, self.display, self.settings = gui, app, display, settings
+        self.last, self.request, self.window = -1, None, None
+        self.hide_timer = self.idle_timer = self.paint_source = 0
+        self.started = self.failed = False
+        self.worker = ThreadPoolExecutor(max_workers=1)
+        self.query = None
+
+    def show(self, sequence, action, reading):
+        if sequence < self.last or not reading_valid(action, reading):
+            return
+        self.last = sequence
+        self.request = (action, reading)
+        glib = self.gui.GLib
+        for timer in (self.hide_timer, self.idle_timer):
+            if timer:
+                glib.source_remove(timer)
+        self.hide_timer = glib.timeout_add(SHOW_MS, self.hide)
+        self.idle_timer = glib.timeout_add(int(os.environ.get('ARESOS_INDICATOR_TEST_IDLE_MS', IDLE_MS)), self.app.quit)
+        if not self.paint_source:
+            self.paint_source = glib.idle_add(self.paint)
+
+    def paint(self):
+        self.paint_source = 0
+        if self.request is None:
+            return
+        action, reading = self.request
+        if action in VOLUME and reading != 'none':
+            if self.query is None:
+                self.query = self.worker.submit(output_name)
+                self.query.add_done_callback(lambda result: self.gui.GLib.idle_add(self.audio_ready, result.result()))
+        else:
+            self.present('Volume')
+
+    def audio_ready(self, label):
+        self.query = None
+        if self.request and self.request[0] in VOLUME:
+            self.present(label)
+
+    def close_window(self):
+        if self.window is not None:
+            self.window.destroy()
+            self.window = None
+
+    def hide(self):
+        self.hide_timer = 0
+        self.request = None
+        self.close_window()
+
+    def present(self, label):
+        action, reading = self.request
+        self.request = None
+        monitors = self.display.get_monitors()
+        if not monitors.get_n_items():
+            return
+        monitor = None
+        if action in BRIGHTNESS and reading != 'none':
+            monitor = laptop_monitor(monitors, os.environ.get('ARESOS_INDICATOR_TEST_EDP'))
+        try:
+            settings = self.settings()
+            pack = Pack(self.gui.cairo, look_folder(settings['look']))
+            state = content(action, reading, monitor, label)
+            plate = Plate(self.gui, pack, SCALES[settings['indicator-size']], state)
+            self.close_window()
+            self.window = layer_window(self.gui, plate, settings['indicator-place'], monitor)
+        except (OSError, ValueError, KeyError, RuntimeError, self.gui.cairo.Error) as error:
+            log(f'cannot show the plate ({error})')
+            self.failed = True
+            self.app.quit()
+            return
+        area = self.gui.Gtk.DrawingArea()
+        glib = self.gui.GLib
+        at_limit = plate.level == 100 and action in ('brightness-up', 'volume-up')
+        deadline = glib.get_monotonic_time() + FLASH_MS * 1000
+        area.set_draw_func(lambda _area, cr, *_: plate.draw(cr, at_limit and glib.get_monotonic_time() < deadline))
+        if at_limit:
+            glib.timeout_add(FLASH_MS, area.queue_draw)
+        self.window.set_child(area)
+        self.window.set_visible(True)
+        if not self.started:
+            self.started = True
+            log('started')
+
+    def on_show(self, _connection, _sender, _path, _interface, _method, parameters, reply):
+        reply.return_value(None)
+        self.show(*parameters.unpack())
+
+
+def run(gui, first):
+    display = gui.Gdk.Display.get_default() if gui.Gtk.init_check() else None
+    # Version 1 has overlay, keyboard mode NONE and all the anchoring requests used here.
+    if (not isinstance(display, gui.GdkWayland.WaylandDisplay) or not gui.layer.is_supported()
+            or gui.layer.get_protocol_version() < 1):
+        log('the compositor has no usable layer-shell protocol')
+        return 1
+    app = gui.Gio.Application(application_id=NAME)
+    indicator = Indicator(gui, app, display, runpy.run_path(SETTINGS)['load'])
+
+    def startup(application):
+        interface = gui.Gio.DBusNodeInfo.new_for_xml(INTERFACE).interfaces[0]
+        connection = application.get_dbus_connection()
+        if connection is None:
+            log('no session bus connection')
+            indicator.failed = True
+            return
+        connection.register_object(OBJECT, interface, indicator.on_show, None, None)
+        provider = gui.Gtk.CssProvider()
+        provider.load_from_string('window.aresos-indicator { background: transparent; box-shadow: none; }')
+        gui.Gtk.StyleContext.add_provider_for_display(display, provider, gui.Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        application.hold()
+        indicator.show(*first)
+
+    app.connect('startup', startup)
+    app.connect('activate', lambda _app: None)
+    # Exercise the launcher's ownership deadline without affecting normal session startup.
+    delay = int(os.environ.get('ARESOS_INDICATOR_TEST_START_DELAY_MS', 0))
+    if delay:
+        log('waiting before taking the bus name (test)')
+        gui.GLib.usleep(delay * 1000)
+    try:
+        if not app.register():
+            log('could not register the session bus name')
+            return 1
+        if app.get_is_remote():
+            log('started while another indicator owns the name')
+            return 0
+        status = app.run([])
+        return 1 if indicator.failed else status
+    except gui.GLib.Error as error:
+        log(f'cannot take the session bus name ({error.message})')
+        return 1
+    finally:
+        indicator.close_window()
+        indicator.worker.shutdown(wait=False)
+
+
+def main(argv):
+    os.environ.pop('LD_PRELOAD', None)
+    os.unsetenv('LD_PRELOAD')
+    if len(argv) != 3 or not re.fullmatch(r'[0-9]{1,20}', argv[0]) or not reading_valid(*argv[1:]):
+        log('usage: aresos-indicator <sequence> <action> <reading>')
+        return 2
+    if not os.environ.get('DBUS_SESSION_BUS_ADDRESS'):
+        log('no session bus')
+        return 1
+    try:
+        return run(load_gui(), (int(argv[0]), *argv[1:]))
+    except (ImportError, ValueError, OSError) as error:
+        log(f'cannot start ({error})')
+        return 1
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv[1:]))
