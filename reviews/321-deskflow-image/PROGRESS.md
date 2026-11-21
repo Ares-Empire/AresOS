@@ -416,10 +416,17 @@ return and then opens the terminal regardless of the release status.
 
 ```xml
 <keybind key="W-C-Escape" allowWhenInhibited="yes">
-  <action name="Execute" command="sh -c '/usr/libexec/aresos-input-portal --release; exec /usr/bin/aresos-terminal --recovery'" />
+  <action name="Execute" command="/usr/bin/sh -c '/usr/libexec/aresos-input-portal --release; exec /usr/bin/aresos-terminal --recovery'" />
   <action name="Execute" command="/usr/libexec/aresos-desktop hide-cover" />
 </keybind>
 ```
+
+Use `/usr/bin/sh` by its absolute path, as every other command in the image's `rc.xml` is named (image-checks.sh's
+startup-commands scan reads absolute paths). Then update the assertions that still expect the recovery chord's
+command as a direct `Execute` of `/usr/bin/aresos-terminal --recovery`: `os/tests/test_everyday_account.py` (about
+lines 112 and 232), `os/tests/test_aresos_desktop.py` (about line 3495) and `os/ci/image-checks.sh` (about lines 579
+and 908). Package 329 (the window frame) takes this exact XML as its baseline once it is on main (its brief review,
+`reviews/329-window-frame/`).
 
 ## For linux-aresos
 
