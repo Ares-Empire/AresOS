@@ -160,7 +160,7 @@ PY
     done < "$chrome/unsatisfied.txt" | tee "$chrome/providers.txt"
     section transaction-preview
     dnf5 --disable-repo='*' --enable-repo=fedora --enable-repo=updates --setopt=install_weak_deps=False \
-        install --assumeno util-linux-script qrencode brightnessctl gtk4-layer-shell "$chrome/google-chrome.rpm"
+        install --assumeno util-linux-script qrencode brightnessctl gtk4-layer-shell.x86_64 "$chrome/google-chrome.rpm"
     section available
     dnf5 --disable-repo='*' --enable-repo=fedora --enable-repo=updates repoquery \
         --qf '%{full_nevra} %{repoid}\n' util-linux-script util-linux-core util-linux qrencode brightnessctl \
