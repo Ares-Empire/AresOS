@@ -566,16 +566,26 @@ import os, xml.etree.ElementTree as ET
 root = ET.parse('/usr/share/aresos/labwc/rc.xml').getroot()
 binds = {b.get('key'): b.find('action').get('command') for b in root.iter('keybind')}
 library = open(next(p for p in ('/usr/lib64/libxkbcommon.so.0',) if os.path.exists(p)), 'rb').read()
-for key in ('XF86MonBrightnessUp', 'XF86MonBrightnessDown', 'XF86AudioRaiseVolume', 'XF86AudioLowerVolume',
-            'XF86AudioMute', 'XF86AudioMicMute'):
-    command = binds[key].split()
-    assert os.access(command[0], os.X_OK), (key, command)
+# Package 320: each key runs aresos-level with its action; the script makes the change, then tells the indicator.
+actions = {'XF86MonBrightnessUp': 'brightness-up', 'XF86MonBrightnessDown': 'brightness-down',
+           'XF86AudioRaiseVolume': 'volume-up', 'XF86AudioLowerVolume': 'volume-down',
+           'XF86AudioMute': 'mute', 'XF86AudioMicMute': 'mic-mute'}
+for key, action in actions.items():
+    assert binds[key] == f'/usr/libexec/aresos-level {action}', (key, binds[key])
     assert b'\0' + key.encode() + b'\0' in library, f'{key} is not a keysym name libxkbcommon knows'
-    print(key, '->', ' '.join(command))
+    print(key, '->', binds[key])
+assert os.access('/usr/libexec/aresos-level', os.X_OK)
 assert binds['W-C-Escape'] == '/usr/bin/aresos-terminal --recovery'
 PY
-pass 'brightness, volume, mute and mic-mute keys are bound to brightnessctl and wpctl; recovery terminal kept'
-for command in script qrencode brightnessctl wpctl; do
+for program in /usr/libexec/aresos-level /usr/libexec/aresos-settings; do
+    test "$(stat -c '%U:%G %a' "$program")" = 'root:root 755'
+done
+bash -n /usr/libexec/aresos-level
+# With no settings file, aresos-settings gives the defaults (package 320) and writes nothing.
+settings=$(runuser -u ares -- env -i HOME=/nonexistent PATH=/usr/bin /usr/libexec/aresos-settings get)
+test "$settings" = '{"indicator-place": "top", "indicator-size": "medium", "look": "B"}'
+pass "brightness, volume, mute and mic-mute keys run aresos-level (package 320); aresos-settings gives the defaults ($settings); recovery terminal kept"
+for command in script qrencode brightnessctl wpctl gdbus flock timeout setsid; do
     command -v "$command"
 done
 script --version
