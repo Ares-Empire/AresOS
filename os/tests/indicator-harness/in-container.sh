@@ -70,16 +70,30 @@ run_isolated() (
     install -D -m 0644 /harness/Jersey10-Regular.ttf /usr/share/fonts/aresos/Jersey10-Regular.ttf
     install -d /usr/share/aresos
     cp -r /harness/look /usr/share/aresos/
+    cp -r /harness/AresOS /usr/share/themes/
+    local driver=driver.py
+    if [[ $1 == frame ]]; then
+        cp -r /harness/baseline/Ares-Crown /usr/share/themes/
+        install -m 0644 /harness/baseline/SpaceGrotesk-Variable.ttf /usr/share/fonts/aresos/
+        driver=frame.py
+    fi
     fc-cache /usr/share/fonts/aresos
     python3 -I /harness/install_standins.py
     grep -q ARESOS-TEST-STAND-IN /usr/bin/brightnessctl
     grep -q ARESOS-TEST-STAND-IN /usr/bin/wpctl
     grep -q ARESOS-TEST-STAND-IN /usr/bin/pw-dump
     {
+        cat /harness/harness-image.txt
         rpm -q labwc wlroots0.19 gtk4 gtk4-layer-shell python3-gobject python3-cairo pango grim python3-pillow
         sha256sum /opt/harness/rpm/*.rpm
         sha256sum /usr/libexec/aresos-{indicator,level,settings} /usr/share/fonts/aresos/Jersey10-Regular.ttf
         fc-match 'Jersey 10'
+        if [[ $1 == frame ]]; then
+            cat /harness/merge-base.txt
+            sha256sum /harness/{rc.xml,baseline/rc.xml} /usr/share/themes/{AresOS,Ares-Crown}/labwc/themerc
+            fc-match 'Space Grotesk'
+        fi
+        python3 -IB /harness/check_labwc.py
     } > "$EV/versions.txt"
     cat "$EV/versions.txt"
     cat > "$XDG_RUNTIME_DIR/bus.conf" <<XML
@@ -90,14 +104,14 @@ run_isolated() (
 </busconfig>
 XML
     exec timeout 270 /usr/bin/dbus-run-session --config-file="$XDG_RUNTIME_DIR/bus.conf" --dbus-daemon=/usr/bin/dbus-daemon -- \
-        /usr/bin/python3 -IB /harness/driver.py
+        /usr/bin/python3 -IB "/harness/$driver"
 )
 
 if [ "$fail" -ne 0 ]; then
     echo "UNUSABLE the container is not isolated; nothing was tested" | tee "$EV/results.txt"
     code=2
 else
-    run_isolated
+    run_isolated "$1"
     code=$?
 fi
 echo "$code" > "$EV/exit-code"

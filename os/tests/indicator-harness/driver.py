@@ -148,13 +148,15 @@ class Toplevels(shell.Windows):
 
 
 class Session:
-    def __init__(self, number):
+    def __init__(self, number, *, width=W, height=H):
         self.number = number
         self.children = []
         self.log_path = EV / f'{number:02}-labwc.log'
         self.env = dict(os.environ, WAYLAND_DISPLAY=WAYLAND)
         self.count = 0
         self.phase = 0
+        self.width = width
+        self.height = height
 
     def __enter__(self):
         self.log_path.write_text('')
@@ -170,24 +172,36 @@ class Session:
         self.children.append(proc)
         return proc
 
-    def start(self, *, lock=False, delay=0, idle=16000, config=CONFIG / 'labwc'):
+    def start_compositor(self, *, delay=0, idle=16000, config=CONFIG / 'labwc', verbose=False):
         self.phase += 1
         env = dict(self.env, WLR_BACKENDS='headless', WLR_RENDERER='pixman', WLR_HEADLESS_OUTPUTS='2',
                    WLR_LIBINPUT_NO_DEVICES='1', LABWC_UPDATE_ACTIVATION_ENV='0',
                    ARESOS_INDICATOR_TEST_EDP=RIGHT, ARESOS_INDICATOR_TEST_IDLE_MS=str(idle),
                    ARESOS_INDICATOR_TEST_START_DELAY_MS=str(delay))
         env.pop('WAYLAND_DISPLAY')
-        labwc = self.spawn(['/usr/bin/labwc', '-C', str(config)], env=env, log=self.log_path)
+        argv = ['/usr/bin/labwc', '-C', str(config)]
+        if verbose:
+            argv.append('-V')
+        labwc = self.spawn(argv, env=env, log=self.log_path)
         until(lambda: (RUNTIME / WAYLAND).is_socket(), 'private labwc', timeout=8)
         assert labwc.poll() is None, 'private labwc exited'
-        self.outputs = {LEFT: 0, RIGHT: W}
+        self.outputs = {LEFT: 0, RIGHT: self.width}
         self.arrange_outputs()
         layout = {output['name']: output for output in json.loads(self.randr('--json')) if output['enabled']}
-        assert {name: info['position'] for name, info in layout.items()} == {
-            LEFT: {'x': 0, 'y': 0}, RIGHT: {'x': W, 'y': 0}}
+        assert {name: (info['position'], info['scale']) for name, info in layout.items()} == {
+            LEFT: ({'x': 0, 'y': 0}, 1.0), RIGHT: ({'x': self.width, 'y': 0}, 1.0)}
         self.pointer = self.device('pointer')
         self.keyboard = self.device('keyboard')
-        self.goto(LEFT, W // 2, H // 2)
+        self.goto(LEFT, self.width // 2, self.height // 2)
+        return labwc
+
+    def observe_toplevels(self):
+        self.toplevels = Toplevels()
+        self.observer = shell.ForeignToplevels.connect(self.toplevels, self.env)
+        self.observer.sock.settimeout(3)
+
+    def start(self, *, lock=False, delay=0, idle=16000, config=CONFIG / 'labwc'):
+        labwc = self.start_compositor(config=config, delay=delay, idle=idle)
         suffix = f'-{self.phase}' if self.phase > 1 else ''
         self.world_path = EV / f'{self.number:02}-world{suffix}.log'
         argv = [WLH, 'window'] + (['--lock'] if lock else [])
@@ -196,9 +210,7 @@ class Session:
         until(lambda: any(line.startswith('ENTER ') for line in self.world_lines()), 'world pointer focus')
         if lock:
             until(lambda: 'LOCKED' in self.world_lines(), 'compositor pointer lock')
-        self.toplevels = Toplevels()
-        self.observer = shell.ForeignToplevels.connect(self.toplevels, self.env)
-        self.observer.sock.settimeout(3)
+        self.observe_toplevels()
         def world_announced():
             self.observer.roundtrip()
             return self.toplevels.announced
@@ -241,8 +253,9 @@ class Session:
         return run('/usr/bin/wlr-randr', *args, env=self.env).stdout
 
     def arrange_outputs(self):
-        self.randr('--output', LEFT, '--on', '--custom-mode', f'{W}x{H}', '--pos', '0,0',
-                   '--output', RIGHT, '--on', '--custom-mode', f'{W}x{H}', '--pos', f'{W},0')
+        mode = f'{self.width}x{self.height}'
+        self.randr('--output', LEFT, '--on', '--custom-mode', mode, '--scale', '1', '--pos', '0,0',
+                   '--output', RIGHT, '--on', '--custom-mode', mode, '--scale', '1', '--pos', f'{self.width},0')
 
     def device(self, kind):
         proc = self.spawn([WLH, 'input', kind], env=self.env, log=self.log_path, pipes=True)
@@ -271,7 +284,7 @@ class Session:
         self.key(name, False)
 
     def goto(self, name, x, y):
-        self.input(self.pointer, f'abs {self.outputs[name] + x} {y} {max(self.outputs.values()) + W} {H}')
+        self.input(self.pointer, f'abs {self.outputs[name] + x} {y} {2 * self.width} {self.height}')
 
     def log(self):
         return self.log_path.read_text(errors='replace')
@@ -744,12 +757,16 @@ def test9(app):
     check_reap_order(app, trace, launch_lock, first)
 
 
-def main():
+def check_bus():
     address = os.environ['DBUS_SESSION_BUS_ADDRESS']
     assert address.startswith(f'unix:path={RUNTIME}/'), 'session bus outside the scratch runtime'
     assert Path(address.split(',', 1)[0].removeprefix('unix:path=')).is_socket()
     assert not has_owner()
     print('PASS private dbus-run-session bus in the scratch runtime', flush=True)
+
+
+def main():
+    check_bus()
     failed = False
     for number, test in enumerate((test1, test2, test3, test4, test5, test6, test7, test8, test9), 1):
         SETTINGS.unlink(missing_ok=True)
