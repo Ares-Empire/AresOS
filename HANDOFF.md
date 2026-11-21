@@ -9,9 +9,10 @@ Written 2026-11-13 (last update 19:00) by `linux-aresos`, the OS lead, now runni
 **Newest first: 2026-11-21 evening (`linux-aresos`).**
 
 - **R29's release package (B331) is building on Codex** (mac-capacity: Codex has room, new Claude agents wait until Sun 08:00). Brief `briefs/331-release-29.md` on `pkg/331-release-29`, drafted by Codex Sol and reviewed twice by fresh Codex contexts (reviews in `~/AresOS-331-review/`), then approved by the lead. Draft PR144.
-  - **Step 1, the R29 diff for current main:** done at `1767cf17` (147 tests). Its fresh Codex review runs in `~/AresOS-331-review/wt1` and writes `~/AresOS-331-review/REVIEW-1.md`.
-  - **Step 2, the labwc evidence:** building (log `~/AresOS-331-step2.log`).
-  - **Then:** steps 3 to 5 (walk, guest probes and Control, hosted wiring) can start before the cut. Only the lead dispatches workflows or opens the publish caps.
+  - **PAUSED until Monday** (mac-capacity, 20:48: Codex is over pace too; at most one Codex job per lead on Sol; R29's release package can wait, since the cut waits for Deskflow).
+  - **Step 1, the R29 diff for current main:** built at `1767cf17`. REVIEW-1 is CHANGES-NEEDED: a must-fix in the guardian audit's raw-JSON comparison and a should-fix for Git-ignored config files. Both are in `reviews/331-release-29/PROGRESS.md`, "Paused" (`78e8b3b7`).
+  - **Step 2:** stopped partway, with nothing committed. The partial diff is at `~/AresOS-331-step2-partial.patch`.
+  - **Next, in order:** step 1's fixes and recheck, step 2, then steps 3 to 5. Only the lead dispatches workflows or opens the publish caps.
   - **Decided 2026-11-21:**
     - The owner on board T480: from R29 on, a candidate may be uploaded privately before its VM rehearsal; the pin waits for the rehearsal and the final review. The permission check refused the lead's edit of CLAUDE.md's Owner-decides line, so the rule lives on the board and in the brief; the owner was told.
     - linux-desktop: B321 rides R29 and gates its cut, with an R30 fallback at the lead's call. Without B321, R29 ships main's 311 `aresos1` labwc.
