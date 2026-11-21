@@ -451,7 +451,9 @@ helper that does not know them works as today.
 - **`get_home`** (view to helper). The last complete home in app-ID order, using `list_apps` cursor and byte
   limits. Each page carries the `revision` and the whole `palette`. Before the first complete publish the reply
   has `"revision": null`, `"palette": {}` and `"apps": []`. Catalogue changes can affect which houses appear,
-  so views can fetch again on `apps_changed` as well as on `home_changed`.
+  so views can fetch again on `apps_changed` as well as on `home_changed`. A cursor is valid only for the
+  home snapshot that issued it. If the home revision or the ordered list of visible app IDs changes, the next
+  page answers `invalid_cursor` and the view starts again without a cursor.
 - **`home_changed`** (to views). `{"event": "home_changed", "revision": "17"}` when a new complete home arrives
   or the first complete catalogue removes unknown houses.
 - **`apps_running`** (to views). `{"event": "apps_running", "apps": ["notepad", "terminal"]}` once after hello

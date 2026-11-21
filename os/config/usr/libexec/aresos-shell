@@ -2309,7 +2309,8 @@ class ScopeLauncher:
 
 
 class LaunchCheck:
-    def __init__(self):
+    def __init__(self, from_view=False):
+        self.from_view = from_view
         self.done = threading.Event()
         self.result = None
 
@@ -2319,7 +2320,7 @@ class LaunchChecks:
 
     A program on a mount that stopped answering blocks its check's thread, maybe for good. Repeated launches of the
     same program share its outstanding check, and at most MAX_CHECKS checks are outstanding at once: beyond that a
-    launch fails as unavailable at once instead of starting yet another thread.
+    launch fails as unavailable at once. Views can start at most MAX_CHECKS - 1 of those checks.
     """
 
     def __init__(self, limit=MAX_CHECKS):
@@ -2327,15 +2328,17 @@ class LaunchChecks:
         self.lock = threading.Lock()
         self.running = {}
 
-    def start(self, key, function, *arguments):
-        """The outstanding check for key, or a new one; None when MAX_CHECKS are outstanding."""
+    def start(self, key, function, *arguments, from_view=False):
+        """Join the outstanding check for key or start one if the caller has capacity."""
         with self.lock:
             check = self.running.get(key)
             if check is not None:
                 return check
             if len(self.running) >= self.limit:
                 return None
-            check = self.running[key] = LaunchCheck()
+            if from_view and sum(check.from_view for check in self.running.values()) >= self.limit - 1:
+                return None
+            check = self.running[key] = LaunchCheck(from_view)
         try:
             threading.Thread(target=self.run, args=(key, check, function, arguments), name='aresos-launch-check',
                              daemon=True).start()
@@ -3112,6 +3115,7 @@ class Helper:
         self.handoff = None
         self.returning_until = None
         self.adopting = set()
+        self.ambiguous_adoptions = set()
         self.world = None
         self.last_heartbeat = None
         # When Super last asked for the search over the world (package 53d), for coalescing.
@@ -3183,19 +3187,30 @@ class Helper:
     def adopt_windows(self):
         """After a restart, give launches that had windows the app's current windows, or close them."""
         waiting = set()
+        reviewed = {}
         for key, entry in self.journal.entries.items():
             if key not in self.adopting or entry['state'] in FINAL:
                 continue
-            if self.is_discovered(entry) and not self.catalogue_complete():
+            discovered = self.is_discovered(entry)
+            if discovered and not self.catalogue_complete():
                 waiting.add(key)
                 continue
+            app_id = entry['app_id']
             tracker = self.windows if key[0] == DESKTOP else self.catalogue_windows
-            windows = {toplevel.handle for toplevel in tracker.of(entry['app_id'])}
+            windows = {toplevel.handle for toplevel in tracker.of(app_id)}
             if windows:
                 # Which of an app's windows came from which launch is lost with the old helper; share them.
                 self.handles[key] = windows
+                if not discovered:
+                    reviewed.setdefault(app_id, []).append(key)
+                    if len(windows) > 1:
+                        self.ambiguous_adoptions.add(key)
             else:
                 self.set_state(key, 'closed')
+        # Even a single surviving window cannot tell us which of several launches opened it.
+        for keys in reviewed.values():
+            if len(keys) > 1:
+                self.ambiguous_adoptions.update(keys)
         self.adopting = waiting
 
     # -- connections
@@ -3454,6 +3469,8 @@ class Helper:
                 raise Failure('malformed', 'cursor must be a helper-issued string of at most 64 characters')
             match = re.fullmatch(r'p([0-9]{1,3})-[0-9a-f]{24}', cursor)
             if match is None or not hmac.compare_digest(cursor, self.page_cursor(int(match[1]), stream)):
+                if stream:
+                    raise Failure('invalid_cursor', 'the home cursor is stale or invalid; get the home without it')
                 raise Failure('invalid_cursor', 'cursor was not issued by this helper; list again without it')
             offset = int(match[1])
         page = dict(fields, apps=[])
@@ -3481,7 +3498,9 @@ class Helper:
             fields = {'revision': self.home.revision, 'palette': self.home.palette}
             rows = [row for key, row in sorted(self.home.apps.items())
                     if self.home_awaits_catalogue or key in self.catalogue_apps]
-        return self.page(conn, request_id, message, rows, fields, stream='home:')
+        snapshot = json.dumps([fields['revision'], [row['id'] for row in rows]], separators=(',', ':'))
+        digest = hashlib.sha256(snapshot.encode()).hexdigest()
+        return self.page(conn, request_id, message, rows, fields, stream=f'home:{digest}:')
 
     def view_focus(self, conn, request_id, message):
         if self.views.get(conn.client) is not conn:
@@ -3623,9 +3642,10 @@ class Helper:
             LOG.warning('%r not opened: no such app', app_id[:64])
             return self.record(key, unknown)
         # Whether its program is still there is checked off the loop (review 2, FIX 1).
-        check = self.checks.start(app, launch_check, app, self.executable, self.launcher.working_directory)
+        check = self.checks.start(app, launch_check, app, self.executable, self.launcher.working_directory,
+                                  from_view=conn.client != DESKTOP)
         if check is None:
-            LOG.warning('%s not opened: %d launch checks are still waiting for an answer', app.id, MAX_CHECKS)
+            LOG.warning('%s not opened: no launch check slot available for this client', app.id)
             return self.launch(key, app, None, None, 'checks_busy', screen)
         if check.done.wait(CHECK_WAIT):
             return self.launch(key, app, *check.result, screen)
@@ -3719,6 +3739,7 @@ class Helper:
             self.started.pop(removed, None)
             self.view_closing.pop(removed, None)
             self.adopting.discard(removed)
+            self.ambiguous_adoptions.discard(removed)
             if (process := self.processes.pop(removed, None)) is not None:
                 self.reaping.append(process)
         self.journal.save()
@@ -3791,6 +3812,7 @@ class Helper:
         if state in FINAL:
             self.started.pop(key, None)
             self.view_closing.pop(key, None)
+            self.ambiguous_adoptions.discard(key)
         client, request_id = key
         event = {'request_id': request_id, 'launch_id': entry.get('launch_id'), 'app_id': entry['app_id'],
                  'state': state}
@@ -4088,7 +4110,7 @@ class Helper:
                 returned = True
                 self.return_to_desktop(app)
         for key, handles in self.handles.items():
-            focused = active is not None and active.handle in handles
+            focused = key not in self.ambiguous_adoptions and active is not None and active.handle in handles
             self.set_state(key, 'focused' if focused else 'background')
         if active is None:
             return
