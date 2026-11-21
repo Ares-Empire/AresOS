@@ -226,14 +226,15 @@ commands on stdin (a FIFO kept open).
   check skips the capture at the press; the helper's `desktop_activated`, a few milliseconds later, captures. Both
   paths were clean.
 
-**Builds**, on commit `2b1b3a7f` (only docs changed after it), through the dev scripts with no `--force`, no exit-75
+**Builds**, on commit `2b1b3a7f` (only docs changed after it, `[skip ci]`), through the dev scripts with no `--force`, no exit-75
 refusal and no other worktree's Gradle running at the start:
 
 - Pass 1: `mod/dev/build.sh` BUILD SUCCESSFUL in 2m 42s: 335 unit tests, 0 failures, 6 Windows-only skips; all 106
   server game tests passed. `mod/dev/client-test.sh --session` (two outputs) BUILD SUCCESSFUL in 14m 1s, exit 0: the
   whole client suite, package 56's native checks included, and `WorldKeepsPointerClientGameTest` ("328a native capture:
   probe [1, 0, 2, 0] -> [1, 0, 2, 0], camera turned 46.8 degrees"; "328a world-keeps-pointer checks passed").
-- Pass 2: `mod/dev/build.sh` BUILD SUCCESSFUL in 1m 50s with the same counts. Client tests: see below.
+- Pass 2: `mod/dev/build.sh` BUILD SUCCESSFUL in 1m 50s with the same counts. `mod/dev/client-test.sh --session`
+  BUILD SUCCESSFUL in 13m 52s, exit 0, the same tests and the same two 328a lines.
 - Before these, two full client runs failed at the new test's last check (the XFixes hide/show pairing above, found
   by the full suite; alone the test passed) and were fixed before the passes counted. The tracked screenshots the runs
   rewrote were put back, and the ones written under new numbers removed.
