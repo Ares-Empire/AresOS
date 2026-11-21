@@ -768,6 +768,78 @@ else:
     print('LAPTOP_HOME_DECODER decoded in bubblewrap')
 PY
 pass 'the laptop home loads GTK 4, Pango and Cairo as ares with the Cairo renderer, and its icon decoder is sandboxed'
+# Package 323: the laptop home also loads the layer library when preloaded.
+layer_nevra=$(python3 -I - /usr/share/aresos/manifest/packages.lock.json <<'LAYER_NEVRA'
+import json, sys
+with open(sys.argv[1]) as lock:
+    pinned = [p['nevra'] for p in json.load(lock)['packages'] if p['nevra'].rsplit('-', 2)[0] == 'gtk4-layer-shell']
+assert len(pinned) == 1, 'the package lock must pin exactly one gtk4-layer-shell'
+print(pinned[0])
+LAYER_NEVRA
+)
+test "$(rpm -q --qf '%{NEVRA}\n' gtk4-layer-shell)" = "$layer_nevra"
+layer_verify=$(rpm -V gtk4-layer-shell)
+test -z "$layer_verify"
+layer_library=/usr/lib64/libgtk4-layer-shell.so.0
+test -f "$layer_library"
+runuser -u ares -- env -i HOME=/tmp PATH=/usr/bin LD_PRELOAD="$layer_library" /usr/bin/python3 - <<'LAPTOP_HOME_LAYER'
+import importlib.machinery, importlib.util
+loader = importlib.machinery.SourceFileLoader('aresos_laptop_home', '/usr/libexec/aresos-laptop-home')
+spec = importlib.util.spec_from_loader('aresos_laptop_home', loader)
+home = importlib.util.module_from_spec(spec)
+loader.exec_module(home)
+layer = home.load_gui().layer
+assert layer is not None, 'the laptop home could not load Gtk4LayerShell'
+version = f'{layer.get_major_version()}.{layer.get_minor_version()}.{layer.get_micro_version()}'
+print('LAPTOP_HOME_LAYER_SHELL', version)
+LAPTOP_HOME_LAYER
+pass "gtk4-layer-shell ($layer_nevra) verifies and the laptop home loads it as ares with the preload"
+
+# Package 323: the laptop home's monospace font and its licence.
+sha256sum -c <<'JETBRAINS_MONO_SHA256'
+48715a42ec242c21e9f02692891e147d022299a52e48d5e413e1a942193ffeda  /usr/share/fonts/aresos/JetBrainsMono-Variable.ttf
+b2fe5e8987594e9ffd1d2ca52a2f5d73eb8335243893c5d6254b5ad69269591d  /usr/share/fonts/aresos/OFL-JetBrainsMono.txt
+JETBRAINS_MONO_SHA256
+font=$(runuser -u ares -- env -i HOME=/tmp PATH=/usr/bin /usr/bin/fc-match --format '%{file}' 'JetBrains Mono')
+test "$font" = /usr/share/fonts/aresos/JetBrainsMono-Variable.ttf
+pass "fontconfig finds the pinned JetBrains Mono ($font) as ares, and its licence is installed"
+
+# Package 323: the Mesa EGL and Intel Vulkan manifests the desktop supervisor can select.
+mesa_egl=/usr/share/glvnd/egl_vendor.d/50_mesa.json
+intel_vulkan=/usr/share/vulkan/icd.d/intel_icd.x86_64.json
+for manifest in "$mesa_egl" "$intel_vulkan"; do
+    test -f "$manifest"
+    test ! -L "$manifest"
+    rpm -qf "$manifest"
+done
+python3 -I - "$mesa_egl" "$intel_vulkan" <<'DRIVER_MANIFESTS'
+import json, re, subprocess, sys
+from pathlib import Path
+
+
+def cached_libraries(soname):
+    cache = subprocess.check_output(['ldconfig', '-p'], text=True)
+    for entry in cache.splitlines():
+        if match := re.fullmatch(r'\s*(\S+) \(([^)]*)\) => (/.+)', entry):
+            name, flags, path = match.groups()
+            if name == soname and 'x86-64' in flags.replace(' ', '').split(','):
+                yield Path(path)
+
+
+for manifest in map(Path, sys.argv[1:]):
+    library = json.loads(manifest.read_text())['ICD']['library_path']
+    path = Path(library)
+    if path.is_absolute():
+        candidates = [path]
+    else:
+        assert library and '/' not in library, f'{manifest}: expected an absolute library path or soname: {library!r}'
+        candidates = cached_libraries(library)
+    found = next((candidate for candidate in candidates if candidate.is_file()), None)
+    assert found is not None, f'{manifest}: missing library {library!r}'
+    print(f'{manifest}: {library} => {found}')
+DRIVER_MANIFESTS
+pass 'the Mesa EGL and Intel Vulkan manifests are package-owned and name libraries in the image'
+
 # Super+Ctrl+Escape opens the recovery terminal, then ends the cover through the supervisor (PLAN-GAP 2). The
 # supervisor takes the command as ares; with no supervisor running here it says so and exits 1.
 python3 - <<'PY'

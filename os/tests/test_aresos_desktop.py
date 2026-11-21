@@ -2990,9 +2990,10 @@ class ImageBuildTest(unittest.TestCase):
         base = json.loads((ROOT / 'os/manifest/base.json').read_text())['reference']
         labwc_base = json.loads((ROOT / 'os/labwc/labwc.lock.json').read_text())['base']['reference']
         # The workflow checks the first FROM against the pinned base; it stays first.
-        self.assertEqual(stages, [['FROM', base, 'AS', 'packages'], ['FROM', base, 'AS', 'source'],
+        self.assertEqual(stages, [['FROM', base, 'AS', 'source'],
                                   ['FROM', self.BUILDER, 'AS', 'mod'], ['FROM', base, 'AS', 'labwc-inputs'],
-                                  ['FROM', labwc_base, 'AS', 'labwc'], ['FROM', 'packages', 'AS', 'aresos']])
+                                  ['FROM', labwc_base, 'AS', 'labwc'], ['FROM', base, 'AS', 'packages'],
+                                  ['FROM', 'packages', 'AS', 'aresos']])
         source_stage = containerfile.split(' AS source\n', 1)[1].split('\nFROM ', 1)[0]
         self.assertIn('RUN bash /tmp/aresos-mod/build.sh source "$ARESOS_SOURCE_REVISION" /source', source_stage)
         mod_stage = containerfile.split(' AS mod\n', 1)[1].split('\nFROM ', 1)[0]
