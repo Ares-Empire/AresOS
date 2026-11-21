@@ -98,6 +98,9 @@ pixmap = window.create_pixmap(16, 16, 1)
 gc = pixmap.create_gc(foreground=0)
 pixmap.fill_rectangle(gc, 0, 0, 16, 16)
 hidden = pixmap.create_cursor(pixmap, (0, 0, 0), (0, 0, 0), 0, 0)
+if os.environ.get('ARGB_CURSOR'):
+    # GLFW's own kind of hidden cursor (argbcursor.py): an Xcursor ARGB image, every pixel transparent.
+    hidden = d.create_resource_object('cursor', int(os.environ['ARGB_CURSOR']))
 if hide_cursor:
     d.xfixes_query_version()
     window.xfixes_hide_cursor()
@@ -108,6 +111,8 @@ if hide_cursor:
 #   centre   XWarpPointer to the centre (GLFW's _glfwCenterCursorInContentArea)
 #   grab     XGrabPointer confined to the window (GLFW's captureCursor)
 #   ungrab   XUngrabPointer (GLFW's releaseCursor, part of every switch to a mode that does not capture)
+#   xfhide   XFixesHideCursor on the window (X then draws no cursor at all)
+# ARGB_CURSOR=<xid> (from argbcursor.py) makes "hide" use GLFW's kind of transparent cursor instead of a pixmap one.
 # GLFW 3.5 with Minecraft's grabMouse, as the game's trace shows it: prewarp,centre,grab,hide
 grab = None
 for step in os.environ.get('ORDER', 'hide,centre,grab').split(','):
@@ -118,6 +123,10 @@ for step in os.environ.get('ORDER', 'hide,centre,grab').split(','):
         window.warp_pointer(where.win_x, where.win_y)
     elif step == 'hide':
         window.change_attributes(cursor=hidden)
+    elif step == 'xfhide':
+        d.xfixes_query_version()
+        window.xfixes_hide_cursor()
+        hide_cursor = True
     elif step == 'ungrab':
         d.ungrab_pointer(X.CurrentTime)
     elif step == 'grab':

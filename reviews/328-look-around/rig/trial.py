@@ -18,7 +18,6 @@ import sys
 import time
 
 from PIL import Image, ImageChops
-from Xlib import X, display
 
 rig, scenario = sys.argv[1], sys.argv[2]
 here = os.path.dirname(os.path.abspath(__file__))
@@ -68,14 +67,14 @@ def turned(before, after):
 
 
 def grabbed():
-    """Whether the game holds the X pointer grab: a grab of our own then fails with AlreadyGrabbed."""
-    d = display.Display(env['DISPLAY'])
-    status = d.screen().root.grab_pointer(False, 0, X.GrabModeAsync, X.GrabModeAsync, X.NONE, X.NONE,
-                                          X.CurrentTime)
-    if status == X.GrabSuccess:
-        d.ungrab_pointer(X.CurrentTime)
-    d.close()
-    return status == X.AlreadyGrabbed
+    """Whether the world holds the mouse: then no cursor is drawn anywhere (grim -c and grim give the same picture).
+    (A probe grab of the X pointer is no test: it reported a grab while the game's cursor was normal.)"""
+    pictures = []
+    for cursor in (['-c'], []):
+        path = os.path.join(rig, 'cursor.png')
+        subprocess.run([os.path.join(here, 'in-rig.sh'), rig, 'shot', '/usr/bin/grim', *cursor, path], check=True)
+        pictures.append(Image.open(path).convert('RGB'))
+    return ImageChops.difference(*pictures).getbbox() is None
 
 
 log = os.path.join(rig, 'labwc.log')
@@ -133,6 +132,7 @@ if scenario == 'menu':
     say(f'menu closed with the pointer on the probe: active={active()} grabbed={grabbed()}')
     show_trace('menu')
 
+captured = grabbed()
 before, counts = shot(), probe()
 for _ in range(int(os.environ.get('MOVES', '40'))):
     vin('rel', 12, 8)
@@ -150,7 +150,11 @@ say(f'clicked and scrolled: probe presses +{now["button_press"] - counts["button
 show_trace('after capture')
 leaked = (now['enter'] - counts['enter']) + (now['motion'] - counts['motion']) + (now['button'] - counts['button']) \
     + (now['axis'] - counts['axis'])
-say('RESULT: ' + ('LEAK: the probe got the hidden pointer' if leaked else 'no event reached the probe'))
+if captured:
+    say('RESULT: ' + ('LEAK: the probe got the hidden pointer' if leaked else 'captured, and no event reached the probe'))
+else:
+    say('RESULT: the world did not take the mouse; the pointer stayed a normal, visible pointer'
+        + (' (the probe got what it pointed at)' if leaked else ''))
 # Let go of the world, so the next scenario starts the same way.
 vin('key', 'esc')
 vin('sleep', 0.5)
