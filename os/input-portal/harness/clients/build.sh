@@ -9,6 +9,8 @@ mkdir -p "$out"
 
 protocols=$(pkg-config --variable=pkgdatadir wayland-protocols)
 for xml in "$protocols/stable/xdg-shell/xdg-shell.xml" \
+    "$protocols/unstable/pointer-constraints/pointer-constraints-unstable-v1.xml" \
+    "$protocols/unstable/relative-pointer/relative-pointer-unstable-v1.xml" \
     /usr/share/wlr-protocols/unstable/wlr-virtual-pointer-unstable-v1.xml \
     /usr/share/wlr-protocols/unstable/wlr-output-management-unstable-v1.xml \
     "$src/virtual-keyboard-unstable-v1.xml"; do
