@@ -594,12 +594,20 @@ test "$(systemctl --root=/ is-enabled aresos-subids.service)" = enabled
 pass 'ares has subordinate ID ranges; the boot service is enabled and idempotent'
 
 # --- Package 311: labwc is our rebuild of Fedora's source package, the only labwc, unchanged since it was installed.
+# Package 321 (step 1c): the rebuild carries two patches, and the lock the image records names exactly these, in this
+# order. The stage built the RPM only because its binaries matched that lock's pins (labwc/stage.py).
 labwc_nevra=$(python3 -c 'import json; print(json.load(open("/usr/share/aresos/manifest/labwc.lock.json"))["result"]["nevra"])')
-test "$labwc_nevra" = labwc-0.9.6-1.fc44.aresos1.x86_64
+test "$labwc_nevra" = labwc-0.9.6-1.fc44.aresos2.x86_64
+labwc_patches=$(python3 -c 'import json; print(" ".join(patch["file"] for patch in json.load(open("/usr/share/aresos/manifest/labwc.lock.json"))["patches"]))')
+test "$labwc_patches" = '0001-allow-constraints-for-layer-surfaces.patch 0002-no-bindings-for-the-capture-layer.patch'
 test "$(rpm -q --qf '%{NEVRA}\n' labwc)" = "$labwc_nevra"
 labwc_verify=$(rpm -V labwc)
 test -z "$labwc_verify"
-pass "labwc is the locked rebuild ($labwc_nevra), the only labwc installed, and rpm -V labwc is clean"
+# The second patch leaves two strings in the binary that Fedora's labwc does not have: its keybind attribute and the
+# layer namespace it gates on, which is the one aresos-input-portal gives its capture surface. The first leaves none.
+grep -aFq allowWhenInhibited /usr/bin/labwc
+grep -aFq aresos-input-barrier /usr/bin/labwc
+pass "labwc is the locked rebuild ($labwc_nevra) with both patches ($labwc_patches), the only labwc installed, and rpm -V labwc is clean"
 # labwc is built on fedora:44 and runs on this image: every library must be found here, and every Requires must be
 # met by a package of this image. labwc is the only package that comes from that stage. rpm -V above checks versions.
 python3 -I - <<'LABWC_RUNTIME'
