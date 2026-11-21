@@ -335,7 +335,7 @@ for mime in x-scheme-handler/http x-scheme-handler/https text/html application/x
 done
 pass 'Chrome is the default for http, https, HTML and XHTML in the AresOS session'
 
-prism_entry=/usr/share/applications/aresos-prismlauncher.desktop
+prism_entry=/usr/share/applications/org.prismlauncher.PrismLauncher.desktop
 test -f "$prism_entry"
 validation=$(desktop-file-validate "$prism_entry" 2>&1)
 test -z "$validation"
@@ -346,11 +346,11 @@ grep -Fxq 'Exec=/usr/bin/prismlauncher %U' "$prism_entry"
 grep -Fxq 'MimeType=x-scheme-handler/prismlauncher;' "$prism_entry"
 pass 'the hidden Prism Launcher sign-in desktop entry passes validation'
 handler=$("${session_mime[@]}" xdg-mime query default x-scheme-handler/prismlauncher)
-test "$handler" = aresos-prismlauncher.desktop
+test "$handler" = org.prismlauncher.PrismLauncher.desktop
 pass 'xdg-mime resolves the Prism Launcher sign-in handler in the AresOS session'
 if command -v gio >/dev/null; then
     handler=$("${session_mime[@]}" gio mime x-scheme-handler/prismlauncher)
-    grep -Eq '^Default application for .*: aresos-prismlauncher\.desktop$' <<< "$handler"
+    grep -Eq '^Default application for .*: org\.prismlauncher\.PrismLauncher\.desktop$' <<< "$handler"
     pass 'gio resolves the Prism Launcher sign-in handler in the AresOS session'
 fi
 

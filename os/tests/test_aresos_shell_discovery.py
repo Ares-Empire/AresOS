@@ -109,13 +109,13 @@ class DiscoveryTest(DiscoveryBase):
         self.assertEqual(len(logs.output), 1)
 
     def test_prism_sign_in_handler_is_hidden_from_the_catalogue(self):
-        entry = ROOT / 'os/config/usr/share/applications/aresos-prismlauncher.desktop'
+        entry = ROOT / 'os/config/usr/share/applications/org.prismlauncher.PrismLauncher.desktop'
         text = entry.read_text()
         self.executables.add('/usr/bin/prismlauncher')
         installed = self.write(entry.name, text, folder=4)
         self.assertEqual(self.catalogue()[0], {})
         installed.write_text(text.replace('NoDisplay=true\n', ''))
-        self.assertEqual(self.catalogue()[0]['aresos-prismlauncher'].name, 'Prism Launcher')
+        self.assertEqual(self.catalogue()[0]['org-prismlauncher-prismlauncher'].name, 'Prism Launcher')
 
     def test_nested_desktop_ids_and_flatpak_file_symlinks(self):
         self.write('nested/program.desktop', Name='Nested')
