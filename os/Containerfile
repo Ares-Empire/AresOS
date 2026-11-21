@@ -1,8 +1,3 @@
-FROM ghcr.io/ublue-os/bazzite-nvidia-open@sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151 AS packages
-
-COPY . /tmp/aresos/
-RUN test ! -e /tmp/aresos/ci && bash /tmp/aresos/build.sh packages
-
 # Package 23: every image build builds the AresOS mod jar from this exact source
 # revision. The source stage fetches that commit in the pinned base (which has
 # curl) and keeps only mod/ (and control/, package 18c); the mod stage runs only Gradle on it, in the
@@ -36,6 +31,15 @@ COPY --from=labwc-inputs /inputs/ /tmp/aresos-labwc-inputs/
 RUN bash /tmp/aresos-labwc/install-inputs.sh /tmp/aresos-labwc-inputs && \
     python3 -I /tmp/aresos-labwc/stage.py build /tmp/aresos-labwc /tmp/aresos-labwc-inputs /out
 
+FROM ghcr.io/ublue-os/bazzite-nvidia-open@sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151 AS packages
+COPY . /tmp/aresos/
+COPY --from=labwc /out/ /tmp/aresos-labwc-rpm/
+# Keep Fedora's labwc and its replacement in one RUN. A metadata-only layer diff can
+# miss the swap when both binaries have the same size, mode and reproducible mtime.
+RUN test ! -e /tmp/aresos/ci && bash /tmp/aresos/build.sh packages && \
+    python3 -I /tmp/aresos/labwc/stage.py install /tmp/aresos-labwc-rpm /tmp/aresos/labwc && \
+    rm -rf /tmp/aresos-labwc-rpm
+
 FROM packages AS aresos
 ARG ARESOS_SOURCE_REVISION=unrecorded
 # release: the mod jar must be its pin. Only os/ci/check-build.sh passes throwaway.
@@ -45,10 +49,7 @@ LABEL org.opencontainers.image.source="https://github.com/Ares-Empire/AresOS" \
 COPY --from=mod /out/aresos.jar /tmp/aresos/minecraft/aresos.jar
 # Package 18c: the Control tools from the same commit (the source stage keeps control/).
 COPY --from=source /source/control /tmp/aresos/control
-COPY --from=labwc /out/ /tmp/aresos-labwc-rpm/
-RUN python3 -I /tmp/aresos/labwc/stage.py install /tmp/aresos-labwc-rpm /tmp/aresos/labwc && \
-    rm -rf /tmp/aresos-labwc-rpm && \
-    cp -a /tmp/aresos/config/. / && \
+RUN cp -a /tmp/aresos/config/. / && \
     cp -a /tmp/aresos/policy /usr/share/aresos/ && \
     install -m 0755 /tmp/aresos/tests/audit.py /usr/libexec/aresos-audit && \
     bash /tmp/aresos/build.sh control && \
