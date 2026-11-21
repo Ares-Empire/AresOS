@@ -1,5 +1,18 @@
 # Package 28a: Chrome acting progress
 
+## Final look 2 — 2026-11-21
+
+The lead's chain watched fix round 2's passes: pass 1 on `8e1fc2e6` (Chrome `44906182846`, qualification
+`44906185545`, base `44906187779`, Mail `44906190268`, privacy `44906192739`, boundary `44906194970`) and
+pass 2 on `57b63f08` (Chrome `44914563232`, qualification `44914566119`), all green. The second final look
+(Codex gpt-6.2-astra, xhigh, read-only, on `57b63f08`) returned **SAFE**, preserved byte for byte in
+[FINAL-LOOK-2.md](FINAL-LOOK-2.md). The lead's decisions on its NITs: NIT 1 (a late native alert hides queued
+uncertainty in the report) is a known limit ([KNOWN-LIMITS.md](KNOWN-LIMITS.md#final-look-2-2026-11-21));
+NIT 2 (the report's stale "pending" line) is corrected in this commit.
+
+Left: PR #116 merges after PR #72 and R29's cut, once the owner has answered the two JUDGMENT-CALLs he
+would notice (a list refused whole; a chat OK when loss details were omitted), asked on the board.
+
 ## Fix round 2 — 2026-11-21
 
 Draft PR #116 started at `4e54ca1e` with code from `375f4f4b`. The first final look returned

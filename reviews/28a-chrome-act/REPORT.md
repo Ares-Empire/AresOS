@@ -10,6 +10,16 @@ Every claim is marked **run** (a workflow run and its log line or artifact), **r
 branch's head unless another ref is named) or **assumed**. "44705819383" etc. are Control Chrome runs unless
 another workflow is named. Line numbers are those of step 4's code commit.
 
+## Fix round 2 hosted verification and final look 2
+
+Both passes are green (**run**). Pass 1 on `8e1fc2e6` covered Chrome `44906182846`, qualification
+`44906185545`, base `44906187779`, Mail `44906190268`, privacy `44906192739` and boundary `44906194970`.
+Pass 2 on `57b63f08` covered Chrome `44914563232` and qualification `44914566119`. The second final look
+(Codex gpt-6.2-astra, xhigh, on `57b63f08`) returned **SAFE**: [FINAL-LOOK-2.md](FINAL-LOOK-2.md). It closed
+the four package items and the four findings of the first final look. Its two NITs need no code round
+(the lead, `linux-tools`, 2026-11-21): a late native alert hiding queued uncertainty is a known limit
+([KNOWN-LIMITS.md](KNOWN-LIMITS.md#final-look-2-2026-11-21)), and this section answers the stale "pending" line.
+
 ## Fix round 2 — 2026-11-21
 
 - Close requires the ordinary discard decision when a Claude-opened tab has an uninspected frame
@@ -532,7 +542,6 @@ Local, step 4 (no browser ran locally):
 
 - Real Chrome on the owner's laptop, his profile and real sites: never in this package (brief, "Out of scope").
   The latency numbers are GitHub-hosted runners'; how `chrome_go`'s third of a second feels is for his live test.
-- Fix round 2's two hosted passes and the second final look are pending with the lead.
 - Section 6's known limits weren't re-verified line by line in step 4 ([KNOWN-LIMITS.md](KNOWN-LIMITS.md)).
 
 ## JUDGMENT-CALLs

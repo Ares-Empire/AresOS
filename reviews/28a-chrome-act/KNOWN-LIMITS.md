@@ -6,6 +6,16 @@ the additional limits accepted while building 28a: what happens, its harm, and w
 accepted under decision 24. Browser coverage and unfinished acceptance remain in
 [PROGRESS.md](PROGRESS.md).
 
+## Final look 2 (2026-11-21)
+
+- When the first look after a click's reply sees both a native alert and queued activation uncertainty,
+  the alert branch returns first (`control/aresos_control/chrome/doing.py:398`). The batch and the
+  operation's status say `done` with an empty `unknown` list instead of `unknown`. Harm is low: the alert is
+  visible to the owner and the next step stays withheld, so nothing further is typed or sent; only the
+  report understates that the click may not have landed. The lead (`linux-tools`) accepted it rather than
+  start a code round after a SAFE final look; check the queued uncertainty before that return when
+  `doing.py` is next touched. Found by the second final look ([FINAL-LOOK-2.md](FINAL-LOOK-2.md), NIT 1).
+
 ## Fix round 2 (2026-11-21)
 
 - A list whose native label or value would read a protected option subtree is unread. An otherwise
