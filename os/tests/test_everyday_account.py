@@ -427,14 +427,16 @@ class DesktopDefaultsTest(unittest.TestCase):
         self.assertEqual(dict(foot['key-bindings']), {'clipboard-paste': 'Control+v Control+Shift+v XF86Paste'})
 
     def test_brightness_volume_and_mic_keys_use_tools_in_the_image(self):
+        # Package 320: the keys run aresos-level, which runs their former commands (test_aresos_level.COMMANDS).
         rc = ET.parse(CONFIG / 'usr/share/aresos/labwc/rc.xml').getroot()
         binds = {b.get('key'): b.find('action').get('command') for b in rc.iter('keybind')}
-        self.assertEqual(binds['XF86MonBrightnessUp'], '/usr/bin/brightnessctl --quiet set 5%+')
-        self.assertEqual(binds['XF86MonBrightnessDown'], '/usr/bin/brightnessctl --quiet --min-value=1 set 5%-')
-        self.assertEqual(binds['XF86AudioRaiseVolume'], '/usr/bin/wpctl set-volume --limit 1.0 @DEFAULT_AUDIO_SINK@ 5%+')
-        self.assertEqual(binds['XF86AudioLowerVolume'], '/usr/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-')
-        self.assertEqual(binds['XF86AudioMute'], '/usr/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle')
-        self.assertEqual(binds['XF86AudioMicMute'], '/usr/bin/wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle')
+        self.assertEqual(binds['XF86MonBrightnessUp'], '/usr/libexec/aresos-level brightness-up')
+        self.assertEqual(binds['XF86MonBrightnessDown'], '/usr/libexec/aresos-level brightness-down')
+        self.assertEqual(binds['XF86AudioRaiseVolume'], '/usr/libexec/aresos-level volume-up')
+        self.assertEqual(binds['XF86AudioLowerVolume'], '/usr/libexec/aresos-level volume-down')
+        self.assertEqual(binds['XF86AudioMute'], '/usr/libexec/aresos-level mute')
+        self.assertEqual(binds['XF86AudioMicMute'], '/usr/libexec/aresos-level mic-mute')
+        self.assertTrue(os.access(CONFIG / 'usr/libexec/aresos-level', os.X_OK))
 
     def test_polkit_agent_starts_before_the_desktop(self):
         lines = [l for l in (CONFIG / 'usr/share/aresos/labwc/autostart').read_text().splitlines()

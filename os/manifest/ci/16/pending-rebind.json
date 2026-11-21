@@ -12,7 +12,10 @@
     "18c-b step 4, round 3: the polkit probe's verdict follows his agent's answer (KDE reports Escape as 1, not authorized), screenshots before, during and after the dialog; C2's managed note from Chrome's menu.",
     "18c-b step 4, round 4: a PASS line on a keys step no longer stops the Chrome pass; a stand-in guest runs the whole sequence in os/tests.",
     "18c-b step 6b: main merged after release 28 (package 42); os-image.yml keeps package 42's permissions comment with 18c-b's control limit 156; check-build.sh keeps the guardian boots and the Chrome pass.",
-    "18c-b step 6b checks fix: release 28's rehearsal selects the service checks explicitly; the stand-in checks and passes their arguments; the Chrome signature imports are local to that check and the build's gh hash check uses python3 -B."
+    "18c-b step 6b checks fix: release 28's rehearsal selects the service checks explicitly; the stand-in checks and passes their arguments; the Chrome signature imports are local to that check and the build's gh hash check uses python3 -B.",
+    "T475: INSTALL-STATUS records the laptop on R28 (R13 earlier, R27 previous, R28 on the laptop); test_owner_path and test_owner_equality follow the new labels",
+    "T475 REVIEW-1: R28 published 2026-11-19; tools version 4 on the laptop 2026-11-17 to 2026-11-21, version 5 since",
+    "18c-b review round: main merged after R29's image package (B323) and T475; both sides' notes kept, the waiting files recomputed from the merged checkout."
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -37,7 +40,11 @@
       "path": "os/config/usr/libexec/aresos-desktop"
     },
     {
-      "sha256": "1ced99a7a531f619ff92cbe8a0758d8d35d9ec0eca1712b1879f9c44f087de9d",
+      "sha256": "23c4da91d08619ef8b1c37ca8f25c16f7dd9ba82e8135dd6c754f561c62050a4",
+      "path": "os/tests/test_owner_equality.py"
+    },
+    {
+      "sha256": "f5b8ba4051fc82ec1bc72d08bcb5fb5fefdfd6177f812dc52f7d2b3a1c73bbd8",
       "path": "os/tests/test_owner_path.py"
     },
     {

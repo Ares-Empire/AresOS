@@ -1,0 +1,198 @@
+#!/usr/bin/bash
+# The brightness and volume keys (rc.xml) run this with their action; aresos-settings runs it with show-volume to
+# show the plate once (package 320, COMPONENTS.md 4.1). It makes the change with the keys' earlier commands, steps
+# and limits, then tells the indicator in the background. Nothing after the change may fail or delay it: a missing,
+# hung or broken indicator, no session bus or no layer library only means no plate.
+# Absolute paths only: aresos-settings may run this from his terminal, whose PATH starts with his own programs.
+# No errexit: a failed lock, counter or read must never stop the change.
+
+BRIGHTNESSCTL=/usr/bin/brightnessctl
+WPCTL=/usr/bin/wpctl
+INDICATOR=/usr/libexec/aresos-indicator
+# gtk4-layer-shell must load before libwayland-client (LAPTOP-HOME.md, "The layer library from Python").
+LAYER_LIBRARY=/usr/lib64/libgtk4-layer-shell.so.0
+NAME=aresos.indicator
+
+log() { printf 'aresos-level: %s\n' "$*" >&2; }
+
+action=${1-}
+case $action in
+    brightness-up | brightness-down | volume-up | volume-down | mute | mic-mute | show-volume) ;;
+    *)
+        log 'usage: aresos-level brightness-up|brightness-down|volume-up|volume-down|mute|mic-mute|show-volume'
+        exit 2
+        ;;
+esac
+
+runtime=${XDG_RUNTIME_DIR-}
+[[ $runtime == /* && -d $runtime && -w $runtime ]] || runtime=
+
+# The change lock covers only the device commands and the next sequence number, so a held key's scripts change the
+# level one at a time and the plate can tell their order. It waits at most 1 s, then the change runs anyway. No
+# child inherits it: every command below closes it.
+lock=
+if [[ -n $runtime ]]; then
+    { exec {lock}>>"$runtime/aresos-level.lock"; } 2> /dev/null || lock=
+fi
+if [[ -n $lock ]]; then
+    /usr/bin/flock -w 1 "$lock" || log 'the change lock stayed busy for 1 s; changing anyway'
+else
+    exec {lock}< /dev/null
+fi
+
+# A hung device command must not hold the lock for ever; the next key waits 1 s at most in any case.
+change() { /usr/bin/timeout 3 "$@" {lock}>&-; }
+
+case $action in
+    brightness-up)
+        change "$BRIGHTNESSCTL" --quiet --class=backlight set 5%+
+        ;;
+    brightness-down)
+        # The floor is 1 % of the maximum, rounded up. brightnessctl 0.5.1 reads --min-value as raw units only
+        # (atol), so the floor is computed here. No backlight: nothing to change, and no LED is ever touched.
+        max=$(exec {lock}>&-; /usr/bin/timeout 3 "$BRIGHTNESSCTL" --class=backlight max)
+        if [[ $max =~ ^[1-9][0-9]{0,17}$ ]]; then
+            change "$BRIGHTNESSCTL" --quiet --class=backlight --min-value=$(((max + 99) / 100)) set 5%-
+        fi
+        ;;
+    volume-up)
+        # He pressed "louder": the sound comes back too.
+        change "$WPCTL" set-volume --limit 1.0 @DEFAULT_AUDIO_SINK@ 5%+
+        change "$WPCTL" set-mute @DEFAULT_AUDIO_SINK@ 0
+        ;;
+    volume-down) change "$WPCTL" set-volume @DEFAULT_AUDIO_SINK@ 5%- ;;
+    mute) change "$WPCTL" set-mute @DEFAULT_AUDIO_SINK@ toggle ;;
+    mic-mute) change "$WPCTL" set-mute @DEFAULT_AUDIO_SOURCE@ toggle ;;
+esac
+
+# The plate keeps the highest number it has shown, so a late call never puts an older level back. The counter is
+# replaced whole: a torn file would restart the numbers below what a running plate has shown.
+seq=
+if [[ -n $runtime ]]; then
+    last=
+    { read -r last < "$runtime/aresos-level.seq"; } 2> /dev/null
+    [[ $last =~ ^[0-9]{1,18}$ ]] || last=0
+    seq=$((10#$last + 1))
+    if { printf '%s\n' "$seq" > "$runtime/aresos-level.seq.new"; } 2> /dev/null; then
+        /usr/bin/mv -f "$runtime/aresos-level.seq.new" "$runtime/aresos-level.seq" {lock}>&-
+    fi
+fi
+exec {lock}>&-
+
+# The new level as numbers and fixed words: a percentage, "<percentage> muted", "on", "off", or "none" when there is
+# nothing to control.
+reading() {
+    local out
+    case $action in
+        brightness-*)
+            out=$(/usr/bin/timeout 2 "$BRIGHTNESSCTL" --class=backlight --machine-readable info 2> /dev/null)
+            if [[ $out =~ ,([0-9]{1,15}),[0-9]+%,([1-9][0-9]{0,14})$ ]]; then
+                echo $(((100 * 10#${BASH_REMATCH[1]} + 10#${BASH_REMATCH[2]} / 2) / 10#${BASH_REMATCH[2]}))
+            else
+                echo none
+            fi
+            ;;
+        mic-mute)
+            out=$(/usr/bin/timeout 2 "$WPCTL" get-volume @DEFAULT_AUDIO_SOURCE@ 2> /dev/null)
+            case $out in
+                'Volume: '*' [MUTED]') echo off ;;
+                'Volume: '*) echo on ;;
+                *) echo none ;;
+            esac
+            ;;
+        *)
+            out=$(/usr/bin/timeout 2 "$WPCTL" get-volume @DEFAULT_AUDIO_SINK@ 2> /dev/null)
+            if [[ $out =~ ^Volume:\ ([0-9]{1,6})\.([0-9]{2})(\ \[MUTED\])?$ ]]; then
+                echo "$((10#${BASH_REMATCH[1]} * 100 + 10#${BASH_REMATCH[2]}))${BASH_REMATCH[3]:+ muted}"
+            else
+                echo none
+            fi
+            ;;
+    esac
+}
+
+# Prints gdbus's error and fails when the call did not get through. gdbus's own timeout takes whole seconds.
+show() {
+    /usr/bin/timeout 0.5 /usr/bin/gdbus call --session --timeout 1 --dest "$NAME" --object-path /aresos/indicator \
+        --method aresos.Indicator.Show "uint64 $seq" "'$action'" "'$level'" 2>&1 > /dev/null
+}
+
+owned() {
+    local limit
+    printf -v limit '%d.%02d' "$(($1 / 100))" "$(($1 % 100))"
+    [[ $(/usr/bin/timeout "$limit" /usr/bin/gdbus call --session --timeout 1 --dest org.freedesktop.DBus \
+        --object-path /org/freedesktop/DBus --method org.freedesktop.DBus.NameHasOwner "$NAME" 2> /dev/null) == '(true,)' ]]
+}
+
+# /proc/uptime gives monotonic boot time in centiseconds, independent of wall-clock adjustments.
+uptime_cs() {
+    local uptime
+    read -r uptime _ < /proc/uptime || return 1
+    now=$((10#${uptime/./}))
+}
+
+# Starts the program with this request and waits until it owns its name. One that does not own it within 5 s is
+# ended and reaped here, so the launch lock (held by the caller) never lets a second program start beside it.
+launch() {
+    local preload=() pid now deadline remaining pause
+    [[ -e $LAYER_LIBRARY ]] && preload=("LD_PRELOAD=$LAYER_LIBRARY")
+    uptime_cs || return 1
+    deadline=$((now + 500))
+    /usr/bin/setsid /usr/bin/env "${preload[@]}" "$INDICATOR" "$seq" "$action" "$level" \
+        < /dev/null > /dev/null {launch_lock}>&- &
+    pid=$!
+    while uptime_cs && ((remaining = deadline - now, remaining > 0)); do
+        if owned "$((remaining < 100 ? remaining : 100))"; then
+            uptime_cs && ((now < deadline)) && return 0
+            break
+        fi
+        kill -0 "$pid" 2> /dev/null || break
+        uptime_cs && ((remaining = deadline - now, remaining > 0)) || break
+        printf -v pause '0.%02d' "$((remaining < 10 ? remaining : 10))"
+        /usr/bin/sleep "$pause"
+    done
+    if kill -0 "$pid" 2> /dev/null; then
+        kill -TERM "$pid" 2> /dev/null
+        for _ in 1 2 3 4 5 6 7 8 9 10; do
+            kill -0 "$pid" 2> /dev/null || break
+            /usr/bin/sleep 0.1
+        done
+        kill -KILL "$pid" 2> /dev/null
+        wait "$pid"
+        log "the indicator did not take its bus name within 5 s and was ended"
+    else
+        wait "$pid"
+        log "the indicator ended (status $?) before it took its bus name"
+    fi
+}
+
+# Read back, then tell the plate: one call, or one guarded cold launch when nobody owns the name. A timeout never
+# starts a program. No bus at all means no plate (and gdbus must not start a bus of its own).
+notify() {
+    local error launch_lock
+    level=$(reading)
+    [[ -n ${DBUS_SESSION_BUS_ADDRESS-} ]] || return 0
+    error=$(show) && return 0
+    [[ $error == *org.freedesktop.DBus.Error.ServiceUnknown* ]] || return 0
+    { exec {launch_lock}>>"$runtime/aresos-indicator.launch"; } 2> /dev/null || return 0
+    # Waits past a slow start's 5 s; a notifier that waited then finds the name owned and calls it.
+    if /usr/bin/flock -w 6 "$launch_lock"; then
+        if error=$(show); then
+            :
+        elif [[ $error != *org.freedesktop.DBus.Error.ServiceUnknown* ]]; then
+            :
+        elif [[ -x $INDICATOR ]]; then
+            launch
+        else
+            log "$INDICATOR is missing or not executable; the level changed without a plate"
+        fi
+    fi
+    exec {launch_lock}>&-
+}
+
+if [[ -n $seq ]]; then
+    notify &
+else
+    log 'no usable XDG_RUNTIME_DIR: the level changed without a plate'
+fi
+exit 0

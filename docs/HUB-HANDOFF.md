@@ -37,7 +37,15 @@ Written Fri 2026-11-20 13:50 by `linux-hub` (Claude Opus 5.5), before a clear at
   - Before `linux-aresos` publishes it (standing OK, board #388), it still needs the jar pin, the last dry run, the VM rehearsal and the final review. Installing it (`at update`) is the owner's own step.
   - The hub waits for `linux-aresos` to say R28 is on the laptop.
 - **B318 merged** (PR126, `4105952a`, Fri 2026-11-20): why 49's frozen games died on thaw, the first item of T364. STATE.md has the line.
-  - **Next for T364:** once R28 runs the home on the laptop, read the running game read-only: the log's "OpenAL initialized on device" line, its loaded audio libraries (`/proc/<pid>/maps`) and its realtime threads. That tells which backend the product uses.
+  - **T364's audio question, answered on the laptop** (Sat 2026-11-21 18:08, R28 `aa97b2d5`, the first SETUP start, read-only): the product uses **OpenAL Soft's PipeWire backend**.
+    - The game log says `OpenAL initialized on device Built-in Audio Analog Stereo`. `/proc/<pid>/maps` holds `libpipewire-0.3` with PipeWire memfds; `libpulse` is loaded too, but nothing of it is in use.
+    - **All 80 game threads are SCHED_OTHER** (`PWEventThread`, `ALSoftP0` and `Sound engine` included). The game's `RLIMIT_RTPRIO` is 0 and its `RLIMIT_RTTIME` is 200 ms.
+    - So the thaw kill from B318 can't happen in the real session. It needs a realtime mixer thread, which only OpenAL Soft's own-thread backends make (null, which the rigs used, and ALSA, the fallback when neither PipeWire nor PulseAudio answers).
+    - The supervisor's demotion stays in the sleeping-world design as a cheap safety net for that fallback, not as a fix the product needs now.
+  - **A memory lead from the same start** (`linux-aresos`'s 23d check, 18:09):
+    - The game scope's anon is about 1019 MiB (`memory.high` 2560 MiB, no `high` events). Prism's scope holds about **418 MiB of anon while the game runs**.
+    - The supervisor writes `CloseAfterLaunch=false` (since package 23), and the game's wrapper runs as Prism's child. Prism's "close after launch" probably only closes windows, so the memory study should check whether Prism can leave, or be replaced for the launch, without losing the wrapper.
+  - **First-start findings that belong to others:** the Microsoft sign-in's browser route has no `prismlauncher://` handler, so the owner used the device code after a retry (`linux-aresos`, T474, R29). The windows still wear Ares-Crown, not the Minecraft look (`linux-desktop`, after B320).
   - **Then:** the swap side (`linux-aresos`) and prefetch on wake, in the sleeping-world study. The supervisor's demotion goes into that design.
   - **The rig** stays in `~/AresOS-318-thaw-watchdog` (`.work/pkg318` holds its base world). Before reusing it, fix the two Known limits in `reviews/318-thaw-watchdog/FINDINGS.md`.
 - `~/AresOS-try` is `hub-try`'s checkout: leave it alone, because `hub-try --update` moves it.
@@ -63,6 +71,36 @@ His guideline: "hub wise the main next step is make it a functional, usable home
 **Waiting on him:**
 - the flying speed after he tries 56: one number, `LiveMode.DESKTOP_FLYING_SPEED`, now `0.075f` (1.5×);
 - the permanent DNS change, which needs his password.
+
+## The owner's first try-out of R28 (Sat 2026-11-21 ~18:30)
+
+His findings, in his order, with who takes each. Nothing is built yet.
+
+1. **Monitor plugged in after the start:** the home didn't change, and the monitor stayed black. `wlr-randr`: eDP-1 at 0,0 and HDMI-A-1 at 1920,0, both on. The world is only on eDP-1 and nothing draws on HDMI. He can't cross to the monitor without Esc, because the world holds the mouse. "For a homescreen that's bad. It should be seamless." **Needs his decision** (what each screen shows, how the mouse crosses). Hub and `linux-desktop`, with T373's per-output covering.
+2. **The Esc menu:** he likes it after all, but doesn't know what **New home** does. Hub: clearer label and an explanation line.
+3. **Apps open part-screen, and the world behind is black.** Only a maximized window covers the world (`HomeScreen.covered`). The black is the camera standing against the app's gate plate after walking in (his words: "that's where the character is"). Hub: a good view behind an app (step the camera back from the gate, or open maximized by default). He asked whether part-screen is normal. On Windows and macOS an app opens at its last size, often maximized.
+4. **Clicks reach Chrome while the world has the mouse:** after he clicks the world, the cursor is hidden and he moves the character, but a left click lands in Chrome when the hidden pointer sits over it. A real input bug. Hub (mod pointer capture) with `linux-desktop` (labwc pointer focus).
+5. **A click on the world beside a part-screen window hides the window** (the world window is raised over it). He reads it as minimizing, "like on any OS". `linux-desktop`: on Windows and macOS the desktop stays below the windows, so decide whether the world should too.
+6. **Minecraft's tutorial toasts** ("punch a tree") don't fit. Hub: off (`tutorialStep:none`, and the other vanilla onboarding toasts). His idea: use toasts for AresOS updates and features later.
+7. **Taskbar (the hotbar):** an open app that isn't in front isn't shown, and nothing marks which apps are open or active. Hub: open apps in the bar, a mark for open and one for active.
+8. **The hotbar Terminal block is brown, the Terminal itself black, and it doesn't need white edges.** Hub: the logo picture.
+9. **No brightness or volume pop-ups, and no status icons (Wi-Fi, battery, sound, clock).** He wants design options. `linux-desktop` (with B312's components).
+10. **Reopening an app starts a new instance:** Chrome minimized with "-" (one tab open), then `/chrome` or a right-click on its bar icon opened a new Chrome window without the tab. His proposal: **left click opens or brings back the app, right click opens its options** (new window and so on, like Windows). Hub (launch focuses the existing window) with `linux-desktop` (window list and raise).
+11. **No Files app and no System Settings app.** Minor while it's a dev project, needed later. `linux-aresos`/`linux-desktop` roadmap.
+12. **The hub's own blocks can be broken.** He'd protect them by default, editable only in a build mode. Hub.
+13. **Full-screen apps hide the taskbar, which he likes, but moving the cursor down should bring it up, as macOS does** (added after). This needs a bar outside the game, because the world isn't drawn under a maximized app: a layer-shell bar in the Minecraft look, which auto-hides over full-screen windows. Hub (bar content, the same as the hotbar's) with `linux-desktop` (the layer-shell surface, B312's look).
+
+He didn't test memory. Ask him when the memory work needs his apps open.
+
+**His answers (same evening):**
+- **With a monitor, the world is on the monitor.** The laptop screen shows a picture behind its apps.
+- **No hold-the-right-button to look around:** "we need to find another way". The cursor must still cross screens seamlessly. This is an open design job: prototype two or three ways and let him try them by feel.
+- **A click on the world beside a part-screen app must not hide the app** (the world stays below the windows). `linux-desktop`'s item (c), now decided.
+- **The look is already decided:** COMPONENTS.md (B312, on main) uses the game's textures by default and A/C as a setting. The brightness and volume indicator (4.1) is `linux-desktop`'s first build. Status icons (Wi-Fi, battery, sound, clock) aren't in it yet; they go to `linux-desktop` as a new component in the same looks.
+- **New: a switch to turn the home world off.** The home becomes a picture: a default one, black, or any picture of his. "Especially good when we are building, so Minecraft doesn't draw that much memory" (game about 1 GiB plus Prism about 418 MiB).
+- He agreed to the rest: the fix order, protected blocks with a build mode, tutorial toasts off, the clearer New home label, the Terminal block, open/active marks, left click opens and right click gives options, and apps opening full at first and then at their last size.
+
+**What this means for the structure:** the world-off switch, the bar over full-screen apps, and the picture on the second screen all need the home's own parts outside Minecraft: a picture behind the windows, the bar, search and app launching. Today the bar, search and launching live inside the game (the hotbar, `WorldSearchScreen`, `AresOsClient.launch`). One design note should decide where they live, with `linux-desktop`, before any of the three is built. It should also cover the sleeping world (T364), whose still image is the same picture.
 
 ## Who owns what next door
 

@@ -1,6 +1,8 @@
 // Package 316's harness: the two Wayland test clients, in one program.
 //
-//   wl-harness window   a full-screen window that prints every input event it receives, one per line
+//   wl-harness window [--lock]
+//                       a full-screen window that prints every input event it receives, one per line
+//                       --lock adds relative motion and a pointer lock; "release" on stdin destroys the lock
 //   wl-harness input pointer|keyboard
 //                       a virtual pointer or a virtual keyboard, driven by lines on stdin:
 //                         abs X Y W H    put the pointer at X,Y of a W by H layout
@@ -15,6 +17,7 @@
 // device of that kind exists, and a client that holds a pointer lock loses it with the seat's pointer. So
 // each kind is its own process, and stopping the pointer's takes the seat's pointer away and nothing else.
 #define _GNU_SOURCE
+#include <poll.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -25,6 +28,8 @@
 #include <unistd.h>
 #include <wayland-client.h>
 #include <xkbcommon/xkbcommon.h>
+#include "pointer-constraints-unstable-v1-client-protocol.h"
+#include "relative-pointer-unstable-v1-client-protocol.h"
 #include "virtual-keyboard-unstable-v1-client-protocol.h"
 #include "wlr-output-management-unstable-v1-client-protocol.h"
 #include "wlr-virtual-pointer-unstable-v1-client-protocol.h"
@@ -38,6 +43,9 @@ static struct xdg_wm_base *wm_base;
 static struct zwlr_virtual_pointer_manager_v1 *pointer_manager;
 static struct zwp_virtual_keyboard_manager_v1 *keyboard_manager;
 static struct zwlr_output_manager_v1 *output_manager;
+static struct zwp_pointer_constraints_v1 *constraints;
+static struct zwp_relative_pointer_manager_v1 *relative_manager;
+static bool wants_lock;
 static bool wants_outputs;
 
 static void die(const char *why)
@@ -68,6 +76,10 @@ static void registry_global(void *data, struct wl_registry *registry, uint32_t n
 		pointer_manager = wl_registry_bind(registry, name, &zwlr_virtual_pointer_manager_v1_interface, 1);
 	} else if (!strcmp(interface, zwp_virtual_keyboard_manager_v1_interface.name)) {
 		keyboard_manager = wl_registry_bind(registry, name, &zwp_virtual_keyboard_manager_v1_interface, 1);
+	} else if (wants_lock && !strcmp(interface, zwp_pointer_constraints_v1_interface.name)) {
+		constraints = wl_registry_bind(registry, name, &zwp_pointer_constraints_v1_interface, 1);
+	} else if (wants_lock && !strcmp(interface, zwp_relative_pointer_manager_v1_interface.name)) {
+		relative_manager = wl_registry_bind(registry, name, &zwp_relative_pointer_manager_v1_interface, 1);
 	} else if (wants_outputs && !strcmp(interface, zwlr_output_manager_v1_interface.name)) {
 		output_manager = wl_registry_bind(registry, name, &zwlr_output_manager_v1_interface, version < 4 ? version : 4);
 	}
@@ -85,12 +97,35 @@ static const struct wl_registry_listener registry_listener = {
 static struct wl_surface *surface;
 static struct wl_pointer *pointer;
 static struct wl_keyboard *keyboard;
+static struct zwp_locked_pointer_v1 *lock;
+static struct zwp_relative_pointer_v1 *relative;
 static int32_t width, height;
+
+// The persistent constraint and unaccelerated deltas used by package 311's lock_phase().
+static void relative_motion(void *d, struct zwp_relative_pointer_v1 *r, uint32_t hi, uint32_t lo,
+	wl_fixed_t dx, wl_fixed_t dy, wl_fixed_t dx_unaccel, wl_fixed_t dy_unaccel)
+{
+	printf("REL %.2f %.2f\n", wl_fixed_to_double(dx_unaccel), wl_fixed_to_double(dy_unaccel));
+}
+
+static void locked(void *d, struct zwp_locked_pointer_v1 *l) { puts("LOCKED"); }
+static void unlocked(void *d, struct zwp_locked_pointer_v1 *l) { puts("UNLOCKED"); }
+static const struct zwp_locked_pointer_v1_listener lock_listener = {.locked = locked, .unlocked = unlocked};
+static const struct zwp_relative_pointer_v1_listener relative_listener = {.relative_motion = relative_motion};
 
 static void pointer_enter(void *d, struct wl_pointer *p, uint32_t serial, struct wl_surface *s, wl_fixed_t x,
 	wl_fixed_t y)
 {
 	printf("ENTER %.1f %.1f\n", wl_fixed_to_double(x), wl_fixed_to_double(y));
+	if (wants_lock) {
+		relative = zwp_relative_pointer_manager_v1_get_relative_pointer(relative_manager, p);
+		zwp_relative_pointer_v1_add_listener(relative, &relative_listener, NULL);
+		lock = zwp_pointer_constraints_v1_lock_pointer(constraints, s, p, NULL,
+			ZWP_POINTER_CONSTRAINTS_V1_LIFETIME_PERSISTENT);
+		zwp_locked_pointer_v1_add_listener(lock, &lock_listener, NULL);
+		wl_surface_commit(s);
+		wants_lock = false;
+	}
 }
 
 static void pointer_leave(void *d, struct wl_pointer *p, uint32_t serial, struct wl_surface *s)
@@ -252,10 +287,43 @@ static const struct xdg_toplevel_listener toplevel_listener = {
 	.close = toplevel_close,
 };
 
+static int dispatch_lock_window(void)
+{
+	struct pollfd fds[] = {{.fd = wl_display_get_fd(display), .events = POLLIN},
+		{.fd = STDIN_FILENO, .events = POLLIN}};
+
+	while (wl_display_dispatch_pending(display) >= 0 && wl_display_flush(display) >= 0
+		&& poll(fds, 2, -1) > 0) {
+		if (fds[0].revents && wl_display_dispatch(display) < 0) {
+			return 0;
+		}
+		if (fds[1].revents) {
+			char line[32];
+			if (!fgets(line, sizeof line, stdin)) {
+				return 0;
+			}
+			if (!lock || strcmp(line, "release\n")) {
+				die("expected release with a pointer lock");
+			}
+			zwp_locked_pointer_v1_destroy(lock);
+			zwp_relative_pointer_v1_destroy(relative);
+			lock = NULL;
+			if (wl_display_roundtrip(display) < 0) {
+				die("the compositor is gone");
+			}
+			puts("RELEASED");
+		}
+	}
+	return 0;
+}
+
 static int run_window(void)
 {
 	if (!compositor || !shm || !seat || !wm_base) {
 		die("the compositor lacks wl_compositor, wl_shm, wl_seat or xdg_wm_base");
+	}
+	if (wants_lock && (!constraints || !relative_manager)) {
+		die("the compositor lacks pointer constraints or relative pointer");
 	}
 	setvbuf(stdout, NULL, _IOLBF, 0);
 	wl_seat_add_listener(seat, &seat_listener, NULL);
@@ -269,6 +337,9 @@ static int run_window(void)
 	xdg_toplevel_set_app_id(toplevel, "harness-probe");
 	xdg_toplevel_set_fullscreen(toplevel, NULL);
 	wl_surface_commit(surface);
+	if (wants_lock) {
+		return dispatch_lock_window();
+	}
 	while (wl_display_dispatch(display) >= 0) {
 	}
 	return 0;
@@ -380,11 +451,12 @@ static int run_outputs(void)
 
 int main(int argc, char **argv)
 {
-	bool is_window = argc == 2 && !strcmp(argv[1], "window");
+	wants_lock = argc == 3 && !strcmp(argv[1], "window") && !strcmp(argv[2], "--lock");
+	bool is_window = wants_lock || (argc == 2 && !strcmp(argv[1], "window"));
 	bool is_input = argc == 3 && !strcmp(argv[1], "input") && (!strcmp(argv[2], "pointer") || !strcmp(argv[2], "keyboard"));
 	wants_outputs = argc == 2 && !strcmp(argv[1], "outputs");
 	if (!is_window && !is_input && !wants_outputs) {
-		fprintf(stderr, "usage: wl-harness window | wl-harness input pointer|keyboard | wl-harness outputs\n");
+		fprintf(stderr, "usage: wl-harness window [--lock] | wl-harness input pointer|keyboard | wl-harness outputs\n");
 		return 2;
 	}
 	display = wl_display_connect(NULL);

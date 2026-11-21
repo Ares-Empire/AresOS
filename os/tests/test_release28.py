@@ -132,8 +132,8 @@ class PackageDiff28Test(unittest.TestCase):
         chrome = lambda raw: json.loads(raw)['nevra']
         old_lock = base.lock_nevras(rd.git_bytes(source, 'os/packages.lock.json'))
         old_lock.append(chrome(rd.git_bytes(source, 'os/google-chrome.lock.json')))
-        new_lock = base.lock_nevras((ROOT / 'os/packages.lock.json').read_bytes())
-        new_lock.append(chrome((ROOT / 'os/google-chrome.lock.json').read_bytes()))
+        new_lock = base.lock_nevras(base.released('28', 'os/packages.lock.json'))
+        new_lock.append(chrome(base.released('28', 'os/google-chrome.lock.json')))
         # Release 27's image: the base's packages (release 6's list) with its lock applied.
         installed = (ROOT / 'os/manifest/ci/06c/image-full-1/packages.txt').read_text().split()
         def image(lock):
@@ -2093,6 +2093,13 @@ class MainSmokeTest(unittest.TestCase):
         self.enterContext(contextlib.chdir(ROOT))
         self.work = pathlib.Path(tempfile.mkdtemp(dir=ROOT / 'os/tests'))
         self.addCleanup(shutil.rmtree, self.work)
+        # Release 28's package lock, as its record names it. Packages that main locks after release 28 (323's layer
+        # library) are no part of release 28, so release_diff reads this lock here instead of the working tree's.
+        lock_28 = base.released('28', 'os/packages.lock.json')
+        read_text = pathlib.Path.read_text
+        def source_text(path, *args, **kwargs):
+            return lock_28.decode() if str(path) == 'os/packages.lock.json' else read_text(path, *args, **kwargs)
+        self.enterContext(patch.object(pathlib.Path, 'read_text', source_text))
         source = rd.PREVIOUS_SOURCE_28
         show = lambda path: subprocess.check_output(['git', 'show', f'{source}:{path}'])
         policy = {f'usr/share/aresos/policy/{name}': (ROOT / 'os/policy' / name).read_bytes()
@@ -2103,7 +2110,7 @@ class MainSmokeTest(unittest.TestCase):
                rd.SCHEMAS: (FIXTURES / 'before.compiled').read_bytes(),
                rd.RC_XML: show('os/config/' + rd.RC_XML), 'usr/share/aresos/apps/terminal.json': show('os/config/usr/share/aresos/apps/terminal.json'),
                updaters: Classifier28Test.audit(), tag: b'tag'}
-        new = {**policy, 'etc/hostname': b'aresos\n', 'usr/share/aresos/manifest/packages.lock.json': (ROOT / 'os/packages.lock.json').read_bytes(),
+        new = {**policy, 'etc/hostname': b'aresos\n', 'usr/share/aresos/manifest/packages.lock.json': lock_28,
                rd.SCHEMAS: (FIXTURES / 'after.compiled').read_bytes(),
                rd.PRISM + '/bin/prismlauncher': b'prism', rd.PRISM + '/libprism.so': ('link', 'bin/prismlauncher'),
                rd.PRISM_FILES: f'{hashlib.sha256(b"prism").hexdigest()}  /{rd.PRISM}/bin/prismlauncher\n'.encode(),
@@ -2147,7 +2154,7 @@ class MainSmokeTest(unittest.TestCase):
             if rel in rd.CHMOD_0755_28 or os.access(ROOT / 'os/config' / rel, os.X_OK):
                 (self.roots['new'] / rel).chmod(0o755)
         nevras = lambda raw: base.lock_nevras(raw) + [json.loads((ROOT / 'os/google-chrome.lock.json').read_text())['nevra']]
-        self.rpms = dict(old=nevras(show('os/packages.lock.json')), new=nevras((ROOT / 'os/packages.lock.json').read_bytes()))
+        self.rpms = dict(old=nevras(show('os/packages.lock.json')), new=nevras(lock_28))
         release = json.loads((ROOT / rd.PREVIOUS_28).read_text())
         self.images = {release['reference']: 'old', rd.NEW: 'new', json.loads((ROOT / 'os/manifest/base.json').read_text())['reference']: 'base'}
         labels = lambda revision: {'org.opencontainers.image.source': 'https://github.com/Ares-Empire/AresOS',

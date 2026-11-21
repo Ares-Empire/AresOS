@@ -1,0 +1,85 @@
+test_all_look_settings_resolve_to_a (test_aresos_indicator.ContentTest.test_all_look_settings_resolve_to_a) ... ok
+test_laptop_connector_and_headless_override (test_aresos_indicator.ContentTest.test_laptop_connector_and_headless_override) ... ok
+test_level_layout_dimensions_for_each_size (test_aresos_indicator.ContentTest.test_level_layout_dimensions_for_each_size) ... ok
+test_levels_include_partial_floor_full_and_above_limit (test_aresos_indicator.ContentTest.test_levels_include_partial_floor_full_and_above_limit) ... ok
+test_microphone_has_two_states_and_no_bar (test_aresos_indicator.ContentTest.test_microphone_has_two_states_and_no_bar) ... ok
+test_missing_device_and_screen_notes (test_aresos_indicator.ContentTest.test_missing_device_and_screen_notes) ... ok
+test_muted_keeps_the_level_in_grey_and_the_status_in_red (test_aresos_indicator.ContentTest.test_muted_keeps_the_level_in_grey_and_the_status_in_red) ... ok
+/usr/lib64/python3.14/site-packages/gi/overrides/__init__.py:159: PyGIDeprecationWarning: GLib.unix_signal_add_full is deprecated; use GLibUnix.signal_add_full instead
+  value = getattr(proxy, attr)
+test_jersey_letter_shapes_at_each_scale_have_the_study_masks (test_aresos_indicator.PainterTest.test_jersey_letter_shapes_at_each_scale_have_the_study_masks) ... ok
+test_level_layout_and_every_sprite_pixel_at_each_scale_including_limit (test_aresos_indicator.PainterTest.test_level_layout_and_every_sprite_pixel_at_each_scale_including_limit) ... ok
+test_plain_bluetooth_name_ellipsizes_and_fallback_uses_pack_colours (test_aresos_indicator.PainterTest.test_plain_bluetooth_name_ellipsizes_and_fallback_uses_pack_colours) ... ok
+test_bluetooth_prefers_the_devices_own_name_and_handles_unknown_outputs (test_aresos_indicator.PipeWireTest.test_bluetooth_prefers_the_devices_own_name_and_handles_unknown_outputs) ... ok
+test_dump_is_bounded_and_failure_keeps_the_volume_label (test_aresos_indicator.PipeWireTest.test_dump_is_bounded_and_failure_keeps_the_volume_label) ... ok
+test_hdmi_uses_the_route_or_profile (test_aresos_indicator.PipeWireTest.test_hdmi_uses_the_route_or_profile) ... ok
+test_speakers_and_headphones_share_the_same_sink (test_aresos_indicator.PipeWireTest.test_speakers_and_headphones_share_the_same_sink) ... ok
+test_cold_arguments_are_forwarded_and_loader_preload_is_cleared (test_aresos_indicator.RequestsTest.test_cold_arguments_are_forwarded_and_loader_preload_is_cleared) ... ok
+test_invalid_reading_does_not_supersede_a_valid_request (test_aresos_indicator.RequestsTest.test_invalid_reading_does_not_supersede_a_valid_request) ... ok
+test_next_event_resets_both_timers_and_hiding_discards_pending_audio (test_aresos_indicator.RequestsTest.test_next_event_resets_both_timers_and_hiding_discards_pending_audio) ... ok
+test_reversed_show_calls_keep_the_newest_level_and_deadlines (test_aresos_indicator.RequestsTest.test_reversed_show_calls_keep_the_newest_level_and_deadlines) ... ok
+test_show_volume_reads_the_settings_and_replaces_the_visible_surface (test_aresos_indicator.RequestsTest.test_show_volume_reads_the_settings_and_replaces_the_visible_surface) ... ok
+test_bottom_scaled_margin_and_explicit_monitor (test_aresos_indicator.SurfaceTest.test_bottom_scaled_margin_and_explicit_monitor) ... ok
+test_passive_layer_is_configured_and_input_is_empty_before_visibility (test_aresos_indicator.SurfaceTest.test_passive_layer_is_configured_and_input_is_empty_before_visibility) ... ok
+test_unsupported_or_old_protocol_logs_once_without_creating_a_window (test_aresos_indicator.SurfaceTest.test_unsupported_or_old_protocol_logs_once_without_creating_a_window) ... ok
+test_window_that_is_not_a_layer_after_setup_exits_without_mapping (test_aresos_indicator.SurfaceTest.test_window_that_is_not_a_layer_after_setup_exits_without_mapping) ... ok
+
+----------------------------------------------------------------------
+Ran 23 tests in 0.208s
+
+OK
+test_a_key_held_from_cold_starts_one_program_and_ends_on_the_last_level (test_aresos_level.ColdLaunchTest.test_a_key_held_from_cold_starts_one_program_and_ends_on_the_last_level) ... ok
+test_a_program_that_never_takes_its_name_is_ended_before_the_next_one_starts (test_aresos_level.ColdLaunchTest.test_a_program_that_never_takes_its_name_is_ended_before_the_next_one_starts) ... ok
+test_a_running_indicator_gets_the_call_in_order (test_aresos_level.ColdLaunchTest.test_a_running_indicator_gets_the_call_in_order) ... ok
+test_two_quick_first_presses_start_exactly_one_program (test_aresos_level.ColdLaunchTest.test_two_quick_first_presses_start_exactly_one_program) ... ok
+test_an_unknown_action_changes_nothing (test_aresos_level.CommandsTest.test_an_unknown_action_changes_nothing) ... ok
+test_each_action_runs_exactly_its_commands_in_order (test_aresos_level.CommandsTest.test_each_action_runs_exactly_its_commands_in_order) ... ok
+test_the_script_names_every_program_by_its_absolute_path (test_aresos_level.CommandsTest.test_the_script_names_every_program_by_its_absolute_path) ... ok
+test_a_large_backlight_floors_at_one_percent_of_its_maximum (test_aresos_level.LevelsTest.test_a_large_backlight_floors_at_one_percent_of_its_maximum) ... ok
+test_a_small_backlight_floors_at_one_raw_unit_at_least (test_aresos_level.LevelsTest.test_a_small_backlight_floors_at_one_raw_unit_at_least) ... ok
+test_an_led_is_never_changed_and_brightness_reads_not_available (test_aresos_level.LevelsTest.test_an_led_is_never_changed_and_brightness_reads_not_available) ... ok
+test_no_sound_output_or_microphone_reads_none (test_aresos_level.LevelsTest.test_no_sound_output_or_microphone_reads_none) ... ok
+test_the_readings_are_numbers_and_fixed_words (test_aresos_level.LevelsTest.test_the_readings_are_numbers_and_fixed_words) ... ok
+test_volume_stops_at_100_percent_and_brightness_at_the_maximum (test_aresos_level.LevelsTest.test_volume_stops_at_100_percent_and_brightness_at_the_maximum) ... ok
+test_volume_up_ends_mute_volume_down_and_mute_keep_the_level (test_aresos_level.LevelsTest.test_volume_up_ends_mute_volume_down_and_mute_keep_the_level) ... ok
+test_a_second_key_changes_at_once_while_the_first_read_back_hangs (test_aresos_level.LockTest.test_a_second_key_changes_at_once_while_the_first_read_back_hangs) ... ok
+test_no_layer_library_means_no_preload (test_aresos_level.LockTest.test_no_layer_library_means_no_preload) ... skipped 'this system has the layer library'
+test_the_change_waits_for_the_lock_at_most_one_second (test_aresos_level.LockTest.test_the_change_waits_for_the_lock_at_most_one_second) ... ok
+test_the_indicator_inherits_neither_lock_and_gets_the_layer_library_first (test_aresos_level.LockTest.test_the_indicator_inherits_neither_lock_and_gets_the_layer_library_first) ... ok
+test_the_sequence_rises_and_a_broken_counter_starts_again (test_aresos_level.LockTest.test_the_sequence_rises_and_a_broken_counter_starts_again) ... ok
+test_with_an_indicator_that_crashes_at_start (test_aresos_level.SurvivesTest.test_with_an_indicator_that_crashes_at_start) ... ok
+test_with_an_indicator_that_is_not_executable (test_aresos_level.SurvivesTest.test_with_an_indicator_that_is_not_executable) ... ok
+test_with_an_indicator_that_never_answers (test_aresos_level.SurvivesTest.test_with_an_indicator_that_never_answers) ... ok
+test_with_an_indicator_that_never_takes_its_name (test_aresos_level.SurvivesTest.test_with_an_indicator_that_never_takes_its_name) ... ok
+test_without_a_session_bus_or_a_runtime_folder (test_aresos_level.SurvivesTest.test_without_a_session_bus_or_a_runtime_folder) ... ok
+test_without_the_indicator (test_aresos_level.SurvivesTest.test_without_the_indicator) ... ok
+
+----------------------------------------------------------------------
+Ran 25 tests in 28.400s
+
+OK (skipped=1)
+test_a_failed_rename_keeps_the_old_file_and_leaves_no_temporary (test_aresos_settings.AtomicWriteTest.test_a_failed_rename_keeps_the_old_file_and_leaves_no_temporary) ... ok
+test_a_failure_while_writing_keeps_the_old_file (test_aresos_settings.AtomicWriteTest.test_a_failure_while_writing_keeps_the_old_file) ... ok
+test_the_new_file_is_written_beside_it_flushed_and_renamed_into_place (test_aresos_settings.AtomicWriteTest.test_the_new_file_is_written_beside_it_flushed_and_renamed_into_place) ... ok
+test_set_shows_the_plate_once_through_aresos_level (test_aresos_settings.CommandInSandboxTest.test_set_shows_the_plate_once_through_aresos_level) ... ok
+test_set_tells_the_indicator_the_current_volume (test_aresos_settings.CommandInSandboxTest.test_set_tells_the_indicator_the_current_volume) ... ok
+test_a_bad_value_falls_back_alone_with_one_line_for_all_problems (test_aresos_settings.DefaultsTest.test_a_bad_value_falls_back_alone_with_one_line_for_all_problems) ... ok
+test_a_broken_file_means_the_defaults_and_one_journal_line (test_aresos_settings.DefaultsTest.test_a_broken_file_means_the_defaults_and_one_journal_line) ... ok
+test_an_unreadable_file_means_the_defaults (test_aresos_settings.DefaultsTest.test_an_unreadable_file_means_the_defaults) ... ok
+test_load_is_what_the_indicator_imports (test_aresos_settings.DefaultsTest.test_load_is_what_the_indicator_imports) ... ok
+test_no_file_means_the_defaults_and_writes_nothing (test_aresos_settings.DefaultsTest.test_no_file_means_the_defaults_and_writes_nothing) ... ok
+test_the_defaults_and_choices_are_the_briefs (test_aresos_settings.DefaultsTest.test_the_defaults_and_choices_are_the_briefs) ... ok
+test_xdg_config_home_is_honoured_and_a_relative_one_ignored (test_aresos_settings.DefaultsTest.test_xdg_config_home_is_honoured_and_a_relative_one_ignored) ... ok
+test_get_runs_as_a_command (test_aresos_settings.OwnershipTest.test_get_runs_as_a_command) ... ok
+test_no_other_program_reads_the_settings_file (test_aresos_settings.OwnershipTest.test_no_other_program_reads_the_settings_file) ... ok
+test_a_bad_name_or_value_is_refused_and_the_file_kept (test_aresos_settings.SetTest.test_a_bad_name_or_value_is_refused_and_the_file_kept) ... ok
+test_a_broken_file_is_replaced_by_the_new_value_with_one_line (test_aresos_settings.SetTest.test_a_broken_file_is_replaced_by_the_new_value_with_one_line) ... ok
+test_a_missing_aresos_level_still_saves (test_aresos_settings.SetTest.test_a_missing_aresos_level_still_saves) ... ok
+test_each_name_and_value_is_saved_alone_and_read_back (test_aresos_settings.SetTest.test_each_name_and_value_is_saved_alone_and_read_back) ... ok
+test_the_folder_is_created_when_missing (test_aresos_settings.SetTest.test_the_folder_is_created_when_missing) ... ok
+test_values_accumulate_and_only_place_and_size_show_the_plate (test_aresos_settings.SetTest.test_values_accumulate_and_only_place_and_size_show_the_plate) ... ok
+
+----------------------------------------------------------------------
+Ran 20 tests in 0.548s
+
+OK

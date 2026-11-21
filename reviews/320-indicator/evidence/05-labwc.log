@@ -1,0 +1,10 @@
+Failed to read any devices of class 'backlight'.
+
+/usr/libexec/aresos-indicator:400: DeprecationWarning: Gio.DBusConnection.register_object is deprecated
+  connection.register_object(OBJECT, interface, indicator.on_show, None, None)
+aresos-indicator: started
+Translate ID error: '-1' is not a valid ID (returned by default-nodes-api)
+
+Translate ID error: '-1' is not a valid ID (returned by default-nodes-api)
+
+Translate ID error: '-1' is not a valid ID (returned by default-nodes-api)
