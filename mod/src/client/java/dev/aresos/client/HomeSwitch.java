@@ -23,7 +23,7 @@ import java.nio.file.Path;
 import java.time.LocalDateTime;
 
 /**
- * Package 48, A.5: "New home…" in the AresOS menu, from one home to a new one without the title screen in between.
+ * Package 48, A.5: "Start a new home…" in the AresOS menu, from one home to a new one without the title screen in between.
  *
  * <ol>
  *   <li>The open home is saved and closed ("Making your new home…" shows from here to the end).</li>
