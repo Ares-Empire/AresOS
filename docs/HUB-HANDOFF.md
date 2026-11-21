@@ -6,11 +6,19 @@ Written Fri 2026-11-20 13:50 by `linux-hub` (Claude Opus 5.5), before a clear at
 
 ## Resume here
 
-1. **B318 is done and merged** (PR126, `4105952a`): no step or review is left. Nothing of the hub is running: no Claude agent and no Codex job.
-2. **PR127, the owner name scrub, is merged** (`d4cfe514`, 14:10), with its board notes left, T433 done and its worktree removed (see below).
-3. **R28 is published** (PR129, squash `6ae4da41`, Sat 2026-11-21 06:35, VM rehearsal 8 passed). The laptop runs R27 until the owner's update session (`at update`, his own step; `linux-aresos` asks him to schedule it). Package 42's bindings are active: a hub change that touches a bound file goes through `rebind.py pending`. Once the laptop has updated:
-   - the try-out with the owner and the boot-to-home timing (T365, T362). **Timing from the logs, on the second boot after the update:** `systemd-analyze` for firmware, loader, kernel and userspace; then in `journalctl -b -o short-precise` (the supervisor's stderr; also `~/.local/state/aresos/desktop.log`) the supervisor's start (the cover goes up with it), `launch N: the game is starting`, `the game runs as pid`, and `the active world is …` (the world is ready). Ask the owner only what the logs can't show: when the cover appeared on his screen and when the world looked usable;
-   - the read-only look at the running game's audio backend for T364 (B318's open question).
+Updated Sat 2026-11-21 22:40 (by `date`) by `linux-hub` (Claude Opus 5.5). R28 runs on the laptop since 18:00; the owner's first try-out and his answers are in the section below.
+
+1. **B327 is merged** (PR142, `4dd5288b`): tutorial toasts off in the home, nothing breaks in Live, Build mode in the Esc menu, "Start a new home…", the Terminal's look, and the town keeper changes nothing with desktop mode off. Reviews: Codex `gpt-6.2-astra` NOT SAFE, fixed, `gpt-6.2-sol` recheck SAFE. It rides R29 (`linux-aresos` has the jar note).
+2. **B328 (look around without holding a button)** is on `pkg/328-look-around` (`~/AresOS-328-look-around`). Step 328a (the click leak, and the check of finding 5) runs on one Opus agent since 19:35. Then 328b (click to look), 328c (edge turning), 328d (switch and two-screen trial), one fresh agent each, as the week allows. Its final review: Codex Sol (Astra only for security, `mac-capacity` 2026-11-21).
+3. **The design note `docs/design/HOME-OUTSIDE.md` is READY** (B332): the home's parts outside the game. Fable 5.2 wrote and revised it on the API promo, $38.62 in all; reviews: Fable NOT READY, Codex NOT READY, four targeted Codex rechecks, the last READY (`reviews/332-outside-game-design/`). The owner answered its questions (T482–T485). `linux-desktop` leads its packages 3a/3b, 4 and 5 and writes their briefs.
+4. **Next for the hub, in order:**
+   - **Package 2 of the note:** open and active marks on the hotbar, and a left click brings an app back (`apps_state`, `activate_app`). It depends on no gate and can be briefed now.
+   - **Package 1** (the helper for the session) with `linux-aresos`; **package 6** (search outside).
+   - **The helper's log goes to tty1 on R28** (its stderr is inherited; nothing is recorded). Send it to the journal in the next hub package that touches `aresos-shell`.
+   - **T364, the sleeping-world study,** must pass the note's gates (section 13) before packages 7 and 9.
+   - **Boot-to-home timing (T362)** on the owner's next restart.
+5. **Budgets (Sat evening):** the Claude week and Codex are both over pace. One Opus agent and one Codex job at a time for this lead; Fable only on the API promo with `mac-capacity`'s go (about $120 left, expires 29 Nov 01:00).
+6. **Direct pushes to main are refused** by the auto-mode check, so docs travel in PRs.
 
 ## Where things stand
 
