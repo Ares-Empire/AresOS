@@ -27,4 +27,10 @@ public abstract class WindowHomeScreenMixin {
     private void aresos$stayTheDesktop(CallbackInfo ci) {
         if (HomeScreen.session()) ci.cancel();
     }
+
+    // Package 328a: GLFW's focus callback, inside its event handling (WorldCapture.focusChanged says why).
+    @Inject(method = "onFocus", at = @At("HEAD"))
+    private void aresos$focusChanged(long handle, boolean focused, CallbackInfo ci) {
+        dev.aresos.client.WorldCapture.focusChanged(handle, focused);
+    }
 }

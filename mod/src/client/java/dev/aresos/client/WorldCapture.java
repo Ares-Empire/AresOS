@@ -53,6 +53,8 @@ public final class WorldCapture {
     private static boolean hiddenInX;
     // Client thread only: where the pointer was when the capture began, in window coordinates.
     private static double startX, startY;
+    // Client thread only: the release's own FocusOut is being handled (see release and focusChanged).
+    private static boolean lettingGo;
     private static Boolean pointerOverWorldForTests;
     private static boolean directForTests;
 
@@ -106,8 +108,13 @@ public final class WorldCapture {
             // GLFW would skip this release (see above). Its own focus-out handling lets go of everything: give it one
             // and let it run now, before Minecraft's mode change. This is never inside a GLFW callback: without the X
             // focus a release comes from the helper's focus event or the frame's focus check, both queued work.
-            Xlib.focusOut(display, xwindow);
-            GLFW.glfwPollEvents();
+            lettingGo = true;
+            try {
+                Xlib.focusOut(display, xwindow);
+                GLFW.glfwPollEvents();
+            } finally {
+                lettingGo = false;
+            }
         }
         (directForTests ? (CursorMode) WorldCapture::direct : minecraft).set(window, GLFW.GLFW_CURSOR_NORMAL, x, y);
         if (x11) {
@@ -123,6 +130,18 @@ public final class WorldCapture {
         hiddenInX = false;
     }
 
+    /**
+     * GLFW's focus callback ({@code Window.onFocus}). GLFW calls it at the end of its focus-out handling, right after it let
+     * go of the capture. For the release's own FocusOut the cursor mode turns normal here, at once: the ungrab and the
+     * warp of that letting go can make X send a pointer focus-in that the same poll reads, and a focus-in in the
+     * disabled mode makes GLFW capture again.
+     */
+    public static void focusChanged(long handle, boolean focused) {
+        if (focused || !lettingGo) return;
+        lettingGo = false;
+        GLFW.glfwSetInputMode(handle, GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_NORMAL);
+    }
+
     private static void direct(Window window, int mode, double x, double y) {
         GLFW.glfwSetCursorPos(window.handle(), x, y);
         GLFW.glfwSetInputMode(window.handle(), GLFW.GLFW_CURSOR, mode);
@@ -133,15 +152,19 @@ public final class WorldCapture {
         private static final SharedLibrary X11 = load("libX11.so.6"), XFIXES = load("libXfixes.so.3");
         static final long HIDE_CURSOR = address(XFIXES, "XFixesHideCursor"), SHOW_CURSOR = address(XFIXES, "XFixesShowCursor"),
                 UNGRAB_POINTER = address(X11, "XUngrabPointer"), GET_INPUT_FOCUS = address(X11, "XGetInputFocus"),
-                SEND_EVENT = address(X11, "XSendEvent"), FLUSH = address(X11, "XFlush");
+                SEND_EVENT = address(X11, "XSendEvent"), SYNC = address(X11, "XSync"), FLUSH = address(X11, "XFlush");
 
         static boolean ready() {
             return HIDE_CURSOR != 0 && SHOW_CURSOR != 0 && UNGRAB_POINTER != 0 && GET_INPUT_FOCUS != 0
-                    && SEND_EVENT != 0 && FLUSH != 0
+                    && SEND_EVENT != 0 && SYNC != 0 && FLUSH != 0
                     && GLFW.glfwGetPlatform() == GLFW.GLFW_PLATFORM_X11 && GLFWNativeX11.glfwGetX11Display() != 0;
         }
 
-        /** Sends the window the FocusOut X sends when the focus leaves it (NotifyNormal, NotifyNonlinear). */
+        /**
+         * Sends the window the FocusOut X sends when the focus leaves it (NotifyNormal, NotifyNonlinear), and waits until
+         * the server has handled it: the event is then in Xlib's queue, and the next poll hands it to GLFW. (Without the
+         * round trip a poll could come first, and GLFW would see the event only after the mode was normal again.)
+         */
         static void focusOut(long display, long xwindow) {
             try (var stack = MemoryStack.stackPush()) {
                 // XFocusChangeEvent on x86-64: type, serial, send_event, display, window, mode, detail; XEvent is 192 bytes.
@@ -154,7 +177,7 @@ public final class WorldCapture {
                 event.putInt(44, 3 /* NotifyNonlinear */);
                 // XSendEvent(display, window, propagate False, FocusChangeMask, event)
                 JNI.invokePPPPI(display, xwindow, 0, 1L << 21, MemoryUtil.memAddress(event), SEND_EVENT);
-                JNI.invokePI(display, FLUSH);
+                JNI.invokePI(display, 0 /* keep the queued events */, SYNC);
             }
         }
 
