@@ -12,7 +12,7 @@ show() { for file in "$@"; do printf -- '--- %s\n' "$file"; cat "$file" 2>&1; do
     section packages
     rpm -q util-linux util-linux-core util-linux-script qrencode qrencode-libs brightnessctl polkit polkit-kde \
         wireplumber flatpak foot labwc xdg-utils cronie sudo shadow-utils podman distrobox liberation-fonts \
-        liberation-fonts-common wget2-wget gnupg2 curl rpm dnf5 bazaar
+        liberation-fonts-common wget2-wget gnupg2 curl rpm dnf5 bazaar gtk4-layer-shell
     section filesystem
     ls -ld /opt /var/opt /home /usr/local 2>&1
     ls -la /opt/ /var/opt/ 2>&1
@@ -160,12 +160,12 @@ PY
     done < "$chrome/unsatisfied.txt" | tee "$chrome/providers.txt"
     section transaction-preview
     dnf5 --disable-repo='*' --enable-repo=fedora --enable-repo=updates --setopt=install_weak_deps=False \
-        install --assumeno util-linux-script qrencode brightnessctl "$chrome/google-chrome.rpm"
+        install --assumeno util-linux-script qrencode brightnessctl gtk4-layer-shell "$chrome/google-chrome.rpm"
     section available
     dnf5 --disable-repo='*' --enable-repo=fedora --enable-repo=updates repoquery \
         --qf '%{full_nevra} %{repoid}\n' util-linux-script util-linux-core util-linux qrencode brightnessctl \
         liberation-fonts foot labwc greetd grim fcft libsfdo utf8proc wlroots0.19 xdg-desktop-portal-wlr \
-        greetd-selinux
+        greetd-selinux gtk4-layer-shell
     section existing-lock-availability
     # The candidate below requests each locked NEVRA Fedora still serves. Its
     # updates repository keeps only the newest build, so a vanished pin is
@@ -226,11 +226,12 @@ PY
 } > "$out/pkg23.txt" 2>&1
 
 # Candidate lock: the existing exact inputs (a vanished pin by name and
-# architecture, see existing-lock-availability) plus package 23's Java 25,
-# resolved exactly as build.sh does.
+# architecture, see existing-lock-availability) plus package 23's Java 25 and
+# package 323's gtk4-layer-shell, resolved exactly as build.sh does.
 names=()
 while read -r spec; do names+=("$spec"); done < /tmp/lock-requests.txt
 names+=(java-25-openjdk-headless)
+names+=(gtk4-layer-shell)
 {
     printf 'Requested: %s\n' "${names[*]}"
     rm -rf /tmp/ares-rpms
