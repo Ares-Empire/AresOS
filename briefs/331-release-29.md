@@ -1,6 +1,6 @@
 # 331: Release 29 (the indicator, Chrome Control, Deskflow and the signed update)
 
-Board brief 331. Lead `linux-aresos`. Branch `pkg/331-release-29`. Start the diff and walk from main now. The cut needs 18c-b and B330 merged and B321's Deskflow gate, subject to the fallback in item 6.
+Board brief 331. Lead `linux-aresos`. Branch `pkg/331-release-29`. Start the diff and walk from main now. The cut needs 18c-b and B330 merged. B321 rides under item 6's cut conditions.
 B329 rides if merged by the cut. The baseline below is fetched main `a9863055`. (`HANDOFF.md:13`, `HANDOFF.md:97`)
 
 **Builder and reviews.** One fresh Codex builder per slice, about 80 tool calls each. Model and reviewer choices are in Steps. One fresh Codex `gpt-6.2-sol` high brief review while Claude's allowance is
@@ -35,9 +35,10 @@ harm or a sure failure. Put low-harm edge cases in Known limits. (`briefs/323-r2
    Use the final merged code and the build evidence. The following lists are the starting points.
    - **18c-b (PR76, `linux-tools`, 2026-11-21).** Merge when the PR checks and Control run `44936830501` on `b2a404cd` are green. Get the exact Control install-map and vendor delta. Inventory the
      per-build bundle, policy and host manifest under `/usr/share/aresos/chrome/`, the two root links under `/etc/opt/chrome/`, `host` and `native_host.py` under `/usr/libexec/aresos-control/chrome/`,
-     `org.aresos.control.chrome-loosen.policy` and the tmpfiles rule. Check the new `control.json` keys `chrome_build`, `chrome_extension`, `gh` and `links`. Get `/usr/bin/gh`, its `LICENSE` and
-     `gh.lock.json` with their pins. Only the binary comes from the signature-checked RPM's 240-path payload. The RPM is outside the installed RPM set.
-     (`b2a404cd:briefs/18c-b-chrome-image.md:572-586`, `b2a404cd:reviews/18c-b-chrome-image/PROGRESS.md:1775-1784`)
+     `org.aresos.control.chrome-loosen.policy` and the tmpfiles rule. Chrome extends the existing `control.json` `links` map and adds `chrome_build`, `chrome_extension` and `gh`. Get `/usr/bin/gh`, its
+     `LICENSE` and `gh.lock.json` with their pins. Only the binary comes from the signature-checked RPM's 240-path payload. The RPM is outside the installed RPM set.
+     (`7d5fbbf2:os/build.sh:213`, `b2a404cd:os/build.sh:235-240`, `b2a404cd:os/build.sh:265`, `b2a404cd:briefs/18c-b-chrome-image.md:572-586`,
+     `b2a404cd:reviews/18c-b-chrome-image/PROGRESS.md:1775-1784`)
    - **Chrome ships with the reviewed gate closed (b).** There is no separate switch. At first boot tmpfiles creates `/var/lib/aresos-control/chrome-excluded-sites.json` as `root:aresos-tools` 0640 with
      `{"format":0,"hosts":[]}`. Every Chrome read and action returns `chrome_settings_unavailable` until root writes a format-1 list. The service can never write it. The owner opens the gate later with
      `sudo tee` in the T298 live sitting, starting with C8 at the owner's actual terminal size. C8 and 28b's combined profile proof are outside the R29 gate. The combined proof gates a release containing 28b.
@@ -51,12 +52,12 @@ harm or a sure failure. Put low-harm edge cases in Known limits. (`briefs/323-r2
      file pin. Expect the guest to use `AresOS` when B329 rides. Take the brief's summary line about the pixel frame, backward Alt+Tab and disabled title-bar scrolling. (`HANDOFF.md:15`,
      `cc158e65:briefs/329-window-frame.md:74`)
    - **B321, Deskflow (c) (`linux-desktop`, 2026-11-21).** At B321's final head, `linux-desktop` signs off on the final portal and Deskflow paths, pins and VM proof in one list with the `os/` and
-     `os/ci/` commits. With B321, R29 goes straight from R28's Fedora `labwc-0.9.6-1.fc44` to `labwc-0.9.6-1.fc44.aresos2` with both patches. `aresos1` never ships. Of the 64 RPM paths, only
+     `os/ci/` commits. With B321, R29 goes straight from R28's Fedora `labwc-0.9.6-1.fc44` to `labwc-0.9.6-1.fc44.aresos2` with both patches. `aresos1` stays out of that cut. Of the 64 RPM paths, only
      `/usr/bin/labwc`, `/usr/bin/labnag` and two `.build-id` links change. The labels were fixed in `b0971656` and `ec386039` on `pkg/321-deskflow-image`.
      (`ec386039:reviews/321-deskflow-image/PROGRESS.md:469-483`)
      Inventory the Rust stage's `/usr/libexec/aresos-input-portal` and service, and check `os/input-portal/` stays out of the final layer. Get Deskflow 1.27.0 with its NEVRA, SHA-256 and dependency
-     reasons. Check `/usr/bin/aresos-input-sharing` and its desktop entry, `/usr/libexec/aresos-input-sharing-set`, two polkit actions, routing in `aresos-portals.conf`, the allow-list under
-     `/etc/aresos/input-portal` and the start hook.
+     reasons. Check `/usr/bin/aresos-input-sharing` and its desktop entry, `/usr/libexec/aresos-input-sharing-set`, two polkit actions, routing in `aresos-portals.conf`, the start hook and the allow-list
+     at `/usr/share/aresos/input-portal/allowed-apps`. The runtime switch is `/etc/aresos/input-portal/sharing`. (`ec386039:os/input-portal/src/trust.rs:15`, `ec386039:os/input-portal/src/sharing.rs:22`)
      Check both marked `rc.xml` chords. `W-S-Escape` is new and `W-C-Escape` now releases first. If B329 also rides, whoever merges second shows `rc.xml` and the binding tests passing on the merged tree.
      (`HANDOFF.md:97`, `briefs/321-deskflow-image.md:50`, `cc158e65:briefs/329-window-frame.md:77`)
      Summary for the owner. “Mouse and keyboard sharing with your Mac: turn it on in the Input sharing window (it asks for your password), and Deskflow starts by itself. Move the pointer past the screen's edge
@@ -114,11 +115,13 @@ harm or a sure failure. Put low-harm edge cases in Known limits. (`briefs/323-r2
      `minecraft/saves`). Compare content, owner, mode, type, link text and access by the daily user across update, previous and forward. Keep the narrow Prism mutable-file allowance. Require both
      releases' own image targets on their boots. Both ship the desktop payload. Save the game-scope/JVM probe for the end. It proves placement and `memory.high=2684354560`. Actual play stays manual.
      (`os/ci/release28_walk.py:85`, `os/ci/release28_walk.py:635`, `os/ci/release28_walk.py:689`, `reviews/42-release-28/FIXES-6.md:10`, `reviews/42-release-28/FIXES-4.md:142`)
-   - Open Terminal before the routine `check` on starting R28 and before the rollback confirmation `check` on R28 while the candidate tools require `foot`. Keep it open through PASS. Keep the no-foot
-     STOP check where required. Check theme, fontconfig, runtime privilege, polkit and terminal PATH. After tty1 is active, reopen the exact Terminal app command from the supervisor's Wayland
+   - While the shipped tools require a `foot` process, open the Terminal app before `at check` on starting R28, on the first R29 boot, on R28 after `previous` and on R29 after `forward`. Keep it open
+     through PASS. SETUP already opens a `foot` window in the VM, so a PASS there cannot prove the owner's case with the world open. Keep the no-foot STOP check where required.
+     (`os/owner-tools/owner.py:2007-2017`, `os/config/usr/libexec/aresos-desktop:33-37`)
+     Check theme, fontconfig, runtime privilege, polkit and terminal PATH. After tty1 is active, reopen the exact Terminal app command from the supervisor's Wayland
      environment and the daily user's home. Check the same PID survives and retain its log. Retry only the missing-monitor case, up to the existing five
      attempts. Include negative cases for display, cwd and VT in the fake. (`os/ci/release28_walk.py:625`, `os/ci/release28_walk.py:666`, `os/ci/release28_walk.py:811`,
-     `os/owner-tools/owner.py:2017`, `reviews/42-release-28/FIXES-4.md:37`, `reviews/42-release-28/PROGRESS.md:1867`)
+     `reviews/42-release-28/FIXES-4.md:37`, `reviews/42-release-28/PROGRESS.md:1867`)
    - Use the stock rewind with the preflight's exact ISO and Web UI checks, runner space check, offline first boot and pinned stock identity. Keep the verified 9p copy, loop-backed store, scratch
      cleanup and both disk audits. A changed ISO requires requalification. Save `finish_shutdown` output on failure. If the live console stalls before login, bring its transcript to the lead.
      (`reviews/42-release-28/PROGRESS.md:996`, `reviews/42-release-28/PROGRESS.md:1239`, `reviews/42-release-28/PROGRESS.md:1859`, `os/ci/owner_vm.py:255`)
@@ -144,9 +147,13 @@ harm or a sure failure. Put low-harm edge cases in Known limits. (`briefs/323-r2
    refresh is needed on main. Save the resolve evidence. Compare the pinned gh release with the resolver's informational version line. Have the lead settle any renewal before the cut.
    (`pkg/18c-b-chrome:briefs/18c-b-chrome-image.md:425`) (`briefs/42-release-28.md:64`, `briefs/323-r29-image.md:23`, `os/ci/release_diff.py:671`, `os/ci/check-resolve.sh:253`,
    `reviews/42-release-28/REVIEW-2.md:27`)
-   - B321 rides R29 and gates the cut on three conditions. Get the final reviewed handoff with the OS lead's read-clean, a green Deskflow VM on B321's final head, and a resolve of the reviewed NEVRA and SHA-256 from
-     Fedora stable `updates`. Test builds may use the pinned RPM from `updates-testing`. If any condition is still missing when the rest of R29 is ready, the lead can cut R29 without (c) and move (c)
-     to R30. For that cut, confirm the labwc pin and keep `aresos1` out. (`linux-desktop`, 2026-11-21, `HANDOFF.md:97`)
+   - B321 merges to main only after all four cut conditions pass. Get the final reviewed handoff with the OS lead's read-clean, a green Deskflow VM on B321's final head, a resolve of the reviewed NEVRA
+     and SHA-256 from Fedora stable `updates`, and observed VM evidence of monitor unplug and replug or B321's separately owner-approved laptop proof. Test builds may use the pinned RPM from
+     `updates-testing`. Package 331 builders stay off the laptop. Recheck all four conditions before uploading a cut with B321. (`linux-desktop`, 2026-11-21, `HANDOFF.md:97`,
+     `ec386039:briefs/321-deskflow-image.md:43-48`, `ec386039:briefs/321-deskflow-image.md:54-55`)
+   - If B321 is still off main and a condition is missing when the rest of R29 is ready, defer B321 to R30. The R29 fallback ships main as it stands, with 311's reviewed
+     `labwc-0.9.6-1.fc44.aresos1.x86_64` pin. Confirm the pin at the cut. If B321 has already merged and a condition later fails, the lead decides whether to revert B321 and requalify a cut from main or wait.
+     (`f91aad16:os/labwc/labwc.lock.json:161-163`, `f91aad16:os/Containerfile:34-41`)
    - Give `dry_run_29`, `release_29` and `release-29` distinct guarded modes on the exact branch ref. Extend the release job, `build_tools`, `registry_auth`, `publish.sh`, verification, owner runner
      allowlists and ledger with narrow entries and tests. The read-only dry run and the publish job use the same build, image checks, both guardian boot receipts, release isolation and diff on the final cut.
      Check selector collisions and reject tag refs. Use the on-job checks and resolve guards. Start `dispatch_caps.publish-29`, `publish_cap` and the qualifying rehearsal cap at zero. Count all dispatches,
@@ -171,9 +178,10 @@ harm or a sure failure. Put low-harm edge cases in Known limits. (`briefs/323-r2
      R28 at this point. Keep the draft PR unannounced. Record the v5 installer refusal with an older update already staged as a baseline limit. Test that refusal leaves deployment and tools state
      unchanged. (`reviews/42-release-28/PROGRESS.md:931`, `reviews/42-release-28/payload.py:11`, `reviews/42-release-28/payload.py:57`, `reviews/42-release-28/FIXES-4.md:9`, `HANDOFF.md:102`)
    - Guide acceptance requires the same save gate on every way out of R28, including first update, forward and failed-update recovery. Whenever the R28 world is open, focus Minecraft, press Alt+F4 or
-     Alt+Fn+F4 and wait for “Minecraft was closed. Nothing is wrong.” If it is missing, go to Help before restarting. The routine box opens Terminal before `check` on starting R28, and the rollback box
-     does so before confirmation on R28 while the candidate tools require `foot`. Keep the recovery terminal shortcut and show R28's Minecraft desktop on rollback. Preserve no-stick export, provisional
-     title off the laptop, F12 and hands off GRUB, the failed-update card, install hold and exact route outputs. (`docs/INSTALL.md:230`, `docs/INSTALL.md:242`, `docs/INSTALL.md:406`, `docs/EMERGENCY.md:20`)
+     Alt+Fn+F4 and wait for “Minecraft was closed. Nothing is wrong.” If it is missing, go to Help before restarting. While the shipped tools require `foot`, the guide tells the owner to open the Terminal app
+     before `at check` on starting R28, before the first confirmation on R29, and before the confirmations after `previous` and `forward`. Keep Terminal open through PASS. Keep the recovery terminal shortcut
+     and show R28's Minecraft desktop on rollback. Preserve no-stick export, provisional title off the laptop, F12 and hands off GRUB, the failed-update card, install hold and exact route outputs.
+     (`docs/INSTALL.md:230`, `docs/INSTALL.md:242`, `docs/INSTALL.md:406`, `docs/EMERGENCY.md:20`)
    - Carry pending hashes forward from main. Refresh affected rows with the lead's `rebind.py pending` notes. Keep package 42's recorded bindings and historical receipt. Generate the 331 host receipt and
      require the same head's hosted checks/full model and native preflight. Check exact private signatures and job-token reads for the qualified targets. Record the actual passing run's result, audits and
      `331-bound-sources` under package 331. Verify the qualified bytes, make 331 active and empty the pending list. Test that the binding package matches its directory. Bind safe evidence only.
@@ -210,8 +218,8 @@ is hosted-only. Local checks use fixtures and one affected safe test module at a
    scripts and retain diagnostics. Produce the local host receipt.
 5. **Hosted wiring** (Sol / Astra, permissions and dispatch scope). First wire and test selectors, permissions and closed caps. In a fresh slice wire and test registry targets, runner allowlists, receipts
    and budgets. The lead runs `checks_only=true` and the read-only historical baseline preflight. The lead uses `check_build=build` and separate Control and Deskflow modes as applicable on incoming branches.
-6. **Cut and late rules** (Sol / Astra, exact source and package deltas). The lead applies item 6's Deskflow gate or invokes its fallback, names the cut and merges main into the release branch. Give each
-   late package its own slice for reasons, probes and regressions, with focused checks on the combined rules. The lead dispatches `check_build=resolve` on the final cut head.
+6. **Cut and late rules** (Sol / Astra, exact source and package deltas). The lead settles Deskflow under item 6, names the cut and merges main into the release branch. Give each late package its own
+   slice for reasons, probes and regressions, with focused checks on the combined rules. The lead dispatches `check_build=resolve` on the final cut head.
 7. **Resolve evidence and dry run** (Sol / Sol, lock and jar pin). Verify and apply item 6's allowed pin. Run the targeted checks and refresh the receipt. The lead runs hosted checks and
    `dry_run_29=true`. Any unresolved diff stops the release. Each fix gets a fresh turn, review and new dry run. Save a spare dry-run allowance. A failed publish dispatch also counts. Verify whether
    the upload was attempted before considering any retry. (`reviews/42-release-28/REVIEW-2.md:89`, `reviews/42-release-28/REVIEW-12.md:13`)
