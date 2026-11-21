@@ -26,8 +26,6 @@ capture. The container install proof separately checks the pin.
 
 ## Not verified
 
-- The lead owns CI for the review fix head, including the standalone build, two Control runs and PR checks.
-  The reviewers recheck after CI. [Round handoff](PROGRESS.md#left)
 - Before release and the owner's first Chrome tool use, show the full C8 question at his actual terminal
   size. Yes must submit the exact approved contents once and No must send nothing. Check this first in the
   live sitting with a synthetic form. 28b's combined profile proof is also required.
@@ -69,8 +67,11 @@ image in both build modes. The normal C5 guest launch lacks the container's expl
 final log had no signature diagnostic. The guest retains its existing behavior checks. The container proof
 now pins the reason. [Image and C5 evidence](PROGRESS.md#findings-and-mutations)
 
-The two green step 6b Control runs did not exercise the standalone build's two guardian boots. The lead
-will record the round's separate build result when it is green. [Pending checks](PROGRESS.md#left)
+The two green step 6b Control runs did not exercise the standalone build's two guardian boots. The round's
+standalone build 44912662660 did (**run**): both `GUARDIAN_VM_PASSED` lines and `CHECK_BUILD_VM_PASSED` (log 5697).
+Both Control runs of the round (44912649303, 44927047698) and the eight PR checks are green, and recheck 1 said
+SAFE. [Recheck and CI](PROGRESS.md#recheck-1-and-the-rounds-ci-2026-11-21-the-lead-linux-tools) ·
+[Recheck 1](RECHECK-1.md)
 
 ## Open questions
 

@@ -3,6 +3,26 @@
 Brief: `briefs/18c-b-chrome-image.md` (on `main` since PR #73).
 Branch `pkg/18c-b-chrome`, one builder at a time. Each step is a fresh agent; this file is the handoff.
 
+## Recheck 1 and the round's CI (2026-11-21, the lead, `linux-tools`)
+
+The lead's CI for the fix head, all green (**run**, logs read 2026-11-21):
+- Standalone build [44912662660](https://github.com/Ares-Empire/AresOS/actions/runs/44912662660) on `0fb805a4` (code identical to `5eab5c5f`):
+  `CHECK_BUILD_PASSED` (log 4945), both guardian boots `GUARDIAN_VM_PASSED (save)` (5642) and
+  `GUARDIAN_VM_PASSED (hang)` (5695), `CHECK_BUILD_VM_PASSED` (5697).
+- Control 1 of 2 [44912649303](https://github.com/Ares-Empire/AresOS/actions/runs/44912649303) on `0fb805a4`; control 2 of 2 [44927047698](https://github.com/Ares-Empire/AresOS/actions/runs/44927047698),
+  dispatched by the lead on `5eab5c5f`: `CHECK_BUILD_PASSED` (5018), `CHECK_BUILD_CONTROL_PASSED` (5770), and
+  the Chrome lines from `CONTROL_CHROME_POLKIT_PROBE_PASS` (5781) to `CONTROL_CHROME_ASK_PASS` (5817).
+- The eight PR checks on `cdc3b113` (table below).
+
+Recheck 1 (Codex gpt-6.2-sol, xhigh, read-only, on `5eab5c5f`) returned **SAFE**, preserved byte for byte in
+[RECHECK-1.md](RECHECK-1.md); the laptop's reboot into R28 cut its first run short, so it ran again with the same
+prompt. Every finding of both reviews is CLOSED or ACCEPTED, except two record lines it left open as NITs; this
+commit closes both: the standalone build receipt above (NIT 1; REPORT's "Not verified" line updated) and the
+resolve quote under step 3b, now `pinned=gh-2.103.3-1.x86_64` as log line 1397 prints it (NIT 2).
+
+Left: merge `main` into the branch (the labwc files are identical on both sides), the PR checks on the merge,
+then PR #76 merges per the rules; R29 carries it.
+
 ## Review fix round 1 (2026-11-21)
 
 Start `b5091f42`, with step 6b code at `6d610587`. Both reviews were copied byte for byte in `d1a0131a`.
@@ -103,6 +123,7 @@ verdicts and the remaining Control dispatch.
 |---|---|
 | Control 1 of 2 | [44912649303](https://github.com/Ares-Empire/AresOS/actions/runs/44912649303) |
 | Standalone build | [44912662660](https://github.com/Ares-Empire/AresOS/actions/runs/44912662660) |
+| Control 2 of 2 (the lead, on `5eab5c5f`) | [44927047698](https://github.com/Ares-Empire/AresOS/actions/runs/44927047698) |
 
 The one code push ended at `cdc3b113` and started these eight PR #76 workflows.
 
@@ -1639,7 +1660,7 @@ The lead dispatched and watched these from the shell (the builder pushes and sto
 - checks_only 44397757752: **success**; "Ran 1805 tests", "OK (skipped=4)" (log 3595/3597); CONTROL_GH_PAYLOAD_PASS 240 paths, CONTROL_GH_RPM_PASS, CONTROL_GH_INSTALL_PASS (2371-2379); CONTROL_CHROME_CHECKOUT_PASS and CONTROL_CHROME_BUILD_LOG_PASS (2108-2109, 2380).
 - check_build=build 44409288317: **success**. CONTROL_GH_PAYLOAD_PASS 240 paths (1561), CONTROL_GH_RPM_PASS (1562), CONTROL_GH_INSTALL_PASS (1563), CONTROL_GH_KEYRING_PASS (1564), CONTROL_GH_IMAGE_PASS 2.103.3 (2336), CONTROL_CHROME_BUNDLE_PASS (2928), CONTROL_CHROME_KEY_SCAN_PASS (2929), CONTROL_GH_CHECKOUT_PASS (3586), CONTROL_CHROME_CHECKOUT_PASS (3587), CHECK_BUILD_PASSED (3590), CONTROL_CHROME_BUILD_LOG_PASS (3591), CHECK_BUILD_VM_PASSED (4284).
 - The old name check's diagnostic (2335): `INFO gh legacy name matches=["/usr/share/bash-completion/completions/_gh", "/usr/share/fish/completions/gh.fish"]`. Both are base-image files, not paths of the pinned gh RPM's payload, so the payload-bound check is right to pass them.
-- check_build=resolve 44344811923 (on 6b80a139): "INFO gh newest=v2.105.0 pinned=gh-2.103.3" (1397).
+- check_build=resolve 44344811923 (on 6b80a139): "INFO gh newest=v2.105.0 pinned=gh-2.103.3-1.x86_64" (1397).
 
 **3b is green.** Next: `linux-aresos` reads 3b's `os/` diff; then step 4 (the VM's first half), on a Claude Opus agent (Codex is kept for reviews until about 2026-11-25).
 
