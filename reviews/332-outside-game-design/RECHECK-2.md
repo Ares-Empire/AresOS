@@ -1,0 +1,7 @@
+**1. Open — blocking.** Section 8 gives the rule as “only while the bar is `shown`, on every output except the home output while `world` is not `off`.” The summary, Section 8’s rationale, the owner-decisions section, the known limits, and the layer table still key the exception to window existence. Lines 748–755 also leave the `shown` condition out of their reservation rule. The difference matters on the home output before the game window maps. The fix also adds “not on the world’s screen” to package 4, which reintroduces a window-location criterion. See `HOME-OUTSIDE.md` lines 65–68, 494–506, 658, 748–755, 830–832, and 912.
+
+**2. Partly resolved — blocking.** OFF now requires a connected `home` view that negotiated search and has a fresh heartbeat. Package 7 explicitly tests refusal with the view hung. The new rig-only restriction at line 656 leaves a conflicting gate 2 instruction at lines 1064–1065 to enter OFF on the image in a VM. Package 7 waits for that gate, so the VM test needs to say it uses the rig-only entry point. See lines 292–295, 656–657, 676, and 1064–1065.
+
+**4. Resolved.** Gate 1 excludes `WAKING` as a settled outcome, and the kill-point test uses that outcome list. The parts-gone test fails if a frozen window appears for even one frame. Gate 3 requires the sleeping world to exit before any app scope and excludes runs where nothing is killed from the required count. I found no other nearby regressions. See lines 992–997, 1018–1020, 1026–1027, and 1093–1096.
+
+NOT READY

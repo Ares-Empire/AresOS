@@ -99,9 +99,7 @@ public final class GettingAroundClientGameTest implements FabricClientGameTest {
             var ids = PROGRAMS.stream().map(Program::id).sorted().toList();
             context.waitFor(client -> TownPicturesClientGameTest.mine().equals(ids), 200);
             // The helper's pictures also become the items' pixel icons, with a loading bar: wait until it is gone.
-            context.waitFor(client -> AresOs.generatedIcons.containsAll(ids), 600);
-            context.waitTicks(40);
-            context.waitFor(client -> client.gui.overlay() == null, 600);
+            TownPicturesClientGameTest.icons(context, PROGRAMS);
 
             context.getInput().resizeWindow(960, 540);
             Path directory = context.computeOnClient(client -> client.getLevelSource().getBaseDir().resolve(NetherHome.SAVE_FOLDER));

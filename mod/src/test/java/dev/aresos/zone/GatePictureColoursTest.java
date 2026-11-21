@@ -241,8 +241,8 @@ class GatePictureColoursTest {
             assertEquals(GatePicture.mainColours(first.get(i).image(), SIZE), GatePicture.mainColours(second.get(i).image(), SIZE), name);
             assertFalse(GatePicture.of(first.get(i).image(), SIZE).isEmpty(), name);
         }
-        // The rules changed with package 39: a standing logo of version 1 is drawn again (HUB.md 2.5).
-        assertEquals(2, GatePicture.CONVERTER);
+        // The rules changed with package 327: older standing logos are drawn again (HUB.md 2.5).
+        assertEquals(3, GatePicture.CONVERTER);
     }
 
     @Test void twoMainColoursShareABlockOnlyWhenTheyAreNearlyTheSame() {

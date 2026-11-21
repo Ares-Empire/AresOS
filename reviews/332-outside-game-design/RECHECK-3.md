@@ -1,0 +1,4 @@
+1. **Blocking.** Package 4 still says the bar does not reserve space “on the world’s screen” (line 657). That can lead a builder to suppress the zone on the home output even when `world` is `off` and the bar is `shown`, where section 8 requires the bar’s height (lines 488–505). The maximization descriptions also assume a visible bar always reserves space, which fails when the bar is shown on the home output during sleep or startup (lines 739–740, 829–834).
+2. **Blocking.** Gate 2 calls for a VM pass on a test image without specifying that the VM must use G2’s rig-only command (lines 1063–1064). Section 10 says the image’s command refuses OFF until package 7 ships, and package 7 depends on Gate 2 (lines 655–656). A VM running the ordinary image would therefore fail at the first step.
+
+NOT READY

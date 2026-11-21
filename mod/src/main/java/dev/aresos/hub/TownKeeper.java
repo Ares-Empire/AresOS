@@ -48,7 +48,7 @@ import java.util.stream.Collectors;
  * the runs this class starts by itself (the host enters the world, a complete program list arrives, My apps changes),
  * the commands that change where apps stand ({@link #run}) and {@code /aresos hub rebuild} ({@link #rebuild}).
  *
- * <p>The rules a pass keeps: it runs only on a complete program list and only in a flat home of these rules
+ * <p>The rules a pass keeps: it runs only on a complete program list and only in an enabled flat home of these rules
  * ({@code hub.dat} says {@code flat-1}). Wanted are the apps of My apps the system lists. Nothing of his is touched:
  * a place where a logo cannot be built is blocked and the app goes on to its group's next place; a logo whose removal
  * is refused stays and is tried again at the next run; a place that is not loaded waits, and the pass is retried every
@@ -251,7 +251,7 @@ public final class TownKeeper {
     }
 
     private void step(MinecraftServer server) {
-        if (preparingHome(server)) return;
+        if (!DesktopWorld.isEnabled(server) || preparingHome(server)) return;
         if (host(server).isPresent()) say(server, firstBuild.expire(server.getTickCount()));
         if (ASKED.getAndSet(false)) stale = true;
         if (reading != null) {
@@ -412,6 +412,7 @@ public final class TownKeeper {
      * town is not rebuilt: its one line is the freeze's.
      */
     public Pass rebuild(MinecraftServer server, Programs programs, Function<AppDefinition, Optional<GatePicture>> pictures, Spots spots) {
+        if (!DesktopWorld.isEnabled(server)) return Pass.NOTHING;
         var hub = HubData.get(server);
         if (!programs.complete() || hub == null || !HubLayout.LOOK.equals(hub.look()) || hub.refusal().isPresent()) return Pass.NOTHING;
         if (hub.frozen()) return new Pass(List.of(frozen(hub)), false, Set.of());
@@ -423,7 +424,7 @@ public final class TownKeeper {
 
     private Pass keep(MinecraftServer server, Programs programs, Function<AppDefinition, Optional<GatePicture>> pictures, Spots spots,
                       boolean rebuilt, Scope scope) {
-        if (!programs.complete() || preparingHome(server)) return Pass.NOTHING;
+        if (!programs.complete() || !DesktopWorld.isEnabled(server) || preparingHome(server)) return Pass.NOTHING;
         var hub = HubData.get(server);
         // A town file that does not fit this world (point 3), or a frozen town (review fixes 2, point 1): the town
         // builds, takes down, renews and paves nothing, and puts no zone back.

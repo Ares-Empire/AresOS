@@ -1,6 +1,7 @@
 package dev.aresos.catalogue;
 
 import dev.aresos.config.AppDefinition;
+import dev.aresos.icon.TerminalAppearance;
 import dev.aresos.shell.ShellClient;
 import java.io.IOException;
 import java.time.Duration;
@@ -42,7 +43,7 @@ public final class LinuxAppCatalogue implements AppCatalogue {
      */
     static String look(String id, List<String> categories) {
         return switch (id) {
-            case "terminal" -> "minecraft:command_block";
+            case "terminal" -> TerminalAppearance.ITEM;
             case "notepad" -> "minecraft:writable_book";
             case "browser" -> "minecraft:compass";
             default -> categories == null || categories.isEmpty() ? "minecraft:paper" : AppGroup.of(id, categories).look();

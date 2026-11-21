@@ -173,9 +173,7 @@ public final class TownPicturesClientGameTest implements FabricClientGameTest {
             context.waitFor(client -> mine().equals(dayOne), 200);
             // The helper's pictures also become the items' pixel icons, and the game loads them by itself: its
             // loading bar must be gone before a button is clicked or a picture is taken.
-            context.waitFor(client -> AresOs.generatedIcons.containsAll(dayOne), 600);
-            context.waitTicks(40);
-            context.waitFor(client -> client.gui.overlay() == null, 600);
+            icons(context, DAY_ONE);
 
             context.getInput().resizeWindow(960, 540);
             Path directory = context.computeOnClient(client -> client.getLevelSource().getBaseDir().resolve(NetherHome.SAVE_FOLDER));
@@ -343,8 +341,8 @@ public final class TownPicturesClientGameTest implements FabricClientGameTest {
      * seconds), and the game then loads its resources again with a loading bar: wait until that has come and gone.
      */
     static void icons(ClientGameTestContext context, List<Program> programs) {
-        var ids = programs.stream().map(Program::id).toList();
-        context.waitFor(client -> AresOs.generatedIcons.containsAll(ids), 600);
+        var ids = programs.stream().map(Program::id).filter(id -> !id.equals("terminal")).toList();
+        context.waitFor(client -> AresOs.generatedIcons.containsAll(ids) && !AresOs.generatedIcons.contains("terminal"), 600);
         context.waitTicks(20);
         context.waitFor(client -> client.gui.overlay() == null, 600);
     }
