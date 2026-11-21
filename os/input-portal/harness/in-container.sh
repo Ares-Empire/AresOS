@@ -1,5 +1,5 @@
 #!/usr/bin/bash
-# Package 316's harness, inside its container (harness/run.sh starts it). Checks that the container is cut off
+# Package 316's harness (and 321's checks), inside its container (harness/run.sh starts it). Checks that the container is cut off
 # from the host, makes the scratch session folders, installs the backend into the container's own /usr and
 # hands over to driver.py. stdout is the evidence archive; everything readable goes to stderr.
 set -uo pipefail
@@ -73,12 +73,18 @@ install -D -m 0755 /harness/backend/aresos-input-portal /usr/libexec/aresos-inpu
 install -d -m 0755 /usr/share/aresos/input-portal
 printf '# the harness\norg.aresos.harness\n' > /usr/share/aresos/input-portal/allowed-apps
 chmod 0644 /usr/share/aresos/input-portal/allowed-apps
+# The sharing switch (brief 321), on, as the owner's password leaves it: root's file in root's folders, where
+# the image's helper writes it. Every test but the switch's own runs with it on.
+install -d -m 0755 /etc/aresos /etc/aresos/input-portal
+printf 'on\n' > /etc/aresos/input-portal/sharing
+chmod 0644 /etc/aresos/input-portal/sharing
 
 {
     rpm -q labwc
     sha256sum /opt/harness/rpm/*.rpm
     sha256sum /usr/libexec/aresos-input-portal
     rpm -q wlroots0.19 libei dbus-daemon wl-clipboard wlr-randr
+    stat -c '%A %u:%g %n' / /etc /etc/aresos /etc/aresos/input-portal /etc/aresos/input-portal/sharing
 } > "$EV/versions.txt" 2>&1
 cat "$EV/versions.txt"
 

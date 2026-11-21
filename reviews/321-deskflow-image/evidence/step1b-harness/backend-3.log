@@ -1,0 +1,53 @@
+2026-11-21T10:18:04.470496Z  INFO aresos_input_portal::wayland::state: the screens changed: 2 now zone_set=2
+2026-11-21T10:18:04.474961Z DEBUG aresos_input_portal::wayland::clipboard: watching the clipboard through ext-data-control
+2026-11-21T10:18:04.477399Z DEBUG aresos_input_portal::wayland::state: captured a 35355 byte xkb keymap from the compositor
+2026-11-21T10:18:04.477429Z DEBUG aresos_input_portal::wayland::state: clipboard selection changed types=0 is_ours=false
+2026-11-21T10:18:04.477446Z  INFO aresos_input_portal::wayland::state: Wayland barrier thread ready, 2 screen(s) in the snapshot
+2026-11-21T10:18:04.477471Z  INFO aresos_input_portal: screen HEADLESS-2: 1280x720 at (0, 0) scale 1 Normal
+2026-11-21T10:18:04.477501Z  INFO aresos_input_portal: screen HEADLESS-1: 1280x720 at (1280, 0) scale 1 Normal
+2026-11-21T10:18:04.478619Z  INFO aresos_input_portal::portal: sharing is on
+2026-11-21T10:18:04.478843Z  INFO aresos_input_portal: org.freedesktop.impl.portal.desktop.aresos-input ready at /org/freedesktop/portal/desktop; idle watchdog disabled
+2026-11-21T10:18:04.498173Z  INFO aresos_input_portal::portal: session created app_id="org.aresos.harness" session=/org/freedesktop/portal/desktop/session/harness/logged capabilities=0 started=false
+2026-11-21T10:18:04.499817Z  INFO aresos_input_portal::portal: clipboard access requested session=/org/freedesktop/portal/desktop/session/harness/logged
+2026-11-21T10:18:04.500795Z  INFO aresos_input_portal::portal: session started session=/org/freedesktop/portal/desktop/session/harness/logged capabilities=3 clipboard_enabled=true
+2026-11-21T10:18:04.501683Z  INFO aresos_input_portal::portal: handed EIS socket to client session=/org/freedesktop/portal/desktop/session/harness/logged
+2026-11-21T10:18:04.504164Z  INFO aresos_input_portal::eis_server: EIS handshake complete, client is a Receiver context session=/org/freedesktop/portal/desktop/session/harness/logged
+2026-11-21T10:18:04.504398Z DEBUG aresos_input_portal::eis_server: client bound seat with BitFlags<DeviceCapability>(0b110101, Pointer | Keyboard | Scroll | Button) session=/org/freedesktop/portal/desktop/session/harness/logged
+2026-11-21T10:18:04.504454Z DEBUG aresos_input_portal::eis_server: reported device region 2560x720
+2026-11-21T10:18:04.504518Z DEBUG aresos_input_portal::eis_server: reported device region 2560x720
+2026-11-21T10:18:04.504601Z DEBUG aresos_input_portal::eis_server: sent a 35356 byte xkb keymap to the client
+2026-11-21T10:18:04.535202Z DEBUG aresos_input_portal::portal: returning 2 zone(s) zone_set=2
+2026-11-21T10:18:04.537894Z  INFO aresos_input_portal::portal: accepted 1 barrier(s), rejected 0
+2026-11-21T10:18:04.539756Z  INFO aresos_input_portal::portal: capture enabled session=/org/freedesktop/portal/desktop/session/harness/logged barriers=1
+2026-11-21T10:18:04.540004Z  INFO aresos_input_portal::wayland::state: armed 1 barrier surface(s)
+2026-11-21T10:18:04.542500Z DEBUG aresos_input_portal::wayland::state: clipboard selection changed types=6 is_ours=false
+2026-11-21T10:18:04.579019Z DEBUG aresos_input_portal::wayland::clipboard: clipboard read asked for an unoffered type offered=6
+2026-11-21T10:18:04.580835Z  INFO aresos_input_portal::portal: session claimed the clipboard session=/org/freedesktop/portal/desktop/session/harness/logged types=1
+2026-11-21T10:18:04.581024Z DEBUG aresos_input_portal::wayland::clipboard: claimed the clipboard types=1
+2026-11-21T10:18:04.581333Z DEBUG aresos_input_portal::wayland::state: clipboard selection changed types=1 is_ours=true
+2026-11-21T10:18:04.615315Z DEBUG aresos_input_portal::portal: asking the session for clipboard content serial=1
+2026-11-21T10:18:04.650846Z  WARN aresos_input_portal::portal: refused: no such clipboard transfer for this session session=/org/freedesktop/portal/desktop/session/harness/logged serial=424242
+2026-11-21T10:18:04.652263Z  INFO aresos_input_portal::wayland::state: barrier crossed, asking the compositor for the grab barrier=1
+2026-11-21T10:18:04.652401Z DEBUG aresos_input_portal::wayland::state: the barrier's surface has keyboard focus
+2026-11-21T10:18:04.652453Z DEBUG aresos_input_portal::wayland::state: the compositor granted the pointer lock
+2026-11-21T10:18:04.652481Z  INFO aresos_input_portal::wayland::state: the grab is held, capturing input barrier=1
+2026-11-21T10:18:04.719976Z  INFO aresos_input_portal::portal: capture released session=/org/freedesktop/portal/desktop/session/harness/logged
+2026-11-21T10:18:04.720261Z DEBUG aresos_input_portal::wayland::state: ignoring an out-of-range cursor hint from the client
+2026-11-21T10:18:04.720378Z  INFO aresos_input_portal::wayland::state: capture ended, pointer released barrier=1 motions=2 keys=6 buttons=2 scrolls=2 confirmed=true
+2026-11-21T10:18:04.720400Z DEBUG aresos_input_portal::wayland::state: tearing down 1 barrier surface(s)
+2026-11-21T10:18:04.720475Z  INFO aresos_input_portal::wayland::state: armed 1 barrier surface(s)
+2026-11-21T10:18:04.722190Z  WARN aresos_input_portal::portal: refused: the caller is not the portal frontend method="ConnectToEIS" sender=Some(":1.0")
+2026-11-21T10:18:04.723746Z  WARN aresos_input_portal::portal: refused: this application is not on the allow-list app_id="org.example.unlisted"
+2026-11-21T10:18:04.724851Z  INFO aresos_input_portal::wayland::state: barrier crossed, asking the compositor for the grab barrier=1
+2026-11-21T10:18:04.725097Z DEBUG aresos_input_portal::wayland::state: the barrier's surface has keyboard focus
+2026-11-21T10:18:04.725130Z DEBUG aresos_input_portal::wayland::state: the compositor granted the pointer lock
+2026-11-21T10:18:04.725139Z  INFO aresos_input_portal::wayland::state: the grab is held, capturing input barrier=1
+2026-11-21T10:18:04.769750Z  INFO aresos_input_portal::portal: ForceRelease requested
+2026-11-21T10:18:04.769825Z  WARN aresos_input_portal::portal: force-released 1 capture(s)
+2026-11-21T10:18:04.769825Z  INFO aresos_input_portal::wayland::state: capture ended, pointer released barrier=1 motions=0 keys=0 buttons=0 scrolls=0 confirmed=true
+2026-11-21T10:18:04.771088Z  INFO aresos_input_portal::portal: session closed by the portal session=/org/freedesktop/portal/desktop/session/harness/logged
+2026-11-21T10:18:04.771099Z DEBUG aresos_input_portal::wayland::state: tearing down 1 barrier surface(s)
+2026-11-21T10:18:04.771123Z DEBUG aresos_input_portal::wayland::clipboard: released the clipboard claim
+2026-11-21T10:18:04.771192Z  INFO aresos_input_portal::eis_server: EIS connection closed session=/org/freedesktop/portal/desktop/session/harness/logged
+2026-11-21T10:18:04.771248Z DEBUG aresos_input_portal::wayland::state: clipboard selection changed types=0 is_ours=false
+2026-11-21T10:18:04.772536Z  INFO aresos_input_portal: shutting down

@@ -1,0 +1,9 @@
+2026-11-21T10:18:16.751632Z  INFO aresos_input_portal::wayland::state: the screens changed: 1 now zone_set=2
+2026-11-21T10:18:16.755616Z DEBUG aresos_input_portal::wayland::clipboard: watching the clipboard through ext-data-control
+2026-11-21T10:18:16.757697Z DEBUG aresos_input_portal::wayland::state: captured a 35355 byte xkb keymap from the compositor
+2026-11-21T10:18:16.757722Z DEBUG aresos_input_portal::wayland::state: clipboard selection changed types=5 is_ours=false
+2026-11-21T10:18:16.757735Z  INFO aresos_input_portal::wayland::state: Wayland barrier thread ready, 1 screen(s) in the snapshot
+2026-11-21T10:18:16.757791Z  INFO aresos_input_portal: screen HEADLESS-2: 1280x720 at (0, 0) scale 1 Normal
+2026-11-21T10:18:16.759007Z  INFO aresos_input_portal::portal: sharing is on
+2026-11-21T10:18:16.759399Z  INFO aresos_input_portal: org.freedesktop.impl.portal.desktop.aresos-input ready at /org/freedesktop/portal/desktop; idle watchdog disabled
+2026-11-21T10:18:17.092918Z  INFO aresos_input_portal: shutting down

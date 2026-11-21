@@ -1,0 +1,11 @@
+GDBus.Error:org.freedesktop.DBus.Error.Failed: the selection does not offer that type
+GDBus.Error:org.freedesktop.DBus.Error.InvalidArgs: no clipboard transfer with serial 424242
+GDBus.Error:org.freedesktop.DBus.Error.AccessDenied: only the portal frontend may call this
+GDBus.Error:org.freedesktop.DBus.Error.AccessDenied: this application may not capture input
+/org/freedesktop/portal/desktop/session/harness/logged: app="org.aresos.harness" enabled=true barriers=1 capturing=true
+
+
+released 1 capture(s)
+
+aresos-input-portal --release: pinned the backend, pid 243; asking it to release (pinned by the bus's ProcessFD)
+

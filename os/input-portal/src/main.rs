@@ -2,11 +2,14 @@
 //!
 //! labwc has no InputCapture portal of its own, so `CreateSession` fails for
 //! every client. This process fills that gap, for the applications on its
-//! allow-list and for nobody else (`src/trust.rs`, `src/portal.rs`).
+//! allow-list and for nobody else (`src/trust.rs`, `src/portal.rs`), and only
+//! while the owner's sharing switch is on (`src/sharing.rs`).
 
 mod eis_server;
 mod portal;
+mod release;
 mod screens;
+mod sharing;
 mod trust;
 mod wayland;
 
@@ -21,6 +24,10 @@ const CONTROL_IFACE: &str = "org.aresos.InputPortal.Control";
 
 /// The one log setting: `error`, `warn`, `info` (the default), `debug` or `trace`.
 const LOG_VARIABLE: &str = "ARESOS_INPUT_PORTAL_LOG";
+
+/// How long a stopping backend waits after giving the pointer back, so the
+/// compositor gets the release before the connection goes.
+pub(crate) const SHUTDOWN_GRACE: std::time::Duration = std::time::Duration::from_millis(150);
 
 /// Variables that make a dependency print every protocol message it handles
 /// (key codes, pointer motion, clipboard types) to stderr.
@@ -81,23 +88,48 @@ async fn run() -> Result<()> {
     // stranded pointer can be recovered over SSH without knowing D-Bus syntax.
     let args: Vec<String> = std::env::args().skip(1).collect();
     match args.first().map(String::as_str) {
-        Some("--release") => call_control("ForceRelease").await,
-        Some("--disarm") => call_control("Disarm").await,
-        Some("--status") => call_control("Status").await,
+        // The release key: confirmed by the backend, or the backend is killed.
+        Some("--release") => release::run(BUS_NAME, CONTROL_PATH, CONTROL_IFACE).await,
+        Some("--disarm") => call_control("Disarm", BUS_NAME).await,
+        // The sharing switch runs this after turning sharing off. Only a
+        // backend that is running has anything to end: none is started for it.
+        Some("--revoke") => match running_backend().await? {
+            Some(owner) => call_control("Revoke", &owner).await,
+            None => {
+                println!("no backend is running: nothing to revoke");
+                Ok(())
+            }
+        },
+        Some("--status") => call_control("Status", BUS_NAME).await,
         Some(other) => anyhow::bail!(
-            "unknown argument {other:?}; expected --release, --disarm or --status"
+            "unknown argument {other:?}; expected --release, --disarm, --revoke or --status"
         ),
         None => serve().await,
     }
 }
 
+/// The unique bus name of the running backend, if one runs.
+async fn running_backend() -> Result<Option<String>> {
+    let conn = zbus::Connection::session()
+        .await
+        .context("failed to connect to the session bus")?;
+    let dbus = zbus::fdo::DBusProxy::new(&conn)
+        .await
+        .context("failed to reach the bus itself")?;
+    match dbus.get_name_owner(BUS_NAME.try_into()?).await {
+        Ok(owner) => Ok(Some(owner.to_string())),
+        Err(zbus::fdo::Error::NameHasNoOwner(_)) => Ok(None),
+        Err(err) => Err(err).context("failed to ask the bus who owns the backend's name"),
+    }
+}
+
 /// Invoke a method on a running instance and print what it says.
-async fn call_control(method: &str) -> Result<()> {
+async fn call_control(method: &str, destination: &str) -> Result<()> {
     let conn = zbus::Connection::session()
         .await
         .context("failed to connect to the session bus")?;
     let reply: String = conn
-        .call_method(Some(BUS_NAME), CONTROL_PATH, Some(CONTROL_IFACE), method, &())
+        .call_method(Some(destination), CONTROL_PATH, Some(CONTROL_IFACE), method, &())
         .await
         .with_context(|| format!("{method} failed; is aresos-input-portal running?"))?
         .body()
@@ -113,10 +145,12 @@ async fn serve() -> Result<()> {
     let keymap: eis_server::SharedKeymap = std::sync::Arc::default();
     let idle_timeout = wayland::idle_timeout_from_env();
     let screens = screens::SharedScreens::new();
+    // Closed until a read of the sharing switch says on.
+    let gate = sharing::Gate::default();
 
     // Fails here, with a clear message, when there is no compositor or it lacks
     // a protocol the backend needs.
-    let (wayland, wayland_events) = wayland::spawn(keymap.clone(), idle_timeout, screens.clone())
+    let (wayland, wayland_events) = wayland::spawn(keymap.clone(), idle_timeout, screens.clone(), gate.clone())
         .context("failed to start the Wayland barrier thread")?;
     for screen in &screens.current().screens {
         info!(
@@ -131,7 +165,7 @@ async fn serve() -> Result<()> {
         );
     }
 
-    let (state, eis_closed) = portal::State::new(std::sync::Arc::new(wayland), screens, keymap);
+    let (state, eis_closed) = portal::State::new(std::sync::Arc::new(wayland), screens, keymap, gate);
     let conn = zbus::connection::Builder::session()
         .context("failed to connect to the session bus")?
         .serve_at(PORTAL_PATH, portal::InputCapture::new(state.clone()))
@@ -158,6 +192,7 @@ async fn serve() -> Result<()> {
     tokio::spawn(portal::watch_frontend(state.clone(), frontend_changes));
     tokio::spawn(portal::pump_wayland_events(state.clone(), wayland_events));
     tokio::spawn(portal::handle_eis_closed(state.clone(), eis_closed));
+    tokio::spawn(portal::watch_switch(state.clone()));
 
     // Not queued behind another owner: a second backend has no business waiting.
     let reply = conn
@@ -181,22 +216,25 @@ async fn serve() -> Result<()> {
         );
     }
 
-    let bus_lost = tokio::select! {
+    let lost = tokio::select! {
         result = tokio::signal::ctrl_c() => {
             result.context("failed to wait for shutdown signal")?;
-            false
+            None
         }
-        // The watch on the frontend has closed every session by now.
-        () = state.wait_for_bus_loss() => true,
+        // Every session is closed by now.
+        why = state.wait_for_stop() => Some(why),
     };
     info!("shutting down");
 
     // Never exit leaving the pointer locked.
     state.release_everything();
-    tokio::time::sleep(std::time::Duration::from_millis(150)).await;
+    tokio::time::sleep(SHUTDOWN_GRACE).await;
     // Without its bus the backend can serve nobody and nobody can stop a
-    // capture: it ends, and the next call from a frontend starts a fresh one.
-    anyhow::ensure!(!bus_lost, "the session bus connection ended");
+    // capture; without its Wayland connection it can place no barrier. Either
+    // way it ends, and the next call from a frontend starts a fresh one.
+    if let Some(why) = lost {
+        anyhow::bail!("{why}");
+    }
     Ok(())
 }
 

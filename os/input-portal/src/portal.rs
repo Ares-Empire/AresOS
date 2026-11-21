@@ -11,7 +11,9 @@
 //!
 //! - every method starts with [`State::authorize`]: the caller must be the
 //!   current owner of `org.freedesktop.portal.Desktop`;
-//! - a session exists only for an application on the allow-list;
+//! - a session exists only for an application on the allow-list, and only
+//!   while the sharing switch says on ([`State::switch_locked`]): Off ends every
+//!   session at once, and is read again wherever input or clipboard would leave;
 //! - one session is armed at a time, and an activation goes only to it;
 //! - a clipboard transfer goes only to the session it was announced to;
 //! - a session that closes, loses its frontend or loses its EIS connection is
@@ -20,6 +22,7 @@
 use crate::{
     eis_server::{self, EisCommand, EisHandle},
     screens::{SharedScreens, Zone},
+    sharing::{Gate, Switch},
     trust::{self, AllowList},
     wayland::{self, WaylandCmd, WaylandEvent, WaylandHandle},
 };
@@ -32,6 +35,7 @@ use std::{
         atomic::{AtomicU32, Ordering},
         Arc, OnceLock,
     },
+    time::Duration,
 };
 use tokio::sync::{mpsc, Mutex};
 use tracing::{debug, error, info, warn};
@@ -60,6 +64,33 @@ const MAX_MIME_TYPES: usize = 64;
 const MAX_MIME_TYPE_BYTES: usize = 255;
 
 type Results = HashMap<String, OwnedValue>;
+
+/// How often the sharing switch is read while any session exists. The brief's
+/// bound is 500 ms; half of it leaves room in the 2-second deadline from the
+/// switch changing to the capture's end for the teardown and for the
+/// compositor's confirmation ([`CONFIRM_TIMEOUT`]).
+pub const SWITCH_INTERVAL: Duration = Duration::from_millis(250);
+
+/// How long the compositor has to confirm that a capture is over: after Off
+/// before the backend exits (and labwc drops the grab with the connection), and
+/// before `ForceRelease` answers that it could not confirm.
+pub const CONFIRM_TIMEOUT: Duration = Duration::from_secs(1);
+
+/// What a read of the switch under the state's lock found.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Sharing {
+    On,
+    Off,
+    /// Off, and this read closed the sessions there were. [`State::conclude`]
+    /// sends their signals and has the end of the capture confirmed.
+    TurnedOff,
+}
+
+impl Sharing {
+    fn is_on(self) -> bool {
+        self == Self::On
+    }
+}
 
 /// One zone as the portal wire format wants it: width, height, x, y.
 #[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize, Type, Value, OwnedValue)]
@@ -319,20 +350,27 @@ impl std::fmt::Debug for Signal {
 enum Frontend {
     /// Ask the bus, for every call.
     Bus,
+    /// A test sets the owner, and changes it to hand the name over.
     #[cfg(test)]
-    Fixed(Option<String>),
+    Fixed(std::sync::Mutex<Option<String>>),
 }
 
-/// Where signals go.
+/// Where signals go, and where the impl-side Session objects are exported.
 enum SignalSink {
     Bus,
     #[cfg(test)]
-    Record(Arc<std::sync::Mutex<Vec<(Option<String>, Signal)>>>),
+    Record {
+        signals: Arc<std::sync::Mutex<Vec<(Option<String>, Signal)>>>,
+        /// The paths that have a Session object.
+        objects: Arc<std::sync::Mutex<std::collections::HashSet<OwnedObjectPath>>>,
+    },
 }
 
 struct Trust {
     allow_list: PathBuf,
     allow_list_owner: u32,
+    /// Whether sharing is on (`sharing.rs`).
+    switch: Switch,
     frontend: Frontend,
     signals: SignalSink,
 }
@@ -351,8 +389,13 @@ pub struct State {
     inner: Arc<Mutex<Inner>>,
     next_activation: Arc<AtomicU32>,
     next_arming: Arc<std::sync::atomic::AtomicU64>,
-    /// Signalled when the bus connection has ended and the process must stop.
+    /// Signalled when the bus or the Wayland connection has ended and the
+    /// process must stop; `stop_reason` says which.
     stop: Arc<tokio::sync::Notify>,
+    stop_reason: Arc<OnceLock<&'static str>>,
+    /// Held while a Session object is exported or removed, so a removal can't
+    /// take the object of a new session at the same path (`remove_session_object`).
+    objects: Arc<Mutex<()>>,
     wayland: Arc<WaylandHandle>,
     screens: SharedScreens,
     keymap: eis_server::SharedKeymap,
@@ -362,6 +405,9 @@ pub struct State {
     /// itself has to be constructed.
     conn: Arc<OnceLock<zbus::Connection>>,
     trust: Arc<Trust>,
+    /// Read by the input path (the Wayland thread and every EIS connection):
+    /// closed the moment a read of the switch says off.
+    gate: Gate,
 }
 
 fn unknown_session() -> fdo::Error {
@@ -372,19 +418,26 @@ fn no_clipboard() -> fdo::Error {
     fdo::Error::AccessDenied("this session has no clipboard access".into())
 }
 
+fn sharing_off() -> fdo::Error {
+    fdo::Error::AccessDenied("sharing is off".into())
+}
+
 impl State {
     pub fn new(
         wayland: Arc<WaylandHandle>,
         screens: SharedScreens,
         keymap: eis_server::SharedKeymap,
+        gate: Gate,
     ) -> (Self, mpsc::UnboundedReceiver<(String, u32)>) {
         Self::with_trust(
             wayland,
             screens,
             keymap,
+            gate,
             Trust {
                 allow_list: PathBuf::from(trust::ALLOWED_APPS_PATH),
                 allow_list_owner: trust::ALLOWED_APPS_OWNER,
+                switch: Switch::installed(),
                 frontend: Frontend::Bus,
                 signals: SignalSink::Bus,
             },
@@ -395,6 +448,7 @@ impl State {
         wayland: Arc<WaylandHandle>,
         screens: SharedScreens,
         keymap: eis_server::SharedKeymap,
+        gate: Gate,
         trust: Trust,
     ) -> (Self, mpsc::UnboundedReceiver<(String, u32)>) {
         let (eis_closed, closed_rx) = mpsc::unbounded_channel();
@@ -403,12 +457,15 @@ impl State {
             next_activation: Arc::new(AtomicU32::new(1)),
             next_arming: Arc::new(std::sync::atomic::AtomicU64::new(1)),
             stop: Arc::new(tokio::sync::Notify::new()),
+            stop_reason: Arc::new(OnceLock::new()),
+            objects: Arc::new(Mutex::new(())),
             wayland,
             screens,
             keymap,
             eis_closed,
             conn: Arc::new(OnceLock::new()),
             trust: Arc::new(trust),
+            gate,
         };
         (state, closed_rx)
     }
@@ -445,7 +502,7 @@ impl State {
                 reply.body().deserialize::<String>().ok()
             }
             #[cfg(test)]
-            Frontend::Fixed(owner) => owner.clone(),
+            Frontend::Fixed(owner) => owner.lock().expect("fixed frontend").clone(),
         }
     }
 
@@ -453,13 +510,174 @@ impl State {
     /// before it reads its arguments or touches any state.
     async fn authorize(&self, sender: Option<&str>, method: &'static str) -> fdo::Result<()> {
         let owner = self.frontend_owner().await;
-        if trust::is_frontend(sender, owner.as_deref()) {
-            return Ok(());
+        if !trust::is_frontend(sender, owner.as_deref()) {
+            warn!(method, sender = ?sender, "refused: the caller is not the portal frontend");
+            return Err(fdo::Error::AccessDenied(
+                "only the portal frontend may call this".into(),
+            ));
         }
-        warn!(method, sender = ?sender, "refused: the caller is not the portal frontend");
-        Err(fdo::Error::AccessDenied(
-            "only the portal frontend may call this".into(),
-        ))
+        self.adopt_frontend(sender).await;
+        Ok(())
+    }
+
+    /// Make `sender`, which has just passed the frontend check, the frontend the
+    /// sessions belong to.
+    ///
+    /// Every session here was made by one frontend (`Inner::frontend`). A caller
+    /// that passed the check under another bus name is a new owner of the
+    /// frontend's name, so the old owner's sessions end before this call touches
+    /// anything: it can't get an old session's EIS socket or clipboard pipe by
+    /// its path (REVIEW-3, finding 2; REVIEW-2, finding 3). The watch on the name
+    /// does the same, but may not have run yet. Nobody is left to tell.
+    async fn adopt_frontend(&self, sender: Option<&str>) {
+        let mut orphaned = Vec::new();
+        {
+            let mut inner = self.inner.lock().await;
+            if inner.frontend.as_deref() == sender {
+                return;
+            }
+            let stale: Vec<OwnedObjectPath> = inner.sessions.keys().cloned().collect();
+            if !stale.is_empty() {
+                warn!(
+                    "a new owner of the frontend's name: closing {} session(s) of the old one",
+                    stale.len()
+                );
+            }
+            for old in &stale {
+                self.remove_session(&mut inner, old, &mut orphaned);
+            }
+            inner.frontend = sender.map(str::to_owned);
+        }
+        self.emit_all(None, orphaned).await;
+    }
+
+    // ---- the sharing switch --------------------------------------------------
+
+    /// Read the switch, with the lock held. On opens the gate. Off closes the
+    /// gate first, so the input path stops forwarding at once, and then every
+    /// session: its capture, barriers, EIS connection and clipboard claim go
+    /// (their signals into `out`), and so nothing more leaves. Under the lock no
+    /// session can be made or used between the read and the teardown, and the
+    /// gate can't open again while a session from before the Off is left.
+    fn switch_locked(&self, inner: &mut Inner, out: &mut Vec<Signal>) -> Sharing {
+        let off = match self.trust.switch.read() {
+            Ok(()) => {
+                if !self.gate.open() {
+                    info!("sharing is on");
+                }
+                return Sharing::On;
+            }
+            Err(off) => off,
+        };
+        let was_open = self.gate.close();
+        if off.suspicious {
+            warn!("sharing is off: {off}");
+        } else if was_open {
+            info!("sharing is off: {off}");
+        } else {
+            debug!("sharing is off: {off}");
+        }
+        if inner.sessions.is_empty() {
+            return Sharing::Off;
+        }
+        let handles: Vec<OwnedObjectPath> = inner.sessions.keys().cloned().collect();
+        warn!("sharing was turned off: closing {} session(s)", handles.len());
+        for handle in &handles {
+            self.remove_session(inner, handle, out);
+        }
+        // Whatever is captured ends, also a crossing the portal hasn't heard of.
+        self.release_everything();
+        Sharing::TurnedOff
+    }
+
+    /// Run `f` with the lock held, after a read of the switch under the same
+    /// lock: Off refuses the call (and ends what is live) before `f` runs.
+    async fn with_sharing<T>(
+        &self,
+        method: &'static str,
+        f: impl FnOnce(&mut Inner, &mut Vec<Signal>) -> fdo::Result<T>,
+    ) -> fdo::Result<T> {
+        let mut out = Vec::new();
+        let (to, sharing, result) = {
+            let mut inner = self.inner.lock().await;
+            let sharing = self.switch_locked(&mut inner, &mut out);
+            let result = if sharing.is_on() {
+                f(&mut inner, &mut out)
+            } else {
+                warn!(method, "refused: sharing is off");
+                Err(sharing_off())
+            };
+            (inner.frontend.clone(), sharing, result)
+        };
+        self.conclude(to, out, sharing).await;
+        result
+    }
+
+    /// Send the signals a call produced. When its read of the switch closed the
+    /// sessions, the compositor's confirmation that the capture is over is
+    /// awaited on a task of its own, so the call isn't held up by it.
+    async fn conclude(&self, to: Option<String>, out: Vec<Signal>, sharing: Sharing) {
+        self.emit_all(to, out).await;
+        if sharing == Sharing::TurnedOff {
+            let state = self.clone();
+            tokio::spawn(async move { state.confirm_off().await });
+        }
+    }
+
+    /// After Off closed the sessions: unless the compositor confirms within
+    /// [`CONFIRM_TIMEOUT`] that it has handled the end of the capture, the
+    /// backend stops, and labwc drops the grab with its connection. Returns
+    /// whether it confirmed.
+    async fn confirm_off(&self) -> bool {
+        if self.wayland.confirm(CONFIRM_TIMEOUT).await {
+            debug!("the compositor confirmed the end of the capture after Off");
+            return true;
+        }
+        error!("the compositor did not confirm the end of the capture within a second of Off: stopping");
+        self.stop_serving("the compositor did not confirm the end of the capture after sharing was turned off")
+            .await;
+        false
+    }
+
+    /// The timer's read of the switch ([`watch_switch`]), while any session exists.
+    pub async fn reread_switch(&self) {
+        let mut out = Vec::new();
+        let (to, sharing) = {
+            let mut inner = self.inner.lock().await;
+            if inner.sessions.is_empty() {
+                return;
+            }
+            let sharing = self.switch_locked(&mut inner, &mut out);
+            (inner.frontend.clone(), sharing)
+        };
+        self.conclude(to, out, sharing).await;
+    }
+
+    /// `--revoke`: read the switch now rather than at the next tick, and answer
+    /// once the compositor has confirmed the end of the capture. It can only end
+    /// sharing, never start it, so the bus may let anyone ask.
+    async fn revoke(&self) -> String {
+        let mut out = Vec::new();
+        let (to, sharing) = {
+            let mut inner = self.inner.lock().await;
+            let sharing = self.switch_locked(&mut inner, &mut out);
+            (inner.frontend.clone(), sharing)
+        };
+        let closed = out
+            .iter()
+            .filter(|signal| matches!(signal, Signal::SessionClosed { .. }))
+            .count();
+        self.emit_all(to, out).await;
+        match sharing {
+            Sharing::On => "sharing is on: nothing changed".to_owned(),
+            Sharing::Off => "sharing is off: there was nothing to close".to_owned(),
+            Sharing::TurnedOff if self.confirm_off().await => {
+                format!("sharing is off: closed {closed} session(s)")
+            }
+            Sharing::TurnedOff => format!(
+                "sharing is off: closed {closed} session(s); the compositor did not confirm, so the backend stops"
+            ),
+        }
     }
 
     // ---- signals ----------------------------------------------------------
@@ -477,23 +695,92 @@ impl State {
     }
 
     async fn emit(&self, to: Option<&str>, signal: Signal) {
+        // A closed session's object goes with its `Closed`, whether or not
+        // anybody was left to tell.
+        let closed = match &signal {
+            Signal::SessionClosed { session } => Some(session.clone()),
+            _ => None,
+        };
         match &self.trust.signals {
-            SignalSink::Bus => {}
+            SignalSink::Bus => match self.connection() {
+                Some(conn) => {
+                    let name = signal.name();
+                    if let Err(err) = send_signal(conn, to, signal).await {
+                        error!(signal = name, "failed to emit a portal signal: {err}");
+                    }
+                }
+                None => debug!(signal = signal.name(), "no bus connection yet, a signal was dropped"),
+            },
             #[cfg(test)]
-            SignalSink::Record(sink) => {
-                sink.lock()
+            SignalSink::Record { signals, .. } => {
+                signals
+                    .lock()
                     .expect("signal sink")
                     .push((to.map(str::to_owned), signal));
-                return;
             }
         }
-        let Some(conn) = self.connection() else {
-            debug!(signal = signal.name(), "no bus connection yet, a signal was dropped");
+        if let Some(session) = closed {
+            self.remove_session_object(&session).await;
+        }
+    }
+
+    /// Export the impl-side Session object for a session just stored in
+    /// `sessions`. An object already standing at the path is an earlier
+    /// session's whose removal hasn't run yet: it stays and serves this session,
+    /// since a `SessionObject` finds its session by path.
+    async fn export_session_object(&self, handle: &OwnedObjectPath) -> fdo::Result<()> {
+        let _objects = self.objects.lock().await;
+        match &self.trust.signals {
+            SignalSink::Bus => {
+                let Some(conn) = self.connection() else {
+                    return Ok(());
+                };
+                let object = SessionObject {
+                    state: self.clone(),
+                    handle: handle.clone(),
+                };
+                match conn.object_server().at(handle, object).await {
+                    Ok(true) => {}
+                    Ok(false) => debug!(session = %handle.as_str(), "an earlier object at this path serves the new session"),
+                    Err(err) => {
+                        return Err(fdo::Error::Failed(format!(
+                            "failed to export the session object: {err}"
+                        )))
+                    }
+                }
+            }
+            #[cfg(test)]
+            SignalSink::Record { objects, .. } => {
+                objects.lock().expect("object sink").insert(handle.clone());
+            }
+        }
+        Ok(())
+    }
+
+    /// Remove the Session object at a closed session's path, unless a session
+    /// with that path exists again (REVIEW-2, finding 4).
+    ///
+    /// A client can close a session and make a new one at the same path straight
+    /// away; the old `Closed` may then go out after the new session was stored,
+    /// and removing the object would leave the new session without `Close`. The
+    /// check and the removal hold the same lock as `export_session_object`, so
+    /// they can't straddle the new session's export.
+    async fn remove_session_object(&self, handle: &OwnedObjectPath) {
+        let _objects = self.objects.lock().await;
+        if self.inner.lock().await.sessions.contains_key(handle) {
+            debug!(session = %handle.as_str(), "a new session has this path: its object stays");
             return;
-        };
-        let name = signal.name();
-        if let Err(err) = send_signal(conn, to, signal).await {
-            error!(signal = name, "failed to emit a portal signal: {err}");
+        }
+        match &self.trust.signals {
+            SignalSink::Bus => {
+                if let Some(conn) = self.connection() {
+                    let _ = conn.object_server().remove::<SessionObject, _>(handle).await;
+                }
+            }
+            #[cfg(test)]
+            SignalSink::Record { objects, .. } => {
+                objects.lock().expect("object sink").remove(handle);
+            }
         }
     }
 
@@ -604,6 +891,14 @@ impl State {
     ) -> fdo::Result<u32> {
         self.authorize(sender, "CreateSession").await?;
 
+        // A host program without a desktop file reaches the backend with an
+        // empty ID, so it names nobody: refused whatever the list holds.
+        if app_id.is_empty() {
+            warn!("refused: the application has no ID");
+            return Err(fdo::Error::AccessDenied(
+                "this application may not capture input".into(),
+            ));
+        }
         // Read for every session, so the list in force is the one on disk now.
         let allowed = AllowList::load(&self.trust.allow_list, self.trust.allow_list_owner);
         if !allowed.allows(app_id) {
@@ -619,21 +914,11 @@ impl State {
         }
         let started = v1_capabilities.is_some();
 
-        let mut orphaned = Vec::new();
-        {
-            let mut inner = self.inner.lock().await;
-            // Every session here was made by one frontend. A caller that passed
-            // the check above under another bus name is a new owner of the
-            // frontend's name: the old owner's sessions end now (the watch on
-            // the name does the same, but may not have run yet), and nobody is
-            // left to tell.
-            if inner.frontend.as_deref() != sender {
-                let stale: Vec<OwnedObjectPath> = inner.sessions.keys().cloned().collect();
-                for old in &stale {
-                    self.remove_session(&mut inner, old, &mut orphaned);
-                }
-                inner.frontend = sender.map(str::to_owned);
-            }
+        // The switch is read under the lock that stores the session, so a
+        // session can't be made after an Off that the timer reads a moment later.
+        // `authorize` has made the caller the frontend these sessions belong to,
+        // closing an earlier owner's first.
+        self.with_sharing("CreateSession", |inner, _| {
             if inner.sessions.contains_key(handle) {
                 return Err(fdo::Error::Failed("this session already exists".into()));
             }
@@ -657,21 +942,14 @@ impl State {
                     clipboard_requested: false,
                 },
             );
-        }
-        self.emit_all(None, orphaned).await;
+            Ok(())
+        })
+        .await?;
 
         // The backend owns the impl-side Session object.
-        if let Some(conn) = self.connection() {
-            let object = SessionObject {
-                state: self.clone(),
-                handle: handle.clone(),
-            };
-            if let Err(err) = conn.object_server().at(handle, object).await {
-                self.inner.lock().await.sessions.remove(handle);
-                return Err(fdo::Error::Failed(format!(
-                    "failed to export the session object: {err}"
-                )));
-            }
+        if let Err(err) = self.export_session_object(handle).await {
+            self.inner.lock().await.sessions.remove(handle);
+            return Err(err);
         }
 
         info!(app_id = ?app_id, session = %handle.as_str(), capabilities = granted, started, "session created");
@@ -815,6 +1093,7 @@ impl State {
             self.eis_closed.clone(),
             Some(region),
             session.capabilities,
+            self.gate.clone(),
         )
         .map_err(|e| fdo::Error::Failed(format!("EIS setup failed: {e:#}")))?;
         session.eis = Some(eis);
@@ -826,11 +1105,12 @@ impl State {
     /// Arm a session. Any other armed session is disarmed first and told.
     pub async fn enable(&self, sender: Option<&str>, handle: &OwnedObjectPath) -> fdo::Result<()> {
         self.authorize(sender, "Enable").await?;
-        let mut out = Vec::new();
-        let to;
+        self.with_sharing("Enable", |inner, out| self.enable_locked(inner, handle, out))
+            .await
+    }
+
+    fn enable_locked(&self, inner: &mut Inner, handle: &OwnedObjectPath, out: &mut Vec<Signal>) -> fdo::Result<()> {
         {
-            let mut inner = self.inner.lock().await;
-            to = inner.frontend.clone();
             let session = inner.sessions.get(handle).ok_or_else(unknown_session)?;
             if !session.started {
                 // A v2 session has no negotiated capabilities until Start, so arming
@@ -845,7 +1125,7 @@ impl State {
             // One armed session: the screen edges belong to whoever asked last.
             for other in inner.sessions.values_mut() {
                 if other.handle != *handle {
-                    self.disarm_session(other, &mut out);
+                    self.disarm_session(other, out);
                 }
             }
             if let Some(session) = inner.sessions.get_mut(handle) {
@@ -856,7 +1136,6 @@ impl State {
                 }
             }
         }
-        self.emit_all(to, out).await;
         Ok(())
     }
 
@@ -916,14 +1195,16 @@ impl State {
     /// answer `clipboard_enabled` truthfully.
     pub async fn request_clipboard(&self, sender: Option<&str>, handle: &OwnedObjectPath) -> fdo::Result<()> {
         self.authorize(sender, "RequestClipboard").await?;
-        let mut inner = self.inner.lock().await;
-        let session = inner.sessions.get_mut(handle).ok_or_else(unknown_session)?;
-        if session.started {
-            return Err(fdo::Error::Failed("RequestClipboard after Start".into()));
-        }
-        session.clipboard_requested = true;
-        info!(session = %handle.as_str(), "clipboard access requested");
-        Ok(())
+        self.with_sharing("RequestClipboard", |inner, _| {
+            let session = inner.sessions.get_mut(handle).ok_or_else(unknown_session)?;
+            if session.started {
+                return Err(fdo::Error::Failed("RequestClipboard after Start".into()));
+            }
+            session.clipboard_requested = true;
+            info!(session = %handle.as_str(), "clipboard access requested");
+            Ok(())
+        })
+        .await
     }
 
     /// The session now holds clipboard content in these types.
@@ -937,7 +1218,11 @@ impl State {
         mime_types: Vec<String>,
     ) -> fdo::Result<()> {
         self.authorize(sender, "SetSelection").await?;
-        let mut inner = self.inner.lock().await;
+        self.with_sharing("SetSelection", |inner, _| self.set_selection_locked(inner, handle, mime_types))
+            .await
+    }
+
+    fn set_selection_locked(&self, inner: &mut Inner, handle: &OwnedObjectPath, mime_types: Vec<String>) -> fdo::Result<()> {
         if !inner.sessions.get(handle).is_some_and(Session::has_clipboard) {
             return Err(no_clipboard());
         }
@@ -981,16 +1266,18 @@ impl State {
         serial: u32,
     ) -> fdo::Result<OwnedFd> {
         self.authorize(sender, "SelectionWrite").await?;
-        let mut inner = self.inner.lock().await;
-        if !inner.sessions.get(handle).is_some_and(Session::has_clipboard) {
-            return Err(no_clipboard());
-        }
-        inner.clipboard.take_transfer(handle, serial).ok_or_else(|| {
-            // The serial is another session's, was answered already, or waited
-            // long enough to be evicted.
-            warn!(session = %handle.as_str(), serial, "refused: no such clipboard transfer for this session");
-            fdo::Error::InvalidArgs(format!("no clipboard transfer with serial {serial}"))
+        self.with_sharing("SelectionWrite", |inner, _| {
+            if !inner.sessions.get(handle).is_some_and(Session::has_clipboard) {
+                return Err(no_clipboard());
+            }
+            inner.clipboard.take_transfer(handle, serial).ok_or_else(|| {
+                // The serial is another session's, was answered already, or waited
+                // long enough to be evicted.
+                warn!(session = %handle.as_str(), serial, "refused: no such clipboard transfer for this session");
+                fdo::Error::InvalidArgs(format!("no clipboard transfer with serial {serial}"))
+            })
         })
+        .await
     }
 
     /// The client finished writing, successfully or not.
@@ -1005,6 +1292,7 @@ impl State {
         success: bool,
     ) -> fdo::Result<()> {
         self.authorize(sender, "SelectionWriteDone").await?;
+        self.with_sharing("SelectionWriteDone", |_, _| Ok(())).await?;
         if !success {
             warn!(session = %handle.as_str(), serial, "the client failed to write clipboard content");
         }
@@ -1020,16 +1308,14 @@ impl State {
         mime_type: String,
     ) -> fdo::Result<OwnedFd> {
         self.authorize(sender, "SelectionRead").await?;
-        if !self
-            .inner
-            .lock()
-            .await
-            .sessions
-            .get(handle)
-            .is_some_and(Session::has_clipboard)
-        {
-            return Err(no_clipboard());
-        }
+        let may_read = |inner: &mut Inner, _: &mut Vec<Signal>| {
+            if inner.sessions.get(handle).is_some_and(Session::has_clipboard) {
+                Ok(())
+            } else {
+                Err(no_clipboard())
+            }
+        };
+        self.with_sharing("SelectionRead", may_read).await?;
         if mime_type.is_empty() || mime_type.len() > MAX_MIME_TYPE_BYTES {
             return Err(fdo::Error::InvalidArgs("unusable type".into()));
         }
@@ -1039,11 +1325,13 @@ impl State {
             mime_type,
             reply: reply_tx,
         });
-        reply_rx
-            .await
-            .ok()
-            .flatten()
-            .ok_or_else(|| fdo::Error::Failed("the selection does not offer that type".into()))
+        let pipe = reply_rx.await.ok().flatten();
+        // Sharing may have gone off, or the session closed, while this call
+        // waited for the Wayland thread: the pipe goes out only if neither did.
+        // Refused, it is dropped here, and the owner writing into it sees nobody
+        // reading.
+        self.with_sharing("SelectionRead", may_read).await?;
+        pipe.ok_or_else(|| fdo::Error::Failed("the selection does not offer that type".into()))
     }
 
     // ---- Session.Close and the other ways a session ends --------------------
@@ -1067,10 +1355,28 @@ impl State {
     /// The frontend left the bus (or was replaced): nobody is left who could
     /// close its sessions, and a new frontend knows nothing about them.
     pub async fn close_all_sessions(&self, why: &str) {
+        self.close_sessions(None, why).await;
+    }
+
+    /// The watch on the frontend's name saw `old_owner` give it up. Only the
+    /// sessions that owner made are closed: by the time a late notice arrives,
+    /// a new owner may already have made sessions of its own (REVIEW-3,
+    /// finding 2), and those stay.
+    pub async fn frontend_left(&self, old_owner: &str) {
+        self.close_sessions(Some(old_owner), "the portal frontend left the bus")
+            .await;
+    }
+
+    /// Close every session, or with `only_of` every session if they belong to
+    /// that frontend and none otherwise.
+    async fn close_sessions(&self, only_of: Option<&str>, why: &str) {
         let mut out = Vec::new();
         let to;
         {
             let mut inner = self.inner.lock().await;
+            if only_of.is_some() && inner.frontend.as_deref() != only_of {
+                return;
+            }
             to = inner.frontend.take();
             let handles: Vec<OwnedObjectPath> = inner.sessions.keys().cloned().collect();
             if !handles.is_empty() {
@@ -1089,14 +1395,31 @@ impl State {
     /// session is closed (its barriers go, its EIS connection is cut), whatever
     /// is captured is released, and `serve` is told to stop the process.
     pub async fn bus_lost(&self) {
-        self.close_all_sessions("the bus connection ended").await;
+        self.stop_serving("the session bus connection ended").await;
+    }
+
+    /// The connection to the compositor has ended (REVIEW-2, finding 2). No
+    /// barrier can be placed and no crossing seen any more, while the bus would
+    /// keep answering: `Enable` would succeed and sharing would look alive but
+    /// be dead. So it ends as a lost bus does, and the next call from the
+    /// frontend starts a fresh backend through D-Bus activation. No input can
+    /// leak meanwhile: the compositor dropped the grab with the connection.
+    pub async fn wayland_lost(&self) {
+        self.stop_serving("the Wayland connection ended").await;
+    }
+
+    async fn stop_serving(&self, why: &'static str) {
+        self.close_all_sessions(why).await;
         self.release_everything();
+        let _ = self.stop_reason.set(why);
         self.stop.notify_one();
     }
 
-    /// Resolves once the bus connection has ended and the sessions are closed.
-    pub async fn wait_for_bus_loss(&self) {
+    /// Resolves once the bus or the Wayland connection has ended and the
+    /// sessions are closed, with which of the two it was.
+    pub async fn wait_for_stop(&self) -> &'static str {
         self.stop.notified().await;
+        self.stop_reason.get().copied().unwrap_or("stopped")
     }
 
     /// An EIS connection ended. If a session still depends on it, the session is
@@ -1135,8 +1458,12 @@ impl State {
         self.wayland.send(WaylandCmd::Disarm);
     }
 
-    /// End every in-flight capture, returning how many there were.
-    async fn force_release(&self, disarm: bool) -> usize {
+    /// End every in-flight capture, returning how many there were, once the
+    /// compositor has confirmed it: the answer of `--release` must mean the
+    /// pointer and the keyboard are back, not that their release is queued.
+    /// Unconfirmed within [`CONFIRM_TIMEOUT`] it fails, and `--release` stops the
+    /// backend it pinned.
+    async fn force_release(&self, disarm: bool) -> fdo::Result<usize> {
         let mut out = Vec::new();
         let to;
         let released = {
@@ -1176,7 +1503,13 @@ impl State {
         if released > 0 {
             warn!("force-released {released} capture(s)");
         }
-        released
+        if !self.wayland.confirm(CONFIRM_TIMEOUT).await {
+            error!("the compositor did not confirm that the pointer and the keyboard are free");
+            return Err(fdo::Error::Failed(
+                "the compositor did not confirm the release in time".into(),
+            ));
+        }
+        Ok(released)
     }
 
     async fn status(&self) -> String {
@@ -1240,9 +1573,13 @@ impl State {
     async fn activated(&self, label: &str, arming: u64, crossing: u64, barrier_id: u32, position: (f64, f64)) {
         let mut out = Vec::new();
         let to;
+        let sharing;
         {
             let mut inner = self.inner.lock().await;
             to = inner.frontend.clone();
+            // Before `Activated`: with sharing off every session is gone by the
+            // lookup below, and the crossing stays local.
+            sharing = self.switch_locked(&mut inner, &mut out);
             let handle = OwnedObjectPath::try_from(label).ok();
             let session = handle
                 .as_ref()
@@ -1310,7 +1647,7 @@ impl State {
                 }
             }
         }
-        self.emit_all(to, out).await;
+        self.conclude(to, out, sharing).await;
     }
 
     /// The grab of `crossing` is already gone (the watchdog, the escape chord,
@@ -1397,48 +1734,56 @@ impl State {
     }
 
     async fn selection_changed(&self, mime_types: Vec<String>, is_ours: bool) {
-        let (to, out) = {
+        let mut out = Vec::new();
+        let (to, sharing) = {
             let mut inner = self.inner.lock().await;
             inner.clipboard.mime_types = mime_types;
             inner.clipboard.owned_by_session = is_ours;
+            // With sharing off no session is left to be told.
+            let sharing = self.switch_locked(&mut inner, &mut out);
             // Every session with clipboard access needs to know, so it can offer
             // the new content to the machine on the other end.
-            (inner.frontend.clone(), Self::announce_selection(&inner))
+            out.extend(Self::announce_selection(&inner));
+            (inner.frontend.clone(), sharing)
         };
-        self.emit_all(to, out).await;
+        self.conclude(to, out, sharing).await;
     }
 
     /// Somebody local is pasting from the selection claim `claim_id` made.
     async fn selection_requested(&self, claim_id: u32, mime_type: String, fd: OwnedFd) {
-        let (to, signal) = {
+        let mut out = Vec::new();
+        let (to, sharing) = {
             let mut inner = self.inner.lock().await;
+            // No new transfer starts with sharing off: every session, and so the
+            // claim's owner, is gone by the lookup below.
+            let sharing = self.switch_locked(&mut inner, &mut out);
             let owner = inner
                 .clipboard
                 .owner_session
                 .clone()
                 .filter(|owner| claim_id == inner.clipboard.claim_id && inner.sessions.contains_key(owner));
-            let Some(owner) = owner else {
+            match owner {
+                Some(owner) => {
+                    let serial = inner.clipboard.begin_transfer(&owner, fd);
+                    debug!(serial, "asking the session for clipboard content");
+                    out.push(Signal::SelectionTransfer {
+                        session: owner,
+                        mime_type,
+                        serial,
+                    });
+                }
                 // Dropping `fd` here is what the paster reads as "no data".
-                debug!("a paste arrived for a claim with no session behind it");
-                return;
-            };
-            let serial = inner.clipboard.begin_transfer(&owner, fd);
-            debug!(serial, "asking the session for clipboard content");
-            (
-                inner.frontend.clone(),
-                Signal::SelectionTransfer {
-                    session: owner,
-                    mime_type,
-                    serial,
-                },
-            )
+                None => debug!("a paste arrived for a claim with no session behind it"),
+            }
+            (inner.frontend.clone(), sharing)
         };
-        self.emit(to.as_deref(), signal).await;
+        self.conclude(to, out, sharing).await;
     }
 
     /// Another client took the selection from claim `claim_id`.
     async fn claim_cancelled(&self, claim_id: u32) {
-        let (to, out) = {
+        let mut out = Vec::new();
+        let (to, sharing) = {
             let mut inner = self.inner.lock().await;
             if claim_id != inner.clipboard.claim_id {
                 return;
@@ -1449,33 +1794,24 @@ impl State {
             clipboard.claim_id = clipboard.claim_id.wrapping_add(1);
             // Nobody is going to answer these now.
             clipboard.clear_transfers();
-            (inner.frontend.clone(), Self::announce_selection(&inner))
+            let sharing = self.switch_locked(&mut inner, &mut out);
+            out.extend(Self::announce_selection(&inner));
+            (inner.frontend.clone(), sharing)
         };
-        self.emit_all(to, out).await;
+        self.conclude(to, out, sharing).await;
     }
 }
 
 /// Send one signal to the frontend `to` and to nobody else. With nobody to
-/// tell, nothing is sent. A closed session's object is removed either way.
+/// tell, nothing is sent.
 async fn send_signal(conn: &zbus::Connection, to: Option<&str>, signal: Signal) -> zbus::Result<()> {
-    let closed = match &signal {
-        Signal::SessionClosed { session } => Some(session.clone()),
-        _ => None,
-    };
-    let sent = match to {
+    match to {
         Some(to) => send_signal_to(conn, to, signal).await,
         None => {
             debug!(signal = signal.name(), "no frontend to tell, a signal was dropped");
             Ok(())
         }
-    };
-    if let Some(session) = closed {
-        let _ = conn
-            .object_server()
-            .remove::<SessionObject, _>(&session)
-            .await;
     }
-    sent
 }
 
 /// Put one signal on the bus, addressed to `to`.
@@ -1904,28 +2240,49 @@ impl Control {
 
 #[interface(name = "org.aresos.InputPortal.Control")]
 impl Control {
-    /// Drop any active capture and give the pointer and keyboard back.
-    async fn force_release(&self) -> String {
+    /// Drop any active capture and give the pointer and keyboard back. Answers
+    /// once the compositor has confirmed it, and fails when it hasn't within
+    /// [`CONFIRM_TIMEOUT`].
+    async fn force_release(&self) -> fdo::Result<String> {
         // Logged unconditionally: when someone reaches for this, knowing the
         // call arrived at all is the first thing worth confirming.
         info!("ForceRelease requested");
-        match self.state.force_release(false).await {
+        Ok(match self.state.force_release(false).await? {
             0 => "no capture was active; barriers left as they were".to_owned(),
             released => format!("released {released} capture(s)"),
-        }
+        })
     }
 
     /// Drop captures *and* tear the barrier surfaces down, so no edge can
     /// trigger again until a client re-enables. The armed session is told.
-    async fn disarm(&self) -> String {
+    async fn disarm(&self) -> fdo::Result<String> {
         info!("Disarm requested");
-        let released = self.state.force_release(true).await;
-        format!("released {released} capture(s) and disarmed all barriers")
+        let released = self.state.force_release(true).await?;
+        Ok(format!("released {released} capture(s) and disarmed all barriers"))
+    }
+
+    /// Read the sharing switch now instead of at the next tick (`--revoke`; the
+    /// switch's program runs it after turning sharing off).
+    async fn revoke(&self) -> String {
+        info!("Revoke requested");
+        self.state.revoke().await
     }
 
     /// Human-readable summary, for checking state without a GUI.
     async fn status(&self) -> String {
         self.state.status().await
+    }
+}
+
+/// Read the sharing switch every [`SWITCH_INTERVAL`] while any session exists,
+/// so Off takes effect with no second process (`--revoke` only makes it
+/// immediate).
+pub async fn watch_switch(state: State) {
+    let mut tick = tokio::time::interval(SWITCH_INTERVAL);
+    tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+    loop {
+        tick.tick().await;
+        state.reread_switch().await;
     }
 }
 
@@ -1941,6 +2298,10 @@ pub async fn pump_wayland_events(state: State, mut events: mpsc::UnboundedReceiv
     while let Some(event) = events.recv().await {
         state.handle_event(event).await;
     }
+    // The Wayland thread holds the sending end until it stops, and it stops
+    // only when its connection to the compositor fails or the process ends.
+    warn!("the Wayland connection ended: closing every session and stopping");
+    state.wayland_lost().await;
 }
 
 /// Close every session when the frontend's bus name changes hands or is given
@@ -1954,10 +2315,8 @@ pub async fn watch_frontend(state: State, mut changes: fdo::NameOwnerChangedStre
         };
         // Somebody owned the name until now. Whether nobody or somebody else owns
         // it from here on, the sessions that owner made have lost their frontend.
-        if args.old_owner().is_some() {
-            state
-                .close_all_sessions("the portal frontend left the bus")
-                .await;
+        if let Some(old_owner) = &**args.old_owner() {
+            state.frontend_left(old_owner.as_str()).await;
         }
     }
     // The stream ends when the connection does, with no last word about the
@@ -1994,6 +2353,7 @@ impl SessionObject {
 mod tests {
     use super::*;
     use crate::screens::tests::screen;
+    use crate::sharing::tests::TempSwitch;
     use crate::trust::tests::TempList;
 
     const FRONTEND: &str = ":1.5";
@@ -2010,11 +2370,19 @@ mod tests {
     }
 
     /// The portal state with everything around it replaced: a recorded Wayland
-    /// thread, recorded signals, a fixed frontend and an allow-list in a temp file.
+    /// thread, recorded signals, a fixed frontend, and an allow-list and a sharing
+    /// switch (on) in temp files.
     struct Rig {
         state: State,
         cmds: calloop::channel::Channel<WaylandCmd>,
+        /// Commands taken from the channel and not yet returned by `cmds`.
+        stash: std::sync::Mutex<Vec<WaylandCmd>>,
+        /// The Wayland thread's confirmations nobody has answered yet: kept, so
+        /// the backend's wait for them neither ends nor fails until a test says.
+        syncs: std::sync::Mutex<Vec<tokio::sync::oneshot::Sender<()>>>,
+        switch: TempSwitch,
         signals: Arc<std::sync::Mutex<Vec<(Option<String>, Signal)>>>,
+        objects: Arc<std::sync::Mutex<std::collections::HashSet<OwnedObjectPath>>>,
         screens: SharedScreens,
         /// The clients' ends of the EIS connections, kept open.
         eis_clients: Vec<OwnedFd>,
@@ -2031,24 +2399,35 @@ mod tests {
             let list = TempList::new(allow_list);
             let (wayland, cmds) = WaylandHandle::recording();
             let signals = Arc::new(std::sync::Mutex::new(Vec::new()));
+            let objects = Arc::new(std::sync::Mutex::new(std::collections::HashSet::new()));
             let screens = SharedScreens::new();
             // Two screens side by side: zone set 2.
             screens.commit(vec![screen("A", 0, 0, 1920, 1080), screen("B", 1920, 0, 1920, 1080)]);
+            let switch = TempSwitch::new(Some("on\n"));
             let (state, eis_closed) = State::with_trust(
                 Arc::new(wayland),
                 screens.clone(),
                 eis_server::SharedKeymap::default(),
+                Gate::default(),
                 Trust {
                     allow_list: list.path.clone(),
                     allow_list_owner: list.owner,
-                    frontend: Frontend::Fixed(frontend.map(str::to_owned)),
-                    signals: SignalSink::Record(signals.clone()),
+                    switch: switch.switch.clone(),
+                    frontend: Frontend::Fixed(std::sync::Mutex::new(frontend.map(str::to_owned))),
+                    signals: SignalSink::Record {
+                        signals: signals.clone(),
+                        objects: objects.clone(),
+                    },
                 },
             );
             Self {
                 state,
                 cmds,
+                stash: std::sync::Mutex::new(Vec::new()),
+                syncs: std::sync::Mutex::new(Vec::new()),
+                switch,
                 signals,
+                objects,
                 screens,
                 eis_clients: Vec::new(),
                 _list: list,
@@ -2056,9 +2435,64 @@ mod tests {
             }
         }
 
-        /// Everything sent to the Wayland thread since the last call.
+        /// Move what was sent to the Wayland thread out of the channel: the
+        /// confirmations it was asked for aside, the rest into the stash.
+        fn drain(&self) {
+            while let Ok(cmd) = self.cmds.try_recv() {
+                match cmd {
+                    WaylandCmd::Sync { done } => self.syncs.lock().unwrap().push(done),
+                    cmd => self.stash.lock().unwrap().push(cmd),
+                }
+            }
+        }
+
+        /// Everything sent to the Wayland thread since the last call, but the
+        /// confirmations it was asked for (`answer_syncs`, `refuse_syncs`).
         fn cmds(&self) -> Vec<WaylandCmd> {
-            std::iter::from_fn(|| self.cmds.try_recv().ok()).collect()
+            self.drain();
+            std::mem::take(&mut *self.stash.lock().unwrap())
+        }
+
+        /// Confirm as the compositor would. Returns how many were waiting.
+        fn answer_syncs(&self) -> usize {
+            self.drain();
+            let waiting = std::mem::take(&mut *self.syncs.lock().unwrap());
+            let count = waiting.len();
+            for done in waiting {
+                let _ = done.send(());
+            }
+            count
+        }
+
+        /// Never confirm them, as a Wayland thread that has gone wouldn't.
+        fn refuse_syncs(&self) -> usize {
+            self.drain();
+            std::mem::take(&mut *self.syncs.lock().unwrap()).len()
+        }
+
+        /// Let tasks the state spawned (the confirmation after Off) run.
+        async fn settle(&self) {
+            for _ in 0..5 {
+                tokio::task::yield_now().await;
+            }
+        }
+
+        /// Run `call`, confirming every Wayland sync it waits for.
+        async fn confirmed<T>(&self, call: impl std::future::Future<Output = T>) -> T {
+            tokio::pin!(call);
+            loop {
+                tokio::select! {
+                    biased;
+                    out = &mut call => return out,
+                    () = tokio::task::yield_now() => {
+                        self.answer_syncs();
+                    }
+                }
+            }
+        }
+
+        fn set_sharing(&self, on: bool) {
+            self.switch.set(on.then_some("on\n"));
         }
 
         fn signals(&self) -> Vec<Signal> {
@@ -2097,6 +2531,19 @@ mod tests {
 
         async fn enabled(&self, handle: &OwnedObjectPath) -> bool {
             self.state.inner.lock().await.sessions[handle].enabled
+        }
+
+        /// Whether a Session object stands at this path.
+        fn has_object(&self, handle: &OwnedObjectPath) -> bool {
+            self.objects.lock().unwrap().contains(handle)
+        }
+
+        /// Hand the frontend's bus name to another connection.
+        fn set_frontend(&self, owner: Option<&str>) {
+            let Frontend::Fixed(fixed) = &self.state.trust.frontend else {
+                unreachable!("the rig's frontend is fixed");
+            };
+            *fixed.lock().unwrap() = owner.map(str::to_owned);
         }
     }
 
@@ -2733,14 +3180,14 @@ mod tests {
         let mut rig = Rig::new();
         let (handle, activation_id) = busy_session(&mut rig, "a").await;
 
-        assert_eq!(rig.state.force_release(false).await, 1);
+        assert_eq!(rig.confirmed(rig.state.force_release(false)).await.unwrap(), 1);
         assert_eq!(rig.signals(), [Signal::Deactivated { session: handle.clone(), activation_id }]);
         assert!(matches!(&rig.cmds()[..], [WaylandCmd::EndCapture { .. }]));
         assert!(rig.enabled(&handle).await, "--release leaves the barriers armed");
-        assert_eq!(rig.state.force_release(false).await, 0);
+        assert_eq!(rig.confirmed(rig.state.force_release(false)).await.unwrap(), 0);
         rig.cmds();
 
-        assert_eq!(rig.state.force_release(true).await, 0);
+        assert_eq!(rig.confirmed(rig.state.force_release(true)).await.unwrap(), 0);
         assert_eq!(rig.signals(), [Signal::Disabled { session: handle.clone() }]);
         assert!(matches!(&rig.cmds()[..], [WaylandCmd::EndCapture { .. }, WaylandCmd::Disarm]));
         assert!(!rig.enabled(&handle).await);
@@ -3126,9 +3573,123 @@ mod tests {
         assert!(!rig.signals().iter().any(|s| matches!(s, Signal::Activated { .. })));
 
         // `serve` waits on this to end the process.
-        tokio::time::timeout(std::time::Duration::from_secs(1), rig.state.wait_for_bus_loss())
+        let why = tokio::time::timeout(std::time::Duration::from_secs(1), rig.state.wait_for_stop())
             .await
             .expect("the backend is told to stop");
+        assert_eq!(why, "the session bus connection ended");
+    }
+
+    // ---- 316's follow-ups, brief 321 "What to build" 1 ----
+
+    #[tokio::test]
+    async fn losing_the_wayland_connection_closes_every_session_and_stops_the_backend() {
+        let mut rig = Rig::new();
+        let (busy, _) = busy_session(&mut rig, "busy").await;
+        let idle = rig.session("idle").await;
+        rig.cmds();
+        rig.signals();
+
+        // The Wayland thread holds the sending end; it ends with its connection.
+        let (events, wayland_events) = mpsc::unbounded_channel::<WaylandEvent>();
+        let pump = tokio::spawn(pump_wayland_events(rig.state.clone(), wayland_events));
+        drop(events);
+        tokio::time::timeout(std::time::Duration::from_secs(1), pump)
+            .await
+            .expect("the pump ends")
+            .unwrap();
+
+        assert_eq!(rig.session_count().await, 0);
+        let closed: Vec<Signal> = rig
+            .signals()
+            .into_iter()
+            .filter(|signal| matches!(signal, Signal::SessionClosed { .. }))
+            .collect();
+        assert_eq!(closed.len(), 2, "both sessions are closed and their clients told");
+        assert!(!rig.has_object(&busy) && !rig.has_object(&idle));
+        let cmds = rig.cmds();
+        assert!(cmds.iter().any(|c| matches!(c, WaylandCmd::EndCapture { crossing: None, .. })));
+        assert!(matches!(cmds.last(), Some(WaylandCmd::Disarm)));
+        let why = tokio::time::timeout(std::time::Duration::from_secs(1), rig.state.wait_for_stop())
+            .await
+            .expect("the backend is told to stop");
+        assert_eq!(why, "the Wayland connection ended");
+    }
+
+    #[tokio::test]
+    async fn a_new_owner_of_the_frontend_name_gets_nothing_of_the_old_owner_s_sessions() {
+        const NEW: &str = ":1.6";
+        let mut rig = Rig::new();
+        let (old, _) = busy_session(&mut rig, "old").await;
+        let s = &rig.state;
+        s.handle_event(WaylandEvent::ClipboardSelection {
+            mime_types: vec!["text/plain".into()],
+            is_ours: false,
+        })
+        .await;
+        rig.cmds();
+        rig.signals();
+
+        // The name changes hands; the watch has not run yet.
+        rig.set_frontend(Some(NEW));
+        // The old owner is refused like any stranger.
+        assert!(denied(s.selection_read(Some(FRONTEND), &old, "text/plain".into()).await));
+        assert_eq!(rig.session_count().await, 1);
+
+        // The new owner's first call, whichever method it is, closes the old
+        // owner's sessions before it looks: no pipe and no EIS socket for it.
+        assert!(s.selection_read(Some(NEW), &old, "text/plain".into()).await.is_err());
+        assert!(!rig.cmds().iter().any(|c| matches!(c, WaylandCmd::ClipboardRead { .. })));
+        assert_eq!(rig.session_count().await, 0);
+        assert!(s.connect_to_eis(Some(NEW), &old).await.is_err());
+        // The old session's signals go to nobody, and certainly not to the new owner.
+        let sent = rig.addressed();
+        assert!(sent.iter().any(|(_, signal)| *signal == Signal::SessionClosed { session: old.clone() }));
+        assert!(sent.iter().all(|(to, _)| to.is_none()), "{sent:?}");
+
+        // The new owner's own session.
+        let new = path("new");
+        s.create_session(Some(NEW), &new, APP, None).await.unwrap();
+        // A late notice that the old owner left closes nothing of the new one's.
+        s.frontend_left(FRONTEND).await;
+        assert_eq!(rig.session_count().await, 1);
+        // The notice for the new owner does.
+        s.frontend_left(NEW).await;
+        assert_eq!(rig.session_count().await, 0);
+    }
+
+    #[tokio::test]
+    async fn a_session_made_at_a_path_just_closed_keeps_its_object() {
+        let mut rig = Rig::new();
+        let handle = rig.session("reused").await;
+        assert!(rig.has_object(&handle));
+
+        // `Close` and `CreateSession2` for the same path right after each other:
+        // the new session is stored before the old one's `Closed` goes out.
+        let mut out = Vec::new();
+        {
+            let mut inner = rig.state.inner.lock().await;
+            assert!(rig.state.remove_session(&mut inner, &handle, &mut out));
+        }
+        rig.state
+            .create_session(Some(FRONTEND), &handle, APP, None)
+            .await
+            .unwrap();
+        rig.state.emit_all(Some(FRONTEND.to_owned()), out).await;
+        assert!(rig.has_object(&handle), "the new session can still be closed");
+
+        // Closing the new session removes the object.
+        rig.state.close_session(Some(FRONTEND), &handle).await.unwrap();
+        assert_eq!(rig.session_count().await, 0);
+        assert!(!rig.has_object(&handle));
+    }
+
+    #[tokio::test]
+    async fn an_empty_id_is_refused_whatever_the_list_holds() {
+        let rig = Rig::with(Some("\n \norg.deskflow.deskflow\n\n"), Some(FRONTEND));
+        let result = rig.state.create_session(Some(FRONTEND), &path("a"), "", None).await;
+        assert!(denied(result));
+        assert_eq!(rig.session_count().await, 0);
+        assert!(!rig.has_object(&path("a")));
     }
 
     #[test]
@@ -3148,5 +3709,275 @@ mod tests {
         for secret in ["1234", "678", "marker"] {
             assert!(!text.contains(secret), "{text}");
         }
+    }
+
+    // ---- the sharing switch (brief 321) ----
+
+    fn sharing_was_off<T>(result: fdo::Result<T>) -> bool {
+        matches!(result, Err(fdo::Error::AccessDenied(why)) if why == "sharing is off")
+    }
+
+    /// Whether every writer of the pipe whose read end this is has gone.
+    fn writers_gone(read: &OwnedFd) -> bool {
+        use rustix::event::{poll, PollFd, PollFlags, Timespec};
+        let mut fds = [PollFd::new(read, PollFlags::IN)];
+        let now = Timespec { tv_sec: 0, tv_nsec: 0 };
+        poll(&mut fds, Some(&now)).unwrap();
+        fds[0].revents().contains(PollFlags::HUP)
+    }
+
+    #[tokio::test]
+    async fn with_sharing_off_a_listed_application_gets_no_session() {
+        let rig = Rig::new();
+        let s = &rig.state;
+        for switch in [None, Some("ON\n"), Some("off\n"), Some("on x\n")] {
+            rig.switch.set(switch);
+            assert!(sharing_was_off(s.create_session(Some(FRONTEND), &path("a"), APP, None).await), "{switch:?}");
+            assert!(sharing_was_off(s.create_session(Some(FRONTEND), &path("b"), APP, Some(CAP_POINTER)).await), "{switch:?}");
+            assert!(!s.gate.is_open(), "{switch:?}");
+        }
+        assert_eq!(rig.session_count().await, 0);
+        assert!(!rig.has_object(&path("a")));
+        // The list still decides first: an unlisted ID is refused as before.
+        rig.set_sharing(true);
+        assert!(denied(s.create_session(Some(FRONTEND), &path("c"), "org.example.Other", None).await));
+        s.create_session(Some(FRONTEND), &path("d"), APP, None).await.unwrap();
+        assert!(s.gate.is_open(), "on opens the gate for the input path");
+    }
+
+    #[tokio::test]
+    async fn turning_sharing_off_ends_everything_without_revoke() {
+        let mut rig = Rig::new();
+        let (a, activation_id) = busy_session(&mut rig, "a").await;
+        let b = rig.session("b").await;
+        assert!(rig.state.gate.is_open());
+
+        // Nobody calls --revoke: the timer reads the switch while sessions exist.
+        let timer = tokio::spawn(watch_switch(rig.state.clone()));
+        rig.set_sharing(false);
+        tokio::time::sleep(SWITCH_INTERVAL * 2).await;
+
+        assert!(!rig.state.gate.is_open(), "forwarding stops at once");
+        assert_eq!(rig.session_count().await, 0, "every session is closed");
+        let signals = rig.signals();
+        assert!(signals.contains(&Signal::Deactivated { session: a.clone(), activation_id }));
+        for handle in [&a, &b] {
+            assert!(signals.contains(&Signal::SessionClosed { session: handle.clone() }));
+            assert!(!rig.has_object(handle));
+        }
+        let cmds = rig.cmds();
+        assert!(cmds.iter().any(|c| matches!(c, WaylandCmd::EndCapture { crossing: Some(_), .. })), "the capture ends");
+        assert!(cmds.iter().any(|c| matches!(c, WaylandCmd::EndCapture { crossing: None, .. })), "and anything else captured");
+        assert!(cmds.iter().any(|c| matches!(c, WaylandCmd::ClipboardRelease)), "the claim goes");
+        assert!(matches!(cmds.last(), Some(WaylandCmd::Disarm)), "no barrier stays up");
+        {
+            let inner = rig.state.inner.lock().await;
+            assert!(inner.clipboard.owner_session.is_none() && inner.clipboard.transfers.is_empty());
+        }
+
+        // The compositor confirms the end of the capture: the backend goes on.
+        assert_eq!(rig.answer_syncs(), 1);
+        rig.settle().await;
+        assert!(rig.state.stop_reason.get().is_none());
+        timer.abort();
+    }
+
+    #[tokio::test]
+    async fn enable_and_each_crossing_read_the_switch() {
+        let mut rig = Rig::new();
+        let a = rig.session("a").await;
+        rig.set_sharing(false);
+        assert!(sharing_was_off(rig.state.enable(Some(FRONTEND), &a).await));
+        assert_eq!(rig.session_count().await, 0, "the refusal ended the session too");
+        rig.settle().await;
+        rig.answer_syncs();
+
+        // Armed with sharing on, then off before the crossing reaches the portal
+        // (the Wayland thread already holds the grab): no Activated, and the
+        // crossing goes back to the local screen.
+        rig.set_sharing(true);
+        let b = rig.session("b").await;
+        rig.state.enable(Some(FRONTEND), &b).await.unwrap();
+        let crossing = crossing_event(&rig.state, &b, 7).await;
+        rig.cmds();
+        rig.signals();
+        rig.set_sharing(false);
+        rig.state.handle_event(crossing).await;
+        let signals = rig.signals();
+        assert!(!signals.iter().any(|s| matches!(s, Signal::Activated { .. })), "{signals:?}");
+        assert!(signals.contains(&Signal::SessionClosed { session: b.clone() }));
+        assert!(rig.cmds().iter().any(|c| matches!(c, WaylandCmd::EndCapture { crossing: Some(_), .. })));
+        assert!(!rig.state.gate.is_open());
+        rig.settle().await;
+        assert_eq!(rig.answer_syncs(), 1);
+    }
+
+    #[tokio::test]
+    async fn every_clipboard_call_reads_the_switch() {
+        let mut rig = Rig::new();
+        let (a, _) = busy_session(&mut rig, "a").await;
+        let serial = rig.state.inner.lock().await.clipboard.transfers.keys().copied().next().unwrap();
+        // A session made with sharing on and not started yet, for RequestClipboard.
+        let fresh = path("fresh");
+        rig.state.create_session(Some(FRONTEND), &fresh, APP, None).await.unwrap();
+        rig.set_sharing(false);
+        let s = &rig.state;
+        assert!(sharing_was_off(s.request_clipboard(Some(FRONTEND), &fresh).await));
+        assert!(sharing_was_off(s.set_selection(Some(FRONTEND), &a, vec!["text/plain".into()]).await));
+        assert!(sharing_was_off(s.selection_write(Some(FRONTEND), &a, serial).await), "no descriptor");
+        assert!(sharing_was_off(s.selection_write_done(Some(FRONTEND), &a, serial, true).await));
+        assert!(sharing_was_off(s.selection_read(Some(FRONTEND), &a, "text/plain".into()).await), "no descriptor");
+        assert!(!rig.cmds().iter().any(|c| matches!(c, WaylandCmd::ClipboardRead { .. } | WaylandCmd::ClipboardClaim { .. })));
+
+        // No new transfer starts either way: a local paste and a local copy
+        // after Off reach no session, and the paster's pipe is let go.
+        rig.signals();
+        let (read, write) = rustix::pipe::pipe().unwrap();
+        let claim_id = s.inner.lock().await.clipboard.claim_id;
+        s.handle_event(WaylandEvent::ClipboardSend { claim_id, mime_type: "text/plain".into(), fd: write }).await;
+        assert!(writers_gone(&read), "the paste's pipe was dropped");
+        s.handle_event(WaylandEvent::ClipboardSelection { mime_types: vec!["text/plain".into()], is_ours: false }).await;
+        assert_eq!(rig.signals(), [], "no transfer and no announcement");
+        rig.settle().await;
+        rig.answer_syncs();
+    }
+
+    #[tokio::test]
+    async fn a_clipboard_read_hands_out_no_descriptor_if_sharing_went_off_while_it_waited() {
+        // Two ways the read is overtaken during its wait for the Wayland thread:
+        // sharing goes off, or the session is closed.
+        for overtaken_by_off in [true, false] {
+            let mut rig = Rig::new();
+            let a = rig.session("a").await;
+            let state = rig.state.clone();
+            let session = a.clone();
+            let read = tokio::spawn(async move { state.selection_read(Some(FRONTEND), &session, "text/plain".into()).await });
+            let mut reply = None;
+            for _ in 0..50 {
+                tokio::task::yield_now().await;
+                reply = rig.cmds().into_iter().find_map(|cmd| match cmd {
+                    WaylandCmd::ClipboardRead { reply, .. } => Some(reply),
+                    _ => None,
+                });
+                if reply.is_some() {
+                    break;
+                }
+            }
+            let reply = reply.expect("the read asked the Wayland thread");
+
+            if overtaken_by_off {
+                rig.set_sharing(false);
+            } else {
+                rig.state.close_session(Some(FRONTEND), &a).await.unwrap();
+            }
+            let (pipe, write) = rustix::pipe::pipe().unwrap();
+            reply.send(Some(pipe)).unwrap();
+            let result = read.await.unwrap();
+            if overtaken_by_off {
+                assert!(sharing_was_off(result), "no descriptor comes back");
+                assert_eq!(rig.session_count().await, 0);
+            } else {
+                assert!(denied(result), "no descriptor comes back");
+            }
+            // The backend let go of the read end: the owner writing finds nobody.
+            assert_eq!(rustix::io::write(&write, b"x"), Err(rustix::io::Errno::PIPE));
+        }
+
+        // Not overtaken, the same read gets the pipe.
+        let mut rig = Rig::new();
+        let a = rig.session("a").await;
+        let state = rig.state.clone();
+        let read = tokio::spawn(async move { state.selection_read(Some(FRONTEND), &a, "text/plain".into()).await });
+        let mut reply = None;
+        for _ in 0..50 {
+            tokio::task::yield_now().await;
+            reply = rig.cmds().into_iter().find_map(|cmd| match cmd {
+                WaylandCmd::ClipboardRead { reply, .. } => Some(reply),
+                _ => None,
+            });
+            if reply.is_some() {
+                break;
+            }
+        }
+        reply.unwrap().send(Some(a_pipe())).unwrap();
+        assert!(read.await.unwrap().is_ok());
+    }
+
+    #[tokio::test]
+    async fn revoke_reads_the_switch_now_and_answers_after_the_compositor() {
+        let mut rig = Rig::new();
+        busy_session(&mut rig, "a").await;
+        // On: it changes nothing. It can't turn sharing on or off by itself.
+        assert_eq!(rig.state.revoke().await, "sharing is on: nothing changed");
+        assert_eq!(rig.session_count().await, 1);
+        assert!(rig.state.gate.is_open());
+
+        rig.set_sharing(false);
+        let state = rig.state.clone();
+        let revoke = tokio::spawn(async move { state.revoke().await });
+        rig.settle().await;
+        assert!(!revoke.is_finished(), "it waits for the compositor");
+        assert_eq!(rig.session_count().await, 0, "the sessions are closed at once");
+        assert!(!rig.state.gate.is_open());
+        assert_eq!(rig.answer_syncs(), 1);
+        assert_eq!(revoke.await.unwrap(), "sharing is off: closed 1 session(s)");
+        assert!(rig.state.stop_reason.get().is_none());
+        assert_eq!(rig.state.revoke().await, "sharing is off: there was nothing to close");
+    }
+
+    #[tokio::test]
+    async fn off_unconfirmed_by_the_compositor_stops_the_backend() {
+        // The compositor never answers (labwc stopped): the backend stops a
+        // second after it read Off.
+        let mut rig = Rig::new();
+        busy_session(&mut rig, "a").await;
+        rig.set_sharing(false);
+        let began = std::time::Instant::now();
+        let said = rig.state.revoke().await;
+        assert!(said.ends_with("the compositor did not confirm, so the backend stops"), "{said}");
+        let took = began.elapsed();
+        assert!(took >= CONFIRM_TIMEOUT && took < CONFIRM_TIMEOUT + Duration::from_millis(500), "{took:?}");
+        assert!(rig.state.stop_reason.get().is_some_and(|why| why.contains("did not confirm")));
+
+        // From the timer's read, the confirmation runs on its own task; a
+        // Wayland thread that is gone never confirms either.
+        let mut rig = Rig::new();
+        busy_session(&mut rig, "a").await;
+        rig.set_sharing(false);
+        rig.state.reread_switch().await;
+        rig.settle().await;
+        assert_eq!(rig.refuse_syncs(), 1);
+        rig.settle().await;
+        assert!(rig.state.stop_reason.get().is_some_and(|why| why.contains("did not confirm")));
+    }
+
+    #[tokio::test]
+    async fn force_release_answers_only_after_the_compositor_confirms() {
+        let mut rig = Rig::new();
+        busy_session(&mut rig, "a").await;
+        let state = rig.state.clone();
+        let release = tokio::spawn(async move { state.force_release(false).await });
+        rig.settle().await;
+        assert!(!release.is_finished(), "the teardown is only queued: no answer yet");
+        assert!(matches!(&rig.cmds()[..], [WaylandCmd::EndCapture { .. }]), "asked after the teardown");
+        assert_eq!(rig.answer_syncs(), 1);
+        assert_eq!(release.await.unwrap().unwrap(), 1);
+
+        // Unconfirmed, it fails, and `--release` then kills the backend it pinned.
+        let state = rig.state.clone();
+        let release = tokio::spawn(async move { state.force_release(false).await });
+        rig.settle().await;
+        assert_eq!(rig.refuse_syncs(), 1);
+        assert!(release.await.unwrap().is_err());
+    }
+
+    #[test]
+    fn off_takes_effect_within_the_two_second_deadline() {
+        assert!(SWITCH_INTERVAL <= Duration::from_millis(500), "the brief's bound on the reread");
+        // The switch read late by a whole interval, the compositor never
+        // confirming, and the process's own grace before it exits: still inside.
+        assert!(SWITCH_INTERVAL + CONFIRM_TIMEOUT + crate::SHUTDOWN_GRACE < Duration::from_millis(1600));
+        // The backend gives up on the compositor before `--release` gives up on it.
+        assert!(CONFIRM_TIMEOUT < crate::release::DEADLINE);
     }
 }

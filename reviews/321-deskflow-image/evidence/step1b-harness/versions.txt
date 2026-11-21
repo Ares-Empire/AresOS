@@ -1,0 +1,13 @@
+labwc-0.9.6-1.fc44.aresos1.x86_64
+8f9f4ea2ab3163ee2a760624cd10d7ceb105a3c84f1d980ed73cbea7aba565c6  /opt/harness/rpm/labwc-0.9.6-1.fc44.aresos1.x86_64.rpm
+48feb9e7987a199b5adfe0d2aa51438cdd9d6e810f2b03c57cc95929ed27844f  /usr/libexec/aresos-input-portal
+wlroots0.19-0.19.3-1.fc44.x86_64
+libei-1.6.0-2.fc44.x86_64
+dbus-daemon-1.16.2-1.fc44.x86_64
+wl-clipboard-2.2.1^git20251124.e808203-2.fc44.x86_64
+wlr-randr-0.5.0-3.fc44.x86_64
+dr-xr-xr-x 0:0 /
+drwxr-xr-x 0:0 /etc
+drwxr-xr-x 0:0 /etc/aresos
+drwxr-xr-x 0:0 /etc/aresos/input-portal
+-rw-r--r-- 0:0 /etc/aresos/input-portal/sharing

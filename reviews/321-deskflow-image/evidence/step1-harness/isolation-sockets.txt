@@ -1,0 +1,3 @@
+/tmp/harness-run.J2QlYS/bus
+/tmp/harness-run.J2QlYS/wayland-0
+/tmp/.X11-unix/X0
