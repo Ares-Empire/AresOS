@@ -12,10 +12,11 @@ export function page(build,{watched=true}={}){
   NativeNode.TEXT_NODE=3;
   class Text extends NativeNode{constructor(value){super();this.nodeType=3;this.textContent=value;}}
   const within=node=>node.childNodes.flatMap(child=>child.nodeType===1?[child,...within(child)]:[]);
-  const select=(node,selector)=>within(node).filter(element=>selector==='*'||selector.split(',').some(part=>{
+  const matches=(element,selector)=>selector==='*'||selector.split(',').some(part=>{
     const attribute=part.match(/^(\w*)\[([\w-]+)\]$/);
     return attribute?(!attribute[1]||element.localName===attribute[1])&&element.hasAttribute(attribute[2]):element.localName===part;
-  }));
+  });
+  const select=(node,selector)=>within(node).filter(element=>matches(element,selector));
   let document;
   class Element extends NativeNode{
     constructor(tag,attrs={},children=[]){
@@ -41,16 +42,20 @@ export function page(build,{watched=true}={}){
     get size(){return Number(this.attrs.size||0);}
     get open(){return this.hasAttribute('open');}
     get files(){return [];}
-    get text(){return this.childNodes.map(node=>node.textContent).join('').replace(/\s+/g,' ').trim();}
+    get firstElementChild(){return this.childNodes.find(node=>node.nodeType===1)||null;}
+    get text(){
+      const optionText=node=>node.nodeType===3?node.textContent:node.localName==='script'?'':node.childNodes.map(optionText).join('');
+      return optionText(this).replace(/[\t\n\f\r ]+/g,' ').replace(/^ | $/g,'');
+    }
     get value(){
       if(this.attrs.type==='password'||this.secret)throw Error('A PROTECTED VALUE WAS READ');
-      return this.attrs.value??(this.localName==='option'?this.childNodes.map(node=>node.textContent).join(''):'');
+      return this.attrs.value??(this.localName==='option'?this.text:'');
     }
     getRootNode(){return this.parentElement?this.parentElement.getRootNode():this.root||document;}
     matches(selector){
       if(selector===':disabled')return this.hasAttribute('disabled');
       if(selector.startsWith('dialog[open]'))return this.localName==='dialog'&&this.hasAttribute('open')||['dialog','alertdialog'].includes(this.attrs.role)&&this.attrs['aria-modal']==='true';
-      return false;
+      return matches(this,selector);
     }
     querySelectorAll(selector){return select(this,selector);}
     querySelector(selector){return select(this,selector)[0]||null;}
@@ -89,12 +94,12 @@ export function page(build,{watched=true}={}){
   document={title:'Fixture',readyState:'complete',body,documentElement:top,childNodes:[top],
     implementation:{createHTMLDocument(){return {importNode:element=>({validity:{valueMissing:!element.attrs.value}})};}},
     getElementById:key=>key?within(document).find(element=>element.attrs.id===key)||null:null,querySelectorAll:selector=>select(document,selector),querySelector:()=>null,addEventListener(){}};
-  let listener;
+  let listener,reader;
   const chrome={dom:{openOrClosedShadowRoot:element=>element.shadowRoot||null},runtime:{id:'fixture',getFrameId:element=>element.frameId??-1,sendMessage:async()=>({}),onMessage:{addListener(fn){listener=fn;},removeListener(){}}}};
   class MutationObserver{observe(){}takeRecords(){return [];}disconnect(){}}
   const context=vm.createContext({document,chrome,crypto:{getRandomValues:array=>array.fill(7)},MutationObserver,TextEncoder,URL,console,Element,HTMLElement:Element,HTMLInputElement,HTMLTextAreaElement,HTMLSelectElement,HTMLButtonElement,HTMLAnchorElement,HTMLFormElement,Node:NativeNode,
     getComputedStyle:element=>({display:element.attrs.style==='display:none'||element.localName==='area'?'none':'block',visibility:'visible',webkitTextSecurity:'none',whiteSpace:element.localName==='pre'?'pre':'normal'}),
-    [Symbol.for('aresos.chrome.document-start.v1')]:watched,[Symbol.for('aresos.chrome.guard.v2')]:{watch(){},reader(){},protectedPeer:()=>false},
+    [Symbol.for('aresos.chrome.document-start.v1')]:watched,[Symbol.for('aresos.chrome.guard.v2')]:{watch(){},reader(api){reader=api;},protectedPeer:()=>false},
     origin:'https://fixture.test',location:{href:BASE+'page'},scrollX:0,scrollY:120.4,innerWidth:100,innerHeight:100});
   vm.runInContext(fs.readFileSync('control/chrome/extension/reader.js','utf8'),context);
   assert.equal(typeof listener,'function','the reader installed');
@@ -116,6 +121,6 @@ export function page(build,{watched=true}={}){
     for(const node of result.data.nodes)delete node.fingerprint;
     return result.data;
   };
-  return {run,outline,body,h};
+  return {run,outline,body,h,key:element=>reader.id(element)};
 }
 

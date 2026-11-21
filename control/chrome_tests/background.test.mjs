@@ -207,6 +207,30 @@ test('close accepts a released Claude-opened tab without accepting one the owner
   assert.equal(f.run('JSON.stringify(closed)'),'[7]');
 });
 
+test('close keeps a released blank popup with a draft or an unknown frame list until discard is confirmed',async()=>{
+  const f=lifecycleFixture();
+  const popup=page(h=>[h('textarea',{'aria-label':'Draft',value:'synthetic owner draft'})],{watched:false});
+  assert.equal(popup.run({command:'reload_state'}).data.unsaved,true);
+  f.run("controlled.set(7,{epoch:'parent'});chrome.windows.get=async()=>({type:'popup'});");
+  await f.run('createdTarget({sourceTabId:7,tabId:8})');
+  f.run(`globalThis.closed=[];globalThis.frames=[{frameId:0,url:'about:blank'}];
+    chrome.tabs.get=async()=>({url:'about:blank',groupId:1});chrome.tabs.remove=async tab=>closed.push(tab);
+    chrome.webNavigation.getAllFrames=async()=>frames;
+    content=async(tab,frame,command)=>{if(command==='reload_state'&&controlled.has(tab))return ${JSON.stringify(popup.run({command:'reload_state'}).data)};
+      const error=Error('Could not establish connection. Receiving end does not exist.');error.readerUnavailable=true;throw error;};`);
+  await f.run('release(8)');
+  assert.equal(f.run('controlled.has(8)'),false);
+  for(const frames of ['[{frameId:0,url:"about:blank"}]','[]','null']){
+    f.run('frames='+frames);
+    const loss=await lossOf(f.run("dispatch({name:'close_tab',tab:8})"));
+    assert.deepEqual(loss,report('close',{frames:1}),frames);
+    assert.equal(asksOwner(loss),true);
+    assert.equal(f.run('closed.length'),0);
+  }
+  assert.equal((await f.run("dispatch({name:'close_tab',tab:8,discard_unsaved:true})")).closed,8);
+  assert.equal(f.run('JSON.stringify(closed)'),'[8]');
+});
+
 test('step 5 back and forward give the same unsaved report and go only with the flag',async()=>{
   const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});globalThis.moves=[];globalThis.inspected=0;content=async()=>{inspected++;return {unsaved:true,fields:[{description:'field \\\"Comment\\\"',by:'owner'}],playing:false}};chrome.webNavigation={getAllFrames:async()=>[{frameId:0,documentId:'doc',url:'http://fixture.test/b'}]};cdp=async(tab,method,parameters)=>{if(method==='Page.getNavigationHistory')return {currentIndex:1,entries:[{id:10,url:'http://fixture.test/a'},{id:11,url:'http://fixture.test/b'},{id:12,url:'http://fixture.test/c'}]};if(method==='Page.navigateToHistoryEntry')moves.push(parameters.entryId);};observation=async()=>({});chrome.tabs.get=async()=>({audible:false});");
   for(const [direction,entry] of [['back',10],['forward',12]]){
@@ -905,6 +929,24 @@ test('a native option label change after approval fails the final binding before
   reader.body.childNodes[0].options[1].attrs.label='Annual revised';
   f.run(`globalThis.changedTarget=${JSON.stringify(target())}`);
   await assert.rejects(f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:target.element},input:{verb:'select',value:'annual'},kind:'activation',approved:true,operation:'approved',binding:approved})"),/page changed during frame setup/);
+  assert.equal(f.run('selected'),0);
+});
+test('an option becoming unreadable during arming fails the final binding before selection',async()=>{
+  const reader=page(h=>[h('select',{},h('option',{value:'opaque',selected:''},'Displayed choice'))]);
+  const [list]=reader.outline().nodes;
+  const element='e'+list.id,target=()=>reader.run({command:'facts',element}).data.target;
+  const f=fixture();
+  f.run(`excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});
+    globalThis.target=${JSON.stringify(target())};globalThis.selected=0;
+    const snapshot=()=>({tab:7,frames:[{frame:0,document:'doc',browser_document:'native-doc',target}]});facts=async()=>snapshot();
+    globalThis.approved=binding(snapshot(),{frame:0},'activation',false);
+    chrome.webNavigation={getAllFrames:async()=>[{frameId:0,documentId:'native-doc',url:'http://fixture.test/'}]};
+    content=async(tab,frame,command)=>{if(command==='arm')target=changedTarget;if(command==='select'){selected++;throw Error('unexpected selection');}return {};};`);
+  const option=reader.body.firstElementChild.options[0];
+  option.childNodes.length=0;
+  option.append(reader.h('span',{contenteditable:'true','aria-label':'One-time code'},'Displayed choice'));
+  f.run(`globalThis.changedTarget=${JSON.stringify(target())}`);
+  await assert.rejects(f.run(`dispatch({name:'input',tab:7,reference:{frame:0,element:${JSON.stringify(element)}},input:{verb:'select',value:'opaque'},kind:'activation',approved:true,operation:'approved',binding:approved})`),/page changed during frame setup/);
   assert.equal(f.run('selected'),0);
 });
 test('P23 input page evidence contains the bounded post-input notice',async()=>{

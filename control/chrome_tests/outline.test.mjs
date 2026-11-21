@@ -64,6 +64,25 @@ test('an unwatched editable native button withholds its typed name but remains a
   assert.ok(!JSON.stringify([button,facts.data]).includes('Unwatched draft'));
 });
 
+test('an unwatched enclosing editor withholds an editable button in its value and rich identity',()=>{
+  const draft='Synthetic owner button draft';
+  const f=page(h=>[h('div',{contenteditable:'true','aria-label':'Editor'},'Visible note',
+    h('button',{type:'button',contenteditable:'true'},h('span',{},draft)))],{watched:false});
+  const [editor]=f.outline().nodes;
+  assert.equal(editor.role,'textbox');
+  assert.equal(editor.value,'Visible note');
+  const facts=()=>f.run({command:'facts',element:'e'+editor.id}).data;
+  const before=facts();
+  assert.ok(!JSON.stringify(before.target.rich).includes(draft));
+  const button=f.body.firstElementChild.firstElementChild;
+  button.firstElementChild.childNodes[0].textContent='Another synthetic owner draft';
+  const after=facts();
+  assert.deepEqual(after.target.rich,before.target.rich);
+  assert.equal(after.fingerprint,before.fingerprint);
+  const target=f.run({command:'facts',element:f.key(button)}).data.target;
+  assert.deepEqual([target.role,target.editable,target.name_withheld,target.name],['button',false,true,'']);
+});
+
 test('an option label attribute drives the outline, facts and fingerprint',()=>{
   const f=page(h=>[h('select',{},h('option',{value:'n',label:'North',selected:''},'N'),h('option',{value:'s',label:''},'South'))]);
   const [list]=f.outline().nodes;
@@ -76,6 +95,45 @@ test('an option label attribute drives the outline, facts and fingerprint',()=>{
   const after=facts();
   assert.notEqual(after.fingerprint,before.fingerprint);
   assert.deepEqual(after.target.options,[{...before.target.options[0],label:'North revised'},before.target.options[1]]);
+});
+
+test('a rich option with a protected descendant refuses native text fallbacks everywhere',()=>{
+  const code='fixture-code-71429';
+  for(const attrs of [{value:'opaque',label:''},{label:'Explicit label'}]){
+    const f=page(h=>{
+      const select=h('select',{'aria-label':'List'},h('option',{...attrs,selected:''},
+        h('span',{},h('span',{contenteditable:'true','aria-label':'One-time code'},code))));
+      const form=h('form',{},select);
+      select.form=form;
+      return [form];
+    });
+    const select=f.body.firstElementChild.firstElementChild,option=select.options[0];
+    assert.equal(option.text,code,'the native text double traverses the protected descendant');
+    let reads=0;
+    Object.defineProperty(select,'value',{get(){reads++;return option.value;}});
+    const outline=f.run({command:'outline'});
+    assert.equal(outline.ok,true);
+    assert.ok(!JSON.stringify(outline).includes(code),'outline');
+    const list=outline.data.nodes.find(node=>node.role==='combobox'),element='e'+list.id;
+    assert.equal(list.role,'combobox');
+    assert.equal(list.unread,true);
+    assert.equal('options' in list||'chosen' in list,false);
+    const request={command:'options',element:list.id,document:outline.data.document,reader:outline.data.reader};
+    const options=f.run(request);
+    assert.match(options.error,/list field is gone or is not read/);
+    const facts=f.run({command:'facts',element});
+    assert.equal(facts.ok,true);
+    assert.equal(facts.data.target.password,true);
+    assert.equal(facts.data.form.fields.find(field=>field.element===element).unknown_history,true,'an enclosing form uses the unread-field guard');
+    assert.equal('value' in facts.data.target||'options' in facts.data.target,false);
+    assert.ok(!JSON.stringify([options,facts]).includes(code));
+    assert.equal(facts.data.fingerprint,list.fingerprint);
+    select.options[0].firstElementChild.firstElementChild.childNodes[0].textContent='fixture-code-57018';
+    assert.equal(f.run({command:'facts',element}).data.fingerprint,list.fingerprint);
+    assert.equal(f.run({command:'set_control',generation:'epoch'}).ok,true);
+    assert.match(f.run({command:'select',generation:'epoch',element,value:'opaque'}).error,/^stale_reference: read again$/);
+    assert.equal(reads,0,'the select value getter can also fall back to protected text');
+  }
 });
 
 test('a role comes from the list or the tag, never from a page\'s own string',()=>{
