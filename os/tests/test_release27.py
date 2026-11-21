@@ -30,11 +30,19 @@ def lock_nevras(raw):
     return [p['nevra'] for p in json.loads(raw)['packages']]
 
 
+def released(release, path):
+    """A file as release `release` was built from it: the blob its record names (later packages change the tree)."""
+    record = json.loads((ROOT / f'os/manifest/releases/{release}.json').read_text())
+    blob = {row['path']: row['tree'] for row in record['source_trees']}[path]
+    return subprocess.check_output(['git', '-C', str(ROOT), 'cat-file', 'blob', blob])
+
+
 class PackageDiffTest(unittest.TestCase):
     def setUp(self):
         old_lock = lock_nevras(rd.git_bytes(rd.PREVIOUS_SOURCE, 'os/packages.lock.json'))
-        new_lock = lock_nevras((ROOT / 'os/packages.lock.json').read_bytes())
-        new_lock.append(json.loads((ROOT / 'os/google-chrome.lock.json').read_text())['nevra'])
+        # The lock this test was written against: release 28's, which holds package 23's Java too.
+        new_lock = lock_nevras(released('28', 'os/packages.lock.json'))
+        new_lock.append(json.loads(released('28', 'os/google-chrome.lock.json'))['nevra'])
         # Release 6's (and so release 13's) retained package list.
         old = (ROOT / 'os/manifest/ci/06c/image-full-1/packages.txt').read_text().split()
         self.old = {n: name_of(n) for n in old}

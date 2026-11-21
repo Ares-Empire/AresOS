@@ -1285,7 +1285,7 @@ class ReviewedLockTest(unittest.TestCase):
                       re.findall(r'^FROM (\S+) AS (\S+)$', (ROOT / 'Containerfile').read_text(), re.M))
 
     def test_fedoras_labwc_stays_in_the_package_lock(self):
-        # The packages stage still installs Fedora's labwc and its dependencies; the final stage swaps it.
+        # The packages stage installs Fedora's labwc and its dependencies before the swap.
         nevras = [entry['nevra'] for entry in json.loads((ROOT / 'packages.lock.json').read_text())['packages']]
         self.assertIn(FEDORA, nevras)
 
@@ -1313,10 +1313,14 @@ class WiringTest(unittest.TestCase):
         self.assertIn('COPY --from=labwc-inputs /inputs/ /tmp/aresos-labwc-inputs/\n', section)
         self.assertLess(section.index('install-inputs.sh /tmp/aresos-labwc-inputs'), section.index('stage.py build'))
         self.assertIn('stage.py build /tmp/aresos-labwc /tmp/aresos-labwc-inputs /out', section)
-        final = self.containerfile.split(' AS aresos\n')[1]
-        self.assertIn('COPY --from=labwc /out/ /tmp/aresos-labwc-rpm/\n', final)
-        swap = final.index('stage.py install /tmp/aresos-labwc-rpm /tmp/aresos/labwc')
-        self.assertLess(swap, final.index('build.sh configure'))
+        packages = self.containerfile.split(' AS packages\n')[1].split('\nFROM ')[0]
+        self.assertIn('COPY --from=labwc /out/ /tmp/aresos-labwc-rpm/\n', packages)
+        # Both installs must land in the same layer even when their file metadata matches.
+        instructions = packages.replace('\\\n', '').splitlines()
+        install, = [line for line in instructions if line.startswith('RUN ')]
+        self.assertIn('test ! -e /tmp/aresos/ci && bash /tmp/aresos/build.sh packages &&', install)
+        self.assertIn('python3 -I /tmp/aresos/labwc/stage.py install /tmp/aresos-labwc-rpm /tmp/aresos/labwc &&', install)
+        self.assertLess(install.index('build.sh packages'), install.index('stage.py install'))
 
     def test_the_digest_check_reads_the_containerfile_before_any_dependency_is_installed(self):
         inputs = self.containerfile.split(' AS labwc-inputs\n')[1].split('\nFROM ')[0]
