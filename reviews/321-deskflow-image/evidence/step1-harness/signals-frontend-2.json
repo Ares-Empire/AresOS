@@ -1,0 +1,428 @@
+[
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameOwnerChanged",
+  "args": [
+   "org.freedesktop.portal.Desktop",
+   "",
+   ":1.8"
+  ]
+ },
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameAcquired",
+  "args": [
+   "org.freedesktop.portal.Desktop"
+  ]
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.InputCapture",
+  "member": "Activated",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/killed",
+   {
+    "activation_id": 16,
+    "barrier_id": 1,
+    "cursor_position": [
+     0.0,
+     360.0
+    ]
+   }
+  ]
+ },
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameOwnerChanged",
+  "args": [
+   "org.freedesktop.impl.portal.desktop.aresos-input",
+   ":1.2",
+   ""
+  ]
+ },
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameOwnerChanged",
+  "args": [
+   ":1.2",
+   ":1.2",
+   ""
+  ]
+ },
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameOwnerChanged",
+  "args": [
+   ":1.9",
+   "",
+   ":1.9"
+  ]
+ },
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameOwnerChanged",
+  "args": [
+   "org.freedesktop.impl.portal.desktop.aresos-input",
+   "",
+   ":1.9"
+  ]
+ },
+ {
+  "sender": ":1.9",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.InputCapture",
+  "member": "Activated",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/idle",
+   {
+    "barrier_id": 1,
+    "activation_id": 1,
+    "cursor_position": [
+     0.0,
+     360.0
+    ]
+   }
+  ]
+ },
+ {
+  "sender": ":1.9",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.InputCapture",
+  "member": "Deactivated",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/idle",
+   {
+    "activation_id": 1
+   }
+  ]
+ },
+ {
+  "sender": ":1.9",
+  "path": "/org/freedesktop/portal/desktop/session/harness/idle",
+  "iface": "org.freedesktop.impl.portal.Session",
+  "member": "Closed",
+  "args": []
+ },
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameOwnerChanged",
+  "args": [
+   "org.freedesktop.impl.portal.desktop.aresos-input",
+   ":1.9",
+   ""
+  ]
+ },
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameOwnerChanged",
+  "args": [
+   ":1.9",
+   ":1.9",
+   ""
+  ]
+ },
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameOwnerChanged",
+  "args": [
+   ":1.10",
+   "",
+   ":1.10"
+  ]
+ },
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameOwnerChanged",
+  "args": [
+   "org.freedesktop.impl.portal.desktop.aresos-input",
+   "",
+   ":1.10"
+  ]
+ },
+ {
+  "sender": ":1.10",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.Clipboard",
+  "member": "SelectionOwnerChanged",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/logged",
+   {
+    "mime_types": [
+     "text/x-aresosmark-51c2",
+     "text/plain",
+     "text/plain;charset=utf-8",
+     "TEXT",
+     "STRING",
+     "UTF8_STRING"
+    ],
+    "session_is_owner": false
+   }
+  ]
+ },
+ {
+  "sender": ":1.10",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.Clipboard",
+  "member": "SelectionOwnerChanged",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/logged",
+   {
+    "session_is_owner": true,
+    "mime_types": [
+     "text/x-aresosmark-51c2"
+    ]
+   }
+  ]
+ },
+ {
+  "sender": ":1.10",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.Clipboard",
+  "member": "SelectionTransfer",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/logged",
+   "text/x-aresosmark-51c2",
+   1
+  ]
+ },
+ {
+  "sender": ":1.10",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.InputCapture",
+  "member": "Activated",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/logged",
+   {
+    "cursor_position": [
+     0.0,
+     437.0
+    ],
+    "activation_id": 1,
+    "barrier_id": 1
+   }
+  ]
+ },
+ {
+  "sender": ":1.10",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.InputCapture",
+  "member": "Activated",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/logged",
+   {
+    "activation_id": 2,
+    "barrier_id": 1,
+    "cursor_position": [
+     0.0,
+     437.0
+    ]
+   }
+  ]
+ },
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameOwnerChanged",
+  "args": [
+   ":1.11",
+   "",
+   ":1.11"
+  ]
+ },
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameOwnerChanged",
+  "args": [
+   ":1.11",
+   ":1.11",
+   ""
+  ]
+ },
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameOwnerChanged",
+  "args": [
+   ":1.12",
+   "",
+   ":1.12"
+  ]
+ },
+ {
+  "sender": ":1.10",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.InputCapture",
+  "member": "Deactivated",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/logged",
+   {
+    "activation_id": 2
+   }
+  ]
+ },
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameOwnerChanged",
+  "args": [
+   ":1.12",
+   ":1.12",
+   ""
+  ]
+ },
+ {
+  "sender": ":1.10",
+  "path": "/org/freedesktop/portal/desktop/session/harness/logged",
+  "iface": "org.freedesktop.impl.portal.Session",
+  "member": "Closed",
+  "args": []
+ },
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameOwnerChanged",
+  "args": [
+   "org.freedesktop.impl.portal.desktop.aresos-input",
+   ":1.10",
+   ""
+  ]
+ },
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameOwnerChanged",
+  "args": [
+   ":1.10",
+   ":1.10",
+   ""
+  ]
+ },
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameOwnerChanged",
+  "args": [
+   ":1.13",
+   "",
+   ":1.13"
+  ]
+ },
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameOwnerChanged",
+  "args": [
+   "org.freedesktop.impl.portal.desktop.aresos-input",
+   "",
+   ":1.13"
+  ]
+ },
+ {
+  "sender": ":1.13",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.InputCapture",
+  "member": "ZonesChanged",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/output_off",
+   {}
+  ]
+ },
+ {
+  "sender": ":1.13",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.InputCapture",
+  "member": "Activated",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/output_off",
+   {
+    "barrier_id": 6,
+    "cursor_position": [
+     1279.0,
+     360.0
+    ],
+    "activation_id": 1
+   }
+  ]
+ },
+ {
+  "sender": ":1.13",
+  "path": "/org/freedesktop/portal/desktop/session/harness/output_off",
+  "iface": "org.freedesktop.impl.portal.Session",
+  "member": "Closed",
+  "args": []
+ },
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameOwnerChanged",
+  "args": [
+   "org.freedesktop.impl.portal.desktop.aresos-input",
+   ":1.13",
+   ""
+  ]
+ },
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameOwnerChanged",
+  "args": [
+   ":1.13",
+   ":1.13",
+   ""
+  ]
+ },
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameOwnerChanged",
+  "args": [
+   ":1.14",
+   "",
+   ":1.14"
+  ]
+ },
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameOwnerChanged",
+  "args": [
+   "org.freedesktop.impl.portal.desktop.aresos-input",
+   "",
+   ":1.14"
+  ]
+ }
+]

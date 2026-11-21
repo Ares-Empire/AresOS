@@ -1,0 +1,641 @@
+[
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameOwnerChanged",
+  "args": [
+   "org.freedesktop.portal.Desktop",
+   "",
+   ":1.1"
+  ]
+ },
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameAcquired",
+  "args": [
+   "org.freedesktop.portal.Desktop"
+  ]
+ },
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameOwnerChanged",
+  "args": [
+   ":1.2",
+   "",
+   ":1.2"
+  ]
+ },
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameOwnerChanged",
+  "args": [
+   "org.freedesktop.impl.portal.desktop.aresos-input",
+   "",
+   ":1.2"
+  ]
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.InputCapture",
+  "member": "Activated",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/zones",
+   {
+    "activation_id": 1,
+    "cursor_position": [
+     0.0,
+     360.0
+    ],
+    "barrier_id": 1
+   }
+  ]
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.InputCapture",
+  "member": "Activated",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/zones",
+   {
+    "cursor_position": [
+     2559.0,
+     360.0
+    ],
+    "barrier_id": 2,
+    "activation_id": 2
+   }
+  ]
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.InputCapture",
+  "member": "Activated",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/zones",
+   {
+    "activation_id": 3,
+    "barrier_id": 3,
+    "cursor_position": [
+     1920.0,
+     0.0
+    ]
+   }
+  ]
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.InputCapture",
+  "member": "Activated",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/zones",
+   {
+    "cursor_position": [
+     640.0,
+     719.0
+    ],
+    "activation_id": 4,
+    "barrier_id": 4
+   }
+  ]
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.InputCapture",
+  "member": "ZonesChanged",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/zones",
+   {}
+  ]
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.InputCapture",
+  "member": "Activated",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/zones",
+   {
+    "activation_id": 5,
+    "barrier_id": 5,
+    "cursor_position": [
+     1919.0,
+     180.0
+    ]
+   }
+  ]
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.InputCapture",
+  "member": "ZonesChanged",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/zones",
+   {}
+  ]
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop/session/harness/zones",
+  "iface": "org.freedesktop.impl.portal.Session",
+  "member": "Closed",
+  "args": []
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.InputCapture",
+  "member": "Activated",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/crossing",
+   {
+    "barrier_id": 1,
+    "cursor_position": [
+     0.0,
+     360.0
+    ],
+    "activation_id": 6
+   }
+  ]
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop/session/harness/crossing",
+  "iface": "org.freedesktop.impl.portal.Session",
+  "member": "Closed",
+  "args": []
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.InputCapture",
+  "member": "Activated",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/ways_out",
+   {
+    "cursor_position": [
+     0.0,
+     360.0
+    ],
+    "barrier_id": 1,
+    "activation_id": 7
+   }
+  ]
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.InputCapture",
+  "member": "Activated",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/ways_out",
+   {
+    "activation_id": 8,
+    "barrier_id": 1,
+    "cursor_position": [
+     0.0,
+     360.0
+    ]
+   }
+  ]
+ },
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameOwnerChanged",
+  "args": [
+   ":1.3",
+   "",
+   ":1.3"
+  ]
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.InputCapture",
+  "member": "Deactivated",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/ways_out",
+   {
+    "activation_id": 8
+   }
+  ]
+ },
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameOwnerChanged",
+  "args": [
+   ":1.3",
+   ":1.3",
+   ""
+  ]
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.InputCapture",
+  "member": "Activated",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/ways_out",
+   {
+    "cursor_position": [
+     0.0,
+     360.0
+    ],
+    "barrier_id": 1,
+    "activation_id": 9
+   }
+  ]
+ },
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameOwnerChanged",
+  "args": [
+   ":1.4",
+   "",
+   ":1.4"
+  ]
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.InputCapture",
+  "member": "Deactivated",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/ways_out",
+   {
+    "activation_id": 9
+   }
+  ]
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.InputCapture",
+  "member": "Disabled",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/ways_out",
+   {}
+  ]
+ },
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameOwnerChanged",
+  "args": [
+   ":1.4",
+   ":1.4",
+   ""
+  ]
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.InputCapture",
+  "member": "Activated",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/ways_out",
+   {
+    "cursor_position": [
+     0.0,
+     360.0
+    ],
+    "activation_id": 10,
+    "barrier_id": 1
+   }
+  ]
+ },
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameOwnerChanged",
+  "args": [
+   ":1.5",
+   "",
+   ":1.5"
+  ]
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.InputCapture",
+  "member": "Deactivated",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/ways_out",
+   {
+    "activation_id": 10
+   }
+  ]
+ },
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameOwnerChanged",
+  "args": [
+   ":1.5",
+   ":1.5",
+   ""
+  ]
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop/session/harness/ways_out",
+  "iface": "org.freedesktop.impl.portal.Session",
+  "member": "Closed",
+  "args": []
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.Clipboard",
+  "member": "SelectionOwnerChanged",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/clipboard",
+   {
+    "mime_types": [
+     "text/plain",
+     "text/plain;charset=utf-8",
+     "TEXT",
+     "STRING",
+     "UTF8_STRING"
+    ],
+    "session_is_owner": false
+   }
+  ]
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.Clipboard",
+  "member": "SelectionOwnerChanged",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/clipboard",
+   {
+    "mime_types": [
+     "text/plain;charset=utf-8",
+     "text/plain"
+    ],
+    "session_is_owner": true
+   }
+  ]
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.Clipboard",
+  "member": "SelectionTransfer",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/clipboard",
+   "text/plain;charset=utf-8",
+   1
+  ]
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop/session/harness/clipboard",
+  "iface": "org.freedesktop.impl.portal.Session",
+  "member": "Closed",
+  "args": []
+ },
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameOwnerChanged",
+  "args": [
+   ":1.6",
+   "",
+   ":1.6"
+  ]
+ },
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameOwnerChanged",
+  "args": [
+   ":1.6",
+   ":1.6",
+   ""
+  ]
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.InputCapture",
+  "member": "Activated",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/first",
+   {
+    "barrier_id": 1,
+    "cursor_position": [
+     0.0,
+     360.0
+    ],
+    "activation_id": 11
+   }
+  ]
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.InputCapture",
+  "member": "Disabled",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/first",
+   {}
+  ]
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.InputCapture",
+  "member": "Activated",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/second",
+   {
+    "activation_id": 12,
+    "barrier_id": 1,
+    "cursor_position": [
+     0.0,
+     360.0
+    ]
+   }
+  ]
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.Clipboard",
+  "member": "SelectionOwnerChanged",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/second",
+   {
+    "mime_types": [
+     "text/plain;charset=utf-8",
+     "text/plain"
+    ],
+    "session_is_owner": true
+   }
+  ]
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.Clipboard",
+  "member": "SelectionOwnerChanged",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/first",
+   {
+    "mime_types": [
+     "text/plain;charset=utf-8",
+     "text/plain"
+    ],
+    "session_is_owner": false
+   }
+  ]
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.Clipboard",
+  "member": "SelectionTransfer",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/second",
+   "text/plain;charset=utf-8",
+   2
+  ]
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop/session/harness/first",
+  "iface": "org.freedesktop.impl.portal.Session",
+  "member": "Closed",
+  "args": []
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop/session/harness/second",
+  "iface": "org.freedesktop.impl.portal.Session",
+  "member": "Closed",
+  "args": []
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.InputCapture",
+  "member": "Activated",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/pointer_only",
+   {
+    "barrier_id": 1,
+    "activation_id": 13,
+    "cursor_position": [
+     0.0,
+     360.0
+    ]
+   }
+  ]
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop/session/harness/pointer_only",
+  "iface": "org.freedesktop.impl.portal.Session",
+  "member": "Closed",
+  "args": []
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.InputCapture",
+  "member": "Activated",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/pointer_device_gone",
+   {
+    "activation_id": 14,
+    "barrier_id": 1,
+    "cursor_position": [
+     0.0,
+     360.0
+    ]
+   }
+  ]
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop/session/harness/pointer_device_gone",
+  "iface": "org.freedesktop.impl.portal.Session",
+  "member": "Closed",
+  "args": []
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop/session/harness/closed",
+  "iface": "org.freedesktop.impl.portal.Session",
+  "member": "Closed",
+  "args": []
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop/session/harness/eis_dies_first",
+  "iface": "org.freedesktop.impl.portal.Session",
+  "member": "Closed",
+  "args": []
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.InputCapture",
+  "member": "Activated",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/eis_dies_capturing",
+   {
+    "barrier_id": 1,
+    "activation_id": 15,
+    "cursor_position": [
+     0.0,
+     360.0
+    ]
+   }
+  ]
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.InputCapture",
+  "member": "Deactivated",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/eis_dies_capturing",
+   {
+    "activation_id": 15
+   }
+  ]
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop/session/harness/eis_dies_capturing",
+  "iface": "org.freedesktop.impl.portal.Session",
+  "member": "Closed",
+  "args": []
+ }
+]

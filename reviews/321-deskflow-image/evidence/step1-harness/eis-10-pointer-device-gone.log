@@ -1,0 +1,16 @@
+CONNECT
+SEAT name=aresos-capture pointer=1 pointer_absolute=0 keyboard=1 touch=0 scroll=1 button=1
+BOUND everything
+DEVICE_ADDED name=aresos-capture-pointer pointer=1 pointer_absolute=0 keyboard=0 touch=0 scroll=1 button=1 region=0,0,2560x720
+DEVICE_RESUMED name=aresos-capture-pointer
+DEVICE_ADDED name=aresos-capture-keyboard pointer=0 pointer_absolute=0 keyboard=1 touch=0 scroll=0 button=0 region=0,0,2560x720
+DEVICE_RESUMED name=aresos-capture-keyboard
+START name=aresos-capture-pointer sequence=14
+START name=aresos-capture-keyboard sequence=14
+STOP name=aresos-capture-pointer
+STOP name=aresos-capture-keyboard
+ 09:40:12 | INFO | Disconnected by EIS
+DEVICE_REMOVED name=aresos-capture-keyboard
+DEVICE_REMOVED name=aresos-capture-pointer
+SEAT_REMOVED
+DISCONNECT
