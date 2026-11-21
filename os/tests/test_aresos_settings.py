@@ -12,6 +12,7 @@ import json
 import os
 import pathlib
 import subprocess
+import sys
 import tempfile
 import unittest
 from unittest import mock
@@ -28,7 +29,12 @@ def load_program():
     loader = importlib.machinery.SourceFileLoader('aresos_settings', str(PROGRAM))
     spec = importlib.util.spec_from_loader('aresos_settings', loader)
     module = importlib.util.module_from_spec(spec)
-    loader.exec_module(module)
+    # Never leave a bytecode cache in os/config (it would be read as another program naming the file).
+    written, sys.dont_write_bytecode = sys.dont_write_bytecode, True
+    try:
+        loader.exec_module(module)
+    finally:
+        sys.dont_write_bytecode = written
     return module
 
 
@@ -210,7 +216,7 @@ class OwnershipTest(unittest.TestCase):
     def test_no_other_program_reads_the_settings_file(self):
         # The defaults live in aresos-settings alone; everyone else asks it.
         readers = [path.relative_to(ROOT) for path in (ROOT / 'os/config').rglob('*')
-                   if path.is_file() and path.name != 'aresos-settings'
+                   if path.is_file() and path.name != 'aresos-settings' and '__pycache__' not in path.parts
                    and b'settings.json' in path.read_bytes()]
         self.assertEqual(readers, [])
         self.assertNotIn('indicator-', (ROOT / 'os/config/usr/libexec/aresos-level').read_text())
