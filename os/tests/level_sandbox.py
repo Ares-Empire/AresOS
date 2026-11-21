@@ -89,6 +89,8 @@ with open(D + '/calls.jsonl', 'a') as log:
     log.write(json.dumps({'tool': sys.argv[0], 'argv': args, 't': time.monotonic()}) + '\n')
 with open(D + '/state.json') as f:
     if any(' '.join(['wpctl'] + args).startswith(h) for h in json.load(f).get('hang', [])):
+        with open(D + '/read-blocked', 'w') as ready:
+            print(os.getpid(), file=ready)
         time.sleep(60)
 limit = 0.0
 if '--limit' in args:
