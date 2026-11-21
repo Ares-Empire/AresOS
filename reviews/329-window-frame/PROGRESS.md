@@ -69,4 +69,10 @@ Before push, compared the SHA-256 of every committed blob version in the outgoin
 
 ### Final-head hosted runs
 
-The final-head image-build and hosted regression results are pending.
+Both GitHub Actions runs report the pushed code and evidence commit `0dbd6256276fefbfa8f4d7ac2aaa4f2602a80e12`. Both `gh run watch <id> --exit-status --interval 60` commands returned zero.
+
+- `gh workflow run os-image.yml --ref pkg/329-window-frame -f check_build=build` passed. The log reports `IMAGE_CHECKS_PASSED`, `CHECK_BUILD_PASSED` and `CHECK_BUILD_VM_PASSED`, including the pinned AresOS frame, pack and guest rehearsal. Step 1's preceding image build also completed successfully. [Final build 44942183654](https://github.com/Ares-Empire/AresOS/actions/runs/44942183654) · [Step 1 build 44940099225](https://github.com/Ares-Empire/AresOS/actions/runs/44940099225)
+- `gh workflow run os-image.yml --ref pkg/329-window-frame -f checks_only=true` passed. The regression job reported `Ran 2490 tests in 3031.966s` and `OK (skipped=24)`. The model job ran the full ways-back test and reported `OK`. [Hosted regressions 44945705491](https://github.com/Ares-Empire/AresOS/actions/runs/44945705491)
+- The PR privacy check passed. The local Podman cleanup removed only the four images built in this run, and there are no files over 500 MB in `.work/`. The remaining merge gates are the fresh review and the `linux-aresos` handoff read.
+
+Before pushing this results-only commit, reran the SHA-256 comparison across all 322 committed file versions and all intermediate versions, including both updated review documents and every picture. Zero private hash matches. The public Look A study and the isolated capture run account for all 211 PNG file versions in the scan.

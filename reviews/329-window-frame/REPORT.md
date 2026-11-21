@@ -25,7 +25,7 @@ The pack, theme and rc.xml unit modules reported `OK` for 1, 3 and 2 tests respe
 
 Both frame runs completed with 35 scenario checks, 36 exact button images and eight review sheets. The first indicator run failed test 9 at 95% after the mock volume reader encountered partially rewritten JSON. The fixture now uses shared locks for reads and the existing exclusive lock for writes. The unchanged indicator assertions then passed all nine groups and 52 checks twice. The brightness and volume stand-ins hold neither lock during a simulated hang. [Frame results](evidence/results.txt) · [Indicator results](evidence/indicator-results.txt) · [Repeat](evidence/indicator-repeat-results.txt)
 
-The package 320 and 329 Python image-check blocks also passed against the checkout's staged image paths. The hosted regressions and throwaway build are tracked in the draft PR and the progress log. [Progress and final-head CI](PROGRESS.md)
+The package 320 and 329 Python image-check blocks also passed against the checkout's staged image paths. The hosted run with `check_build=build` passed the image and UEFI guest checks on `0dbd6256276fefbfa8f4d7ac2aaa4f2602a80e12`. The `checks_only=true` workflow on the same commit reported `Ran 2490 tests in 3031.966s` and `OK (skipped=24)` and passed the full ways-back model. Both watches returned zero. [Image build 44942183654](https://github.com/Ares-Empire/AresOS/actions/runs/44942183654) · [Regressions 44945705491](https://github.com/Ares-Empire/AresOS/actions/runs/44945705491)
 
 ## Not verified
 
