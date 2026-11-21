@@ -1,4 +1,29 @@
-# Package 323 progress
+# Package 323: R29's image package: report
+
+**What it does:** R29's image gets:
+- gtk4-layer-shell 1.3.0 (x86_64), the layer library for the laptop home and the indicator (B320);
+- JetBrains Mono under `/usr/share/fonts/aresos/`;
+- image checks for the layer library, the font, and Mesa's EGL and Intel's Vulkan driver files;
+- 18c-b's one-layer labwc swap (`6d610587`), so a committed image always keeps package 311's labwc.
+
+Nothing reaches the laptop until R29 is released.
+
+**Builder:** Codex `gpt-6.2-sol` `xhigh` for step 1; the lead for the one-line resolve fix and for step 2 (copying the resolved lock, plus tests). **Brief review:** Codex `gpt-6.2-sol` `high`, NOT READY on one must-fix, fixed; the targeted recheck was READY. **Code review:** a fresh Codex `gpt-6.2-sol` `high` context, SAFE (`REVIEW-1.md`). Its one should-fix, the resolve preview's architecture, was applied in `616ba704`.
+
+## Results
+
+- **Check build 44919908251 on `616ba704`: green.** It passed:
+  - `PASS labwc is the locked rebuild (labwc-0.9.6-1.fc44.aresos1.x86_64) … rpm -V labwc is clean`;
+  - `PASS gtk4-layer-shell (gtk4-layer-shell-1.3.0-1.fc44.x86_64) verifies and the laptop home loads it as ares with the preload` (`LAPTOP_HOME_LAYER_SHELL 1.3.0`);
+  - the JetBrains Mono and the Mesa and Intel checks;
+  - `IMAGE_CHECKS_PASSED`;
+  - the VM, including both `GUARDIAN_VM_PASSED` scenarios.
+- **Check build 44917067389 on `0c9df244`:** red, but only in package 25's guardian VM check. Its lid time is rounded to the millisecond and read 67 µs before `save_asked`. That's main's race, fixed by `linux-laptop-home` in PR136. All of this package's image checks passed there too.
+- **Resolve runs:**
+  - 44911675124 requested the library by name and so pulled the i686 build with 23 multilib dependencies; fixed in `60588a1b`.
+  - 44912634031's candidate adds exactly the x86_64 library. That run went red afterwards on a passing Maven Central outage in the mod build.
+
+## What was done
 
 ## Done
 
@@ -37,14 +62,13 @@ The unittest commands ran one at a time from `os/` under bubblewrap with private
   - `test_owner_update` fails its 170 laptop-environment subtests, as on main.
   - `test_ways_back_model` was stopped by the lead's 15-minute timeout. This package changes none of its sources.
 
-## Left in order
-
-1. (Done, above.)
-2. (Done, above.)
-3. The lead dispatches `check_build=build` after the Step 2 push and obtains the fresh code review. With a green build and a SAFE review, the lead commits the report from this note, removes this note, merges, and tells `linux-desktop` and `linux-tools` as specified in the brief.
-
 ## What the code does not show
 
 - A successful build of the same pinned Bazzite base had neither a `gtk4-layer-shell` nor a JetBrains Mono RPM in `image/manifest/packages.txt`. The font is installed through the existing font directory and cache rebuild. The new image check will verify fontconfig precedence on the built image. [Build evidence](https://github.com/Ares-Empire/AresOS/actions/runs/44617007417/artifacts/14577053121)
 - The layer shell assertion needs Step 2's reviewed NEVRA. The hosted image build will verify the GTK import, both font hashes and the selected font, the Mesa and Intel files and libraries, and `rpm -V labwc` in the finished image.
 - Package 42's source bindings contain none of the changed paths. No file in `.work/` exceeds 500 MB.
+
+## Known limits
+
+- The image checks prove the files are there and load. The supervisor's `LD_PRELOAD`, its vendor pins, and the layer surface on a real screen are package 23c's work, and the indicator's (B320).
+- `test_release27`'s and `test_release28`'s lock tests now model release 28's recorded lock. R29's release package adds R29's own profile, with gtk4-layer-shell's reason.
