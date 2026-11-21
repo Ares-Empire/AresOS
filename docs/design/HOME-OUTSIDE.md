@@ -64,8 +64,7 @@ and `briefs/328-look-around.md` could not be read here. What rests on them is ma
    the awake world is not in view: the bar outside.
 8. **A bar on every screen, by one rule** (the owner, T484 and T485; section 8). It is `shown` on a screen nothing
    fills, also one with part-screen windows, and reserves its height there. It waits at the bottom `edge`, reserving
-   nothing, while a window fills the screen. On the home output it reserves nothing whenever the world's window
-   exists, and the awake world's own hotbar is the bar there.
+   nothing, while a window fills the screen. On the home output it reserves nothing while `world` is not `off`, and the awake world's own hotbar is the bar there.
 9. **Search is outside the game.** Super opens it over anything, on the home output. Nothing is minimized for it.
 10. **The picture is a background surface** on every output where the awake world is not showing. The default is a
     plain picture in the look (the owner, T482). Black, a picture of his and the town are the other kinds.
@@ -498,7 +497,7 @@ One bar on every output, the same content on each (the owner, T484). The helper 
 - **`shown` means a screen nothing fills,** also one with part-screen windows (the owner, T485: "Visible there").
 - **`edge` means a window fills the screen.** The zone is 0, so that window gets the whole output and hides the
   bar, which the owner likes.
-- **On the home output the zone stays 0 whenever the world's window exists:** awake, asleep or starting
+- **On the home output the zone stays 0 while `world` is not `off`:** awake, asleep or starting
   (`linux-desktop`, revision 2). A zone would re-fit the world's own maximized window. Every switch between `none`
   and `shown` would then resize the game, and a still would no longer fit. The zone goes to 0 when a start begins,
   before the window maps, and comes back only when `world` is `off`.
@@ -750,9 +749,9 @@ look B for the bar, with the desktop's look work; a full layout that counts as f
      windows above it, so it covers none of their rows.
    - **It waits at `edge`, with zone 0, while a window fills the screen.** `edge` follows covering, and covering
      follows the maximized and full-screen states, so there is no resize loop.
-   - **On the home output the zone stays 0 whenever the world's window exists:** awake, asleep or starting. A zone
+   - **On the home output the zone stays 0 while `world` is not `off`:** awake, asleep or starting. A zone
      would re-fit the world's own maximized window. The in-game hotbar is the bar there anyway (T483).
-   - **The zone applies** on outputs without the world's window, and on the home output with the world off.
+   - **The zone applies only while the bar is `shown`,** on every output except the home output while `world` is not `off`.
    - **Known limits:** a part-screen window he drags down over the bar keeps its bottom rows under it; and on the
      home output a part-screen window can reach under the bar while the world sleeps or starts (section 12).
    - **For `linux-desktop`:** package 4's brief checks that labwc 0.9.6 honours a changing exclusive zone on a
@@ -827,7 +826,7 @@ back later.
   there. He rests on the boundary to reveal that bar.
 - **A part-screen window he drags down over a visible bar** keeps its bottom rows under it. labwc does not move a
   window when the zone appears. He can drag it away.
-- **On the home output the zone is 0 while the world's window exists.** With the world asleep or starting, a
+- **On the home output the zone is 0 while `world` is not `off`.** With the world asleep or starting, a
   part-screen window that reaches the bottom has its last rows under the bar until the world is awake or he moves
   the window.
 - **With the world awake and a part-screen window over the bottom centre,** the hotbar is behind that window and no
@@ -909,7 +908,7 @@ its point for revision 2 about the zone on the home output. The sections above u
 | Surface | Namespace | Layer | Keyboard | Details |
 |---|---|---|---|---|
 | Picture | `aresos-picture` | background | none | Anchored on all four edges, exclusive zone -1. Its input region is the whole output, so a click on it never reaches labwc's Root context. |
-| Bar | `aresos-bar` | top while `shown`: above windows, below a true full-screen window. Overlay while revealed, by `set_layer` (layer-shell version 2 or later), and back to top when it hides. | none | Anchored bottom, left and right. Exclusive zone: the bar's height while `shown` with `reserve` yes; 0 in every other case. So it is 0 at `edge`, at `none`, while revealed, and on the home output whenever the world's window exists (awake, asleep or starting). So it is the bar's height only while `shown`, on every output except the home output while `world` is not `off`. Its menus are popups on it, pointer only. |
+| Bar | `aresos-bar` | top while `shown`: above windows, below a true full-screen window. Overlay while revealed, by `set_layer` (layer-shell version 2 or later), and back to top when it hides. | none | Anchored bottom, left and right. Exclusive zone: the bar's height while `shown` with `reserve` yes; 0 in every other case. So it is 0 at `edge`, at `none`, while revealed, and on the home output while `world` is not `off` (awake, asleep or starting). So it is the bar's height only while `shown`, on every output except the home output while `world` is not `off`. Its menus are popups on it, pointer only. |
 | Strip | `aresos-bar-edge` | overlay | none | It exists only while that output's bar is `edge`. 1 logical pixel high, full width, exclusive zone -1, a transparent buffer with an input region. |
 | Search | `aresos-search` | overlay | exclusive while open | Esc, a click outside, or the recovery key ends it. |
 | Toast | `aresos-toast` | top | none | An empty input region, so clicks pass through, as with the indicator. Not over a full-screen video. |
@@ -1061,7 +1060,7 @@ How a test shows it. The supervisor takes its runner and its clock from outside,
 - **Crash points.** The two of row 4. Each ends in one of its two settled states.
 - **The pending start.** It is made only by his request, survives a replacement, starts once on the first clear
   sample, and is gone after each event of row 5. An old or unreadable sample never admits it.
-- **On the image,** one pass in the VM: world off, a reboot, and neither Prism nor Java runs. Then `world on`
+- **On a test image,** one pass in a VM (never the owner's laptop before package 7): world off, a reboot, and neither Prism nor Java runs. Then `world on`
   starts the world.
 
 ### Gate 3: the world gives way first
