@@ -18,6 +18,7 @@
 // each kind is its own process, and stopping the pointer's takes the seat's pointer away and nothing else.
 #define _GNU_SOURCE
 #include <poll.h>
+#include <ctype.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -33,6 +34,7 @@
 #include "virtual-keyboard-unstable-v1-client-protocol.h"
 #include "wlr-output-management-unstable-v1-client-protocol.h"
 #include "wlr-virtual-pointer-unstable-v1-client-protocol.h"
+#include "xdg-decoration-unstable-v1-client-protocol.h"
 #include "xdg-shell-client-protocol.h"
 
 static struct wl_display *display;
@@ -40,6 +42,7 @@ static struct wl_compositor *compositor;
 static struct wl_shm *shm;
 static struct wl_seat *seat;
 static struct xdg_wm_base *wm_base;
+static struct zxdg_decoration_manager_v1 *decoration_manager;
 static struct zwlr_virtual_pointer_manager_v1 *pointer_manager;
 static struct zwp_virtual_keyboard_manager_v1 *keyboard_manager;
 static struct zwlr_output_manager_v1 *output_manager;
@@ -47,6 +50,12 @@ static struct zwp_pointer_constraints_v1 *constraints;
 static struct zwp_relative_pointer_manager_v1 *relative_manager;
 static bool wants_lock;
 static bool wants_outputs;
+static bool floating;
+static bool closed;
+static const char *app_id = "harness-probe";
+static const char *title = "harness-probe";
+static int32_t initial_width = 1280, initial_height = 720;
+static uint32_t colour = 0xff204060;
 
 static void die(const char *why)
 {
@@ -72,6 +81,8 @@ static void registry_global(void *data, struct wl_registry *registry, uint32_t n
 		seat = wl_registry_bind(registry, name, &wl_seat_interface, version < 5 ? version : 5);
 	} else if (!strcmp(interface, xdg_wm_base_interface.name)) {
 		wm_base = wl_registry_bind(registry, name, &xdg_wm_base_interface, 1);
+	} else if (floating && !strcmp(interface, zxdg_decoration_manager_v1_interface.name)) {
+		decoration_manager = wl_registry_bind(registry, name, &zxdg_decoration_manager_v1_interface, 1);
 	} else if (!strcmp(interface, zwlr_virtual_pointer_manager_v1_interface.name)) {
 		pointer_manager = wl_registry_bind(registry, name, &zwlr_virtual_pointer_manager_v1_interface, 1);
 	} else if (!strcmp(interface, zwp_virtual_keyboard_manager_v1_interface.name)) {
@@ -100,6 +111,8 @@ static struct wl_keyboard *keyboard;
 static struct zwp_locked_pointer_v1 *lock;
 static struct zwp_relative_pointer_v1 *relative;
 static int32_t width, height;
+static int32_t buffer_width, buffer_height;
+static struct wl_array configure_states;
 
 // The persistent constraint and unaccelerated deltas used by package 311's lock_phase().
 static void relative_motion(void *d, struct zwp_relative_pointer_v1 *r, uint32_t hi, uint32_t lo,
@@ -232,8 +245,14 @@ static const struct wl_seat_listener seat_listener = {
 	.name = seat_name,
 };
 
+static void buffer_release(void *data, struct wl_buffer *buffer) { wl_buffer_destroy(buffer); }
+static const struct wl_buffer_listener buffer_listener = {.release = buffer_release};
+
 static void attach_buffer(int32_t w, int32_t h)
 {
+	if (w == buffer_width && h == buffer_height) {
+		return;
+	}
 	int stride = w * 4;
 	size_t size = (size_t)stride * h;
 	int fd = memfd_create("wl-harness-buffer", MFD_CLOEXEC);
@@ -245,15 +264,18 @@ static void attach_buffer(int32_t w, int32_t h)
 		die("the window's buffer could not be mapped");
 	}
 	for (size_t i = 0; i < size / 4; i++) {
-		pixels[i] = 0xff204060;
+		pixels[i] = colour;
 	}
 	munmap(pixels, size);
 	struct wl_shm_pool *pool = wl_shm_create_pool(shm, fd, size);
 	struct wl_buffer *buffer = wl_shm_pool_create_buffer(pool, 0, w, h, stride, WL_SHM_FORMAT_XRGB8888);
+	wl_buffer_add_listener(buffer, &buffer_listener, NULL);
 	wl_shm_pool_destroy(pool);
 	close(fd);
 	wl_surface_attach(surface, buffer, 0, 0);
 	wl_surface_damage_buffer(surface, 0, 0, w, h);
+	buffer_width = w;
+	buffer_height = h;
 }
 
 static void wm_ping(void *d, struct xdg_wm_base *b, uint32_t serial)
@@ -265,11 +287,28 @@ static const struct xdg_wm_base_listener wm_listener = {.ping = wm_ping};
 
 static void xdg_configure(void *d, struct xdg_surface *x, uint32_t serial)
 {
-	int32_t w = width > 0 ? width : 1280, h = height > 0 ? height : 720;
+	int32_t w = width > 0 ? width : initial_width, h = height > 0 ? height : initial_height;
 	xdg_surface_ack_configure(x, serial);
 	attach_buffer(w, h);
 	wl_surface_commit(surface);
-	printf("CONFIGURED %d %d\n", w, h);
+	printf("CONFIGURED %d %d states=", w, h);
+	const uint32_t *state;
+	const char *separator = "";
+	wl_array_for_each(state, &configure_states) {
+		static const char *const names[] = {
+			[XDG_TOPLEVEL_STATE_MAXIMIZED] = "maximized",
+			[XDG_TOPLEVEL_STATE_FULLSCREEN] = "fullscreen",
+			[XDG_TOPLEVEL_STATE_RESIZING] = "resizing",
+			[XDG_TOPLEVEL_STATE_ACTIVATED] = "activated",
+		};
+		if (*state < sizeof names / sizeof names[0] && names[*state]) {
+			printf("%s%s", separator, names[*state]);
+		} else {
+			printf("%s%u", separator, *state);
+		}
+		separator = ",";
+	}
+	putchar('\n');
 }
 
 static const struct xdg_surface_listener xdg_listener = {.configure = xdg_configure};
@@ -278,13 +317,29 @@ static void toplevel_configure(void *d, struct xdg_toplevel *t, int32_t w, int32
 {
 	width = w;
 	height = h;
+	if (wl_array_copy(&configure_states, states) < 0) {
+		die("cannot store configure states");
+	}
 }
 
-static void toplevel_close(void *d, struct xdg_toplevel *t) {}
+static void toplevel_close(void *d, struct xdg_toplevel *t)
+{
+	puts("CLOSE");
+	closed = true;
+}
 
 static const struct xdg_toplevel_listener toplevel_listener = {
 	.configure = toplevel_configure,
 	.close = toplevel_close,
+};
+
+static void decoration_configure(void *d, struct zxdg_toplevel_decoration_v1 *decoration, uint32_t mode)
+{
+	printf("DECORATION %s\n", mode == ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE ? "server" : "client");
+}
+
+static const struct zxdg_toplevel_decoration_v1_listener decoration_listener = {
+	.configure = decoration_configure,
 };
 
 static int dispatch_lock_window(void)
@@ -292,12 +347,12 @@ static int dispatch_lock_window(void)
 	struct pollfd fds[] = {{.fd = wl_display_get_fd(display), .events = POLLIN},
 		{.fd = STDIN_FILENO, .events = POLLIN}};
 
-	while (wl_display_dispatch_pending(display) >= 0 && wl_display_flush(display) >= 0
+	while (wl_display_dispatch_pending(display) >= 0 && !closed && wl_display_flush(display) >= 0
 		&& poll(fds, 2, -1) > 0) {
 		if (fds[0].revents && wl_display_dispatch(display) < 0) {
 			return 0;
 		}
-		if (fds[1].revents) {
+		if (!closed && fds[1].revents) {
 			char line[32];
 			if (!fgets(line, sizeof line, stdin)) {
 				return 0;
@@ -326,6 +381,7 @@ static int run_window(void)
 		die("the compositor lacks pointer constraints or relative pointer");
 	}
 	setvbuf(stdout, NULL, _IOLBF, 0);
+	wl_array_init(&configure_states);
 	wl_seat_add_listener(seat, &seat_listener, NULL);
 	xdg_wm_base_add_listener(wm_base, &wm_listener, NULL);
 	surface = wl_compositor_create_surface(compositor);
@@ -333,15 +389,25 @@ static int run_window(void)
 	xdg_surface_add_listener(xdg, &xdg_listener, NULL);
 	struct xdg_toplevel *toplevel = xdg_surface_get_toplevel(xdg);
 	xdg_toplevel_add_listener(toplevel, &toplevel_listener, NULL);
-	xdg_toplevel_set_title(toplevel, "harness-probe");
-	xdg_toplevel_set_app_id(toplevel, "harness-probe");
-	xdg_toplevel_set_fullscreen(toplevel, NULL);
+	xdg_toplevel_set_title(toplevel, title);
+	xdg_toplevel_set_app_id(toplevel, app_id);
+	if (!floating) {
+		xdg_toplevel_set_fullscreen(toplevel, NULL);
+	} else if (decoration_manager) {
+		struct zxdg_toplevel_decoration_v1 *decoration =
+			zxdg_decoration_manager_v1_get_toplevel_decoration(decoration_manager, toplevel);
+		zxdg_toplevel_decoration_v1_add_listener(decoration, &decoration_listener, NULL);
+		zxdg_toplevel_decoration_v1_set_mode(decoration, ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
+	}
 	wl_surface_commit(surface);
 	if (wants_lock) {
-		return dispatch_lock_window();
+		dispatch_lock_window();
+	} else {
+		while (!closed && wl_display_dispatch(display) >= 0) {
+		}
 	}
-	while (wl_display_dispatch(display) >= 0) {
-	}
+	wl_array_release(&configure_states);
+	wl_display_disconnect(display);
 	return 0;
 }
 
@@ -449,14 +515,57 @@ static int run_outputs(void)
 	return 0;
 }
 
+static bool parse_window_options(int argc, char **argv)
+{
+	for (int i = 2; i < argc; i++) {
+		const char *option = argv[i];
+		if (!strcmp(option, "--lock")) {
+			wants_lock = true;
+			continue;
+		}
+		if (++i == argc) {
+			return false;
+		}
+		const char *value = argv[i];
+		if (!strcmp(option, "--app-id")) {
+			app_id = value;
+		} else if (!strcmp(option, "--title")) {
+			title = value;
+		} else if (!strcmp(option, "--size")) {
+			char *end;
+			long w = strtol(value, &end, 10);
+			if (end == value || *end != 'x' || !isdigit((unsigned char)end[1])) {
+				return false;
+			}
+			value = end + 1;
+			long h = strtol(value, &end, 10);
+			// Keep the requested buffer within Wayland's signed SHM pool size.
+			if (*end || w <= 0 || h <= 0 || w > INT32_MAX / 4 || h > INT32_MAX / (4 * w)) {
+				return false;
+			}
+			initial_width = w;
+			initial_height = h;
+			floating = true;
+		} else if (!strcmp(option, "--colour")) {
+			if (strlen(value) != 7 || *value != '#' || strspn(value + 1, "0123456789abcdefABCDEF") != 6) {
+				return false;
+			}
+			colour = 0xff000000 | strtoul(value + 1, NULL, 16);
+		} else {
+			return false;
+		}
+	}
+	return true;
+}
+
 int main(int argc, char **argv)
 {
-	wants_lock = argc == 3 && !strcmp(argv[1], "window") && !strcmp(argv[2], "--lock");
-	bool is_window = wants_lock || (argc == 2 && !strcmp(argv[1], "window"));
+	bool is_window = argc >= 2 && !strcmp(argv[1], "window") && parse_window_options(argc, argv);
 	bool is_input = argc == 3 && !strcmp(argv[1], "input") && (!strcmp(argv[2], "pointer") || !strcmp(argv[2], "keyboard"));
 	wants_outputs = argc == 2 && !strcmp(argv[1], "outputs");
 	if (!is_window && !is_input && !wants_outputs) {
-		fprintf(stderr, "usage: wl-harness window [--lock] | wl-harness input pointer|keyboard | wl-harness outputs\n");
+		fprintf(stderr, "usage: wl-harness window [--lock] [--app-id ID] [--title TITLE] [--size WxH]"
+			" [--colour '#rrggbb'] | wl-harness input pointer|keyboard | wl-harness outputs\n");
 		return 2;
 	}
 	display = wl_display_connect(NULL);

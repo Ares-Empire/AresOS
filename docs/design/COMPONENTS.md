@@ -588,6 +588,10 @@ from Chrome's and GNOME's own bars. The title's letters are the same in all thre
 **What the frame needs from the look setting** (the owner's decision after step 1: the look A, B or C, default B; place
 and size apply to the indicator, not to the frame. Section 4.7 designs the settings themselves.)
 
+**2026-11-21 (package 329).** The first frame ships in A only, as the image's `AresOS` theme, with the Alt+Tab
+settings from 4.4. B and C use that fallback until their sync step adds the theme folders and live reload. Super+Tab
+and the cover filters ship with the overview. [Package 329 brief](../../briefs/329-window-frame.md)
+
 - **One theme name for all looks.** `rc.xml` names the theme `AresOS`. The image ships look A as
   `/usr/share/themes/AresOS/labwc/`, generated from the look pack. For B or C, the sync step (section 5) writes a
   complete theme folder of the same name into `~/.local/share/themes/AresOS/labwc/`, which labwc reads first. For A it
@@ -1636,6 +1640,9 @@ what each look costs to build and to keep, and in which order to build.
 | C | On top of B, only where the game has a control: the frame's buttons, the indicator's slider form, the overview's rows. About 30 to 40 lines each, and their pictures. | As B, plus the game's button sprites. Its signs in the title bar are small (5 units wide). |
 
 **The build order.** Each is its own package with a fresh review:
+
+**2026-11-21 (package 329).** The frame ships first in A, before item 2. B and C follow that shared work. The
+first frame includes the Alt+Tab settings. Super+Tab and the cover filters move to the overview's first ship.
 
 1. **The indicator in A,** with the settings file, the place and the size (sections 4.1, 4.7). Jersey 10 and the look
    pack's first files go into the image.
