@@ -69,6 +69,7 @@ if record['sha256'] != mod['sha256']:
     mod['sha256'] = record['sha256']
 for name, reviewed in (('packages.lock.json', json.loads(pathlib.Path('os/packages.lock.json').read_text())),
                        ('google-chrome.lock.json', json.loads(pathlib.Path('os/google-chrome.lock.json').read_text())),
+                       ('labwc.lock.json', json.loads(pathlib.Path('os/labwc/labwc.lock.json').read_text())),
                        ('desktop.lock.json', desktop)):
     assert json.loads((manifest / name).read_text()) == reviewed, name
 print('Image manifest locks equal the reviewed locks')

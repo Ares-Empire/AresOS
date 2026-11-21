@@ -41,7 +41,8 @@ processResources {
 tasks.withType(JavaCompile).configureEach { options.release = 25 }
 test {
     useJUnitPlatform()
-    def tempDir = layout.buildDirectory.dir('tmp/unit-tests')
+    // Unix socket fixtures add nested paths; leave room below Linux's 108-byte limit in named worktrees.
+    def tempDir = layout.buildDirectory.dir('tmp/t')
     doFirst { tempDir.get().asFile.mkdirs() }
     systemProperty 'java.io.tmpdir', tempDir.get().asFile.absolutePath
     testLogging { events 'passed', 'skipped', 'failed' }
@@ -115,7 +116,12 @@ tasks.named('runClientGameTest') {
     systemProperty 'aresos.coloursReviewDir', file('../reviews/39-logo-colours/screenshots').absolutePath
     systemProperty 'aresos.homeScreenReviewDir', file('../reviews/40-real-home/screenshots').absolutePath
     systemProperty 'aresos.homeMenuReviewDir', file('../reviews/48-home-menu/screenshots').absolutePath
+    systemProperty 'aresos.townArrivalReviewDir', file('../reviews/54-town-one-line/screenshots').absolutePath
     systemProperty 'aresos.saveReviewDir', file('../reviews/46-save-now/screenshots').absolutePath
+    systemProperty 'aresos.repoDir', file('..').absolutePath
+    systemProperty 'aresos.pointerReviewDir', file('../reviews/56-free-pointer/screenshots').absolutePath
+    if (project.hasProperty('pointerSession')) systemProperty 'aresos.pointerSession', 'true'
+    systemProperty 'aresos.worldSearchReviewDir', file('../reviews/53d-world-search/screenshots').absolutePath
     systemProperty 'aresos.seedReviewDir', file('../reviews/04-nether-home/seeds').absolutePath
     // Package 46: the save times are measured only when asked, on the laptop (dev/client-test.sh -PmeasureSaves).
     if (project.hasProperty('measureSaves')) systemProperty 'aresos.measureSaves', 'true'

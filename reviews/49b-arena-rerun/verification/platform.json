@@ -1,0 +1,20 @@
+{
+  "jdk": {
+    "exit": 0,
+    "stdout": "",
+    "stderr": "openjdk version \"25.0.5\" 2026-10-20 LTS\nOpenJDK Runtime Environment Temurin-25.0.5+8 (build 25.0.5+8-LTS)\nOpenJDK 64-Bit Server VM Temurin-25.0.5+8 (build 25.0.5+8-LTS, mixed mode, sharing)"
+  },
+  "glibc": {
+    "exit": 0,
+    "stdout": "glibc 2.43",
+    "stderr": ""
+  },
+  "kernel": "7.2.9-ogc3.1.fc44.x86_64",
+  "gpu": {
+    "exit": 0,
+    "stdout": "NVIDIA GeForce RTX 4060 Laptop GPU, 615.78.08, 00000000:01:00.0",
+    "stderr": ""
+  },
+  "cpu": "13th Gen Intel(R) Core(TM) i5-13500H",
+  "memory_total_kib": 16074492
+}

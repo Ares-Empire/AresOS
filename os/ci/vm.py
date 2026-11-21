@@ -13,10 +13,12 @@ from channel import Frames, frame, import_bytes
 from qmp import QMP, assert_guest_poweroff
 from offline_journal import check_offline_poweroff
 from journal_ready import follower_ready
+import guardian_host
 
 work = pathlib.Path('vm-work').resolve()
 evidence = pathlib.Path('evidence').resolve() / f'vm-pass-{os.environ["ARESOS_VM_PASS"]}'
 evidence.mkdir(parents=True, exist_ok=True)
+camera = evidence / 'guardian-camera.log'
 password = json.loads((work / 'credentials.json').read_text())['password']
 disks = list((work / 'output').rglob('disk.raw'))
 assert len(disks) == 1, disks
@@ -45,7 +47,9 @@ qemu = subprocess.Popen([
     '-serial', f'file:{evidence / "serial.log"}',
     '-device', 'virtio-serial-pci',
     '-chardev', f'socket,id=checks,path={work / "checks.sock"},server=on,wait=off',
-    '-device', 'virtserialport,chardev=checks,name=org.aresos.ci', '-no-reboot',
+    '-device', 'virtserialport,chardev=checks,name=org.aresos.ci',
+    '-chardev', f'file,id=camera,path={camera}',
+    '-device', 'virtserialport,chardev=camera,name=org.aresos.guardian', '-no-reboot',
 ], stdout=open(evidence / 'qemu.log', 'w'), stderr=subprocess.STDOUT)
 monitor = None
 checks = None
@@ -133,6 +137,10 @@ try:
     request('recovery', password=password)
     screenshot('aresos-tty3-getty.png')
     keys(['ctrl', 'alt', 'f1'])
+    # Package 25: pass 1 is the power key with a save that takes 5 s, pass 2 a game that never answers and ignores
+    # SIGTERM. The guest seeds a home, starts the stand-in game and its watchers; the proof is read offline below.
+    guardian = guardian_host.scenario(os.environ['ARESOS_VM_PASS'])
+    armed = request('guardian-arm', scenario=guardian)
     journal_start = (evidence / 'serial.log').stat().st_size
     prepared = request('prepare-poweroff')
     deadline = time.monotonic() + 60
@@ -146,20 +154,27 @@ try:
     screenshot('last-vm-frame.png')
     shutdown_start = (evidence / 'serial.log').stat().st_size
     event_start = len(monitor.events)
+    before_lit = guardian_host.lit_share(evidence / 'last-vm-frame.png')
+    assert camera.read_bytes() == b'ready\n', 'the fixture must be ready with no save requested before the key'
     monitor.command('system_powerdown')
-    qemu.wait(timeout=120)
+    powered = time.monotonic()
+    watched = guardian_host.watch(guardian, camera, lambda: qemu.poll() is None, screenshot, keys, evidence)
+    qemu.wait(timeout=max(1, guardian_host.POWER_OFF_BOUND - (time.monotonic() - powered)))
+    power_off_seconds = time.monotonic() - powered
     monitor.reader.join(timeout=5)
+    offline = check_offline_poweroff(overlay, work, evidence, prepared['boot_id'])
     assert qemu.returncode == 0, 'Power key did not shut the guest down cleanly'
     shutdown_event = assert_guest_poweroff(monitor.events[event_start:])
     shutdown = (evidence / 'serial.log').read_bytes()[shutdown_start:].decode(errors='replace')
     assert re.search(r'Reached target[^\n]*(?:Power-Off|System Power Off|poweroff.target)', shutdown), 'Missing poweroff target evidence'
-    offline = check_offline_poweroff(overlay, work, evidence, prepared['boot_id'])
     (evidence / 'poweroff.txt').write_text('QMP ACPI button -> poweroff.target -> guest SHUTDOWN -> QEMU exit 0\n'
                                          + f'Offline logind path: {offline["status"]}\n' + shutdown)
     (evidence / 'poweroff.json').write_text(json.dumps(dict(qemu_exit=0, journal_ready=True,
                                                          boot_id=offline['boot_id'],
                                                          offline_journal=offline,
                                                          shutdown=shutdown_event), indent=2) + '\n')
+    guardian_host.check(evidence, guardian, {key: value for key, value in armed.items() if key not in ('id', 'stdout')},
+                        watched, power_off_seconds, before_lit)
     print('UEFI VM checks passed: session, updater/sleep policy, recovery shortcut, tty3 getty, password authentication via login PAM, ignored lid/sleep events, clean ACPI poweroff', flush=True)
 finally:
     if monitor:

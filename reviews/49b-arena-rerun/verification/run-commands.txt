@@ -1,0 +1,73 @@
+2026-11-18T12:40:23+01:00 attempt=0 command=<worktree>/reviews/49b-arena-rerun/rig/run.sh create-1-arena COVER=300 SHOTS=0 MODE=create CREATE_FLOW=automatic ENV=MALLOC_ARENA_MAX=2
+run.sh: Waiting for another game run on this laptop to finish (<home>/.cache/aresos-dev/client-test.lock)...
+run.sh: Holding NVIDIA active until the client scopes have stopped.
+2026-11-18T12:52:28+01:00 attempt=0 exit=0
+2026-11-18T12:20:11+01:00 attempt=0 command=<worktree>/reviews/49b-arena-rerun/rig/run.sh create-1-control COVER=300 SHOTS=0 MODE=create CREATE_FLOW=automatic
+run.sh: Waiting for another game run on this laptop to finish (<home>/.cache/aresos-dev/client-test.lock)...
+run.sh: Holding NVIDIA active until the client scopes have stopped.
+2026-11-18T12:39:53+01:00 attempt=0 exit=0
+2026-11-18T12:52:58+01:00 attempt=0 command=<worktree>/reviews/49b-arena-rerun/rig/run.sh create-2-arena COVER=300 SHOTS=0 MODE=create CREATE_FLOW=automatic ENV=MALLOC_ARENA_MAX=2
+run.sh: Waiting for another game run on this laptop to finish (<home>/.cache/aresos-dev/client-test.lock)...
+run.sh: Holding NVIDIA active until the client scopes have stopped.
+2026-11-18T13:14:38+01:00 attempt=0 exit=0
+2026-11-18T13:15:08+01:00 attempt=0 command=<worktree>/reviews/49b-arena-rerun/rig/run.sh create-2-control COVER=300 SHOTS=0 MODE=create CREATE_FLOW=automatic
+run.sh: Waiting for another game run on this laptop to finish (<home>/.cache/aresos-dev/client-test.lock)...
+run.sh: Holding NVIDIA active until the client scopes have stopped.
+2026-11-18T13:36:47+01:00 attempt=0 exit=0
+2026-11-18T09:54:46+01:00 attempt=0 command=<worktree>/reviews/49b-arena-rerun/rig/run.sh flat-1-arena COVER=300 SHOTS=0 ENV=MALLOC_ARENA_MAX=2
+run.sh: Holding NVIDIA active until the client scopes have stopped.
+2026-11-18T10:04:29+01:00 attempt=0 exit=0
+2026-11-18T09:32:38+01:00 attempt=0 command=<worktree>/reviews/49b-arena-rerun/rig/run.sh flat-1-control COVER=300 SHOTS=0
+run.sh: Waiting for another game run on this laptop to finish (<home>/.cache/aresos-dev/client-test.lock)...
+run.sh: Holding NVIDIA active until the client scopes have stopped.
+2026-11-18T09:54:16+01:00 attempt=0 exit=0
+2026-11-18T10:04:59+01:00 attempt=0 command=<worktree>/reviews/49b-arena-rerun/rig/run.sh flat-2-arena COVER=300 SHOTS=0 ENV=MALLOC_ARENA_MAX=2
+run.sh: Waiting for another game run on this laptop to finish (<home>/.cache/aresos-dev/client-test.lock)...
+run.sh: Holding NVIDIA active until the client scopes have stopped.
+2026-11-18T10:15:33+01:00 attempt=0 exit=0
+2026-11-18T10:16:03+01:00 attempt=0 command=<worktree>/reviews/49b-arena-rerun/rig/run.sh flat-2-control COVER=300 SHOTS=0
+run.sh: Waiting for another game run on this laptop to finish (<home>/.cache/aresos-dev/client-test.lock)...
+run.sh: Holding NVIDIA active until the client scopes have stopped.
+2026-11-18T10:27:41+01:00 attempt=0 exit=0
+2026-11-18T10:28:11+01:00 attempt=0 command=<worktree>/reviews/49b-arena-rerun/rig/run.sh flat-3-arena COVER=300 SHOTS=0 ENV=MALLOC_ARENA_MAX=2
+run.sh: Waiting for another game run on this laptop to finish (<home>/.cache/aresos-dev/client-test.lock)...
+run.sh: Holding NVIDIA active until the client scopes have stopped.
+2026-11-18T10:39:58+01:00 attempt=0 exit=0
+2026-11-18T10:40:28+01:00 attempt=0 command=<worktree>/reviews/49b-arena-rerun/rig/run.sh flat-3-control COVER=300 SHOTS=0
+run.sh: Waiting for another game run on this laptop to finish (<home>/.cache/aresos-dev/client-test.lock)...
+run.sh: Holding NVIDIA active until the client scopes have stopped.
+2026-11-18T10:52:11+01:00 attempt=0 exit=0
+2026-11-18T11:14:47+01:00 attempt=0 command=<worktree>/reviews/49b-arena-rerun/rig/run.sh flat-4-arena COVER=300 SHOTS=0 ENV=MALLOC_ARENA_MAX=2
+run.sh: Holding NVIDIA active until the client scopes have stopped.
+2026-11-18T11:24:29+01:00 attempt=0 exit=0
+2026-11-18T10:52:41+01:00 attempt=0 command=<worktree>/reviews/49b-arena-rerun/rig/run.sh flat-4-control COVER=300 SHOTS=0
+run.sh: Waiting for another game run on this laptop to finish (<home>/.cache/aresos-dev/client-test.lock)...
+run.sh: Holding NVIDIA active until the client scopes have stopped.
+2026-11-18T11:14:17+01:00 attempt=0 exit=0
+2026-11-18T11:35:11+01:00 attempt=0 command=<worktree>/reviews/49b-arena-rerun/rig/run.sh flat-5-arena COVER=300 SHOTS=0 ENV=MALLOC_ARENA_MAX=2
+run.sh: Holding NVIDIA active until the client scopes have stopped.
+2026-11-18T11:44:53+01:00 attempt=0 exit=0
+2026-11-18T11:24:59+01:00 attempt=0 command=<worktree>/reviews/49b-arena-rerun/rig/run.sh flat-5-control COVER=300 SHOTS=0
+run.sh: Holding NVIDIA active until the client scopes have stopped.
+2026-11-18T11:34:41+01:00 attempt=0 exit=0
+2026-11-18T11:45:23+01:00 attempt=0 command=<worktree>/reviews/49b-arena-rerun/rig/run.sh flat-6-arena COVER=300 SHOTS=0 ENV=MALLOC_ARENA_MAX=2
+run.sh: Waiting for another game run on this laptop to finish (<home>/.cache/aresos-dev/client-test.lock)...
+run.sh: Holding NVIDIA active until the client scopes have stopped.
+2026-11-18T11:57:35+01:00 attempt=0 exit=0
+2026-11-18T11:58:05+01:00 attempt=0 command=<worktree>/reviews/49b-arena-rerun/rig/run.sh flat-6-control COVER=300 SHOTS=0
+run.sh: Waiting for another game run on this laptop to finish (<home>/.cache/aresos-dev/client-test.lock)...
+run.sh: Holding NVIDIA active until the client scopes have stopped.
+2026-11-18T12:19:41+01:00 attempt=0 exit=0
+2026-11-18T13:51:36+01:00 attempt=0 command=<worktree>/reviews/49b-arena-rerun/rig/run.sh nether-arena COVER=300 SHOTS=0 BASE=AresHub-nether-base HOMEKIND=nether FLIGHT=glide ENV=MALLOC_ARENA_MAX=2
+run.sh: Holding NVIDIA active until the client scopes have stopped.
+2026-11-18T14:01:23+01:00 attempt=0 exit=0
+2026-11-18T13:41:21+01:00 attempt=0 command=<worktree>/reviews/49b-arena-rerun/rig/run.sh nether-control COVER=300 SHOTS=0 BASE=AresHub-nether-base HOMEKIND=nether FLIGHT=glide
+run.sh: Holding NVIDIA active until the client scopes have stopped.
+2026-11-18T13:51:06+01:00 attempt=0 exit=0
+2026-11-18T09:27:16+01:00 attempt=0 command=<worktree>/reviews/49b-arena-rerun/rig/run.sh setup-flat COVER=300 SHOTS=0 MODE=create CREATE_FLOW=automatic QUIT=1 COVER=0 SHOTS=1
+run.sh: Waiting for another game run on this laptop to finish (<home>/.cache/aresos-dev/client-test.lock)...
+run.sh: Holding NVIDIA active until the client scopes have stopped.
+2026-11-18T09:32:08+01:00 attempt=0 exit=0
+2026-11-18T13:37:17+01:00 attempt=0 command=<worktree>/reviews/49b-arena-rerun/rig/run.sh setup-nether COVER=300 SHOTS=0 MODE=create HOMEKIND=nether CREATE_FLOW=menu FLIGHT=none QUIT=1 COVER=0
+run.sh: Holding NVIDIA active until the client scopes have stopped.
+2026-11-18T13:40:51+01:00 attempt=0 exit=0

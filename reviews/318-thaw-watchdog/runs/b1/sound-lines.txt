@@ -1,0 +1,4 @@
+game.txt: [09:35:37] [Render thread/INFO] (Minecraft) OpenAL initialized on device No Output
+game.txt: [09:35:37] [Render thread/INFO] (Minecraft) Sound engine started
+gradle.txt: [09:35:37] [Render thread/INFO] (Minecraft) OpenAL initialized on device No Output
+gradle.txt: [09:35:37] [Render thread/INFO] (Minecraft) Sound engine started

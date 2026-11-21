@@ -1,0 +1,4 @@
+{"monotonic_ns": 469181800259263, "realtime": [{"tid": 3618139, "comm": "Render thread", "policy": "SCHED_RR", "priority": 1, "flags": ["SCHED_RESET_ON_FORK"]}]}
+{"monotonic_ns": 469181898918527, "realtime": [{"tid": 3618139, "comm": "Render thread", "policy": "SCHED_RR", "priority": 1, "flags": ["SCHED_RESET_ON_FORK"]}]}
+{"monotonic_ns": 469181998608103, "realtime": [{"tid": 3618139, "comm": "Render thread", "policy": "SCHED_RR", "priority": 1, "flags": ["SCHED_RESET_ON_FORK"]}]}
+{"monotonic_ns": 469182097617317, "realtime": []}

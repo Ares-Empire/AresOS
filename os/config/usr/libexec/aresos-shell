@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""AresOS app helper: the OS side of the aresos-shell/1.1 interface.
+"""AresOS app helper: the OS side of the aresos-shell/1.2 interface.
 
 Design: docs/design/OS-BASE.md Appendix B1 (mod and OS interface v1) and B2
 (supervision and focus). The desktop mod connects over a private Unix socket
@@ -8,11 +8,12 @@ definition or a discovered desktop entry in its own systemd user scope,
 watches the app's windows and tells the mod when focus moves.
 
 Wire format: one UTF-8 JSON object per line, at most 64 KiB per line.
-  request  {"protocol": "aresos-shell/1.1", "id": <request id>, "op": <operation>, ...}
+  request  {"protocol": "aresos-shell/1.2", "id": <request id>, "op": <operation>, ...}
   reply    {"protocol": ..., "id": <request id>, "ok": true, ...}
            {"protocol": ..., "id": <request id or null>, "ok": false, "error": <code>, "message": <text>}
   event    {"protocol": ..., "id": <event id>, "event": "app_state" | "shell_focus" | "apps_changed"
-                                                 | "shell_covered", ...}
+                                                 | "shell_covered" | "home_changed" | "apps_running"
+                                                 | "shell_search", ...}
 
 Minor 1 adds app_details, list_paging and apps_changed. list_apps returns an
 ID-ordered page with revision and optional next; cursor requests the next page.
@@ -27,9 +28,25 @@ covers the desktop's window on its screen: {"covered": true|false}. A connection
 starts uncovered on both sides; the helper sends the value whenever it changes
 and once after hello when it is true. The game pauses the world while covered.
 
-Operations (B1): hello, list_apps, open_app, world_ready, heartbeat. Everything
-else, including the guardian's request_power, prepare_stop and save_complete
-(package 25), is rejected as unknown_operation.
+A new tracked desktop connection also receives existing background focus after hello, even when the app took focus
+before that connection (package 56). The existing shell_focus capability gates this in every minor version.
+
+Minor 2 adds views, view_focus, home_state and apps_running (LAPTOP-HOME.md section 5).
+The desktop can publish_home in parts, and views can get_home in pages. Up to
+four named views authenticate with the session instance and ARESOS_VIEW_TOKEN.
+Views can list and open apps and see their own launch states, catalogue changes,
+completed home revisions and running apps. Readiness and desktop focus events
+belong to the desktop connection. Examples: mod/src/test/resources/shell-1.2/.
+
+shell_search (package 53d, minor 2, with window tracking, the desktop only) asks
+the mod for its search over the world: {"event": "shell_search"}. Super sends it:
+the supervisor's `aresos-desktop search` (package 23c) signals this helper with
+SIGUSR1, and the serving loop gives the world's window the keyboard first. A
+minor-2 desktop's open_app may carry "screen": "world" (the app opens on the
+screen that shows the world); the hint stays with the launch's journal entry.
+
+Desktop operations (B1): hello, list_apps, open_app, world_ready, heartbeat,
+and publish_home in 1.2. Other desktop operations return unknown_operation.
 
 Registry: one reviewed, image-shipped file per app in /usr/share/aresos/apps:
   {"schema": 1, "id": "notepad", "name": "Notepad",
@@ -53,6 +70,13 @@ every authenticated desktop event, and never reads from it:
   {"event": "desktop_connected"}
   {"event": "world_ready", "world": <save folder name>}
   {"event": "heartbeat", "ready": <bool>, "world": <save folder name or null>}
+and, whether or not a desktop is connected (package 25, the black screen and
+`logout`), how many app windows are open, once at start and at each change:
+  {"event": "windows", "count": <number, or null when it cannot tell>,
+   "names": [<up to 8 of their names>]}
+An app window is every window but the desktop's, the covers', the
+supervisor's message window and the laptop home, minimized ones included. The count is null while
+window tracking is off, and once more when the compositor is lost.
 
 After the supervisor restarts a crashed desktop it sets
 ARESOS_SHELL_KEEP_FOREGROUND=1: when the new desktop window takes focus while
@@ -82,13 +106,14 @@ import tempfile
 import threading
 import time
 import queue
+import unicodedata
 from xml.parsers import expat
 
 LOG = logging.getLogger('aresos-shell')
 
 NAME = 'aresos-shell'
 MAJOR = 1
-MINOR = 1
+MINOR = 2
 MAX_MESSAGE = 64 * 1024
 MAX_OUTGOING = 1024 * 1024
 MAX_CONNECTIONS = 8
@@ -104,6 +129,9 @@ KEEP_WINDOW = 3.0
 SCOPE_CHECK = 5.0
 SCOPE_TIMEOUT = 5.0
 JOURNAL_LIMIT = 256
+MAX_VIEWS = 4
+VIEW_JOURNAL_LIMIT = 32
+DESKTOP = 'desktop'
 # Well beyond the mod's 45-second open timeout, the only window in which it resends a request ID.
 REPLAY_HORIZON = 600.0
 REGISTRY = '/usr/share/aresos/apps'
@@ -124,8 +152,29 @@ DESKTOP_APP_IDS = frozenset({'aresos-desktop'})
 # over the game's own loading screens until world_ready. It never counts as covering the world and is never minimized:
 # labwc activates the game's window under it, and minimizing it then would show those loading screens after all.
 STARTUP_COVER_APP_ID = 'aresos.cover'
+# Package 25's black screen (aresos-cover --black) while a shutdown, logout or restart saves the home: treated as the
+# start-up cover is, never an app, never covering, never minimized.
+BLACK_APP_ID = 'aresos.black'
+COVER_APP_IDS = frozenset({STARTUP_COVER_APP_ID, BLACK_APP_ID})
+# The supervisor's own message window (aresos-desktop's VIEW_COMMAND): no app window either.
+MESSAGE_WINDOW_APP_ID = 'aresos.desktop'
+# The `windows` report names at most this many windows, each this short: the line stays far below PIPE_BUF however
+# JSON escapes the names.
+WINDOW_NAMES = 8
+WINDOW_NAME_CHARS = 40
+LAPTOP_HOME_APP_ID = 'aresos.laptop-home'
 BASE_CAPABILITIES = frozenset({'list_apps', 'open_app', 'app_state', 'world_ready', 'heartbeat'})
 DETAIL_CAPABILITIES = frozenset({'app_details', 'apps_changed', 'list_paging'})
+VIEW_CAPABILITIES = frozenset({'views', 'home_state', 'apps_running'})
+VIEW_OPERATIONS = frozenset({'hello', 'list_apps', 'open_app', 'get_home', 'view_focus'})
+VIEW_EVENTS = frozenset({'app_state', 'apps_changed', 'home_changed', 'apps_running'})
+MAX_HOME_PARTS = 16
+MAX_HOME_APPS = 200
+MAX_HOME_COLOURS = 64
+HOME_COLOUR = re.compile(r'#[0-9A-Fa-f]{6}')
+HOME_KEY = re.compile(r'[A-Za-z0-9]')
+HOME_GROUP = re.compile(r'[a-z0-9_]{1,64}')
+HOME_PLACE = re.compile(r'[A-Za-z0-9_-]{1,32}')
 CATALOGUE_CHECK = 3.0
 # One discovery scan's bounds (security review 1, FIX 1). The laptop's five folders hold about 250 entries and
 # 1.6 MB, read in well under a second; a scan over any bound changes nothing and is logged once.
@@ -143,11 +192,22 @@ MAX_CHECKS = 4
 WINDOW_CAPABILITIES = frozenset({'shell_focus', 'windows', 'shell_covered'})
 # Offered only to a client that speaks minor 1: what a 1.0 desktop hears stays exactly as it was.
 LATER_CAPABILITIES = DETAIL_CAPABILITIES | {'shell_covered'}
+# Package 53d: Super's search over the world. Offered only to a minor-2 desktop with window tracking, never to a view,
+# and sent only on minor 2 (LATER_CAPABILITIES checks minor 1 only).
+SEARCH_CAPABILITIES = frozenset({'shell_search'})
+# Signals this close together are one press of Super: the search opens once.
+SEARCH_COALESCE = 0.3
+# How long Super waits for the compositor to report the world as the only active window before it gives up:
+# shell_search goes out only once the world really has the keyboard, so typing never reaches the window that had it
+# (review 1, blocking 1).
+SEARCH_ACTIVATION = 1.0
+# open_app's "screen" hint (1.2, minor-2 desktop only): the screen that shows the world.
+SCREENS = frozenset({'world'})
 # The launch secrets stay with the desktop; launched apps never inherit them,
 # nor the helper's own service plumbing.
-PRIVATE_ENVIRONMENT = ('ARESOS_LAUNCH_NONCE', 'ARESOS_DESKTOP_INSTANCE', 'ARESOS_SHELL_STATUS_FD',
+PRIVATE_ENVIRONMENT = ('ARESOS_LAUNCH_NONCE', 'ARESOS_VIEW_TOKEN', 'ARESOS_DESKTOP_INSTANCE', 'ARESOS_SHELL_STATUS_FD',
                        'ARESOS_SHELL_KEEP_FOREGROUND', 'NOTIFY_SOCKET', 'LISTEN_FDS', 'LISTEN_PID', 'LISTEN_FDNAMES',
-                       'WATCHDOG_PID', 'WATCHDOG_USEC')
+                       'WATCHDOG_PID', 'WATCHDOG_USEC', 'ARESOS_DESKTOP_LIFECYCLE')
 
 ENVELOPE = re.compile(r'aresos-shell/(\d{1,3})\.(\d{1,3})\Z')
 REQUEST_ID = re.compile(r'[A-Za-z0-9._:-]{1,128}\Z')
@@ -156,6 +216,8 @@ WINDOW_ID = re.compile(r'[A-Za-z0-9._-]{1,128}\Z')
 DESKTOP_FILE = re.compile(r'[A-Za-z0-9._-]{1,128}\.desktop\Z')
 INSTANCE = re.compile(r'[A-Za-z0-9._-]{1,64}\Z')
 NONCE = re.compile(r'[A-Za-z0-9_-]{16,128}\Z')
+VIEW_TOKEN = re.compile(r'[A-Za-z0-9_-]{43}\Z')
+VIEW_NAME = re.compile(r'[a-z0-9-]{1,32}\Z')
 CAPABILITY = re.compile(r'[a-z_]{1,32}\Z')
 WORLD_ID = re.compile(r'[^\x00-\x1f]{1,128}\Z')
 
@@ -172,10 +234,11 @@ HELPER_FILE = os.path.abspath(protocol.__code__.co_filename)
 
 
 class StatusPipe:
-    """One-way readiness lines to the desktop supervisor (package 23).
+    """Readiness lines to the desktop supervisor on its private status FD (package 23).
 
-    Each line is far below PIPE_BUF, so it arrives whole. A full pipe drops the line (the next heartbeat repeats
-    the state); a closed pipe switches reporting off. Neither may ever stop the helper.
+    Packet sockets and the original pipe both carry these short lines whole. A full pipe drops the line (the next
+    heartbeat repeats the state); a closed pipe switches reporting off. Neither may ever stop the helper. A call
+    answers False only for a dropped line, so a report that no heartbeat repeats (`windows`) can be written again.
     """
 
     def __init__(self, fd):
@@ -188,9 +251,10 @@ class StatusPipe:
         try:
             os.write(self.fd, (json.dumps(fields, sort_keys=True) + '\n').encode('utf-8'))
         except BlockingIOError:
-            pass
+            return False
         except OSError:
             self.fd = None
+        return True
 
 
 def no_status(**fields):
@@ -1185,6 +1249,7 @@ class Discovery:
         self.scanned = threading.Event()
         self.stopping = threading.Event()
         self.finished = None
+        self.complete = False
         self.started = None
         self.requested = float('-inf')
         self.blocked_logged = False
@@ -1206,6 +1271,7 @@ class Discovery:
             started = self.started
         if finished is not None:
             self.apps, self.revision, self.legacy = finished
+            self.complete = True
         if started is None:
             self.blocked_logged = False
             if now - self.requested >= CATALOGUE_CHECK:
@@ -2060,14 +2126,15 @@ class IconCache:
 # ---------------------------------------------------------------- journal
 
 class Journal:
-    """Launch results by request ID, kept across helper restarts (B1).
+    """Launch results by (client, request ID), kept across helper restarts (B1).
 
     Lives in $XDG_RUNTIME_DIR, so it ends with the login session, like the desktop instance it belongs to.
     Replay protection is never dropped early: only a launch whose answer can no longer change, last changed at
     least REPLAY_HORIZON ago, may be forgotten (the mod resends a request ID only within its 45-second open
     timeout). Its answer is settled when it finished, or when it was handed over to a running app whose windows
     can't be watched; how long that app stays open does not hold the entry. A launch still in progress is never
-    forgotten. With no room left, new launches are refused instead.
+    forgotten within its client's quota. With no room left, new launches are refused instead. Only the
+    four most recently used view names have replay history; the desktop's history is independent.
     """
 
     def __init__(self, path, instance, clock=time.monotonic):
@@ -2075,6 +2142,7 @@ class Journal:
         self.instance = instance
         self.clock = clock
         self.entries = {}
+        self.view_clients = {}
         self.load()
 
     def load(self):
@@ -2090,7 +2158,17 @@ class Journal:
             LOG.info('launch journal belongs to another desktop instance; starting empty')
             return
         now = self.clock()
-        launches = data.get('launches')
+        self.load_client(DESKTOP, data.get('launches'), now)
+        views = data.get('view_launches')
+        if isinstance(views, dict):
+            names = [name for name in views if VIEW_NAME.fullmatch(name)]
+            for name in names[-MAX_VIEWS:]:
+                client = f'view:{name}'
+                self.view_clients[client] = None
+                self.load_client(client, views[name], now)
+
+    def load_client(self, client, launches, now):
+        count = 0
         for request_id, entry in (launches.items() if isinstance(launches, dict) else ()):
             if (isinstance(request_id, str) and REQUEST_ID.match(request_id) and isinstance(entry, dict)
                     and isinstance(entry.get('app_id'), str) and isinstance(entry.get('state'), str)):
@@ -2098,34 +2176,67 @@ class Journal:
                 # The monotonic clock is system-wide, so ages survive a helper restart; anything odd counts as new.
                 if type(updated) not in (int, float) or not 0 <= updated <= now:
                     entry['updated'] = now
-                self.entries[request_id] = entry
+                self.entries[client, request_id] = entry
+                count += 1
+                if client != DESKTOP and count >= VIEW_JOURNAL_LIMIT:
+                    break
 
     def touch(self, entry):
         entry['updated'] = self.clock()
 
-    def put(self, request_id, entry):
+    def put(self, key, entry):
+        client, _ = key
+        entries = self.client_entries(client)
+        removed = self.expired(entries) if len(entries) >= self.limit(client) else []
+        if client != DESKTOP and client not in self.view_clients and len(self.view_clients) >= MAX_VIEWS:
+            oldest = next(iter(self.view_clients))
+            del self.view_clients[oldest]
+            removed.extend(self.client_entries(oldest))
+        for old_key in removed:
+            del self.entries[old_key]
+        self.use_client(client)
         self.touch(entry)
-        self.entries[request_id] = entry
+        self.entries[key] = entry
+        return removed
 
-    def room(self):
-        """True when a new request can be recorded, after forgetting what can no longer be replayed."""
-        if len(self.entries) < JOURNAL_LIMIT:
-            return True
+    def client_entries(self, client):
+        return {key: entry for key, entry in self.entries.items() if key[0] == client}
+
+    @staticmethod
+    def limit(client):
+        return JOURNAL_LIMIT if client == DESKTOP else VIEW_JOURNAL_LIMIT
+
+    def use_client(self, client):
+        """Refresh the launch history's usage order, including a duplicate answered from that history."""
+        if client == DESKTOP or (self.view_clients and next(reversed(self.view_clients)) == client):
+            return False
+        self.view_clients.pop(client, None)
+        self.view_clients[client] = None
+        return True
+
+    def expired(self, entries):
         now = self.clock()
-        expired = [key for key, entry in self.entries.items()
-                   if (entry['state'] in FINAL or entry.get('settled'))
-                   and now - entry.get('updated', now) >= REPLAY_HORIZON]
-        for key in expired:
-            del self.entries[key]
-        return len(self.entries) < JOURNAL_LIMIT
+        return [key for key, entry in entries.items() if (entry['state'] in FINAL or entry.get('settled'))
+                and now - entry.get('updated', now) >= REPLAY_HORIZON]
+
+    def room(self, client):
+        """True when a new request can be recorded without dropping any still-replayable entry for this client."""
+        entries = self.client_entries(client)
+        limit = self.limit(client)
+        return len(entries) < limit or len(entries) - len(self.expired(entries)) < limit
 
     def save(self):
-        data = json.dumps({'instance': self.instance, 'launches': self.entries}, separators=(',', ':'))
+        clients = {client: {} for client in (DESKTOP, *self.view_clients)}
+        for (client, request_id), entry in self.entries.items():
+            clients[client][request_id] = entry
+        data = {'instance': self.instance, 'launches': clients[DESKTOP]}
+        if self.view_clients:
+            data['view_launches'] = {client.removeprefix('view:'): clients[client] for client in self.view_clients}
         temporary = f'{self.path}.{os.getpid()}.tmp'
         descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0), 0o600)
         try:
             with os.fdopen(descriptor, 'w', encoding='utf-8') as handle:
-                handle.write(data)
+                json.dump(data, handle, separators=(',', ':'))
                 handle.flush()
                 os.fsync(handle.fileno())
             os.replace(temporary, self.path)
@@ -2151,6 +2262,10 @@ def nvidia_present(root='/'):
         return False
 
 
+def child_environment(environ):
+    return {key: value for key, value in environ.items() if key not in PRIVATE_ENVIRONMENT}
+
+
 class ScopeLauncher:
     """Start apps in their own user scope, outside the game's and the helper's cgroups."""
 
@@ -2172,7 +2287,9 @@ class ScopeLauncher:
                 '--expand-environment=no', '--', *argv]
 
     def environment(self, app=None):
-        env = {key: value for key, value in self.environ.items() if key not in PRIVATE_ENVIRONMENT and key not in GPU_KEYS}
+        env = child_environment(self.environ)
+        for key in GPU_KEYS:
+            env.pop(key, None)
         if app is not None:
             # A reviewed hint's values (30b): after the session's are filtered, before the NVIDIA values.
             env.update(app.environment)
@@ -2281,7 +2398,8 @@ def classify(state):
 def query_scopes(units, run=subprocess.run, timeout=SCOPE_TIMEOUT):
     """One batched call for all units: each is ACTIVE, GONE or UNKNOWN (the call failed or made no sense)."""
     try:
-        done = run(LIST_SCOPES, capture_output=True, text=True, timeout=timeout, stdin=subprocess.DEVNULL)
+        done = run(LIST_SCOPES, capture_output=True, text=True, timeout=timeout, stdin=subprocess.DEVNULL,
+                   env=child_environment(os.environ))
     except (OSError, ValueError, subprocess.SubprocessError):
         return {unit: UNKNOWN for unit in units}
     states = parse_scopes(done.stdout) if done.returncode == 0 and isinstance(done.stdout, str) else None
@@ -2398,6 +2516,16 @@ class Windows:
         self.prefixes = ()
         self.candidates = {}
         self.reserved_ids = set(DESKTOP_APP_IDS)
+        self.observer = None
+
+    def observe_catalogue(self, apps):
+        """Give views their own ownership of the same compositor windows."""
+        self.observer = Windows(self.clock)
+        self.observer.toplevels = {
+            handle: dataclasses.replace(toplevel, owner=None, launch_owner=None, pending={})
+            for handle, toplevel in self.toplevels.items()}
+        self.observer.set_registry(apps)
+        return self.observer
 
     def set_registry(self, apps):
         """The programs whose windows can be told apart: an exact identity or a reviewed hint's prefix, no guess.
@@ -2425,7 +2553,10 @@ class Windows:
                     self._settle(toplevel)
 
     def new(self, handle):
-        self.toplevels[handle] = Toplevel(handle, self.clock())
+        seen = self.clock()
+        self.toplevels[handle] = Toplevel(handle, seen)
+        if self.observer is not None:
+            self.observer.toplevels[handle] = Toplevel(handle, seen)
 
     def app_id(self, handle, value):
         if handle in self.toplevels:
@@ -2452,6 +2583,8 @@ class Windows:
 
     def output_gone(self, output):
         """A screen was unplugged: no window is on it any more, whether or not its output_leave came first."""
+        if self.observer is not None:
+            self.observer.output_gone(output)
         for toplevel in self.toplevels.values():
             toplevel.outputs = toplevel.outputs - {output}
             if 'outputs' in toplevel.pending:
@@ -2461,6 +2594,9 @@ class Windows:
         toplevel = self.toplevels.get(handle)
         if toplevel is None:
             return
+        if self.observer is not None:
+            self.observer.toplevels[handle].pending.update(toplevel.pending)
+            self.observer.done(handle)
         previous_id = toplevel.app_id
         for key, value in toplevel.pending.items():
             setattr(toplevel, key, value)
@@ -2483,11 +2619,15 @@ class Windows:
                 self.opened.append(toplevel)
 
     def gone(self, handle):
+        if self.observer is not None:
+            self.observer.gone(handle)
         toplevel = self.toplevels.pop(handle, None)
         if toplevel is not None and toplevel.ready:
             self.closed.append(toplevel)
 
     def _owner(self, toplevel, seen):
+        if toplevel.app_id == LAPTOP_HOME_APP_ID:
+            return None
         if toplevel.app_id in DESKTOP_APP_IDS:
             return self.SHELL
         if toplevel.app_id in self.owners:
@@ -2510,16 +2650,43 @@ class Windows:
             return self._owner(parent, seen)
         return toplevel.launch_owner
 
+    def follow_dialogs(self, apps):
+        # A dialog can keep a discovered parent's owner even after the parent closes.
+        for toplevel in self.toplevels.values():
+            parent = self.toplevels.get(toplevel.parent)
+            app = apps.get(parent.owner) if parent is not None else None
+            if toplevel.ready and app is not None and app.discovered:
+                toplevel.owner = self._owner(toplevel, set())
+                if toplevel.owner == parent.owner:
+                    toplevel.launch_owner = parent.owner
+
     def take(self):
         opened, closed = self.opened, self.closed
         self.opened, self.closed = [], []
         return opened, closed
 
     def active(self):
-        return next((t for t in self.toplevels.values() if t.ready and t.activated), None)
+        return next((t for t in self.toplevels.values()
+                     if t.ready and t.activated and t.app_id != LAPTOP_HOME_APP_ID), None)
+
+    def alone_active(self, handle):
+        """Whether this window is reported activated and no other toplevel is.
+
+        A window's state applies whole at its own done event, but one change of focus is two windows' events, and a
+        read can end between them: then both are reported active for a moment, and active() names whichever comes
+        first. The keyboard is this window's for certain only when it is the one activated toplevel.
+        """
+        return self.activated() == {handle}
+
+    def activated(self):
+        """Every toplevel reported activated: more than one while a change of focus is half read."""
+        return frozenset(t.handle for t in self.toplevels.values() if t.activated)
 
     def of(self, owner):
         return [t for t in self.toplevels.values() if t.ready and t.owner == owner]
+
+    def desktop_outputs(self):
+        return frozenset().union(*(t.outputs for t in self.of(self.SHELL)))
 
     def covering(self, known_screen=False):
         """The windows that hide the desktop's window: maximized or fullscreen, not minimized, on its screen.
@@ -2529,12 +2696,13 @@ class Windows:
         An output list the compositor has not sent yet counts as the same screen, as with a single screen: for the
         pause that errs toward pausing. With known_screen only windows on a screen known to be the desktop's count:
         the ones uncovering minimizes, because hiding a window that may be on the other screen is not harmless
-        (package 40, review 1, finding 4). Package 23b's start-up cover never counts.
+        (package 40, review 1, finding 4). The start-up cover, package 25's black screen and the laptop home never
+        count.
         """
         desktop = self.of(self.SHELL)
         if not desktop:
             return []
-        screens = frozenset().union(*(t.outputs for t in desktop))
+        screens = self.desktop_outputs()
 
         def on_its_screen(toplevel):
             if known_screen:
@@ -2542,8 +2710,33 @@ class Windows:
             return not screens or not toplevel.outputs or bool(toplevel.outputs & screens)
 
         return [t for t in self.toplevels.values()
-                if t.ready and t.owner != self.SHELL and t.app_id != STARTUP_COVER_APP_ID and not t.minimized
+                if t.ready and t.owner != self.SHELL
+                and t.app_id not in COVER_APP_IDS and t.app_id != LAPTOP_HOME_APP_ID and not t.minimized
                 and (t.maximized or t.fullscreen) and on_its_screen(t)]
+
+    def app_windows(self):
+        """The app windows open right now (package 25, 3.4): every window but the desktop's, the covers', the
+        supervisor's message window and the laptop home (package 53c, part of the desktop), minimized ones included,
+        whoever owns them. A window counts once the compositor has said what it is (its first done event): until then
+        it could be a cover, and counting the black screen itself would take it down again."""
+        return [t for t in self.toplevels.values()
+                if t.ready and t.owner != self.SHELL and t.app_id not in COVER_APP_IDS
+                and t.app_id not in (MESSAGE_WINDOW_APP_ID, LAPTOP_HOME_APP_ID)]
+
+
+@dataclasses.dataclass
+class SearchHandoff:
+    """Super's request to the compositor to activate the world (package 53d), until its answer is in."""
+    # The world's window the compositor was asked to activate.
+    handle: int
+    # The desktop connection the search is for: another one calls it off.
+    conn: object
+    # shell_search may follow up to here (SEARCH_ACTIVATION).
+    deadline: float
+    # The other windows reported active when the helper last looked: one more is a newer activation than Super's.
+    others: frozenset
+    # Why the search was called off, once it was. The request then only marks its activation, which uncovers nothing.
+    off: str = None
 
 
 class WaylandError(Exception):
@@ -2565,6 +2758,9 @@ class ForeignToplevels:
         self.sock = sock
         self.windows = windows
         self.buffer = bytearray()
+        # Requests the socket did not take yet, in order: once it is non-blocking a write can stop part-way, and the
+        # rest goes out when the socket is writable again (Server.step), never dropped and never raised.
+        self.outbuf = bytearray()
         self.next_id = 2
         self.kinds = {1: 'display'}
         self.globals = {}
@@ -2605,8 +2801,20 @@ class ForeignToplevels:
         return object_id
 
     def _send(self, object_id, opcode, payload=b''):
-        message = struct.pack('=II', object_id, ((8 + len(payload)) << 16) | opcode) + payload
-        self.sock.sendall(message)
+        self.outbuf += struct.pack('=II', object_id, ((8 + len(payload)) << 16) | opcode) + payload
+        self.flush()
+
+    def flush(self):
+        """Write what the socket takes now. A full socket keeps the rest queued (review 1, should-fix 2): a raised
+        BlockingIOError would have ended the helper. A compositor that went away takes the compositor-loss path."""
+        while self.outbuf:
+            try:
+                sent = self.sock.send(self.outbuf)
+            except BlockingIOError:
+                return
+            except OSError as error:
+                raise WaylandError(f'lost the compositor connection while writing: {error}') from error
+            del self.outbuf[:sent]
 
     @staticmethod
     def string(value):
@@ -2638,10 +2846,14 @@ class ForeignToplevels:
         self._send(self.registry, 0, struct.pack('=I', name) + self.string('wl_output')
                    + struct.pack('=II', 1, self.outputs[name]))
 
-    def roundtrip(self):
+    def sync(self):
         callback = self._new('callback')
         self.callbacks.add(callback)
         self._send(1, 0, struct.pack('=I', callback))
+        return callback
+
+    def roundtrip(self):
+        callback = self.sync()
         while callback in self.callbacks:
             data = self.sock.recv(65536)
             if not data:
@@ -2749,12 +2961,78 @@ class ForeignToplevels:
 
 # ---------------------------------------------------------------- protocol core
 
+def home_text(value, limit):
+    return (isinstance(value, str) and 0 < len(value) <= limit
+            and all(unicodedata.category(character) != 'Cc' for character in value))
+
+
+def home_app(row, palette):
+    if not isinstance(row, dict):
+        raise Failure('malformed', 'home apps must be objects')
+    app_id, short, group, cells = (row.get(key) for key in ('id', 'short', 'group', 'cells'))
+    if not isinstance(app_id, str) or not APP_ID.fullmatch(app_id):
+        raise Failure('malformed', 'invalid home app ID')
+    if not home_text(short, 64) or not isinstance(group, str) or not HOME_GROUP.fullmatch(group):
+        raise Failure('malformed', 'invalid home app short name or group')
+    if not isinstance(cells, str) or len(cells) != 144 or any(c != '.' and c not in palette for c in cells):
+        raise Failure('malformed', 'home app cells must be 144 palette keys or dots')
+    app = dict(id=app_id, short=short, group=group, cells=cells)
+    if 'place' in row:
+        place = row['place']
+        if not isinstance(place, str) or not HOME_PLACE.fullmatch(place):
+            raise Failure('malformed', 'invalid home app place')
+        app['place'] = place
+    if 'slot' in row:
+        slot = row['slot']
+        if type(slot) is not int or not 0 <= slot <= 8:
+            raise Failure('malformed', 'invalid home app slot')
+        app['slot'] = slot
+    return app
+
+
+@dataclasses.dataclass
+class Home:
+    revision: str
+    palette: dict
+    apps: dict = dataclasses.field(default_factory=dict)
+    next_part: int = 0
+
+    @classmethod
+    def receive(cls, pending, message):
+        revision, part, last = (message.get(key) for key in ('revision', 'part', 'last'))
+        if (not home_text(revision, 128) or type(part) is not int or not 0 <= part < MAX_HOME_PARTS
+                or type(last) is not bool or (part == MAX_HOME_PARTS - 1 and not last)):
+            raise Failure('malformed', 'invalid home revision, part or last flag')
+        if pending is None:
+            if part != 0:
+                raise Failure('malformed', 'a home publish must start with part 0')
+            palette = message.get('palette')
+            if (not isinstance(palette, dict) or len(palette) > MAX_HOME_COLOURS
+                    or any(not HOME_KEY.fullmatch(key) or not isinstance(value, str)
+                           or not HOME_COLOUR.fullmatch(value) for key, value in palette.items())):
+                raise Failure('malformed', 'invalid home palette')
+            pending = cls(revision, palette)
+        elif revision != pending.revision or part != pending.next_part or 'palette' in message:
+            raise Failure('malformed', 'home parts must be consecutive within one revision, with palette in part 0')
+        rows = message.get('apps')
+        if not isinstance(rows, list) or len(pending.apps) + len(rows) > MAX_HOME_APPS:
+            raise Failure('malformed', 'a home publish can contain at most 200 apps')
+        for row in rows:
+            app = home_app(row, pending.palette)
+            if app['id'] in pending.apps:
+                raise Failure('malformed', 'duplicate home app ID')
+            pending.apps[app['id']] = app
+        pending.next_part += 1
+        return pending
+
+
 class Helper:
     """The protocol state machine. Sockets and the compositor stay outside it."""
 
     def __init__(self, registry_dir, instance, nonce, journal_path, launcher=None, windows=None,
                  activate=None, clock=time.monotonic, executable=None, window_timeout=WINDOW_TIMEOUT, registry=None,
-                 watcher=None, status=no_status, keep_foreground=False, catalogue=None, icons=None, minimize=None):
+                 watcher=None, status=no_status, keep_foreground=False, catalogue=None, icons=None, minimize=None,
+                 view_token=None):
         self.instance = instance
         self.status = status
         self.keep_foreground = keep_foreground
@@ -2766,6 +3044,10 @@ class Helper:
         # The window a restored desktop last gave the focus back to, and when (package 40, review 1, finding 2).
         self.kept = None
         self.nonce = nonce
+        if view_token and not VIEW_TOKEN.fullmatch(view_token):
+            LOG.warning('ignoring a malformed ARESOS_VIEW_TOKEN')
+            view_token = None
+        self.view_token = view_token
         self.apps, self.revision = registry or load_registry(registry_dir)
         if catalogue is None:
             # Without a discovery worker (tests, diagnostics) availability is worked out once, here at start-up.
@@ -2773,6 +3055,7 @@ class Helper:
         self.catalogue = catalogue
         self.icons = icons
         self.catalogue_apps = self.apps
+        self.view_only_apps = set()
         self.base_revision = self.revision
         self.legacy_apps, self.legacy_revision = (catalogue.legacy if catalogue is not None
                                                  else ({k: a for k, a in self.apps.items() if not a.discovered},
@@ -2791,20 +3074,29 @@ class Helper:
         self.capabilities = BASE_CAPABILITIES | DETAIL_CAPABILITIES | (
             WINDOW_CAPABILITIES if windows is not None else frozenset())
         self.journal = Journal(journal_path, instance, clock)
-        # Which client's rules decide window ownership (review 1, finding 2): the last desktop's minor. Only a 1.1
-        # client can start a discovered launch, so a journal that still holds one means the desktop spoke 1.1.
-        self.window_minor = int(any(entry.get('discovered') and entry['state'] not in FINAL
-                                    for entry in self.journal.entries.values()))
+        # Restore the last desktop's ownership rules when its journal still holds a discovered launch.
+        self.window_minor = int(any(client == DESKTOP and entry.get('discovered') and entry['state'] not in FINAL
+                                    for (client, _), entry in self.journal.entries.items()))
         self.windows_pending = False
+        # What the supervisor was last told about the app windows (package 25): (count, names), or None before the
+        # first report.
+        self.windows_reported = None
+        self.catalogue_windows = None
         if windows is not None:
             windows.set_registry(self.window_apps())
+            self.catalogue_windows = windows.observe_catalogue(self.apps)
         self.connections = []
         self.desktop = None
+        self.views = {}
+        self.home = None
+        self.publishing = None
+        self.home_awaits_catalogue = False
         self.events = 0
         self.checks = LaunchChecks()
-        # Request ID -> a launch waiting for its check: the app, the check, its deadline and who to answer.
+        # (client, request ID) -> a launch waiting for its check and who to answer.
         self.checking = {}
         self.processes = {}
+        self.reaping = []
         self.deadlines = {}
         self.started = {}
         self.handles = {}
@@ -2812,6 +3104,7 @@ class Helper:
         self.discovered_scopes = {}
         # Discovered program -> (deadline, return wanted, the compositor's pick after the close or None).
         self.discovered_closing = {}
+        self.view_closing = {}
         self.shell = 'foreground'
         self.foreground_app = None
         self.active_handle = None
@@ -2821,10 +3114,16 @@ class Helper:
         self.adopting = set()
         self.world = None
         self.last_heartbeat = None
+        # When Super last asked for the search over the world (package 53d), for coalescing.
+        self.search_at = None
+        # Super's request to activate the world that the compositor has not answered yet (SearchHandoff), or None.
+        self.search_handoff = None
         self.reconcile()
         if windows is not None:
             # The compositor has listed its windows by now: tie restarted launches to them, then take stock.
             self.windows_changed()
+        else:
+            self.report_windows()  # window tracking is off: the supervisor hears that the count is not known
 
     # -- restart reconciliation
 
@@ -2839,11 +3138,11 @@ class Helper:
                       or (self.is_discovered(entry) and entry['state'] != 'failed'))}
         states = query_scopes(units, self.watcher.run, self.watcher.timeout) if units else {}
         changed = False
-        for request_id, entry in self.journal.entries.items():
+        for key, entry in self.journal.entries.items():
             scope = states.get(entry.get('unit'), GONE)
             if self.is_discovered(entry) and scope != GONE:
                 self.discovered_scopes[entry['unit']] = dict(app_id=entry['app_id'], state=scope,
-                                                            started=entry.get('started', 0.0), request_id=request_id)
+                                                            started=entry.get('started', 0.0), launch_key=key)
             if entry['state'] in FINAL:
                 continue
             if scope == ACTIVE and entry.pop('uncertain', None):
@@ -2864,10 +3163,10 @@ class Helper:
             if self.windows is not None:
                 if entry['state'] == 'starting':
                     # Any matching window listed from now on may be its window, including ones open already.
-                    self.started[request_id] = 0.0
-                    self.deadlines[request_id] = self.clock() + self.window_timeout
+                    self.started[key] = 0.0
+                    self.deadlines[key] = self.clock() + self.window_timeout
                 else:
-                    self.adopting.add(request_id)
+                    self.adopting.add(key)
             elif scope == GONE and not entry.get('settled'):
                 state, fields = self.end_of_scope(entry)
                 if state == 'settled':
@@ -2883,25 +3182,38 @@ class Helper:
 
     def adopt_windows(self):
         """After a restart, give launches that had windows the app's current windows, or close them."""
-        for request_id, entry in self.journal.entries.items():
-            if request_id not in self.adopting or entry['state'] in FINAL:
+        waiting = set()
+        for key, entry in self.journal.entries.items():
+            if key not in self.adopting or entry['state'] in FINAL:
                 continue
-            windows = {toplevel.handle for toplevel in self.windows.of(entry['app_id'])}
+            if self.is_discovered(entry) and not self.catalogue_complete():
+                waiting.add(key)
+                continue
+            tracker = self.windows if key[0] == DESKTOP else self.catalogue_windows
+            windows = {toplevel.handle for toplevel in tracker.of(entry['app_id'])}
             if windows:
                 # Which of an app's windows came from which launch is lost with the old helper; share them.
-                self.handles[request_id] = windows
+                self.handles[key] = windows
             else:
-                self.set_state(request_id, 'closed')
-        self.adopting.clear()
+                self.set_state(key, 'closed')
+        self.adopting = waiting
 
     # -- connections
 
     def connected(self, conn):
         conn.authenticated = False
+        conn.client = None
+        conn.event_number = 0
+        conn.running_apps = None
+        conn.focused = False
         # What this connection was last told about covering; both sides start a connection uncovered.
         conn.covered = False
+        conn.focus_reported = False
         conn.capabilities = frozenset()
-        conn.minor = MINOR
+        conn.minor = 1
+        # Whether this connection has said its world is ready (world_ready), and not taken that back since: the search
+        # over the world needs a world to be over.
+        conn.world_ready = False
         conn.opened = self.clock()
         conn.inbuf = bytearray()
         self.connections.append(conn)
@@ -2911,6 +3223,9 @@ class Helper:
             self.connections.remove(conn)
         if self.desktop is conn:
             self.desktop = None
+            self.publishing = None
+        if self.views.get(conn.client) is conn:
+            del self.views[conn.client]
 
     def receive(self, conn, data):
         conn.inbuf += data
@@ -2949,6 +3264,9 @@ class Helper:
             self.error(conn, None, Failure('malformed', 'id must match [A-Za-z0-9._:-]{1,128}'))
             return
         version = ENVELOPE.match(message.get('protocol')) if isinstance(message.get('protocol'), str) else None
+        if version is not None and not conn.authenticated:
+            # Before negotiation, legacy clients still receive the pre-1.2 error envelope.
+            conn.minor = min(MINOR, max(1, int(version[2])))
         if version is None or int(version.group(1)) != MAJOR:
             self.error(conn, request_id, Failure('incompatible_version', f'this helper speaks {protocol()}',
                                                  close=not conn.authenticated))
@@ -2958,8 +3276,14 @@ class Helper:
             # Check the type before the lookup: a list or object is not even hashable.
             if not isinstance(operation, str):
                 raise Failure('malformed', 'op must be a string')
+            if conn.authenticated and conn.client != DESKTOP and operation not in VIEW_OPERATIONS:
+                raise Failure('invalid_state', 'operation is not available to a view')
+            if operation in ('publish_home', 'get_home') and conn.authenticated and conn.minor < 2:
+                raise Failure('unknown_operation', f'unknown operation {operation!r}')
             handler = {'hello': self.hello, 'list_apps': self.list_apps, 'open_app': self.open_app,
-                       'world_ready': self.world_ready, 'heartbeat': self.heartbeat}.get(operation)
+                       'world_ready': self.world_ready, 'heartbeat': self.heartbeat,
+                       'publish_home': self.publish_home, 'get_home': self.get_home,
+                       'view_focus': self.view_focus}.get(operation)
             if handler is None:
                 raise Failure('unknown_operation', f'unknown operation {operation[:64]!r}')
             if not conn.authenticated and operation != 'hello':
@@ -2971,6 +3295,8 @@ class Helper:
         # None: the answer comes later (a launch whose check is still running).
         if result is not None:
             self.reply(conn, request_id, result)
+            if operation == 'hello' and conn.client != DESKTOP:
+                self.report_running(conn)
 
     def reply(self, conn, request_id, result):
         ok = result.pop('ok', True)
@@ -2986,11 +3312,41 @@ class Helper:
             conn.finish()
 
     def emit(self, event, **fields):
-        conn = self.desktop
-        if conn is None or event not in conn.capabilities or (event in LATER_CAPABILITIES and conn.minor < 1):
+        self.emit_to(self.desktop, event, **fields)
+
+    def emit_views(self, event, **fields):
+        for conn in list(self.views.values()):
+            self.emit_to(conn, event, **fields)
+
+    def emit_to(self, conn, event, **fields):
+        if conn is None or conn.closing:
             return
-        self.events += 1
-        self.send(conn, dict({'id': f'e-{self.events}', 'event': event}, **fields))
+        if conn.client == DESKTOP:
+            if (event not in conn.capabilities or (event in LATER_CAPABILITIES and conn.minor < 1)
+                    or (event in SEARCH_CAPABILITIES and conn.minor < 2)):
+                return
+            self.events += 1
+            serial = self.events
+        else:
+            if event not in VIEW_EVENTS:
+                return
+            conn.event_number += 1
+            serial = conn.event_number
+        if event == 'shell_focus':
+            conn.focus_reported = True
+        self.send(conn, dict({'id': f'e-{serial}', 'event': event}, **fields))
+
+    def report_running(self, conn=None):
+        views = (conn,) if conn is not None else list(self.views.values())
+        if not views:
+            return
+        running = (sorted({t.owner for t in self.catalogue_windows.toplevels.values()
+                           if t.ready and t.owner in self.catalogue_apps})
+                   if self.catalogue_windows is not None else [])
+        for view in views:
+            if view.running_apps != running:
+                view.running_apps = running
+                self.emit_to(view, 'apps_running', apps=running)
 
     def authorized(self, message):
         instance, nonce = message.get('instance'), message.get('nonce')
@@ -3001,6 +3357,26 @@ class Helper:
                     and hmac.compare_digest(nonce.encode('utf-8'), self.nonce.encode('utf-8')))
         except UnicodeError:
             return False
+
+    def hello_client(self, message):
+        role = message.get('role', DESKTOP)
+        if role == 'view':
+            instance, token = message.get('instance'), message.get('token')
+            if (self.view_token and 'nonce' not in message and isinstance(instance, str)
+                    and isinstance(token, str) and VIEW_TOKEN.fullmatch(token)
+                    and hmac.compare_digest(instance.encode('utf-8'), self.instance.encode('utf-8'))
+                    and hmac.compare_digest(token, self.view_token)):
+                name = message.get('view')
+                if not isinstance(name, str) or not VIEW_NAME.fullmatch(name):
+                    raise Failure('malformed', 'view must match [a-z0-9-]{1,32}', close=True)
+                return f'view:{name}'
+            LOG.warning('refused a view hello (%s)', 'credentials did not match' if self.view_token
+                        else 'no view token configured')
+            raise Failure('not_authorized', 'view credentials do not match', close=True)
+        if role == DESKTOP and 'token' not in message and self.authorized(message):
+            return DESKTOP
+        LOG.warning('refused a hello with the wrong desktop instance, role or credentials')
+        raise Failure('not_authorized', 'desktop instance or launch nonce does not match', close=True)
 
     # -- operations
 
@@ -3014,16 +3390,33 @@ class Helper:
             raise Failure('incompatible_version', f'this helper speaks {protocol()}', close=True)
         capabilities = names(message.get('capabilities', []))
         required = names(message.get('requires', []))
+        client = self.hello_client(message)
         offered = self.capabilities if minor >= 1 else self.capabilities - LATER_CAPABILITIES
+        if minor >= 2:
+            offered |= VIEW_CAPABILITIES
+            if self.windows is not None:
+                offered |= SEARCH_CAPABILITIES
+        if client != DESKTOP:
+            if minor < 2:
+                raise Failure('incompatible_version', 'views require aresos-shell/1.2', close=True)
+            offered = (offered - WINDOW_CAPABILITIES - SEARCH_CAPABILITIES) - {'world_ready', 'heartbeat'}
+            if client not in self.views and len(self.views) >= MAX_VIEWS:
+                raise Failure('busy', 'all view connections are in use', close=True)
         missing = sorted(required - offered)
         if missing:
             raise Failure('incompatible_version', 'missing capabilities: ' + ', '.join(missing), close=True,
                           missing=missing)
-        if not self.authorized(message):
-            LOG.warning('refused a hello with the wrong desktop instance or launch nonce')
-            raise Failure('not_authorized', 'desktop instance or launch nonce does not match', close=True)
         conn.authenticated = True
+        conn.client = client
         conn.minor = min(minor, MINOR)
+        conn.capabilities = capabilities
+        result = {'major': MAJOR, 'minor': conn.minor, 'capabilities': sorted(offered)}
+        if client != DESKTOP:
+            previous = self.views.get(client)
+            self.views[client] = conn
+            if previous is not None:
+                previous.finish()
+            return result
         if self.windows is not None and conn.minor != self.window_minor:
             # Applied at the next tick, after this reply: a 1.0 desktop sees the registry's windows alone.
             self.window_minor = conn.minor
@@ -3032,48 +3425,95 @@ class Helper:
             if conn.minor < 1:
                 # A return a discovered program was still waiting for is not a 1.0 desktop's (review 2, finding 1).
                 self.cancel_returns()
-        conn.capabilities = capabilities
         if self.windows is not None:
             # Covered is told after this reply, at the next tick, like the registry change above.
             self.windows_pending = True
         previous, self.desktop = self.desktop, conn
+        self.publishing = None
         if previous is not None and previous is not conn:
             # The newest authenticated desktop wins, e.g. the mod reconnecting.
             previous.finish()
         LOG.info('desktop connected (minor %d)', conn.minor)
         self.status(event='desktop_connected')
-        return {'major': MAJOR, 'minor': conn.minor, 'capabilities': sorted(offered)}
+        return result
 
     def list_apps(self, conn, request_id, message):
         self.refresh_catalogue()
         if conn.minor == 0:
             return {'revision': self.legacy_revision,
                     'apps': [self.app_row(app) for app in sorted(self.legacy_apps.values(), key=lambda a: a.id)]}
+        rows = [self.app_row(app, details=True)
+                for app in sorted(self.catalogue_apps.values(), key=lambda a: a.id)]
+        return self.page(conn, request_id, message, rows, {'revision': self.revision})
+
+    def page(self, conn, request_id, message, rows, fields, stream=''):
         offset = 0
         if 'cursor' in message:
             cursor = message['cursor']
             if not isinstance(cursor, str) or not 0 < len(cursor) <= 64:
                 raise Failure('malformed', 'cursor must be a helper-issued string of at most 64 characters')
             match = re.fullmatch(r'p([0-9]{1,3})-[0-9a-f]{24}', cursor)
-            if match is None or not hmac.compare_digest(cursor, self.page_cursor(int(match[1]))):
+            if match is None or not hmac.compare_digest(cursor, self.page_cursor(int(match[1]), stream)):
                 raise Failure('invalid_cursor', 'cursor was not issued by this helper; list again without it')
             offset = int(match[1])
-        rows = [self.app_row(app, details=True)
-                for app in sorted(self.catalogue_apps.values(), key=lambda a: a.id)]
-        page = {'revision': self.revision, 'apps': []}
+        page = dict(fields, apps=[])
         for index in range(offset, len(rows)):
-            trial = dict(revision=self.revision, apps=page['apps'] + [rows[index]])
+            trial = dict(fields, apps=page['apps'] + [rows[index]])
             if index + 1 < len(rows):
-                trial['next'] = self.page_cursor(index + 1)
+                trial['next'] = self.page_cursor(index + 1, stream)
             envelope = dict(protocol=protocol(conn.minor), id=request_id, ok=True, **trial)
             if len(json.dumps(envelope, separators=(',', ':'), ensure_ascii=False).encode('utf-8')) + 1 > MAX_MESSAGE:
                 break
             page = trial
         return page
 
-    def page_cursor(self, offset):
-        tag = hmac.new(self.cursor_key, str(offset).encode(), 'sha256').hexdigest()[:24]
+    def page_cursor(self, offset, stream=''):
+        tag = hmac.new(self.cursor_key, f'{stream}{offset}'.encode(), 'sha256').hexdigest()[:24]
         return f'p{offset}-{tag}'
+
+    def get_home(self, conn, request_id, message):
+        if conn.client == DESKTOP:
+            raise Failure('invalid_state', 'only views can get the home')
+        self.refresh_catalogue()
+        if self.home is None:
+            fields, rows = {'revision': None, 'palette': {}}, []
+        else:
+            fields = {'revision': self.home.revision, 'palette': self.home.palette}
+            rows = [row for key, row in sorted(self.home.apps.items())
+                    if self.home_awaits_catalogue or key in self.catalogue_apps]
+        return self.page(conn, request_id, message, rows, fields, stream='home:')
+
+    def view_focus(self, conn, request_id, message):
+        if self.views.get(conn.client) is not conn:
+            raise Failure('invalid_state', 'only views can report view focus')
+        focused = message.get('focused')
+        if type(focused) is not bool:
+            raise Failure('malformed', 'focused must be a boolean')
+        conn.focused = focused
+        return {}
+
+    def publish_home(self, conn, request_id, message):
+        pending, self.publishing = self.publishing, None
+        home = Home.receive(pending, message)
+        if not message['last']:
+            self.publishing = home
+            return {}
+        self.refresh_catalogue()
+        self.home = home
+        self.home_awaits_catalogue = not self.catalogue_complete()
+        if not self.home_awaits_catalogue:
+            self.filter_published_home()
+        self.emit_views('home_changed', revision=home.revision)
+        return {}
+
+    def filter_published_home(self):
+        unknown = sorted(self.home.apps.keys() - self.catalogue_apps.keys())
+        if unknown:
+            LOG.warning('omitted unknown apps from a published home: %s', ', '.join(unknown))
+            for app_id in unknown:
+                del self.home.apps[app_id]
+        self.home_awaits_catalogue = False
+        return bool(unknown)
 
     def app_row(self, app, details=False):
         # The catalogue's published value: listing touches no file (review 2, FIX 1).
@@ -3095,15 +3535,12 @@ class Helper:
             self.catalogue_apps = {
                 key: dataclasses.replace(app, icon=old.icon) if (old := self.catalogue_apps.get(key)) is not None
                 and old.icon_name == app.icon_name else app for key, app in self.catalogue.apps.items()}
-            # Uninstalling an entry must not erase an existing window's owner or its pending return.
-            retained = {key: app for key, app in self.apps.items() if key not in self.catalogue_apps
-                        and (any(entry['app_id'] == key and entry['state'] not in FINAL
-                                 for entry in self.journal.entries.values())
-                             or any(scope['app_id'] == key for scope in self.discovered_scopes.values())
-                             or (self.windows is not None and self.windows.of(key)))}
-            self.apps = dict(retained, **self.catalogue_apps)
+            if self.home_awaits_catalogue and self.filter_published_home():
+                self.emit_views('home_changed', revision=self.home.revision)
+            self.retain_launch_definitions()
             if self.windows is not None:
                 self.windows.set_registry(self.window_apps())
+                self.catalogue_windows.set_registry(self.apps)
                 self.windows_changed()
             self.icon_requested = float('-inf')
         if self.icons is not None:
@@ -3116,14 +3553,47 @@ class Helper:
             self.revision = self.base_revision
         if self.revision != previous:
             self.emit('apps_changed', revision=self.revision)
+            self.emit_views('apps_changed', revision=self.revision)
+
+    def catalogue_complete(self):
+        return not isinstance(self.catalogue, Discovery) or self.catalogue.complete
+
+    def retain_launch_definitions(self):
+        """Keep uninstalled definitions while in use, with view-only retention outside desktop ownership."""
+        in_use = [(client, entry['app_id']) for (client, _), entry in self.journal.entries.items()
+                  if entry['state'] not in FINAL]
+        in_use.extend((scope['launch_key'][0], scope['app_id']) for scope in self.discovered_scopes.values())
+        desktop = {app_id for client, app_id in in_use if client == DESKTOP}
+        active = {app_id for _, app_id in in_use}
+        retained = {}
+        self.view_only_apps.clear()
+        for app_id, app in self.apps.items():
+            if app_id in self.catalogue_apps:
+                continue
+            if app_id in desktop or (self.windows is not None and self.windows.of(app_id)):
+                retained[app_id] = app
+            elif app_id in active:
+                retained[app_id] = app
+                self.view_only_apps.add(app_id)
+        self.apps = dict(retained, **self.catalogue_apps)
 
     def open_app(self, conn, request_id, message):
         app_id = message.get('app_id')
         if not isinstance(app_id, str) or len(app_id) > 128:
             raise Failure('malformed', 'app_id must be a string')
+        screen = message.get('screen')
+        if 'screen' in message:
+            # Package 53d: only the search over the world names a screen, and only a 1.2 desktop has that search.
+            if conn.client != DESKTOP or conn.minor < 2:
+                raise Failure('malformed', 'screen is a hint of an aresos-shell/1.2 desktop')
+            if not isinstance(screen, str) or screen not in SCREENS:
+                raise Failure('malformed', 'screen must be "world"')
         unknown = {'app_id': app_id, 'launch_id': None, 'state': 'failed',
                    'error': 'unknown_app', 'message': 'no reviewed launch definition'}
-        waiting = self.checking.get(request_id)
+        if screen is not None:
+            unknown['screen'] = screen
+        key = (conn.client, request_id)
+        waiting = self.checking.get(key)
         if waiting is not None:
             # Resent while its check runs: answered with the same launch once there is an answer, never a second one.
             if waiting['app'].id != app_id:
@@ -3132,7 +3602,7 @@ class Helper:
                 return self.launch_result(request_id, unknown)
             waiting['conns'].append(conn)
             return None
-        entry = self.journal.entries.get(request_id)
+        entry = self.journal.entries.get(key)
         if entry is not None:
             if entry['app_id'] != app_id:
                 raise Failure('request_id_reused', 'this request ID already opened another app')
@@ -3140,8 +3610,10 @@ class Helper:
                 # A 1.1 client's launch stays its own; a 1.0 client gets what it gets for any unknown ID.
                 return self.launch_result(request_id, unknown)
             # A duplicate (e.g. resent after a reconnect) returns the same launch, never a second one.
+            if self.journal.use_client(conn.client):
+                self.journal.save()
             return self.launch_result(request_id, entry)
-        if not self.journal.room():
+        if not self.journal.room(conn.client):
             raise self.journal_full(request_id, app_id)
         # A 1.0 client knows only the reviewed registry: for it, a discovered ID is an unknown one, answered and
         # journaled exactly as before package 30 (review 1, finding 3).
@@ -3149,15 +3621,17 @@ class Helper:
         if app is None:
             # Every launch that does not start says why here (package 40): a refusal used to leave no line.
             LOG.warning('%r not opened: no such app', app_id[:64])
-            return self.record(request_id, unknown)
+            return self.record(key, unknown)
         # Whether its program is still there is checked off the loop (review 2, FIX 1).
         check = self.checks.start(app, launch_check, app, self.executable, self.launcher.working_directory)
         if check is None:
             LOG.warning('%s not opened: %d launch checks are still waiting for an answer', app.id, MAX_CHECKS)
-            return self.launch(request_id, app, None, None, 'checks_busy')
+            return self.launch(key, app, None, None, 'checks_busy', screen)
         if check.done.wait(CHECK_WAIT):
-            return self.launch(request_id, app, *check.result)
-        self.checking[request_id] = dict(app=app, check=check, deadline=self.clock() + CHECK_SECONDS, conns=[conn])
+            return self.launch(key, app, *check.result, screen)
+        # A resend while the check runs joins this one; the first request's screen stays with the launch.
+        self.checking[key] = dict(app=app, check=check, deadline=self.clock() + CHECK_SECONDS, conns=[conn],
+                                  screen=screen)
         return None
 
     @staticmethod
@@ -3169,7 +3643,8 @@ class Helper:
     def checks_answered(self):
         """Go on with launches whose check has answered; fail those whose check is overdue as unavailable."""
         now = self.clock()
-        for request_id, waiting in list(self.checking.items()):
+        for key, waiting in list(self.checking.items()):
+            client, request_id = key
             app, check = waiting['app'], waiting['check']
             if check.done.is_set():
                 result = check.result
@@ -3178,12 +3653,12 @@ class Helper:
                 result = (None, None, 'not_responding')
             else:
                 continue
-            del self.checking[request_id]
-            conns = [conn for conn in waiting['conns'] if conn in self.connections]
+            del self.checking[key]
+            conns = [conn for conn in waiting['conns'] if conn in self.connections and not conn.closing]
             try:
-                if not self.journal.room():
+                if not self.journal.room(client):
                     raise self.journal_full(request_id, app.id)
-                answer = self.launch(request_id, app, *result)
+                answer = self.launch(key, app, *result, waiting['screen'])
             except Failure as failure:
                 for conn in conns:
                     self.error(conn, request_id, failure)
@@ -3191,22 +3666,26 @@ class Helper:
             for conn in conns:
                 self.reply(conn, request_id, dict(answer))
 
-    def launch(self, request_id, app, argv, directory, reason):
-        """Start app once its check has answered, or record why it could not start."""
+    def launch(self, key, app, argv, directory, reason, screen=None):
+        """Start app once its check has answered, or record why it could not start.
+
+        screen is open_app's hint (package 53d). It is kept in the launch's journal entry, so a duplicate request and a
+        restarted helper see it too. Where the window goes is package 23c's placement, not built here.
+        """
         app_id = app.id
+        hint = {'screen': screen} if screen is not None else {}
         if reason is not None:
             LOG.warning('%s not opened: %s', app_id, reason)
-            return self.record(request_id, {'app_id': app_id, 'launch_id': None, 'state': 'failed',
-                                            'error': 'unavailable', 'reason': reason, 'message': reason})
+            return self.record(key, {'app_id': app_id, 'launch_id': None, 'state': 'failed',
+                                     'error': 'unavailable', 'reason': reason, 'message': reason, **hint})
         launch_id = secrets.token_hex(8)
         unit = self.launcher.unit(app, launch_id)
-        entry = {'app_id': app_id, 'launch_id': launch_id, 'state': 'launching', 'unit': unit}
+        entry = {'app_id': app_id, 'launch_id': launch_id, 'state': 'launching', 'unit': unit, **hint}
         if app.discovered:
             entry['started'] = self.clock()
             entry['discovered'] = True
-        self.journal.put(request_id, entry)
         # Recorded before starting: a crash in between is reconciled, not retried.
-        self.journal.save()
+        self.record(key, entry)
         try:
             process = self.launcher.spawn(app, argv, directory, launch_id)
         except (OSError, ValueError, subprocess.SubprocessError) as error:
@@ -3214,26 +3693,36 @@ class Helper:
             entry.update(state='failed', error='launch_failed', message='could not start the app')
             self.journal.touch(entry)
             self.journal.save()
-            return self.launch_result(request_id, entry)
+            return self.launch_result(key[1], entry)
         LOG.info('started %s in %s', app.id, unit)
         entry['state'] = 'starting'
         self.journal.touch(entry)
         self.journal.save()
-        self.processes[request_id] = process
+        self.processes[key] = process
         # A deliberate launch says where he wants to be: an earlier close's pending return is dropped (finding 4).
-        self.cancel_returns()
+        if key[0] == DESKTOP:
+            self.cancel_returns()
         if app.discovered:
             self.discovered_scopes[unit] = dict(app_id=app_id, state=ACTIVE, started=entry['started'],
-                                               request_id=request_id, process=process)
+                                               launch_key=key, process=process)
         if self.windows is not None:
-            self.started[request_id] = self.clock()
-            self.deadlines[request_id] = self.clock() + self.window_timeout
-        return self.launch_result(request_id, entry)
+            self.started[key] = self.clock()
+            self.deadlines[key] = self.clock() + self.window_timeout
+            if key[0] != DESKTOP and app.discovered:
+                self.windows_pending = True  # its existing window can confirm a handover without compositor news
+        return self.launch_result(key[1], entry)
 
-    def record(self, request_id, entry):
-        self.journal.put(request_id, entry)
+    def record(self, key, entry):
+        for removed in self.journal.put(key, entry):
+            self.handles.pop(removed, None)
+            self.deadlines.pop(removed, None)
+            self.started.pop(removed, None)
+            self.view_closing.pop(removed, None)
+            self.adopting.discard(removed)
+            if (process := self.processes.pop(removed, None)) is not None:
+                self.reaping.append(process)
         self.journal.save()
-        return self.launch_result(request_id, entry)
+        return self.launch_result(key[1], entry)
 
     @staticmethod
     def launch_result(request_id, entry):
@@ -3256,6 +3745,7 @@ class Helper:
         if self.world != world['id']:
             LOG.info('desktop world ready')
         self.world = world['id']
+        conn.world_ready = True
         self.last_heartbeat = self.clock()
         self.status(event='world_ready', world=self.world)
         return {}
@@ -3266,6 +3756,11 @@ class Helper:
         ready = message.get('ready')
         if not isinstance(ready, bool):
             raise Failure('malformed', 'ready must be a boolean')
+        if not ready:
+            conn.world_ready = False
+            if self.search_handoff is not None and self.search_handoff.conn is conn:
+                # For good: a world that is ready again within the second may be another one.
+                self.search_off('its world is no longer ready')
         if not ready and self.world is not None:
             LOG.info('desktop world no longer ready')
             self.world = None
@@ -3277,10 +3772,10 @@ class Helper:
 
     def is_discovered(self, entry):
         app = self.apps.get(entry['app_id'])
-        return app is not None and app.discovered
+        return entry.get('discovered', False) or (app is not None and app.discovered)
 
-    def set_state(self, request_id, state, **fields):
-        entry = self.journal.entries.get(request_id)
+    def set_state(self, key, state, **fields):
+        entry = self.journal.entries.get(key)
         if entry is None or entry['state'] == state or entry['state'] in FINAL:
             return
         entry['state'] = state
@@ -3292,24 +3787,29 @@ class Helper:
         self.journal.touch(entry)
         self.journal.save()
         if state in FINAL or state in ('focused', 'background'):
-            self.deadlines.pop(request_id, None)
+            self.deadlines.pop(key, None)
+        if state in FINAL:
+            self.started.pop(key, None)
+            self.view_closing.pop(key, None)
+        client, request_id = key
         event = {'request_id': request_id, 'launch_id': entry.get('launch_id'), 'app_id': entry['app_id'],
                  'state': state}
         event.update(fields)
-        self.emit('app_state', **event)
+        conn = self.desktop if client == DESKTOP else self.views.get(client)
+        self.emit_to(conn, 'app_state', **event)
 
-    def settle(self, request_id):
+    def settle(self, key):
         """This request's answer can no longer change, though the app may still run: replay retention may end."""
-        entry = self.journal.entries.get(request_id)
+        entry = self.journal.entries.get(key)
         if entry is None or entry.get('settled'):
             return
         entry['settled'] = True
         self.journal.touch(entry)
         self.journal.save()
 
-    def confirmed(self, request_id):
+    def confirmed(self, key):
         """Its app is seen running (scope or window): an interrupted start is no longer in doubt."""
-        entry = self.journal.entries.get(request_id)
+        entry = self.journal.entries.get(key)
         if entry is not None and entry.pop('uncertain', None):
             self.journal.touch(entry)
             self.journal.save()
@@ -3317,7 +3817,9 @@ class Helper:
     def end_of_scope(self, entry):
         """What a launch becomes once its scope is gone and no process of ours can say how it ended."""
         app = self.apps.get(entry['app_id'])
-        single = app is not None and (app.discovered or app.instance == 'single')
+        single = self.is_discovered(entry) or (app is not None and app.instance == 'single')
+        if self.windows is not None and self.is_discovered(entry) and not self.catalogue_complete():
+            return None, {}  # the first scan may still let a window confirm this launch
         if entry.get('uncertain'):
             return 'failed', {'error': 'launch_uncertain',
                               'message': 'the helper restarted while starting this app; it was not retried'}
@@ -3330,7 +3832,7 @@ class Helper:
         return None, {}
 
     def watched_units(self):
-        """Unit to request ID for launches whose scope still matters.
+        """Unit to launch key for launches whose scope still matters.
 
         Without window tracking that is every unresolved launch, focused and background included. With tracking,
         windows decide reviewed apps, except for a launch still starting that this helper did not start itself.
@@ -3338,12 +3840,12 @@ class Helper:
         resident instance's window.
         """
         units = {}
-        for request_id, entry in self.journal.entries.items():
+        for key, entry in self.journal.entries.items():
             if entry['state'] in FINAL or entry.get('settled') or not entry.get('unit'):
                 continue
-            if self.windows is None or (entry['state'] == 'starting' and request_id not in self.processes):
-                units[entry['unit']] = request_id
-        units.update({unit: scope['request_id'] for unit, scope in self.discovered_scopes.items()})
+            if self.windows is None or (entry['state'] == 'starting' and key not in self.processes):
+                units[entry['unit']] = key
+        units.update({unit: scope['launch_key'] for unit, scope in self.discovered_scopes.items()})
         return units
 
     def scopes_answered(self):
@@ -3351,7 +3853,7 @@ class Helper:
         watched = self.watched_units()
         for answers in self.watcher.take():
             for unit, state in answers.items():
-                request_id = watched.get(unit)
+                key = watched.get(unit)
                 scope = self.discovered_scopes.get(unit)
                 if scope is not None:
                     process = scope.get('process')
@@ -3360,67 +3862,72 @@ class Helper:
                         del self.discovered_scopes[unit]
                     elif state != GONE:
                         scope['state'] = state
-                entry = self.journal.entries.get(request_id)
+                entry = self.journal.entries.get(key)
                 if entry is None or entry.get('unit') != unit:
                     continue  # a retained scope can outlive its replay record, even if that ID is reused
-                if state == ACTIVE and request_id is not None:
-                    self.confirmed(request_id)
+                if state == ACTIVE and key is not None:
+                    self.confirmed(key)
                 # A launch result with its own process is ended by that process, never by the list.
-                if state != GONE or request_id is None or request_id in self.processes:
+                if state != GONE or key is None or key in self.processes:
                     continue
                 if entry['state'] in FINAL or entry.get('settled'):
                     continue
                 state_after, fields = self.end_of_scope(entry)
                 if state_after == 'settled':
-                    self.settle(request_id)
+                    self.settle(key)
                 elif state_after is not None:
-                    self.set_state(request_id, state_after, **fields)
+                    self.set_state(key, state_after, **fields)
         self.watcher.watch(self.watched_units())
 
     def tick(self):
         self.refresh_catalogue()
         self.checks_answered()
         now = self.clock()
+        self.search_expired(now)
         for conn in list(self.connections):
             if not conn.authenticated and now - conn.opened > HELLO_TIMEOUT:
                 conn.finish()
-        for request_id, process in list(self.processes.items()):
+        self.reaping = [process for process in self.reaping if process.poll() is None]
+        for key, process in list(self.processes.items()):
             code = process.poll()
             if code is None:
                 continue
-            del self.processes[request_id]
-            entry = self.journal.entries.get(request_id)
+            del self.processes[key]
+            entry = self.journal.entries.get(key)
             if entry is None or entry['state'] != 'starting':
                 continue
             app = self.apps.get(entry['app_id'])
             if self.windows is None:
                 if code != 0:
-                    self.set_state(request_id, 'failed', error='launch_failed', message=f'exited with status {code}')
+                    self.set_state(key, 'failed', error='launch_failed', message=f'exited with status {code}')
                 elif app is not None and (app.discovered or app.instance == 'single'):
                     # Handed over to the running instance, whose windows can't be watched here: answer settled.
-                    self.settle(request_id)
+                    self.settle(key)
                 else:
-                    self.set_state(request_id, 'closed')
+                    self.set_state(key, 'closed')
             elif code != 0 or (app is not None and not app.discovered and app.instance == 'multi'):
-                self.set_state(request_id, 'failed', error='launch_failed',
+                self.set_state(key, 'failed', error='launch_failed',
                                message=f'exited with status {code} before showing a window')
             # A single-instance app hands the launch to its running instance and exits 0.
-        for request_id, deadline in list(self.deadlines.items()):
+        for key, deadline in list(self.deadlines.items()):
             if now >= deadline:
-                del self.deadlines[request_id]
-                entry = self.journal.entries.get(request_id)
+                del self.deadlines[key]
+                entry = self.journal.entries.get(key)
                 if entry is not None and entry['state'] == 'starting':
                     if self.is_discovered(entry):
                         # No instance contract: a clean early exit can hand over to a resident process. With
                         # a live/unknown scope keep waiting; once it is gone the usual bounded window wait ends.
-                        if entry.get('unit') in self.discovered_scopes or request_id in self.processes:
-                            self.deadlines[request_id] = now + self.window_timeout
+                        if (not self.catalogue_complete() or entry.get('unit') in self.discovered_scopes
+                                or key in self.processes):
+                            self.deadlines[key] = now + self.window_timeout
                             continue
-                    self.set_state(request_id, 'failed', error='no_window',
+                    self.set_state(key, 'failed', error='no_window',
                                    message='no matching window appeared')
         self.scopes_answered()
-        if self.windows is not None and (self.discovered_closing or self.windows_pending):
+        if self.windows is not None and (self.discovered_closing or self.view_closing or self.windows_pending):
             self.windows_changed()
+        self.report_running()
+        self.report_windows()  # again here, for a line the full pipe dropped
 
     def windows_changed(self):
         """Apply the compositor's changes so far.
@@ -3430,7 +3937,41 @@ class Helper:
         and the outcome is the same however the bytes were split.
         """
         self.follow_windows()
+        # A new desktop connection missed any focus change before hello. Tell it after the reply, even when the
+        # compositor has kept the same app in front throughout (including keep_foreground on a game restart).
+        if self.desktop is not None and not self.desktop.focus_reported and self.shell == 'background':
+            fields = {'focus': 'background', 'reason': 'app_activated' if self.foreground_app else 'other_window'}
+            if self.foreground_app:
+                fields['app_id'] = self.foreground_app
+            self.emit('shell_focus', **fields)
+        self.search_landed()
         self.report_covered()
+        self.report_windows()
+
+    def report_windows(self, request=None):
+        """Package 25 (3.4): the supervisor hears how many app windows are open, at each change, coalesced as
+        apps_running is. It goes black for a shutdown, logout or restart only on a count of zero, and takes the
+        black screen away when a window appears, so the report goes out with the compositor's news, not at the
+        next heartbeat. Without window tracking the count is null: not known, which the supervisor reads as open."""
+        if self.windows is None:
+            report = (None, ())
+        else:
+            open_windows = self.windows.app_windows()
+            names = sorted(filter(None, (self.window_name(toplevel) for toplevel in open_windows)))
+            report = (len(open_windows), tuple(names[:WINDOW_NAMES]))
+        if request is not None or report != self.windows_reported:
+            fields = dict(event='windows', count=report[0], names=list(report[1]))
+            if request is not None:
+                fields['request'] = request
+            if self.status(**fields) is not False:
+                self.windows_reported = report
+
+    def window_name(self, toplevel):
+        """What an app window is called in the supervisor's messages: its program's name, else its app_id. The
+        app_id is the client's own text, so only printable characters are passed on."""
+        app = self.apps.get(toplevel.owner)
+        name = (app.name if app is not None else '') or toplevel.app_id
+        return ''.join(char for char in name if char.isprintable())[:WINDOW_NAME_CHARS].strip()
 
     def report_covered(self):
         """Package 40: the game pauses its world while a window hides it, and only then (owner, 2026-11-15)."""
@@ -3454,6 +3995,7 @@ class Helper:
 
     def follow_windows(self):
         opened, closed = self.windows.take()
+        _, catalogue_closed = self.catalogue_windows.take()
         self.windows_pending = False
         now = self.clock()
         if any(toplevel.owner == Windows.SHELL for toplevel in opened):
@@ -3464,41 +4006,25 @@ class Helper:
         # Foreign-toplevel has no PID or cgroup, so a window belongs to a program only by a reviewed identity (its
         # own, a registry entry's or a hint's), never by which programs happen to run (review 1, finding 1). A
         # window nobody owns is nobody's: it confirms no launch, keeps no program open and forces no return.
-        # Dialogs follow their parent, and keep a discovered parent's owner after it closes.
-        for toplevel in self.windows.toplevels.values():
-            parent = self.windows.toplevels.get(toplevel.parent)
-            if toplevel.ready and parent is not None and self.apps.get(parent.owner) is not None:
-                if self.apps[parent.owner].discovered:
-                    toplevel.owner = self.windows._owner(toplevel, set())
-                    if toplevel.owner == parent.owner:
-                        toplevel.launch_owner = parent.owner
+        self.windows.follow_dialogs(self.apps)
+        self.catalogue_windows.follow_dialogs(self.apps)
         if self.adopting:
             self.adopt_windows()
         # Claims first, so a window that opened and closed between two reads still confirms its launch.
         for toplevel in opened:
             if toplevel.owner in (None, Windows.SHELL) or any(toplevel.handle in h for h in self.handles.values()):
                 continue
-            waiting = [request_id for request_id, entry in self.journal.entries.items()
+            waiting = [key for key, entry in self.journal.entries.items()
                        if entry['state'] == 'starting' and entry['app_id'] == toplevel.owner
-                       and self.started.get(request_id, float('inf')) <= toplevel.seen]
+                       and (key[0] == DESKTOP or not self.is_discovered(entry))
+                       and self.started.get(key, float('inf')) <= toplevel.seen]
             if waiting:
-                request_id = waiting[0]
-                self.started.pop(request_id, None)
-                self.handles.setdefault(request_id, set()).add(toplevel.handle)
-        # Discovered apps have no per-launch window contract: all their windows, including a resident instance's
-        # restored window and its children, decide whether they are gone. Reviewed launches keep their old rules.
-        for request_id, entry in self.journal.entries.items():
-            if not self.is_discovered(entry) or entry['state'] in FINAL or entry.get('settled'):
-                continue
-            relevant = {t.handle for t in self.windows.of(entry['app_id'])}
-            if relevant:
-                self.handles[request_id] = relevant
-                self.started.pop(request_id, None)
-                self.discovered_closing.pop(entry['app_id'], None)
-            elif request_id in self.handles and not any(t.owner == entry['app_id'] for t in closed):
-                # A late, explicit identity corrected an inferred owner. It no longer belongs to this launch.
-                del self.handles[request_id]
-                self.discovered_closing.setdefault(entry['app_id'], (now + HANDOFF, False, None))
+                key = waiting[0]
+                self.started.pop(key, None)
+                self.handles.setdefault(key, set()).add(toplevel.handle)
+        self.match_discovered(self.windows, closed, self.discovered_closing, now)
+        self.follow_view_launches(catalogue_closed, now)
+        other_screen = self.closed_on_other_screen(closed)
         returned = False
         for toplevel in closed:
             app = toplevel.owner
@@ -3511,20 +4037,21 @@ class Helper:
                     # A window already active now is the compositor's pick (it may arrive before the close).
                     pick = self.windows.active()
                     self.discovered_closing[app] = (pending[0] if pending else now + HANDOFF,
-                                                    bool(pending and pending[1]) or app == self.foreground_app
-                                                    or handed_off,
+                                                    app not in other_screen and (bool(pending and pending[1])
+                                                                                 or app == self.foreground_app
+                                                                                 or handed_off),
                                                     pending[2] if pending else pick and pick.handle)
-                    for request_id in list(self.handles):
-                        if self.journal.entries[request_id]['app_id'] == app:
-                            del self.handles[request_id]
+                    for key in list(self.handles):
+                        if key[0] == DESKTOP and self.journal.entries[key]['app_id'] == app:
+                            del self.handles[key]
                 continue
-            for request_id, handles in list(self.handles.items()):
+            for key, handles in list(self.handles.items()):
                 if toplevel.handle in handles:
                     handles.discard(toplevel.handle)
                     if not handles:
-                        del self.handles[request_id]
-                        self.set_state(request_id, 'closed')
-            if returned or app in (None, Windows.SHELL) or self.windows.of(app):
+                        del self.handles[key]
+                        self.set_state(key, 'closed')
+            if returned or app in (None, Windows.SHELL) or app in other_screen or self.windows.of(app):
                 continue
             # The compositor may already have activated the next window when the close arrives.
             handed_off = (self.handoff is not None and self.handoff[1] == toplevel.handle
@@ -3552,9 +4079,7 @@ class Helper:
             if now < deadline:
                 continue
             del self.discovered_closing[app]
-            for request_id, entry in self.journal.entries.items():
-                if entry['app_id'] == app and entry['state'] not in FINAL:
-                    self.set_state(request_id, 'closed')
+            self.close_discovered_launches(app)
             # A window nobody owns may be this program's own (an identity no hint knows yet): the hub is not
             # pulled in front of it, and comes back only when the compositor gives it the focus. Under 1.0 nothing a
             # discovered program does forces a return (review 2, finding 1).
@@ -3562,9 +4087,9 @@ class Helper:
                     and not self.unowned_windows()):
                 returned = True
                 self.return_to_desktop(app)
-        for request_id, handles in self.handles.items():
+        for key, handles in self.handles.items():
             focused = active is not None and active.handle in handles
-            self.set_state(request_id, 'focused' if focused else 'background')
+            self.set_state(key, 'focused' if focused else 'background')
         if active is None:
             return
         previous_handle, previous_owner = self.active_handle, self.active_owner
@@ -3589,7 +4114,12 @@ class Helper:
             # not his choice, so the window it gave the focus to is not minimized (review 1, finding 2).
             kept = (self.kept is not None and self.kept[0] == previous_handle
                     and now - self.kept[1] <= KEEP_WINDOW)
-            if previous_handle is not None and previous_handle != active.handle and not kept:
+            # While Super's own activation request is out (package 53d) this activation is taken for its answer, and
+            # search_landed decides whether it uncovers: only once the world alone is active, never here, where
+            # another window can still be reported active beside it (review 2, finding 1), and not at all for a
+            # search that was called off (finding 3).
+            supers = self.search_handoff is not None
+            if previous_handle is not None and previous_handle != active.handle and not kept and not supers:
                 # Alt+Tab, a click or our own return: he wants the world, so it must not stay hidden. Not at
                 # start-up (no previous window), and not for a restored desktop that gave the focus back above.
                 self.uncover()
@@ -3618,6 +4148,57 @@ class Helper:
                 fields['app_id'] = active.owner
             self.emit('shell_focus', **fields)
 
+    def match_discovered(self, windows, closed, closing, now):
+        # All of a discovered app's windows belong to its launches, even when a resident process shows them.
+        closed_apps = {t.owner for t in closed}
+        for key, entry in self.journal.entries.items():
+            if (key[0] != DESKTOP or not self.is_discovered(entry)
+                    or entry['state'] in FINAL or entry.get('settled')):
+                continue
+            app = entry['app_id']
+            relevant = {t.handle for t in windows.of(app)}
+            if relevant:
+                self.handles[key] = relevant
+                self.started.pop(key, None)
+                closing.pop(app, None)
+            elif key in self.handles and app not in closed_apps:
+                # A late, explicit identity can also take a window away from an inferred owner.
+                self.handles.pop(key, None)
+                closing.setdefault(app, (now + HANDOFF, False, None))
+
+    def follow_view_launches(self, closed, now):
+        # View launches use the full catalogue even when the desktop's rules treat these windows as unowned.
+        closed_apps = {t.owner for t in closed}
+        for key, entry in self.journal.entries.items():
+            if key[0] == DESKTOP or not self.is_discovered(entry) or entry['state'] in FINAL or entry.get('settled'):
+                continue
+            app = entry['app_id']
+            handles = {t.handle for t in self.catalogue_windows.of(app)}
+            if handles:
+                self.handles[key] = handles
+                self.started.pop(key, None)
+                self.view_closing.pop(key, None)
+                continue
+            if key in self.handles or app in closed_apps:
+                self.handles.pop(key, None)
+                self.view_closing.setdefault(key, now + HANDOFF)
+            if key in self.view_closing and now >= self.view_closing[key]:
+                del self.view_closing[key]
+                self.set_state(key, 'closed')
+
+    def close_discovered_launches(self, app):
+        for key, entry in self.journal.entries.items():
+            if key[0] == DESKTOP and entry['app_id'] == app and entry['state'] not in FINAL:
+                self.set_state(key, 'closed')
+
+    def closed_on_other_screen(self, closed):
+        desktop_outputs = self.windows.desktop_outputs() if self.views else frozenset()
+        if not desktop_outputs:
+            return set()
+        # The last closed window for each app decides, including ordinary (unmaximized) windows.
+        outputs = {t.owner: t.outputs for t in closed}
+        return {app for app, screens in outputs.items() if screens and screens.isdisjoint(desktop_outputs)}
+
     def cancel_returns(self):
         """Pending closes still end their launches, but none of them brings the hub back any more."""
         self.discovered_closing = {app: (deadline, False, pick)
@@ -3627,19 +4208,121 @@ class Helper:
         """The programs whose windows the helper tells apart. With a 1.0 desktop that is today's set, the reviewed
         registry alone: a discovered program's window is nobody's, so it never forces a return (review 1, finding 2).
         """
-        if self.window_minor >= 1:
-            return self.apps
-        return {key: app for key, app in self.apps.items() if not app.discovered}
+        return {key: app for key, app in self.apps.items()
+                if key not in self.view_only_apps and (self.window_minor >= 1 or not app.discovered)}
 
     def unowned_windows(self):
-        return [toplevel for toplevel in self.windows.toplevels.values() if toplevel.ready and toplevel.owner is None]
+        return [t for t in self.windows.toplevels.values()
+                if t.ready and t.owner is None and t.app_id != LAPTOP_HOME_APP_ID]
+
+    def search_blocked(self):
+        """Why Super cannot open the search over the world now, or None. Read again when the world's activation comes:
+        only the current state counts (review 1, should-fix 1)."""
+        conn = self.desktop
+        if conn is None or conn.closing or conn.minor < 2 or 'shell_search' not in conn.capabilities:
+            return 'no desktop that offered shell_search on aresos-shell/1.2'
+        if not conn.world_ready:
+            return 'its world is not ready'
+        if self.windows is None:
+            return 'window tracking is off'
+        if not self.windows.of(Windows.SHELL):
+            return "the world's window is not known"
+        return None
+
+    def search(self):
+        """Super (package 53d): the world gets the keyboard, then the mod opens its search over the world.
+
+        Runs in the serving loop after SIGUSR1, never in the signal handler (SearchSignal). It acts only for a ready
+        minor-2 desktop that offered shell_search, with window tracking and the world's window known; otherwise Super
+        does nothing. Not return_to_desktop: that tells the mod an app closed and marks the world in front before the
+        compositor does.
+
+        The compositor is always asked to activate the world, also when the world looks active already: what the
+        helper last read can be half of a change of focus (review 2, finding 1). shell_search and the uncovering
+        follow only once the world is the one active window (search_landed), at once if it is that now.
+        """
+        now = self.clock()
+        if self.search_at is not None and now - self.search_at < SEARCH_COALESCE:
+            return
+        self.search_at = now
+        why = self.search_blocked()
+        if why is not None:
+            LOG.info('Super ignored: %s', why)
+            return
+        world = self.windows.of(Windows.SHELL)[-1]
+        if self.activate_window is None or not self.activate_window(world.handle):
+            LOG.warning("Super ignored: the world's window could not be activated")
+            return
+        # His own choice, as a click on the world is: a restored desktop's rule of handing the focus back to the window
+        # in front (B2) must neither undo it nor keep the world from being uncovered.
+        self.keep_foreground = False
+        self.kept = None
+        self.search_handoff = SearchHandoff(world.handle, self.desktop, now + SEARCH_ACTIVATION,
+                                            self.windows.activated() - {world.handle})
+        self.search_landed()
+
+    def search_landed(self):
+        """Ends Super's handoff on what the compositor reports, never on a timer (review 3: an answer that came after a
+        time limit minimized a window still reported active).
+
+        The world Super asked for is the only active window: the one state in which the keyboard is known to be the
+        world's. If the search may still open, the world is uncovered and shell_search goes out; a search called off
+        meanwhile ends here too and uncovers nothing. Or another window was activated after the request: he, or the
+        compositor, went elsewhere, so the handoff ends with nothing done, and a later activation of the world is his
+        own. Until one of the two, also while another window is still reported active beside the world, this waits
+        for the compositor's next news, and the world's activation stays marked as Super's however late it comes.
+        """
+        handoff = self.search_handoff
+        if handoff is None:
+            return
+        active = self.windows.activated()
+        others = active - {handoff.handle}
+        if others - handoff.others:
+            self.search_handoff = None
+            LOG.info('Super dropped: another window got the keyboard after it; nothing is uncovered')
+            return
+        handoff.others = others
+        if active != {handoff.handle}:
+            return
+        self.search_handoff = None
+        why = handoff.off
+        if why is None and self.clock() > handoff.deadline:
+            why = 'the world got the keyboard too late'
+        if why is None and self.desktop is not handoff.conn:
+            why = 'the desktop connected anew'
+        if why is None:
+            # Only the current state counts (review 1, should-fix 1).
+            why = self.search_blocked()
+        if why is not None:
+            LOG.info('Super dropped: %s; the world has the keyboard and nothing is uncovered', why)
+            return
+        self.uncover()
+        LOG.info('Super: the search over the world')
+        self.emit('shell_search')
+
+    def search_off(self, why):
+        """Calls the waiting search off. Its request stays as the mark on the activation it asked for."""
+        if self.search_handoff.off is None:
+            self.search_handoff.off = why
+            LOG.info('Super called off: %s', why)
+
+    def search_expired(self, now):
+        handoff = self.search_handoff
+        if handoff is not None and handoff.off is None and now > handoff.deadline:
+            handoff.off = 'the world did not get the keyboard in time'
+            LOG.warning('Super: the compositor did not give the world the keyboard within %.0f s; no search',
+                        SEARCH_ACTIVATION)
 
     def return_to_desktop(self, app):
         """The foreground app's last relevant window closed: give the hub its focus back."""
-        desktop = self.windows.of(Windows.SHELL)
-        activated = bool(desktop) and self.activate_window is not None and bool(self.activate_window(desktop[-1].handle))
         self.foreground_app = None
         self.handoff = None
+        if any(view.focused for view in self.views.values()):
+            self.returning_until = None
+            LOG.debug('keeping keyboard focus on the view after %s closed its last window', app)
+            return
+        desktop = self.windows.of(Windows.SHELL)
+        activated = bool(desktop) and self.activate_window is not None and bool(self.activate_window(desktop[-1].handle))
         self.shell = 'foreground'
         self.returning_until = self.clock() + HANDOFF if activated else None
         LOG.info('%s closed its last window; returning to the desktop', app)
@@ -3744,15 +4427,66 @@ def prepare_socket(path, uid=None):
     raise SystemExit('another aresos-shell is already serving ' + path)
 
 
+class SearchSignal:
+    """SIGUSR1: the supervisor's `aresos-desktop search` (package 23c, Super) asks for the search over the world.
+
+    The handler only records the request. A Python handler runs between two bytecodes of whatever the serving loop was
+    doing, so activating, minimizing or sending from it could cut into a half-sent Wayland request or a half-sent line
+    to the mod. signal.set_wakeup_fd wakes the loop's select through a non-blocking pipe in Server's selector, and the
+    loop acts (Helper.search). SIGUSR1's default would end the helper, so main() installs this first of all.
+    """
+
+    def __init__(self):
+        self.requested = False
+        self.reader = self.writer = None
+
+    @classmethod
+    def install(cls):
+        search = cls()
+        signal.signal(signal.SIGUSR1, search.record)
+        return search
+
+    def record(self, signum, frame):
+        self.requested = True
+
+    def wake_through_pipe(self):
+        """The wake-up pipe for Server's selector. Main thread only, as signal.set_wakeup_fd is."""
+        self.reader, self.writer = os.pipe2(os.O_NONBLOCK | os.O_CLOEXEC)
+        signal.set_wakeup_fd(self.writer, warn_on_full_buffer=False)
+
+    def drain(self):
+        """Empty the pipe: it says only that some signal came (SIGTERM writes to it too); the flag says which."""
+        try:
+            while os.read(self.reader, 512):
+                pass
+        except BlockingIOError:
+            pass
+
+    def take(self):
+        if not self.requested:
+            return False
+        self.requested = False
+        return True
+
+    def close(self):
+        if self.writer is not None:
+            signal.set_wakeup_fd(-1)
+            os.close(self.writer)
+            os.close(self.reader)
+            self.reader = self.writer = None
+
+
 class Server:
-    def __init__(self, path, helper, wayland=None, uid=None):
+    def __init__(self, path, helper, wayland=None, uid=None, search=None, status_fd=None):
         self.path = path
         self.helper = helper
         self.wayland = wayland
+        self.search = search
         self.uid = os.getuid() if uid is None else uid
         self.selector = selectors.DefaultSelector()
         self.peers = {}
         self.stopping = False
+        self.windows_request = self.windows_sync = None
         prepare_socket(path, self.uid)
         self.listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         old = os.umask(0o177)
@@ -3766,7 +4500,12 @@ class Server:
         self.selector.register(self.listener, selectors.EVENT_READ, 'listener')
         if wayland is not None:
             self.selector.register(wayland.sock, selectors.EVENT_READ, 'wayland')
+        self.wayland_events = selectors.EVENT_READ
         self.selector.register(helper.watcher.reader, selectors.EVENT_READ, 'scopes')
+        if search is not None and search.reader is not None:
+            self.selector.register(search.reader, selectors.EVENT_READ, 'search')
+        if status_fd is not None and stat.S_ISSOCK(os.fstat(status_fd).st_mode):
+            self.selector.register(status_fd, selectors.EVENT_READ, 'windows')
 
     def watch(self, peer):
         events = selectors.EVENT_READ | (selectors.EVENT_WRITE if peer.outbuf else 0)
@@ -3800,7 +4539,25 @@ class Server:
     def step(self, timeout=0.5):
         for key, mask in self.selector.select(timeout):
             self.handle(key, mask)
+        # After this round's compositor news, so the search sees the windows as they are now. The flag is read every
+        # round: a signal that came before the wake-up pipe existed is not lost.
+        if self.search is not None and self.search.take():
+            self.helper.search()
+        if self.windows_request is not None and (self.wayland is None
+                                                or self.windows_sync not in self.wayland.callbacks):
+            self.helper.report_windows(request=self.windows_request)
+            self.windows_request = self.windows_sync = None
         self.helper.tick()
+        self.watch_wayland()
+
+    def watch_wayland(self):
+        """Wake for the compositor socket's writability only while requests wait for it."""
+        if self.wayland is None:
+            return
+        events = selectors.EVENT_READ | (selectors.EVENT_WRITE if self.wayland.outbuf else 0)
+        if events != self.wayland_events:
+            self.selector.modify(self.wayland.sock, events, 'wayland')
+            self.wayland_events = events
 
     def handle(self, key, mask):
         """One selector event: a new client, compositor news, scope answers or client traffic."""
@@ -3808,11 +4565,31 @@ class Server:
             self.accept()
             return
         if key.data == 'wayland':
-            self.wayland.readable()
-            self.helper.windows_changed()
+            if mask & selectors.EVENT_WRITE:
+                self.wayland.flush()
+            if mask & selectors.EVENT_READ:
+                self.wayland.readable()
+                self.helper.windows_changed()
             return
         if key.data == 'scopes':
             self.helper.scopes_answered()
+            return
+        if key.data == 'search':
+            self.search.drain()
+            return
+        if key.data == 'windows':
+            try:
+                packet = os.read(key.fd, 64)
+            except BlockingIOError:
+                return
+            except OSError:
+                packet = b''
+            if not packet:
+                self.selector.unregister(key.fd)
+            elif re.fullmatch(rb'windows [0-9a-f]{32}', packet):
+                self.windows_request = packet[8:].decode('ascii')
+                # Wait for pending compositor events, also when the helper has just resumed after a stall.
+                self.windows_sync = self.wayland.sync() if self.wayland is not None else None
             return
         peer = key.data
         if mask & selectors.EVENT_WRITE:
@@ -3844,6 +4621,8 @@ class Server:
             peer.close()
         self.selector.close()
         self.listener.close()
+        if self.search is not None:
+            self.search.close()
         self.helper.watcher.stop()
         if self.helper.catalogue is not None:
             self.helper.catalogue.stop()
@@ -3858,6 +4637,7 @@ class Server:
 def build(registry_dir, instance, nonce, journal_path, environ=None, launcher=None, clock=time.monotonic,
           connect=None, status=no_status, keep_foreground=False):
     """Start-up in the order that matters: owners from the registry first, then the compositor's window list."""
+    environ = os.environ if environ is None else environ
     catalogue = Discovery(Catalogue(registry_dir, environ=environ))
     catalogue.start(clock())
     registry = catalogue.apps, catalogue.revision
@@ -3871,14 +4651,17 @@ def build(registry_dir, instance, nonce, journal_path, environ=None, launcher=No
     helper = Helper(registry_dir, instance, nonce, journal_path, launcher=launcher, windows=windows,
                     activate=wayland.activate if wayland else None, clock=clock, registry=registry, status=status,
                     keep_foreground=keep_foreground, catalogue=catalogue, icons=IconCache(environ=environ),
-                    minimize=wayland.minimize if wayland else None)
+                    minimize=wayland.minimize if wayland else None, view_token=environ.get('ARESOS_VIEW_TOKEN'))
     helper.watcher.watch(helper.watched_units())
     helper.watcher.start()
     return helper, wayland
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='AresOS app helper (aresos-shell/1.1)')
+    # First of all (package 53d): until this handler is in place SIGUSR1 would end the helper. Package 23c's supervisor
+    # also starts it with SIGUSR1 ignored, for the moments before Python runs this line.
+    search = SearchSignal.install()
+    parser = argparse.ArgumentParser(description=f'AresOS app helper ({protocol()})')
     parser.add_argument('--registry', default=REGISTRY, help='folder of reviewed app entries')
     parser.add_argument('--socket', help='socket path (default $XDG_RUNTIME_DIR/aresos/shell.sock)')
     parser.add_argument('--list', action='store_true', help='print the reviewed registry with availability and exit')
@@ -3913,7 +4696,8 @@ def main(argv=None):
     prepare_socket(path)
     helper, wayland = build(args.registry, instance, nonce, os.path.join(os.path.dirname(path), 'shell-journal.json'),
                             status=status, keep_foreground=os.environ.get('ARESOS_SHELL_KEEP_FOREGROUND') == '1')
-    server = Server(path, helper, wayland)
+    search.wake_through_pipe()
+    server = Server(path, helper, wayland, search=search, status_fd=status.fd if status_fd else None)
 
     def stop(signum, frame):
         server.stopping = True
@@ -3926,6 +4710,7 @@ def main(argv=None):
     except WaylandError as error:
         # Window tracking is part of the negotiated contract; restart rather than silently lose it.
         LOG.error('lost the compositor: %s', error)
+        status(event='windows', count=None, names=[])  # nobody tracks the app windows now (package 25)
         server.close()
         return 1
     return 0

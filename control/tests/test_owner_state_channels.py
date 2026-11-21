@@ -122,7 +122,7 @@ class OwnerStateChannels(unittest.TestCase):
         cursor, audit, audit_day, restarts = None, {}, None, 0
         while True:
             day = time.strftime('%Y-%m-%d', time.localtime())
-            terminal = self.launch(integration.OWNER, ['cli', 'log', '--input', json.dumps({'limit': 1, **({'cursor': cursor} if cursor else {})})])
+            terminal = self.launch(integration.OWNER, ['cli', 'control', 'log', '--input', json.dumps({'limit': 1, **({'cursor': cursor} if cursor else {})})])
             self.assertEqual(terminal.returncode, 0, terminal.stderr)
             page = json.loads(terminal.stdout)['data']
             if day != time.strftime('%Y-%m-%d', time.localtime()) or audit_day is not None and day != audit_day:

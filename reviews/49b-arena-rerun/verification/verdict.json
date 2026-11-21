@@ -1,0 +1,288 @@
+{
+  "pass_line_commit": "2ddcb93f",
+  "verdict": "NOT QUALIFIED",
+  "checks": {
+    "safety": {
+      "pass": true,
+      "runs": {
+        "flat-1-control": {
+          "oom": false,
+          "high": 0,
+          "gc_ms": 11.251,
+          "lost_frames": 0
+        },
+        "flat-1-arena": {
+          "oom": false,
+          "high": 0,
+          "gc_ms": 18.698,
+          "lost_frames": 0
+        },
+        "flat-2-arena": {
+          "oom": false,
+          "high": 0,
+          "gc_ms": 16.649,
+          "lost_frames": 0
+        },
+        "flat-2-control": {
+          "oom": false,
+          "high": 0,
+          "gc_ms": 12.447,
+          "lost_frames": 0
+        },
+        "flat-3-arena": {
+          "oom": false,
+          "high": 0,
+          "gc_ms": 11.779,
+          "lost_frames": 0
+        },
+        "flat-3-control": {
+          "oom": false,
+          "high": 0,
+          "gc_ms": 13.029,
+          "lost_frames": 0
+        },
+        "flat-4-control": {
+          "oom": false,
+          "high": 0,
+          "gc_ms": 11.399,
+          "lost_frames": 0
+        },
+        "flat-4-arena": {
+          "oom": false,
+          "high": 0,
+          "gc_ms": 11.905,
+          "lost_frames": 0
+        },
+        "flat-5-control": {
+          "oom": false,
+          "high": 0,
+          "gc_ms": 13.168,
+          "lost_frames": 0
+        },
+        "flat-5-arena": {
+          "oom": false,
+          "high": 0,
+          "gc_ms": 12.38,
+          "lost_frames": 0
+        },
+        "flat-6-arena": {
+          "oom": false,
+          "high": 0,
+          "gc_ms": 12.65,
+          "lost_frames": 0
+        },
+        "flat-6-control": {
+          "oom": false,
+          "high": 0,
+          "gc_ms": 13.611,
+          "lost_frames": 0
+        },
+        "create-1-control": {
+          "oom": false,
+          "high": 0,
+          "gc_ms": 18.637,
+          "lost_frames": 0
+        },
+        "create-1-arena": {
+          "oom": false,
+          "high": 0,
+          "gc_ms": 13.088,
+          "lost_frames": 0
+        },
+        "create-2-arena": {
+          "oom": false,
+          "high": 0,
+          "gc_ms": 14.5,
+          "lost_frames": 0
+        },
+        "create-2-control": {
+          "oom": false,
+          "high": 0,
+          "gc_ms": 12.508,
+          "lost_frames": 0
+        },
+        "nether-control": {
+          "oom": false,
+          "high": 0,
+          "gc_ms": 15.476,
+          "lost_frames": 0
+        },
+        "nether-arena": {
+          "oom": false,
+          "high": 0,
+          "gc_ms": 13.479,
+          "lost_frames": 0
+        }
+      }
+    },
+    "memory": {
+      "pass": true,
+      "paired_savings_mib": [
+        285,
+        152,
+        270,
+        214,
+        189,
+        318
+      ],
+      "median_mib": 242.0,
+      "threshold_mib": 100
+    },
+    "flat_flight_count": {
+      "pass": true,
+      "counts": {
+        "control": 2,
+        "arena": 0
+      },
+      "allowed_excess": 2
+    },
+    "flat_flight_max": {
+      "pass": true,
+      "candidate_max_ms": 13.549778,
+      "limit_ms": 33
+    },
+    "creation_count": {
+      "pass": false,
+      "counts": {
+        "control": 2,
+        "arena": 5
+      },
+      "allowed_excess": 1
+    },
+    "nether_count": {
+      "pass": true,
+      "counts": {
+        "control": 2,
+        "arena": 0
+      },
+      "allowed_excess": 2
+    },
+    "nether_max": {
+      "pass": true,
+      "candidate_max_ms": 16.271582,
+      "limit_ms": 33
+    }
+  },
+  "flat_flight": {
+    "control": [
+      {
+        "over_17ms": 1,
+        "over_33ms": 0,
+        "max_ms": 25.682403,
+        "frames": 7206
+      },
+      {
+        "over_17ms": 0,
+        "over_33ms": 0,
+        "max_ms": 15.229489,
+        "frames": 7204
+      },
+      {
+        "over_17ms": 0,
+        "over_33ms": 0,
+        "max_ms": 12.653648,
+        "frames": 7207
+      },
+      {
+        "over_17ms": 0,
+        "over_33ms": 0,
+        "max_ms": 11.212884,
+        "frames": 7204
+      },
+      {
+        "over_17ms": 0,
+        "over_33ms": 0,
+        "max_ms": 11.30376,
+        "frames": 7204
+      },
+      {
+        "over_17ms": 1,
+        "over_33ms": 0,
+        "max_ms": 25.069322,
+        "frames": 7206
+      }
+    ],
+    "arena": [
+      {
+        "over_17ms": 0,
+        "over_33ms": 0,
+        "max_ms": 12.071917,
+        "frames": 7207
+      },
+      {
+        "over_17ms": 0,
+        "over_33ms": 0,
+        "max_ms": 13.549778,
+        "frames": 7206
+      },
+      {
+        "over_17ms": 0,
+        "over_33ms": 0,
+        "max_ms": 10.836836,
+        "frames": 7205
+      },
+      {
+        "over_17ms": 0,
+        "over_33ms": 0,
+        "max_ms": 11.713892,
+        "frames": 7206
+      },
+      {
+        "over_17ms": 0,
+        "over_33ms": 0,
+        "max_ms": 10.914556,
+        "frames": 7205
+      },
+      {
+        "over_17ms": 0,
+        "over_33ms": 0,
+        "max_ms": 10.857669,
+        "frames": 7205
+      }
+    ]
+  },
+  "first_creation": {
+    "control": [
+      {
+        "over_17ms": 6,
+        "over_33ms": 1,
+        "max_ms": 90.844838,
+        "frames": 3574
+      },
+      {
+        "over_17ms": 7,
+        "over_33ms": 1,
+        "max_ms": 108.831829,
+        "frames": 3567
+      }
+    ],
+    "arena": [
+      {
+        "over_17ms": 6,
+        "over_33ms": 2,
+        "max_ms": 79.17357,
+        "frames": 3574
+      },
+      {
+        "over_17ms": 9,
+        "over_33ms": 3,
+        "max_ms": 142.159406,
+        "frames": 3558
+      }
+    ]
+  },
+  "nether": {
+    "control": {
+      "over_17ms": 2,
+      "over_33ms": 0,
+      "max_ms": 20.738133,
+      "frames": 7190
+    },
+    "arena": {
+      "over_17ms": 0,
+      "over_33ms": 0,
+      "max_ms": 16.271582,
+      "frames": 7191
+    }
+  }
+}

@@ -984,7 +984,7 @@ tool, sudo, ostree, bootc, rpm-ostree or ksshaskpass ran.
      Windows marker pictures show the VM's Windows-stand-in ESP GUID, so they are left out; in the two marker texts that
      GUID became `VM-WINDOWS-ESP` (the only change to any copied file).
    - **Searched for** before writing: 22c's forbidden patterns (tokens, credential headers, password hashes, the
-     harness password's shape, private keys), emails, GUIDs, `serial`, and the names `patrik`, `carlsen`, `lenovo`,
+     harness password's shape, private keys), emails, GUIDs, `serial`, and the names `<owner's first name>`, `carlsen`, `lenovo`,
      `micron`, `crucial`. What remains: "password" only in sudo's messages, "serial" only in the tools' "stock serial"
      line and in bound test file names. Every kept picture was looked at: the desktop with foot and the window, and
      console text (PASS lines, ostree checksums, image digests).

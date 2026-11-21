@@ -43,7 +43,11 @@
       "dev.aresos.test.HomeScreenClientGameTest",
       "dev.aresos.test.HomeMenuClientGameTest",
       "dev.aresos.test.SaveNowClientGameTest",
-      "dev.aresos.test.SaveTimesClientGameTest"
+      "dev.aresos.test.SaveTimesClientGameTest",
+      "dev.aresos.test.TownArrivalClientGameTest",
+      "dev.aresos.test.HomePublishClientGameTest",
+      "dev.aresos.test.FreePointerClientGameTest",
+      "dev.aresos.test.WorldSearchClientGameTest"
     ]
   },
   "mixins": [

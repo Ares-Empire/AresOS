@@ -23,6 +23,7 @@ import net.minecraft.world.level.storage.ValueOutput;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 
@@ -123,6 +124,9 @@ public final class ModeInventories {
     private int startedAtTick;
     private Rollback rollback;
     private Snapshot synchronizedInventory;
+    // Every inventory update replaces the stored tag. Decode a saved Live hotbar once per replacement.
+    private Tag hotbarSource;
+    private Optional<Map<String, Integer>> savedLiveHotbar = Optional.of(Map.of());
 
     public GameType activeInventory(ServerPlayer player) {
         if (activeInventory == null) activeInventory = player.gameMode.getGameModeForPlayer() == GameType.CREATIVE
@@ -164,6 +168,22 @@ public final class ModeInventories {
 
     public boolean hasStoredInventories() { return stored != null; }
     public boolean restoredForLogin() { return restoredForLogin; }
+
+    /** Empty while a switch can still roll back or the saved Live inventory cannot be read. */
+    public Optional<Map<String, Integer>> liveHotbar(ServerPlayer player) {
+        if (pending || changingMode) return Optional.empty();
+        if (activeInventory(player) == GameType.SURVIVAL)
+            return Optional.of(AppInventory.hotbarSlots(player.getInventory()::getItem));
+        if (stored == null) return Optional.of(Map.of());
+        if (hotbarSource != stored) {
+            var ops = player.registryAccess().createSerializationContext(NbtOps.INSTANCE);
+            savedLiveHotbar = Stored.CODEC.parse(ops, stored).result()
+                    .filter(value -> value.live.items.size() == player.getInventory().getContainerSize())
+                    .map(value -> AppInventory.hotbarSlots(value.live.items::get));
+            hotbarSource = stored;
+        }
+        return savedLiveHotbar;
+    }
 
     /**
      * Rewrites the items of the inventory he is not holding right now (Build's while he is in Live, and the other

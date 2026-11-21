@@ -1,0 +1,2 @@
+[468610.804815] cardwired[1384]: [INFO ] NVIDIA GeForce RTX 4060 Laptop GPU: Power state changed: D0
+[468628.307934] rtkit-daemon[1639812]: Successfully made thread 3618139 of process 3617294 (<home>/.local/opt/jdk-25.0.5+8/bin/java) owned by '1001' RT at priority 1.

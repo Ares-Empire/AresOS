@@ -148,12 +148,18 @@ public final class AppInventory {
     }
 
     public static Set<String> hotbar(ServerPlayer player) {
-        var ids = new HashSet<String>();
-        for (int i = 0; i < 9; i++) {
-            var stack = player.getInventory().getItem(i);
-            if (stack.is(AppItems.APP) && stack.get(AppItems.APP_ID) != null) ids.add(stack.get(AppItems.APP_ID));
+        return hotbarSlots(player.getInventory()::getItem).keySet();
+    }
+
+    /** Slot numbers from a Live inventory, whether it's active or saved while the player builds. */
+    public static Map<String, Integer> hotbarSlots(java.util.function.IntFunction<ItemStack> itemAt) {
+        var slots = new HashMap<String, Integer>();
+        for (int slot = 0; slot < Inventory.getSelectionSize(); slot++) {
+            var stack = itemAt.apply(slot);
+            if (stack.is(AppItems.APP) && stack.get(AppItems.APP_ID) != null)
+                slots.putIfAbsent(stack.get(AppItems.APP_ID), slot);
         }
-        return Set.copyOf(ids);
+        return Map.copyOf(slots);
     }
     public static void savePins(ServerPlayer player, Set<String> before) {
         if (!LiveMode.isLive(player) || !DesktopWorld.isHost(player.level().getServer(), player)) return;

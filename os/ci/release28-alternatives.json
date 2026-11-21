@@ -1,0 +1,77 @@
+{
+  "package": {
+    "nevra": "java-25-openjdk-headless-1:25.0.5.0.8-3.1.fc44.x86_64",
+    "sha256": "28f00e524ecb699f35cc3347903e480ef5751dcff30205d5b55ffce6177acc00"
+  },
+  "source": "reviews/23-minecraft-starts/runs/resolve-43466199049/candidate.txt:112-128 (pinned RPM postinstall scriptlet; four groups and twelve chains observed in release 28 dry runs 3 and 4, PROGRESS.md)",
+  "groups": {
+    "java": {
+      "links": {
+        "/usr/bin/java": "java",
+        "/usr/lib/jvm/jre": "jre",
+        "/usr/bin/alt-java": "alt-java",
+        "/usr/bin/keytool": "keytool",
+        "/usr/bin/rmiregistry": "rmiregistry",
+        "/usr/share/man/man1/java.1.gz": "java.1.gz",
+        "/usr/share/man/man1/alt-java.1.gz": "alt-java.1.gz",
+        "/usr/share/man/man1/keytool.1.gz": "keytool.1.gz",
+        "/usr/share/man/man1/rmiregistry.1.gz": "rmiregistry.1.gz"
+      },
+      "choices": [
+        {
+          "priority": 25000508,
+          "targets": {
+            "java": "/usr/lib/jvm/java-25-openjdk/bin/java",
+            "jre": "/usr/lib/jvm/java-25-openjdk",
+            "alt-java": "/usr/lib/jvm/java-25-openjdk/bin/alt-java",
+            "keytool": "/usr/lib/jvm/java-25-openjdk/bin/keytool",
+            "rmiregistry": "/usr/lib/jvm/java-25-openjdk/bin/rmiregistry",
+            "java.1.gz": "/usr/lib/jvm/java-25-openjdk/man/man1/java.1",
+            "alt-java.1.gz": "/usr/lib/jvm/java-25-openjdk/man/man1/alt-java.1",
+            "keytool.1.gz": "/usr/lib/jvm/java-25-openjdk/man/man1/keytool.1",
+            "rmiregistry.1.gz": "/usr/lib/jvm/java-25-openjdk/man/man1/rmiregistry.1"
+          }
+        }
+      ]
+    },
+    "jre_openjdk": {
+      "links": {
+        "/usr/lib/jvm/jre-openjdk": "jre_openjdk"
+      },
+      "choices": [
+        {
+          "priority": 25000508,
+          "targets": {
+            "jre_openjdk": "/usr/lib/jvm/java-25-openjdk"
+          }
+        }
+      ]
+    },
+    "jre_25": {
+      "links": {
+        "/usr/lib/jvm/jre-25": "jre_25"
+      },
+      "choices": [
+        {
+          "priority": 25000508,
+          "targets": {
+            "jre_25": "/usr/lib/jvm/java-25-openjdk"
+          }
+        }
+      ]
+    },
+    "jre_25_openjdk": {
+      "links": {
+        "/usr/lib/jvm/jre-25-openjdk": "jre_25_openjdk"
+      },
+      "choices": [
+        {
+          "priority": 25000508,
+          "targets": {
+            "jre_25_openjdk": "/usr/lib/jvm/java-25-openjdk"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -239,7 +239,8 @@ class InstallMapTest(unittest.TestCase):
             (vendor / 'bin').mkdir()
             (vendor / 'bin/mcp').write_text('#!/usr/bin/python3\n')
             (vendor / 'bin/mcp').chmod(0o775)
-            code = heredoc('os/build.sh', 'python3 - "$os_dir" "$control_dir" "$dest" $report <<\'PY\'\n')
+            # -B since the R28 cut's fix (review 11): the interpreter writes no bytecode of its own imports.
+            code = heredoc('os/build.sh', 'python3 -B - "$os_dir" "$control_dir" "$dest" $report <<\'PY\'\n')
             env = {'PATH': os.environ.get('PATH', '/usr/bin:/bin'), 'ARESOS_SOURCE_REVISION': revision}
             result = subprocess.run([sys.executable, '-I', '-c', code, str(ROOT / 'os'), str(CONTROL), str(dest),
                                      str(report(items))], capture_output=True, text=True, timeout=60, env=env)
@@ -562,10 +563,12 @@ class VendorTreeTest(unittest.TestCase):
 
     def test_the_compile_step_and_the_image_check_are_the_builds(self):
         build = (ROOT / 'os/build.sh').read_text()
-        line = re.search(r'\n\s*env -i (PATH=\S+) (LANG=\S+) (/usr/bin/python3 -I -m compileall -q) \\\n'
+        line = re.search(r'\n\s*env -i (PATH=\S+) (LANG=\S+) (/usr/bin/python3 -I -B -m compileall -q) \\\n'
                          r'\s*(--invalidation-mode checked-hash) "\$vendor"\n', build)
         self.assertIsNotNone(line, 'the compile step in build.sh')
-        self.assertEqual(f'{line[3]} {line[4]}'.split(), self.vendor_check.COMPILE)
+        # The build adds -B (the R28 cut's fix, review 11): it stops only the interpreter's own import caches;
+        # compileall writes the same checked-hash bytecode with or without it, so the check's command omits it.
+        self.assertEqual([part for part in f'{line[3]} {line[4]}'.split() if part != '-B'], self.vendor_check.COMPILE)
         self.assertEqual(dict(item.split('=', 1) for item in line.group(1, 2)), self.vendor_check.COMPILE_ENV)
         self.assertIn('vendor=/usr/lib/aresos-control/vendor\n', build)
         self.assertEqual(self.vendor_check.VENDOR, 'usr/lib/aresos-control/vendor')
@@ -669,7 +672,7 @@ class ChromeImageTest(unittest.TestCase):
                 'url': f'https://files.invalid/{name}-{version}-py3-none-any.whl',
                 'archive_info': {'hashes': {'sha256': digests[0]}}}}
             for (name, version), digests in lock_pins().items()]}))
-        code = heredoc('os/build.sh', 'python3 - "$os_dir" "$control_dir" "$dest" $report <<\'PY\'\n')
+        code = heredoc('os/build.sh', 'python3 -B - "$os_dir" "$control_dir" "$dest" $report <<\'PY\'\n')
         calls = []
         run = subprocess.run
         before = {str(p.relative_to(CONTROL)): p.read_bytes() for p in CONTROL.rglob('*')

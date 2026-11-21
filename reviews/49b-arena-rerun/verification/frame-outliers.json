@@ -1,0 +1,287 @@
+{
+  "create-1-arena": {
+    "flight": [
+      {
+        "end_ns": 307288856153830,
+        "since_window_start_s": 24.447189,
+        "gap_ms": 17.826988
+      }
+    ],
+    "first_30s": [
+      {
+        "end_ns": 307074886604107,
+        "since_window_start_s": 0.010429,
+        "gap_ms": 20.021303
+      },
+      {
+        "end_ns": 307075275145966,
+        "since_window_start_s": 0.398971,
+        "gap_ms": 17.580302
+      },
+      {
+        "end_ns": 307075295923992,
+        "since_window_start_s": 0.419749,
+        "gap_ms": 20.778026
+      },
+      {
+        "end_ns": 307075747998672,
+        "since_window_start_s": 0.871823,
+        "gap_ms": 54.488526
+      },
+      {
+        "end_ns": 307077257959153,
+        "since_window_start_s": 2.381784,
+        "gap_ms": 79.17357
+      },
+      {
+        "end_ns": 307077275834209,
+        "since_window_start_s": 2.399659,
+        "gap_ms": 17.875056
+      }
+    ]
+  },
+  "create-1-control": {
+    "flight": [],
+    "first_30s": [
+      {
+        "end_ns": 306320580445187,
+        "since_window_start_s": 0.38193,
+        "gap_ms": 23.579703
+      },
+      {
+        "end_ns": 306320732273871,
+        "since_window_start_s": 0.533758,
+        "gap_ms": 26.808659
+      },
+      {
+        "end_ns": 306321014766901,
+        "since_window_start_s": 0.816251,
+        "gap_ms": 30.715997
+      },
+      {
+        "end_ns": 306322529482859,
+        "since_window_start_s": 2.330967,
+        "gap_ms": 90.844838
+      },
+      {
+        "end_ns": 306322552389788,
+        "since_window_start_s": 2.353874,
+        "gap_ms": 22.906929
+      },
+      {
+        "end_ns": 306322605920316,
+        "since_window_start_s": 2.407405,
+        "gap_ms": 20.528879
+      }
+    ]
+  },
+  "create-2-arena": {
+    "flight": [],
+    "first_30s": [
+      {
+        "end_ns": 308405258887837,
+        "since_window_start_s": 0.059092,
+        "gap_ms": 142.159406
+      },
+      {
+        "end_ns": 308405321823744,
+        "since_window_start_s": 0.122028,
+        "gap_ms": 62.935907
+      },
+      {
+        "end_ns": 308405413912420,
+        "since_window_start_s": 0.214116,
+        "gap_ms": 17.729343
+      },
+      {
+        "end_ns": 308405450898467,
+        "since_window_start_s": 0.251102,
+        "gap_ms": 27.710016
+      },
+      {
+        "end_ns": 308405539809241,
+        "since_window_start_s": 0.340013,
+        "gap_ms": 21.645257
+      },
+      {
+        "end_ns": 308405863702808,
+        "since_window_start_s": 0.663907,
+        "gap_ms": 21.880222
+      },
+      {
+        "end_ns": 308406268890218,
+        "since_window_start_s": 1.069094,
+        "gap_ms": 23.829643
+      },
+      {
+        "end_ns": 308406305159248,
+        "since_window_start_s": 1.105363,
+        "gap_ms": 27.941014
+      },
+      {
+        "end_ns": 308407780046069,
+        "since_window_start_s": 2.58025,
+        "gap_ms": 81.555307
+      }
+    ]
+  },
+  "create-2-control": {
+    "flight": [],
+    "first_30s": [
+      {
+        "end_ns": 309732511421042,
+        "since_window_start_s": 0.064715,
+        "gap_ms": 26.247621
+      },
+      {
+        "end_ns": 309732535857043,
+        "since_window_start_s": 0.089151,
+        "gap_ms": 24.436001
+      },
+      {
+        "end_ns": 309732935920061,
+        "since_window_start_s": 0.489214,
+        "gap_ms": 26.544687
+      },
+      {
+        "end_ns": 309733083161796,
+        "since_window_start_s": 0.636456,
+        "gap_ms": 18.881335
+      },
+      {
+        "end_ns": 309733328587069,
+        "since_window_start_s": 0.881881,
+        "gap_ms": 28.679558
+      },
+      {
+        "end_ns": 309735054316970,
+        "since_window_start_s": 2.607611,
+        "gap_ms": 108.831829
+      },
+      {
+        "end_ns": 309735131124508,
+        "since_window_start_s": 2.684418,
+        "gap_ms": 22.106173
+      }
+    ]
+  },
+  "flat-1-arena": {
+    "flight": []
+  },
+  "flat-1-control": {
+    "flight": [
+      {
+        "end_ns": 296572305752255,
+        "since_window_start_s": 0.17233,
+        "gap_ms": 25.682403
+      }
+    ]
+  },
+  "flat-2-arena": {
+    "flight": []
+  },
+  "flat-2-control": {
+    "flight": []
+  },
+  "flat-3-arena": {
+    "flight": []
+  },
+  "flat-3-control": {
+    "flight": []
+  },
+  "flat-4-arena": {
+    "flight": []
+  },
+  "flat-4-control": {
+    "flight": []
+  },
+  "flat-5-arena": {
+    "flight": []
+  },
+  "flat-5-control": {
+    "flight": []
+  },
+  "flat-6-arena": {
+    "flight": []
+  },
+  "flat-6-control": {
+    "flight": [
+      {
+        "end_ns": 305314586108004,
+        "since_window_start_s": 16.687112,
+        "gap_ms": 25.069322
+      }
+    ]
+  },
+  "nether-arena": {
+    "flight": []
+  },
+  "nether-control": {
+    "flight": [
+      {
+        "end_ns": 310780988949976,
+        "since_window_start_s": 0.319008,
+        "gap_ms": 20.738133
+      },
+      {
+        "end_ns": 310781837336646,
+        "since_window_start_s": 1.167394,
+        "gap_ms": 18.699842
+      }
+    ]
+  },
+  "setup-flat": {
+    "flight": [],
+    "first_30s": [
+      {
+        "end_ns": 295351820876457,
+        "since_window_start_s": 0.079087,
+        "gap_ms": 18.805353
+      },
+      {
+        "end_ns": 295352282646806,
+        "since_window_start_s": 0.540858,
+        "gap_ms": 29.129902
+      },
+      {
+        "end_ns": 295352409259279,
+        "since_window_start_s": 0.66747,
+        "gap_ms": 19.640853
+      },
+      {
+        "end_ns": 295352689056931,
+        "since_window_start_s": 0.947268,
+        "gap_ms": 36.764867
+      },
+      {
+        "end_ns": 295354627047860,
+        "since_window_start_s": 2.885259,
+        "gap_ms": 108.018934
+      },
+      {
+        "end_ns": 295354664023098,
+        "since_window_start_s": 2.922234,
+        "gap_ms": 21.446184
+      },
+      {
+        "end_ns": 295354683697501,
+        "since_window_start_s": 2.941908,
+        "gap_ms": 19.674403
+      },
+      {
+        "end_ns": 295354707144802,
+        "since_window_start_s": 2.965356,
+        "gap_ms": 23.447301
+      }
+    ]
+  },
+  "setup-nether": {
+    "first_30s": [
+      {
+        "end_ns": 310360549859106,
+        "since_window_start_s": 0.830564,
+        "gap_ms": 24.687922
+      }
+    ]
+  }
+}

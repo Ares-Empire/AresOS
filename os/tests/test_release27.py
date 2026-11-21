@@ -402,7 +402,7 @@ class PublishBranchTest(unittest.TestCase):
     @unittest.skipIf(os.name == 'nt' or shutil.which('bash') is None, 'needs a Linux bash')
     def test_only_the_two_release_branches_may_publish(self):
         env = dict(os.environ, GITHUB_EVENT_NAME='workflow_dispatch', GITHUB_REPOSITORY='Ares-Empire/AresOS',
-                   GITHUB_REF_NAME='pkg/23-minecraft-starts', PATH=os.environ.get('PATH', ''))
+                   GITHUB_REF_NAME='pkg/23-minecraft-starts', GITHUB_REF='refs/heads/pkg/23-minecraft-starts', PATH=os.environ.get('PATH', ''))
         result = subprocess.run(['bash', 'os/ci/publish.sh'], cwd=ROOT, env=env, capture_output=True, text=True)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('Refusing to publish from pkg/23-minecraft-starts', result.stderr)
@@ -588,10 +588,11 @@ class DispatchMatrixTest(unittest.TestCase):
 
 UPDATE_REF = 'pkg/27-first-update-release'
 # GitHub's own variables for an update dispatch on the package 27 branch.
-UPDATE_GITHUB = dict(GITHUB_REF_NAME=UPDATE_REF, GITHUB_EVENT_NAME='workflow_dispatch', GITHUB_ACTIONS='true',
+UPDATE_GITHUB = dict(GITHUB_REF_NAME=UPDATE_REF, GITHUB_REF='refs/heads/' + UPDATE_REF, GITHUB_EVENT_NAME='workflow_dispatch', GITHUB_ACTIONS='true',
                      GITHUB_REPOSITORY='Ares-Empire/AresOS', GITHUB_SHA='a' * 40, GITHUB_RUN_ID='1', GITHUB_RUN_ATTEMPT='1')
 UPDATE_INPUTS = {'github.ref_name': UPDATE_REF, 'github.event_name': 'workflow_dispatch', 'inputs.rehearsal': 'update',
                  'inputs.checks_only': False, 'inputs.release_13': False, 'inputs.release_27': False,
+                 'inputs.release_28': False, 'inputs.dry_run_28': False,
                  'inputs.check_build': '', 'inputs.switch_from_run': '', 'inputs.probe_run': ''}
 UNKNOWN = object()
 
@@ -1006,14 +1007,15 @@ REVIEWED_DECISIONS = {
     ('os/ci/owner_vm.py', "mode == 'owner-tools'"):
         'only the qualification needs a passing probe on the same commit (JUDGMENT-CALL 5)',
     ('os/ci/owner_vm.py', "{'16': 'os/manifest/ci/16/host-walk.json', '27': 'os/manifest/ci/27/host-walk.json', "
-                          "'22c': 'os/manifest/ci/22c/host-walk.json', '22d': 'os/manifest/ci/22d/host-walk.json'}"
+                          "'22c': 'os/manifest/ci/22c/host-walk.json', '22d': 'os/manifest/ci/22d/host-walk.json', "
+                          "'42': 'os/manifest/ci/42/host-walk.json'}"
                           ".get(package, 'os/manifest/ci/14/host-walk/result.json')"):
         "each package's own host walk",
     ('os/ci/owner_vm.py', "package == '27'"):
         'package 27 records the checkout bytes it walked (27-bound-sources)',
     ('os/ci/owner_vm.py', "mode == 'update'"):
         "the update rehearsal runs its own route",
-    ('os/ci/owner_vm.py', "mode in ('update', 'reorder-probe', 'ways-back', 'tools-local')"):
+    ('os/ci/owner_vm.py', "mode in ('update', 'reorder-probe', 'ways-back', 'tools-local', 'release-28')"):
         "the update rehearsal (and package 22c's probe and rehearsal, and package 22d's) starts from the laptop's tools",
     ('os/ci/rehearsal_auth.py', "mode in ('probe', 'part-b') or release_diff"):
         'owner-secret auth: its create, preflight and pull steps do not run on pkg/27',

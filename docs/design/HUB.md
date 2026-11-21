@@ -55,7 +55,7 @@ Design, 2026-11-13, by a Fable design agent. Nothing here is built yet.
 - **3.6 and 3.4, the town's pictures** are the icon as read, or the fact that the app has none; a plain front is made on the spot in the colour of the group the app has now. Kept per group, as before, a group change needed a new read, and a check's read for the new group was read over by the next pass for the old one: a swap across groups of an app without an icon would have said "try again" forever.
 
 **Corrections from making it the home screen (package 40, 2026-11-15).** The owner tried the town on 2026-11-15: "Its not a homescreen yet, its a minecraft world", an app seemed not to open, apps that opened closed the world ("they should open on top of it like with a normal homescreen"), and he asked for creative's flight and more speed. Booting straight into the world (section 1's first lines) is package 23's supervisor, which reaches the laptop with the next AresOS release. Everything below holds for a game the session started (that supervisor, or `run-hub.sh`), and the world rules in an AresOS desktop world only; a normal world plays as Minecraft.
-- **1, apps open over the world.** An app opens on top of the world at the size it chooses. Around and behind it the world keeps moving: no pause menu, no blur, no black or minimized game window. The game lets go of the mouse while an app is in front and captures it again when the world has the focus back. Closing the app (its X or Alt+F4) or minimizing it puts him back in the world. Clicking the world gives it the keyboard and mouse and leaves the apps where they are, above it, as clicking the desktop on Windows: labwc keeps the world's window always below every app window. Alt+Tab reaches every app, and Esc opens the AresOS menu (package 48, below). What closed the world before: his game was fullscreen, and the windowing library minimizes a fullscreen window every time it loses the focus. Terminal opens at its own size, not maximized as section 1's pictures assumed (the image maximizes only the recovery terminal); it pauses the world only when he maximizes it ("Paused only when covered" below).
+- **1, apps open over the world.** An app opens on top of the world at the size it chooses. Around and behind it the world keeps moving: no pause menu, no blur, no black or minimized game window. While an app has the focus, the game lets go of the mouse: over the world it is a normal arrow, motion never turns the view, and mouse input never breaks, uses or places anything. A primary click on an app in the hotbar opens it through the same item-launch path (or brings the running app forward), with the same chat line on failure; hovering highlights that slot and shows its name above the hotbar without changing the held item. Every other click, including an empty or non-app slot, gives the world the keyboard and captures the mouse. The hotbar keys and scroll wheel keep their usual behavior. These pointer rules need a session desktop world and the connected helper. Closing the app (its X or Alt+F4) or minimizing it puts him back in the world. Entering the world leaves the apps where they are, above it, as clicking the desktop on Windows: labwc keeps the world's window always below every app window. Alt+Tab reaches every app, and Esc opens the AresOS menu (package 48, below). What closed the world before: his game was fullscreen, and the windowing library minimizes a fullscreen window every time it loses the focus. Terminal opens at its own size, not maximized as section 1's pictures assumed (the image maximizes only the recovery terminal); it pauses the world only when he maximizes it ("Paused only when covered" below).
 - **No "Saving world" text** (package 46; the owner, 2026-11-16: "Hide it"). In a desktop world in a game the session started, whether or not the app helper is connected, Minecraft's small "Saving world" text never shows in the bottom-right corner, for any save: the supervisor's `save_world`, the autosave every five minutes, the save on each pause. The saves themselves are unchanged. A normal world and a game the session did not start show it as Minecraft does, as his own Autosave Indicator option says.
 - **The world is always the whole screen, never the game's own fullscreen.** In a session the game's window is the maximized, frameless window the supervisor and the window rules make of it. A saved fullscreen setting is ignored and F11 does nothing. It looks the same as fullscreen, because the session reserves no screen space (no panel).
 - **No pause menu because another window has the focus**, in a desktop world with the app helper connected. Without the helper, outside desktop worlds, and in a game the session did not start, Minecraft's own rule stays (the menu opens on focus loss when its setting says so).
@@ -64,7 +64,7 @@ Design, 2026-11-13, by a Fable design agent. Nothing here is built yet.
 - **1 and 2.6, a failure always says why in the chat.** Every open that does not happen leaves one chat line, which stays, besides the line over the hotbar as before (that one is gone after three seconds, and a failure can come half a minute after he walked in): "Couldn't open Test App: it failed to start" at once for a program that exits with an error; "Couldn't open Test App: it started, but no window of it appeared" after the 45 seconds an open may take, for a program that runs but shows no window that is clearly its own (a tray program, a copy already running elsewhere; before, this said "no answer from the app helper"); "Couldn't open Test App: logos open in Live mode" for a logo walked into while his game is not in Live. The system's app helper writes every refusal and every launch that failed after starting into its log. The app he said did not open: his logs show no request to open it at all, neither a walk-in nor a typed name, and a program of the same kind (from his own desktop entry, its command a path in his home through a link) opened in the test compositor by walking in and by its short name. A click on one of his apps in the Apps screen picked its item up and opened nothing, which may be what he saw; a click there now opens the app (next point).
 - **2.4, a click in the Apps screen opens the app** (orchestrator, 2026-11-15, shown at the try-out; review fixes 1). A click on any program in the Apps screen, under My apps or All programs, opens it as its hotbar item would, with the same chat line when it cannot, and he is back in the world; Enter opens the only program the search found. Pinning is a drag: he presses on a program and moves before letting go, the screen gives way to the inventory with the program's item on the cursor, and where he lets go (a hotbar slot pins it) the item stays. A drag the game only sees as he lets go (a hitch, a quick flick) still opens nothing: the item waits on the cursor for his next click on a slot (review fixes 2). A program that is not his becomes his by that drag, as pinning always made a program his. A press and release without moving is a click. Right-click still removes one of his. One line in the screen says so: "Click opens · drag to the hotbar to pin · right-click removes".
 - **Live mode: he flies, nothing hurts him, the hotbar only.** In Live he flies like in creative (a double tap on space), nothing hurts or burns him, he never gets hungry, and the screen shows only the hotbar: no hearts, armour, air, hunger or experience bar (creative's look). Live is still survival underneath, so its inventory stays his taskbar (the creative inventory never reaches it), logos and the town's blocks stay protected, and left-click breaks nothing at once. Plain ground can still be mined slowly in Live, as before this package; Live's rules wait for his try-out (#282). G still switches to Build mode, which is unchanged apart from the speed. Flying in Build, he keeps flying after G.
-- **2.2 and 5, speed in both modes: 1.5 times the game's walking speed.** He walks **6.5 blocks a second** instead of 4.3 and sprints **8.4** instead of 5.6; flying stays 10.9 (21.6 sprinting), so flying remains the fast way across the town, and walking alone is now faster than the game's sprint. Sprint-jumping gains less (not measured). The walking and sprinting times in 2.2's tables shrink by a third: the front row is 2.5 s away sprinting instead of 3.7, the farthest of forty apps (64 blocks) 7.6 s instead of 11.3. It is not the Speed effect that 2.2 and 5 turned down: the game's walking speed itself is raised, so no icon, no particles, and the field of view stays as it was, the one every picture of the town was designed with. It stays after death, a respawn, both mode switches and joining again, and only in desktop worlds: `/aresos desktop off` gives back the game's own speed and survival at once. The amount is one constant (`LiveMode.DESKTOP_WALKING_SPEED`, 0.15 against the game's 0.1).
+- **2.2 and 5, speed in both modes: 1.5 times the game's walking and flying speeds.** He walks **6.5 blocks a second** instead of 4.3 and sprints **8.4** instead of 5.6; flying is **16.4 blocks a second** (32.7 sprinting) instead of 10.9 (21.8 sprinting), so flying remains the fast way across the town, and walking alone is now faster than the game's sprint. Sprint-jumping gains less (not measured). The walking and sprinting times in 2.2's tables now include that increase: the front row is 2.5 s away sprinting instead of 3.7, the farthest of forty apps (64 blocks) 7.6 s instead of 11.3. It is not the Speed effect that 2.2 and 5 turned down: the game's walking speed itself is raised, so no icon, no particles, and the field of view stays as it was, the one every picture of the town was designed with. It stays after death, a respawn, both mode switches and joining again, and only in desktop worlds: `/aresos desktop off` gives back the game's own speed and survival at once. Each amount is one constant: `LiveMode.DESKTOP_WALKING_SPEED` (0.15 against the game's 0.1) and `LiveMode.DESKTOP_FLYING_SPEED` (0.075 against 0.05). Flying changes no effect or field-of-view setting, and outside desktop worlds both speeds stay vanilla.
 - **The preview.** `hub-try` shows the session on his screen as it will be: a labwc of its own (the session's window manager) with the image's window rules, shown fullscreen inside his desktop, with the app helper and the development client inside it, so apps open over the world, clicking the world keeps them above it, and a maximized app pauses it. What it cannot show: keys his own desktop takes first (Alt+Tab switches his desktop's windows; Alt+F4 closes the whole preview, after asking the game to save and quit; Super+Ctrl+Escape opens his desktop's recovery terminal), so in the preview he closes an app with its own X and switches apps by clicking; a program that allows one copy and already runs outside opens its window outside; password prompts, file choosers and notifications open outside; one screen only; no supervisor (no restart, no recovery), and the development client instead of the session's.
 
 **The AresOS menu and the first start (package 48, 2026-11-16).** The owner, 2026-11-15: "Its genuinely a homescreen. technically its a minecraft world but it doesnt "behave" like one. I dont start it via a launcher or game, I dont esc to close it." Both points hold for a game the session started (the supervisor or `run-hub.sh`); the plain development client, other launchers and normal worlds keep Minecraft's own menu and title screen.
@@ -151,34 +151,36 @@ Reasons:
 - A logo is 12 blocks wide. Logos in a row stand 2 blocks apart. Rows are 14 blocks apart.
 - Every logo has a fixed place with a name, for example `N0L0`: north, row 0, left of the road, first from the road. A new app takes the nearest free place of its group. Nothing else ever moves by itself.
 
-How far it is (doorway to home, measured around the logos in the way):
+Both desktop modes walk at **6.5 blocks/s**, sprint at **8.4**, and fly at **16.4** (**32.7** sprinting), each 1.5 times vanilla. No Speed effect or added field-of-view change. Outside desktop worlds the game keeps its own speeds.
+
+How far it is (doorway to home, measured around the logos in the way; walking and sprinting include the desktop speed, while sprint-jumping is the original vanilla comparison and has not been remeasured):
 
 | Row | Front of the row, blocks from home | Logos per group | All four groups, up to this row | Blocks to the door | Walking | Sprinting | Sprint-jumping |
 |---|---|---|---|---|---|---|---|
-| 0 | 20 | 2 | 8 | 21 | 4.9 s | 3.7 s | 2.9 s |
-| 1 | 34 | 4 | 24 | 36 to 41 | 8.3 to 9.4 s | 6.4 to 7.2 s | 5.0 to 5.7 s |
-| 2 | 48 | 6 | 48 | 50 to 60 | 11.5 to 14.0 s | 8.8 to 10.7 s | 7.0 to 8.5 s |
-| 3 | 62 | 8 | 80 | 64 to 80 | 14.7 to 18.5 s | 11.3 to 14.3 s | 8.9 to 11.2 s |
-| 4 | 76 | 10 | 120 | 78 to 100 | 18.0 to 23.1 s | 13.8 to 17.8 s | 10.9 to 14.0 s |
-| 5 | 90 | 12 | 168 | 92 to 115 | 21.2 to 26.6 s | 16.3 to 20.4 s | 12.8 to 16.1 s |
+| 0 | 20 | 2 | 8 | 21 | 3.3 s | 2.5 s | 2.9 s |
+| 1 | 34 | 4 | 24 | 36 to 41 | 5.5 to 6.3 s | 4.3 to 4.8 s | 5.0 to 5.7 s |
+| 2 | 48 | 6 | 48 | 50 to 60 | 7.7 to 9.3 s | 5.9 to 7.1 s | 7.0 to 8.5 s |
+| 3 | 62 | 8 | 80 | 64 to 80 | 9.8 to 12.3 s | 7.6 to 9.5 s | 8.9 to 11.2 s |
+| 4 | 76 | 10 | 120 | 78 to 100 | 12.0 to 15.4 s | 9.2 to 11.9 s | 10.9 to 14.0 s |
+| 5 | 90 | 12 | 168 | 92 to 115 | 14.1 to 17.7 s | 10.9 to 13.6 s | 12.8 to 16.1 s |
 
 For real mixes of apps, with System & Tools always the biggest group:
 
 | Apps | Rows in use | Farthest door | Sprinting there |
 |---|---|---|---|
-| 3 (today: Chrome, Terminal, Notepad) | 0 | 21 blocks | 3.7 s |
-| 5 (day one: plus Discord and Lunar Client) | 0 | 21 blocks | 3.7 s |
-| 9 | 0 and 1 | 36 blocks | 6.4 s |
-| 20 | 0 to 2 | 50 blocks | 8.8 s |
-| 40, 14 of them in one group | 0 to 3 | 64 blocks | 11.3 s |
-| 100, 34 of them in one group | 0 to 5 | 100 blocks | 17.8 s |
+| 3 (today: Chrome, Terminal, Notepad) | 0 | 21 blocks | 2.5 s |
+| 5 (day one: plus Discord and Lunar Client) | 0 | 21 blocks | 2.5 s |
+| 9 | 0 and 1 | 36 blocks | 4.3 s |
+| 20 | 0 to 2 | 50 blocks | 5.9 s |
+| 40, 14 of them in one group | 0 to 3 | 64 blocks | 7.6 s |
+| 100, 34 of them in one group | 0 to 5 | 100 blocks | 11.9 s |
 
-The first nine apps are on average 24 blocks from home: 4.3 seconds sprinting.
+The first nine apps are on average 24 blocks from home: 2.9 seconds sprinting.
 
 **What each way in is for.**
-- **The hotbar** is for the nine apps he uses all the time. Right-click, no walking, no typing. A pinned app costs no seconds.
+- **The hotbar** is for the nine apps he uses all the time. Use its item, or primary-click its slot while another app has the focus; no walking or typing. Hover shows its name. A pinned app costs no seconds.
 - **`/name`** is for when he knows what he wants. About two seconds of typing, from anywhere.
-- **The world** is the home screen itself, like icons on a desktop. It is where all his apps stand, where he looks around, and where he finds the one whose name he forgot. It is the slow way on purpose; 4 seconds to the front row and about 11 to the farthest of forty is the price of logos big enough to recognise.
+- **The world** is the home screen itself, like icons on a desktop. It is where all his apps stand, where he looks around, and where he finds the one whose name he forgot. It is the slow way on purpose; 2.5 seconds sprinting to the front row and about 7.6 to the farthest of forty is the price of logos big enough to recognise.
 
 **What he sees and reads from where he stands.**
 - At home he sees the front logos, up to 8, by turning once. Two fit on the screen at a time. Each is about 475 pixels wide and tall on a 1080p screen, a quarter of the screen's width. They fill the view from 10 to 38 degrees left and right of the road.
@@ -187,7 +189,7 @@ The first nine apps are on average 24 blocks from home: 4.3 seconds sprinting.
 
 **Why this plan.** Six plans were compared. Four of them were laid out for 5, 9, 20, 40 and 100 apps and measured the same way; section 5 has all the numbers and [this drawing](../../reviews/hub-design-v1/concepts.png) shows those four at 40. One street is the simplest but the fortieth logo is 277 blocks away. One ring shows everything but puts every logo 80 to 96 blocks away and has to be torn down and rebuilt each time it grows. A plaza with four streets of shop fronts is close to the owner's first idea of a path, but a street only grows in length (101 blocks at 40 apps, 241 at 100) and its logos are seen edge-on. The chosen plan keeps the path: the avenues are the paths he pictured. It turns the logos to face the walker, and it lets each group grow sideways as well as outward, so the walk grows with the square root of the number of apps instead of with the number itself.
 
-**No Speed effect in version 1.** The mod could give Speed II in the hub; that makes everything 1.4 times faster (front row 2.7 s, farthest of forty 8.1 s). It also widens the field of view all the time, which changes how the world feels. It is one number to switch on later.
+**No Speed effect.** Walking and flying use the abilities' own speeds; the walking attribute stays in step, so the field of view keeps the game's normal flight and sprint changes without any extra widening. The owner tunes flight with `LiveMode.DESKTOP_FLYING_SPEED`.
 
 ### 2.3 The logo itself
 
@@ -472,6 +474,7 @@ One description for both sides: the mod's client (package 34) and the OS helper 
 
   A starter that stands for desktop entries (Chrome for `google-chrome.desktop`) is listed once, as the starter, with `source` `image`, and takes `icon`, `categories`, `generic_name`, `keywords` and `desktop_id` from the first of those entries that is installed.
 - **`apps_changed`.** When the list or a picture changes while the helper runs, a client that negotiated 1.1 gets the event `{"event": "apps_changed", "revision": "<new revision>"}` (in the usual envelope). The client then lists again, at most once every two seconds.
+- **`shell_focus` on connection (package 56).** A tracked helper sends its current background focus once after the desktop's `hello` reply, at the next window tick, if an app was already in front before that connection. Reconnecting gets the snapshot again. It uses the existing `shell_focus` capability and works with minor 0 too; a client without that capability gets none. A transition already sent is not repeated. The mod retains the latest focus for a client listener that subscribes after the common initializer started the helper, preserves it through loading and reconnect handshakes, and clears it on actual connection loss.
 - **`shell_covered` (package 40).** A capability and an event. A helper that tracks windows offers `shell_covered` beside `windows` and `shell_focus`, to a client that negotiated 1.1 only, and sends the event only to a client that offered it (the mod does). `{"event": "shell_covered", "covered": true}` (in the usual envelope) says that a window hides the desktop's window: it is maximized or fullscreen, not minimized, and on one of the desktop's screens (the desktop is always below every app window). `false` says none does any more. A window or a desktop whose screens the compositor has not named yet counts as on the same screen. Package 23b's start-up cover (`aresos.cover`) never counts. Both sides start a connection uncovered, so the helper sends `true` once after `hello`, after its reply, when covered, and then each change; a client whose helper goes away counts as uncovered. The mod pauses the world while covered (the corrections of package 40 at the top). Example: `shell-covered-event.json`.
 - **Never sent to the game:** a command, arguments, an environment, or a path other than `icon`.
 - **Example messages.** The mod package commits one example file per message kind under `mod/src/test/resources/shell-1.1/` (a first page with `next`, a last page, an entry with every field, an entry with none, `apps_changed`). The helper package's tests read the same files and check that the helper produces and accepts that shape.
@@ -585,7 +588,9 @@ Where the rules are weak, on the same machine: "Input Remapper" gives `/input`, 
 
 ## 5. What I rejected and why
 
-**Other layouts.** Farthest doorway from home, and sprinting time, for the same mix of apps:
+Desktop travel now uses **6.5 blocks/s walking, 8.4 sprinting, 16.4 flying and 32.7 sprint-flying** in Live and Build. These are the abilities' speeds, with no Speed effect or added field-of-view change. Vanilla worlds keep vanilla speeds.
+
+**Other layouts.** Farthest doorway from home, and the original vanilla sprinting comparison, for the same mix of apps (divide these historical times by 1.5 for today's desktop sprint):
 
 | Plan | 9 apps | 20 | 40 | 100 | Readable from home at 40 | Grows without moving logos |
 |---|---|---|---|---|---|---|
@@ -617,7 +622,7 @@ Where the rules are weak, on the same machine: "Input Remapper" gives `/input`, 
 - **Removing an app by dropping its item.** Q is pressed by accident.
 - **Keeping a removed program's logo as a ruin.** A dead door he has to clear away by hand. Its place is remembered instead.
 - **Beacons as landmarks.** They hum, and the cross does not need them.
-- **Speed II by default.** Faster, but it changes the field of view and the feel. Off until he asks.
+- **Speed II.** It changes the field of view and the feel. Instead the walking and flying speeds themselves are 1.5 times vanilla, with no effect.
 
 ---
 
@@ -655,5 +660,7 @@ I assumed yes: you install Spotify, and the next time you are in the world it st
 **3. Are the four groups yours?**
 Internet ahead of you, Games to the right, Work & Media to the left, System & Tools behind. A program goes where its own description puts it, and you can move any logo. The groups are your map of the place, and logos keep their places for good, so this is worth getting right before forty of them stand. If you think of your apps differently (for example "daily" and "rarely"), say so now.
 *Recommendation: these four. Assumed meanwhile: these four.*
+
+**Flying pace.** `LiveMode.DESKTOP_FLYING_SPEED` is the one number to tune after trying it; it is 0.075 now (1.5 times vanilla), in both Live and Build.
 
 Everything else in this document I decided. All of it is cheap to change: the sizes and distances are nine numbers, the blocks are a table, and `/aresos hub rebuild` builds the town again.

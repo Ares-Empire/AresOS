@@ -1,0 +1,13 @@
+{
+ "attempt": "s0",
+ "settings": [
+  "MODE=create",
+  "CREATE_FLOW=automatic",
+  "QUIT=1",
+  "COVER=0",
+  "SHOTS=1"
+ ],
+ "exit": 0,
+ "overlapped_by_other_java": false,
+ "interference_samples": []
+}

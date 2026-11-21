@@ -1,0 +1,30 @@
+$ python3 reviews/318-thaw-watchdog/rig/test_thaw.py
+test_demote_command_uses_recorded_threads_only (__main__.CheckTest.test_demote_command_uses_recorded_threads_only) ... rt demote: 1 demoted, 0 still realtime
+ok
+test_demote_with_thread_left_is_invalid (__main__.CheckTest.test_demote_with_thread_left_is_invalid) ... rt check (demote): 1 realtime; INVALID
+rt check (demote): 0 realtime
+rt check (keep): 1 realtime
+ok
+test_record_and_demote_refuse_an_unfrozen_game (__main__.CheckTest.test_record_and_demote_refuse_an_unfrozen_game) ... ok
+test_plain_chrt_refused_and_rig_command_works (__main__.DemoteTest.test_plain_chrt_refused_and_rig_command_works) ... 
+  plain chrt: chrt: failed to set pid 3550278's policy: Operation not permitted
+  rig: {'tid': 3550278, 'command': '/usr/bin/chrt --reset-on-fork --other --pid 0 3550278', 'exit': 0, 'stderr': '', 'before': 'SCHED_OTHER', 'before_reset_on_fork': True, 'after': 'SCHED_OTHER', 'after_reset_on_fork': True}
+ok
+test_comm_with_spaces_and_parentheses (__main__.ParseTest.test_comm_with_spaces_and_parentheses) ... ok
+test_real_process_has_no_realtime_thread (__main__.ParseTest.test_real_process_has_no_realtime_thread) ... ok
+test_realtime_threads_found_with_flags (__main__.ParseTest.test_realtime_threads_found_with_flags) ... ok
+test_final_records_fallback_and_public_copy (__main__.RecordsTest.test_final_records_fallback_and_public_copy) ... ok
+test_rtkit_lines_kept_for_the_game_or_no_process (__main__.RecordsTest.test_rtkit_lines_kept_for_the_game_or_no_process) ... ok
+test_runtime_status_needs_a_pci_address (__main__.RecordsTest.test_runtime_status_needs_a_pci_address) ... ok
+test_fake_tree_tgid_mismatch (__main__.TgidTest.test_fake_tree_tgid_mismatch) ... ok
+test_thread_of_another_process_is_refused_before_any_command (__main__.TgidTest.test_thread_of_another_process_is_refused_before_any_command) ... ok
+test_exit_after_cleanup_start_is_marked (__main__.WatcherTest.test_exit_after_cleanup_start_is_marked) ... ok
+test_sigkill_during_sampling_stops_both_and_reads_the_zombie (__main__.WatcherTest.test_sigkill_during_sampling_stops_both_and_reads_the_zombie) ... ok
+test_sigterm_records_stopped (__main__.WatcherTest.test_sigterm_records_stopped) ... ok
+test_survivor_sampled_for_the_window_then_alive_at_the_hold (__main__.WatcherTest.test_survivor_sampled_for_the_window_then_alive_at_the_hold) ... ok
+
+----------------------------------------------------------------------
+Ran 16 tests in 4.085s
+
+OK
+exit 0

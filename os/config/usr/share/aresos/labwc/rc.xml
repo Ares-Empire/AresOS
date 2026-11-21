@@ -38,5 +38,8 @@
     <windowRule identifier="aresos-desktop"><action name="ToggleAlwaysOnBottom" /></windowRule>
     <!-- The startup cover (package 23b): borderless, fullscreen and above the starting game until the hub is ready. -->
     <windowRule identifier="aresos.cover" serverDecoration="no"><action name="ToggleFullscreen" /><action name="ToggleAlwaysOnTop" /></windowRule>
+    <!-- The black screen while a shutdown, logout or restart saves the home (package 25): borderless and above
+         everything. No ToggleFullscreen: the cover asks for fullscreen itself here, one window on every output. -->
+    <windowRule identifier="aresos.black" serverDecoration="no"><action name="ToggleAlwaysOnTop" /></windowRule>
   </windowRules>
 </labwc_config>

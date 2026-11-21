@@ -1,5 +1,5 @@
 name: OS image
-run-name: ${{ inputs.rehearsal && format('Two-disk rehearsal ({0})', inputs.rehearsal) || inputs.check_build && format('OS image check build ({0}, never published)', inputs.check_build) || inputs.checks_only && 'OS regressions only (no VM)' || inputs.release_13 && 'Package 13 image release' || inputs.release_27 && 'Package 27 image release' || inputs.switch_from_run && 'OS published-image switch only' || 'OS image' }}
+run-name: ${{ inputs.rehearsal && format('Two-disk rehearsal ({0})', inputs.rehearsal) || inputs.check_build && format('OS image check build ({0}, never published)', inputs.check_build) || inputs.checks_only && 'OS regressions only (no VM)' || inputs.release_13 && 'Package 13 image release' || inputs.release_27 && 'Package 27 image release' || inputs.dry_run_28 && 'Package 28 image dry run (never published)' || inputs.release_28 && 'Package 28 image release' || inputs.switch_from_run && 'OS published-image switch only' || 'OS image' }}
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ on:
       rehearsal:
         description: 'Package 11: inspect pinned ISO or rehearse installation; never build/publish'
         type: choice
-        options: ['', inspect, fixture, probe, part-b, keyboard, owner-tools, update, reorder-probe, ways-back, tools-local]
+        options: ['', inspect, fixture, probe, part-b, keyboard, owner-tools, update, reorder-probe, ways-back, tools-local, release-28]
         default: ''
       release_13:
         description: 'One private org keyboard release; package 13 branch only'
@@ -15,6 +15,14 @@ on:
         default: false
       release_27:
         description: 'One private org update release (packages 21, 22, 24); package 27 branch only'
+        type: boolean
+        default: false
+      release_28:
+        description: 'Publish private release 28 (package 42 branch only); its ledger stops it until step 5 raises the cap after the owner''s OK'
+        type: boolean
+        default: false
+      dry_run_28:
+        description: 'Release 28 dry run (package 42 branch only): build, check and diff against release 27; never published'
         type: boolean
         default: false
       checks_only:
@@ -43,7 +51,7 @@ permissions:
   contents: read
 
 env:
-  REHEARSAL_PACKAGE: ${{ github.ref_name == 'pkg/22d-tools-without-stick' && '22d' || github.ref_name == 'pkg/22c-ways-back-after-update' && '22c' || github.ref_name == 'pkg/27-first-update-release' && '27' || github.ref_name == 'pkg/16-staged-release' && '16' || github.ref_name == 'pkg/14-owner-tools' && '14' || github.ref_name == 'pkg/13-keyboard-layout' && '13' || '11c' }}
+  REHEARSAL_PACKAGE: ${{ github.ref_name == 'pkg/42-release-28' && '42' || github.ref_name == 'pkg/22d-tools-without-stick' && '22d' || github.ref_name == 'pkg/22c-ways-back-after-update' && '22c' || github.ref_name == 'pkg/27-first-update-release' && '27' || github.ref_name == 'pkg/16-staged-release' && '16' || github.ref_name == 'pkg/14-owner-tools' && '14' || github.ref_name == 'pkg/13-keyboard-layout' && '13' || '11c' }}
 
 concurrency:
   group: os-image-${{ github.ref }}
@@ -56,8 +64,9 @@ jobs:
     runs-on: ubuntu-24.04
     # The suite explores a bounded slice of 22c's ways-back model; the full model
     # runs in the model job below (22c stage 1b, addition 1). Main's suite needs
-    # about 23 minutes; run 43669481694 was cut at 25 (22d step 2).
-    timeout-minutes: 40
+    # about 23 minutes; run 43669481694 was cut at 25 (22d step 2). Package 42's suite took 27 to 38
+    # minutes and run 44710509866 was cut at 40, in test_ways_back_probe (2026-11-20).
+    timeout-minutes: 60
     permissions:
       contents: read
       packages: read
@@ -67,12 +76,12 @@ jobs:
         with:
           # The suite reads files of earlier commits (git show, git diff).
           fetch-depth: 0
-      - name: Reserve package 13 checks budget
-        if: github.ref_name == 'pkg/13-keyboard-layout' || github.ref_name == 'pkg/27-first-update-release'
+      - name: Reserve checks budget
+        if: github.ref_name == 'pkg/13-keyboard-layout' || github.ref_name == 'pkg/27-first-update-release' || github.ref_name == 'pkg/42-release-28'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REHEARSAL_MODE: checks
-        run: python3 os/ci/rehearsal_guard.py ci 15
+        run: python3 os/ci/rehearsal_guard.py ci ${{ github.ref_name == 'pkg/42-release-28' && 60 || 15 }}
       - name: Install framebuffer regression dependency on disposable runner
         run: |
           sudo apt-get update -qq
@@ -172,17 +181,33 @@ jobs:
         run: env -u REHEARSAL_PACKAGE python3 -m unittest discover -s os/tests -p test_ways_back_model.py -k test_reachable_state_space -v
   check-build:
     name: Throwaway image build and checks (never pushed, signed or published)
-    if: github.event_name == 'workflow_dispatch' && github.ref_name != 'pkg/16-staged-release' && inputs.check_build != '' && !inputs.rehearsal && !inputs.release_13 && !inputs.release_27 && !inputs.checks_only && !inputs.switch_from_run
+    if: github.event_name == 'workflow_dispatch' && github.ref_name != 'pkg/16-staged-release' && inputs.check_build != '' && !inputs.rehearsal && !inputs.release_13 && !inputs.release_27 && !inputs.release_28 && !inputs.dry_run_28 && !inputs.checks_only && !inputs.switch_from_run
     runs-on: ubuntu-24.04
     # check_build=control adds its own VM steps (below) after the build step:
     # tools 20 + build 80 + Control VM pass 16 + Control Chrome VM pass 25 + 15.
     timeout-minutes: ${{ inputs.check_build == 'control' && 156 || 120 }}
-    # Read-only on purpose: no packages/id-token permission and no secrets, so
-    # this job cannot push, sign or publish the image it builds.
+    # Read-only on purpose: no write permission, no id-token and no other secret
+    # than the job token, so this job cannot push, sign or publish the image it
+    # builds. actions: read and packages: read are what package 42's guard step
+    # may reach (test_ci_api_permissions); only that step gets the token: the
+    # checkout keeps no credentials.
     permissions:
       contents: read
+      packages: read
+      actions: read
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      # Package 42 (review 1, S3): its ledger caps the resolve dispatches; the
+      # guard stops a resolve beyond the cap, and any other check build on the
+      # branch, before the tools and the build.
+      - name: Reserve package 42 resolve budget
+        if: github.ref_name == 'pkg/42-release-28'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REHEARSAL_MODE: resolve
+        run: python3 os/ci/rehearsal_guard.py ci 120
       - uses: ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6
         with:
           extra-squeeze: 'true'
@@ -236,7 +261,7 @@ jobs:
           retention-days: 3
           if-no-files-found: error
   image:
-    if: github.event_name == 'workflow_dispatch' && inputs.release_13 && github.ref_name == 'pkg/13-keyboard-layout' && !inputs.checks_only && !inputs.switch_from_run && !inputs.rehearsal
+    if: github.event_name == 'workflow_dispatch' && inputs.release_13 && github.ref_name == 'pkg/13-keyboard-layout' && !inputs.release_28 && !inputs.dry_run_28 && !inputs.checks_only && !inputs.switch_from_run && !inputs.rehearsal
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     permissions:
@@ -393,7 +418,7 @@ jobs:
           if-no-files-found: error
   release-27:
     name: Package 27 release build, image diff, VM and publish
-    if: github.ref_name == 'pkg/27-first-update-release' && github.event_name == 'workflow_dispatch' && inputs.release_27 && !inputs.release_13 && !inputs.checks_only && !inputs.switch_from_run && !inputs.rehearsal && inputs.check_build == ''
+    if: github.ref_name == 'pkg/27-first-update-release' && github.event_name == 'workflow_dispatch' && inputs.release_27 && !inputs.release_13 && !inputs.release_28 && !inputs.dry_run_28 && !inputs.checks_only && !inputs.switch_from_run && !inputs.rehearsal && inputs.check_build == ''
     runs-on: ubuntu-24.04
     timeout-minutes: 180
     permissions:
@@ -499,10 +524,228 @@ jobs:
           path: evidence/
           retention-days: 3
           if-no-files-found: error
+  release-28:
+    name: Package 28 release build, image diff, VM and publish
+    # Package 42 (brief 42, A.4): release_27's reviewed shape for release 28. Only this job can publish, only on
+    # the package 42 branch and only for release_28, which is dispatched after the owner's OK. The dry run below
+    # builds, checks and diffs exactly like it, without its write permissions and without its publish step.
+    if: github.ref_name == 'pkg/42-release-28' && github.event_name == 'workflow_dispatch' && inputs.release_28 && !inputs.dry_run_28 && !inputs.release_13 && !inputs.release_27 && !inputs.checks_only && !inputs.switch_from_run && !inputs.rehearsal && inputs.check_build == ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      actions: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - name: Reserve package 42 release budget
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REHEARSAL_MODE: publish-28
+        run: python3 os/ci/rehearsal_guard.py ci 180
+      - uses: ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6
+        with:
+          extra-squeeze: 'true'
+      - name: Install pinned tools on disposable runner
+        # Runs 42831158090 and 42835704653 stopped here on snapshot.ubuntu.com
+        # 500/504 answers; this job retries longer than the shared default.
+        timeout-minutes: 40
+        env:
+          ARESOS_APT_RETRIES: '5'
+          ARESOS_APT_TIMEOUT: '60'
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          bash os/ci/install-tools.sh
+          { podman --version; skopeo --version; qemu-system-x86_64 --version; dpkg-query -W ovmf; node --version; } > evidence/tool-versions.txt
+      - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
+        with:
+          cosign-release: v2.6.1
+      - name: Verify pinned upstream image
+        run: |
+          set -euo pipefail
+          image=$(jq -r .reference os/manifest/base.json)
+          test "$(awk '/^FROM / {print $2; exit}' os/Containerfile)" = "$image"
+          printf '%s\n' "$image" | tee evidence/base-reference.txt
+          cosign verify --key os/keys/bazzite.pub "$image" > evidence/base-signature.json
+      - name: Resolve all privileged host tools before credentials
+        env:
+          REHEARSAL_MODE: publish-28
+        run: python3 os/ci/build_tools.py resolve evidence/build-tools.json
+      - name: Build with the reviewed check build, run the image checks and the first VM pass
+        timeout-minutes: 90
+        run: bash os/ci/check-build.sh build
+      - name: Prove the release excludes the CI layer and keeps both passwords locked
+        run: |
+          set -euo pipefail
+          sudo podman run --rm --entrypoint /usr/bin/bash localhost/aresos:ci -ec '
+            test ! -e /usr/libexec/aresos-ci
+            test ! -e /usr/lib/systemd/system/aresos-ci.service
+            test ! -e /usr/lib/systemd/system-generators/aresos-ci-updater-regression
+            test ! -e /etc/systemd/system/aresos-ci-routine.service
+            test ! -e /etc/systemd/system/aresos-ci-routine.timer
+            test ! -e /etc/systemd/system/aresos-ci-static-canary.service
+            test ! -e /usr/lib/systemd/system/multi-user.target.wants/aresos-ci.service
+            test ! -e /tmp/aresos
+            test ! -e /etc/systemd/system/systemd-logind.service.d/90-aresos-ci.conf
+            test ! -e /etc/systemd/journald.conf.d/99-aresos-ci.conf
+            test "$(systemd-analyze cat-config systemd/journald.conf | sed -n "s/^Storage=//p" | tail -1)" = persistent
+            for user in root ares; do
+              case "$(getent shadow "$user" | cut -d: -f2)" in
+                \!*|\**) ;;
+                *) echo "Unlocked image account: $user"; exit 1 ;;
+              esac
+            done
+            echo "Release excludes CI service and credentials; both passwords locked"
+          ' | tee evidence/release-isolation.txt
+      - name: Prepare job-token credentials for release 27
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REHEARSAL_MODE: publish-28
+        run: sudo -E python3 os/ci/registry_auth.py create
+      - name: Verify release 27 and fail closed on the complete image diff
+        timeout-minutes: 60
+        env:
+          REHEARSAL_MODE: publish-28
+        run: python3 os/ci/build_tools.py launch "$PWD/evidence/build-tools.json"
+      - name: Remove release 27 credentials
+        if: always()
+        env:
+          REHEARSAL_MODE: publish-28
+        run: sudo -E python3 os/ci/registry_auth.py cleanup
+      - name: Publish the tested private release and sign with GitHub OIDC
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REHEARSAL_MODE: publish-28
+        run: bash os/ci/publish.sh
+      - name: Bound evidence
+        id: evidence
+        if: always()
+        run: |
+          sudo chown -R "$(id -u):$(id -g)" evidence
+          test "$(du -sb evidence | cut -f1)" -lt 180000000
+          echo 'safe=true' >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always() && steps.evidence.outputs.safe == 'true'
+        with:
+          name: os-image-evidence
+          path: evidence/
+          retention-days: 3
+          if-no-files-found: error
+  release-28-dry-run:
+    name: Package 28 dry run, build, image diff and VM (never published)
+    # Package 42, step 1: release 28 built, checked, booted once and diffed against release 27 before the owner's
+    # OK; it can never reach publishing.
+    if: github.ref_name == 'pkg/42-release-28' && github.event_name == 'workflow_dispatch' && inputs.dry_run_28 && !inputs.release_28 && !inputs.release_13 && !inputs.release_27 && !inputs.checks_only && !inputs.switch_from_run && !inputs.rehearsal && inputs.check_build == ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    # Read-only on purpose: no packages: write and no id-token: write, so this job can neither push to GHCR nor
+    # sign, and it has no publish step. It reads release 27 with the job token (packages: read) and its branch's
+    # run history for the guard (actions: read). test_release28 keeps its steps equal to release-28's but publishing.
+    permissions:
+      contents: read
+      packages: read
+      actions: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - name: Reserve package 42 release budget
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REHEARSAL_MODE: dry-run-28
+        run: python3 os/ci/rehearsal_guard.py ci 180
+      - uses: ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6
+        with:
+          extra-squeeze: 'true'
+      - name: Install pinned tools on disposable runner
+        # Runs 42831158090 and 42835704653 stopped here on snapshot.ubuntu.com
+        # 500/504 answers; this job retries longer than the shared default.
+        timeout-minutes: 40
+        env:
+          ARESOS_APT_RETRIES: '5'
+          ARESOS_APT_TIMEOUT: '60'
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          bash os/ci/install-tools.sh
+          { podman --version; skopeo --version; qemu-system-x86_64 --version; dpkg-query -W ovmf; node --version; } > evidence/tool-versions.txt
+      - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
+        with:
+          cosign-release: v2.6.1
+      - name: Verify pinned upstream image
+        run: |
+          set -euo pipefail
+          image=$(jq -r .reference os/manifest/base.json)
+          test "$(awk '/^FROM / {print $2; exit}' os/Containerfile)" = "$image"
+          printf '%s\n' "$image" | tee evidence/base-reference.txt
+          cosign verify --key os/keys/bazzite.pub "$image" > evidence/base-signature.json
+      - name: Resolve all privileged host tools before credentials
+        env:
+          REHEARSAL_MODE: dry-run-28
+        run: python3 os/ci/build_tools.py resolve evidence/build-tools.json
+      - name: Build with the reviewed check build, run the image checks and the first VM pass
+        timeout-minutes: 90
+        run: bash os/ci/check-build.sh build
+      - name: Prove the release excludes the CI layer and keeps both passwords locked
+        run: |
+          set -euo pipefail
+          sudo podman run --rm --entrypoint /usr/bin/bash localhost/aresos:ci -ec '
+            test ! -e /usr/libexec/aresos-ci
+            test ! -e /usr/lib/systemd/system/aresos-ci.service
+            test ! -e /usr/lib/systemd/system-generators/aresos-ci-updater-regression
+            test ! -e /etc/systemd/system/aresos-ci-routine.service
+            test ! -e /etc/systemd/system/aresos-ci-routine.timer
+            test ! -e /etc/systemd/system/aresos-ci-static-canary.service
+            test ! -e /usr/lib/systemd/system/multi-user.target.wants/aresos-ci.service
+            test ! -e /tmp/aresos
+            test ! -e /etc/systemd/system/systemd-logind.service.d/90-aresos-ci.conf
+            test ! -e /etc/systemd/journald.conf.d/99-aresos-ci.conf
+            test "$(systemd-analyze cat-config systemd/journald.conf | sed -n "s/^Storage=//p" | tail -1)" = persistent
+            for user in root ares; do
+              case "$(getent shadow "$user" | cut -d: -f2)" in
+                \!*|\**) ;;
+                *) echo "Unlocked image account: $user"; exit 1 ;;
+              esac
+            done
+            echo "Release excludes CI service and credentials; both passwords locked"
+          ' | tee evidence/release-isolation.txt
+      - name: Prepare job-token credentials for release 27
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REHEARSAL_MODE: dry-run-28
+        run: sudo -E python3 os/ci/registry_auth.py create
+      - name: Verify release 27 and fail closed on the complete image diff
+        timeout-minutes: 60
+        env:
+          REHEARSAL_MODE: dry-run-28
+        run: python3 os/ci/build_tools.py launch "$PWD/evidence/build-tools.json"
+      - name: Remove release 27 credentials
+        if: always()
+        env:
+          REHEARSAL_MODE: dry-run-28
+        run: sudo -E python3 os/ci/registry_auth.py cleanup
+      - name: Bound evidence
+        id: evidence
+        if: always()
+        run: |
+          sudo chown -R "$(id -u):$(id -g)" evidence
+          test "$(du -sb evidence | cut -f1)" -lt 180000000
+          echo 'safe=true' >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always() && steps.evidence.outputs.safe == 'true'
+        with:
+          name: release-28-dry-run-evidence
+          path: evidence/
+          retention-days: 3
+          if-no-files-found: error
   switch:
     name: Published-image switch and rollback
     needs: image
-    if: always() && !cancelled() && github.ref_name != 'pkg/16-staged-release' && github.ref_name != 'pkg/27-first-update-release' && !inputs.release_13 && !inputs.release_27 && !inputs.checks_only && !inputs.rehearsal && (needs.image.result == 'success' || inputs.switch_from_run != '')
+    if: always() && !cancelled() && github.ref_name != 'pkg/16-staged-release' && github.ref_name != 'pkg/27-first-update-release' && !inputs.release_13 && !inputs.release_27 && !inputs.release_28 && !inputs.dry_run_28 && !inputs.checks_only && !inputs.rehearsal && (needs.image.result == 'success' || inputs.switch_from_run != '')
     runs-on: ubuntu-24.04
     timeout-minutes: 75
     permissions:
@@ -569,9 +812,9 @@ jobs:
           if-no-files-found: error
   rehearsal:
     name: Pinned live ISO inspection and two-disk rehearsal
-    if: github.event_name == 'workflow_dispatch' && inputs.rehearsal != '' && (github.ref_name != 'pkg/16-staged-release' || (inputs.rehearsal == 'probe' && !inputs.release_13 && !inputs.checks_only && !inputs.switch_from_run && !inputs.probe_run)) && (inputs.rehearsal == 'update') == (github.ref_name == 'pkg/27-first-update-release') && (github.ref_name == 'pkg/27-first-update-release' && !inputs.release_13 && !inputs.release_27 && !inputs.checks_only && !inputs.switch_from_run && !inputs.probe_run || github.ref_name != 'pkg/27-first-update-release') && (inputs.rehearsal == 'reorder-probe' || inputs.rehearsal == 'ways-back') == (github.ref_name == 'pkg/22c-ways-back-after-update') && (inputs.rehearsal == 'tools-local') == (github.ref_name == 'pkg/22d-tools-without-stick') && (github.ref_name != 'pkg/22c-ways-back-after-update' && github.ref_name != 'pkg/22d-tools-without-stick' || !inputs.release_13 && !inputs.release_27 && !inputs.checks_only && !inputs.switch_from_run && !inputs.probe_run && inputs.check_build == '')
+    if: github.event_name == 'workflow_dispatch' && inputs.rehearsal != '' && (github.ref_name != 'pkg/16-staged-release' || (inputs.rehearsal == 'probe' && !inputs.release_13 && !inputs.checks_only && !inputs.switch_from_run && !inputs.probe_run)) && (inputs.rehearsal == 'update') == (github.ref_name == 'pkg/27-first-update-release') && (github.ref_name == 'pkg/27-first-update-release' && !inputs.release_13 && !inputs.release_27 && !inputs.checks_only && !inputs.switch_from_run && !inputs.probe_run || github.ref_name != 'pkg/27-first-update-release') && (inputs.rehearsal == 'reorder-probe' || inputs.rehearsal == 'ways-back') == (github.ref_name == 'pkg/22c-ways-back-after-update') && (inputs.rehearsal == 'tools-local') == (github.ref_name == 'pkg/22d-tools-without-stick') && (inputs.rehearsal == 'release-28') == (github.ref_name == 'pkg/42-release-28') && (github.ref_name != 'pkg/42-release-28' || !inputs.release_13 && !inputs.release_27 && !inputs.release_28 && !inputs.dry_run_28 && !inputs.checks_only && !inputs.switch_from_run && !inputs.probe_run && inputs.check_build == '') && (github.ref_name != 'pkg/22c-ways-back-after-update' && github.ref_name != 'pkg/22d-tools-without-stick' || !inputs.release_13 && !inputs.release_27 && !inputs.checks_only && !inputs.switch_from_run && !inputs.probe_run && inputs.check_build == '')
     runs-on: ubuntu-24.04
-    timeout-minutes: ${{ (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick') && 345 || inputs.rehearsal == 'update' && 300 || inputs.rehearsal == 'owner-tools' && 240 || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') && inputs.rehearsal == 'probe' && 70 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 130 || 40 }}
+    timeout-minutes: ${{ (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick' || github.ref_name == 'pkg/42-release-28' && inputs.rehearsal == 'release-28') && 345 || inputs.rehearsal == 'update' && 300 || inputs.rehearsal == 'owner-tools' && 240 || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') && inputs.rehearsal == 'probe' && 70 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 130 || 40 }}
     permissions:
       contents: read
       packages: read
@@ -585,7 +828,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
           PROBE_RUN: ${{ inputs.probe_run }}
-        run: python3 os/ci/rehearsal_guard.py '${{ ((github.ref_name == 'pkg/13-keyboard-layout' || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release')) && inputs.rehearsal == 'probe' || github.ref_name == 'pkg/27-first-update-release' && inputs.rehearsal == 'update' || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick')) && 'probe-budget-ci' || 'ci' }}' '${{ (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick') && 345 || inputs.rehearsal == 'update' && 300 || inputs.rehearsal == 'owner-tools' && 240 || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') && inputs.rehearsal == 'probe' && 72 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 130 || 42 }}'
+        run: python3 os/ci/rehearsal_guard.py '${{ ((github.ref_name == 'pkg/13-keyboard-layout' || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release')) && inputs.rehearsal == 'probe' || github.ref_name == 'pkg/27-first-update-release' && inputs.rehearsal == 'update' || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick' || github.ref_name == 'pkg/42-release-28' && inputs.rehearsal == 'release-28')) && 'probe-budget-ci' || 'ci' }}' '${{ (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick' || github.ref_name == 'pkg/42-release-28' && inputs.rehearsal == 'release-28') && 345 || inputs.rehearsal == 'update' && 300 || inputs.rehearsal == 'owner-tools' && 240 || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') && inputs.rehearsal == 'probe' && 72 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 130 || 42 }}'
       - uses: ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6
         with:
           extra-squeeze: 'true'
@@ -593,10 +836,10 @@ jobs:
         # Package 27's update rehearsal (run 42933781975 took 16 of 20 minutes
         # here) gets the release job's patience with the snapshot mirror; every
         # other rehearsal keeps three retries, apt's own timeouts and 20 minutes.
-        timeout-minutes: ${{ (inputs.rehearsal == 'update' || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick')) && 40 || 20 }}
+        timeout-minutes: ${{ (inputs.rehearsal == 'update' || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick' || github.ref_name == 'pkg/42-release-28' && inputs.rehearsal == 'release-28')) && 40 || 20 }}
         env:
-          ARESOS_APT_RETRIES: ${{ (inputs.rehearsal == 'update' || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick')) && '5' || '' }}
-          ARESOS_APT_TIMEOUT: ${{ (inputs.rehearsal == 'update' || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick')) && '60' || '' }}
+          ARESOS_APT_RETRIES: ${{ (inputs.rehearsal == 'update' || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick' || github.ref_name == 'pkg/42-release-28' && inputs.rehearsal == 'release-28')) && '5' || '' }}
+          ARESOS_APT_TIMEOUT: ${{ (inputs.rehearsal == 'update' || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick' || github.ref_name == 'pkg/42-release-28' && inputs.rehearsal == 'release-28')) && '60' || '' }}
         run: |
           set -euo pipefail
           mkdir -p evidence .work/installer
@@ -604,7 +847,7 @@ jobs:
           sudo apt-get -o Acquire::Retries=3 install -y --no-install-recommends libarchive-tools squashfs-tools gnu-efi ntfs-3g dosfstools exfatprogs exfat-fuse gdisk mtools psmisc tesseract-ocr python3-venv
           dpkg-query -W > evidence/rehearsal-host-packages.txt
       - name: Prove package 14 native host capabilities before expensive downloads
-        if: (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') || github.ref_name == 'pkg/27-first-update-release' || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick')
+        if: (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') || github.ref_name == 'pkg/27-first-update-release' || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick' || github.ref_name == 'pkg/42-release-28' && inputs.rehearsal == 'release-28')
         timeout-minutes: 3
         env:
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
@@ -618,7 +861,9 @@ jobs:
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
           unshare -Urm true
       - name: Qualify tools, regressions, rewritten release identity and private access
-        timeout-minutes: 35
+        # The full suite runs here too: 26 to 28 minutes in R28 rehearsals 2 and 3, 38 and over 40 in two
+        # checks runs (package 42, 2026-11-20). 50 keeps a slow runner from costing a rehearsal.
+        timeout-minutes: 50
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
@@ -636,7 +881,7 @@ jobs:
           .work/browser-env/bin/python -c 'import crypt, PIL, playwright.sync_api'
           dpkg-query -W > evidence/rehearsal-host-packages.txt
           env -u REHEARSAL_PACKAGE python3 -m unittest discover -s os/tests -v
-          if test "$GITHUB_REF_NAME" = pkg/14-owner-tools || test "$GITHUB_REF_NAME" = pkg/16-staged-release || test "$GITHUB_REF_NAME" = pkg/27-first-update-release || test "$GITHUB_REF_NAME" = pkg/22c-ways-back-after-update || test "$GITHUB_REF_NAME" = pkg/22d-tools-without-stick; then
+          if test "$GITHUB_REF_NAME" = pkg/14-owner-tools || test "$GITHUB_REF_NAME" = pkg/16-staged-release || test "$GITHUB_REF_NAME" = pkg/27-first-update-release || test "$GITHUB_REF_NAME" = pkg/22c-ways-back-after-update || test "$GITHUB_REF_NAME" = pkg/22d-tools-without-stick || test "$GITHUB_REF_NAME" = pkg/42-release-28; then
             sudo -E env -u GH_TOKEN python3 os/ci/owner_devices.py
             sudo -E env -u GH_TOKEN python3 os/ci/owner_counter_kernel.py
           fi
@@ -647,11 +892,11 @@ jobs:
           cp os/manifest/release.json evidence/release.json
           python3 os/ci/verify_release.py "$(jq -r .run evidence/release.json | sed 's|.*/||')"
       - name: Require completed native preflight before any package 13 VM
-        if: (github.ref_name == 'pkg/13-keyboard-layout' || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release')) && inputs.rehearsal == 'probe' || github.ref_name == 'pkg/27-first-update-release' && inputs.rehearsal == 'update' || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick')
+        if: (github.ref_name == 'pkg/13-keyboard-layout' || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release')) && inputs.rehearsal == 'probe' || github.ref_name == 'pkg/27-first-update-release' && inputs.rehearsal == 'update' || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick' || github.ref_name == 'pkg/42-release-28' && inputs.rehearsal == 'release-28')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
-        run: python3 os/ci/rehearsal_guard.py ci '${{ (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick') && 345 || inputs.rehearsal == 'update' && 300 || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') && 72 || 42 }}'
+        run: python3 os/ci/rehearsal_guard.py ci '${{ (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick' || github.ref_name == 'pkg/42-release-28' && inputs.rehearsal == 'release-28') && 345 || inputs.rehearsal == 'update' && 300 || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') && 72 || 42 }}'
       - name: Create runner-temporary pinned-image credentials
         if: github.event_name == 'workflow_dispatch' && github.ref_name != 'pkg/13-keyboard-layout' && github.ref_name != 'pkg/14-owner-tools' && github.ref_name != 'pkg/16-staged-release' && github.ref_name != 'pkg/27-first-update-release' && (inputs.rehearsal == 'probe' || inputs.rehearsal == 'part-b')
         env:
@@ -659,28 +904,28 @@ jobs:
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
         run: sudo -E python3 os/ci/rehearsal_auth.py create
       - name: Prepare package 13 job-token credentials without owner-secret fallback
-        if: (github.ref_name == 'pkg/13-keyboard-layout' || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release')) && (inputs.rehearsal == 'probe' || inputs.rehearsal == 'keyboard' || inputs.rehearsal == 'owner-tools') || github.ref_name == 'pkg/27-first-update-release' && inputs.rehearsal == 'update' || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick')
+        if: (github.ref_name == 'pkg/13-keyboard-layout' || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release')) && (inputs.rehearsal == 'probe' || inputs.rehearsal == 'keyboard' || inputs.rehearsal == 'owner-tools') || github.ref_name == 'pkg/27-first-update-release' && inputs.rehearsal == 'update' || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick' || github.ref_name == 'pkg/42-release-28' && inputs.rehearsal == 'release-28')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
         run: sudo -E python3 os/ci/registry_auth.py create
       - name: Verify exact private manifest with scoped credentials
-        if: github.event_name == 'workflow_dispatch' && (inputs.rehearsal == 'probe' || inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard' || inputs.rehearsal == 'owner-tools' || inputs.rehearsal == 'update' || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick'))
+        if: github.event_name == 'workflow_dispatch' && (inputs.rehearsal == 'probe' || inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard' || inputs.rehearsal == 'owner-tools' || inputs.rehearsal == 'update' || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick' || github.ref_name == 'pkg/42-release-28' && inputs.rehearsal == 'release-28'))
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
         run: sudo -E python3 os/ci/registry_auth.py preflight
       - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
-        if: (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') || github.ref_name == 'pkg/27-first-update-release' || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick')
+        if: (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') || github.ref_name == 'pkg/27-first-update-release' || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick' || github.ref_name == 'pkg/42-release-28' && inputs.rehearsal == 'release-28')
         with:
           cosign-release: v2.6.1
       - name: Verify the exact private signature natively for the offline guest
-        if: (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') || github.ref_name == 'pkg/27-first-update-release' || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick')
+        if: (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') || github.ref_name == 'pkg/27-first-update-release' || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick' || github.ref_name == 'pkg/42-release-28' && inputs.rehearsal == 'release-28')
         env:
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
         run: sudo -E python3 os/ci/registry_auth.py signature "$(command -v cosign)"
       - name: Qualify the exact pinned layer pull without installing
-        if: github.event_name == 'workflow_dispatch' && (inputs.rehearsal == 'probe' || inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard' || inputs.rehearsal == 'owner-tools' || inputs.rehearsal == 'update' || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick'))
+        if: github.event_name == 'workflow_dispatch' && (inputs.rehearsal == 'probe' || inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard' || inputs.rehearsal == 'owner-tools' || inputs.rehearsal == 'update' || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick' || github.ref_name == 'pkg/42-release-28' && inputs.rehearsal == 'release-28'))
         timeout-minutes: 9
         env:
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
@@ -694,7 +939,9 @@ jobs:
           python3 os/ci/installer_inspect.py
       - name: Prepare disposable file disks and qualify the real live environment
         if: inputs.rehearsal != 'inspect'
-        timeout-minutes: ${{ (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick') && 315 || inputs.rehearsal == 'update' && 270 || inputs.rehearsal == 'owner-tools' && 200 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 106 || 80 }}
+        # Release 28 reserves 345 minutes. Leave 45 for runner setup and preflight (37 measured in
+        # rehearsals 2 and 3) and 10 for cleanup and upload: the walk itself is the scarce part.
+        timeout-minutes: ${{ github.ref_name == 'pkg/42-release-28' && inputs.rehearsal == 'release-28' && 290 || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick') && 315 || inputs.rehearsal == 'update' && 270 || inputs.rehearsal == 'owner-tools' && 200 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 106 || 80 }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
@@ -713,7 +960,7 @@ jobs:
           pathlib.Path('evidence/native-fixture.json').write_text(json.dumps(result, indent=2) + '\n')
           print('Native file-backed GPT/EFI/MSR/NTFS/recovery and offline audit passed; no VM started')
           PY
-          elif test "$REHEARSAL_PACKAGE" = 14 || test "$REHEARSAL_PACKAGE" = 16 || test "$REHEARSAL_PACKAGE" = 27 || test "$REHEARSAL_PACKAGE" = 22c || test "$REHEARSAL_PACKAGE" = 22d; then
+          elif test "$REHEARSAL_PACKAGE" = 14 || test "$REHEARSAL_PACKAGE" = 16 || test "$REHEARSAL_PACKAGE" = 27 || test "$REHEARSAL_PACKAGE" = 22c || test "$REHEARSAL_PACKAGE" = 22d || test "$REHEARSAL_PACKAGE" = 42; then
             sudo -E .work/browser-env/bin/python os/ci/owner_vm.py '${{ inputs.rehearsal }}'
           elif test "$REHEARSAL_PACKAGE" = 13; then
             sudo -E .work/browser-env/bin/python os/ci/keyboard_vm.py '${{ inputs.rehearsal }}'
@@ -721,12 +968,12 @@ jobs:
             sudo -E .work/browser-env/bin/python os/ci/two_disk_vm.py '${{ inputs.rehearsal }}'
           fi
       - name: Remove owner registry credentials
-        if: always() && github.ref_name != 'pkg/13-keyboard-layout' && github.ref_name != 'pkg/14-owner-tools' && github.ref_name != 'pkg/16-staged-release' && github.ref_name != 'pkg/27-first-update-release' && github.ref_name != 'pkg/22c-ways-back-after-update' && github.ref_name != 'pkg/22d-tools-without-stick'
+        if: always() && github.ref_name != 'pkg/13-keyboard-layout' && github.ref_name != 'pkg/14-owner-tools' && github.ref_name != 'pkg/16-staged-release' && github.ref_name != 'pkg/27-first-update-release' && github.ref_name != 'pkg/22c-ways-back-after-update' && github.ref_name != 'pkg/22d-tools-without-stick' && github.ref_name != 'pkg/42-release-28'
         env:
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
         run: sudo -E python3 os/ci/rehearsal_auth.py cleanup
       - name: Remove package 13 job-token credentials
-        if: always() && (github.ref_name == 'pkg/13-keyboard-layout' || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') || github.ref_name == 'pkg/27-first-update-release' || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick'))
+        if: always() && (github.ref_name == 'pkg/13-keyboard-layout' || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') || github.ref_name == 'pkg/27-first-update-release' || (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick' || github.ref_name == 'pkg/42-release-28' && inputs.rehearsal == 'release-28'))
         env:
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
         run: sudo -E python3 os/ci/registry_auth.py cleanup

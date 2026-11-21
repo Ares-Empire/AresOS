@@ -1,0 +1,33 @@
+# AresOS (package 25, brief 3.1; OS-BASE B3): the shutdown guard.
+#
+# Its start does nothing. Its stop asks the desktop supervisor to save the
+# Minecraft home and close the game (aresos-desktop stop --reason shutdown).
+# systemd stops units in the reverse of their start order, so everything this
+# unit is ordered after is still there while the home is saved: greetd, the
+# user manager (the game's scope, Prism's wrapper), the runtime folder (the
+# supervisor's socket) and the home's mount. Ctrl+Alt+F3 also needs polkit
+# to authorize logind's VT switch and a running getty on tty3. The drop-in
+# session-.scope.d/50-aresos-guardian.conf orders every login session (labwc,
+# the supervisor) the same way.
+#
+# TimeoutStopSec: the command waits 62 s for the supervisor (whose stop has
+# 60 s), then at most 10 s for a new one, then writes its fallback record.
+# The supervisor authorizes no game unless this unit is active.
+[Unit]
+Description=AresOS guardian: save the Minecraft home before the system stops
+Documentation=file:/usr/libexec/aresos-desktop
+Wants=polkit.service
+After=greetd.service user@1001.service user-runtime-dir@1001.service polkit.service getty@tty3.service
+RequiresMountsFor=/var/home/ares
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=ares
+Environment=XDG_RUNTIME_DIR=/run/user/1001
+ExecStart=/usr/bin/true
+ExecStop=/usr/libexec/aresos-desktop stop --reason shutdown
+TimeoutStopSec=85
+
+[Install]
+WantedBy=graphical.target

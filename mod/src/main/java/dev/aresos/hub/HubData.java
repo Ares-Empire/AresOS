@@ -56,6 +56,7 @@ import java.util.stream.Collectors;
  * The two files can disagree (an older mod's {@code zone remove}): a pass of the town puts a missing zone back.
  */
 public final class HubData extends SavedData {
+    private long logoRevision;
     /** One block the mod placed; the block as its ID, for example "minecraft:gold_block". */
     public record Placed(BlockPos pos, String block) {
         public static final Codec<Placed> CODEC = RecordCodecBuilder.create(i -> i.group(
@@ -311,6 +312,7 @@ public final class HubData extends SavedData {
     void adopt(TownFile file) {
         if (!home.equals(file.home)) throw new IllegalArgumentException("The town file belongs to another home: " + file.home);
         check(file.logos);
+        logoRevision++;
         for (var logo : town.logos) for (var block : logo.gate().placed()) { placed.remove(block.pos()); logoBlocks.remove(block.pos()); }
         var logos = List.copyOf(file.logos);
         file.logos.clear();
@@ -328,6 +330,22 @@ public final class HubData extends SavedData {
     public Fixed fixed() { return fixed; }
     /** The town's standing logos, in the order they were built. */
     public List<Logo> logos() { return List.copyOf(town.logos); }
+
+    long logoRevision() { return logoRevision; }
+
+    /** The recorded front includes the doorway and any cells that left the town's ownership. */
+    List<String> front(Logo logo, Place place) {
+        var front = plan(place, "?", null);
+        var blocks = new HashMap<BlockPos, String>();
+        for (var block : logo.gate().placed()) blocks.put(block.pos(), block.block());
+        var result = new ArrayList<String>(HubLayout.SIZE * HubLayout.SIZE);
+        for (int y = HubLayout.SIZE - 1; y >= 0; y--) for (int x = 0; x < HubLayout.SIZE; x++) {
+            String block = blocks.get(front.at(0, x, y));
+            var id = block == null ? null : net.minecraft.resources.Identifier.tryParse(block);
+            result.add(id != null && id.getNamespace().equals("minecraft") ? id.getPath() : "");
+        }
+        return result;
+    }
 
     /** The logo of an app that stands in the town. */
     public Optional<Logo> logo(String app) {
@@ -379,6 +397,7 @@ public final class HubData extends SavedData {
         logos.add(logo);
         check(logos);
         index(logo);
+        logoRevision++;
         town.setDirty();
     }
 
@@ -482,6 +501,7 @@ public final class HubData extends SavedData {
         var logo = logo(app);
         logo.ifPresent(gone -> {
             town.logos.remove(gone);
+            logoRevision++;
             for (var block : gone.gate().placed()) { placed.remove(block.pos()); logoBlocks.remove(block.pos()); }
             town.setDirty();
         });
@@ -517,6 +537,7 @@ public final class HubData extends SavedData {
         }
         var app = logoBlocks.remove(pos);
         if (app == null) return;
+        logoRevision++;
         for (int i = 0; i < town.logos.size(); i++) {
             var logo = town.logos.get(i);
             if (logo.app().equals(app)) town.logos.set(i, logo.without(Set.of(pos)));

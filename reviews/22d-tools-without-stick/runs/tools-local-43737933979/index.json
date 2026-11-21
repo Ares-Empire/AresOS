@@ -431,7 +431,7 @@
     "[\\w.+-]+@[\\w-]+\\.[A-Za-z][\\w.]*",
     "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}",
     "(?i)serial",
-    "(?i)patrik|carlsen|lenovo|micron|crucial",
+    "(?i)<owner's first name>|carlsen|lenovo|micron|crucial",
     "(?i)token|secret|password"
   ],
   "protected_disk_baseline_sha256": "5a459517f47f5a2e13781f98cc3cd6f24308b8b2d63cb30c44fd369d27130975",

@@ -1,3 +1,4 @@
+import contextlib
 import pathlib
 import json
 import os
@@ -19,6 +20,7 @@ class KeyboardVMTest(unittest.TestCase):
         for method,args in ((td.live_probe,(Mock(),)),(td.install,(Mock(),'secret','hash'))):
             with self.subTest(method=method.__name__), patch.dict(os.environ,REHEARSAL_PACKAGE='13'), \
                  patch.object(td,'Guest',return_value=guest),patch.object(td,'cleanup_live'), \
+                 patch.object(td,'stock_share',return_value=contextlib.nullcontext()), \
                  patch.object(td,'live_inventory',side_effect=RuntimeError('inventory sentinel')), \
                  patch('live_keyboard_ui.run',side_effect=AssertionError('unused laptop fixture called')) as live:
                 with self.assertRaisesRegex(RuntimeError,'inventory sentinel'):

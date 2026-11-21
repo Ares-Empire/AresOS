@@ -132,7 +132,7 @@ class LegacyDiscoveredIdTest(Base):
             with self.subTest(app_id):
                 self.assertEqual(self.request(helper, conn, 'open_app', request_id, app_id=app_id),
                                  self.old_answer(request_id, app_id))
-                self.assertEqual(helper.journal.entries[request_id],
+                self.assertEqual(helper.journal.entries[shell.DESKTOP, request_id],
                                  {'app_id': app_id, 'launch_id': None, 'state': 'failed', 'error': 'unknown_app',
                                   'message': 'no reviewed launch definition', 'updated': 100.0})
                 with open(self.journal) as handle:
@@ -160,7 +160,7 @@ class LegacyDiscoveredIdTest(Base):
         older = self.connect(helper)
         self.assertEqual(self.request(helper, older, 'open_app', 'o-1', app_id='lunarclient'),
                          self.old_answer('o-1', 'lunarclient'))
-        self.assertEqual(helper.journal.entries['o-1']['state'], 'starting')  # the real launch is untouched
+        self.assertEqual(helper.journal.entries[shell.DESKTOP, 'o-1']['state'], 'starting')  # the real launch is untouched
         self.assertEqual(self.popen.call_count, 1)
 
 
@@ -354,7 +354,7 @@ class HintedOwnershipTest(OwnershipBase):
         self.helper_.windows_changed()
         self.later(shell.HANDOFF * 4)
         self.assertEqual((self.activations, self.state('o-l')), ([], 'focused'))
-        self.assertEqual(self.helper_.handles['o-l'], {4})
+        self.assertEqual(self.helper_.handles[shell.DESKTOP, 'o-l'], {4})
         self.game_closes_and_the_hub_returns([1])
 
     def test_launcher_closed_after_the_game_appears(self):
@@ -368,7 +368,7 @@ class HintedOwnershipTest(OwnershipBase):
 
     def test_discord_resident_without_a_window_while_an_unrelated_window_opens(self):
         self.open('discord', 'o-d')
-        unit = self.helper_.journal.entries['o-d']['unit']
+        unit = self.helper_.journal.entries[shell.DESKTOP, 'o-d']['unit']
         self.active_units.add(unit)  # Discord stays resident in its scope
         self.window(2, 'discord', active=True)
         self.later(5)
@@ -384,7 +384,7 @@ class HintedOwnershipTest(OwnershipBase):
         self.assertEqual(self.focus_events()[-1], ('background', 'other_window', None))
         # A second click hands over to the resident Discord; the unrelated window must not confirm it.
         self.open('discord', 'o-d2')
-        self.helper_.processes['o-d2'].code = 0
+        self.helper_.processes[shell.DESKTOP, 'o-d2'].code = 0
         self.later(shell.WINDOW_TIMEOUT + 1)
         self.scope_pass(self.helper_)
         self.assertEqual(self.state('o-d2'), 'starting')
@@ -524,7 +524,7 @@ class LegacyWindowsTest(Base):
                 self.firefox_opens_and_closes_over_the_terminal(handle)
                 self.assertEqual(self.activations, [])
                 self.assertEqual(self.current.shell, 'background')
-                self.assertEqual(self.current.journal.entries['o-t']['state'], 'focused')
+                self.assertEqual(self.current.journal.entries[shell.DESKTOP, 'o-t']['state'], 'focused')
                 self.assertFalse([e for e in conn.events('shell_focus') if e.get('app_id') == 'firefox'])
             if round == 0:
                 self.current.disconnected(conn)  # the next round runs with no desktop connected
@@ -534,7 +534,7 @@ class LegacyWindowsTest(Base):
         self.windows.gone(3)
         self.current.windows_changed()
         self.assertEqual(self.activations, [1])
-        self.assertEqual(self.current.journal.entries['o-t']['state'], 'closed')
+        self.assertEqual(self.current.journal.entries[shell.DESKTOP, 'o-t']['state'], 'closed')
 
     def test_a_1_1_desktop_owns_discovered_windows_and_a_1_0_reconnect_gives_them_up(self):
         self.hello(1)

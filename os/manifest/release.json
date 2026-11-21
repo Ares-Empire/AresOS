@@ -1,229 +1,161 @@
 {
-  "reference": "ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c",
-  "tag": "27-b216f28fdb072534856aff57481e33b641576ac7",
-  "source_commit": "b216f28fdb072534856aff57481e33b641576ac7",
+  "reference": "ghcr.io/ares-empire/aresos@sha256:aa97b2d506a4b48e24869902d78adb7700482a068d9bb5dc371e886a76e5f15d",
+  "tag": "28-7d5fbbf2c7f7c5b4d41dd707a9407e6401a4d062",
+  "source_commit": "7d5fbbf2c7f7c5b4d41dd707a9407e6401a4d062",
   "base": "ghcr.io/ublue-os/bazzite-nvidia-open@sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
   "visibility": "private",
   "signature": {
     "method": "cosign keyless",
-    "identity": "https://github.com/Ares-Empire/AresOS/.github/workflows/os-image.yml@refs/heads/pkg/27-first-update-release",
+    "identity": "https://github.com/Ares-Empire/AresOS/.github/workflows/os-image.yml@refs/heads/pkg/42-release-28",
     "issuer": "https://token.actions.githubusercontent.com"
   },
-  "run": "https://github.com/Ares-Empire/AresOS/actions/runs/42842793096",
+  "run": "https://github.com/Ares-Empire/AresOS/actions/runs/44590446680",
   "image_diff": {
     "status": "passed",
-    "previous": "ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+    "previous": "ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c",
     "pinned_base": "ghcr.io/ublue-os/bazzite-nvidia-open@sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
-    "previous_source": "775be05b7f0d6971cbdc8a3bd1aea617fc008c4d",
-    "method": "full rebuild compared with release 13; every difference classified",
+    "previous_source": "41b06513c1972ac4ccf395c169fdf261381243b0",
+    "method": "full rebuild compared with release 27; every difference classified",
     "package_count": {
-      "old": 2801,
-      "new": 2806
+      "old": 2806,
+      "new": 2810
     },
     "packages": [
       {
-        "nevra": "brightnessctl-0.5.1-16.fc44.x86_64",
+        "nevra": "java-25-openjdk-crypto-adapter-1:25.0.5.0.8-3.1.fc44.x86_64",
         "change": "added",
-        "reason": "package 21: brightness keys (brightnessctl)"
+        "reason": "package 23: Java 25's NSS crypto adapter, a dependency of java-25-openjdk-headless"
       },
       {
-        "nevra": "google-chrome-stable-157.0.8103.50-1.x86_64",
+        "nevra": "java-25-openjdk-headless-1:25.0.5.0.8-3.1.fc44.x86_64",
         "change": "added",
-        "reason": "package 21: Google Chrome from its pinned RPM"
+        "reason": "package 23: Java 25, which Prism runs Minecraft 26.2 with"
       },
       {
-        "nevra": "libblkid-2.41.6-1.fc44.i686",
+        "nevra": "javapackages-filesystem-6.4.1-10.fc44.noarch",
         "change": "added",
-        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
+        "reason": "package 23: Java's shared directories, a dependency of java-25-openjdk-headless"
       },
       {
-        "nevra": "libblkid-2.41.6-1.fc44.x86_64",
+        "nevra": "tzdata-java-2026f-1.fc44.noarch",
         "change": "added",
-        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
-      },
-      {
-        "nevra": "liberation-fonts-all-1:2.1.5-15.fc44.noarch",
-        "change": "added",
-        "reason": "package 21: Google Chrome's only Fedora dependency"
-      },
-      {
-        "nevra": "libfdisk-2.41.6-1.fc44.x86_64",
-        "change": "added",
-        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
-      },
-      {
-        "nevra": "liblastlog2-2.41.6-1.fc44.x86_64",
-        "change": "added",
-        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
-      },
-      {
-        "nevra": "libmount-2.41.6-1.fc44.i686",
-        "change": "added",
-        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
-      },
-      {
-        "nevra": "libmount-2.41.6-1.fc44.x86_64",
-        "change": "added",
-        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
-      },
-      {
-        "nevra": "libsmartcols-2.41.6-1.fc44.x86_64",
-        "change": "added",
-        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
-      },
-      {
-        "nevra": "libuuid-2.41.6-1.fc44.i686",
-        "change": "added",
-        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
-      },
-      {
-        "nevra": "libuuid-2.41.6-1.fc44.x86_64",
-        "change": "added",
-        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
-      },
-      {
-        "nevra": "qrencode-4.1.1-12.fc44.x86_64",
-        "change": "added",
-        "reason": "package 21: qrencode"
-      },
-      {
-        "nevra": "util-linux-2.41.6-1.fc44.x86_64",
-        "change": "added",
-        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
-      },
-      {
-        "nevra": "util-linux-core-2.41.6-1.fc44.x86_64",
-        "change": "added",
-        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
-      },
-      {
-        "nevra": "util-linux-script-2.41.6-1.fc44.x86_64",
-        "change": "added",
-        "reason": "package 21: script (util-linux-script)"
-      },
-      {
-        "nevra": "xdg-desktop-portal-wlr-0.8.5-1.fc44.x86_64",
-        "change": "added",
-        "reason": "package 21 JUDGMENT-CALL 10: vanished Fedora pin 0.8.4 renewed to 0.8.5"
-      },
-      {
-        "nevra": "libblkid-2.41.5-1.fc44.i686",
-        "change": "removed",
-        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
-      },
-      {
-        "nevra": "libblkid-2.41.5-1.fc44.x86_64",
-        "change": "removed",
-        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
-      },
-      {
-        "nevra": "libfdisk-2.41.5-1.fc44.x86_64",
-        "change": "removed",
-        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
-      },
-      {
-        "nevra": "liblastlog2-2.41.5-1.fc44.x86_64",
-        "change": "removed",
-        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
-      },
-      {
-        "nevra": "libmount-2.41.5-1.fc44.i686",
-        "change": "removed",
-        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
-      },
-      {
-        "nevra": "libmount-2.41.5-1.fc44.x86_64",
-        "change": "removed",
-        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
-      },
-      {
-        "nevra": "libsmartcols-2.41.5-1.fc44.x86_64",
-        "change": "removed",
-        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
-      },
-      {
-        "nevra": "libuuid-2.41.5-1.fc44.i686",
-        "change": "removed",
-        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
-      },
-      {
-        "nevra": "libuuid-2.41.5-1.fc44.x86_64",
-        "change": "removed",
-        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
-      },
-      {
-        "nevra": "util-linux-2.41.5-1.fc44.x86_64",
-        "change": "removed",
-        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
-      },
-      {
-        "nevra": "util-linux-core-2.41.5-1.fc44.x86_64",
-        "change": "removed",
-        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
-      },
-      {
-        "nevra": "xdg-desktop-portal-wlr-0.8.4-1.fc44.x86_64",
-        "change": "removed",
-        "reason": "package 21 JUDGMENT-CALL 10: vanished Fedora pin 0.8.4 renewed to 0.8.5"
+        "reason": "package 23: Java's time zone data, a dependency of java-25-openjdk-headless"
       }
     ],
     "compared_files": [
-      690389,
-      690710
+      690710,
+      694314
     ],
-    "changed_paths": 915,
+    "changed_paths": 3695,
     "rules": {
-      "build: package 21: Chrome RPM files moved from /var/opt to /usr/lib/opt": 259,
-      "build: package 21: Chrome adds no repository": 1,
-      "build: package 21: Flatpak helper unit no longer masked": 3,
-      "build: package 21: ares in wheel (sysusers); shadow creation dates are build dates": 4,
-      "build: package 21: aresos-subids adds one range for ares": 2,
-      "build: package 21: aresos-subids.service enabled": 1,
-      "build: package 21: brew-bash-completion.sh no longer edited": 1,
-      "build: package 21: direct Chrome command links into /usr/lib/opt": 2,
-      "build: package 21: flatpak is executable again": 1,
-      "build: package 21: polkit defaults made uncached (and the Flatpak app-update implication)": 35,
-      "build: package 21: polkit defaults made uncached, written through the policy link": 1,
-      "build: package 21: usermod's backup of the previous subid file": 2,
-      "config: directory of new os/config files (packages 21/24)": 1,
-      "config: os/config changed since release 13 (packages 21/24); bytes equal the source": 21,
-      "generated: desktop database trigger (Chrome desktop entry)": 1,
-      "generated: dnf5 log": 1,
-      "generated: dnf5 repository state": 2,
-      "generated: dnf5 transaction history": 6,
-      "generated: icon cache trigger (Chrome icons)": 1,
-      "generated: ldconfig cache (libraries changed)": 1,
+      "build: package 18c Part A (#58): systemd-sysusers adds only aresos-tools UID/GID 250; creation dates may change": 2,
+      "build: package 23: Fabric API 0.161.0+26.2 from its pin": 1,
+      "build: package 23: Fabric Loader library net.fabricmc:fabric-loader:0.19.5 from its pin": 1,
+      "build: package 23: Fabric Loader library net.fabricmc:sponge-mixin:0.17.4+mixin.0.8.7 from its pin": 1,
+      "build: package 23: Fabric Loader library org.ow2.asm:asm-analysis:9.10.1 from its pin": 1,
+      "build: package 23: Fabric Loader library org.ow2.asm:asm-commons:9.10.1 from its pin": 1,
+      "build: package 23: Fabric Loader library org.ow2.asm:asm-tree:9.10.1 from its pin": 1,
+      "build: package 23: Fabric Loader library org.ow2.asm:asm-util:9.10.1 from its pin": 1,
+      "build: package 23: Fabric Loader library org.ow2.asm:asm:9.10.1 from its pin": 1,
+      "build: package 23: Prism's net.minecraft 26.2 metadata from its pin": 1,
+      "build: package 23: Prism's org.lwjgl3 3.4.1 metadata from its pin": 1,
+      "build: package 23: folder of the desktop's pinned Minecraft inputs": 2,
+      "build: package 23: path of Prism's pinned bundle, including its type, mode, target and bytes": 915,
+      "build: package 23: the AresOS mod jar, built from this commit and equal to its pin": 1,
+      "build: package 23: the desktop's lock, os/minecraft/desktop.lock.json": 1,
+      "build: package 23: the owner's aresos-desktop command (build.sh link)": 1,
+      "build: package 23: the prismlauncher command, a link into Prism's bundle": 1,
+      "build: package 23b: fc-cache --system-only --really-force rebuilt the system font cache": 33,
+      "build: package 23b: fc-cache --system-only --really-force rebuilt the system font cache (32-bit, from fc-cache-32: Fedora's fc-cache runs both)": 33,
+      "build: package 23b: fc-cache --system-only --really-force rebuilt the system font cache (32-bit, from fc-cache-32: Fedora's fc-cache runs both; a linked font folder release 27 has too)": 1,
+      "build: package 23b: fc-cache --system-only --really-force rebuilt the system font cache (32-bit, from fc-cache-32: Fedora's fc-cache runs both; a new font folder)": 1,
+      "build: package 23b: fc-cache --system-only --really-force rebuilt the system font cache (a linked font folder release 27 has too)": 1,
+      "build: package 23b: fc-cache --system-only --really-force rebuilt the system font cache (a new font folder)": 1,
+      "build: package 31: glib-compile-schemas compiled zz-aresos.gschema.override; only its keys changed: org.gnome.desktop.wm.preferences button-layout": 1,
+      "build: package 50: systemctl enable console keymap link; from 50 (#101)": 1,
+      "config: new folder of os/config files from 23 (#36)": 5,
+      "config: new folder of os/config files from 30 (#55), 30b (#57)": 1,
+      "config: new folder of os/config files from 31 (#54)": 3,
+      "config: os/config file changed since release 27, bytes equal the source; from 23 (#36)": 1,
+      "config: os/config file changed since release 27, bytes equal the source; from 23 (#36), 30 (#55), 30b (#57), Package 40 (#71), 53a (#112)": 1,
+      "config: os/config file changed since release 27, bytes equal the source; from 23 (#36), 31 (#54), Package 40 (#71), 23b (#70)": 1,
+      "config: os/config file changed since release 27, bytes equal the source; from 30 (#55)": 3,
+      "config: os/config file changed since release 27, bytes equal the source; from 55 (#115)": 1,
+      "config: os/config file new since release 27, bytes equal the source; from 23 (#36)": 6,
+      "config: os/config file new since release 27, bytes equal the source; from 23 (#36), 23b (#70), 23d (#78), 51 (#102)": 1,
+      "config: os/config file new since release 27, bytes equal the source; from 23b (#70)": 1,
+      "config: os/config file new since release 27, bytes equal the source; from 30 (#55)": 1,
+      "config: os/config file new since release 27, bytes equal the source; from 30 (#55), 30b (#57)": 1,
+      "config: os/config file new since release 27, bytes equal the source; from 31 (#54)": 40,
+      "config: os/config file new since release 27, bytes equal the source; from 50 (#101)": 1,
+      "control: package 18c Part A (#58), with merged Control fixes: exact install map and locked vendor record": 2108,
+      "generated: dnf5 log (the package step; package 23's Java 25)": 1,
+      "generated: dnf5 repository state: countme markers of the repositories the package step read": 1,
+      "generated: dnf5 transaction history (the package step; package 23's Java 25)": 6,
+      "generated: ldconfig's auxiliary cache, rewritten when the package step runs ldconfig (it keys on file times)": 1,
       "generated: rpm database (package list compared separately)": 1,
-      "manifest: Chrome pin (package 21)": 1,
-      "manifest: installed package list (packages changed)": 1,
-      "manifest: package lock (package 21)": 1,
-      "manifest: updater audit output (Flatpak helper units unmasked, aresos-subids added)": 1,
-      "package: Chrome's install script (xdg-icon-resource / xdg-desktop-menu)": 7,
-      "package: owned by a changed package": 544,
-      "package: package 21: Chrome's install script links its NSS names to the system libraries": 7,
-      "package: package 21: parent directory of Chrome's RPM files": 3,
-      "policy: os/policy changed since release 13 (package 21: Flatpak helpers unmasked)": 3
+      "manifest: installed package list (package 23: Java 25 and its three dependencies)": 1,
+      "manifest: package 23: Prism's bundled files with their SHA-256, exactly the files in usr/lib/prismlauncher": 1,
+      "manifest: package 23: the mod jar's record: its pin, built from this commit": 1,
+      "manifest: package lock (package 23: Java 25 and its three dependencies)": 1,
+      "manifest: updater audit output: only the reviewed new unit and new os/config drop-ins: aresos-toold.service from 18c Part A (#58); aresos-console-keymap.service from 50 (#101); user.slice from 23 (#36)": 1,
+      "package: file of a package added by package 23 (Java 25 and its dependencies): owner, mode, link target and bytes as its rpm database records them": 470,
+      "package: package 23: alternatives link to a file of an added package": 12,
+      "package: package 23: alternatives record and complete link chains match the reviewed RPM mapping": 4,
+      "package: package 23: folder of java-25-openjdk-headless's man pages; its file list names only the pages, so rpm creates the folder for them": 2,
+      "package: package 23: the alt-java command or file, through its alternatives link": 1,
+      "package: package 23: the alt-java.1.gz command or file, through its alternatives link": 1,
+      "package: package 23: the java command or file, through its alternatives link": 1,
+      "package: package 23: the java.1.gz command or file, through its alternatives link": 1,
+      "package: package 23: the jre command or file, through its alternatives link": 1,
+      "package: package 23: the jre_25 command or file, through its alternatives link": 1,
+      "package: package 23: the jre_25_openjdk command or file, through its alternatives link": 1,
+      "package: package 23: the jre_openjdk command or file, through its alternatives link": 1,
+      "package: package 23: the keytool command or file, through its alternatives link": 1,
+      "package: package 23: the keytool.1.gz command or file, through its alternatives link": 1,
+      "package: package 23: the rmiregistry command or file, through its alternatives link": 1,
+      "package: package 23: the rmiregistry.1.gz command or file, through its alternatives link": 1
     },
     "units": {
-      "etc/systemd/system/flatpak-system-helper.service": {
+      "etc/systemd/system/graphical.target.wants/aresos-console-keymap.service": {
         "rule": "build",
-        "reason": "package 21: Flatpak helper unit no longer masked"
+        "reason": "package 50: systemctl enable console keymap link; from 50 (#101)"
       },
-      "etc/systemd/system/multi-user.target.wants/aresos-subids.service": {
-        "rule": "build",
-        "reason": "package 21: aresos-subids.service enabled"
+      "etc/systemd/system/multi-user.target.wants/aresos-toold.service": {
+        "rule": "control",
+        "reason": "package 18c Part A (#58), with merged Control fixes: exact install map and locked vendor record"
       },
-      "etc/systemd/user/flatpak-portal.service": {
-        "rule": "build",
-        "reason": "package 21: Flatpak helper unit no longer masked"
-      },
-      "etc/systemd/user/flatpak-session-helper.service": {
-        "rule": "build",
-        "reason": "package 21: Flatpak helper unit no longer masked"
-      },
-      "usr/lib/systemd/system/aresos-subids.service": {
+      "usr/lib/systemd/system/aresos-console-keymap.service": {
         "rule": "config",
-        "reason": "os/config changed since release 13 (packages 21/24); bytes equal the source"
+        "reason": "os/config file new since release 27, bytes equal the source; from 50 (#101)"
+      },
+      "usr/lib/systemd/system/aresos-toold.service": {
+        "rule": "control",
+        "reason": "package 18c Part A (#58), with merged Control fixes: exact install map and locked vendor record"
+      },
+      "usr/lib/systemd/system/session-.scope.d": {
+        "rule": "config",
+        "reason": "new folder of os/config files from 23 (#36)"
+      },
+      "usr/lib/systemd/system/session-.scope.d/50-aresos-recovery.conf": {
+        "rule": "config",
+        "reason": "os/config file new since release 27, bytes equal the source; from 23 (#36)"
+      },
+      "usr/lib/systemd/system/user-1001.slice.d": {
+        "rule": "config",
+        "reason": "new folder of os/config files from 23 (#36)"
+      },
+      "usr/lib/systemd/system/user-1001.slice.d/50-aresos-recovery.conf": {
+        "rule": "config",
+        "reason": "os/config file new since release 27, bytes equal the source; from 23 (#36)"
+      },
+      "usr/lib/systemd/system/user.slice.d": {
+        "rule": "config",
+        "reason": "new folder of os/config files from 23 (#36)"
+      },
+      "usr/lib/systemd/system/user.slice.d/50-aresos-recovery.conf": {
+        "rule": "config",
+        "reason": "os/config file new since release 27, bytes equal the source; from 23 (#36)"
       }
     },
     "generated": [
@@ -233,11 +165,8 @@
       "usr/lib/sysimage/libdnf5/transaction_history.sqlite",
       "usr/lib/sysimage/libdnf5/transaction_history.sqlite-shm",
       "usr/lib/sysimage/libdnf5/transaction_history.sqlite-wal",
-      "usr/share/applications/mimeinfo.cache",
-      "usr/share/icons/hicolor/icon-theme.cache",
       "usr/share/rpm/rpmdb.sqlite",
       "var/cache/ldconfig/aux-cache",
-      "var/lib/dnf/repos/fedora-cff72538bc9825a4/countme",
       "var/lib/dnf/repos/updates-3cc07c89a20302f2/countme",
       "var/log/dnf5.log"
     ],
@@ -247,58 +176,677 @@
     "runtime_config_changes": {},
     "labels": {
       "org.opencontainers.image.revision": {
-        "before": "2abc12e8aa6089f7576143d1fbccb6648a3291bd",
-        "after": "b216f28fdb072534856aff57481e33b641576ac7"
+        "before": "b216f28fdb072534856aff57481e33b641576ac7",
+        "after": "7d5fbbf2c7f7c5b4d41dd707a9407e6401a4d062"
       }
     },
     "base_ancestry_verified": true,
     "runtime_config_equal": true,
-    "metadata_note": "File mtimes/inodes are storage metadata, excluded as in release 13; full classified inventory in classified-files.json.gz."
+    "metadata_note": "File mtimes/inodes are storage metadata, excluded as in release 13; full classified inventory in classified-files.json.gz.",
+    "release": "28",
+    "control": {
+      "source_revision": "7d5fbbf2c7f7c5b4d41dd707a9407e6401a4d062",
+      "error": null
+    },
+    "schemas": [
+      {
+        "schema": "org.gnome.desktop.wm.preferences",
+        "key": "button-layout",
+        "before": "('appmenu:close',)",
+        "after": "('appmenu:close', (0x64, {'AresOS': <'appmenu:minimize,maximize,close'>}))"
+      }
+    ],
+    "schema_rebuild": {
+      "matches": true,
+      "exit_code": 0,
+      "output": "SCHEMA_REBUILD_MATCHED"
+    },
+    "font_caches": [
+      {
+        "path": "usr/lib/fontconfig/cache/01d40cee498be4726842ba21cbce24ab-le32d4.cache-9",
+        "folder": "/usr/share/fonts/rit-rachana-fonts",
+        "format": "le32d4",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/01d40cee498be4726842ba21cbce24ab-le64.cache-9",
+        "folder": "/usr/share/fonts/rit-rachana-fonts",
+        "format": "le64",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/0f80fa86029ae75a63f21d682b864529-le32d4.cache-9",
+        "folder": "/usr/share/fonts/gdouros-symbola",
+        "format": "le32d4",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/0f80fa86029ae75a63f21d682b864529-le64.cache-9",
+        "folder": "/usr/share/fonts/gdouros-symbola",
+        "format": "le64",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/10b87256799efa3b981d307afc6c3fb0-le32d4.cache-9",
+        "folder": "/usr/share/fonts/lato-fonts",
+        "format": "le32d4",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/10b87256799efa3b981d307afc6c3fb0-le64.cache-9",
+        "folder": "/usr/share/fonts/lato-fonts",
+        "format": "le64",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/11813aa27819adc86a2bd907df52c0c9-le32d4.cache-9",
+        "folder": "/usr/share/fonts/google-noto-sans-cjk-fonts",
+        "format": "le32d4",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/11813aa27819adc86a2bd907df52c0c9-le64.cache-9",
+        "folder": "/usr/share/fonts/google-noto-sans-cjk-fonts",
+        "format": "le64",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/123d59b33ddb0e7c76bb24004bd5cfac-le32d4.cache-9",
+        "folder": "/usr/share/fonts/urw-base35",
+        "format": "le32d4",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/123d59b33ddb0e7c76bb24004bd5cfac-le64.cache-9",
+        "folder": "/usr/share/fonts/urw-base35",
+        "format": "le64",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/131ab5cc1583381c4f7ce0194912c56d-le32d4.cache-9",
+        "folder": "/usr/share/fonts/stix-fonts",
+        "format": "le32d4",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/131ab5cc1583381c4f7ce0194912c56d-le64.cache-9",
+        "folder": "/usr/share/fonts/stix-fonts",
+        "format": "le64",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/18f520a508f13854f77176faf7889ae9-le32d4.cache-9",
+        "folder": "/usr/share/fonts/abattis-cantarell-vf-fonts",
+        "format": "le32d4",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/18f520a508f13854f77176faf7889ae9-le64.cache-9",
+        "folder": "/usr/share/fonts/abattis-cantarell-vf-fonts",
+        "format": "le64",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/22f06f3be2d16d058da85b73ae1dc5b1-le32d4.cache-9",
+        "folder": "/usr/share/fonts/jomolhari-fonts",
+        "format": "le32d4",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/22f06f3be2d16d058da85b73ae1dc5b1-le64.cache-9",
+        "folder": "/usr/share/fonts/jomolhari-fonts",
+        "format": "le64",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/29c8f5b6bf15d25ebb2e963855ab41be-le32d4.cache-9",
+        "folder": "/usr/share/fonts/open-sans",
+        "format": "le32d4",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/29c8f5b6bf15d25ebb2e963855ab41be-le64.cache-9",
+        "folder": "/usr/share/fonts/open-sans",
+        "format": "le64",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/2a90ec7ec7fc01d3a9f58fddf8db0237-le32d4.cache-9",
+        "folder": "/usr/share/fonts/madan-fonts",
+        "format": "le32d4",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/2a90ec7ec7fc01d3a9f58fddf8db0237-le64.cache-9",
+        "folder": "/usr/share/fonts/madan-fonts",
+        "format": "le64",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/3196f05a030874ca00722cbf1e991434-le32d4.cache-9",
+        "folder": "/usr/share/fonts/abattis-cantarell-fonts",
+        "format": "le32d4",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/3196f05a030874ca00722cbf1e991434-le64.cache-9",
+        "folder": "/usr/share/fonts/abattis-cantarell-fonts",
+        "format": "le64",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/345a7c7b640d61a5ef4f4d62b23a1396-le32d4.cache-9",
+        "folder": "/usr/share/fonts/nerd-fonts",
+        "format": "le32d4",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/345a7c7b640d61a5ef4f4d62b23a1396-le64.cache-9",
+        "folder": "/usr/share/fonts/nerd-fonts",
+        "format": "le64",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/3830d5c3ddfd5cd38a049b759396e72e-le32d4.cache-9",
+        "folder": "/usr/share/fonts",
+        "format": "le32d4",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/3830d5c3ddfd5cd38a049b759396e72e-le64.cache-9",
+        "folder": "/usr/share/fonts",
+        "format": "le64",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/39377a11d38956c26ecfe23db50b3cd3-le32d4.cache-9",
+        "folder": "/usr/share/fonts/rit-meera-new-fonts",
+        "format": "le32d4",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/39377a11d38956c26ecfe23db50b3cd3-le64.cache-9",
+        "folder": "/usr/share/fonts/rit-meera-new-fonts",
+        "format": "le64",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/42536ef14367b24656ac994a93d66238-le32d4.cache-9",
+        "folder": "/usr/share/fonts/google-noto-serif-cjk-vf-fonts",
+        "format": "le32d4",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/42536ef14367b24656ac994a93d66238-le64.cache-9",
+        "folder": "/usr/share/fonts/google-noto-serif-cjk-vf-fonts",
+        "format": "le64",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/50471fd4bd417ff5c0731b6a17aa3708-le32d4.cache-9",
+        "folder": "/usr/share/fonts/aresos",
+        "format": "le32d4",
+        "folder_kind": "folder",
+        "change": "added"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/50471fd4bd417ff5c0731b6a17aa3708-le64.cache-9",
+        "folder": "/usr/share/fonts/aresos",
+        "format": "le64",
+        "folder_kind": "folder",
+        "change": "added"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/5f83c5e20bd7d0a7cb83b2e020f779d2-le32d4.cache-9",
+        "folder": "/usr/share/fonts/source-foundry-hack-fonts",
+        "format": "le32d4",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/5f83c5e20bd7d0a7cb83b2e020f779d2-le64.cache-9",
+        "folder": "/usr/share/fonts/source-foundry-hack-fonts",
+        "format": "le64",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/682aa9b8e50ba64f927562a30cb365d9-le32d4.cache-9",
+        "folder": "/usr/share/fonts/fira-code",
+        "format": "le32d4",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/682aa9b8e50ba64f927562a30cb365d9-le64.cache-9",
+        "folder": "/usr/share/fonts/fira-code",
+        "format": "le64",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/6cdba951d5a16891afaaf2fee13e80e7-le32d4.cache-9",
+        "folder": "/usr/share/fonts/adwaita-sans-fonts",
+        "format": "le32d4",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/6cdba951d5a16891afaaf2fee13e80e7-le64.cache-9",
+        "folder": "/usr/share/fonts/adwaita-sans-fonts",
+        "format": "le64",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/6ee3103884cce7b2fe6f32eba9089175-le32d4.cache-9",
+        "folder": "/usr/share/fonts/google-droid-sans-fonts",
+        "format": "le32d4",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/6ee3103884cce7b2fe6f32eba9089175-le64.cache-9",
+        "folder": "/usr/share/fonts/google-droid-sans-fonts",
+        "format": "le64",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/71fe2b50576cdbc5f931776365d4a6ea-le32d4.cache-9",
+        "folder": "/usr/share/fonts/liberation-serif-fonts",
+        "format": "le32d4",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/71fe2b50576cdbc5f931776365d4a6ea-le64.cache-9",
+        "folder": "/usr/share/fonts/liberation-serif-fonts",
+        "format": "le64",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/787b69f04c7448ed6c581b040220c91f-le32d4.cache-9",
+        "folder": "/usr/share/fonts/twemoji",
+        "format": "le32d4",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/787b69f04c7448ed6c581b040220c91f-le64.cache-9",
+        "folder": "/usr/share/fonts/twemoji",
+        "format": "le64",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/7ee6df7a8311986241317a58487e0145-le32d4.cache-9",
+        "folder": "/usr/share/fonts/google-noto",
+        "format": "le32d4",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/7ee6df7a8311986241317a58487e0145-le64.cache-9",
+        "folder": "/usr/share/fonts/google-noto",
+        "format": "le64",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/9162ae45def2e036f06e4d1913f17ba7-le32d4.cache-9",
+        "folder": "/usr/share/fonts/liberation-mono-fonts",
+        "format": "le32d4",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/9162ae45def2e036f06e4d1913f17ba7-le64.cache-9",
+        "folder": "/usr/share/fonts/liberation-mono-fonts",
+        "format": "le64",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/9d9e7a658cb1f50f02561d1ed3ca8bca-le32d4.cache-9",
+        "folder": "/usr/share/fonts/paktype-naskh-basic-fonts",
+        "format": "le32d4",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/9d9e7a658cb1f50f02561d1ed3ca8bca-le64.cache-9",
+        "folder": "/usr/share/fonts/paktype-naskh-basic-fonts",
+        "format": "le64",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/a1059391c956b3cbc42a78cac70f430a-le32d4.cache-9",
+        "folder": "/usr/share/fonts/google-noto-emoji-fonts",
+        "format": "le32d4",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/a1059391c956b3cbc42a78cac70f430a-le64.cache-9",
+        "folder": "/usr/share/fonts/google-noto-emoji-fonts",
+        "format": "le64",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/aa02322cc1375fea2382deabf4339973-le32d4.cache-9",
+        "folder": "/usr/share/fonts/google-noto-color-emoji-fonts",
+        "format": "le32d4",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/aa02322cc1375fea2382deabf4339973-le64.cache-9",
+        "folder": "/usr/share/fonts/google-noto-color-emoji-fonts",
+        "format": "le64",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/b2307de753f1224d9542f27e8b3975ae-le32d4.cache-9",
+        "folder": "/usr/share/fonts/sil-padauk-fonts",
+        "format": "le32d4",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/b2307de753f1224d9542f27e8b3975ae-le64.cache-9",
+        "folder": "/usr/share/fonts/sil-padauk-fonts",
+        "format": "le64",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/c4be257954870c0bf6972134c1de66d5-le32d4.cache-9",
+        "folder": "/usr/share/fonts/google-noto-sans-cjk-vf-fonts",
+        "format": "le32d4",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/c4be257954870c0bf6972134c1de66d5-le64.cache-9",
+        "folder": "/usr/share/fonts/google-noto-sans-cjk-vf-fonts",
+        "format": "le64",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/cc8b894d3abbdf0310c48629c0737d80-le32d4.cache-9",
+        "folder": "/usr/share/fonts/vazirmatn-vf-fonts",
+        "format": "le32d4",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/cc8b894d3abbdf0310c48629c0737d80-le64.cache-9",
+        "folder": "/usr/share/fonts/vazirmatn-vf-fonts",
+        "format": "le64",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/d63f98f14a274bd69a5425fc33aaac6b-le32d4.cache-9",
+        "folder": "/usr/share/fonts/google-noto-vf",
+        "format": "le32d4",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/d63f98f14a274bd69a5425fc33aaac6b-le64.cache-9",
+        "folder": "/usr/share/fonts/google-noto-vf",
+        "format": "le64",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/e5da922122f90e18ce9aab86d5c2b324-le32d4.cache-9",
+        "folder": "/usr/share/fonts/liberation-sans-fonts",
+        "format": "le32d4",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/e5da922122f90e18ce9aab86d5c2b324-le64.cache-9",
+        "folder": "/usr/share/fonts/liberation-sans-fonts",
+        "format": "le64",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/efcfae1a52990961975415036867654f-le32d4.cache-9",
+        "folder": "/usr/share/fonts/google-noto-sans-mono-cjk-vf-fonts",
+        "format": "le32d4",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/efcfae1a52990961975415036867654f-le64.cache-9",
+        "folder": "/usr/share/fonts/google-noto-sans-mono-cjk-vf-fonts",
+        "format": "le64",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/f2e43df3287529323e79e7929dc44cc9-le32d4.cache-9",
+        "folder": "/usr/share/fonts/noto-cjk",
+        "format": "le32d4",
+        "folder_kind": "link",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/f2e43df3287529323e79e7929dc44cc9-le64.cache-9",
+        "folder": "/usr/share/fonts/noto-cjk",
+        "format": "le64",
+        "folder_kind": "link",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/feeafda3627faad7596d025cfacea73f-le32d4.cache-9",
+        "folder": "/usr/share/fonts/adwaita-mono-fonts",
+        "format": "le32d4",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      },
+      {
+        "path": "usr/lib/fontconfig/cache/feeafda3627faad7596d025cfacea73f-le64.cache-9",
+        "folder": "/usr/share/fonts/adwaita-mono-fonts",
+        "format": "le64",
+        "folder_kind": "folder",
+        "change": "rebuilt"
+      }
+    ],
+    "updaters": [
+      {
+        "scope": "system",
+        "unit": "aresos-toold.service",
+        "added": [
+          "/usr/lib/systemd/system/aresos-toold.service"
+        ],
+        "change": "added unit",
+        "from": [
+          "18c Part A (#58)"
+        ]
+      },
+      {
+        "scope": "system",
+        "unit": "aresos-console-keymap.service",
+        "added": [
+          "/usr/lib/systemd/system/aresos-console-keymap.service"
+        ],
+        "change": "added unit",
+        "from": [
+          "50 (#101)"
+        ]
+      },
+      {
+        "scope": "system",
+        "unit": "user.slice",
+        "added": [
+          "/usr/lib/systemd/system/user.slice.d/50-aresos-recovery.conf"
+        ],
+        "from": [
+          "23 (#36)"
+        ]
+      }
+    ],
+    "alternatives": {
+      "java": {
+        "alt-java": "/usr/lib/jvm/java-25-openjdk/bin/alt-java",
+        "alt-java.1.gz": "/usr/lib/jvm/java-25-openjdk/man/man1/alt-java.1",
+        "java": "/usr/lib/jvm/java-25-openjdk/bin/java",
+        "java.1.gz": "/usr/lib/jvm/java-25-openjdk/man/man1/java.1",
+        "jre": "/usr/lib/jvm/java-25-openjdk",
+        "keytool": "/usr/lib/jvm/java-25-openjdk/bin/keytool",
+        "keytool.1.gz": "/usr/lib/jvm/java-25-openjdk/man/man1/keytool.1",
+        "rmiregistry": "/usr/lib/jvm/java-25-openjdk/bin/rmiregistry",
+        "rmiregistry.1.gz": "/usr/lib/jvm/java-25-openjdk/man/man1/rmiregistry.1"
+      },
+      "jre_25": {
+        "jre_25": "/usr/lib/jvm/java-25-openjdk"
+      },
+      "jre_25_openjdk": {
+        "jre_25_openjdk": "/usr/lib/jvm/java-25-openjdk"
+      },
+      "jre_openjdk": {
+        "jre_openjdk": "/usr/lib/jvm/java-25-openjdk"
+      }
+    },
+    "theme": {
+      "image": "cf01b9b105fc38847e6bf6382056862f3c460d8fc6864cc6d0932794fbd2153e",
+      "image_checks": "cf01b9b105fc38847e6bf6382056862f3c460d8fc6864cc6d0932794fbd2153e",
+      "equal": true
+    },
+    "rc_xml": {
+      "added": [
+        "keyboard: <keybind key=\"W-C-Escape\"><action command=\"/usr/bin/aresos-terminal --recovery\" name=\"Execute\"></action><action command=\"/usr/libexec/aresos-desktop hide-cover\" name=\"Execute\"></action></keybind>",
+        "theme: <theme><name>Ares-Crown</name><icon>breeze</icon><fallbackAppIcon>application-x-executable</fallbackAppIcon><cornerRadius>10</cornerRadius><dropShadows>yes</dropShadows><titlebar><layout>menu:iconify,max,close</layout></titlebar><font place=\"ActiveWindow\"><name>Space Grotesk</name><size>13</size><weight>medium</weight></font><font place=\"InactiveWindow\"><name>Space Grotesk</name><size>13</size><weight>medium</weight></font><font place=\"MenuHeader\"><name>Space Grotesk</name><size>12</size><weight>bold</weight></font><font place=\"MenuItem\"><name>Space Grotesk</name><size>12</size></font><font place=\"OnScreenDisplay\"><name>Space Grotesk</name><size>13</size><weight>medium</weight></font></theme>",
+        "windowRules: <windowRule identifier=\"aresos-desktop\" serverDecoration=\"no\"><action name=\"Maximize\"></action></windowRule>",
+        "windowRules: <windowRule identifier=\"aresos-desktop\"><action name=\"ToggleAlwaysOnBottom\"></action></windowRule>",
+        "windowRules: <windowRule identifier=\"aresos.cover\" serverDecoration=\"no\"><action name=\"ToggleFullscreen\"></action><action name=\"ToggleAlwaysOnTop\"></action></windowRule>",
+        "windowSwitcher: <windowSwitcher><osd style=\"thumbnail\"></osd></windowSwitcher>"
+      ],
+      "removed": [
+        "keyboard: <keybind key=\"W-C-Escape\"><action command=\"/usr/bin/aresos-terminal --recovery\" name=\"Execute\"></action></keybind>",
+        "theme: <theme><name>Default</name></theme>"
+      ]
+    },
+    "main": {
+      "merge_base": "fba94b2572a48a5f49c02defb391ee47bb4efec1",
+      "branch_changes": {
+        "os/build.sh": "the cut's fix: the Control install's Python leaves the base's bytecode alone (review 11)",
+        "os/minecraft/desktop.lock.json": "the AresOS jar's pin, renewed on this branch by check_build=resolve (brief 42, A.2)"
+      },
+      "differing": []
+    },
+    "rpm_verify": {
+      "packages": [
+        "java-25-openjdk-crypto-adapter-1:25.0.5.0.8-3.1.fc44.x86_64",
+        "java-25-openjdk-headless-1:25.0.5.0.8-3.1.fc44.x86_64",
+        "javapackages-filesystem-6.4.1-10.fc44.noarch",
+        "tzdata-java-2026f-1.fc44.noarch"
+      ],
+      "exit_code": 0,
+      "line_count": 0,
+      "lines": []
+    }
   },
   "job_token_read": {
     "status": "passed",
-    "reference": "ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c",
+    "reference": "ghcr.io/ares-empire/aresos@sha256:aa97b2d506a4b48e24869902d78adb7700482a068d9bb5dc371e886a76e5f15d",
     "secret": "GITHUB_TOKEN",
     "owner_token_used": false,
     "visibility": "private",
     "manifest_read": true
   },
+  "control": {
+    "source_revision": "7d5fbbf2c7f7c5b4d41dd707a9407e6401a4d062"
+  },
   "source_trees": [
     {
-      "tree": "ac652c146df57630d87177e2656dc6f1d2917340",
-      "path": "os/Containerfile"
+      "tree": "dd9c60244aaec14719166ba75ee329abab49d729",
+      "path": "control"
+    },
+    {
+      "tree": "661013047c220137f2236eb4e633f48e0b20358e",
+      "path": "mod"
     },
     {
       "tree": "389ad38b7e11cc132d09510ab3431a306553770d",
       "path": "os/.containerignore"
     },
     {
-      "tree": "0443d4bb5cd948de8b89fad53b7feb9e9e66038a",
+      "tree": "7b7231b81d7be2a010c7ad81af16f10a29496e83",
+      "path": "os/Containerfile"
+    },
+    {
+      "tree": "5a34aa61f63817b175869a778130043332f06e8d",
       "path": "os/build.sh"
     },
     {
-      "tree": "71b7948c9283163015004eb65e29e47027dfd7a1",
-      "path": "os/packages.lock.json"
+      "tree": "3fb091fb7368a0beaa0dfc755e33696c5ba75c9e",
+      "path": "os/config"
     },
     {
       "tree": "f856cac1f180d6cbbf125c97789a57f75f5a51af",
       "path": "os/google-chrome.lock.json"
     },
     {
-      "tree": "0ba2336091e907de2bdfb38708a54c9634086624",
-      "path": "os/config"
-    },
-    {
-      "tree": "f957222c8a2057e64912c6fd43f403a185eb2387",
-      "path": "os/policy"
+      "tree": "02cfcce92b6fdf798fd884942f2fb7166c0b5c23",
+      "path": "os/keys"
     },
     {
       "tree": "27035216a9fd195de36f9408c907a808848186cb",
       "path": "os/manifest/base.json"
     },
     {
-      "tree": "02cfcce92b6fdf798fd884942f2fb7166c0b5c23",
-      "path": "os/keys"
+      "tree": "ed9c30efaab967a924a1f6dcb67eb93231228623",
+      "path": "os/minecraft"
+    },
+    {
+      "tree": "29b41b6b3ab2db684ea11468a3a9b2a0079d5ed3",
+      "path": "os/packages.lock.json"
+    },
+    {
+      "tree": "f957222c8a2057e64912c6fd43f403a185eb2387",
+      "path": "os/policy"
     },
     {
       "tree": "4e16353ea8fd006d0ac03b9be0b1359249b7c140",
@@ -306,5 +854,5 @@
     }
   ],
   "daily_wheel": true,
-  "owner_review": "owner OK 2026-11-09 to publish and pin once the rehearsal passes"
+  "owner_review": "owner 2026-11-19: standing rule (board #388) and board T415 \"Yes, publish now\"; pinned once the VM rehearsal and the final review pass"
 }

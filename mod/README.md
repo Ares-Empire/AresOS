@@ -35,6 +35,11 @@ The client test task has a ten-minute timeout for a stuck game startup.
 
 ## On Linux (AresOS)
 
+The mod publishes its town and Live hotbar to the AresOS app helper once the
+host's home is ready and whenever it changes. The laptop home reads that
+snapshot so it can use the same places, short names, slots and block-logo
+fronts Minecraft uses.
+
 On the AresOS laptop, use the scripts in `dev/` (from any directory). They need
 no system install and change no shell setup:
 
@@ -564,6 +569,10 @@ server resends the abilities after the game-mode packets of `ModeInventories.syn
 and the respawn, which reset the client's copy. `/aresos desktop off` gives the
 game's own abilities and speed back at once.
 
+**Free pointer (package 56).** With an app focused in a session desktop world and the helper connected, the world keeps living but ignores mouse motion and item input. The pointer is an arrow. Hovering an app slot shows the game's highlight and name line without changing the held item; primary-click opens it through `AresOsClient.launch`. Other clicks enter the world and capture the mouse, leaving app windows above it. Keys and scrolling keep their usual rules. `HomeScreen` keeps the helper's focus through loading and reconnect handshakes; the helper sends an existing background focus after hello, and `ShellClient` replays its latest focus to a late client listener in event order; `HomePointer` resolves taskbar clicks before capture, including either ordering of a click and the helper's activation event. The `MouseHandler` hooks guard capture and turning themselves.
+
+Both modes also fly at **0.075** (`LiveMode.DESKTOP_FLYING_SPEED`), 1.5 times vanilla: about **16.4 blocks/s**, **32.7 sprinting**. No effect or added FOV change; marker-off restores vanilla flight.
+
 **Tests.** `LiveFlightGameTests` (six server game tests: flight and no harm on
 joining, the speed through switches, death and respawns, the speed reaching his
 client, flying in Live still breaking no logo and placing nothing, the marker
@@ -582,6 +591,8 @@ world, the AresOS menu's items, keys and screens, the first start, and New home
 (cancelled, flat to a Nether home with seed 50, and a failure injected at the
 second rename); its pictures go to `../reviews/48-home-menu/screenshots/`.
 `HomeRulesTest` and `HomeSwapTest` are its unit tests.
+
+**Package 56 session tests:** `dev/client-test.sh --session` runs the full suite in headless labwc with the image's `rc.xml` and no autostart. The last test, `FreePointerClientGameTest`, connects a fake helper and drives two small native test windows through private virtual input (`../reviews/56-free-pointer/rig/pointer.py`). It tests focus timing, all four edges slowly/quickly, app switches/close, hover and launch/failure paths, world entry and vanilla gates, and measures flight/FOV in Live, Build and vanilla. Its hover screenshot goes to `../reviews/56-free-pointer/screenshots/`. Without `--session`, the same game callback and flight assertions run; native window checks require `--session`. The lock, room checks, GPU probing and scope cleanup are shared with ordinary client tests.
 
 **The rig** (`../reviews/40-real-home/rig/`, a development aid): what only a real
 labwc shows (the window rules, stacking on click, Alt+Tab, minimize, close, and

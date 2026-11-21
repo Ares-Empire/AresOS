@@ -1,0 +1,7 @@
+{
+  "test": "NetherHomeClientGameTest.testMountedRejoin",
+  "observation": "Two thread dumps show render thread blocked in IntegratedServer.halt / executeBlocking; server thread and test thread blocked in Fabric ThreadingImpl phase barriers. No game log progress since 09:18:30 local.",
+  "action": "SIGTERM to this invocation of client-test.sh so its owned-scope supervisor cleans up; not a test pass",
+  "script_pid": 1038397,
+  "monotonic_ns": 295094818595421
+}

@@ -1,5 +1,5 @@
-Owner tools version 4: dcbc375f
+Owner tools version 5: df89ac33
 
-dcbc375faa4b269bacaf316c5ddc24503b9773b2538bcd017065ce8e312597be
+df89ac336e13db84934505551ba28163cbd60fa5b3b9fb0ec97b9585945896c6
 
 This is the fingerprint of the owner tools that the AresOS guide installs now, and of nothing else. Before you type your password to install them, the window must show the same 8 characters as the first line here, after "AresOS owner tools".

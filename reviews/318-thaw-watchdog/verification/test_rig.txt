@@ -1,0 +1,10 @@
+$ python3 reviews/318-thaw-watchdog/rig/test_rig.py
+..........frozen: RSS 100 MiB; heap None; scope 100 MiB; swap 2 MiB; majflt 3
+nmt-off: RSS 100 MiB; heap None; scope 100 MiB; swap 0 MiB; majflt 0
+clicked 'New home…' at 960,548
+....
+----------------------------------------------------------------------
+Ran 14 tests in 2.270s
+
+OK
+exit 0
