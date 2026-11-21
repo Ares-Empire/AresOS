@@ -97,13 +97,9 @@ Then a fresh Fable final review of the whole diff (backend changes, helper, polk
 
 Safe the way a good command-line tool or MCP is, not every edge case (decision 24, `docs/design/CONTROL.md`, "The bar"). Fix real harm: keystrokes or clipboard reaching a program that shouldn't get them, keys in a log, a capture with no way out, sharing that can't be turned off, a change to the owner's session outside the image. Low-harm edge cases go into `reviews/321-deskflow-image/KNOWN-LIMITS.md` with the reason, not into another fix round. Every reviewer prompt states this bar.
 
-## One question for the owner
+## The owner's answer (board T455, Saturday 2026-11-21)
 
-Steps 1 to 3 don't wait for it; until he answers, the build is without autostart.
-
-- **Question:** once you have turned sharing on, should the laptop start Deskflow by itself every time you log in, so the Mac just connects? Or do you open Deskflow from your apps when you want it?
-- **Advice:** start it by itself while sharing is on. You use it every day; "on" should mean it works after login, and turning sharing off stops it. It costs one more small piece (a start hook in the session, `linux-aresos`'s file, and Deskflow started without its window covering the world), built at the end of step 4.
-- **Options:** "Start it by itself" / "I open it myself".
+"Start it by itself." While sharing is on, Deskflow starts by itself at every login, so the Mac just connects; turning sharing off stops it. It costs a start hook in the session (`linux-aresos`'s file) and Deskflow started without its window covering the world, built at the end of step 4.
 
 ## Not in this package
 
