@@ -60,6 +60,8 @@ case $mode in
         date +%s > evidence/build-end-time.txt
         sudo podman image inspect localhost/aresos:check > evidence/image-inspect.json
         bash os/ci/check-image.sh localhost/aresos:check "$kind"
+        python3 -B os/ci/control/chrome_image.py build-log evidence/image/checks.txt evidence/build.log \
+            | tee evidence/image/control-chrome-build-log.txt
         # Boot both guardian scenarios on fresh overlays of the same disk. The
         # guest policy checks polkit for the daily account's real active
         # session (os/tests/guest.sh), then recovery login and the power key.
@@ -99,8 +101,15 @@ case $mode in
         sudo -E env "ARESOS_REVISION=$revision" python3 os/ci/control/control_vm.py
         echo CHECK_BUILD_CONTROL_PASSED
         ;;
+    control-chrome-pass)
+        # Brief 18c-b, item 5: check_build=control's second VM step with its own time limit. The same disk with a
+        # fresh overlay: Chrome's checks in his session, with the pass's one reboot (control_vm.py chrome).
+        test -d vm-work/output
+        sudo -E python3 os/ci/control/control_vm.py chrome
+        echo CHECK_BUILD_CONTROL_CHROME_PASSED
+        ;;
     *)
-        echo "Unknown check-build mode: '$mode' (expected resolve, build, control or control-pass)" >&2
+        echo "Unknown check-build mode: '$mode' (expected resolve, build, control, control-pass or control-chrome-pass)" >&2
         exit 2
         ;;
 esac

@@ -1,1 +1,1 @@
-{"ExtensionInstallForcelist":["EXTENSION_ID;UPDATE_URL"],"ExtensionSettings":{"EXTENSION_ID":{"toolbar_pin":"force_pinned"}}}
+{"ExtensionSettings":{"EXTENSION_ID":{"installation_mode":"force_installed","update_url":"UPDATE_URL","override_update_url":true,"toolbar_pin":"force_pinned"}}}

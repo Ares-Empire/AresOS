@@ -5,11 +5,17 @@ Control layer's actions from os/ci/control/actions.py) for one check after anoth
 earlier one fails, so one run shows them all; each success prints its fixed PASS line, and the evidence goes under
 evidence/control/. Then the guest is powered off with its power key and must stop cleanly. Run from the checkout's
 root as root (sudo -E), after check-build.sh built the disk from localhost/aresos:control.
+
+`control_vm.py chrome` is brief 18c-b's second pass (item 5) on the same disk with a fresh overlay: Chrome's checks
+(os/ci/control/chrome_actions.py) in CHROME_STEPS' order, with the runner's screenshots, keys and the pass's one
+reboot between them through QMP. Its evidence goes under evidence/control/chrome/.
 """
+import hashlib
 import json
 import os
 import pathlib
 import re
+import secrets
 import shutil
 import socket
 import subprocess
@@ -52,6 +58,68 @@ CHECKS = [
 ]
 # Lines whose summary is printed with them: the numbers the owner is asked about and the recorded PermissionRequest.
 WITH_SUMMARY = {'control-idle', 'control-ordinary', 'control-storage-tests'}
+
+# Brief 18c-b, item 5 (steps 4, 4b and 5 fill it in): (kind, argument, PASS line or None), where kind is 'act' (a
+# guest action), 'screen' (a screenshot's name), 'keys' (qcodes pressed together) or 'reboot'. A check is the run of
+# steps up to the one that carries its line: the line is printed only when every step of that run succeeded (and,
+# for a line of CHROME_JOINS, when its parts' lines were printed). The polkit probe comes first; C6's first use right
+# after C2; the pass's one reboot after it; then, with Chrome started again and his list written, C3, the rest of C6,
+# C10 and C11; the SELinux scan last.
+CHROME_STEPS = [
+    ('act', 'chrome-session', None),
+    ('screen', 'polkit-before', None),
+    ('act', 'chrome-polkit-start', None),
+    ('screen', 'polkit-dialog', None),
+    ('keys', ['esc'], None),
+    # Its runner check takes polkit-after.png and requires the dialog's area to change (screen_check below).
+    ('act', 'chrome-polkit-finish', 'CONTROL_CHROME_POLKIT_PROBE_PASS'),
+    ('act', 'chrome-files', 'CONTROL_CHROME_FILES_PASS'),
+    ('act', 'chrome-hand-loaded', None),
+    ('act', 'chrome-install', None),
+    # These two captures provide visual evidence for review. The runner only checks that capture succeeded.
+    ('screen', 'c2-pinned', None),
+    ('act', 'chrome-his-tab', None),
+    # Alt+F opens Chrome's menu. Up from no selection scrolls to the bottom so the managed notice is visible
+    # (run 44452254488's menu ended at More tools, 800 pixels down). Escape closes it.
+    ('keys', ['alt', 'f'], None),
+    ('keys', ['up'], None),
+    ('screen', 'c2-managed', None),
+    ('keys', ['esc'], 'CONTROL_CHROME_INSTALL_PASS'),
+    ('act', 'chrome-sites-first-use', 'CONTROL_CHROME_SITES_FIRST_USE_PASS'),
+    ('reboot', None, None),
+    ('act', 'chrome-sites-after-reboot', 'CONTROL_CHROME_SITES_REBOOT_PASS'),
+    ('act', 'chrome-host', 'CONTROL_CHROME_NATIVE_HOST_PASS'),
+    ('act', 'chrome-sites-later', 'CONTROL_CHROME_SITES_PASS'),
+    ('act', 'chrome-gh', 'CONTROL_GH_PASS'),
+    ('act', 'chrome-records', 'CONTROL_CHROME_RECORDS_PASS'),
+    ('act', 'chrome-update', 'CONTROL_CHROME_UPDATE_PASS'),
+    ('act', 'chrome-package-fault', 'CONTROL_CHROME_PACKAGE_FAULT_PASS'),
+    ('act', 'chrome-no-store', 'CONTROL_CHROME_NO_STORE_PASS'),
+    ('act', 'chrome-edit-start', None),
+    ('edit-page', 'cancel', None),
+    ('act', 'chrome-edit-wait-cancel', None),
+    ('keys', ['esc'], None),
+    ('act', 'chrome-edit-cancelled', None),
+    ('edit-page', 'allow', None),
+    ('act', 'chrome-edit-wait-allow', None),
+    ('edit-password', 'allow', None),
+    ('act', 'chrome-edit-reset', None),
+    ('edit-page', 'again', None),
+    ('act', 'chrome-edit-wait-again', None),
+    ('keys', ['esc'], None),
+    ('act', 'chrome-edit-again-cancelled', None),
+    ('act', 'chrome-edit-finish', 'CONTROL_CHROME_POLKIT_PASS'),
+    ('act', 'chrome-ask-form', 'CONTROL_CHROME_ASK_PASS'),
+    ('act', 'chrome-selinux', 'CONTROL_CHROME_SELINUX_PASS'),
+]
+CHROME_WITH_SUMMARY = {'chrome-polkit-finish', 'chrome-files', 'chrome-sites-first-use', 'chrome-sites-after-reboot',
+                       'chrome-host', 'chrome-gh', 'chrome-records', 'chrome-update', 'chrome-package-fault',
+                       'chrome-no-store', 'chrome-edit-finish', 'chrome-ask-form'}
+# C6 is one check in three parts around the reboot: its table line also needs the lines of its first two parts.
+CHROME_JOINS = {'CONTROL_CHROME_SITES_PASS': ('CONTROL_CHROME_SITES_FIRST_USE_PASS', 'CONTROL_CHROME_SITES_REBOOT_PASS')}
+# QMP's send-key returns before the guest has drawn its answer (run 44435868192's menu screenshot, 0.0 s after Alt+F,
+# showed no menu): the screen gets this long before the next step.
+KEYS_SETTLE = 1.0
 
 
 def install_step(readme):
@@ -98,6 +166,142 @@ def password_not_in_evidence(evidence):
     assert not found['holding'], f'{len(found["holding"])} evidence files hold the password or cannot be searched'
 
 
+class Guest:
+    """One QEMU guest on an overlay of the disk the control build made: boot, ask, look, press, power off."""
+
+    def __init__(self, work, evidence, name):
+        self.work, self.evidence, self.name = work, evidence, name
+        self.overlay = work / f'{name}.qcow2'
+        self.vars = work / f'{name}-vars.fd'
+        self.qemu = self.monitor = self.checks = self.qmp_socket = self.incoming = None
+        self.boots, self.sequence, self.events = 0, 0, []
+
+    def create(self):
+        disks = list((self.work / 'output').rglob('disk.raw'))
+        assert len(disks) == 1, disks
+        assert not self.overlay.exists(), f'The {self.name} pass requires a fresh overlay'
+        subprocess.run(['qemu-img', 'create', '-f', 'qcow2', '-F', 'raw', '-b', str(disks[0]), str(self.overlay)],
+                       check=True)
+        shutil.copyfile('/usr/share/OVMF/OVMF_VARS_4M.fd', self.vars)
+
+    def boot(self):
+        """Start QEMU on the overlay (again, for a reboot) and wait for the guest's CI channel. Seconds to the channel."""
+        self.boots += 1
+        suffix = '' if self.boots == 1 else f'-{self.boots}'
+        qmp_path, checks_path = self.work / f'{self.name}-qmp.sock', self.work / f'{self.name}-checks.sock'
+        for path in (qmp_path, checks_path):
+            if path.is_socket():
+                path.unlink()
+        accel = (['-accel', 'kvm', '-cpu', 'host'] if os.access('/dev/kvm', os.R_OK | os.W_OK)
+                 else ['-accel', 'tcg,thread=multi', '-cpu', 'max'])
+        (self.evidence / 'vm-acceleration.txt').write_text(' '.join(accel) + '\n')
+        started = time.monotonic()
+        self.qemu = subprocess.Popen([
+            'qemu-system-x86_64', '-machine', 'q35', *accel, '-smp', str(min(4, len(os.sched_getaffinity(0)))),
+            '-m', '6144',
+            '-drive', 'if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE_4M.fd',
+            '-drive', f'if=pflash,format=raw,file={self.vars}',
+            '-drive', f'file={self.overlay},format=qcow2,if=virtio',
+            '-device', 'virtio-vga', '-device', 'qemu-xhci', '-device', 'usb-kbd', '-device', 'usb-tablet',
+            # The guest reaches the runner's loopback, where the fixture servers listen, as 10.0.2.2.
+            '-display', 'none', '-nic', 'user,model=virtio-net-pci',
+            '-qmp', f'unix:{qmp_path},server=on,wait=off',
+            '-serial', f'file:{self.evidence / f"serial{suffix}.log"}',
+            '-device', 'virtio-serial-pci',
+            '-chardev', f'socket,id=checks,path={checks_path},server=on,wait=off',
+            '-device', 'virtserialport,chardev=checks,name=org.aresos.ci', '-no-reboot',
+        ], stdout=open(self.evidence / f'qemu{suffix}.log', 'w'), stderr=subprocess.STDOUT)
+        self.qmp_socket = self.connect(qmp_path)
+        self.monitor = QMP(self.qmp_socket)
+        self.monitor.command('qmp_capabilities')
+        self.checks = self.connect(checks_path)
+        self.checks.settimeout(1800)
+        self.incoming = Frames(self.checks.recv)
+        assert self.incoming.receive() == {'ready': True, 'protocol': 1}
+        return round(time.monotonic() - started, 1)
+
+    def connect(self, path):
+        deadline = time.monotonic() + 30
+        while time.monotonic() < deadline:
+            sock = socket.socket(socket.AF_UNIX)
+            try:
+                sock.connect(str(path))
+                return sock
+            except OSError:
+                sock.close()
+                if self.qemu.poll() is not None:
+                    raise RuntimeError(f'QEMU exited: {self.qemu.returncode}')
+                time.sleep(0.2)
+        raise TimeoutError(f'Socket did not appear: {path}')
+
+    def act(self, request):
+        """Send one action; its answer comes back with the same id."""
+        self.sequence += 1
+        self.checks.sendall(frame(dict(request, id=self.sequence)))
+        result = self.incoming.receive()
+        assert result.get('id') == self.sequence, result
+        return result
+
+    def keys(self, names):
+        self.monitor.command('send-key', {'keys': [{'type': 'qcode', 'data': name} for name in names], 'hold-time': 100})
+
+    def click(self, x, y, width, height):
+        events = [dict(type='abs', data=dict(axis=axis, value=round(point * 32767 / (size - 1))))
+                  for axis, point, size in (('x', x, width), ('y', y, height))]
+        events.append(dict(type='btn', data={'button': 'left', 'down': True}))
+        self.monitor.command('input-send-event', {'events': events})
+        self.monitor.command('input-send-event', {'events': [dict(type='btn', data={'button': 'left', 'down': False})]})
+
+    def screenshot(self, path):
+        from PIL import Image  # the runner's, as os/ci/vm.py uses it; not needed to load this file elsewhere
+        ppm = self.work / f'{self.name}-screen.ppm'
+        self.monitor.command('screendump', {'filename': str(ppm)})
+        with Image.open(ppm) as image:
+            image.save(path)
+        ppm.unlink()
+
+    def poweroff(self):
+        """A clean poweroff through the power key, as vm.py ends."""
+        event_start = len(self.monitor.events)
+        self.monitor.command('system_powerdown')
+        self.qemu.wait(timeout=180)
+        self.monitor.reader.join(timeout=5)
+        assert self.qemu.returncode == 0, 'Power key did not shut the guest down cleanly'
+        assert_guest_poweroff(self.monitor.events[event_start:])
+        self.release()
+
+    def release(self):
+        if self.monitor:
+            self.events += self.monitor.events
+            self.monitor = None
+        if self.checks:
+            self.checks.close()
+            self.checks = None
+        if self.qemu and self.qemu.poll() is None:
+            self.qemu.terminate()
+            try:
+                self.qemu.wait(timeout=15)
+            except subprocess.TimeoutExpired:
+                self.qemu.kill()
+                self.qemu.wait()
+        if self.qmp_socket:
+            self.qmp_socket.close()
+            self.qmp_socket = None
+
+    def close(self):
+        self.release()
+        (self.evidence / 'qmp-events.json').write_text(json.dumps(self.events, indent=2) + '\n')
+        self.overlay.unlink(missing_ok=True)
+
+
+def keep_files(result, evidence):
+    for name, value in (result.pop('files', None) or {}).items():
+        path = (evidence / name.removeprefix('control/')).resolve()
+        assert path.is_relative_to(evidence), name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(import_bytes(value))
+
+
 def main():
     work = pathlib.Path('vm-work').resolve()
     evidence = pathlib.Path('evidence').resolve() / 'control'
@@ -121,78 +325,24 @@ def main():
                  'control-restart': lambda: dict(mail_account='ci')}
     verify = {'control-mail': lambda result: mail_arrivals(result, seeded['mail'], evidence),
               'control-passwords': lambda result: password_not_in_evidence(evidence)}
-    disks = list((work / 'output').rglob('disk.raw'))
-    assert len(disks) == 1, disks
-    overlay = work / 'control.qcow2'
-    assert not overlay.exists(), 'The Control pass requires a fresh overlay'
-    subprocess.run(['qemu-img', 'create', '-f', 'qcow2', '-F', 'raw', '-b', str(disks[0]), str(overlay)], check=True)
-    shutil.copyfile('/usr/share/OVMF/OVMF_VARS_4M.fd', work / 'control-vars.fd')
-    for name in ('control-qmp.sock', 'control-checks.sock'):
-        if (work / name).is_socket():
-            (work / name).unlink()
-    accel = (['-accel', 'kvm', '-cpu', 'host'] if os.access('/dev/kvm', os.R_OK | os.W_OK)
-             else ['-accel', 'tcg,thread=multi', '-cpu', 'max'])
-    (vm_evidence / 'vm-acceleration.txt').write_text(' '.join(accel) + '\n')
+    guest = Guest(work, vm_evidence, 'control')
+    guest.create()
     started = time.monotonic()
-    qemu = subprocess.Popen([
-        'qemu-system-x86_64', '-machine', 'q35', *accel, '-smp', str(min(4, len(os.sched_getaffinity(0)))),
-        '-m', '6144',
-        '-drive', 'if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE_4M.fd',
-        '-drive', f'if=pflash,format=raw,file={work / "control-vars.fd"}',
-        '-drive', f'file={overlay},format=qcow2,if=virtio',
-        '-device', 'virtio-vga', '-device', 'qemu-xhci', '-device', 'usb-kbd', '-device', 'usb-tablet',
-        # The guest reaches the runner's loopback, where the fixture servers listen, as 10.0.2.2.
-        '-display', 'none', '-nic', 'user,model=virtio-net-pci',
-        '-qmp', f'unix:{work / "control-qmp.sock"},server=on,wait=off',
-        '-serial', f'file:{vm_evidence / "serial.log"}',
-        '-device', 'virtio-serial-pci',
-        '-chardev', f'socket,id=checks,path={work / "control-checks.sock"},server=on,wait=off',
-        '-device', 'virtserialport,chardev=checks,name=org.aresos.ci', '-no-reboot',
-    ], stdout=open(vm_evidence / 'qemu.log', 'w'), stderr=subprocess.STDOUT)
-
-    def connect(path):
-        deadline = time.monotonic() + 30
-        while time.monotonic() < deadline:
-            sock = socket.socket(socket.AF_UNIX)
-            try:
-                sock.connect(str(path))
-                return sock
-            except OSError:
-                sock.close()
-                if qemu.poll() is not None:
-                    raise RuntimeError(f'QEMU exited: {qemu.returncode}')
-                time.sleep(0.2)
-        raise TimeoutError(f'Socket did not appear: {path}')
-
-    monitor = checks = qmp_socket = None
     failed, timings = [], {}
     try:
-        qmp_socket = connect(work / 'control-qmp.sock')
-        monitor = QMP(qmp_socket)
-        monitor.command('qmp_capabilities')
-        checks = connect(work / 'control-checks.sock')
-        checks.settimeout(1800)
-        incoming = Frames(checks.recv)
-        assert incoming.receive() == {'ready': True, 'protocol': 1}
-        timings['boot_to_channel'] = round(time.monotonic() - started, 1)
-        for sequence, (action, line) in enumerate(CHECKS, 1):
+        timings['boot_to_channel'] = guest.boot()
+        for action, line in CHECKS:
             began = time.monotonic()
             try:
-                request = dict(id=sequence, action=action, **arguments.get(action, dict)())
+                request = dict(action=action, **arguments.get(action, dict)())
             except Exception:
                 failed.append(action)
                 print(f'CONTROL_CHECK_FAILED {action} (runner side)\n{traceback.format_exc()[-4000:]}', flush=True)
                 continue
-            checks.sendall(frame(request))
+            result = guest.act(request)
             del request
-            result = incoming.receive()
             timings[action] = round(time.monotonic() - began, 1)
-            assert result.get('id') == sequence, result
-            for name, value in (result.pop('files', None) or {}).items():
-                path = (evidence / name.removeprefix('control/')).resolve()
-                assert path.is_relative_to(evidence), name
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_bytes(import_bytes(value))
+            keep_files(result, evidence)
             if result.get('returncode') == 0 and action in verify:
                 try:
                     verify[action](result)
@@ -210,35 +360,245 @@ def main():
             else:
                 failed.append(action)
                 print(f'CONTROL_CHECK_FAILED {action}\n{result.get("stderr", "")[-6000:]}', flush=True)
-        # A clean poweroff through the power key, as vm.py ends.
-        event_start = len(monitor.events)
-        monitor.command('system_powerdown')
-        qemu.wait(timeout=180)
-        monitor.reader.join(timeout=5)
-        assert qemu.returncode == 0, 'Power key did not shut the guest down cleanly'
-        assert_guest_poweroff(monitor.events[event_start:])
+        guest.poweroff()
         timings['total'] = round(time.monotonic() - started, 1)
         print('CONTROL_VM_POWEROFF_CLEAN', flush=True)
     finally:
         (vm_evidence / 'timings.json').write_text(json.dumps(timings, indent=2) + '\n')
-        if monitor:
-            (vm_evidence / 'qmp-events.json').write_text(json.dumps(monitor.events, indent=2) + '\n')
-        if checks:
-            checks.close()
-        if qemu.poll() is None:
-            qemu.terminate()
-            try:
-                qemu.wait(timeout=15)
-            except subprocess.TimeoutExpired:
-                qemu.kill()
-                qemu.wait()
-        if qmp_socket:
-            qmp_socket.close()
-        overlay.unlink(missing_ok=True)
+        guest.close()
     print(f'Control VM step times (s): {json.dumps(timings)}', flush=True)
     if failed:
         raise SystemExit(f'Control checks failed: {", ".join(failed)}')
 
 
+# The KDE agent's dialog in run 44427301872 covered about 630 by 200 pixels of a 1280 by 800 screen.
+DIALOG_PIXELS = 20000
+
+
+def screen_difference(first, second):
+    """How many pixels differ between two screenshots of the same size, and the box around them."""
+    from PIL import Image, ImageChops
+    with Image.open(first) as a, Image.open(second) as b:
+        difference = ImageChops.difference(a.convert('RGB'), b.convert('RGB')).convert('L')
+        changed = sum(count for value, count in enumerate(difference.histogram()) if value > 24)
+        return changed, difference.point(lambda value: 255 if value > 24 else 0).getbbox()
+
+
+def agent_title(probe, candidate):
+    """Find the real agent's title from this run's probe. Compare the glyphs, allowing the window to move."""
+    from PIL import Image
+
+    def mask(image):
+        return image.convert('L').point(lambda value: 255 if value > 150 else 0)
+
+    with Image.open(probe) as known, Image.open(candidate) as shown:
+        # The 1280×800 probe has a centered KDE dialog. This rectangle contains its title and no buttons.
+        title = mask(known.crop((369, 311, 580, 331)))
+        width, height = shown.size
+        tw, th = title.size
+        rows = [title.crop((0, y, tw, y + 1)).tobytes() for y in range(th)]
+        text_counts = [row.count(255) for row in rows]
+        assert sum(text_counts) > 150, 'the polkit probe does not provide a readable dialog title'
+        anchor = max(range(th), key=text_counts.__getitem__)
+        plane = mask(shown).tobytes()
+    for y in range(height - th):
+        offset = (y + anchor) * width
+        x = plane.find(rows[anchor], offset, offset + width)
+        if x >= 0:
+            x -= offset
+            if all(plane[(y + i) * width + x:(y + i) * width + x + tw] == row for i, row in enumerate(rows)):
+                return x + tw // 2, y + th // 2, width, height
+    return None
+
+
+def type_keys(guest, text):
+    symbols = {'-': ['minus'], ':': ['shift', 'semicolon'], '/': ['slash'], '.': ['dot']}
+    for char in text:
+        guest.keys(symbols.get(char, [char]))
+        time.sleep(0.13)  # QMP's key down lasts 100 ms; doubled characters need separate presses.
+
+
+def details_button(guest, identity, before):
+    assert re.fullmatch('[a-p]{32}', identity), 'invalid details-page extension ID'
+    guest.keys(['ctrl', 't'])
+    time.sleep(KEYS_SETTLE)
+    type_keys(guest, f'chrome-extension://{identity}/details.html')
+    guest.keys(['ret'])
+    time.sleep(3)
+    guest.keys(['tab'])
+    time.sleep(KEYS_SETTLE)
+    guest.screenshot(before)
+    guest.keys(['ret'])
+    time.sleep(KEYS_SETTLE)
+
+
+def type_password(guest, password):
+    try:
+        type_keys(guest, password)
+        guest.keys(['ret'])
+        time.sleep(KEYS_SETTLE)
+    except Exception:
+        # QMP errors may include an echoed key. The runner never copies them to evidence.
+        raise RuntimeError('Could not enter the temporary password over QMP') from None
+
+
+def password_hash(password):
+    done = subprocess.run(['openssl', 'passwd', '-6', '-stdin'], input=password + '\n', text=True,
+                          capture_output=True, timeout=15)
+    assert done.returncode == 0, 'could not hash the temporary guest password'
+    return done.stdout.strip()
+
+
+def chrome_main():
+    """Brief 18c-b, item 5: the Chrome pass, on the same disk with a fresh overlay, after 18c's pass."""
+    work = pathlib.Path('vm-work').resolve()
+    evidence = pathlib.Path('evidence').resolve() / 'control'
+    chrome_evidence = evidence / 'chrome'
+    vm_evidence = chrome_evidence / 'vm'
+    vm_evidence.mkdir(parents=True, exist_ok=True)
+    results = {}
+    password = secrets.token_hex(16)
+
+    def gh_lock():
+        return hashlib.sha256(pathlib.Path('os/gh.lock.json').read_bytes()).hexdigest()
+    # The runner's inputs: what the commit installs (as check 1 computes it), the reviewed gh lock, and what earlier
+    # steps found (the written list's state, the host connected after the reboot).
+    arguments = {'chrome-files': lambda: dict(expected=expected_record(), gh_lock_sha256=gh_lock()),
+                 'chrome-sites-after-reboot': lambda: dict(list=results['chrome-sites-first-use']['summary']['list']),
+                 'chrome-sites-later': lambda: dict(list=results['chrome-sites-after-reboot']['summary']['list']),
+                 'chrome-gh': lambda: dict(gh_lock_sha256=gh_lock()),
+                 'chrome-records': lambda: dict(
+                     host_pid=results['chrome-sites-after-reboot']['summary']['host']['pid']),
+                 'chrome-edit-start': lambda: dict(password_hash=password_hash(password)),
+                 'chrome-ask-form': lambda: dict(install=install_step(pathlib.Path('control/README.md').read_text()))}
+    guest = Guest(work, vm_evidence, 'chrome')
+
+    def dialog_shown(result):
+        """The dialog's screen against the screens before the probe and after Escape: the dialog came and went."""
+        guest.screenshot(chrome_evidence / 'polkit-after.png')
+        shown = dict(zip(('changed_pixels', 'box'), screen_difference(
+            chrome_evidence / 'polkit-dialog.png', chrome_evidence / 'polkit-after.png')))
+        result['summary'].update(dialog_against_after=shown, dialog_against_before=dict(zip(
+            ('changed_pixels', 'box'), screen_difference(chrome_evidence / 'polkit-before.png',
+                                                         chrome_evidence / 'polkit-dialog.png'))))
+        assert shown['changed_pixels'] >= DIALOG_PIXELS, f'the dialog did not show and go: {shown}'
+
+    def edit_dialog(attempt, result):
+        picture = chrome_evidence / f'c7-{attempt}-dialog.png'
+        probe = chrome_evidence / 'polkit-dialog.png'
+        # A pending pkcheck and the details page's waiting line precede the real modal. Wait for its title
+        # before sending any answer. The switcher can bring it forward if Chrome still has focus.
+        for interval in range(24):
+            guest.screenshot(picture)
+            target = agent_title(probe, picture)
+            if target:
+                guest.click(*target)
+                time.sleep(KEYS_SETTLE)
+                guest.screenshot(picture)
+                assert agent_title(probe, picture), 'the polkit dialog lost focus before the keyboard answer'
+                break
+            if interval in (7, 15):
+                guest.keys(['alt', 'tab'])
+            time.sleep(1)
+        else:
+            raise AssertionError('the pending Chrome authorization did not show the real polkit dialog')
+        count, box = screen_difference(chrome_evidence / f'c7-{attempt}-before.png', picture)
+        assert count >= DIALOG_PIXELS, f'the password dialog did not appear: {count} changed pixels'
+        result['summary'].update(dialog_pixels=count, dialog_box=box)
+
+    def private_evidence(result=None):
+        found = evidence_scan.scan(chrome_evidence, password.encode())
+        for name in found['holding']:
+            (chrome_evidence / name).unlink()
+        assert not found['holding'], f'{len(found["holding"])} evidence files held the password or could not be searched'
+        if result is not None and result.get('returncode') == 0:
+            result['summary']['password_scan'] = {key: found[key] for key in ('files', 'members', 'hits')}
+
+    verify = {'chrome-polkit-finish': dialog_shown, 'chrome-edit-finish': private_evidence}
+    attempts = {f'chrome-edit-wait-{attempt}': attempt for attempt in ('cancel', 'allow', 'again')}
+    guest.create()
+    started = time.monotonic()
+    failed, timings, check_failed, summaries, printed = [], {}, False, {}, set()
+    in_edit = False
+    try:
+        timings['boot_to_channel'] = guest.boot()
+        for kind, argument, line in CHROME_STEPS:
+            began = time.monotonic()
+            label = argument if kind in ('act', 'screen') else f'{kind}-{argument}' if kind.startswith('edit-') else kind
+            result = None
+            if argument == 'chrome-edit-start':
+                in_edit = True
+            if in_edit and check_failed and argument != 'chrome-edit-finish':
+                continue
+            try:
+                if kind == 'screen':
+                    guest.screenshot(chrome_evidence / f'{argument}.png')
+                elif kind == 'keys':
+                    guest.keys(argument)
+                    time.sleep(KEYS_SETTLE)
+                elif kind == 'edit-page':
+                    details_button(guest, results['chrome-edit-start']['summary']['extension_id'],
+                                   chrome_evidence / f'c7-{argument}-before.png')
+                elif kind == 'edit-password':
+                    type_password(guest, password)
+                elif kind == 'reboot':
+                    guest.poweroff()
+                    timings['reboot_to_channel'] = guest.boot()
+                    print('CONTROL_CHROME_REBOOTED', flush=True)
+                else:
+                    result = guest.act(dict(action=argument, **arguments.get(argument, dict)()))
+            except Exception:
+                failed.append(label)
+                check_failed = True
+                print(f'CONTROL_CHECK_FAILED {label} (runner side)\n{traceback.format_exc()[-4000:]}', flush=True)
+            timings[label] = round(time.monotonic() - began, 1)
+            if result is not None:
+                keep_files(result, evidence)
+                if argument in attempts:
+                    try:
+                        if result.get('returncode') == 0:
+                            edit_dialog(attempts[argument], result)
+                        elif argument != 'chrome-edit-wait-again':
+                            guest.screenshot(chrome_evidence / f'c7-{attempts[argument]}-failed.png')
+                    except Exception:
+                        result.update(returncode=1, stderr=traceback.format_exc())
+                if (result.get('returncode') == 0 or argument == 'chrome-edit-finish') and argument in verify:
+                    try:
+                        verify[argument](result)
+                    except Exception:
+                        result.update(returncode=1, stderr=traceback.format_exc())
+                results[argument] = result
+                (vm_evidence / f'{argument}-result.json').write_text(json.dumps(result, indent=2) + '\n')
+                summaries[argument] = json.dumps(result.get('summary', {}), sort_keys=True)
+                if result.get('returncode') == 0:
+                    print(f'  {argument}: {summaries[argument][:3000]}', flush=True)
+                else:
+                    failed.append(argument)
+                    check_failed = True
+                    print(f'CONTROL_CHECK_FAILED {argument}\n{result.get("stderr", "")[-6000:]}', flush=True)
+            if line:
+                if not check_failed and all(part in printed for part in CHROME_JOINS.get(line, ())):
+                    shown = summaries.get(argument) if kind == 'act' and argument in CHROME_WITH_SUMMARY else None
+                    print(f'{line} {shown}' if shown else line, flush=True)
+                    printed.add(line)
+                check_failed = False
+            if argument == 'chrome-edit-finish':
+                in_edit = False
+        guest.poweroff()
+        timings['total'] = round(time.monotonic() - started, 1)
+        print('CONTROL_CHROME_VM_POWEROFF_CLEAN', flush=True)
+    finally:
+        (vm_evidence / 'timings.json').write_text(json.dumps(timings, indent=2) + '\n')
+        guest.close()
+        private_evidence()
+    print(f'Control Chrome VM step times (s): {json.dumps(timings)}', flush=True)
+    if failed:
+        raise SystemExit(f'Control Chrome checks failed: {", ".join(failed)}')
+
+
 if __name__ == '__main__':
-    main()
+    if sys.argv[1:] == ['chrome']:
+        chrome_main()
+    else:
+        assert not sys.argv[1:], sys.argv
+        main()

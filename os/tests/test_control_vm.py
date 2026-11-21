@@ -2,6 +2,7 @@
 import ast
 import contextlib
 import gzip
+import hashlib
 import importlib.util
 import io
 import json
@@ -11,6 +12,9 @@ import pwd
 import py_compile
 import re
 import shutil
+import socket
+import stat
+import struct
 import subprocess
 import sys
 import tarfile
@@ -88,6 +92,495 @@ class LayerHookTest(unittest.TestCase):
         lines = [line for _, line in runner.CHECKS]
         self.assertEqual(len(set(lines)), len(lines))
         self.assertTrue(all(re.fullmatch('CONTROL_[A-Z_]+', line) for line in lines))
+
+
+class ChromePassTest(unittest.TestCase):
+    """Brief 18c-b, item 5: the Chrome pass's pieces that run without a VM."""
+
+    def actions(self):
+        return load(CONTROL_CI / 'chrome_actions.py', f'chrome_actions_{id(self)}')
+
+    def test_c1_requires_control_json_to_be_0644(self):
+        chrome = self.actions()
+        with tempfile.TemporaryDirectory() as directory:
+            manifest = pathlib.Path(directory) / 'control.json'
+            manifest.write_text('{"files":{}}')
+            with mock.patch.object(chrome, 'RECORD', manifest), \
+                    mock.patch.object(chrome.pwd, 'getpwuid', return_value=types.SimpleNamespace(pw_name='root')), \
+                    mock.patch.object(chrome.grp, 'getgrgid', return_value=types.SimpleNamespace(gr_name='root')):
+                manifest.chmod(0o600)
+                with self.assertRaisesRegex(chrome.Failure, 'control.json is root:root 0644'):
+                    chrome.files({'expected': {'files': None}})
+                manifest.chmod(0o644)
+                # The next check reaches the contents only when the metadata is accepted.
+                with self.assertRaisesRegex(chrome.Failure, 'control.json files is what the commit installs'):
+                    chrome.files({'expected': {'files': None}})
+
+    def test_the_layer_installs_the_chrome_actions_and_the_runner_asks_each_once(self):
+        containerfile = (CONTROL_CI / 'Containerfile').read_text()
+        self.assertIn('COPY os/ci/control/chrome_actions.py /usr/libexec/aresos-ci/actions.d/chrome.py\n', containerfile)
+        self.assertIn('RUN python3 -I -B /tmp/aresos-ci-chrome/chrome_layer.py /tmp/aresos-ci-chrome', containerfile)
+        tree = ast.parse((CONTROL_CI / 'chrome_actions.py').read_text())
+        actions = next(node.value for node in tree.body if isinstance(node, ast.Assign)
+                       and [target.id for target in node.targets] == ['ACTIONS'])
+        names = [key.value for key in actions.keys]
+        runner = load(CONTROL_CI / 'control_vm.py', 'control_vm_for_chrome')
+        steps = runner.CHROME_STEPS
+        kinds = ('act', 'screen', 'keys', 'reboot', 'edit-page', 'edit-password')
+        self.assertTrue(all(len(step) == 3 and step[0] in kinds for step in steps))
+        acts = [step for step in steps if step[0] == 'act']
+        self.assertEqual([step[1] for step in acts], names)
+        lines = [step[2] for step in steps if step[2]]
+        self.assertEqual(len(set(lines)), len(lines))
+        # The brief's table names C10's line CONTROL_GH_PASS; every other line is Chrome's.
+        self.assertTrue(all(re.fullmatch('CONTROL_(CHROME|GH)_[A-Z_]+', line) for line in lines))
+        # The probe comes first and the last step carries a line, so no step is left outside a check.
+        self.assertEqual([step[1] for step in acts[:2]], ['chrome-session', 'chrome-polkit-start'])
+        self.assertTrue(steps[-1][2])
+        self.assertEqual([step for step in steps if step[0] == 'reboot'], [('reboot', None, None)])
+        self.assertFalse(set(names) & {action for action, _ in runner.CHECKS})
+        script = (ROOT / 'os/ci/check-build.sh').read_text()
+        self.assertIn('sudo -E python3 os/ci/control/control_vm.py chrome\n        echo CHECK_BUILD_CONTROL_CHROME_PASSED',
+                      script)
+
+    def test_pkcheck_runs_under_the_units_own_sandbox(self):
+        chrome = self.actions()
+        properties = chrome.sandbox_properties((ROOT / 'control/packaging/aresos-toold.service').read_text())
+        self.assertIn('User=aresos-tools', properties)
+        self.assertIn('ProtectSystem=strict', properties)
+        self.assertIn('ReadWritePaths=/run/aresos-tools /var/lib/aresos-tools /var/lib/aresos-operation-evidence',
+                      properties)
+        self.assertIn('CapabilityBoundingSet=', properties)
+        self.assertFalse([p for p in properties if p.split('=', 1)[0] in ('ExecStart', 'Type', 'Restart', 'RestartSec')])
+        self.assertFalse([p for p in properties if p.startswith(('StartLimit', 'Description', 'WantedBy'))])
+        with mock.patch.object(chrome, 'UNIT_FILE', ROOT / 'control/packaging/aresos-toold.service'):
+            command = chrome.as_service('probe', ['/usr/bin/pkcheck', '--action-id', 'x'])
+        self.assertEqual(command[:2], ['systemd-run', '--unit=probe'])
+        self.assertEqual(command[-4:], ['--', '/usr/bin/pkcheck', '--action-id', 'x'])
+        self.assertIn('--property=User=aresos-tools', command)
+        self.assertIn('--setenv=PATH=/usr/bin:/bin', command)
+
+    def test_the_placeholder_and_the_message_are_read_from_the_installed_files(self):
+        chrome = self.actions()
+        tmpfiles = (ROOT / 'control/chrome/packaging/aresos-control-chrome.tmpfiles').read_text()
+        self.assertEqual(chrome.placeholder(tmpfiles), b'{"format":0,"hosts":[]}')
+        with self.assertRaises(chrome.Failure):
+            chrome.placeholder(tmpfiles.replace('f /var/lib', 'f /var/other'))
+        source = (ROOT / 'control/aresos_control/chrome/exclusions.py').read_text()
+        message = chrome.settings_message(source)
+        self.assertTrue(message.startswith('Chrome refuses reads and actions:'), message)
+        self.assertIn('not a valid list', message)
+        self.assertIn(chrome.EMPTY_LIST.strip(), tmpfiles.encode())
+
+    def test_the_probe_host_moves_its_two_paths_to_the_run_folder(self):
+        layer = load(CONTROL_CI / 'chrome_layer.py', 'chrome_layer_for_test')
+        text = layer.probe_host(ROOT / 'control/chrome/ci/install/probe_host.py')
+        self.assertIn("SOCKET = '/run/aresos-install-test/probe.sock'", text)
+        self.assertIn("LOG = '/run/aresos-install-test/probe.jsonl'", text)
+        self.assertNotIn('/out/', text)
+        broken = self.folder / 'probe_host.py'
+        broken.write_text(text)
+        with self.assertRaises(AssertionError):
+            layer.probe_host(broken)
+        self.assertEqual(self.actions().RUN, pathlib.Path(layer.RUN))
+
+    def run_pass(self, failing=()):
+        """chrome_main against a stand-in guest: every action answers, except those named, which fail."""
+        runner = load(CONTROL_CI / 'control_vm.py', f'control_vm_pass_{id(self)}_{len(failing)}')
+        work = self.folder / ('pass-' + ('-'.join(failing) or 'all'))
+        (work / 'os').mkdir(parents=True)
+        (work / 'control').mkdir()
+        shutil.copy(ROOT / 'os/gh.lock.json', work / 'os/gh.lock.json')
+        shutil.copy(ROOT / 'control/README.md', work / 'control/README.md')
+        asked = []
+
+        class Guest:
+            def __init__(self, *arguments):
+                pass
+
+            def act(self, request):
+                asked.append(request['action'])
+                # A failed step still answers with what later steps take from it, so they run and only the lines
+                # decide.
+                summary = dict(list={'sha256': 'x'}, host={'pid': 1}, extension_id='a' * 32)
+                if request['action'] in failing:
+                    return dict(returncode=1, stderr='made to fail', summary=summary)
+                return dict(returncode=0, summary=summary)
+
+            create = poweroff = close = keys = click = screenshot = lambda *arguments: None
+            boot = lambda self: 1.0
+        output = io.StringIO()
+        self.slept = []
+        with mock.patch.object(runner, 'Guest', Guest), \
+                mock.patch.object(runner, 'expected_record', return_value={}), \
+                mock.patch.object(runner, 'password_hash', return_value='test-only-hash'), \
+                mock.patch.object(runner, 'details_button'), \
+                mock.patch.object(runner, 'type_password') as typing, \
+                mock.patch.object(runner, 'agent_title', return_value=(0, 0, 1280, 800)), \
+                mock.patch.object(runner, 'screen_difference', return_value=(runner.DIALOG_PIXELS, (0, 0, 1, 1))), \
+                mock.patch.object(runner.time, 'sleep', self.slept.append), \
+                contextlib.chdir(work), contextlib.redirect_stdout(output):
+            try:
+                runner.chrome_main()
+                code = 0
+            except SystemExit as error:
+                code = error.code
+        self.password_entries = typing.call_count
+        printed = [line.split()[0] for line in output.getvalue().splitlines()
+                   if line.startswith(('CONTROL_CHROME_', 'CONTROL_GH_', 'CONTROL_CHECK_FAILED'))]
+        return runner, asked, printed, code
+
+    def test_the_pass_prints_every_line_in_order_when_every_step_succeeds(self):
+        runner, asked, printed, code = self.run_pass()
+        self.assertEqual(code, 0)
+        self.assertEqual(asked, [step[1] for step in runner.CHROME_STEPS if step[0] == 'act'])
+        lines = [step[2] for step in runner.CHROME_STEPS if step[2]]
+        self.assertEqual([line for line in printed if line != 'CONTROL_CHROME_REBOOTED'],
+                         lines + ['CONTROL_CHROME_VM_POWEROFF_CLEAN'])
+        # Each key press gets its settle before the next step (the managed note's screenshot follows Alt+F).
+        keys = [step for step in runner.CHROME_STEPS if step[0] == 'keys']
+        edit_prompts = [step for step in runner.CHROME_STEPS if str(step[1]).startswith('chrome-edit-wait-')]
+        self.assertEqual(self.slept, [runner.KEYS_SETTLE] * (len(keys) + len(edit_prompts)))
+        self.assertGreaterEqual(runner.KEYS_SETTLE, 1)
+        managed = [step[1] for step in runner.CHROME_STEPS].index('c2-managed')
+        self.assertEqual(runner.CHROME_STEPS[managed - 2:managed], [('keys', ['alt', 'f'], None), ('keys', ['up'], None)])
+
+    def test_a_failed_part_hides_only_its_own_checks_line(self):
+        runner, asked, printed, code = self.run_pass(failing=('chrome-hand-loaded',))
+        self.assertNotEqual(code, 0)
+        self.assertIn('chrome-hand-loaded', asked)
+        self.assertNotIn('CONTROL_CHROME_INSTALL_PASS', printed)
+        self.assertIn('CONTROL_CHECK_FAILED', printed)
+        for line in ('CONTROL_CHROME_FILES_PASS', 'CONTROL_CHROME_SITES_FIRST_USE_PASS', 'CONTROL_CHROME_SELINUX_PASS'):
+            self.assertIn(line, printed)
+
+    def test_4b_checks_follow_the_reboot_and_come_before_the_selinux_scan(self):
+        runner = load(CONTROL_CI / 'control_vm.py', 'control_vm_for_4b')
+        steps = runner.CHROME_STEPS
+        start = steps.index(('act', 'chrome-sites-after-reboot', 'CONTROL_CHROME_SITES_REBOOT_PASS'))
+        self.assertEqual(steps[start + 1:start + 5], [
+            ('act', 'chrome-host', 'CONTROL_CHROME_NATIVE_HOST_PASS'),
+            ('act', 'chrome-sites-later', 'CONTROL_CHROME_SITES_PASS'),
+            ('act', 'chrome-gh', 'CONTROL_GH_PASS'),
+            ('act', 'chrome-records', 'CONTROL_CHROME_RECORDS_PASS')])
+        self.assertEqual(steps[-1], ('act', 'chrome-selinux', 'CONTROL_CHROME_SELINUX_PASS'))
+        self.assertEqual(runner.CHROME_JOINS, {'CONTROL_CHROME_SITES_PASS': (
+            'CONTROL_CHROME_SITES_FIRST_USE_PASS', 'CONTROL_CHROME_SITES_REBOOT_PASS')})
+        # C11 names the path it took on its line.
+        self.assertIn('chrome-records', runner.CHROME_WITH_SUMMARY)
+
+    def test_step5_order_and_failed_dialog_never_gets_a_password(self):
+        _, asked, printed, code = self.run_pass(failing=('chrome-edit-wait-allow',))
+        self.assertNotEqual(code, 0)
+        self.assertEqual(self.password_entries, 0)
+        self.assertNotIn('CONTROL_CHROME_POLKIT_PASS', printed)
+        self.assertLess(asked.index('chrome-edit-finish'), asked.index('chrome-ask-form'))
+        self.assertEqual(printed[printed.index('CONTROL_CHROME_RECORDS_PASS') + 1:][:3], [
+            'CONTROL_CHROME_UPDATE_PASS', 'CONTROL_CHROME_PACKAGE_FAULT_PASS', 'CONTROL_CHROME_NO_STORE_PASS'])
+        self.assertEqual(printed[-3:], ['CONTROL_CHROME_ASK_PASS', 'CONTROL_CHROME_SELINUX_PASS',
+                                       'CONTROL_CHROME_VM_POWEROFF_CLEAN'])
+
+    def test_c4_manifest_refuses_any_previous_origin(self):
+        chrome = self.actions()
+        host = self.folder / 'org.aresos.chrome.json'
+        base = dict(path=str(chrome.CODE / 'chrome/host'), allowed_origins=['chrome-extension://current/'])
+        with mock.patch.object(chrome, 'HOSTS', self.folder):
+            host.write_text(json.dumps(base))
+            self.assertEqual(chrome.host_manifest('current', 'previous'), base)
+            host.write_text(json.dumps(dict(base, allowed_origins=[*base['allowed_origins'],
+                                                                    'chrome-extension://previous/'])))
+            with self.assertRaises(chrome.Failure):
+                chrome.host_manifest('current', 'previous')
+
+    def test_c5_mutates_a_signed_payload_byte_and_restores_the_package(self):
+        chrome = self.actions()
+        good = b'Cr24\x03\0\0\0\x02\0\0\0ABsigned bytes'
+        changed, where = chrome.changed_crx(good)
+        self.assertGreaterEqual(where, 14)
+        self.assertEqual([i for i, (a, b) in enumerate(zip(good, changed, strict=True)) if a != b], [where])
+        package = self.folder / 'extension.crx'
+        chrome.set_package(package, changed)
+        self.assertEqual(package.read_bytes(), changed)
+        chrome.set_package(package, None)
+        self.assertFalse(package.exists())
+        chrome.set_package(package, good)
+        self.assertEqual(package.read_bytes(), good)
+
+    def test_c9_requires_the_positive_control_and_refuses_ours_with_or_without_a_baseline(self):
+        chrome = self.actions()
+        scan = dict(probe_checks=2, probe_checks_served=2, named_elsewhere=[], update_service=[], update_service_asks=[])
+        store = dict(scan, update_service=['/service/update2/'], update_service_asks=['own built-in request'])
+        with mock.patch.object(sys, 'path', [str(ROOT / 'control/chrome/ci/install'), *sys.path]):
+            self.assertEqual(chrome.store_verdict(scan), [])
+            self.assertEqual(chrome.store_verdict(store, store), [])
+            for ours, baseline in ((dict(scan, probe_checks=1), None), (dict(scan, probe_checks_served=3), None),
+                                   (dict(store, named_elsewhere=['own ID']), store), (store, scan), (store, None)):
+                with self.subTest(ours=ours, baseline=baseline), self.assertRaises(chrome.Failure):
+                    chrome.store_verdict(ours, baseline)
+
+    def test_c7_journal_binds_the_action_session_and_native_process(self):
+        chrome = self.actions()
+        peer = dict(pid=802, start=311)
+        entry = ('Operator of unix-session:1 successfully authenticated as unix-user:ares to gain ONE-SHOT '
+                 f'authorization for action {chrome.EDIT_ACTION} for unix-process:802:311 [{chrome.HOST_PROCESS}]')
+        self.assertEqual(chrome.edit_journal([entry, entry.replace('802:311', '802:312'),
+                                              entry.replace('session:1', 'session:2'),
+                                              entry.replace(chrome.HOST_PROCESS, 'other'),
+                                              entry.replace(chrome.EDIT_ACTION, 'other')], '1', peer), [entry])
+
+    def test_c7_qmp_errors_cannot_echo_a_password_to_the_runner_log(self):
+        runner = load(CONTROL_CI / 'control_vm.py', 'control_vm_password')
+        password = 'abcd19'
+        guest = mock.Mock()
+        guest.keys.side_effect = RuntimeError(password)
+        with self.assertRaisesRegex(RuntimeError, 'temporary password over QMP') as caught:
+            runner.type_password(guest, password)
+        self.assertNotIn(password, str(caught.exception))
+        self.assertTrue(caught.exception.__suppress_context__)
+        guest.keys.side_effect = None
+        guest.keys.reset_mock()
+        with mock.patch.object(runner.time, 'sleep'):
+            runner.type_password(guest, password)
+        self.assertEqual(guest.keys.call_args_list, [mock.call([char]) for char in password] + [mock.call(['ret'])])
+
+    def test_c7_reads_changes_and_verifies_only_the_live_polkit_log_level(self):
+        chrome = self.actions()
+        actions = mock.Mock()
+        actions.ok.side_effect = lambda result: result
+        actions.run.side_effect = [{'stdout': 's "notice"\n'}, {}, {'stdout': 's "info"\n'},
+                                   {}, {'stdout': 's "notice"\n'}]
+        get = ['busctl', '--system', 'get-property', *chrome.POLKIT_LOG]
+        set_ = ['busctl', '--system', 'set-property', *chrome.POLKIT_LOG, 's']
+        with mock.patch.object(chrome, 'control', return_value=actions):
+            original = chrome.polkit_log_level()
+            self.assertEqual(chrome.polkit_log_level('info'), 'info')
+            self.assertEqual(chrome.polkit_log_level(original), 'notice')
+        self.assertEqual(actions.run.call_args_list,
+                         [mock.call(argv) for argv in (get, [*set_, 'info'], get, [*set_, 'notice'], get)])
+
+    def test_c8_uses_the_current_button_reference_and_checks_the_exact_post(self):
+        chrome = self.actions()
+        row = dict(reference={'tab': 42, 'element': 'v3'},
+                   expected={'name': chrome.FORM_BUTTON, 'role': 'button'})
+        page = dict(untrusted_content={'tree': json.dumps(row)})
+        self.assertEqual(chrome.form_target(page, chrome.FORM_BUTTON, 'button'), row)
+        with self.assertRaises(chrome.Failure):
+            chrome.form_target(page, chrome.FORM_BUTTON, 'textbox')
+        expected = dict(path='/form-yes', fields={'message': [chrome.FORM_TEXT]})
+        pages = mock.Mock()
+        pages.arrivals.return_value = [expected]
+        self.assertEqual(chrome.form_arrivals(pages, [expected]), 1)
+        pages.arrivals.return_value += [expected]
+        with self.assertRaises(chrome.Failure):
+            chrome.form_arrivals(pages, [expected])
+
+    def test_c8_fills_through_the_model_then_passes_the_real_prepare_to_the_driver(self):
+        chrome = self.actions()
+        url, tab = f'{chrome.ADDRESS}/form-yes', 42
+        step = dict(prompt='FORM_TEST', send='mcp__chrome__submit',
+                    prepare={'name': 'mcp__chrome__click', 'input': None})
+        path = str(ROOT / 'control/boundary')
+        with mock.patch.object(sys, 'path', [path, *sys.path]):
+            model = chrome.form_model(url)([step], self.folder, 0)
+        self.addCleanup(model.server.server_close)
+        messages = [{'role': 'user', 'content': step['prompt']}]
+
+        def response():
+            result, = model.script.respond({'messages': messages})
+            return result['name'], result['input'], result['id']
+
+        def reply(identifier, data):
+            messages.append({'role': 'user', 'content': [
+                {'type': 'tool_result', 'tool_use_id': identifier, 'content': json.dumps(dict(ok=True, data=data))}]})
+
+        field = dict(reference={'element': 'input'}, expected={'name': chrome.FORM_FIELD, 'role': 'textbox'})
+        button = dict(reference={'element': 'fresh'}, expected={'name': chrome.FORM_BUTTON, 'role': 'button'})
+        self.assertEqual(response(), ('mcp__chrome__open', {'url': url}, 'form-open'))
+        reply('form-open', dict(operation_id='open-op', untrusted_content={'tab': tab}))
+        self.assertEqual(response()[1]['tab'], tab)
+        reply('form-wait', dict(condition_met=True, untrusted_content={'url': url, 'tree': json.dumps(field)}))
+        self.assertEqual(response(), ('mcp__chrome__fill', dict(field, text=chrome.FORM_TEXT), 'form-fill'))
+        reply('form-fill', dict(operation_id='fill-op'))
+        self.assertEqual(response(), ('mcp__chrome__read', {'tab': tab}, 'form-filled-view'))
+        reply('form-filled-view', dict(untrusted_content={'tree': json.dumps(button)}))
+        self.assertEqual(response(), ('mcp__chrome__click', button, 'prepare-0'))
+        approval = dict(question='Submit this form?', operation_id='ask-op', description={'action': 'chrome_submit'})
+        reply('prepare-0', dict(approval=approval))
+        self.assertEqual(response(), ('mcp__chrome__submit', approval, 'send-0'))
+
+    def test_c6s_line_needs_its_first_use_and_its_reboot(self):
+        for failing, kept in ((('chrome-sites-first-use',), 'CONTROL_CHROME_SITES_REBOOT_PASS'),
+                              (('chrome-sites-after-reboot',), 'CONTROL_CHROME_SITES_FIRST_USE_PASS')):
+            with self.subTest(failing=failing):
+                runner, asked, printed, code = self.run_pass(failing=failing)
+                self.assertNotEqual(code, 0)
+                self.assertIn('chrome-sites-later', asked)
+                self.assertNotIn('CONTROL_CHROME_SITES_PASS', printed)
+                self.assertIn(kept, printed)
+                for line in ('CONTROL_CHROME_INSTALL_PASS', 'CONTROL_CHROME_NATIVE_HOST_PASS', 'CONTROL_GH_PASS',
+                             'CONTROL_CHROME_SELINUX_PASS'):
+                    self.assertIn(line, printed)
+        runner, asked, printed, code = self.run_pass(failing=('chrome-sites-later',))
+        self.assertNotEqual(code, 0)
+        self.assertNotIn('CONTROL_CHROME_SITES_PASS', printed)
+        for line in ('CONTROL_CHROME_SITES_FIRST_USE_PASS', 'CONTROL_CHROME_SITES_REBOOT_PASS', 'CONTROL_GH_PASS',
+                     'CONTROL_CHROME_RECORDS_PASS'):
+            self.assertIn(line, printed)
+
+    def test_c3_finds_both_ends_of_chrome_sock(self):
+        chrome = self.actions()
+        lines = ['u_str ESTAB 0      0      /run/aresos-tools/chrome.sock 41234            * 41233',
+                 'u_str ESTAB 0 0 /run/aresos-tools/.chrome.sock.new 7 * 8']
+        self.assertEqual(chrome.connection_inodes(lines), [(41234, 41233), (7, 8)])
+        with self.assertRaises(chrome.Failure):
+            chrome.connection_inodes(['u_str ESTAB 0 0 /run/aresos-tools/chrome.sock 41234'])
+        rows = [dict(pid=10, uid=250), dict(pid=20, uid=1001)]
+        with mock.patch.object(chrome, 'service_peers', return_value=lines[:1]), \
+                mock.patch.object(chrome, 'socket_holders', return_value={41234: {10}, 41233: {20}}), \
+                mock.patch.object(chrome, 'processes', return_value=rows):
+            self.assertEqual(chrome.connection_ends(), [dict(service=[10], peer=[20], peer_uids=[1001])])
+        if sys.platform.startswith('linux'):
+            # The holders come from /proc: both ends of a pair this process holds name it.
+            left, right = socket.socketpair()
+            self.addCleanup(left.close)
+            self.addCleanup(right.close)
+            holders = chrome.socket_holders()
+            for end in (left, right):
+                self.assertIn(os.getpid(), holders[os.fstat(end.fileno()).st_ino])
+
+    def test_c6_runs_its_writes_with_the_units_own_environment_and_sandbox(self):
+        chrome = self.actions()
+        unit = ROOT / 'control/packaging/aresos-toold.service'
+        self.assertEqual(chrome.service_env(unit.read_text()), ['/usr/bin/env', '-i', 'PATH=/usr/bin:/bin', 'LANG=C.UTF-8'])
+        with self.assertRaises(chrome.Failure):
+            chrome.service_env('[Service]\nExecStart=/usr/bin/python3 service\n')
+        handed = {}
+
+        def run(command, stdin, stdout, stderr, timeout):
+            # What systemd-run gets: /dev/null and two regular files, never a pipe (run 44452254488).
+            handed.update(command=command, stdin=stdin, kinds=[os.fstat(f.fileno()).st_mode for f in (stdout, stderr)])
+            stdout.write(b'Running as unit: name.service\n{"read": 1}\n')
+            stderr.write(b'Finished with result: success\n')
+            return mock.Mock(returncode=0)
+        with mock.patch.object(chrome, 'UNIT_FILE', unit), mock.patch.object(chrome, 'RUN', self.folder / 'run'), \
+                mock.patch.object(chrome, 'owner_ids', return_value=(os.getuid(), os.getgid(), [])), \
+                mock.patch.object(chrome.subprocess, 'run', run):
+            done = chrome.sandboxed('name', ['/usr/bin/python3', '-c', 'x'])
+        command = handed['command']
+        self.assertEqual(command[:2], ['systemd-run', '--unit=name'])
+        self.assertIn('--property=ProtectSystem=strict', command)
+        self.assertEqual(command[command.index('--') + 1:],
+                         ['/usr/bin/env', '-i', 'PATH=/usr/bin:/bin', 'LANG=C.UTF-8', '/usr/bin/python3', '-c', 'x'])
+        self.assertIs(handed['stdin'], subprocess.DEVNULL)
+        self.assertTrue(all(stat.S_ISREG(mode) for mode in handed['kinds']), handed['kinds'])
+        self.assertEqual(chrome.last_json(done['stdout']), {'read': 1})
+        self.assertEqual(done['stderr'], 'Finished with result: success\n')
+        self.assertEqual(sorted(path.name for path in (self.folder / 'run').iterdir()), ['probe.jsonl'])
+
+    def test_c6s_write_probe_names_what_each_attempt_got_and_writes_nothing(self):
+        chrome = self.actions()
+        listing = self.folder / 'list.json'
+        listing.write_bytes(chrome.EMPTY_LIST)
+
+        def probe(path, folder):
+            done = subprocess.run([sys.executable, '-I', '-S', '-c', chrome.WRITE_PROBE, str(path), str(folder)],
+                                  capture_output=True, text=True, check=True)
+            return chrome.last_json(done.stdout)
+        self.assertEqual(probe(listing, self.folder / 'missing'),
+                         dict(read=len(chrome.EMPTY_LIST), write='opened', create='ENOENT'))
+        self.assertEqual(listing.read_bytes(), chrome.EMPTY_LIST)
+        self.assertEqual(probe(listing, self.folder), dict(read=len(chrome.EMPTY_LIST), write='opened', create='opened'))
+        self.assertEqual((self.folder / chrome.PROBE_NAME).read_bytes(), b'')
+        self.assertEqual(probe(listing, self.folder)['create'], 'EEXIST')
+        self.assertEqual(probe(self.folder / 'absent.json', self.folder)['read'], 'ENOENT')
+
+    def test_c6s_hosts_are_the_installed_policys(self):
+        chrome = self.actions()
+        sys.path.insert(0, str(ROOT / 'control'))
+        self.addCleanup(sys.path.remove, str(ROOT / 'control'))
+        from aresos_control.common import Refused
+        from aresos_control.chrome import exclusions, policy
+        source = (ROOT / 'control/aresos_control/chrome/policy.py').read_text()
+        self.assertEqual(chrome.fixed_hosts(source), policy.FIXED_HOSTS)
+        # The test host passes the installed validator; it and a subdomain are refused, the page server is not.
+        with mock.patch.object(exclusions.Boundary, 'read', return_value=json.loads(chrome.TEST_LIST)):
+            hosts = exclusions.owner_hosts()
+        self.assertEqual(hosts, [chrome.TEST_HOST])
+        self.assertTrue(chrome.TEST_HOST.endswith('.localhost'))
+        for address in (f'http://{chrome.TEST_HOST}:{chrome.PORT}/', f'http://sub.{chrome.TEST_HOST}:{chrome.PORT}/',
+                        *[f'https://{host}/' for host in policy.FIXED_HOSTS]):
+            with self.subTest(address=address), self.assertRaises(Refused) as refusal:
+                policy.allowed_url(address, hosts)
+            self.assertEqual(refusal.exception.code, 'refused')
+        self.assertEqual(policy.allowed_url(f'{chrome.ADDRESS}/browse?step=x', hosts), f'{chrome.ADDRESS}/browse?step=x')
+        # The link's target, the validator's script: both compile; the placeholder stays refused.
+        compile(chrome.VALIDATE, 'validate', 'exec')
+        compile(chrome.VERIFY, 'verify', 'exec')
+        with mock.patch.object(exclusions.Boundary, 'read', return_value=json.loads(b'{"format":0,"hosts":[]}')), \
+                self.assertRaises(Refused):
+            exclusions.owner_hosts()
+
+    def test_c10_reads_gh_against_its_lock_and_finds_a_login_or_a_token(self):
+        chrome = self.actions()
+        lock = json.loads((ROOT / 'os/gh.lock.json').read_text())
+        self.assertEqual(chrome.pinned_gh(lock), '2.103.3')
+        with self.assertRaises(chrome.Failure):
+            chrome.pinned_gh(dict(lock, nevra='gh-2.103-1.x86_64'))
+        output = 'gh version 2.103.3 (2026-10-28)\nhttps://github.com/cli/cli/releases/tag/v2.103.3\n'
+        self.assertEqual(chrome.reported_gh(output), '2.103.3')
+        self.assertIsNone(chrome.reported_gh('Running as unit: x\n'))
+        cache = self.folder / 'qualification-verifier-cache'
+        self.assertEqual(chrome.credentials_in(cache), [])
+        (cache / 'gh/.sigstore/root').mkdir(parents=True)
+        (cache / 'gh/.sigstore/root/root.json').write_text('{"signed": {}}')
+        self.assertEqual(chrome.credentials_in(cache), [])
+        (cache / 'config/gh').mkdir(parents=True)
+        (cache / 'config/gh/hosts.yml').write_text('github.com:\n')
+        made_up = 'gh' + 'p_' + 'A1' * 18
+        (cache / 'gh/state').write_text(f'x {made_up} y')
+        self.assertEqual(chrome.credentials_in(cache), ['config/gh/hosts.yml', 'gh/state'])
+        self.assertEqual([entry['path'] for entry in chrome.tree(cache)],
+                         ['config/gh/hosts.yml', 'gh/.sigstore/root/root.json', 'gh/state'])
+
+    def test_c11_takes_the_services_own_result_lines_from_the_log(self):
+        chrome = self.actions()
+        source = (ROOT / 'control/aresos_control/chrome/qualification.py').read_text()
+        self.assertIn(f"result = '{chrome.ACCEPTED}'", source)
+        self.assertIn(f"'chrome_qualification', '{chrome.HELD}'", source)
+        self.assertIn("result = f'Qualification refresh refused ({reason}); held record retained.'", source)
+        self.assertIn("result = f'Qualification refresh failed after verification ({reason}); the held record may "
+                      "have been updated.'", source)
+        self.assertIn("cache = Path(path).resolve().parent/'qualification-verifier-cache'", source)
+        config = json.loads((ROOT / 'control/settings/service.json').read_text())
+        self.assertEqual(chrome.VERIFIER, pathlib.Path(config['state_dir']) / 'qualification-verifier-cache')
+
+        def row(time, summary, action='chrome_qualification'):
+            return dict(time=time, action=action, summary='Chrome audit event', untrusted_content=dict(summary=summary))
+        refused = 'Qualification refresh refused (URLError); held record retained.'
+        entries = [row(90, chrome.HELD), row(91, chrome.ACCEPTED), row(100, chrome.HELD), row(101, chrome.ACCEPTED),
+                   row(102, 'Chrome tab opened', action='chrome_open'), row(150, refused)]
+        self.assertEqual(chrome.refreshes(entries, 100), ([chrome.HELD, chrome.ACCEPTED, refused],
+                                                          [chrome.ACCEPTED, refused]))
+        self.assertEqual(chrome.refreshes(entries[:5], 100), ([chrome.HELD, chrome.ACCEPTED], [chrome.ACCEPTED]))
+        self.assertEqual(chrome.refreshes([row(100, 'Qualification refresh refused (a b); held')], 0)[1], [])
+
+    def test_c11_reads_every_page_of_his_log_and_starts_again_when_it_changed(self):
+        chrome = self.actions()
+        pages = iter([dict(items=[1, 2], cursor='c1'), dict(items=[3], cursor='c2'),
+                      dict(items=[1, 2], cursor='c3', page_changed='Page changed; restarted from the first page.'),
+                      dict(items=[3, 4], cursor=None)])
+        asked = []
+        stand_in = types.SimpleNamespace(
+            cli=lambda *argv, value=None: asked.append((argv, value)) or {'page': next(pages)},
+            answered=lambda result: {'data': result['page']})
+        with mock.patch.object(chrome, 'control', return_value=stand_in):
+            self.assertEqual(chrome.log_entries(), [1, 2, 3, 4])
+        self.assertEqual(asked[0], ((chrome.OWNER, 'control', 'log'), {'limit': 10}))
+        self.assertEqual(asked[1][1], {'limit': 10, 'cursor': 'c1'})
+
+    def setUp(self):
+        self.folder = pathlib.Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.folder)
 
 
 class RunnerInputsTest(unittest.TestCase):
@@ -1529,7 +2022,195 @@ class ReleaseChecksTest(unittest.TestCase):
         with self.assertRaises(SystemExit):
             self.module.main(['nonsense'])
         self.assertEqual(list(self.module.CHECKS),
-                         ['service_user', 'unit', 'claude_code_files', 'folders', 'state_folders'])
+                         ['service_user', 'unit', 'claude_code_files', 'folders', 'state_folders', 'chrome_links',
+                          'chrome_bundle', 'chrome_other_ids', 'chrome_sites', 'gh', 'chrome_polkit'])
+
+
+class ChromeReleaseChecksTest(unittest.TestCase):
+    """18c-b's release rehearsal on a stand-in root, without Chrome or a CI layer."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.openssl = shutil.which('openssl')
+        pack = load(ROOT / 'control/chrome/packaging/pack.py', 'release_check_pack')
+
+        def sign(archive):
+            def openssl(*args, data=None):
+                return subprocess.run([cls.openssl, *args], input=data, capture_output=True, check=True).stdout
+
+            key = openssl('genpkey', '-algorithm', 'RSA', '-pkeyopt', 'rsa_keygen_bits:2048')
+            public = openssl('pkey', '-pubout', '-outform', 'DER', data=key)
+            signed = pack._field(1, hashlib.sha256(public).digest()[:16])
+            with tempfile.TemporaryDirectory() as work:
+                content = pathlib.Path(work) / 'signed-data'
+                content.write_bytes(b'CRX3 SignedData\0' + struct.pack('<I', len(signed)) + signed + archive)
+                signature = openssl('dgst', '-sha256', '-sign', '/dev/stdin', str(content), data=key)
+            return public, signed, signature
+
+        with mock.patch.object(pack, '_sign_with_fresh_key', sign):
+            cls.bundle, cls.extension = pack.pack(ROOT / 'control/chrome/extension')
+
+    def setUp(self):
+        self.module = load(CONTROL_CI / 'release_checks.py', 'chrome_release_checks')
+        work = self.enterContext(tempfile.TemporaryDirectory())
+        self.root = pathlib.Path(work)
+        self.enterContext(mock.patch.object(self.module, 'ROOT', self.root))
+        for name, data in self.bundle.items():
+            self.write(f'{self.module.BUNDLE}/{name}', data)
+        for name, target in self.module.CHROME_LINKS.items():
+            for rel in (name, 'usr/' + name):
+                link = self.root / rel
+                link.parent.mkdir(parents=True, exist_ok=True)
+                link.symlink_to(target)
+        self.sites = self.write(self.module.SITES, b'{"format":1,"hosts":["rehearsal.invalid"]}\n', 0o640)
+        self.action = self.write(self.module.CHROME_ACTION, b'<policyconfig/>\n')
+        self.gh = self.write(self.module.GH, b'#!/bin/sh\nprintf "gh version 2.103.3 (fixture)\\n"\n', 0o755)
+        self.gh.with_name('openssl').symlink_to(self.openssl)
+        gh_hash = self.module.sha256(self.gh)
+        self.write(self.module.GH_LOCK, json.dumps(dict(nevra='gh-2.103.3-1.x86_64', binary_sha256=gh_hash)).encode())
+        self.record = dict(chrome_extension=dict(self.extension), gh=dict(version='2.103.3', binary_sha256=gh_hash),
+                           files={'/' + self.module.CHROME_ACTION: dict(mode='0644',
+                                                                      sha256=self.module.sha256(self.action))})
+        self.write_record()
+
+    def write(self, name, data, mode=0o644):
+        path = self.root / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
+        path.chmod(mode)
+        return path
+
+    def write_record(self):
+        self.write(self.module.RECORD, json.dumps(self.record).encode())
+
+    def test_both_links_must_exist_and_match_the_image(self):
+        self.assertTrue(self.module.chrome_links()[0])
+        for name, target in self.module.CHROME_LINKS.items():
+            for rel in (name, 'usr/' + name):
+                with self.subTest(path=rel):
+                    path = self.root / rel
+                    path.unlink()
+                    self.assertFalse(self.module.chrome_links()[0])
+                    path.write_text(target)
+                    self.assertFalse(self.module.chrome_links()[0])
+                    path.unlink()
+                    path.symlink_to('/wrong')
+                    self.assertFalse(self.module.chrome_links()[0])
+                    path.unlink()
+                    path.symlink_to(target)
+
+    def test_every_manifest_and_record_must_name_the_package_id(self):
+        self.assertTrue(self.module.chrome_bundle()[0])
+        identity = self.extension['id']
+        for name in ('policy.json', 'update.xml', 'native-host.json'):
+            with self.subTest(name=name):
+                path = f'{self.module.BUNDLE}/{name}'
+                self.write(path, self.bundle[name].replace(identity.encode(), b'a' * 32))
+                ok, value = self.module.chrome_bundle()
+                self.assertFalse(ok)
+                self.assertTrue(value['signature_verified'])
+                self.write(path, self.bundle[name])
+        self.record['chrome_extension']['id'] = 'a' * 32
+        self.write_record()
+        self.assertFalse(self.module.chrome_bundle()[0])
+
+    def test_changed_signed_bytes_and_invalid_header_fail(self):
+        path = f'{self.module.BUNDLE}/extension.crx'
+        good = self.bundle['extension.crx']
+        self.write(path, good[:-1] + bytes([good[-1] ^ 1]))
+        ok, value = self.module.chrome_bundle()
+        self.assertFalse(ok)
+        self.assertFalse(value['signature_verified'])
+        self.write(path, good[:12])
+        self.assertFalse(self.module.run(['chrome_bundle'])['chrome_bundle']['ok'])
+
+    def test_other_ids_including_the_test_probe_fail(self):
+        self.assertTrue(self.module.chrome_other_ids()[0])
+        managed = self.module.CHROME_ETC + '/policies/managed'
+        probe = self.write(managed + '/probe.json', b'{"ExtensionInstallForcelist":["' + b'b' * 32 + b';file:///probe"]}')
+        self.assertEqual(self.module.chrome_other_ids(), (False, dict(foreign={
+            '/' + managed + '/probe.json': ['b' * 32]})))
+        probe.unlink()
+        escaped = self.write(managed + '/escaped.json', b'{"ExtensionSettings":{"' + b'\\u0063' * 32 + b'":{}}}')
+        self.assertFalse(self.module.chrome_other_ids()[0])
+        escaped.unlink()
+        (self.root / managed / ('d' * 32)).mkdir()
+        self.assertFalse(self.module.chrome_other_ids()[0])
+
+    def test_only_the_unchanged_base_kde_host_may_name_its_ids(self):
+        name = self.module.KDE_HOST
+        contents = json.dumps({'allowed_origins': ['chrome-extension://' + 'e' * 32 + '/']}).encode()
+        path = self.write(name, contents)
+        self.write('usr/' + name, contents)
+        self.assertTrue(self.module.chrome_other_ids()[0])
+        path.write_bytes(contents.replace(b'e' * 32, b'f' * 32))
+        self.assertFalse(self.module.chrome_other_ids()[0])
+
+    def test_sites_metadata_and_hash_without_hosts(self):
+        actual_stat = pathlib.Path.lstat
+        pairs = [(0, 250), (1, 250), (0, 0)]
+        with mock.patch.object(self.module.grp, 'getgrnam', return_value=types.SimpleNamespace(gr_gid=250)):
+            for uid, gid in pairs:
+                with self.subTest(uid=uid, gid=gid):
+                    info = types.SimpleNamespace(st_mode=actual_stat(self.sites).st_mode, st_uid=uid, st_gid=gid)
+                    with mock.patch.object(pathlib.Path, 'lstat', return_value=info):
+                        ok, value = self.module.chrome_sites()
+                    self.assertEqual(ok, (uid, gid) == (0, 250))
+                    self.assertEqual(value['sha256'], self.module.sha256(self.sites))
+                    self.assertNotIn('rehearsal.invalid', json.dumps(value))
+            self.sites.chmod(0o644)
+            with mock.patch.object(pathlib.Path, 'lstat', return_value=types.SimpleNamespace(
+                    st_mode=actual_stat(self.sites).st_mode, st_uid=0, st_gid=250)):
+                self.assertFalse(self.module.chrome_sites()[0])
+            self.sites.unlink()
+            self.assertFalse(self.module.run(['chrome_sites'])['chrome_sites']['ok'])
+            self.sites.symlink_to(self.action)
+            ok, value = self.module.chrome_sites()
+            self.assertFalse(ok)
+            self.assertIsNone(value['sha256'])
+
+    def test_sites_hash_has_its_own_line(self):
+        info = types.SimpleNamespace(st_mode=stat.S_IFREG | 0o640, st_uid=0, st_gid=250)
+        output = io.StringIO()
+        with mock.patch.object(pathlib.Path, 'lstat', return_value=info), \
+                mock.patch.object(self.module.grp, 'getgrnam', return_value=types.SimpleNamespace(gr_gid=250)), \
+                contextlib.redirect_stdout(output):
+            self.assertEqual(self.module.main(['chrome_sites']), 0)
+        row, marker, verdict = output.getvalue().splitlines()
+        self.assertTrue(json.loads(row)['chrome_sites']['ok'])
+        self.assertEqual(marker, 'CONTROL_CHROME_SITES_SHA256 ' + self.module.sha256(self.sites))
+        self.assertEqual(verdict, 'CONTROL_RELEASE_CHECKS_PASS')
+
+    def test_gh_version_must_match_both_records(self):
+        self.assertTrue(self.module.gh()[0])
+        self.record['gh']['version'] = '2.103.4'
+        self.write_record()
+        self.assertFalse(self.module.gh()[0])
+        self.record['gh']['version'] = '2.103.3'
+        self.write_record()
+        with mock.patch.object(self.module.subprocess, 'run', return_value=types.SimpleNamespace(
+                returncode=0, stdout='gh version 2.103.4 (fixture)\n')):
+            self.assertFalse(self.module.gh()[0])
+
+    def test_gh_hash_must_match_before_running_the_binary(self):
+        self.gh.write_bytes(self.gh.read_bytes() + b'# changed\n')
+        with mock.patch.object(self.module.subprocess, 'run') as run:
+            self.assertFalse(self.module.gh()[0])
+        run.assert_not_called()
+
+    def test_polkit_action_must_equal_the_record(self):
+        self.assertTrue(self.module.chrome_polkit()[0])
+        self.action.chmod(0o600)
+        self.assertFalse(self.module.chrome_polkit()[0])
+        self.action.chmod(0o644)
+        self.action.write_bytes(b'<policyconfig><!-- changed --></policyconfig>\n')
+        self.assertFalse(self.module.chrome_polkit()[0])
+
+    def test_ci_guest_checks_everything_except_the_probe_free_scan(self):
+        actions, _ = layer(self.root)
+        with mock.patch.object(actions, 'release_checks', return_value=({}, dict(stdout=''))) as checks:
+            actions.release({})
+        self.assertEqual(set(checks.call_args.args), set(self.module.CHECKS) - {'chrome_other_ids'})
 
 
 if __name__ == '__main__':

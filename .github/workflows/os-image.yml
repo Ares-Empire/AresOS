@@ -183,9 +183,9 @@ jobs:
     name: Throwaway image build and checks (never pushed, signed or published)
     if: github.event_name == 'workflow_dispatch' && github.ref_name != 'pkg/16-staged-release' && inputs.check_build != '' && !inputs.rehearsal && !inputs.release_13 && !inputs.release_27 && !inputs.release_28 && !inputs.dry_run_28 && !inputs.checks_only && !inputs.switch_from_run
     runs-on: ubuntu-24.04
-    # check_build=control adds its own VM step (below) after the build step:
-    # tools 20 + build 80 + Control VM pass 16 + 15.
-    timeout-minutes: ${{ inputs.check_build == 'control' && 131 || 120 }}
+    # check_build=control adds its own VM steps (below) after the build step:
+    # tools 20 + build 80 + Control VM pass 16 + Control Chrome VM pass 25 + 15.
+    timeout-minutes: ${{ inputs.check_build == 'control' && 156 || 120 }}
     # Read-only on purpose: no write permission, no id-token and no other secret
     # than the job token, so this job cannot push, sign or publish the image it
     # builds. actions: read and packages: read are what package 42's guard step
@@ -239,6 +239,12 @@ jobs:
         # 1.5 times the slower pass with that added.
         timeout-minutes: 16
         run: bash os/ci/check-build.sh control-pass
+      - name: Control Chrome VM pass (check_build=control only)
+        if: inputs.check_build == 'control'
+        # Brief 18c-b, item 5: the second pass on the same disk with a fresh overlay. 25 minutes to start, as agreed
+        # with linux-aresos; then about 1.5 times the slowest green.
+        timeout-minutes: 25
+        run: bash os/ci/check-build.sh control-chrome-pass
       - name: Stop the Control fixture servers (check_build=control only)
         if: always() && inputs.check_build == 'control'
         run: bash os/ci/control/runner.sh stop

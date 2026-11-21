@@ -1816,7 +1816,7 @@ class ReleaseChecksTest(unittest.TestCase):
         self.addCleanup(shutil.rmtree, work)
         (work / 'os/ci').mkdir(parents=True)
         shutil.copy(ROOT / 'os/ci/check-build.sh', work / 'os/ci/check-build.sh')
-        (work / 'os/ci/check-image.sh').write_text('echo "check-image $*" >> calls\n')
+        (work / 'os/ci/check-image.sh').write_text('mkdir -p evidence/image\necho "check-image $*" >> calls\n')
         (work / 'evidence/vm-pass-1').mkdir(parents=True)
         (work / 'evidence/vm-pass-1/policy-result.json').write_text('ARESOS_ACTIVE_SESSION_POLKIT_PASSED\n')
         (work / 'evidence/vm-pass-1/console-keymap-result.json').write_text('CONSOLE_KEYMAP_PASSED\n')
@@ -2128,9 +2128,12 @@ class MainSmokeTest(unittest.TestCase):
             root = self.work / name
             root.mkdir()
             base.ClassifierTest.tree(None, root, files)
-            # Release 27 already has the alternatives folders and greetd's graphical wants folder.
+            # Shared system directories in the stand-in images. The live Control
+            # install map also uses Chrome's policy and native host paths and polkit's actions.
             for folder in (rd.ALTERNATIVES, rd.ALTERNATIVES_ADMIN, 'usr/bin', 'etc/systemd/system/graphical.target.wants',
-                           'etc/systemd/system/multi-user.target.wants', 'usr/lib/sysusers.d', 'usr/lib/tmpfiles.d'):
+                           'etc/systemd/system/multi-user.target.wants', 'usr/lib/sysusers.d', 'usr/lib/tmpfiles.d',
+                           'etc/opt/chrome/policies/managed', 'etc/opt/chrome/native-messaging-hosts',
+                           'usr/share/polkit-1/actions'):
                 (root / folder).mkdir(parents=True, exist_ok=True)
             for path in root.rglob('*'):
                 if path.is_dir():
