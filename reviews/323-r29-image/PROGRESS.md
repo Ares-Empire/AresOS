@@ -21,10 +21,26 @@ The unittest commands ran one at a time from `os/` under bubblewrap with private
 | `cmp` and `sha256sum` for the copied font and licence | Both copies match byte for byte and both hashes match the brief |
 | Compare the existing 53f check with `6bf34255` | Byte-for-byte match |
 
+## Step 2 (the lead, 2026-11-21)
+
+- The first resolve (44911675124, `fb99517e`) requested `gtk4-layer-shell` by name. dnf then also downloaded the i686 build and 23 multilib dependencies, such as i686 GTK 4 and GStreamer, and it would have moved x86_64 GStreamer. `60588a1b` requests `gtk4-layer-shell.x86_64` only.
+- The second resolve (44912634031, `60588a1b`) produced a candidate that differs from the lock by exactly `gtk4-layer-shell-1.3.0-1.fc44.x86_64`. Nothing was renewed, and labwc and wlroots are unchanged.
+  - The run went red later, in the mod jar build: Gradle found no `org.cadixdev` POMs on Maven Central for a moment, and they were served again minutes later. The candidate's download had already exited 0.
+  - The candidate is kept in `runs/resolve-44912634031/`. `os/packages.lock.json` equals it, in its order, written in the lock's one-row-per-line layout.
+- `tests.test_r29_image` pins that: the lock equals the candidate, and the only layer-shell row is the x86_64 one.
+- Three release tests read the working tree's lock as if it were R28's, and broke on a package R28 never had. They now read R28's lock through the blob its record names (`test_release27.released`):
+  - `test_release27` PackageDiffTest, which was written against R28's lock and so holds package 23's Java;
+  - `test_release28` PackageDiff28Test;
+  - `test_release28` MainSmokeTest, which also serves that lock to `release_diff` in place of the working tree's.
+- Tests run from the repository root as CI runs them (`unittest discover -s os/tests -p <module>`):
+  - OK: `test_r29_image`, `test_release27`, `test_release28`, and 17 other modules that read the lock, Containerfile, image checks, fonts or resolve.
+  - `test_owner_update` fails its 170 laptop-environment subtests, as on main.
+  - `test_ways_back_model` was stopped by the lead's 15-minute timeout. This package changes none of its sources.
+
 ## Left in order
 
-1. The lead dispatches `check_build=resolve` on `pkg/323-r29-image` and shares the evidence with the Step 2 builder.
-2. Compare `candidate-packages.lock.json` to the current lock. Accept only `gtk4-layer-shell`, its newly needed dependencies, and pins Fedora stopped serving. Stop for the lead if labwc, wlroots, or any package 311 labwc build pin renews. Otherwise replace the lock wholesale in the candidate's order, add its test, and record each added or renewed entry here. If the base inventory already lists `gtk4-layer-shell`, use that recorded NEVRA in the image check and omit the package request and lock entry.
+1. (Done, above.)
+2. (Done, above.)
 3. The lead dispatches `check_build=build` after the Step 2 push and obtains the fresh code review. With a green build and a SAFE review, the lead commits the report from this note, removes this note, merges, and tells `linux-desktop` and `linux-tools` as specified in the brief.
 
 ## What the code does not show

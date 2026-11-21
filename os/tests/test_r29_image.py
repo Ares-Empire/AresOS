@@ -111,3 +111,18 @@ class DriverManifestCheckTest(unittest.TestCase):
     def test_relative_library_path_is_rejected(self):
         with self.assertRaisesRegex(AssertionError, 'expected an absolute library path or soname'):
             self.check_manifests(['drivers/libvulkan_intel.so'])
+
+
+class PackageLockTest(unittest.TestCase):
+    """Step 2: the lock is resolve run 44912634031's candidate, which adds only the x86_64 layer library."""
+    RUN = OS.parent / 'reviews/323-r29-image/runs/resolve-44912634031/candidate-packages.lock.json'
+
+    def test_the_lock_is_the_resolved_candidate_in_its_order(self):
+        lock = json.loads((OS / 'packages.lock.json').read_text())
+        self.assertEqual(lock, json.loads(self.RUN.read_text()))
+
+    def test_only_the_x86_64_layer_library_is_pinned(self):
+        pinned = [p for p in json.loads((OS / 'packages.lock.json').read_text())['packages']
+                  if p['nevra'].rsplit('-', 2)[0] == 'gtk4-layer-shell']
+        self.assertEqual(pinned, [{'nevra': 'gtk4-layer-shell-1.3.0-1.fc44.x86_64',
+                                   'sha256': '9dd6c2bfc53b9dd1a7a03c9c18f381dcbd350a0abd692a9cae7377d658f852a1'}])
