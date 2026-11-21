@@ -99,7 +99,7 @@ checks. No image file changed.
 | Commit | What |
 |---|---|
 | `6d2c1cbf` | The switch, the gate, the Off teardown and its deadline, `--revoke`, the clipboard recheck, the confirmed `ForceRelease` and `--release`'s pidfd, each with a unit test (98 in all, 79 before); the harness's switch file and its 21 new checks. |
-| the commit after `6d2c1cbf` | `UPSTREAM.md`'s row, `KNOWN-LIMITS.md`, this file, and the evidence (`evidence/step1b-build.txt`, `evidence/step1b-harness/`, added with `-f`). |
+| `92916a6b` | `UPSTREAM.md`'s row, `KNOWN-LIMITS.md`, this file, and the evidence (`evidence/step1b-build.txt`, `evidence/step1b-harness/`, added with `-f`). |
 
 ### What step 1b built (`os/input-portal/src/`)
 
