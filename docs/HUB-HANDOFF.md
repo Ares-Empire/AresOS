@@ -92,6 +92,16 @@ His findings, in his order, with who takes each. Nothing is built yet.
 
 He didn't test memory. Ask him when the memory work needs his apps open.
 
+**His answers (same evening):**
+- **With a monitor, the world is on the monitor.** The laptop screen shows a picture behind its apps.
+- **No hold-the-right-button to look around:** "we need to find another way". The cursor must still cross screens seamlessly. This is an open design job: prototype two or three ways and let him try them by feel.
+- **A click on the world beside a part-screen app must not hide the app** (the world stays below the windows). `linux-desktop`'s item (c), now decided.
+- **The look is already decided:** COMPONENTS.md (B312, on main) uses the game's textures by default and A/C as a setting. The brightness and volume indicator (4.1) is `linux-desktop`'s first build. Status icons (Wi-Fi, battery, sound, clock) aren't in it yet; they go to `linux-desktop` as a new component in the same looks.
+- **New: a switch to turn the home world off.** The home becomes a picture: a default one, black, or any picture of his. "Especially good when we are building, so Minecraft doesn't draw that much memory" (game about 1 GiB plus Prism about 418 MiB).
+- He agreed to the rest: the fix order, protected blocks with a build mode, tutorial toasts off, the clearer New home label, the Terminal block, open/active marks, left click opens and right click gives options, and apps opening full at first and then at their last size.
+
+**What this means for the structure:** the world-off switch, the bar over full-screen apps, and the picture on the second screen all need the home's own parts outside Minecraft: a picture behind the windows, the bar, search and app launching. Today the bar, search and launching live inside the game (the hotbar, `WorldSearchScreen`, `AresOsClient.launch`). One design note should decide where they live, with `linux-desktop`, before any of the three is built. It should also cover the sleeping world (T364), whose still image is the same picture.
+
 ## Who owns what next door
 
 - **`linux-aresos`** owns `os/` and releases. It gets:
