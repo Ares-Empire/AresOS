@@ -227,11 +227,12 @@ PY
 
 # Candidate lock: the existing exact inputs (a vanished pin by name and
 # architecture, see existing-lock-availability) plus package 23's Java 25 and
-# package 323's gtk4-layer-shell, resolved exactly as build.sh does.
+# package 323's gtk4-layer-shell (x86_64 only: by name, dnf also fetches the
+# i686 build and its multilib chain), resolved exactly as build.sh does.
 names=()
 while read -r spec; do names+=("$spec"); done < /tmp/lock-requests.txt
 names+=(java-25-openjdk-headless)
-names+=(gtk4-layer-shell)
+names+=(gtk4-layer-shell.x86_64)
 {
     printf 'Requested: %s\n' "${names[*]}"
     rm -rf /tmp/ares-rpms

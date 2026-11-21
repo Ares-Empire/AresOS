@@ -21,7 +21,7 @@ class ResolveRequestsTest(unittest.TestCase):
         self.assertRegex(inventory, r'rpm -q [^\n]*\bgtk4-layer-shell\b')
         self.assertRegex(transaction, r'install --assumeno [^\n]*\bgtk4-layer-shell\b')
         self.assertRegex(available, r'repoquery [^\n]*\bgtk4-layer-shell\b')
-        self.assertIn('names+=(gtk4-layer-shell)', candidate)
+        self.assertIn('names+=(gtk4-layer-shell.x86_64)', candidate)
         self.assertIn('download --resolve --destdir=/tmp/ares-rpms "${names[@]}"', script)
 
 
