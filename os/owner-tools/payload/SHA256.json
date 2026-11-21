@@ -4,7 +4,7 @@
     "path": "at"
   },
   {
-    "sha256": "5f74f16761ae3b3e86b2ba6968a901a01ab375db5543ac21249713a9a63ab292",
+    "sha256": "7ea757c9e9d03656f54868db5e12c394da759b0c44db464ed15a592e55ddba74",
     "path": "history.json"
   },
   {
@@ -16,7 +16,7 @@
     "path": "owner.py"
   },
   {
-    "sha256": "975da14646648fb39f219f52f232d4b674180a2a892bf3a91069035bdf1ea45e",
+    "sha256": "1738474f8541468854804c02cb02a7ffcbeb5a3b27914ae7b6ceefcd7816b15a",
     "path": "release.json"
   },
   {

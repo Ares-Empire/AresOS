@@ -80,17 +80,29 @@ def build(tools):
         registry.rmdir()
 
 
-def build_release27(tools):
-    """Package 27: verify and pull release 13 with the job token, then diff it."""
+# The release jobs that build the reviewed Containerfile and diff it against
+# the release before: their branch, the modes their steps run with, and the
+# previous release they read with the job token. Package 42's dry run builds
+# and diffs exactly like its publishing job; only that job can publish.
+RELEASE_BUILDS = {
+    '27': dict(branch='pkg/27-first-update-release', modes=('release-27',), previous='os/manifest/releases/13.json'),
+    '28': dict(branch='pkg/42-release-28', modes=('publish-28', 'dry-run-28'), previous='os/manifest/releases/27.json'),
+}
+RELEASE_MODES = {mode: release for release, build in RELEASE_BUILDS.items() for mode in build['modes']}
+
+
+def build_release(tools, release):
+    """Packages 27 and 42: verify and pull the previous release with the job token, then diff it."""
     tools = validate(tools)
+    build = RELEASE_BUILDS[release]
     assert os.environ['GITHUB_REPOSITORY'] == 'Ares-Empire/AresOS'
-    assert os.environ['GITHUB_REF_NAME'] == 'pkg/27-first-update-release'
-    assert os.environ['REHEARSAL_MODE'] == 'release-27'
-    assert 'GHCR_READ_TOKEN' not in os.environ, 'Release 13 is read with the job token; no owner secret'
-    previous = json.loads(pathlib.Path('os/manifest/releases/13.json').read_text())
+    assert os.environ['GITHUB_REF_NAME'] == build['branch']
+    assert os.environ['REHEARSAL_MODE'] in build['modes']
+    assert 'GHCR_READ_TOKEN' not in os.environ, 'The previous release is read with the job token; no owner secret'
+    previous = json.loads(pathlib.Path(build['previous']).read_text())
     from registry_auth import auth_file
     auth = auth_file()
-    registry = pathlib.Path(os.environ['RUNNER_TEMP']) / 'aresos-27-previous-cosign'
+    registry = pathlib.Path(os.environ['RUNNER_TEMP']) / f'aresos-{release}-previous-cosign'
     registry.mkdir(mode=0o700)
     try:
         (registry / 'config.json').symlink_to(auth)
@@ -100,7 +112,7 @@ def build_release27(tools):
                 env=dict(os.environ, DOCKER_CONFIG=str(registry)), stdout=stream)
         subprocess.run([tools['podman'], 'pull', '--authfile', str(auth), previous['reference']], check=True)
         import release_diff
-        release_diff.main(tools)
+        release_diff.main(tools, release=release)
         copy = "import pathlib,shutil; [(shutil.copyfile(p, pathlib.Path('/evidence')/p.name)) for p in pathlib.Path('/usr/share/aresos/manifest').iterdir() if p.is_file()]"
         subprocess.run([tools['podman'], 'run', '--rm', '--network=none', '--read-only',
             '--entrypoint=/usr/bin/python3', '-v', str(pathlib.Path('evidence').resolve()) + ':/evidence',
@@ -131,8 +143,8 @@ def main():
         assert extra in ([], ['--check-tools'])
         if extra:
             print('BUILD_TOOLS_VALIDATED_WITHOUT_CREDENTIALS ' + json.dumps(tools, sort_keys=True))
-        elif os.environ.get('REHEARSAL_MODE') == 'release-27':
-            build_release27(tools)
+        elif os.environ.get('REHEARSAL_MODE') in RELEASE_MODES:
+            build_release(tools, RELEASE_MODES[os.environ['REHEARSAL_MODE']])
         else:
             build(tools)
     else:

@@ -34,10 +34,12 @@ MODEL_STEP = 'Run the full ways-back model'
 ACCOUNTING_POLICY = '14zz-job-interval-ordered-span-full-bound-v1'
 OWNER_QUALIFICATION_BOUND = 240
 # Packages whose ledger counts every dispatch by its run title.
-TITLED_PACKAGES = ('13', '14', '16', '27', '22c', '22d')
+TITLED_PACKAGES = ('13', '14', '16', '27', '22c', '22d', '42')
 # Packages whose every VM mode proves its native step in its own run and, when the full
 # ways-back model's sources changed, needs that model passed on the same head first.
 OWN_RUN_PACKAGES = ('22c', '22d')
+# The dispatch kinds whose job may publish an image (each once: publish_cap).
+PUBLISH_KINDS = ('release-13', 'release-27', 'publish-28')
 
 
 def configure(package):
@@ -357,7 +359,10 @@ def budget(reserve, current=None):
         if start is None or run['created_at'] < start:
             continue
         if PACKAGE in TITLED_PACKAGES and run['event'] == 'workflow_dispatch':
-            kind, = [kind for kind, title in SETTINGS['titles'].items() if title == run['display_title']]
+            kinds = [kind for kind, title in SETTINGS['titles'].items() if title == run['display_title']]
+            assert len(kinds) == 1, (f"STOP: run {run['id']} is titled {run['display_title']!r}, which package {PACKAGE}'s "
+                                     'ledger does not know; record it in os/ci/rehearsal-packages.json before any dispatch')
+            kind, = kinds
             assert run.get('run_attempt') == 1, 'STOP: a rerun is an additional dispatch, not a free retry'
             counts[kind] += 1
         if run['display_title'] == 'Two-disk rehearsal (full)':
@@ -383,7 +388,7 @@ def budget(reserve, current=None):
         bound = None
         if PACKAGE in ('14','16') and run['event']=='workflow_dispatch':
             bound = 72 if run['display_title']==SETTINGS['titles']['probe'] else OWNER_QUALIFICATION_BOUND
-        if PACKAGE in ('27',) + OWN_RUN_PACKAGES and run['event'] == 'workflow_dispatch':
+        if PACKAGE in ('27', '42') + OWN_RUN_PACKAGES and run['event'] == 'workflow_dispatch':
             # Each kind's own job timeout bounds a job GitHub cannot account.
             bound = SETTINGS['job_bounds'][kind]
         accounts = [job_accounting(job, bound) for job in jobs]
@@ -435,8 +440,9 @@ def probe_native(run, sha, current=False, kind='probe'):
 
 
 def own_native(kind):
-    """Kinds whose native step is proved in their own run: a probe, package 27's update, every VM mode of packages 22c and 22d."""
-    return kind in ('probe','update') or PACKAGE in OWN_RUN_PACKAGES and kind != 'checks'
+    """Kinds whose native step is proved in their own run: a probe, package 27's update, every VM mode of packages 22c and
+    22d, and package 42's release-28 rehearsal."""
+    return kind in ('probe','update') or PACKAGE in OWN_RUN_PACKAGES and kind != 'checks' or PACKAGE == '42' and kind == 'release-28'
 
 
 def native_gate(kind, mode, result, sha, current_run=None):
@@ -508,6 +514,8 @@ def main():
         assert reserve==plan['before_probe' if mode=='probe' else 'before_qualification'], 'STOP: incomplete owner dispatch reservation'
     if PACKAGE in TITLED_PACKAGES:
         assert os.environ.get('GITHUB_REF_NAME', BRANCH) == BRANCH, 'STOP: wrong package branch'
+    if ci and PACKAGE == '42':
+        assert os.environ.get('GITHUB_REF', '').startswith('refs/heads/'), 'STOP: a branch ref is required'
     result = budget(reserve, current)
     if plan is not None:
         result['reservation_plan']=plan
@@ -515,7 +523,8 @@ def main():
         assert (PACKAGE in ('13', '14', '16') and os.environ.get('REHEARSAL_MODE')=='probe'
                 or PACKAGE == '27' and os.environ.get('REHEARSAL_MODE')=='update'
                 or PACKAGE in OWN_RUN_PACKAGES and os.environ.get('REHEARSAL_MODE') in SETTINGS['dispatch_caps']
-                and os.environ.get('REHEARSAL_MODE') != 'checks'), 'STOP: native deferral is only for probe budget reservation'
+                and os.environ.get('REHEARSAL_MODE') != 'checks'
+                or PACKAGE == '42' and os.environ.get('REHEARSAL_MODE') == 'release-28'), 'STOP: native deferral is only for probe budget reservation'
     history = result.get('history')
     assert history and history['complete'] and history['ids_count'] == history['total_count'], 'STOP: no complete run-history proof'
     if PACKAGE in TITLED_PACKAGES:
@@ -528,15 +537,18 @@ def main():
             assert result['dispatch_counts'][kind] >= 1, 'STOP: current dispatch is missing from complete history'
         else:
             assert result['dispatch_counts'][kind] < SETTINGS['dispatch_caps'][kind], 'STOP: no dispatch remains'
-        if kind in ('release-13', 'release-27'):
+        if kind in PUBLISH_KINDS:
             assert not result['publish_attempts'], 'STOP: a prior attempt reached publishing; no further image/publish attempt'
         if mode == 'publish-ci':
-            assert kind in ('release-13', 'release-27') and os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch'
+            # Package 42's dry run (dry-run-28) is not a publishing kind: it has no publish step, and this refuses one.
+            assert kind in PUBLISH_KINDS and os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch'
             assert os.environ.get('GITHUB_REPOSITORY') == REPOSITORY
+            # A ledger whose publish_cap is 0 allows no publish at all (package 42 until the owner's OK).
+            assert len(result['publish_attempts']) < SETTINGS.get('publish_cap', 0), 'STOP: the ledger allows no publish'
         if kind in ('probe', 'keyboard', 'owner-tools', 'update') or own_native(kind):
             sha=os.environ.get('GITHUB_SHA') or subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
             result['native']=native_gate(kind,mode,result,sha,run if ci else None)
-            if PACKAGE in OWN_RUN_PACKAGES and own_native(kind):
+            if (PACKAGE in OWN_RUN_PACKAGES or PACKAGE == '42') and own_native(kind):
                 # Checked at the budget step already, so a dispatch without it stops before its minutes.
                 result['model']=model_gate(result,sha)
     if mode == 'part-b':
@@ -610,7 +622,7 @@ def main():
     (directory / suffix).write_text(json.dumps(result, indent=2) + '\n')
     if PACKAGE == '13' and mode != 'publish-ci':
         (directory / '13-dispatch-authorization.json').write_text(json.dumps(result, indent=2) + '\n')
-    if PACKAGE in ('14','16','27') + OWN_RUN_PACKAGES:
+    if PACKAGE in ('14','16','27','42') + OWN_RUN_PACKAGES:
         (directory / (PACKAGE+'-dispatch-authorization.json')).write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(result, indent=2))
 

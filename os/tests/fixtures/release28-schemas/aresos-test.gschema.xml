@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A made-up schema for test_release28: the key package 31's override sets, and one key of each kind of value. -->
+<schemalist gettext-domain="aresos-test">
+  <enum id="org.aresos.test.Mode">
+    <value nick="off" value="0"/>
+    <value nick="on" value="1"/>
+  </enum>
+  <schema id="org.gnome.desktop.wm.preferences" path="/org/gnome/desktop/wm/preferences/">
+    <key name="button-layout" type="s"><default>'appmenu:close'</default></key>
+    <key name="num-workspaces" type="i"><range min="1" max="36"/><default>4</default></key>
+    <key name="titlebar-font" type="s"><default l10n="messages">'Sans Bold 11'</default></key>
+  </schema>
+  <schema id="org.aresos.test" path="/org/aresos/test/">
+    <key name="mode" enum="org.aresos.test.Mode"><default>'off'</default></key>
+    <key name="scale" type="d"><default>1.5</default></key>
+    <key name="names" type="as"><default>['a', 'bc']</default></key>
+    <key name="pairs" type="a{ss}"><default>{'k': 'v'}</default></key>
+    <key name="point" type="(ii)"><default>(3, -4)</default></key>
+    <key name="maybe" type="ms"><default>just 'x'</default></key>
+    <key name="flag" type="b"><default>true</default></key>
+    <key name="big" type="t"><default>1234567890123</default></key>
+  </schema>
+</schemalist>

@@ -42,7 +42,10 @@ def require_runner():
             ('pkg/22c-ways-back-after-update','22c') and os.environ.get('REHEARSAL_MODE') in ('reorder-probe', 'ways-back') or
             # Package 22d: new owner tools from the desktop's password window, without the stick.
             (os.environ.get('GITHUB_REF_NAME'),os.environ.get('REHEARSAL_PACKAGE'),os.environ.get('REHEARSAL_MODE')) ==
-            ('pkg/22d-tools-without-stick','22d','tools-local'))
+            ('pkg/22d-tools-without-stick','22d','tools-local') or
+            # Package 42: the owner's route to release 28 (its rehearsal mode release-28).
+            (os.environ.get('GITHUB_REF_NAME'),os.environ.get('REHEARSAL_PACKAGE'),os.environ.get('REHEARSAL_MODE')) ==
+            ('pkg/42-release-28','42','release-28'))
 
 
 class Media:

@@ -8,6 +8,7 @@ import unittest
 import test_owner_tools as common
 import test_owner_walk as walk
 import test_owner_entry as entry
+import release28_walk
 
 ROOT = common.ROOT
 OWNER_PAGES = ('INSTALL.md', 'INSTALL-PROCEDURES.md', 'INSTALL-REFERENCE.md',
@@ -68,13 +69,21 @@ def check_fingerprints(documents, fingerprint):
 
     Image/media pins are distinct from the tools manifest. Checking all full
     hashes catches an extra stale copy even when the correct copy remains.
+    A source for a hash establishes provenance only.
     Historical package-14 receipts stay superseded, not rewritten.
     """
     pins=set()
     for name in ('installer-isos.json','media-tools.json','release.json','releases/13.json','ci/11n/b-1/release.json'):
         pins.update(re.findall(r'\b[0-9a-f]{64}\b',(ROOT/'os/manifest'/name).read_text()))
+    laptop=json.loads(walk.R27_RECORD.read_text())['reference']
     seen=False
     for page,text in documents.items():
+        if page == 'INSTALL-STATUS.md':
+            # The package 22d evidence carries the laptop's exact installed fingerprint.
+            retired = 'Tools fingerprint `' + release28_walk.TOOLS_V4 + '`'
+            text = re.sub(r'(?m)^(\| Owner tools without the stick \(package 22d\) \|[^\n]+? \| )'
+                          + re.escape(retired), r'\1', text, count=1)
+            text = text.replace('- **R27 (on the laptop):** `' + laptop + '`', '', 1)
         for value in re.findall(r'\b[0-9a-f]{64}\b',text):
             if value not in pins | {fingerprint}:
                 raise AssertionError(f'Stale tools fingerprint or unbound hash in {page}: {value}')
@@ -143,6 +152,31 @@ class EqualityTest(unittest.TestCase):
         check_fingerprints(fingerprint_documents(),fingerprint)
         self.assertEqual(hashlib.sha256((ROOT/'os/owner-tools/payload/SHA256SUMS').read_bytes()).hexdigest(),fingerprint)
         self.assertIn('-I -B', (ROOT/'os/owner-tools/at').read_text())
+
+    def test_rehearsal_iso_is_absent_from_the_owner_route_and_the_install_hold_precedes_the_erase(self):
+        records = json.loads((ROOT / 'os/manifest/installer-isos.json').read_text())
+        live, = [row for row in records if row['kind'] == 'live']
+        self.assertIs(live['rehearsal_only'], True)
+        guide, reference, card = [
+            (ROOT / 'docs' / name).read_text() for name in ('INSTALL.md', 'INSTALL-REFERENCE.md', 'EMERGENCY.md')
+        ]
+        for page in (guide, reference, card):
+            self.assertNotIn('installer-isos.json', page)
+            for key in ('sha256', 'filename', 'url', 'checksum_source'):
+                self.assertNotIn(live[key], page)
+
+        start, step2 = guide.split('## 2. Prepare and test the installer stick', 1)
+        step2 = step2.split('## 3.', 1)[0]
+        step4 = guide.split('## 4. Install and prepare corrected stock', 1)[1].split('## 5.', 1)[0]
+        media = reference.split('## Media checksums', 1)[1]
+        for section in (start, step2, step4, media, card):
+            self.assertIn('Bazzite no longer publishes the installer this guide was checked with.', section)
+            self.assertIn('new installer has been checked', section)
+            self.assertIn('There is nothing to download or try now.', section)
+        self.assertLess(step2.index('**STOP.**'), step2.index('**Schreiben**'))
+        self.assertLess(step4.index('**STOP for a fresh install or reinstall.**'), step4.index('**Reinstall only'))
+        self.assertIn('**Erase data and install** requires a newly checked installer and all PASS results.', step4)
+        self.assertLess(card.index('**STOP before reinstalling.**'), card.index('**Use entire disk**'))
 
     def test_bootstrap_is_byte_equal_to_the_block_exercised_by_package_14_tamper_tests(self):
         commands=json.loads((ROOT/'os/owner-tools/commands.json').read_text())
@@ -221,6 +255,9 @@ class EqualityTest(unittest.TestCase):
             changed[page]+='\nTools manifest fingerprint: `'+stale+'`.\n'
             with self.subTest(page=page), self.assertRaisesRegex(AssertionError,'Stale tools fingerprint'):
                 check_fingerprints(changed,fingerprint)
+        changed=dict(documents, **{'INSTALL-STATUS.md': documents['INSTALL-STATUS.md'] + '\n' + release28_walk.TOOLS_V4})
+        with self.assertRaisesRegex(AssertionError,'Stale tools fingerprint'):
+            check_fingerprints(changed,fingerprint)
         changed=dict(documents)
         wrong=json.loads((ROOT/'os/manifest/media-tools.json').read_text())['writer']['sha256']
         changed['INSTALL.md']=changed['INSTALL.md'].replace(fingerprint,wrong)
@@ -238,11 +275,15 @@ class EqualityTest(unittest.TestCase):
         update=walk.walk(route='update')
         ways_back=walk.walk(route='ways-back')
         typed={text.rstrip('\n') for text,profile in result['visible_blocks']+update['visible_blocks']+ways_back['visible_blocks']}
-        # Package 22d's rehearsal types none of Claude's lines: the caller in his desktop session runs
-        # each one, taken by name from the announced commit's commands.json (os/ci/tools_local.py).
-        # Those entries count as walked; the walk reads them from the program the harness sends.
+        # The desktop caller reads the new folder and routine lines from package 42's announced commit.
+        announced=walk.walk(route='release-28')['local']
+        ran=set(announced.ran['r28-tools'].values())
+        # The export path was walked by 22d. Its only input that moves with the payload is the label's fingerprint.
         local=walk.walk(route='tools-local')['local']
-        ran={local.commands[entry] for params in local.callers.values() for entry in params['entries'].values()}
+        exported=local.lines('tl-export')['routine']
+        self.assertIn(release28_walk.TOOLS_V4[:8], exported)
+        fingerprint=common.bundle.check(ROOT/'os/owner-tools/payload')
+        ran.add(exported.replace(release28_walk.TOOLS_V4[:8], fingerprint[:8], 1))
         guide='\n'.join((ROOT/name).read_text() for name in
             ('docs/INSTALL.md', 'docs/INSTALL-PROCEDURES.md'))
         waiting=unwalked_commands()
@@ -250,7 +291,7 @@ class EqualityTest(unittest.TestCase):
         for name, command in commands.items():
             self.assertIn(command, guide)
             # A waiting command must not already be walked (typed, or run by
-            # 22d's caller), so the list empties as soon as a rehearsal walks
+                # the desktop caller), so the list empties as soon as a rehearsal walks
             # it; every other one must be walked.
             if name in waiting:
                 self.assertNotIn(command, typed|ran)
@@ -260,8 +301,11 @@ class EqualityTest(unittest.TestCase):
         for block in re.findall(r'```bash\n(.*?)\n```',guide,re.S):
             if block not in allowed:
                 for line in block.splitlines(): self.assertIn(line, allowed)
-        for run in (result, update, ways_back):
-            self.assertEqual(sum(text.rstrip('\n')==commands['install'] for text,profile in run['visible_blocks']),1)
+        from tools_local import V3_COMMIT
+        for run, install in ((result, commands['install']),
+                             (update, json.loads(walk.vm.git_blob(walk.vm.TOOLS_V2_COMMIT, 'os/owner-tools/commands.json'))['install']),
+                             (ways_back, json.loads(walk.vm.git_blob(V3_COMMIT, 'os/owner-tools/commands.json'))['install'])):
+            self.assertEqual(sum(text.rstrip('\n')==install for text,profile in run['visible_blocks']),1)
         self.assertIn(commands['forward'],{text.rstrip('\n') for text,profile in ways_back['visible_blocks']})
         self.assertIn('layout-reset-trial-QMP-system-reset',result['checks'])
         self.assertIn(commands['layout-abandon'],typed)

@@ -63,19 +63,22 @@ if [[ $1 == control || $1 == control-tree ]]; then
         mkdir -p /tmp/ares-control
         # The MCP SDK and its complete closure, wheels only and each one's SHA-256
         # pinned (pip refuses any other), never into Python's own site-packages.
-        env -i PATH=/usr/bin:/bin LANG=C.UTF-8 HOME=/tmp/ares-control /usr/bin/python3 -I -m pip install --quiet \
+        # -B on every Python run here: the base's own bytecode (pip, the standard library) is timestamp-checked
+        # against sources whose mtime is 0, so an import as root would rewrite it (R28's fifth dry run, 353 files).
+        env -i PATH=/usr/bin:/bin LANG=C.UTF-8 HOME=/tmp/ares-control /usr/bin/python3 -I -B -m pip install --quiet \
             --disable-pip-version-check --root-user-action=ignore --no-cache-dir --no-compile --require-hashes \
             --only-binary=:all: --target "$vendor" --report "$report" \
             -r "$control_dir/requirements.lock"
         # Bytecode that stays valid on the deployed system, where every file's
         # mtime is 0: checked against the source's hash, compiled in place.
-        env -i PATH=/usr/bin:/bin LANG=C.UTF-8 /usr/bin/python3 -I -m compileall -q \
+        # compileall writes the vendor tree's bytecode explicitly; -B only stops its own imports' caches.
+        env -i PATH=/usr/bin:/bin LANG=C.UTF-8 /usr/bin/python3 -I -B -m compileall -q \
             --invalidation-mode checked-hash "$vendor"
     else
         os_dir=${2-} control_dir=${3-} dest=${4-} report=
         [[ -d $os_dir && -d $control_dir && -n $dest ]]
     fi
-    python3 - "$os_dir" "$control_dir" "$dest" $report <<'PY'
+    python3 -B - "$os_dir" "$control_dir" "$dest" $report <<'PY'
 import hashlib, json, os, pathlib, re, shlex, stat, subprocess, sys
 os_dir, control, dest = (pathlib.Path(arg) for arg in sys.argv[1:4])
 # The image build passes pip's report of the wheels it installed; control-tree passes none.
@@ -267,7 +270,9 @@ PY
     fi
     # Self-checks: a broken tree fails the build here. The installed launcher
     # (root-owned, no symlinks, nothing writable: launch.py checks all of it)...
-    /usr/bin/aresos --help > /tmp/ares-control/help.txt
+    # As an ordinary user, as he runs it: its Python (-I -S, no -B) can then write no bytecode into /usr.
+    # setpriv, not runuser: no PAM session, which the build container refuses (dry run 6, 44524016073).
+    setpriv --reuid=nobody --regid=nobody --clear-groups -- /usr/bin/aresos --help > /tmp/ares-control/help.txt
     grep -q '^usage: aresos ' /tmp/ares-control/help.txt
     # ...Chrome's startup files read the way its adapter reads them when the
     # service starts, the baseline checked by the installed code...
@@ -284,7 +289,7 @@ PY
     # ...and the shipped generated files equal what control/'s definitions generate
     # (control/generate.py; its docs/control/TOOLS.md is not in the image and
     # control-base checks it on every pull request).
-    env -i PATH=/usr/bin:/bin LANG=C.UTF-8 /usr/bin/python3 -I - "$control_dir" <<'PY'
+    env -i PATH=/usr/bin:/bin LANG=C.UTF-8 /usr/bin/python3 -I -B - "$control_dir" <<'PY'
 import pathlib, sys
 sys.path.insert(0, sys.argv[1])
 import generate
