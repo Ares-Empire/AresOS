@@ -46,6 +46,8 @@ The shared home cursor examples live under `mod/src/test/resources/` and the hel
 
 - Restored launches with ambiguous ownership share their adopted windows for closure. Closing one window leaves those launches in `background` until the last shared window closes.
 - The existing attribution limit for overlapping starts of a reviewed app within one helper session remains. [53a report](../53a-shell-views/REPORT.md#known-limit)
+- Discovered (finder) apps are left out of the ambiguity rule on purpose (the brief): all of a discovered app's windows belong to its launches, and `match_discovered` / `follow_view_launches` reassign them on every window update. Two discovered launches of one app that survive a restart can therefore both report `focused`, as they could before a restart (the OS lead's note, added by the lead).
+- Review 1's two notes: after a restart, an ambiguous desktop launch also replays as `background` to 1.0 and 1.1 clients (the mod treats `focused` and `background` alike); and a finishing check thread frees its slot just before it exits, so for a moment five threads can exist while the bound of four outstanding checks holds. [REVIEW-1](REVIEW-1.md)
 
 ## Open questions
 
