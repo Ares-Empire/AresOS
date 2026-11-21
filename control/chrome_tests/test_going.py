@@ -32,7 +32,7 @@ DELETE = RECEIVER + '/delete?item=4&token=' + MARKER
 UNSUBSCRIBE = RECEIVER + '/unsubscribe?list=7&sig=' + MARKER
 DOCS = SITE + '/docs?q=red+shoes&state=' + MARKER
 REPORT = {'act': 'navigate', 'fields': [{'description': 'field "Draft"', 'by': 'owner'}],
-          'more_fields': 0, 'frames_uninspected': 0, 'media': False}
+          'more_fields': 0, 'frames_uninspected': 0, 'media': False, 'owner_work_present': True}
 
 
 def sha(address):
@@ -150,7 +150,7 @@ class Pages(Extension):
             if tab not in self.needs_reload:
                 return {'reload_due': False}
             report = copy.deepcopy(self.report) if self.report is not None else \
-                {'fields': [], 'more_fields': 0, 'frames_uninspected': 0, 'media': False}
+                {'fields': [], 'more_fields': 0, 'frames_uninspected': 0, 'media': False, 'owner_work_present': False}
             return {'reload_due': True, 'loss': {**report, 'act': 'first_input'}}
         if name == 'prepare_control':
             self.dispatched.append((name, copy.deepcopy(args)))
@@ -337,7 +337,8 @@ class Going(unittest.TestCase):
             with self.subTest(verb=verb, args=args):
                 self.refused(verb, args, 'invalid_input')
         self.refused('open', {'url': 'javascript:alert(1)'}, 'refused')
-        self.refused('open', {'url': 'https://claude.ai/chat'}, 'refused')
+        self.chrome.read_owner_hosts = lambda: ['excluded.test']
+        self.refused('open', {'url': 'https://excluded.test/chat'}, 'refused')
 
     # --- chrome_go ------------------------------------------------------------
 

@@ -13,7 +13,7 @@ const row=(element,name='Send',role='button')=>({reference:{tab:7,element,docume
   expected:{name,role,value:'synthetic evidence'}});
 const lossMessage='This action may discard work. Nothing was done; inspect the loss report.';
 const lossEntry={code:'reload_required',message:lossMessage};
-const loss={act:'first_input',fields:[{description:'field "Draft"',by:'owner'}],more_fields:0,frames_uninspected:0,media:false};
+const loss={act:'first_input',fields:[{description:'field "Draft"',by:'owner'}],more_fields:0,frames_uninspected:0,media:false,owner_work_present:true};
 
 function harness(respond,{modern=true,observe}={}){
   const requests=[];

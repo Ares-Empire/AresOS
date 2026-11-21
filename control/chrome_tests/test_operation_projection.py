@@ -224,13 +224,47 @@ class Projection(unittest.TestCase):
         binding = self.operation(asked['operation_id'])['payload']['binding']
         self.assertEqual([item['url'] for item in binding['editable']], [PAGE, FRAME])
 
+    def test_a_prepared_site_confirmation_hides_the_code_in_reply_and_status(self):
+        self.addressed_page()
+        issue = SITE + '/fixture/issues/1?code=' + MARKER
+        self.chrome.hosts = {'github': {SITE.split('://')[1]}}
+        self.host.facts['frames'] = [page_frame(url=issue, adapter={
+            'account': 'fixture', 'context': 'Issue 1', 'scope': 'e1', 'scope_role': 'main'})]
+        self.host.targets['e8'] = target('e8', 'Close issue', role='button', editable=False)
+        prepared = self.prepare_step('click', 'e8')
+        plan = prepared['description']['untrusted_content']['confirmation']
+        self.assertEqual(plan['frame_url'], 'fixture.test/fixture/issues/1?code=…')
+        self.assertEqual(self.operation(prepared['operation_id'])['payload']['confirmation']['frame_url'], issue)
+        status = self.public(self.call('chrome_operation_status', {'operation_id': prepared['operation_id']}), 'chrome_operation_status')
+        self.assert_hidden(prepared, status)
+        self.assertEqual(self.host.sent('input'), [])
+
+    def test_a_link_fingerprint_is_private_in_free_input_and_prepared_input_stages(self):
+        self.addressed_page()
+        self.host.facts['frames'][0]['form'] = None
+        fingerprint = 'f4' * 16
+        self.host.reply['page']['change'] = {'element': 'e7', 'document': 'document-0', 'reader': 'reader-0',
+                                            'fingerprint': fingerprint}
+        free = self.step('scroll', 'e7', y=12)
+        free_id = free['steps'][0]['operation_id']
+        self.host.targets['e7'].update(name='Delete', label='Delete')
+        prepared = self.prepare_step('click', 'e7')
+        approved_id = prepared['operation_id']
+        approved = self.public(self.call('chrome_submit', prepared), 'chrome_submit')
+        for operation_id in (free_id, approved_id):
+            stages = self.operation(operation_id)['stages']
+            status = self.public(self.call('chrome_operation_status', {'operation_id': operation_id}), 'chrome_operation_status')
+            for public_value in (stages, status, free, approved, self.log()):
+                self.assertNotIn('fingerprint', canonical(public_value))
+                self.assertNotIn(fingerprint, canonical(public_value))
+
     def test_a_native_dialogs_question_and_the_navigations_description_hide_the_marker(self):
         self.addressed_page()
         native = {'session': SESSION, 'tab': 1, 'control': 'control-1', 'url': PAGE, 'title': 'Shop',
                   'effective_url': DIALOG, 'dialog': {'kind': 'confirm', 'text': 'Delete this?', 'frame': 0, 'frame_url': DIALOG, 'button': 'OK'}}
         answer = self.host.answer
         self.host.answer = lambda command: {'ok': True, 'data': copy.deepcopy(native)} if command['name'] == 'dialog_facts' else answer(command)
-        self.chrome.references.dialog_shown(1, {key: native['dialog'][key] for key in ('kind', 'text')})
+        self.chrome.references.dialog_shown(1, native['dialog'])
         result = self.public(self.call('chrome_do', {'tab': 1, 'steps': [{'do': 'dialog', 'accept': True}]}), 'chrome_do')
         self.assertEqual([step['outcome'] for step in result['steps']], ['prepared'])
         prepared = result['prepared'][0]['approval']
@@ -395,6 +429,36 @@ class Projection(unittest.TestCase):
         self.assertEqual([option['label'] for option in committed['choosing']], ['S'])
         self.assertEqual(committed['option_count'], 3)
         self.assertNotIn('options', committed)
+
+    def test_label_only_change_after_the_select_question_is_refused(self):
+        self.chrome.bridge.version = '159.0.1.0'
+        choices = [{'label': 'Monthly', 'value': 'p1', 'selected': True, 'disabled': False},
+                   {'label': 'Annual', 'value': 'p2', 'selected': False, 'disabled': False}]
+        self.host.targets['e9'] = target('e9', 'Plan', role='combobox', editable=False, value='p1', options=choices)
+        prepared = self.prepare_step('select', 'e9', value='Annual')
+        target_state = prepared['description']['untrusted_content']['page_state']['target']
+        self.assertEqual((target_state['chosen'], target_state['choosing']), ([choices[0]], [choices[1]]))
+        choices[1]['label'] = 'Annual revised'
+        answer = self.host.answer
+        effects = []
+
+        def final_input(command):
+            if command['name'] == 'input':
+                if command['binding']['target']['options'] != self.host.targets['e9']['options']:
+                    return {'ok': False, 'error': 'stale_approval: page changed; prepare again'}
+                effects.append(command['input'])
+            return answer(command)
+
+        self.host.answer = final_input
+        result = self.public(self.call('chrome_submit', prepared), 'chrome_submit')
+        self.assertEqual(result['operation']['state'], 'failed')
+        self.assertEqual(effects, [])
+
+    def test_a_native_button_with_an_unwatched_name_does_not_become_free(self):
+        self.host.targets['e8'] = target('e8', '', role='button', editable=False, name_withheld=True)
+        prepared = self.prepare_step('click', 'e8')
+        self.assertEqual(prepared['description']['untrusted_content']['kind'], 'activation')
+        self.assertEqual(self.host.sent('input'), [])
 
     # Item 3a: forms that still don't fit.
 

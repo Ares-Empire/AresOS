@@ -227,7 +227,10 @@ class View:
         self.tab = raw["tab"]
         self.url = raw.get("url", "")
         self.title = raw.get("title", "")
-        self.dialog = None if dialog is None else {"kind": dialog["kind"], "text": dialog.get("text", "")}
+        self.dialog = None if dialog is None else {
+            "kind": dialog["kind"], "text": dialog.get("text", ""),
+            **{key: dialog[key] for key in ("frame", "frame_url", "effective_url") if key in dialog},
+        }
         self.documents = [Document(frame, "frame %d" % index) for index, frame in enumerate(raw["frames"])]
         self.frames = {}
         for document in self.documents:

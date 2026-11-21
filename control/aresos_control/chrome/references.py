@@ -57,6 +57,13 @@ class Entry:
         self.fingerprint = None
 
 
+def dialog_key(dialog):
+    if dialog is None:
+        return None
+    return (dialog.get('kind'), dialog.get('text', ''), dialog.get('frame'),
+            dialog.get('effective_url') or dialog.get('frame_url'))
+
+
 class References:
     """The reference table of one run of the service. It lives in memory only."""
 
@@ -70,7 +77,7 @@ class References:
         self._lists = OrderedDict()      # seen -> what a tab list showed, oldest first
         self._snapshots = OrderedDict()  # snapshot -> {'created', 'used', 'entries': {reference: address}}
         self._library = {}               # reference -> snapshot
-        # Brief 28a, item 5: the native dialog a result last showed Claude for a tab ({kind, text}, or None
+        # Brief 28a, item 5: the native dialog a result last showed Claude for a tab (kind, text and opener, or None
         # for a page without one). chrome_do's dialog step answers only that dialog.
         self._dialogs = {}
 
@@ -131,14 +138,16 @@ class References:
         self._library[reference] = key
         return reference
 
-    def library(self, reference):
+    def library(self, reference, session):
         """The full address behind a library reference, or None when the reference isn't one.
 
-        Refused when it was one whose snapshot has expired since.
+        Refused when its snapshot expired or was issued under another connection.
         """
         key = self._library.get(reference) if isinstance(reference, str) else None
         if key is None:
             return None
+        if session is None or session != self.session:
+            raise Refused("stale_reference", LIBRARY_AGAIN)
         held = self._snapshots.get(key)
         now = time.monotonic()
         if held is None or now - held["used"] >= SNAPSHOT_IDLE or now - held["created"] >= SNAPSHOT_LIFE:
@@ -235,7 +244,7 @@ class References:
 
     def dialog_shown(self, tab, dialog):
         """A result showed Claude this tab's native dialog (the read's `dialog`), or showed it without one."""
-        self._dialogs[tab] = None if dialog is None else {"kind": dialog.get("kind"), "text": dialog.get("text", "")}
+        self._dialogs[tab] = dialog_key(dialog)
 
     def dialog(self, tab):
         """The dialog Claude last saw in this tab, or None."""

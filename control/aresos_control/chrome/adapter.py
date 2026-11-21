@@ -480,8 +480,9 @@ class Chrome:
                 if exc.code != 'asking_input_too_large':
                     raise
                 raise self.too_large(exc, verb, payload) from None
-        result = self.free(verb, payload)
-        page = result['untrusted_content'].get('page') if isinstance(result['untrusted_content'], dict) else None
+        replies = []
+        result = self.free(verb, payload, replies=replies)
+        page = replies[0].get('page') if replies else None
         self.references.acted(args['tab'], args['ref'], page.get('change') if isinstance(page, dict) else None)
         return result
 
@@ -692,8 +693,8 @@ class Chrome:
         # Item 3b: the description and the question name fields from one described copy; the payload keeps the binding.
         shown, mark = descriptions.described(state)
         # Items 3 and 3a: on that copy, addresses in the public form and each list as its chosen options.
-        shown = projection.shown(shown, payload)
-        description = {'action':'chrome_submit','untrusted_content':{'page_state':shown,'input':projection.addresses(payload['input']),
+        shown = projection.lists(shown, projection.choosing(payload))
+        description = {'action':'chrome_submit','untrusted_content':{'page_state':shown,'input':payload['input'],
                        'kind':payload.get('kind'),'resume_kind':payload.get('resume_kind'),'file':payload.get('file'),
                        'confirmation':payload.get('confirmation')}}
         if payload.get('changed_compose'):
@@ -705,6 +706,7 @@ class Chrome:
             'gmail_delete': 'Gmail: delete the selected message',
             'whatsapp_message': 'WhatsApp: send a message',
         }.get(semantic.get('kind'))
+        description = projection.addresses(description)
         question = self.question(verb, description, mark)
         return question, description, copy.deepcopy(payload)
 
@@ -993,7 +995,8 @@ class Chrome:
         if href and not href.startswith('javascript:') and (verb=='click' or verb=='press' and args.get('key','').split('+')[-1] in {'Enter','Space'}):
             self.allowed_url(href)
         adapter = recognize(frame.get('effective_url',frame['url']), frame['adapter'], frame['target'], verb, args, self.hosts, mode['adapters'])
-        kind = classify(verb,args,frame,conservative=mode['conservative'],readonly=readonly,adapter=adapter)
+        conservative = mode['conservative'] or frame['target'].get('name_withheld') is True
+        kind = classify(verb,args,frame,conservative=conservative,readonly=readonly,adapter=adapter)
         if adapter and kind in {'delete', 'pay', 'item'} and kind != adapter['effect']:
             adapter = None
         return kind, adapter

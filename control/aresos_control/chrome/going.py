@@ -86,6 +86,23 @@ def address_digest(address):
     return hashlib.sha256(address.encode('utf-8', 'surrogatepass')).hexdigest()
 
 
+class Quiet:
+    def __init__(self):
+        self.token = self.since = None
+
+    def observe(self, state, now):
+        token = state.get('token')
+        if token != self.token:
+            self.token, self.since = token, now
+        return state.get('ready') is True and token is not None and now >= self.since + QUIET
+
+    def pause(self, state, now, end):
+        deadline = end
+        if state.get('ready') is True and self.token is not None:
+            deadline = min(deadline, self.since + QUIET)
+        return max(0, min(POLL, deadline - now))
+
+
 class Going:
     """One chrome_open or chrome_go call on the adapter `chrome`."""
 
@@ -111,7 +128,7 @@ class Going:
         """Create the Claude tab and follow the address; nothing is created before every check passed."""
         if 'ref' in self.args:
             # A library entry's reference has no page control to classify: its address keeps the free-URL policy.
-            address = self.chrome.references.library(self.args['ref'])
+            address = self.chrome.references.library(self.args['ref'], self.bridge.session)
             if address is not None and 'tab' in self.args:
                 raise Refused('invalid_input', "A library entry's reference belongs to no tab; give it alone.")
             if address is None:
@@ -254,7 +271,7 @@ class Going:
         """
         end = min(self.clock.start + self.args.get('timeout_ms', TIMEOUT_MS) / 1000, self.clock.at(WAIT))
         until_met = False if self.until is not None else None
-        arrived, token, since, checked = False, None, None, None
+        arrived, checked, quiet_page = False, None, Quiet()
         while True:
             try:
                 state = self.bridge.call('page_state', tab=tab)
@@ -266,9 +283,8 @@ class Going:
             if not arrived:
                 arrived = arrival(state)
             if arrived:
-                if state.get('token') != token:
-                    token, since = state.get('token'), now
-                quiet = state.get('ready') is True and token is not None and now - since >= QUIET
+                quiet = quiet_page.observe(state, now)
+                token = quiet_page.token
                 if self.until is None:
                     if quiet:
                         return True, None
@@ -282,11 +298,8 @@ class Going:
                         return quiet, True
             if now >= end:
                 return False, until_met
-            pause = min(POLL, end - now)
-            if arrived and self.until is None and state.get('ready') is True and token is not None:
-                # Quiet is the token unchanged for QUIET: look again when that time is reached, not a poll after it.
-                pause = min(pause, since + QUIET - now)
-            time.sleep(max(0, pause))
+            pause = quiet_page.pause(state, now, end) if arrived and self.until is None else min(POLL, end - now)
+            time.sleep(pause)
 
     # --- the result --------------------------------------------------------
 

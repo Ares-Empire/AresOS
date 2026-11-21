@@ -99,9 +99,10 @@ class Steps(Pages):
         self.nodes(tab).append(node(element, values.pop('role', 'status'), parent, fingerprint=mark('new%d' % element), **values))
         self.states[tab]['token'] = 'added-%d' % element
 
-    def open_dialog(self, kind='alert', text='Saved', tab=1):
-        self.native = {'kind': kind, 'text': text, 'frame': 0, 'frame_url': FORM, 'id': 'dialog-%d' % len(self.inputs)}
-        self.outlines[tab]['dialog'] = {'kind': kind, 'text': text}
+    def open_dialog(self, kind='alert', text='Saved', tab=1, frame=0, url=FORM):
+        opener = {'kind': kind, 'text': text, 'frame': frame, 'frame_url': url}
+        self.native = {**opener, 'id': 'dialog-%d' % len(self.inputs)}
+        self.outlines[tab]['dialog'] = opener
         self.states[tab]['dialog'] = True
 
     def hold(self, kind='native_submit', element=4, label='Save', tab=1):
@@ -399,6 +400,13 @@ class Doing(unittest.TestCase):
         self.assertIn('stopped', canonical(stopped))
         self.assertNotIn(HOSTILE, canonical(result), 'the label is page text, escaped')
         self.assertNotIn('Ignore previous', canonical({key: value for key, value in result.items() if key != 'untrusted_content'}))
+        self.browser.effects[4] = lambda _: self.browser.hold('activation_unknown')
+        result = self.do([{'do': 'click', 'ref': refs['Save']}, {'do': 'fill', 'ref': refs['Name'], 'text': 'x'}])
+        [entry] = result['steps']
+        self.assertEqual((entry['outcome'], result['not_run']), ('unknown', 1))
+        self.assertEqual(result['unknown'], [entry['operation_id']])
+        self.assertIsNotNone(self.engine.store.get('op:' + entry['operation_id']))
+        self.assertEqual(result['untrusted_content']['stopped'], [])
 
     def test_a_held_submission_too_large_to_ask_about_is_named_in_stopped(self):
         refs = self.refs()
@@ -442,6 +450,11 @@ class Doing(unittest.TestCase):
     def test_a_dialog_step_answers_only_the_dialog_the_last_result_showed(self):
         self.browser.open_dialog('alert', 'First')
         self.read()
+        self.browser.open_dialog('alert', 'First', frame=2, url='https://frame.test/')
+        result = self.do([{'do': 'dialog', 'accept': True}])
+        self.assertEqual(self.outcomes(result), ['stale'])
+        self.assertEqual(result['untrusted_content']['dialog'], {'kind': 'alert', 'text': 'First'})
+        self.assertEqual(self.browser.inputs, [])
         self.browser.open_dialog('alert', HOSTILE)
         result = self.do([{'do': 'dialog', 'accept': True}])
         self.assertEqual((self.outcomes(result), result['steps'][0]['message']), (['stale'], doing.OTHER_DIALOG))
@@ -457,6 +470,29 @@ class Doing(unittest.TestCase):
         result = self.do([{'do': 'dialog', 'accept': True}])
         self.assertEqual((self.outcomes(result), len(result['prepared'])), (['prepared'], 1))
         self.assertEqual(self.browser.inputs, [('dialog', False)])
+
+    def test_navigation_waits_for_the_token_to_stay_quiet_for_150_ms(self):
+        refs = self.refs()
+        clock, arrived, changed = [10.0], [], []
+        address = SITE + '/next'
+
+        def navigate(_):
+            self.browser.show(1, address, arrived_page(address))
+            arrived.append(clock[0])
+
+        def sleep(delay):
+            clock[0] += delay
+            if arrived and not changed and clock[0] >= arrived[0] + .08:
+                self.browser.states[1]['token'] = 'changed after arriving'
+                changed.append(clock[0])
+
+        self.browser.effects[8] = navigate
+        with patch.object(doing.time, 'monotonic', lambda: clock[0]), patch.object(doing.time, 'sleep', sleep):
+            result = self.do([{'do': 'click', 'ref': refs['Next']}])
+        self.assertTrue(result['loaded'])
+        self.assertEqual(len(changed), 1)
+        self.assertAlmostEqual(clock[0] - changed[0], .15)
+        self.assertAlmostEqual(clock[0] - arrived[0], .25)
 
     # --- the steps as defined ---------------------------------------------------------
 
@@ -562,7 +598,7 @@ class Doing(unittest.TestCase):
         refs = self.refs()
         self.browser.needs_reload.add(1)
         self.browser.report = {'act': 'first_input', 'fields': [{'description': 'field "%s"' % HOSTILE, 'by': 'owner'}],
-                               'more_fields': 0, 'frames_uninspected': 0, 'media': False}
+                               'more_fields': 0, 'frames_uninspected': 0, 'media': False, 'owner_work_present': True}
         result = self.do([{'do': 'scroll', 'ref': refs['Note'], 'y': 10}, {'do': 'fill', 'ref': refs['Name'], 'text': 'x'}])
         [entry] = result['steps']
         self.assertEqual((entry['outcome'], entry['code'], entry['message']), ('refused', 'reload_required', loss.MESSAGE))

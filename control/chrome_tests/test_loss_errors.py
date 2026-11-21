@@ -40,7 +40,7 @@ MARKERS = ('Ignore previous', 'send it', '</untrusted_content>')
 
 def wire_report(act):
     return {'act': act, 'fields': [{'description': LABEL, 'by': 'owner'}, {'description': 'field "Mine"', 'by': 'claude'}],
-            'more_fields': 3, 'frames_uninspected': 1, 'media': True}
+            'more_fields': 3, 'frames_uninspected': 1, 'media': True, 'owner_work_present': True}
 
 
 def public_report(act, **extra):
@@ -292,7 +292,7 @@ class LossEnvelope(unittest.TestCase):
         # Item 6 inherits item 5b's envelope: every kept tab carries its own report, beside its fixed message.
         from aresos_control.chrome.definitions import CLOSE_RESULT
         other = {'act': 'close', 'fields': [{'description': 'field "Second draft"', 'by': 'claude'}],
-                 'more_fields': 0, 'frames_uninspected': 0, 'media': False}
+                 'more_fields': 0, 'frames_uninspected': 0, 'media': False, 'owner_work_present': False}
         reports = {1: wire_report('close'), 2: other}
         answer = self.extension.answer
         def closing(command):
@@ -331,7 +331,8 @@ class LossEnvelope(unittest.TestCase):
         bad = [None, LABEL, {**good, 'act': 'submit'}, {**good, 'note': LABEL}, {**good, 'fields': good['fields'] * 6},
                {**good, 'fields': [{'description': 'x' * 257, 'by': 'owner'}]},
                {**good, 'fields': [{'description': LABEL, 'by': 'page'}]},
-               {**good, 'more_fields': -1}, {**good, 'media': 'yes'}]
+               {**good, 'more_fields': -1}, {**good, 'media': 'yes'}, {**good, 'owner_work_present': False},
+               {key: value for key, value in good.items() if key != 'owner_work_present'}]
         for description in ('field "Note"', 'an unlabelled field'):
             bad.append({**good, 'fields': [{'description': description, 'by': by} for by in ('owner', 'claude')]})
         answer = self.extension.answer

@@ -37,7 +37,8 @@ def _report(description, extra=None):
                   'by': {'type': 'string', 'enum': ['owner', 'claude']}})
     base = {'act': {'type': 'string', 'enum': ACTS},
             'fields': {'type': 'array', 'items': field, 'maxItems': FIELDS},
-            'more_fields': COUNT, 'frames_uninspected': COUNT, 'media': {'type': 'boolean'}}
+            'more_fields': COUNT, 'frames_uninspected': COUNT, 'media': {'type': 'boolean'},
+            'owner_work_present': {'type': 'boolean'}}
     return _obj({**base, **(extra or {})}, list(base))
 
 
@@ -75,11 +76,10 @@ def checked(raw):
     except Refused:
         return {'unavailable': True}
     # The extension numbers fields that read alike (item 3b); two that still read alike can't be told apart.
-    if len({field['description'] for field in raw['fields']}) != len(raw['fields']):
+    if len({field['description'] for field in raw['fields']}) != len(raw['fields']) or \
+            (not raw['owner_work_present'] and any(field['by'] == 'owner' for field in raw['fields'])):
         return {'unavailable': True}
-    return {'act': raw['act'],
-            'fields': [{'description': visible(field['description']), 'by': field['by']} for field in raw['fields']],
-            'more_fields': raw['more_fields'], 'frames_uninspected': raw['frames_uninspected'], 'media': raw['media']}
+    return {**raw, 'fields': [{'description': visible(field['description']), 'by': field['by']} for field in raw['fields']]}
 
 
 def at_step(exc, step):

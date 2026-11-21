@@ -38,10 +38,12 @@ TYPED = frozenset(('text', 'search', 'email', 'tel', 'url', 'number', 'password'
 
 
 def addresses(value, short=False, form=False):
-    """A copy of `value` in which every address went through `public_address`."""
+    """Public page facts: projected addresses and no private element fingerprints."""
     if isinstance(value, dict):
         result = {}
         for key, item in value.items():
+            if key == 'fingerprint':
+                continue
             if isinstance(item, str) and (key in ADDRESS_KEYS or form and key == 'action'):
                 result[key] = public_address(item, short=short)
             else:

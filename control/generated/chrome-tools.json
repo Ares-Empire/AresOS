@@ -163,6 +163,9 @@
                         "media": {
                           "type": "boolean"
                         },
+                        "owner_work_present": {
+                          "type": "boolean"
+                        },
                         "step": {
                           "type": "integer",
                           "minimum": 0,
@@ -174,7 +177,8 @@
                         "fields",
                         "more_fields",
                         "frames_uninspected",
-                        "media"
+                        "media",
+                        "owner_work_present"
                       ],
                       "additionalProperties": false
                     },
@@ -437,6 +441,9 @@
                         "media": {
                           "type": "boolean"
                         },
+                        "owner_work_present": {
+                          "type": "boolean"
+                        },
                         "step": {
                           "type": "integer",
                           "minimum": 0,
@@ -448,7 +455,8 @@
                         "fields",
                         "more_fields",
                         "frames_uninspected",
-                        "media"
+                        "media",
+                        "owner_work_present"
                       ],
                       "additionalProperties": false
                     },
@@ -848,6 +856,9 @@
                             "media": {
                               "type": "boolean"
                             },
+                            "owner_work_present": {
+                              "type": "boolean"
+                            },
                             "step": {
                               "type": "integer",
                               "minimum": 0,
@@ -859,7 +870,8 @@
                             "fields",
                             "more_fields",
                             "frames_uninspected",
-                            "media"
+                            "media",
+                            "owner_work_present"
                           ],
                           "additionalProperties": false
                         },
@@ -978,6 +990,9 @@
                         "media": {
                           "type": "boolean"
                         },
+                        "owner_work_present": {
+                          "type": "boolean"
+                        },
                         "step": {
                           "type": "integer",
                           "minimum": 0,
@@ -989,7 +1004,8 @@
                         "fields",
                         "more_fields",
                         "frames_uninspected",
-                        "media"
+                        "media",
+                        "owner_work_present"
                       ],
                       "additionalProperties": false
                     },
@@ -1392,6 +1408,9 @@
                             "media": {
                               "type": "boolean"
                             },
+                            "owner_work_present": {
+                              "type": "boolean"
+                            },
                             "step": {
                               "type": "integer",
                               "minimum": 0,
@@ -1403,7 +1422,8 @@
                             "fields",
                             "more_fields",
                             "frames_uninspected",
-                            "media"
+                            "media",
+                            "owner_work_present"
                           ],
                           "additionalProperties": false
                         },
@@ -1522,6 +1542,9 @@
                         "media": {
                           "type": "boolean"
                         },
+                        "owner_work_present": {
+                          "type": "boolean"
+                        },
                         "step": {
                           "type": "integer",
                           "minimum": 0,
@@ -1533,7 +1556,8 @@
                         "fields",
                         "more_fields",
                         "frames_uninspected",
-                        "media"
+                        "media",
+                        "owner_work_present"
                       ],
                       "additionalProperties": false
                     },
@@ -2088,6 +2112,9 @@
                         "media": {
                           "type": "boolean"
                         },
+                        "owner_work_present": {
+                          "type": "boolean"
+                        },
                         "step": {
                           "type": "integer",
                           "minimum": 0,
@@ -2099,7 +2126,8 @@
                         "fields",
                         "more_fields",
                         "frames_uninspected",
-                        "media"
+                        "media",
+                        "owner_work_present"
                       ],
                       "additionalProperties": false
                     },
@@ -2246,6 +2274,9 @@
                         "media": {
                           "type": "boolean"
                         },
+                        "owner_work_present": {
+                          "type": "boolean"
+                        },
                         "step": {
                           "type": "integer",
                           "minimum": 0,
@@ -2257,7 +2288,8 @@
                         "fields",
                         "more_fields",
                         "frames_uninspected",
-                        "media"
+                        "media",
+                        "owner_work_present"
                       ],
                       "additionalProperties": false
                     },
@@ -2486,6 +2518,9 @@
                         "media": {
                           "type": "boolean"
                         },
+                        "owner_work_present": {
+                          "type": "boolean"
+                        },
                         "step": {
                           "type": "integer",
                           "minimum": 0,
@@ -2497,7 +2532,8 @@
                         "fields",
                         "more_fields",
                         "frames_uninspected",
-                        "media"
+                        "media",
+                        "owner_work_present"
                       ],
                       "additionalProperties": false
                     },
@@ -2763,6 +2799,9 @@
                               "media": {
                                 "type": "boolean"
                               },
+                              "owner_work_present": {
+                                "type": "boolean"
+                              },
                               "step": {
                                 "type": "integer",
                                 "minimum": 0,
@@ -2774,7 +2813,8 @@
                               "fields",
                               "more_fields",
                               "frames_uninspected",
-                              "media"
+                              "media",
+                              "owner_work_present"
                             ],
                             "additionalProperties": false
                           },
@@ -2888,6 +2928,9 @@
                         "media": {
                           "type": "boolean"
                         },
+                        "owner_work_present": {
+                          "type": "boolean"
+                        },
                         "step": {
                           "type": "integer",
                           "minimum": 0,
@@ -2899,7 +2942,8 @@
                         "fields",
                         "more_fields",
                         "frames_uninspected",
-                        "media"
+                        "media",
+                        "owner_work_present"
                       ],
                       "additionalProperties": false
                     },
@@ -3126,6 +3170,9 @@
                             "media": {
                               "type": "boolean"
                             },
+                            "owner_work_present": {
+                              "type": "boolean"
+                            },
                             "step": {
                               "type": "integer",
                               "minimum": 0,
@@ -3137,7 +3184,8 @@
                             "fields",
                             "more_fields",
                             "frames_uninspected",
-                            "media"
+                            "media",
+                            "owner_work_present"
                           ],
                           "additionalProperties": false
                         },
@@ -3428,6 +3476,9 @@
                             "media": {
                               "type": "boolean"
                             },
+                            "owner_work_present": {
+                              "type": "boolean"
+                            },
                             "step": {
                               "type": "integer",
                               "minimum": 0,
@@ -3439,7 +3490,8 @@
                             "fields",
                             "more_fields",
                             "frames_uninspected",
-                            "media"
+                            "media",
+                            "owner_work_present"
                           ],
                           "additionalProperties": false
                         },
@@ -3558,6 +3610,9 @@
                         "media": {
                           "type": "boolean"
                         },
+                        "owner_work_present": {
+                          "type": "boolean"
+                        },
                         "step": {
                           "type": "integer",
                           "minimum": 0,
@@ -3569,7 +3624,8 @@
                         "fields",
                         "more_fields",
                         "frames_uninspected",
-                        "media"
+                        "media",
+                        "owner_work_present"
                       ],
                       "additionalProperties": false
                     },
@@ -3784,6 +3840,9 @@
                         "media": {
                           "type": "boolean"
                         },
+                        "owner_work_present": {
+                          "type": "boolean"
+                        },
                         "step": {
                           "type": "integer",
                           "minimum": 0,
@@ -3795,7 +3854,8 @@
                         "fields",
                         "more_fields",
                         "frames_uninspected",
-                        "media"
+                        "media",
+                        "owner_work_present"
                       ],
                       "additionalProperties": false
                     },
@@ -4116,6 +4176,9 @@
                         "media": {
                           "type": "boolean"
                         },
+                        "owner_work_present": {
+                          "type": "boolean"
+                        },
                         "step": {
                           "type": "integer",
                           "minimum": 0,
@@ -4127,7 +4190,8 @@
                         "fields",
                         "more_fields",
                         "frames_uninspected",
-                        "media"
+                        "media",
+                        "owner_work_present"
                       ],
                       "additionalProperties": false
                     },
@@ -4427,6 +4491,9 @@
                         "media": {
                           "type": "boolean"
                         },
+                        "owner_work_present": {
+                          "type": "boolean"
+                        },
                         "step": {
                           "type": "integer",
                           "minimum": 0,
@@ -4438,7 +4505,8 @@
                         "fields",
                         "more_fields",
                         "frames_uninspected",
-                        "media"
+                        "media",
+                        "owner_work_present"
                       ],
                       "additionalProperties": false
                     },
@@ -4690,6 +4758,9 @@
                         "media": {
                           "type": "boolean"
                         },
+                        "owner_work_present": {
+                          "type": "boolean"
+                        },
                         "step": {
                           "type": "integer",
                           "minimum": 0,
@@ -4701,7 +4772,8 @@
                         "fields",
                         "more_fields",
                         "frames_uninspected",
-                        "media"
+                        "media",
+                        "owner_work_present"
                       ],
                       "additionalProperties": false
                     },
@@ -4826,7 +4898,7 @@
   },
   {
     "name": "read_typed_fields",
-    "description": "Read the listed text-capable inputs and textareas once after the exact prepared question is approved. Credentials always remain unreadable. The connection, frames, reader and exact field identities are bound; changes refuse and require a fresh question; ordinary reads retain filled/empty. Returns each field's label, ref and value as page text. Effect: read. Pass the service-provided approval unchanged, including its first field question, operation_id and complete description; never write or amend the question yourself.",
+    "description": "Read the listed inputs and textareas once after the exact question is approved. Fields flagged as credential-like are excluded. The connection, frames, reader and exact field identities are bound; changes refuse and require a fresh question; ordinary reads retain filled/empty. Returns each field's label, ref and value as page text. Effect: read. Pass the service-provided approval unchanged, including its first field question, operation_id and complete description; never write or amend the question yourself.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -5088,6 +5160,9 @@
                         "media": {
                           "type": "boolean"
                         },
+                        "owner_work_present": {
+                          "type": "boolean"
+                        },
                         "step": {
                           "type": "integer",
                           "minimum": 0,
@@ -5099,7 +5174,8 @@
                         "fields",
                         "more_fields",
                         "frames_uninspected",
-                        "media"
+                        "media",
+                        "owner_work_present"
                       ],
                       "additionalProperties": false
                     },
@@ -5435,6 +5511,9 @@
                         "media": {
                           "type": "boolean"
                         },
+                        "owner_work_present": {
+                          "type": "boolean"
+                        },
                         "step": {
                           "type": "integer",
                           "minimum": 0,
@@ -5446,7 +5525,8 @@
                         "fields",
                         "more_fields",
                         "frames_uninspected",
-                        "media"
+                        "media",
+                        "owner_work_present"
                       ],
                       "additionalProperties": false
                     },
@@ -5782,6 +5862,9 @@
                         "media": {
                           "type": "boolean"
                         },
+                        "owner_work_present": {
+                          "type": "boolean"
+                        },
                         "step": {
                           "type": "integer",
                           "minimum": 0,
@@ -5793,7 +5876,8 @@
                         "fields",
                         "more_fields",
                         "frames_uninspected",
-                        "media"
+                        "media",
+                        "owner_work_present"
                       ],
                       "additionalProperties": false
                     },
@@ -6089,6 +6173,9 @@
                         "media": {
                           "type": "boolean"
                         },
+                        "owner_work_present": {
+                          "type": "boolean"
+                        },
                         "step": {
                           "type": "integer",
                           "minimum": 0,
@@ -6100,7 +6187,8 @@
                         "fields",
                         "more_fields",
                         "frames_uninspected",
-                        "media"
+                        "media",
+                        "owner_work_present"
                       ],
                       "additionalProperties": false
                     },
@@ -6316,6 +6404,9 @@
                         "media": {
                           "type": "boolean"
                         },
+                        "owner_work_present": {
+                          "type": "boolean"
+                        },
                         "step": {
                           "type": "integer",
                           "minimum": 0,
@@ -6327,7 +6418,8 @@
                         "fields",
                         "more_fields",
                         "frames_uninspected",
-                        "media"
+                        "media",
+                        "owner_work_present"
                       ],
                       "additionalProperties": false
                     },
@@ -6546,6 +6638,9 @@
                         "media": {
                           "type": "boolean"
                         },
+                        "owner_work_present": {
+                          "type": "boolean"
+                        },
                         "step": {
                           "type": "integer",
                           "minimum": 0,
@@ -6557,7 +6652,8 @@
                         "fields",
                         "more_fields",
                         "frames_uninspected",
-                        "media"
+                        "media",
+                        "owner_work_present"
                       ],
                       "additionalProperties": false
                     },
@@ -6773,6 +6869,9 @@
                         "media": {
                           "type": "boolean"
                         },
+                        "owner_work_present": {
+                          "type": "boolean"
+                        },
                         "step": {
                           "type": "integer",
                           "minimum": 0,
@@ -6784,7 +6883,8 @@
                         "fields",
                         "more_fields",
                         "frames_uninspected",
-                        "media"
+                        "media",
+                        "owner_work_present"
                       ],
                       "additionalProperties": false
                     },

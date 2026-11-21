@@ -43,7 +43,7 @@ def fixture_call(engine, verb, args=None, admin=False, *, public=False):
     if not public and verb in {'click','press','fill','select','check','scroll','dialog'}:
         if verb == 'dialog':
             dialog = args['expected']
-            engine.adapters['chrome'].references.dialog_shown(args['tab'], {key: dialog[key] for key in ('kind','text')})
+            engine.adapters['chrome'].references.dialog_shown(args['tab'], dialog)
         step = {'do': verb, **{key: args[key] for key in ('ref','key','text','value','checked','y','accept') if key in args}}
         result = request('do', {'tab': args['tab'], 'steps': [step],
                                 **({'discard_unsaved': args['discard_unsaved']} if 'discard_unsaved' in args else {})})

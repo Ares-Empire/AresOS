@@ -244,10 +244,12 @@ class Small(unittest.TestCase):
         seen = self.small('tabs', {})['seen']
         self.browser.needs_reload.add(412)
         hostile = 'field "%s"' % HOSTILE
-        cases = {'his typing': {'fields': [{'description': hostile, 'by': 'owner'}], 'more_fields': 0, 'frames_uninspected': 0, 'media': False},
-                 "Claude's typing": {'fields': [{'description': 'field "Search"', 'by': 'claude'}], 'more_fields': 0, 'frames_uninspected': 0, 'media': False},
-                 'media': {'fields': [], 'more_fields': 0, 'frames_uninspected': 0, 'media': True},
-                 'an uninspectable frame': {'fields': [], 'more_fields': 0, 'frames_uninspected': 1, 'media': False}}
+        empty = {'fields': [], 'more_fields': 0, 'frames_uninspected': 0, 'media': False, 'owner_work_present': False}
+        cases = {'his typing': {**empty, 'fields': [{'description': hostile, 'by': 'owner'}], 'owner_work_present': True},
+                 "Claude's typing": {**empty, 'fields': [{'description': 'field "Search"', 'by': 'claude'}]},
+                 'owner field past the cap': {**empty, 'fields': [{'description': f'Field {index}', 'by': 'claude'} for index in range(10)],
+                                              'more_fields': 1, 'owner_work_present': True},
+                 'media': {**empty, 'media': True}, 'an uninspectable frame': {**empty, 'frames_uninspected': 1}}
         for case, report in cases.items():
             with self.subTest(case):
                 self.browser.report = report
@@ -308,7 +310,7 @@ class Small(unittest.TestCase):
         self.sample()
         self.browser.rows.append(row(451, 3, SITE + '/b', 'Second', 'claude', front=True))
         report = lambda label: {'act': 'close', 'fields': [{'description': 'field "%s"' % label, 'by': 'owner'}],
-                                'more_fields': 0, 'frames_uninspected': 0, 'media': False}
+                                'more_fields': 0, 'frames_uninspected': 0, 'media': False, 'owner_work_present': True}
         self.browser.closing_reports = {1: report(HOSTILE), 451: report('Other draft')}
         self.assertEqual(str(self.refused('close', {'tabs': [1, 451], 'discard_unsaved': True}, 'invalid_input')), tablist.ONE_AT_A_TIME)
         result = self.small('close', {'tabs': [1, 451, 450]})
@@ -365,17 +367,27 @@ class Small(unittest.TestCase):
             clock[0] += 200
             second = self.small('library', {'kind': 'history', 'limit': 5, 'cursor': first['cursor']})
             clock[0] += 200   # 400 seconds since the snapshot was made, 200 since its last page
-            self.assertEqual(references.library(ref), SITE + '/0')
+            self.assertEqual(references.library(ref, self.browser.session), SITE + '/0')
             clock[0] += 101   # 301 since its last page
             with self.assertRaises(Refused) as caught:
-                references.library(second['untrusted_content']['items'][0]['ref'])
+                references.library(second['untrusted_content']['items'][0]['ref'], self.browser.session)
             self.assertEqual((caught.exception.code, str(caught.exception)), ('stale_reference', table.LIBRARY_AGAIN))
         # Two snapshots are kept, as in the extension; a third drops the oldest.
         a = self.small('library', {'kind': 'bookmarks'})['untrusted_content']['items'][1]['ref']
         self.small('library', {'kind': 'downloads'})
         self.small('library', {'kind': 'history'})
-        self.assertIsNone(self.chrome.references.library(a))
+        self.assertIsNone(self.chrome.references.library(a, self.browser.session))
         self.refused('open', {'ref': a}, 'stale_reference', lambda args: self.chrome.going('open', args))
+
+    def test_library_reference_cannot_open_in_a_new_session_before_any_read(self):
+        self.library()
+        listed = self.small('library', {'kind': 'bookmarks'})
+        reference = listed['untrusted_content']['items'][1]['ref']
+        first_session = self.chrome.references.session
+        self.browser.session = 'reconnected-session'
+        self.assertEqual(self.chrome.references.session, first_session, 'no new read cleared the table')
+        exc = self.refused('open', {'ref': reference}, 'stale_reference', lambda args: self.chrome.going('open', args))
+        self.assertEqual(str(exc), table.LIBRARY_AGAIN)
 
     # --- chrome_upload and take_first -------------------------------------------
 
@@ -406,7 +418,7 @@ class Small(unittest.TestCase):
         ref = re.search(r'button "Gone" (\S+)', text).group(1)
         self.browser.needs_reload.add(1)
         self.browser.report = {'act': 'first_input', 'fields': [{'description': 'field "%s"' % HOSTILE, 'by': 'owner'}],
-                               'more_fields': 0, 'frames_uninspected': 0, 'media': False}
+                               'more_fields': 0, 'frames_uninspected': 0, 'media': False, 'owner_work_present': True}
         facts = self.browser.call
         def taken(name, **args):
             reply = facts(name, **args)

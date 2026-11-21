@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import {createHash} from 'node:crypto';
+import {page} from './outline-dom.mjs';
 
 function fixture(transform=source=>source){
   const policy=JSON.parse(fs.readFileSync('control/chrome/extension/policy.js','utf8').match(/\{[\s\S]*\}/)[0]);
@@ -32,10 +33,10 @@ async function lossOf(promise){
   assert.ok(error,'expected a loss refusal');assert.equal(error.message,'reload_required');
   return JSON.parse(JSON.stringify(error.loss));
 }
-const report=(act,{fields=[],more=0,frames=0,media=false}={})=>({act,fields,more_fields:more,frames_uninspected:frames,media});
+const report=(act,{fields=[],more=0,frames=0,media=false,ownerWork=fields.some(field=>field.by==='owner')}={})=>({act,fields,more_fields:more,frames_uninspected:frames,media,owner_work_present:ownerWork});
 const owner=description=>({description,by:'owner'}),claude=description=>({description,by:'claude'});
 // The old message's choice: ask the owner first for his typing, playing media or a frame nobody could inspect.
-const asksOwner=loss=>loss.fields.some(field=>field.by==='owner')||loss.media||loss.frames_uninspected>0;
+const asksOwner=loss=>loss.unavailable||loss.owner_work_present||loss.media||loss.more_fields>0||loss.frames_uninspected>0;
 
 const heldStep=(id='h1')=>({id,document:'old-document',element:'e1',submitter:null,kind:'activation_unknown',cancellable:false,label:'Delete'});
 
@@ -154,7 +155,7 @@ test('final F6 navigate reload in a taken tab gives the same unsaved and playing
 });
 
 test('final discard_unsaved navigate to an address and close_tab give the first input report and act only with the flag',async()=>{
-  const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});globalThis.navigations=0;globalThis.closed=0;globalThis.inspected=0;content=async()=>{inspected++;return {unsaved:true,fields:[{description:'field \\\"Comment\\\"',by:'owner'},{description:'editor \\\"Message\\\"',by:'owner'}],playing:false}};chrome.webNavigation={getAllFrames:async()=>[{frameId:0,documentId:'doc',url:'http://fixture.test/'}]};cdp=async(tab,method)=>{if(method==='Page.navigate'){navigations++;return {loaderId:'next'};}};observation=async()=>({});release=async()=>({released:7});chrome.tabs.get=async()=>({audible:true});chrome.tabs.remove=async()=>{closed++;};");
+  const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});claudeOpened.add(7);requireTab=async()=>({url:'http://fixture.test/'});globalThis.navigations=0;globalThis.closed=0;globalThis.inspected=0;content=async()=>{inspected++;return {unsaved:true,fields:[{description:'field \\\"Comment\\\"',by:'owner'},{description:'editor \\\"Message\\\"',by:'owner'}],playing:false}};chrome.webNavigation={getAllFrames:async()=>[{frameId:0,documentId:'doc',url:'http://fixture.test/'}]};cdp=async(tab,method)=>{if(method==='Page.navigate'){navigations++;return {loaderId:'next'};}};observation=async()=>({});release=async()=>({released:7});chrome.tabs.get=async()=>({audible:true});chrome.tabs.remove=async()=>{closed++;};");
   const typed=[owner('field "Comment"'),owner('editor "Message"')];
   {const loss=await lossOf(f.run("dispatch({name:'navigate',tab:7,url:'http://fixture.test/next'})"));assert.deepEqual(loss,report('navigate',{fields:typed,media:true}));assert.equal(asksOwner(loss),true);}
   assert.equal(f.run('navigations'),0);
@@ -179,6 +180,31 @@ test('final discard_unsaved navigate to an address and close_tab give the first 
   assert.deepEqual(await lossOf(f.run("dispatch({name:'close_tab',tab:7})")),report('close',{frames:2}));assert.equal(f.run('navigations'),3);assert.equal(f.run('closed'),2);
   f.run("chrome.webNavigation.getAllFrames=async()=>[{frameId:0,url:'http://fixture.test/'}];content=async()=>({unsaved:true,fields:Array.from({length:12},(_,index)=>({description:'field \\\"F'+index+'\\\"',by:'owner'})),playing:false})");
   assert.deepEqual(await lossOf(f.run("dispatch({name:'close_tab',tab:7})")),report('close',{fields:Array.from({length:10},(_,index)=>owner('field "F'+index+'"')),more:2}));
+});
+
+test('a loss report still marks owner typing when only Claude fields fit',async()=>{
+  const f=fixture();f.run(`chrome.webNavigation={getAllFrames:async()=>[]};content=async()=>({unsaved:true,claude_only:false,
+    fields:Array.from({length:11},(_,index)=>({description:'Field '+index,by:index===10?'owner':'claude'}))})`);
+  const result=JSON.parse(JSON.stringify(await f.run("discardReport(7,'close',[{frameId:0}])")));
+  assert.deepEqual(result,report('close',{fields:Array.from({length:10},(_,index)=>claude('Field '+index)),more:1,ownerWork:true}));
+  assert.equal(asksOwner(result),true);
+});
+
+test('close accepts a released Claude-opened tab without accepting one the owner opened',async()=>{
+  const f=lifecycleFixture();f.run(`excludedHosts=['excluded.test'];claudeOpened.add(7);controlled.set(7,{epoch:'epoch'});
+    globalThis.closed=[];globalThis.address='http://fixture.test/';chrome.tabs.get=async()=>({url:address,groupId:1});
+    chrome.tabs.remove=async tab=>closed.push(tab);chrome.webNavigation.getAllFrames=async()=>[{frameId:0,url:address}];
+    content=async()=>({unsaved:false,fields:[]});`);
+  await f.run('release(7)');
+  assert.equal(f.run('controlled.has(7)'),false);
+  await assert.rejects(f.run("dispatch({name:'close_tab',tab:8,discard_unsaved:true})"),/only Claude-opened tabs/);
+  f.run("address='http://excluded.test/'");
+  await assert.rejects(f.run("dispatch({name:'close_tab',tab:7,discard_unsaved:true})"),/belong to the owner/);
+  f.run("address='http://fixture.test/';chrome.webNavigation.getAllFrames=async()=>null");
+  assert.deepEqual(await lossOf(f.run("dispatch({name:'close_tab',tab:7})")),report('close',{frames:1}));
+  f.run('chrome.webNavigation.getAllFrames=async()=>[{frameId:0,url:address}]');
+  assert.equal((await f.run("dispatch({name:'close_tab',tab:7})")).closed,7);
+  assert.equal(f.run('JSON.stringify(closed)'),'[7]');
 });
 
 test('step 5 back and forward give the same unsaved report and go only with the flag',async()=>{
@@ -245,6 +271,7 @@ test('28a 5b a loss refusal on the native wire is the bare code with its report 
 test('28a 3b loss reports number fields that read alike over every frame, after repair and before the cut',async()=>{
   const f=fixture();
   f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});globalThis.posted=[];port={postMessage:message=>posted.push(message)};globalThis.navigations=0;chrome.webNavigation={getAllFrames:async()=>[{frameId:0,documentId:'doc',url:'http://fixture.test/'},{frameId:3,documentId:'left',url:'http://fixture.test/notes'},{frameId:4,documentId:'right',url:'http://fixture.test/notes'}]};cdp=async(tab,method)=>{if(method==='Page.navigate'){navigations++;return {loaderId:'next'};}};observation=async()=>({});chrome.tabs.get=async()=>({audible:false});");
+  f.run("claudeOpened.add(7);requireTab=async()=>({url:'http://fixture.test/'})");
   // Two equal labels in the top document, one more in each of two frames that look alike, two labels that
   // repair to the same text, and unlabelled fields of one kind; the frames answer in Chrome's order.
   f.run(`globalThis.frameFields={0:[{description:'field "Note"',by:'owner'},{description:'field "Note"',by:'claude'},{description:'field "A\\ud800"',by:'owner'},{description:'an unlabelled field',by:'owner'}],
@@ -864,6 +891,21 @@ test('P27 Stop lifts navigation blocks before deferred native restoration',async
 test('P28 final binding refusal finishes every armed frame',async()=>{
   const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});globalThis.reads=0;globalThis.finished=[];requireTab=async()=>({});facts=async()=>({tab:7,frames:[{frame:0,document:'doc',target:{element:'e1',name:++reads===1?'Before':'After'}}]});content=async(tab,frame,command)=>{if(command==='finish_input')finished.push(frame);return {}};globalThis.approved=binding({tab:7,frames:[{frame:0,document:'doc',target:{element:'e1',name:'Before'}}]},{frame:0},null,false);");
   await assert.rejects(f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'select'},binding:approved})"),/page changed/);assert.deepEqual(Array.from(f.run('finished')),[0]);
+});
+test('a native option label change after approval fails the final binding before selection',async()=>{
+  const reader=page(h=>[h('select',{},h('option',{value:'monthly',selected:''},'Monthly'),h('option',{value:'annual',label:'Annual'},'A'))]);
+  const [list]=reader.outline().nodes;
+  const target=()=>reader.run({command:'facts',element:'e'+list.id}).data.target;
+  const f=fixture();
+  f.run(`excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});
+    globalThis.target=${JSON.stringify(target())};globalThis.selected=0;
+    const snapshot=()=>({tab:7,frames:[{frame:0,document:'doc',target}]});facts=async()=>snapshot();
+    globalThis.approved=binding(snapshot(),{frame:0},'activation',false);
+    content=async(tab,frame,command)=>{if(command==='arm')target=changedTarget;if(command==='select')selected++;return {};};`);
+  reader.body.childNodes[0].options[1].attrs.label='Annual revised';
+  f.run(`globalThis.changedTarget=${JSON.stringify(target())}`);
+  await assert.rejects(f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:target.element},input:{verb:'select',value:'annual'},kind:'activation',approved:true,operation:'approved',binding:approved})"),/page changed during frame setup/);
+  assert.equal(f.run('selected'),0);
 });
 test('P23 input page evidence contains the bounded post-input notice',async()=>{
   const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});facts=async()=>({frames:[{frame:0,target:{element:'e1',options:[{value:'first',label:'First',disabled:false}]}}]});content=async(tab,frame,command)=>command==='observe'?{url:'http://fixture.test/',notices:['ERROR: the change failed']} : {};chrome.webNavigation={getAllFrames:async()=>[{frameId:0}]};collectSteps=async()=>[];");
@@ -1523,10 +1565,10 @@ test('brief 28 outline lists the top document first, cuts at 20,000 nodes a tab 
   assert.deepEqual(partial.uncovered.find(frame=>frame.frame===4),{frame:4,eligible:true,reason:'reader or inherited origin unavailable'});
 });
 
-test('brief 28 outline with a native dialog open returns the dialog\'s kind and text and asks no reader',async()=>{
+test('outline with a native dialog open returns its private opener facts and asks no reader',async()=>{
   const f=readFixture();f.run("dialogs.set(7,{id:'dialog',kind:'confirm',text:'Leave the page?',frame:0,frame_url:'http://fixture.test/page?x=1',button:'OK'})");
   const view=await f.call({name:'outline',tab:7});
-  assert.deepEqual(view.dialog,{kind:'confirm',text:'Leave the page?'});assert.deepEqual(view.frames,[]);assert.deepEqual(view.uncovered,[]);assert.deepEqual(f.asked(),[]);
+  assert.deepEqual(view.dialog,{kind:'confirm',text:'Leave the page?',frame:0,frame_url:'http://fixture.test/page?x=1'});assert.deepEqual(view.frames,[]);assert.deepEqual(view.uncovered,[]);assert.deepEqual(f.asked(),[]);
 });
 
 test('brief 28 options asks one frame of a document an outline has read, bound to its reader instance',async()=>{

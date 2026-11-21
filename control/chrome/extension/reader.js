@@ -207,8 +207,8 @@
     return ids.get(element);
   };
   function text(node, includeHidden=false, composed=false) {
-    if(node.nodeType===Node.TEXT_NODE)return node.parentElement&&password(node.parentElement)?'':node.textContent;
-    if (!(isElement(node)) || ['SCRIPT','STYLE','NOSCRIPT','INPUT','TEXTAREA','SELECT'].includes(node.tagName) || password(node)) return '';
+    if(node.nodeType===Node.TEXT_NODE)return node.parentElement&&(insideWithheldButton(node.parentElement)||password(node.parentElement))?'':node.textContent;
+    if (!(isElement(node)) || ['SCRIPT','STYLE','NOSCRIPT','INPUT','TEXTAREA','SELECT'].includes(node.tagName) || insideWithheldButton(node) || password(node)) return '';
     if (!includeHidden && (node.hidden || getComputedStyle(node).display === 'none' || getComputedStyle(node).visibility === 'hidden')) return '';
     if(node.tagName==='IMG')return node.getAttribute('alt')||'';
     const assigned=composed&&node.tagName==='SLOT'?node.assignedNodes?.():null;
@@ -299,6 +299,7 @@
   function safeValue(element, traced=true) {
     // The exclusion is repeated immediately before EACH value/text read.
     if (password(element)) return {password: true};
+    if(insideWithheldButton(element))return {};
     if(unknownHistory(element)&&typedField(element))return {typed_text:true,unknown_history:true,value_status:filledStatus(element)};
     if(!watched&&html(element,HTMLInputElement,'input')&&element.type==='hidden')return {unknown_history:true,value_status:'not_read'};
     let value;
@@ -317,6 +318,8 @@
   // (brief 28, item 1, the history rule): its value is not read, the asking
   // read may list it, and Claude doesn't type into it.
   const unknownHistory=element=>!watched||privacy.lateFields.has(element);
+  const withheldButtonText=element=>!watched&&html(element,HTMLButtonElement,'button')&&element.isContentEditable;
+  const insideWithheldButton=element=>!watched&&withheldButtonText(element.closest?.('button'));
   function typedField(element) {
     // This shared predicate controls normal reads, approval scope and reload warnings.
     return html(element,HTMLTextAreaElement,'textarea')||html(element,HTMLInputElement,'input')&&!['hidden','password','checkbox','radio','date','datetime-local','month','week','time','range','color','file','button','submit','reset','image'].includes(element.type);
@@ -402,7 +405,8 @@
   }
   // The elements that hold a field's error text (shown with the field while it is invalid).
   const errorParts=element=>{const root=element.getRootNode();return (element.getAttribute('aria-errormessage')||element.getAttribute('aria-describedby')||'').split(/\s+/).map(key=>key&&root.getElementById?.(key)).filter(Boolean);};
-  const optionFacts=option=>({label:squeeze(text(option)),value:String(option.value??''),chosen:option.selected===true,disabled:!!option.matches(':disabled')});
+  const optionLabel=option=>password(option)?'':option.getAttribute('label')||option.text;
+  const optionFacts=option=>({label:optionLabel(option),value:String(option.value??''),chosen:option.selected===true,disabled:!!option.matches(':disabled')});
   const composedChildren=node=>{const assigned=node.localName==='slot'?node.assignedNodes?.():null;return assigned?.length?assigned:shadow(node)?.childNodes||node.childNodes;};
   // Fills a node's own facts. True when the element's content is its value or
   // nothing the outline reads, so its children get no nodes.
@@ -422,7 +426,7 @@
     if(tag==='iframe'){const frame=chrome.runtime.getFrameId?.(node);if(Number.isInteger(frame)&&frame>0)out.frame=frame;return true;}
     if(tag==='select'){
       const options=[...node.options];
-      out.option_count=options.length;out.chosen=options.filter(option=>option.selected).map(option=>squeeze(text(option))).join(', ');
+      out.option_count=options.length;out.chosen=options.filter(option=>option.selected).map(optionLabel).join(', ');
       out.options=options.slice(0,OPTION_LIMIT).map(optionFacts);
       return true;
     }
@@ -584,7 +588,7 @@
     const safe=safeValue(element);
     return {element: id(element), name: element.getAttribute('name') || '', label: name(element), type: element.type || element.getAttribute('role') || 'editable',
       hidden: element.type === 'hidden', checked:!!element.checked, disabled:element.matches(':disabled'), multiple:!!element.multiple, readOnly:!!element.readOnly, ...safe,
-      ...(html(element,HTMLSelectElement,'select') && !safe.password ? {options: [...element.options].map(option => ({label: text(option), value: option.value, selected: option.selected, disabled: option.matches(':disabled')}))} : {})};
+      ...(html(element,HTMLSelectElement,'select') && !safe.password ? {options: [...element.options].map(option => ({label: optionLabel(option), value: option.value, selected: option.selected, disabled: option.matches(':disabled')}))} : {})};
   }
   function formFacts(form, submitter) {
     if (!form) return null;
@@ -654,7 +658,7 @@
       ...(implicitSubmitter(element) ? {implicit_submitter:id(implicitSubmitter(element))}:{}),
       href: hyperlinkAddress(element),
       ...(hyperlink(element)?{browsing_target:browsingTarget(element,'target')}:{}),
-      editable: editableTarget(element),
+      editable: editableTarget(element), ...(withheldButtonText(element)?{name_withheld:true}:{}),
       search: searchTarget(element), submit: submitsForm(element),
       states: {checked: !!element.checked, selected: !!element.selected, disabled: !!element.disabled, required: !!element.required, invalid: element.getAttribute('aria-invalid') === 'true', expanded: element.getAttribute('aria-expanded')},
       box: {x:box.x,y:box.y,width:box.width,height:box.height}, onscreen: box.bottom > 0 && box.right > 0 && box.top < innerHeight && box.left < innerWidth && box.width > 0 && box.height > 0};
@@ -698,8 +702,8 @@
       }
     }
     function visit(node,space='normal',visible=true){
-      if(node.nodeType===Node.TEXT_NODE){if(visible&&(!node.parentElement||!password(node.parentElement)))append(node.textContent,space);return;}
-      if(!(isElement(node))||password(node)||['SCRIPT','STYLE','NOSCRIPT','INPUT','SELECT'].includes(node.tagName))return;
+      if(node.nodeType===Node.TEXT_NODE){if(visible&&(!node.parentElement||!insideWithheldButton(node.parentElement)&&!password(node.parentElement)))append(node.textContent,space);return;}
+      if(!(isElement(node))||insideWithheldButton(node)||password(node)||['SCRIPT','STYLE','NOSCRIPT','INPUT','SELECT'].includes(node.tagName))return;
       const style=getComputedStyle(node);
       if(style.display==='none')return;
       visible=style.visibility!=='hidden'&&style.visibility!=='collapse';
@@ -780,7 +784,7 @@
       const facts = targetFacts(node);
       // Native controls already went through safeValue; their child text is not a fallback name.
       if (facts.role === 'generic' && !node.isContentEditable && !['INPUT','TEXTAREA','SELECT','BUTTON'].includes(node.tagName)) {
-        if(password(node))return null;
+        if(insideWithheldButton(node)||password(node))return null;
         const own=[...node.childNodes].filter(child=>child.nodeType===Node.TEXT_NODE).map(child=>child.textContent).join(' ').replace(/\s+/g,' ').trim();
         if(!own || password(node) || node.hidden || getComputedStyle(node).display==='none' || getComputedStyle(node).visibility==='hidden')return null;
         facts.role='text';facts.name=own;

@@ -762,7 +762,8 @@ async function discardReport(tab,act,frames,uninspected=0){
     // A tab Claude just opened shows about:blank with no reader; it holds nothing.
     catch(error){if(!(error.readerUnavailable&&frame.frameId===0&&frame.url==='about:blank'))uninspected++;}
   }
-  return {act,fields:distinctDescriptions(fields).slice(0,LOSS_FIELDS),more_fields:Math.max(0,fields.length-LOSS_FIELDS),frames_uninspected:uninspected,media};
+  const owner_work_present=fields.some(field=>field.by==='owner');
+  return {act,fields:distinctDescriptions(fields).slice(0,LOSS_FIELDS),more_fields:Math.max(0,fields.length-LOSS_FIELDS),frames_uninspected:uninspected,media,owner_work_present};
 }
 async function requireDiscard(tab,command,act,frames,uninspected=0){
   if(command.discard_unsaved===true)return;
@@ -927,7 +928,8 @@ async function outlineView(tab,expires=null){
   const text=value=>typeof value==='string'?value:'';
   return {session,tab,control:snapshot.control,url:text(snapshot.url),title:text(snapshot.title),...(snapshot.effective_url?{effective_url:snapshot.effective_url}:{}),
     needs_reload:snapshot.needs_reload===true,uncovered:snapshot.uncovered||[],
-    dialog:snapshot.dialog?{kind:text(snapshot.dialog.kind)||'dialog',text:text(snapshot.dialog.text)}:null,frames};
+    dialog:snapshot.dialog?{kind:text(snapshot.dialog.kind)||'dialog',text:text(snapshot.dialog.text),
+      frame:snapshot.dialog.frame,frame_url:snapshot.dialog.frame_url,effective_url:snapshot.dialog.effective_url}:null,frames};
 }
 // Every option of one list field. The reference names the reader's document
 // and instance; only a document an outline has read is asked.
@@ -1217,6 +1219,14 @@ async function dispatch(command,expires=null) {
     }
     return {offset:stage.size};
   }
+  if(command.name==='close_tab'){
+    if(!claudeOpened.has(tab))throw Error('refused: only Claude-opened tabs can be closed');
+    const current=controlled.has(tab)?await requireTab(tab):await chrome.tabs.get(tab);
+    safeURL(current.url);
+    const frames=await chrome.webNavigation.getAllFrames({tabId:tab})||[];
+    await requireDiscard(tab,command,'close',frames,!frames.length&&current.url!=='about:blank'?1:0);
+    await release(tab);await chrome.tabs.remove(tab);return {closed:tab};
+  }
   await requireTab(tab,['input','resume'].includes(command.name)?expires:null);dispatchEpoch=controlled.get(tab).epoch;
   // Brief 28a, item 6: what the first input's guarded reload (prepare_control
   // below) would lose, from the same frames and checks, without doing it.
@@ -1234,7 +1244,6 @@ async function dispatch(command,expires=null) {
     await reloadChecked(tab,initial,command);
     return {reloaded:true,message:'The taken tab reloaded to install its page guard before page scripts. Every old reference is stale; read again.'};
   }
-  if (command.name === 'close_tab') { await requireDiscard(tab,command,'close',await chrome.webNavigation.getAllFrames({tabId:tab})||[]); await release(tab); await chrome.tabs.remove(tab); return {closed:tab}; }
   if (command.name === 'navigate') {
     if (command.url) { safeURL(command.url);await requireDiscard(tab,command,'navigate',await chrome.webNavigation.getAllFrames({tabId:tab})||[]);const navigated=await cdp(tab,'Page.navigate',{url:command.url});rememberGet(tab,navigated?.loaderId); }
     // Same unsaved-typing and playing-media report as the first input's reload.

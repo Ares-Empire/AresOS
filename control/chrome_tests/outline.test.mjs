@@ -53,6 +53,31 @@ test('editable native buttons keep the visible label and role of the control',()
     ['search',undefined],['button','Pay'],['button','Pay by card'],['textbox','Notes']]);
 });
 
+test('an unwatched editable native button withholds its typed name but remains an activation control',()=>{
+  const f=page(h=>[h('button',{type:'button',contenteditable:'true'},h('span',{},'Unwatched draft'))],{watched:false});
+  const [button]=f.outline().nodes;
+  assert.equal(button.role,'button');
+  assert.equal(button.name,undefined);
+  const facts=f.run({command:'facts',element:'e'+button.id});
+  assert.equal(facts.ok,true);
+  assert.deepEqual([facts.data.target.role,facts.data.target.editable,facts.data.target.name_withheld],['button',false,true]);
+  assert.ok(!JSON.stringify([button,facts.data]).includes('Unwatched draft'));
+});
+
+test('an option label attribute drives the outline, facts and fingerprint',()=>{
+  const f=page(h=>[h('select',{},h('option',{value:'n',label:'North',selected:''},'N'),h('option',{value:'s',label:''},'South'))]);
+  const [list]=f.outline().nodes;
+  assert.equal(list.chosen,'North');
+  assert.deepEqual(list.options.map(option=>option.label),['North','South']);
+  const facts=()=>f.run({command:'facts',element:'e'+list.id}).data;
+  const before=facts();
+  assert.deepEqual(before.target.options.map(option=>option.label),['North','South']);
+  f.body.childNodes[0].options[0].attrs.label='North revised';
+  const after=facts();
+  assert.notEqual(after.fingerprint,before.fingerprint);
+  assert.deepEqual(after.target.options,[{...before.target.options[0],label:'North revised'},before.target.options[1]]);
+});
+
 test('a role comes from the list or the tag, never from a page\'s own string',()=>{
   const f=page(h=>[
     h('div',{role:'h1 injected'},'A'),h('div',{role:'password'},'B'),h('span',{role:'BUTTON'},'Go'),h('div',{role:'link\n"evil'},'C'),

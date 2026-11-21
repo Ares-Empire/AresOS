@@ -44,7 +44,7 @@ from . import view as outline_view
 from .address import public_address
 from .deadline import NOT_READ, Deadline
 from .policy import allowed_url
-from .references import Stale
+from .references import Stale, dialog_key
 
 CALL, DISPATCH, REPORT, READ = 18.0, 12.0, 16.0, 17.0
 QUIET_MAX, POLL = 1.5, .1
@@ -62,6 +62,7 @@ DISABLED = 'that option is disabled'
 SEVERAL = 'several options carry this label; pass the value'
 OTHER_DIALOG = ("This isn't the dialog the last result showed in this tab; "
                 "the dialog open now is in untrusted_content.dialog.")
+ACTIVATION_UNKNOWN = 'A page activation may have happened; inspect the page and never replay.'
 
 
 def query(args):
@@ -162,6 +163,8 @@ class Doing:
         self.deadline, self.loaded, self.new_page = False, None, False
         self.now = self.dialog = self.loss = self.clipboard = self.error = None
         self.start = None      # the top document (Chrome's id) the list started on
+        self.address = None
+        self.navigated, self.quiet_page = False, going.Quiet()
         self.before = None     # the outline before the first step
         self.ran = False       # whether any step ran past its checks
         self.token = None      # the page's token at the last look
@@ -179,6 +182,7 @@ class Doing:
                     # until a step runs, the report's first look at the page (`settle`).
                     state, self.before = self.chrome.outline_view(self.tab)
                     self.start, self.token = state.get('document'), state.get('token')
+                    self.address = state.get('address')
                     self.run_steps()
                 return self.result()
             finally:
@@ -239,7 +243,7 @@ class Doing:
             result = self.chrome.free(verb, payload, dispatch_by=self.clock.at(DISPATCH), replies=raw)
         except Refused as exc:
             self.refusal(index, step, exc)
-        page = result['untrusted_content'].get('page') if isinstance(result['untrusted_content'], dict) else None
+        page = raw[0].get('page') if raw else None
         self.chrome.references.acted(self.tab, step['ref'], page.get('change') if isinstance(page, dict) else None)
         self.dispatched(index, step, result, self.popups(raw[0] if raw else {}))
 
@@ -250,10 +254,10 @@ class Doing:
                 facts = self.bridge.call('dialog_facts', tab=self.tab)
                 dialog = facts.get('dialog') if isinstance(facts, dict) else None
                 present = None if not isinstance(dialog, dict) else {'kind': dialog.get('kind'), 'text': dialog.get('text', '')}
-                if present is None or present != self.chrome.references.dialog(self.tab):
+                if present is None or dialog_key(dialog) != self.chrome.references.dialog(self.tab):
                     if present is not None:
                         # The dialog open now is shown, and counts as shown, as a stale reference's present line does.
-                        self.chrome.references.dialog_shown(self.tab, present)
+                        self.chrome.references.dialog_shown(self.tab, dialog)
                         self.dialog = visible(present)
                     self.entry(step, 'stale', code='stale_reference', message=OTHER_DIALOG)
                     raise Stop()
@@ -339,12 +343,13 @@ class Doing:
         if isinstance(page.get('clipboard'), dict):
             routes = sorted(set((self.clipboard or {}).get('routes', [])) | set(page['clipboard'].get('routes') or []))
             self.clipboard = {**page['clipboard'], 'routes': routes}
-        followups = self.followups(result.get('followups') or [])
         if operation.get('state') == 'unknown':
             self.unknown.append(operation_id)
             self.entry(step, 'unknown', operation_id=operation_id, code='unknown', message=operation.get('reason', ''))
+            self.followups(result.get('followups') or [])
             raise Stop()
         self.entry(step, 'unchanged' if reply.get('no_change') else 'done', operation_id=operation_id)
+        followups = self.followups(result.get('followups') or [])
         if popups:
             self.entries[-1]['popups'] = list(popups)
         if followups or reply.get('dialog'):
@@ -397,8 +402,10 @@ class Doing:
                     return True  # no top document right now: a navigation is under way
                 if self.start is None:
                     self.start = document  # the list started behind a dialog
-                if document != self.start:
-                    self.new_page = True
+                self.navigation(state)
+                if self.navigated:
+                    self.quiet_page.observe(state, time.monotonic())
+                if self.new_page:
                     return True
                 if state.get('queued'):
                     queued = self.bridge.call('queued_steps', tab=self.tab)
@@ -411,27 +418,37 @@ class Doing:
         return False
 
     def followups(self, items):
-        """Brief 20's page steps: a held submission is prepared, everything else is named in `stopped`."""
+        """Separate prepared submissions, uncertain activations and stopped page steps."""
         for item in items:
             if isinstance(item, dict) and item.get('approval'):
                 self.prepared.append(item)
+            elif isinstance(item, dict) and item.get('unknown') is True:
+                entry = next((entry for entry in reversed(self.entries) if entry.get('operation_id') and
+                              entry['outcome'] in ('done', 'unchanged', 'unknown')), None)
+                if entry is None:
+                    self.error = {'code': 'unknown', 'message': ACTIVATION_UNKNOWN}
+                    continue
+                operation_id = entry['operation_id']
+                if operation_id not in self.unknown:
+                    self.unknown.append(operation_id)
+                    entry.update(outcome='unknown', code='unknown', message=ACTIVATION_UNKNOWN)
             else:
                 self.stopped.append(visible(item))
         return bool(items)
 
     # --- the report -----------------------------------------------------------
 
-    def settle(self):
-        """Wait until the page has gone quiet (at most QUIET_MAX), or, after a new top document, loaded (to REPORT).
+    def navigation(self, state):
+        document, address = state.get('document'), state.get('address')
+        if document is not None and self.start is not None and document != self.start:
+            self.new_page = True
+        if self.new_page or address is not None and self.address is not None and address != self.address:
+            self.navigated = True
 
-        Quiet: ready, and the token the same in two looks in a row. Each input
-        has already waited out its hold of half a second, so the look after
-        the last step counts as the first of the two. When no step ran (an
-        asking first step is prepared, the first step was refused), the look
-        the outline before it was taken with is the first: a page that hasn't
-        moved since is reported at once, without a wait for a third look.
-        """
-        end = min(time.monotonic() + QUIET_MAX, self.clock.at(REPORT))
+    def settle(self):
+        """Wait for a changed page, using the navigation quiet window only after arrival."""
+        report_end = self.clock.at(REPORT)
+        end = min(time.monotonic() + QUIET_MAX, report_end)
         token = self.token
         while True:
             try:
@@ -442,19 +459,19 @@ class Doing:
             now = time.monotonic()
             if state.get('dialog'):
                 break
-            if not self.new_page and self.start is not None and state.get('document') not in (None, self.start):
-                self.new_page = True
-            if self.new_page:
-                end = self.clock.at(REPORT)
-            if state.get('ready') is True and state.get('token') is not None and state.get('token') == token:
-                if self.new_page:
+            self.navigation(state)
+            if self.navigated:
+                end = report_end
+                if self.quiet_page.observe(state, now):
                     self.loaded = True
+                    return
+            elif state.get('ready') is True and state.get('token') is not None and state.get('token') == token:
                 return
             token = state.get('token')
             if now >= end:
                 break
-            time.sleep(max(0, min(POLL, end - now)))
-        if self.new_page:
+            time.sleep(self.quiet_page.pause(state, now, end) if self.navigated else min(POLL, end - now))
+        if self.navigated:
             self.loaded = False
 
     def result(self):

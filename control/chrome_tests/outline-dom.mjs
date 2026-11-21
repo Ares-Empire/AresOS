@@ -41,6 +41,7 @@ export function page(build,{watched=true}={}){
     get size(){return Number(this.attrs.size||0);}
     get open(){return this.hasAttribute('open');}
     get files(){return [];}
+    get text(){return this.childNodes.map(node=>node.textContent).join('').replace(/\s+/g,' ').trim();}
     get value(){
       if(this.attrs.type==='password'||this.secret)throw Error('A PROTECTED VALUE WAS READ');
       return this.attrs.value??(this.localName==='option'?this.childNodes.map(node=>node.textContent).join(''):'');

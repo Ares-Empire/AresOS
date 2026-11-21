@@ -34,7 +34,7 @@ def document():
     final = BASELINE['final_sizes']
     out = ['# Chrome tool descriptions and instructions (package 28a, step 3b)', '',
            'Exactly as `instructions_for(\'chrome\')` and `tools_for(\'chrome\')` give them, which are the generated',
-           '`control/generated/chrome-instructions.txt` and `chrome-tools.json`. Written by `document()` in',
+           '`control/generated/chrome-instructions.txt` and `chrome-tools.json`. Compared with `document()` in',
            '`control/chrome_tests/test_instruction_rules.py`, which fails when this file and the catalogue differ.', '',
            '| | Main at this package\'s start | Step 3b |', '|---|---:|---:|']
     for key, label in (('tools', 'Tools offered'), ('descriptions', 'Descriptions'), ('instructions', 'Server instructions'),
@@ -158,6 +158,9 @@ class InstructionRules(unittest.TestCase):
         self.assertEqual(instructions, COMMON_INSTRUCTIONS + '\n\n' + SHARED + ' ' + CLIPBOARD_NOTICE)
         self.assertLessEqual(len(instructions) - len(COMMON_INSTRUCTIONS), 1148)
         self.assertEqual(len(instructions), BASELINE['final_sizes']['instructions'])
+
+    def test_credential_exclusion_is_not_an_absolute_claim(self):
+        self.assertIn('Fields flagged as credential-like are excluded.', self.homes()['chrome_read_typed_fields'])
 
     def test_generated_ask_rules_are_main_bytes(self):
         from generate import generated

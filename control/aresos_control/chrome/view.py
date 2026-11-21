@@ -927,7 +927,7 @@ def header(view):
     top = view.top
     return {"url": public_address(view.url), "title": visible(view.title),
             "scroll": "%d/%d" % (top.scroll, top.height) if top else "0/0",
-            "dialog": None if view.dialog is None else visible(view.dialog)}
+            "dialog": None if view.dialog is None else visible({key: view.dialog[key] for key in ('kind', 'text')})}
 
 
 # --- pages ------------------------------------------------------------------

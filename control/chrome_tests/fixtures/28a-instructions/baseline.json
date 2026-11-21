@@ -135,7 +135,7 @@
         },
         {
           "home": "instructions",
-          "text": "discard_unsaved=true only if loss wanted;"
+          "text": "discard_unsaved=true: want loss;"
         },
         {
           "home": "chrome_go",
@@ -241,7 +241,7 @@
       "after": [
         {
           "home": "instructions",
-          "text": "discard_unsaved=true only if loss wanted; all but Claude's typing needs owner's chat OK first."
+          "text": "discard_unsaved=true: want loss; owner chat OK unless only Claude's typing and none omitted."
         },
         {
           "home": "chrome_take",
@@ -255,7 +255,7 @@
       "after": [
         {
           "home": "instructions",
-          "text": "all but Claude's typing needs owner's chat OK first."
+          "text": "owner chat OK unless only Claude's typing and none omitted."
         }
       ]
     },
@@ -367,7 +367,7 @@
       "after": [
         {
           "home": "instructions",
-          "text": "discard_unsaved=true only if loss wanted; all but Claude's typing needs owner's chat OK first."
+          "text": "discard_unsaved=true: want loss; owner chat OK unless only Claude's typing and none omitted."
         },
         {
           "home": "instructions",
@@ -502,9 +502,9 @@
   ],
   "final_sizes": {
     "tools": 19,
-    "descriptions": 5975,
-    "instructions": 2798,
-    "descriptions_and_instructions": 8773,
+    "descriptions": 5963,
+    "instructions": 2796,
+    "descriptions_and_instructions": 8759,
     "names_and_input_schemas": 6729,
     "names": [
       "read",
@@ -527,6 +527,6 @@
       "notices",
       "notice_ack"
     ],
-    "catalogue_structure_sha256": "48a1e699a20ccb9f01fac6f7fc0b3866c801a400cb8afa65fef6bcc0e720e56a"
+    "catalogue_structure_sha256": "41d21f04a72c43463df1ef1a84fd8b095bc033acdf7f49d8c2966423a0d9a785"
   }
 }
