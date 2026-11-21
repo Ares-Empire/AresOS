@@ -1,7 +1,8 @@
 # Empire brief 317 — 20-store-oracle-reads: the notice left after a finished replay (N8), reads refused while a notice stays queued (N9)
 
 Lead: `linux-tools`. Written on 2026-11-20 against main `897f2717`. Revised on 2026-11-21 after
-review 1 (`reviews/20-store-oracle-reads/BRIEF-REVIEW-1.md`), against main `f4d59cc6`.
+review 1 and again after recheck 1 (`reviews/20-store-oracle-reads/BRIEF-REVIEW-1.md`,
+`BRIEF-RECHECK-1.md`), against main `f4d59cc6`.
 Follow-up to brief 302; it closes board T386.
 The code was read at `4442c676`; `control/`, `reviews/19b-owner-state/` and the oracle workflow are
 unchanged from there to `f4d59cc6`.
@@ -13,12 +14,17 @@ Then brief 302 (`briefs/20-store-oracle-followups.md`) and, in `reviews/20-store
 `REPORT.md` and `CLASSIFICATION-CHECK.md`: its N1 is our N8; its N3, C3 and part of N4 are our N9.
 Then the two "Named class" sections in `reviews/19b-owner-state/KNOWN-GAPS.md:706-757`.
 
-**Outcome.** Two store changes, no oracle change, one re-pin.
+**Outcome.** Two store changes, no change to the owner-state oracle, one line in Chrome's state
+view, one re-pin.
 - N8: start-up drops a queued recovery proposal when its replay finished the proposal's source or
   saved a notice under the proposal's id.
 - N9: a read on a fixed list is answered again when its request met a storage refusal before
   dispatch. Everything else stays refused, Chrome's page reads included. The owner set the goal
   (board T385, 2026-11-19: "Merge, fix reads later").
+- With N9, two Chrome paths that are on main today are closed. A barred request sends the browser
+  nothing, and no request asks it before its flush; a waiting Chrome approval is then listed from
+  its saved row as `unchecked`. A request the owner's sites page makes while a browser command
+  waits no longer takes that command's reply.
 
 Paths are repo-relative. Line numbers are at `4442c676`. Under `control/`: `storage.py`, `recovery.py`,
 `engine.py`, `results.py`, `requests.py` are in `aresos_control/`, as are `chrome/` and `mail/`;
@@ -43,6 +49,17 @@ warning or unknown outcome, unsaved state shown as saved. A low-harm edge case b
 | 7 | SHOULD-FIX. The capture has no semantic stop rule before the pin. | The capture is classified over all flows and pairs before the pin is committed. The pending-section discrepancy is measured on the base first. | "Capture and proof"; build step 1 |
 | 8 | NIT. The overlap table. | Corrected against `cd2ce599` and `c95c350d`. | "Overlapping work" |
 | — | View: the restart wording. | A queued `background-storage` notice has no durable source. | "Known limits" |
+
+## Recheck 1
+
+Findings 1, 2 and 4 to 8 of review 1 are closed. Finding 3 stayed open in two places, both
+reproduced on main before this revision ("Writers' local evidence").
+
+| # | Finding | What changed | Where |
+|---|---|---|---|
+| 1 | BLOCKER. A barred request's all-app pending section sends `validity` or `typed_fields`. In the extension both can release a tab, clear its holds and staged uploads, or inject a reader. | A barred request sends the browser nothing. A reserved Chrome approval is listed from its committed row as `validity: unchecked`, or `refused` where saved state already says so. `mode()` refuses in a barred request. Chrome's state view accepts `unchecked` in a reply that is not `ok`. | Section 2, decision 3; tests i3, i4; "Existing tests" |
+| 2 | BLOCKER. The first pending pass runs before the flush, so a request can send `configure`, prune upload copies and refresh qualification before it is refused. A nested owner request reads the outstanding command's reply. | Both are on main today. The first pending pass of every request takes Chrome's rows without asking the browser, and so does every pass of a nested request. | Section 2, decisions 3 and 4; tests i5, i6, i7 |
+| 3 | NIT. The restart promise. | Every barred answer carries the first storage error; only a latched store adds the restart advice; a first fence that was undone needs no restart. | Section 2, decision 8; "JUDGMENT-CALL" |
 
 ## 1. N8: a queued recovery notice the replay made untrue
 
@@ -255,13 +272,54 @@ What review 1 showed, each checked in the code:
 - **Both oracles expect live checks.** After a recheck that met the latch the model expects the
   "not yet checked" notice (`model.py:495-499`, `:549-556`), so a passive Mail view would need an
   oracle change. Chrome's state checks expect live validity in an answered `control_pending`
-  (`control/chrome_tests/chrome_oracle.py:93-98`, `state_views.py:57-62`, `test_committed.py:54-61`).
+  (`control/chrome_tests/chrome_oracle.py:93-98`, `state_views.py:57-62`). Their flows never queue
+  a notice, so none of their requests is barred before dispatch. Thirteen cases are barred during
+  dispatch: in flow `stopped` of `test_fault_surface.py`, persistent mode, `control_pending` loses
+  its own write and answers from the storage fallback (`engine.py:144-200`), and main sends
+  `validity` after the barrier is set. Main's other tests read `validity` through `engine.pending`
+  outside a request (`test_committed.py:54-61`, `test_state_fixes.py:95-99`,
+  `test_qualification_service.py:251-253`).
+
+What recheck 1 showed, each reproduced on main ("Writers' local evidence"):
+
+- **`validity` and `typed_fields` are not passive.** In the extension both start in `requireTab`
+  (`control/chrome/extension/background.js:980`; `:964` through `:803` and `:764`). For a controlled
+  tab that left the Claude group it calls `release` (`:638`), which ends control, drops the tab's
+  holds and staged uploads and reports `released` (`:696-710`). `typed_fields` injects the reader
+  into a frame that has none (`:786`, `:284`), and `requireTab` can do so for a popup that is still
+  setting up (`:651`).
+- **The first pending pass runs before the flush** (`engine.py:752`, `:755`), in every request of
+  every app, and it includes Chrome's rows (`:217-218`). With a reserved typed-read approval, a
+  changed excluded-sites list, an expired upload copy and a due refresh, a `mail_accounts` request
+  sends `configure`, deletes the copy, reaches the refresh and sends `typed_fields`. Only then is
+  its flush refused, in both fault states. The refusal's section then does the housekeeping and
+  asks again. With an ordinary reserved operation it sends `validity` before and after.
+- **Nobody needs the first pass's Chrome rows.** The pass only keeps a snapshot for a later storage
+  failure (`engine.py:116`). Both fallbacks drop Chrome's rows from it and read Chrome's projection
+  again (`:131`, `:177-182`). Only `daemon.py:279` shows it whole, when the pending read after a
+  failed request raises.
+- **A nested request takes the outer command's reply, with no storage fault.** An `owner_sites`
+  event handled while a command waits (`chrome/bridge.py:75-84`) enters `Engine.request`, and its
+  pending passes send `validity`. That call reads the reply the outer command waits for and
+  refuses it by its identity (`:85-86`); the outer call then does the same with the nested reply.
+  With a healthy `chrome_tabs` and one reserved operation the outer reply is `transport_error`.
+  Under a latch with a queued notice the same happens inside the refusal's pending section. With
+  nothing reserved it does not happen. The sites page asks for its list whenever it opens and
+  after every button (`control/chrome/extension/details.js:9`, `:30`).
+- `chrome_sites` itself sends no command (`chrome/adapter.py:850-874`), and the sites page reads
+  only `ok`, `error.message` and `data` of its reply (`details.js:8-28`).
+- **The held Chrome packages already have the row.** Their `pending_state` returns
+  `UNCHECKED = {'validity': 'unchecked'}` when a check runs out of time, and the row keeps the
+  operation's own reason (`chrome/deadline.py:24` on both held branches).
+- `pending_state` is called only for the projection (`chrome/adapter.py:301`). Its saved-state
+  checks (`:235-248`, `:256-258`) read the journal, the owner's list and the store, and ask the
+  browser nothing.
 
 ### Decision
 
 **A read on a fixed list that meets the barrier gets the refusal it gets today, plus its page. A
-barred request starts nothing: no store write, no browser configuration, no file change, no write
-through a nested request.**
+barred request starts nothing: no store write, no browser command, no file change, no write through
+a nested request. No request asks the browser before its flush.**
 
 1. **The answered list.** `requests.py` gets one explicit set of names next to `changing()` and one
    predicate over it. The predicate is true only for a well-formed request on the list.
@@ -285,23 +343,48 @@ through a nested request.**
    Its reply then takes the passive all-app pending section the refusal has
    (`self.pending(resolve_checks=False)`, `engine.py:794`) in place of its app's own. A request that
    is not barred takes today's path. The mutating branch, the error paths and the `finally` stay.
-   Mail's and the control views' live checks run as they do today on a latched store with nothing
-   queued: add no passive mode for them. The barrier in `ensure_writable` refuses their writes.
-3. **Chrome in a barred request.** Use one predicate for "this request is barred" (`in_request` and
-   a set `write_barrier`); a read-only method on `Store` is allowed for it.
+   Mail's live checks run as they do today on a latched store with nothing queued: add no passive
+   mode for them. The barrier in `ensure_writable` refuses their writes. Chrome's checks are off
+   (decision 3).
+3. **Chrome: when a request asks the browser.** Only after its first pending pass, while it is not
+   barred, and when it is not nested. Outside a request nothing changes.
+   - **Barred** is one predicate (`in_request` and a set `write_barrier`); a read-only method on
+     `Store` is allowed for it.
+   - **The row.** `pending_state` runs its saved-state checks as today, and a row they refuse reads
+     `refused` with its reason. Where it would go on to `typed_binding` or `validity`
+     (`chrome/adapter.py:253`, `:259`) and the request may not ask, it returns
+     `{'validity': 'unchecked'}`: no `mode()`, no browser command. The row keeps the operation's
+     own `reason` and has no `refusal_code`, like the held packages' row. Nothing else in a
+     pending row changes.
+   - **The first pending pass** (`engine.py:752`) takes such rows in every request, healthy ones
+     too: nothing can know yet whether the flush will be refused. `Engine.request` turns one
+     request-scoped switch off for that call and on after it; `pending_state` reads the switch.
+   - **A nested request** keeps the switch off to its end, and `Engine.request` puts the outer
+     value back. It sends no command, so it cannot read the reply the outer command waits for.
+   - **A barred request** gets such rows in every pending section, and in `data` of
+     `control_pending` and of the method `pending`. `Chrome.reconcile_open_checks` returns at once;
+     open page-step checks stay listed from committed rows (`chrome/adapter.py:271-276`).
+     `Chrome.mode()` raises the barrier's error as its first statement. Nothing on the answered
+     list calls `mode()`: the check keeps a handler that goes on after its own write was refused
+     from configuring, pruning or fetching. The rule holds for a request barred during dispatch
+     too, which is why Chrome's state view gets one acceptance ("Existing tests").
    - Page reads and the asking read are refused at the gate (decision 1).
-   - `Chrome.mode()` in a barred request skips `maintenance()`. If the excluded-sites configuration
-     is not current it raises the barrier's error instead of sending `configure`: where reading
-     safely needs configuration, the refusal stays. A typed-read approval then reads
-     `validity: refused` with that error (`chrome/adapter.py:263-264`).
-   - `Chrome.reconcile_open_checks` in a barred request returns at once. Open page-step checks stay
-     listed from committed rows (`chrome/adapter.py:271-276`).
-   - The pending section keeps its two live queries, `validity` and `typed_fields`. Chrome's state
-     checks require them, and they change nothing in the browser. They are the only bridge commands
-     a barred request sends once the barrier is set.
-   - The daemon's own maintenance pass and every request that is not barred are unchanged.
+   - Unchanged: the service loop's maintenance and event handling (`daemon.py:119-124`,
+     `:211-236`), `engine.pending` called outside a request, and every pending section a healthy
+     request that is not nested builds after its first pass. There `control_pending`, a Chrome
+     reply's own section and the page reads ask the browser as today.
+
+   What a healthy request loses: the first pass's answers, which nothing read, and, while a
+   typed-read approval waits, that pass's `mode()` in requests of every app ("Known limits").
+
+   What the owner's tools show while barred: the storage error first; every app's waiting work from
+   saved rows; a waiting Chrome approval with `validity: unchecked`; Chrome's warnings from
+   committed rows, open checks included. The Stop hook hands that section on as it is
+   (`hooks.py:132`, `:57-58`). The approval cannot be used in that state, since changes are
+   refused. After the restart it reads `refused`: the service session changed
+   (`chrome/adapter.py:240-241`).
 4. **Nested requests: nesting never clears a barrier or a first error.** Only these lines of
-   `Engine.request` change.
+   `Engine.request` change, and those of decision 3's switch.
    - On entry, if a request is already in progress, keep its `Observations` object. The nested
      request gets a fresh one. If the outer request is barred, the fresh one starts with the same
      `error` and `write_barrier`.
@@ -312,8 +395,9 @@ through a nested request.**
      before any byte. A change such as `chrome_sites` is refused with the first error, and
      `owner_reply` shows the owner that refusal (`chrome/adapter.py:199-202`). Nothing is queued for
      him: he sees that it failed and repeats it.
-   - Other Chrome events handled inside a barred request (`held_step`, `released`) write through
-     `Store.write`, which the barrier refuses.
+   - A barred request no longer waits on the browser, so an event is handled inside one only when
+     the request became barred during the wait: an earlier event's write (`held_step`, `released`)
+     was refused. Later events of that wait meet the barrier.
 5. **Mail status: in a barred request the operation is the saved row.** In the `operation_status`
    branch (`engine.py:634-652`), note before asking for evidence whether the request is already
    barred. If it is, do not copy the live `sent_copy_warning` into the operation (`:643-645`), so
@@ -328,7 +412,8 @@ through a nested request.**
    Under a latch nothing can, and the restart drops the queue ("Known limits").
    `Store.ensure_writable` and `Observations.finish` do not change either.
 7. **What a read shows.** Saved state: SQLite's applied rows (`storage.py:834-899`), today's audit
-   events up to the SQLite head (`:812-829`), Chrome's committed projection. Never a staged event
+   events up to the SQLite head (`:812-829`), Chrome's committed projection, and a waiting Chrome
+   approval as its committed row with `unchecked` (decision 3). Never a staged event
    that is not applied, the failed write's intended rows, or a check result that could not be saved
    shown as saved: the notice says "not yet checked" (`mail/adapter.py:807-813`), and
    `operation_status` adds `evidence_error` (`engine.py:646-650`) or labels its live evidence
@@ -336,9 +421,11 @@ through a nested request.**
    warning with its location pages, which a healthy page shows too; live evidence under
    `data.evidence`; the mailbox content of a Mail server read. A reply that shows a warning still
    queued is never `ok`: its request tried the flush and failed.
-8. **What the reply tells Claude.** `ok` is false. The error is the request's first storage error:
-   `journal_incomplete` with the restart advice when the flush met a surviving latch, or the fresh
-   cause (`common.py:38-43`), with the advice only if the store is latched afterwards. `data` is the
+8. **What the reply tells Claude.** `ok` is false. Every barred answer carries the request's first
+   storage error. A surviving latch makes that `journal_incomplete` and adds the restart advice. A
+   fresh failure reports its own cause (`common.py:38-43`), with the advice only if it left the
+   store latched. A first fence that was fully undone reports its cause without the advice: no
+   restart is asked for, and a fresh request is served once storage recovers. `data` is the
    page; a read that fails for its own reason has none, and the storage error still comes first.
    `pending` lists what waits in every app and its newest three notices, queued ones included. The
    proxy hands Claude the whole reply (`proxy.py:250-251`); `aresos control log` prints it
@@ -362,8 +449,20 @@ Rejected:
 - Answering Chrome's page reads. A side-effect-free `chrome_read` would have to skip its page-step
   commits and acknowledgements and still report the stopped steps. That is Chrome work, and the
   Chrome packages rewrite those paths now.
-- Refusing the pending section's two browser queries in a barred request. Chrome's state checks
-  expect the live answer.
+- Keeping `validity` and `typed_fields` in a barred request (revision 1). Neither is passive in the
+  extension, and `typed_fields` passes `mode()`.
+- A passive query in the extension, one that skips `requireTab` and the reader. It changes the
+  extension, so its build and qualification, on paths the Chrome packages rewrite now.
+- The flush before the first pending pass. That pass is the snapshot for the case where the failed
+  write leaves SQLite unreadable (`engine.py:144-153`); taken after the flush it would be the
+  previous request's.
+- Leaving Chrome's rows out while barred. The owner would not see that an approval waits.
+- A guard in the bridge against a command inside a command. It would close the nested collision
+  too, but both Chrome packages rewrite the bridge, and the switch does it in lines this brief
+  already changes.
+- Deciding at the gate only, so that a request barred during dispatch keeps its live rows and
+  Chrome's state view needs no acceptance. It leaves `validity` after a storage failure in the
+  very flows Chrome's own checks run.
 
 ### Tests
 
@@ -400,8 +499,8 @@ latch (`journal_incomplete` with the advice).
 
 Base (`tests/`):
 
-- **g.** Nesting. Make the nested call from inside the outer dispatch (a patched adapter read, or a
-  scripted bridge event).
+- **g.** Nesting. Make the nested call from inside the outer dispatch, from a patched adapter read:
+  a barred request no longer waits on the browser. Test i7 does it on the wire.
   1. Outer request barred by a one-time first-fence failure; nested `chrome_sites` list as the
      owner. The nested reply is the refusal with the outer's first error. The notice is still
      queued and no byte changed during the nested call. The outer reply is not `ok`, has the same
@@ -416,25 +515,52 @@ Base (`tests/`):
   `control_observations` then pages it, barred as well.
 
 Chrome (a new module under `control/chrome_tests/`; CI picks up `test_*.py` there). Both fault
-states, a queued notice, the tests' recording browser:
+states, a queued notice. The recording browser logs every command by name, `validity`,
+`typed_fields`, `configure` and `queued_steps` included; the stand-in in `test_engine.py:26-45` logs
+none of those. Read the log from request entry, never from the flush. Tests i4 to i6 use a real
+`Bridge` as in `chrome_tests/test_qualification_service.py:69` (`maintenance()` returns at once for
+a stand-in, `chrome/adapter.py:221`), a temporary `upload_dir` with an expired copy, a due refresh
+with a recorder in place of the fetch, and a changed excluded-sites list.
 
 - **i.**
   1. Each of the eight page reads and the asking read: the first storage error, no `data`,
-     `_request` not entered, no browser command for it.
+     `_request` not entered, no browser command.
   2. With an open page-step check: `chrome_notices`, `chrome_operation_status`, `control_pending`,
-     `control_notices` and `control_log` are answered. The open check is listed. The browser saw
-     no `queued_steps`. No byte changed.
-  3. With a reserved ordinary operation and a reserved typed-read approval: mark the browser's log
-     when the flush is refused. After the mark the only commands are `validity` and `typed_fields`,
-     and both rows show their live validity.
-  4. `mode()` in a barred request, with a real `Bridge` as in
-     `chrome_tests/test_qualification_service.py:69` (`maintenance()` returns at once for a
-     stand-in, `chrome/adapter.py:221`). With an expired upload copy in a temporary `upload_dir`
-     and a due refresh it returns: no `configure`, no fetch, no `.qualification-*` file, and the
-     copy is still there. With a changed excluded-sites list it raises the first storage error and
-     sends no `configure`. On a latched store with nothing queued nothing changes: the same call
-     configures and prunes, `chrome_tabs` reaches the browser, and a live `chrome_notices` sends
+     `control_notices` and `control_log` are answered. The open check is listed. No browser
+     command. No byte changed.
+  3. Rows (recheck 1, blocker 1). A reserved ordinary operation, a reserved typed-read approval
+     and a third whose deadline has passed (set through a store write, as
+     `test_state_fixes.py:125` does). For a barred `mail_accounts`, `control_pending`, the method
+     `pending`, a refused `mail_operation_cancel` and a refused `chrome_tabs`: the browser saw no
+     command from request entry to the reply. In `pending`, and in `data` of `control_pending` and
+     of the method `pending`, the first two rows read `unchecked`, keep the operation's own
+     `reason` and have no `refusal_code`; the third reads `refused` with the deadline reason.
+     Fails today: `validity` and `typed_fields` are sent.
+  4. `mode()` called inside a barred request (from a patched handler of an answered read) raises
+     the first storage error: no `configure`, no fetch, no `.qualification-*` file, and the copy
+     is still there.
+  5. From request entry (recheck 1, blocker 2). A reserved typed-read approval; the fault state
+     is armed before each request. `mail_accounts`, and a refused change: from entry to the reply
+     no `configure`, no `typed_fields`, no fetch, no `.qualification-*` file, and the copy is
+     still there. Fails today in both states: `configure`, the pruning, the refresh and
+     `typed_fields` all happen before the flush is refused.
+  6. A request that is not barred keeps its checks. No fault, nothing queued: `control_pending`
+     is `ok`, both rows read `current`, the browser saw `configure`, `typed_fields` and
+     `validity`, and the copy is pruned; a `mail_accounts` request sends the browser nothing. On
+     a latched store with nothing queued and no refresh due, `control_pending` shows both rows
+     `current`, `chrome_tabs` reaches the browser, and a live `chrome_notices` sends
      `queued_steps`.
+  7. Nested, on the wire (recheck 1, blocker 2). A real `Bridge` over a socket pair, a scripted
+     peer, one reserved ordinary operation. While `chrome_tabs` waits for `tabs`, the peer sends
+     an `owner_sites` list event and then the `tabs` reply.
+     1. Healthy. The outer reply is `ok` with the tabs. Between `tabs` and its reply the peer got
+        no command. The owner's reply is `ok`, and its Chrome row reads `unchecked`. The outer
+        reply's own row reads `current`: the switch is back on. Fails today: both calls end in
+        `transport_error`, "Chrome response identity changed".
+     2. When the event arrives the test queues a notice and arms a one-time first-fence failure.
+        The owner's reply is the storage refusal, and the peer got no command for it. The outer
+        call returns its own `tabs` reply; the outer reply is not `ok`, carries that first error
+        (g3), and its row reads `unchecked`.
 
 Sweep: at discovered points of the five flows, in the `live-restored` phase, the status checks of
 `control_log` and `control_pending` pass, and no `aresos log.total` or `control_pending.total` key
@@ -451,27 +577,42 @@ pins a count of 0 against the model's count. `WriteLatchSweep302` stays green.
   and after: it never asserts the missing page. Replace it with tests a to d and rename it.
 - The strict sweep test (`test_owner_state_sweep.py:642`) needs only the new pin.
 - `mail_tests/test_review_fixes_22.py` stays as it is: its requests are not barred when they ask
-  for evidence. Chrome's existing Python tests stay as they are.
+  for evidence.
+- **One acceptance in Chrome's state view.** `control/chrome_tests/state_views.py:57-59` compares
+  `validity` of every reserved row in an answered `control_pending` with the live state. In the
+  thirteen cases named under "Verified facts" (flow `stopped`, persistent, local points 145-149,
+  151, 168-173 and 175) the row now reads `unchecked`, and the comparison fails with "Cached or
+  missing live validity". They were found without the cleanup pairs, which may add cases of the
+  same shape. As written, the check requires the browser query recheck 1 forbids. It gets one
+  line: in a reply that is not `ok`, a reserved row may read `unchecked`; every other value, and
+  every row of an `ok` reply, is compared as today. What the check guards stays guarded: a
+  verdict that is shown is never a cached one. `chrome_oracle.py` does not change. Chrome's other
+  Python tests stay as they are.
 - No other test should change. A scratch prototype of the first version's two rules failed only the
-  review 25 test, of 29 base tests, 53 Mail tests and the sweep module's 16 unit tests. The revised
-  rules are not prototyped, and Chrome's tests were not run for either version.
+  review 25 test, of 29 base tests, 53 Mail tests and the sweep module's 16 unit tests. Decision 3
+  is prototyped against Chrome's Python tests ("Writers' local evidence"). The list, the nesting
+  rule and the status branch of revision 1 are not prototyped.
 
 ## Build order and gates
 
 Small commits. Keep `reviews/20-store-oracle-reads/PROGRESS.md` current: commands, outputs, counts.
 
 1. **Baseline.** Merge main. Run the modules of the test sections as they are, and Chrome's Python
-   modules. Record the local matrices and their case inventory (below) on the merge base under
+   modules that reach the engine: the list under "Writers' local evidence" (about 6 minutes) and
+   `test_fault_surface` (3 minutes without its cleanup pairs; not timed with them).
+   Record the local matrices and their case inventory (below) on the merge base under
    `.work/317/before/`. Measure the pending-section discrepancy there ("Capture and proof").
 2. **N8.** The rule, tests a to g, its mutations. Commit.
 3. **N9, engine.** The list and the gate, the nesting rule, the status branch; tests a to h, the two
    changed tests, their mutations. Commit.
-4. **N9, Chrome.** The two checks in the adapter, test i, its mutations. Update
-   `control/README.md:193-202`: a barred read on the list is answered from saved state with the
-   error attached, Chrome's page reads wait; start-up drops a recovery notice its replay made
-   untrue. Commit.
+4. **N9, Chrome.** The switch in `Engine.request`, the three checks in the adapter, the one line
+   in Chrome's state view, tests i1 to i7, their mutations. Update `control/README.md:193-202`: a
+   barred read on the list is answered from saved state with the error attached; Chrome's page
+   reads wait, and a waiting Chrome approval is listed unchecked; start-up drops a recovery notice
+   its replay made untrue. Commit.
 5. **Local gate.** Record the matrices again and compare inventories, then keys, with step 1. Run
-   `test_owner_state_capture` (3 tests), the sweep's unit tests and one alteration shard. Push.
+   `test_owner_state_capture` (3 tests), the sweep's unit tests and one alteration shard. Run
+   step 1's Chrome modules again: same tests, same results. Push.
 6. **Review.** A fresh package and security review runs the mutations before any hosted oracle run:
    a later code fix voids a capture.
 7. **Capture, classification, re-pin, proof** as below, then the independent classification check.
@@ -533,9 +674,15 @@ its named assertion, not an import, fixture or pin error.
 | Put the outer observations back, but start the nested request unbarred | N9 g1 (the nested call saves the notice) |
 | Do not hand a nested barrier to the outer request | N9 g3 |
 | Copy the live warning into a barred status' operation | N9 h1 |
+| `pending_state` asks the browser in a barred request | N9 i3 |
+| Return `unchecked` before the saved-state checks, replace the row's `reason`, or add a `refusal_code` | N9 i3 (the third row; the first two) |
+| The first pending pass asks the browser, as on main | N9 i5 |
+| A nested request asks the browser | N9 i7.1 (the outer reply) |
+| Leave the switch off after the first pass | N9 i6 |
+| Do not put the switch back after a nested request | N9 i7.1 (the outer reply's own row) |
 | `reconcile_open_checks` as on main | N9 i2 |
 | `mode()` as on main | N9 i4 |
-| Key Chrome's two checks on the latch instead of the barrier | N9 i4 (the latched store with nothing queued) |
+| Key Chrome's checks on the latch instead of the barrier | N9 i6 (the latched store with nothing queued); i3 in the state without a latch |
 
 Removed: "drop although the replay raised". A failed replay ends start-up and the queue dies with
 the process (`storage.py:281-284`), so no behaviour differs. Test b5 keeps its assertions on the
@@ -604,7 +751,8 @@ definitions and follows each key. It compares every C3 key with its delta before
 
 ## CI budget
 
-Kept from the first version: the revision adds unit tests, not oracle runs.
+Kept from the first version: both revisions add unit tests, not oracle runs. The new Chrome module
+runs in the Control Chrome workflow's Python shards, which every push already starts.
 
 - **Owner oracle** (61 jobs, about 2.5 hours a run): one capture and one proof. No `ledger_only`
   run is needed. A third run needs the lead's OK first. 302 lost a capture to harness errors a local
@@ -623,9 +771,13 @@ May change:
   read-only "barred" predicate on `Store`;
 - `requests.py`: the answered list and its predicate;
 - `engine.py`: `_admitted_request`; in `Engine.request` only the lines that keep, seed and put back
-  the observations; in `dispatch` only the status branch's copy of the warning;
-- `chrome/adapter.py`: the barrier check in `mode()` and in `reconcile_open_checks`, nothing else;
-- the test files named above and one new module under `control/chrome_tests/`;
+  the observations and those that set and put back decision 3's switch; in `dispatch` only the
+  status branch's copy of the warning;
+- decision 3's switch: one attribute, on the store next to `in_request` or on the Chrome adapter;
+- `chrome/adapter.py`: the early return in `pending_state`, the barrier check in `mode()` and in
+  `reconcile_open_checks`, nothing else;
+- the test files named above, one new module under `control/chrome_tests/`, and the one line in
+  `control/chrome_tests/state_views.py`;
 - `control/README.md:193-202`; `reviews/19b-owner-state/KNOWN-GAPS.json` and `KNOWN-GAPS.md`;
   `reviews/20-store-oracle-reads/`.
 
@@ -634,11 +786,11 @@ Must not touch:
 - `Store.write`, `_append`, `_finish`, `_replay`, `ensure_writable`, `flush_notices`, and the journal
   and SQLite formats;
 - `definitions.py`, the tool schemas and the generated artifacts (`generate.py --check` stays clean);
-- `owner_state_oracle/` and Chrome's state checks: no expectation changes. `FORMAT.md` only if a
-  sentence becomes untrue;
-- Chrome's committed projection, its pending projection, its two recovery rules, the bridge and the
-  extension; the restore-lock allow-list (`engine.py:575`); app approval, no-resubmission, storage
-  reservations, the durability order;
+- `owner_state_oracle/` and Chrome's state checks: no expectation changes beyond that one line.
+  `FORMAT.md` only if a sentence becomes untrue;
+- Chrome's committed projection, its pending projection beyond that one return, its two recovery
+  rules, the bridge and the extension; the restore-lock allow-list (`engine.py:575`); app approval,
+  no-resubmission, storage reservations, the durability order;
 - `.github/workflows/`, `os/`, `mod/`, the installed service.
 
 Replies outside a barred request keep their codes, fields, paging, warnings and text.
@@ -647,8 +799,8 @@ Replies outside a barred request keep their codes, fields, paging, warnings and 
 
 | Work | Overlap |
 |---|---|
-| PR #72, `pkg/28-chrome` `cd2ce599` (held until after R29's cut) | In `engine.py` it only puts `Engine.request`'s body under Chrome's `call_time`. Our nesting lines go inside that body: whoever merges second re-applies them by hand. It rewrites parts of `chrome/adapter.py` and changes the Chrome catalogue. |
-| PR #116, `pkg/28a-chrome-act` `c95c350d` (held likewise; `engine.py` unchanged since `1c67199b`) | The same wrapper, plus the `untrusted` import (`engine.py:15`) and `**untrusted(exc)` in both refusal envelopes (`_admitted_request` `:794`, `_request` `:893`). Keep the import and both expansions, and keep the answered read and its pending section inside `call_time`. It also rewrites `chrome/adapter.py` (`mode()` and `reconcile_open_checks` move), edits `control/README.md` away from lines 193-202, and edits `chrome_tests/test_engine.py`, which is why test i gets its own module. |
+| PR #72, `pkg/28-chrome` `cd2ce599` (held until after R29's cut) | In `engine.py` it only puts `Engine.request`'s body under Chrome's `call_time`. Our nesting and switch lines go inside that body: whoever merges second re-applies them by hand. It rewrites parts of `chrome/adapter.py` and the bridge and changes the Chrome catalogue. It adds `chrome/deadline.py` with `UNCHECKED = {'validity': 'unchecked'}` and returns it from a re-indented `pending_state` when a check runs out of time. Ours is the same row: whoever merges second keeps one constant and both conditions. |
+| PR #116, `pkg/28a-chrome-act` `b4cb60ed` (held likewise; `engine.py` unchanged since `1c67199b`; since `c95c350d` nothing changed in the functions named here) | The same wrapper, row and bridge rewrite, plus the `untrusted` import (`engine.py:15`) and `**untrusted(exc)` in both refusal envelopes (`_admitted_request` `:794`, `_request` `:893`). Keep the import and both expansions, and keep the answered read and its pending section inside `call_time`. It also rewrites `chrome/adapter.py` (`mode()` and `reconcile_open_checks` move), edits `control/README.md` away from lines 193-202, and edits `chrome_tests/test_engine.py`, which is why test i gets its own module. |
 | Either Chrome catalogue landing | Recheck the answered list and the test's refused list against the new Chrome actions. A new read is refused until listed. |
 | PR #76 `pkg/18c-b-chrome`, PR #82 | No file in common. |
 
@@ -656,7 +808,8 @@ Replies outside a barred request keep their codes, fields, paging, warnings and 
 
 Stop, write the case into `PROGRESS.md` and report to `linux-tools` when:
 
-- an oracle expectation, or one of Chrome's state checks, would have to change to get green;
+- an oracle expectation, or one of Chrome's state checks beyond the one acceptance, would have to
+  change to get green: for example an `ok` reply shows an `unchecked` row;
 - an existing test other than the two named would have to change;
 - a local matrix shows a case that raises, a new key, a changed `crash-locked` key, or a change that
   is none of the expected shapes;
@@ -700,13 +853,25 @@ Known limits to record, none of them new harm:
 - A status read that is not barred when it asks for evidence, and whose own result write is then
   refused, still shows the live duplicate warning inside `operation` (review 14,
   `mail_tests/test_review_fixes_22.py:22-48`). Its reply is not `ok` and names the failed recording.
-- The first pending pass of every request (`engine.py:752`) runs before the flush, when the request
-  is not barred yet. With a reserved typed-read approval it passes `mode()`, as in every request
-  today: it applies the owner's excluded-sites list and does the housekeeping the service loop also
-  does (`daemon.py:119-124`). A pending section that never passes `mode()` is Chrome work.
-- In a barred request the pending section still sends `validity` and `typed_fields`, as main's
-  refusal does. A Chrome event that arrives meanwhile and needs a write is refused and reported as
-  `unknown`.
+- **While barred, a waiting Chrome approval reads `unchecked`**, also when its tab is gone or its
+  page changed. It cannot be used in that state. After the restart it reads `refused`; after a
+  failure that was undone, the next request checks it live again.
+- **A request the store refuses without a barrier is not barred**: a change refused at the gate by
+  a surviving latch with nothing queued, a quota refusal before any write,
+  `chrome_read_typed_fields` refused by the latch at its submit. Its reply's pending section asks
+  the browser, as on main; its first pass no longer does. In those states reads are served and
+  ask the same questions, the Stop hook at every turn end included, so the refusal starts nothing
+  the next read would not. Closing it means making every refusal in `ensure_writable` a barrier,
+  which changes a function every writer calls.
+- A healthy request of another app no longer applies a changed excluded-sites list, or does
+  Chrome's housekeeping, while a typed-read approval waits. The next Chrome request or all-app
+  pending section does both, and the service loop does the housekeeping.
+- A reply to the owner's sites page made while a browser command waited lists Chrome approvals as
+  `unchecked`. The page does not show them.
+- When the pending read after a failed request raises, `daemon.py:279` can show the first pass's
+  rows, `unchecked`.
+- Chrome events that arrive during a barred request wait for the service loop, like events between
+  requests.
 - The owner's sites page gets a refusal for a request that arrives inside a barred request. He
   repeats it.
 - A queued notice lives in memory, and the restart the advice asks for drops it. A recovery notice
@@ -725,18 +890,24 @@ to show changes already saved locally". What changes for him:
 - After a crash at an unlucky moment and a restart, no notice says "outcome unknown, inspect" for
   work the log shows as finished. A filing's exact warning is not replaced by a vaguer one, and a
   notice he acknowledged stays acknowledged.
-- While a storage write is unfinished, Claude can read again: mail, the log, what is waiting, an
-  operation's status. Such an answer still says a write did not finish and asks for the restart.
-  Changes stay refused.
+- While a storage failure blocks a request, Claude can read again: mail, the log, what is waiting,
+  an operation's status. Such an answer still carries the storage error, and changes stay refused.
+  It asks for the restart only when a write was left unfinished. After a failure that was fully
+  undone it does not, and the next request works once storage is back.
 - One thing stays as it is since 302: in that state Claude cannot read a Chrome page or the tab
-  list until the restart. Before 302 it could.
+  list. Before 302 it could.
+- In that state a waiting Chrome approval is listed as "unchecked", no longer as current or
+  refused: the tools do not ask the browser then. Nothing can be approved in that state anyway.
+- Opening Chrome's sites page while Claude works in Chrome no longer makes Claude's command fail,
+  as it did whenever a Chrome approval was waiting.
 
-Does the last point need his word? The writer's advice: no. T385 asked for the reads that show
-saved state, a Chrome page is not saved state, and the state ends with the restart the tools
-already ask for. It belongs in the lead's summary to him as one line. If the lead would rather ask,
-it is one board question that does not block the build: "While the tools ask for a restart, should
-Claude also be able to read Chrome pages?", with the advice "no, not in this package", because
-answering them safely is Chrome work.
+Does the Chrome page point need his word? The writer's advice: no. T385 asked for the reads that
+show saved state, a Chrome page is not saved state, and the state ends with the restart, or with
+the next request after a failure that was undone. It belongs in the lead's summary to him as one
+line, with the "unchecked" line. If the lead would rather ask, it is one board question that does
+not block the build: "While a storage failure blocks the tools, should Claude also be able to read
+Chrome pages?", with the advice "no, not in this package", because answering them safely is Chrome
+work.
 
 The technical calls are decided above with their reasons.
 
@@ -770,3 +941,41 @@ Revision 1 (2026-11-21), on `f4d59cc6`:
 - `restore`, every point, both modes, live and crash phase, with the stand-in: 304 cases in 139 s.
   The only cases that raise are the four named under "Local matrices".
 - Branch heads compared: `origin/pkg/28-chrome` `cd2ce599`, `origin/pkg/28a-chrome-act` `c95c350d`.
+
+Revision 2 (2026-11-21), on `f4d59cc6`. Scratch exports of the branch head, whose `control/` is
+main's; temporary directories only, no network (a recorder stands in for the qualification
+refresh).
+
+- **Entry probe, main.** A real `Bridge` object with a recording call, a queued notice, a reserved
+  typed-read approval, a changed excluded-sites list, an expired upload copy. `mail_accounts` under
+  a surviving latch: `configure`, then the refresh and `typed_fields`, each twice, then the flush
+  refused with `journal_incomplete`, then both twice again; the copy is gone. With a
+  one-time first-fence failure the order is the same and the code is `storage_limit`. With an
+  ordinary reserved operation: `validity` twice before the flush and twice after, in both states.
+- **Nested probe, main.** A real `Bridge` over a socket pair. A healthy `chrome_tabs`, one reserved
+  operation, an `owner_sites` list event before the `tabs` reply: the outer reply is
+  `transport_error`, "Chrome response identity changed", and the owner's reply is `ok` with its row
+  `refused` by the same error. Under a latch with a queued notice the collision happens in the
+  refusal's pending section. With nothing reserved there is none.
+- **Prototype of decision 3 alone** (14 lines in `storage.py`, `chrome/adapter.py` and `engine.py`,
+  and the state view's acceptance; no list, no nesting rule). The entry probe shows no command
+  from request entry in both states, the copy kept and the rows `unchecked`. The nested probe
+  shows the outer reply `ok`, no command between `tabs` and its reply, and the owner's row
+  `unchecked`.
+- **Chrome's Python tests, equal on base and prototype:** `test_engine` 32, `test_questions` 35,
+  `test_sites` 17, `test_committed` 24, `test_state_fixes` 21, `test_state_exhaustion` 1,
+  `test_state_crashes` 1, `test_state_mutations` 1 (24 mutants killed), `test_state_oracle` 5,
+  `test_storage` 16 (its sweep: 477 single, 477 persistent, 2,406 pairs; 255 s),
+  `test_qualification_service` 24, `test_full_disk_reads` 10, `test_restore_lock` 5,
+  `test_exclusions` 3, `test_bridge` 14, `test_unit` 1, and `test_owner_confirm` 15 with the same 2
+  errors on both, from the export's location (a socket path too long, a workflow file outside the
+  export).
+- **The writer fault surface** (`test_fault_surface.py`, its own `sweep_case`): all 19 flows, every
+  point, single and persistent, without the cleanup pairs, 4,260 cases on the prototype in 183 s.
+  Without the acceptance 13 fail, all in `stopped`, all with "Cached or missing live validity";
+  with it none. On the base `stopped` passes 166 and 166, and a trace of local point 145 shows
+  `validity` sent twice after the barrier is set.
+- Not run: the list, the nesting rule and the status branch; Mail and base tests against this
+  revision; the fault surface's cleanup pairs, the latency and qualification-shard modules and the
+  node tests; any hosted workflow.
+- Branch heads compared: `origin/pkg/28-chrome` `cd2ce599`, `origin/pkg/28a-chrome-act` `b4cb60ed`.
