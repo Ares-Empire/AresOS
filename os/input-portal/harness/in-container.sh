@@ -29,7 +29,11 @@ unset_var() { [ -z "${!1:-}" ]; }
 absent_or_empty() { [ ! -e "$1" ] || { [ -d "$1" ] && [ -z "$(ls -A -- "$1")" ]; }; }
 only_loopback() { [ "$(ls /sys/class/net | tr '\n' ' ')" = "lo " ]; }
 no_sockets() { [ -z "$(find / \( -path /proc -o -path /sys \) -prune -o -type s -print 2>/dev/null)" ]; }
-no_host_mount() { ! grep -Eq ' /(home|var/home|run/user|tmp/\.X11-unix)(/| )' /proc/self/mountinfo; }
+no_host_mount() { # passes only when grep read the table and found no match (1); a match (0) or an error (2) fails
+    local status=0
+    grep -Eq ' /(home|var/home|run/user|tmp/\.X11-unix)(/| )' /proc/self/mountinfo || status=$?
+    [ "$status" -eq 1 ]
+}
 
 for var in WAYLAND_DISPLAY DISPLAY DBUS_SESSION_BUS_ADDRESS XDG_RUNTIME_DIR XDG_DESKTOP_PORTAL_DIR \
     XDG_CURRENT_DESKTOP XAUTHORITY SSH_AUTH_SOCK; do
