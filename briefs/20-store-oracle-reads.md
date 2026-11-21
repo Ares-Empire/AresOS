@@ -66,13 +66,25 @@ reproduced on main before this revision ("Writers' local evidence").
   barred during its own dispatch. The one acceptance line in Chrome's state view (`unchecked` allowed in a reply
   that is not `ok`) is part of this package. Deciding at the gate only would keep a live `validity` after a
   storage failure, the effect recheck 1 called real harm.
-- **Requests refused without a barrier** (a change refused by a surviving latch with nothing queued, a quota
-  refusal, `chrome_read_typed_fields` under the latch) keep asking the browser in their reply section, as on
-  main. A known limit: in that state every read and the Stop hook ask the same questions, and making
-  `ensure_writable` set the barrier touches every writer, which is wider than this package.
+- **Requests refused without a barrier:** replaced after recheck 2 (its finding 2, below): a reply to a request
+  refused for a storage error uses passive Chrome rows too, with or without a barrier.
 - **Healthy requests' first pass** no longer asks the browser, so another app's request no longer applies a
-  changed excluded-sites list while a typed-read approval waits. Accepted: the next Chrome request, and every
-  all-app section, applies it before anything reaches a page.
+  changed excluded-sites list while a typed-read approval waits. Accepted, with recheck 2's finding 3: the
+  configuration step runs before the first live projection probe of any later pass.
+
+## Recheck 2
+
+Recheck 2 (`reviews/20-store-oracle-reads/BRIEF-RECHECK-2.md`, Codex gpt-6.2-sol) closed recheck 1's finding 2
+(the first pass and the nested reply) and finding 3 (the restart wording), agreed with the uniform rule and the
+state-view line, and left four points. The lead settled them here as binding rules for the builder; none
+changes the design above, each adds a guard and its test. They come before the hosted capture.
+
+| # | Finding | Rule for the builder | Test and mutation |
+|---|---|---|---|
+| 1 | BLOCKER. A barrier inherited from a nested request mid-command (for example during an approved upload's first `stage_file`, the owner's `chrome_sites` write hits an undone first fence) leaves the outer handler free to send another `stage_file` and `input`, or to run housekeeping after `configure`. | Check the request's barrier before every new browser command and before any housekeeping after `configure`. The outstanding command's reply is still drained, so the bridge stays in step; nothing new is sent once the barrier is set. | A test injects the nested storage fault during the first `stage_file` of a two-file upload and during `configure`, and asserts no further command and no `input` in the trace. Mutation: omit the check between commands; the test fails. i7.2 asserts the full post-barrier trace. |
+| 2 | BLOCKER. With a surviving latch and nothing queued, a request refused at `ensure_writable` before dispatch (for example `mail_operation_cancel`) still runs `configure` and upload pruning in its all-app error reply. | Once a request has observed a storage refusal (a barrier, or a storage-error refusal at admission or at `ensure_writable`), its replies use passive Chrome rows, as a barred request does. `ensure_writable` itself does not change. Healthy reads in a latched store keep their live checks. | An empty-queue latch test with i5's zero-effect assertions (no `configure`, no pruning, no `validity`, no `typed_fields`). Mutation: gate the passive rows on the barrier only; the test fails. |
+| 3 | SHOULD-FIX. A healthy `control_pending` whose ordinary row comes first sends `validity` before `configure`, so `requireTab` can use the extension's old excluded-sites list. | The configuration step runs before the first live projection probe in any pass that asks the browser. | A test with the ordinary row first and a newly excluded host asserts `configure` precedes `validity`. Mutation: probe before configuring; the test fails. |
+| 4 | NIT. Make the named tests' assertions explicit. | i4 gets a spy proving the patched handler called `mode()`. i6's `queued_steps` assertion uses a same-session open check whose peer reply keeps it open. i3 uses distinct saved reasons, so a replaced reason fails. | As written in recheck 2's finding 4. |
 
 ## 1. N8: a queued recovery notice the replay made untrue
 
@@ -871,11 +883,10 @@ Known limits to record, none of them new harm:
   failure that was undone, the next request checks it live again.
 - **A request the store refuses without a barrier is not barred**: a change refused at the gate by
   a surviving latch with nothing queued, a quota refusal before any write,
-  `chrome_read_typed_fields` refused by the latch at its submit. Its reply's pending section asks
-  the browser, as on main; its first pass no longer does. In those states reads are served and
-  ask the same questions, the Stop hook at every turn end included, so the refusal starts nothing
-  the next read would not. Closing it means making every refusal in `ensure_writable` a barrier,
-  which changes a function every writer calls.
+  `chrome_read_typed_fields` refused by the latch at its submit. No longer a limit after recheck 2:
+  its replies use passive Chrome rows once it has observed the storage refusal (rule 2 of
+  "Recheck 2"), without making `ensure_writable` a barrier. Healthy reads in a latched store keep
+  their live checks, as on main.
 - A healthy request of another app no longer applies a changed excluded-sites list, or does
   Chrome's housekeeping, while a typed-read approval waits. The next Chrome request or all-app
   pending section does both, and the service loop does the housekeeping.
