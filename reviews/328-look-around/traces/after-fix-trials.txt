@@ -1,0 +1,79 @@
+# After the fix: rig/trial.py against the native client (all scenarios start with the probe app in front).
+=== click
+   1.14 probe clicked: active=["'aresos.pkg328.probe'"] grabbed=False
+   1.14 probe click: Xwayland trace (1 lines)
+   2.40 world entered (click): active=["'aresos-desktop'"] grabbed=False
+   2.40 world entry: Xwayland trace (6 lines)
+   4.74 moved: camera turned on 89% of the world; probe enter +0 motion +0 inside=False
+   5.48 clicked and scrolled: probe presses +0 scrolls +0; active=["'aresos-desktop'"] grabbed=True
+   5.48 after capture: Xwayland trace (3 lines)
+   5.48 RESULT: captured, and no event reached the probe
+=== click
+   1.13 probe clicked: active=["'aresos.pkg328.probe'"] grabbed=False
+   1.13 probe click: Xwayland trace (4 lines)
+   2.36 world entered (click): active=["'aresos-desktop'"] grabbed=False
+   2.36 world entry: Xwayland trace (6 lines)
+   4.70 moved: camera turned on 52% of the world; probe enter +0 motion +0 inside=False
+   5.44 clicked and scrolled: probe presses +0 scrolls +0; active=["'aresos-desktop'"] grabbed=True
+   5.44 after capture: Xwayland trace (3 lines)
+   5.44 RESULT: captured, and no event reached the probe
+=== alttab
+   1.14 probe clicked: active=["'aresos.pkg328.probe'"] grabbed=False
+   1.14 probe click: Xwayland trace (4 lines)
+   2.60 world entered (alttab): active=["'aresos-desktop'"] grabbed=False
+   2.60 world entry: Xwayland trace (1 lines)
+   4.93 moved: camera turned on 0% of the world; probe enter +0 motion +24 inside=False
+   5.68 clicked and scrolled: probe presses +0 scrolls +0; active=["'aresos-desktop'"] grabbed=False
+   5.68 after capture: Xwayland trace (6 lines)
+   5.68 RESULT: the world did not take the mouse; the pointer stayed a normal, visible pointer (the probe got what it pointed at)
+=== super
+   1.11 probe clicked: active=["'aresos.pkg328.probe'"] grabbed=False
+   1.11 probe click: Xwayland trace (4 lines)
+Super sent to the rig's helper 325256
+   2.22 world entered (super): active=["'aresos-desktop'"] grabbed=False
+   2.22 world entry: Xwayland trace (1 lines)
+   3.23 search closed with Esc: active=["'aresos-desktop'"] grabbed=False
+   3.23 search closed: Xwayland trace (0 lines)
+   5.48 moved: camera turned on 0% of the world; probe enter +0 motion +24 inside=False
+   6.22 clicked and scrolled: probe presses +0 scrolls +0; active=["'aresos-desktop'"] grabbed=False
+   6.23 after capture: Xwayland trace (6 lines)
+   6.23 RESULT: the world did not take the mouse; the pointer stayed a normal, visible pointer (the probe got what it pointed at)
+=== menu
+   1.14 probe clicked: active=["'aresos.pkg328.probe'"] grabbed=False
+   1.14 probe click: Xwayland trace (4 lines)
+   2.39 world entered (menu): active=["'aresos-desktop'"] grabbed=False
+   2.39 world entry: Xwayland trace (6 lines)
+   3.33 menu open: grabbed=True
+   4.36 menu closed with the pointer on the probe: active=["'aresos-desktop'"] grabbed=True
+   4.36 menu: Xwayland trace (2 lines)
+   6.67 moved: camera turned on 0% of the world; probe enter +0 motion +24 inside=False
+   7.41 clicked and scrolled: probe presses +0 scrolls +0; active=["'aresos-desktop'"] grabbed=False
+   7.41 after capture: Xwayland trace (6 lines)
+   7.41 RESULT: the world did not take the mouse; the pointer stayed a normal, visible pointer (the probe got what it pointed at)
+=== click
+   1.11 probe clicked: active=["'aresos.pkg328.probe'"] grabbed=False
+   1.11 probe click: Xwayland trace (4 lines)
+   2.36 world entered (click): active=["'aresos-desktop'"] grabbed=False
+   2.36 world entry: Xwayland trace (6 lines)
+   4.66 moved: camera turned on 32% of the world; probe enter +0 motion +0 inside=False
+   5.42 clicked and scrolled: probe presses +0 scrolls +0; active=["'aresos-desktop'"] grabbed=True
+   5.42 after capture: Xwayland trace (3 lines)
+   5.42 RESULT: captured, and no event reached the probe
+=== alttab
+   1.11 probe clicked: active=["'aresos.pkg328.probe'"] grabbed=False
+   1.11 probe click: Xwayland trace (4 lines)
+   2.57 world entered (alttab): active=["'aresos-desktop'"] grabbed=False
+   2.57 world entry: Xwayland trace (1 lines)
+   4.96 moved: camera turned on 0% of the world; probe enter +0 motion +24 inside=False
+   5.69 clicked and scrolled: probe presses +0 scrolls +0; active=["'aresos-desktop'"] grabbed=False
+   5.69 after capture: Xwayland trace (6 lines)
+   5.69 RESULT: the world did not take the mouse; the pointer stayed a normal, visible pointer (the probe got what it pointed at)
+=== click
+   1.10 probe clicked: active=["'aresos.pkg328.probe'"] grabbed=False
+   1.10 probe click: Xwayland trace (4 lines)
+   2.36 world entered (click): active=["'aresos-desktop'"] grabbed=False
+   2.36 world entry: Xwayland trace (6 lines)
+   4.66 moved: camera turned on 33% of the world; probe enter +0 motion +0 inside=False
+   5.41 clicked and scrolled: probe presses +0 scrolls +0; active=["'aresos-desktop'"] grabbed=True
+   5.41 after capture: Xwayland trace (3 lines)
+   5.41 RESULT: captured, and no event reached the probe

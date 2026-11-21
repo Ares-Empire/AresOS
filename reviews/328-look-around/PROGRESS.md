@@ -178,8 +178,8 @@ commands on stdin (a FIFO kept open).
 
 ## Test results
 
-**Native client in the rig, after the fix** (`evidence/after-fix-trials.txt`; before the fix:
-`evidence/before-fix-capture-trace.txt`):
+**Native client in the rig, after the fix** (`traces/after-fix-trials.txt`; before the fix:
+`traces/before-fix-capture-trace.txt`):
 
 - The owner's scenario (`trial.py click`), four runs: each time the world captured, 40 moves across the probe turned the
   camera (32% to 89% of the picture changed), and the probe counted no enter, motion, click or scroll. Before the fix
