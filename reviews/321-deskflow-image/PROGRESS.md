@@ -176,19 +176,209 @@ folders' modes in `versions.txt`; a setup check confirms it. Every existing test
   runs on a task of its own (the call is refused at once); only `--revoke` waits for it before answering.
 - **The empty-ID refusal and the watchdog default** were step 1's; nothing changed there.
 
+## Step 1c, shortcuts during a capture: done (2026-11-21, Claude Fable 5.2)
+
+Built on step 1b's head with `main` merged in (`73f72d23`: B323's one-layer labwc swap and PR136, no conflict).
+"What to build" 6 is done: the second labwc patch, the marks in the harness's `rc.xml`, the backend's own chord
+removed, and the gate in the harness. Fable because it is compositor code on the keyboard path (the brief's call).
+
+Two Fable agents built it. The first wrote the patch, the stage, the harness and this section's plan, ran two pin
+builds and was stopped by its usage limit with nothing committed. The second read that diff against the brief and
+labwc 0.9.6's source before trusting it ("The second agent's read", below), wrote the pins, and ran everything
+under "What was shown".
+
+| Commit | What |
+|---|---|
+| `fc81fccf` | `os/labwc/`: the second patch, the lock (two patches, `aresos2`, new pins), `stage.py` for a list of patches; `os/tests/test_labwc_stage.py`. |
+| `0ae53900` | `os/ci/image-checks.sh`: the image check names both patches and the new NEVRA. |
+| `aa56738d` | The backend's Ctrl+Alt+Escape chord removed; the harness's bindings and marks, its layer-surface test client and test10. |
+| (this commit) | `UPSTREAM.md`'s row, `KNOWN-LIMITS.md`, this file, the evidence. |
+
+### The mechanism: layer focus, by the capture surface's namespace
+
+**Picked: the layer-focus gate.** While a layer-shell surface whose namespace is `aresos-input-barrier` holds the
+keyboard exclusively, labwc runs only keybinds marked `allowWhenInhibited="yes"`.
+
+**Why, against the inhibitor** (`keyboard-shortcuts-inhibit-unstable-v1` offered only to an exclusive layer
+surface, `Activated` only after labwc's `active`):
+
+- **Smaller, and nothing new on the keyboard path of either program.** The patch is 58 added lines in six files of
+  labwc, and one test (`seat_bindings_inhibited`) that reads the state at each key or button and keeps none of its
+  own. The inhibitor needs a new global in labwc, a listener per inhibitor, `active`/`inactive` sent from every
+  place layer focus changes (focus, unmap, a higher layer, the session lock), and in the backend a new protocol
+  object, two more states in the grab and the handling of `inactive`: about twice the compositor code plus backend
+  code that sees every keystroke, each with its own races to review.
+- **The gate cannot be out of step with the focus.** It is true exactly while labwc's seat says the capture surface
+  has the keyboard: the same fact that sends the keys there. It starts with the `enter` the backend waits for before
+  `Activated` (step 1's "the grab is held"), and ends with the commit that gives the keyboard back or with the
+  surface. An inhibitor's `active` is a second piece of state that labwc would have to keep in step with it.
+- **What the inhibitor would add is a refusal to capture on a labwc without the patch.** Here the backend cannot
+  see the patch, so that guarantee comes from the build instead, four times over: the stage refuses a binary that
+  is not the lock's pins, the image check names both patches and finds the patch's strings in the binary, the
+  harness refuses another labwc and runs the gate, and a unit test ties the namespace in the patch to the backend's.
+  The first patch (311's pointer lock) is already carried on the same terms. Recorded in `KNOWN-LIMITS.md`.
+- **Who can switch bindings off is the same either way:** a program that can put an exclusive layer surface on
+  screen (by claiming the namespace here, by asking there). Windows cannot, sandboxed programs get no layer-shell
+  from labwc, and the two marked chords and the VT switch stay (`KNOWN-LIMITS.md`).
+
+Not picked up: making the namespace a setting in `rc.xml`. It would make the patch easier to offer upstream, but
+the gate would then depend on a second file that `linux-aresos` owns and a user's own `rc.xml` could drop.
+
+### The second agent's read
+
+The diff was read against "What to build" 6 and against labwc 0.9.6 with both patches applied, before any of it was
+run. The layer-focus gate is kept, and the patch, the stage, the lock's new shape, the tests and the harness are the
+first agent's, unchanged. What was checked in labwc's source:
+
+- **Every place a binding's action can start from a key or a button** (`actions_run`'s callers): the keybind match,
+  the on-release branch and the repeat timer in `keyboard.c`; press, release, drag and scroll in `cursor.c`. All
+  are behind `seat_bindings_inhibited()`. The others are menus and window rules (no key reaches them: the menu and
+  switcher keys are skipped) and the touch and tablet taps (`KNOWN-LIMITS.md`). The gate sits where bindings are
+  matched, not in `src/action.c` as the brief's note has it: `actions_run` also serves menus and window rules.
+- **The gate follows the focus in every way the focus can go:** `seat->focused_layer` is cleared on unmap and
+  destroy, a change away from exclusive turns the gate off by the test on `current.keyboard_interactive`, another
+  exclusive layer surface of the same or a higher layer replaces it, and under a session lock the seat's keyboard
+  is on the lock surface, which the gate compares.
+- **Keys across the two edges of a capture.** Held before, released during: labwc keeps the last matched keybind
+  until the next press, so without the patch's drop any release during a capture could run a stale on-release
+  action; with it none can. Pressed during, released after: the press matched nothing, so nothing is pending.
+  A repeat timer started before finds no match and runs nothing.
+- **No capture starts in menu, switcher or move mode:** `cursor_update_common` gives no surface the pointer then,
+  so the barrier sees no crossing (read, not run, as below).
+
+Changed by the second agent: two comments in the backend that still listed the removed chord among the ways a
+capture is lost (`src/wayland/state.rs`, `src/portal.rs`). Added: the control run on `aresos1` and the comparison of
+the two RPMs (both under "What was shown").
+
+### What step 1c built
+
+**`os/labwc/0002-no-bindings-for-the-capture-layer.patch`** (labwc 0.9.6, applied after 0001; code only: no man
+page or example file, so every other file of the RPM stays Fedora's).
+
+| Where | Change |
+|---|---|
+| `src/seat.c`, `include/labwc.h` | `seat_bindings_inhibited()`: the focused layer surface has the namespace, asks for the keyboard exclusively, and is the surface the seat's keyboard is really on (labwc sets `focused_layer` also when a session lock kept the keyboard). |
+| `src/config/rcxml.c`, `include/config/keybind.h` | The keybind attribute `allowWhenInhibited` (default no), beside `allowWhenLocked`. Mouse bindings have no mark: none runs. |
+| `src/input/keyboard.c` | Unmarked keybinds are skipped where a key is matched, so the key is not "bound": press and release go to the surface, and no repeat timer starts. A keybind pressed before the capture loses its pending release action (labwc keeps the release, as it kept the press), and its repeat finds nothing to run. Menu and window-switcher keys are not handled. The VT switch is checked before all of this, as before. |
+| `src/input/cursor.c` | No mousebind on press, release, scroll or drag; the event goes to the surface under the pointer. A drag begun before the capture is dropped. |
+
+**`os/labwc/stage.py` and `labwc.lock.json`.** The lock's `patch` object became the list `patches` (in the order
+applied; the file names must sort that way), and a `.patch` file in the folder that the lock does not name stops
+the build. The spec gets one `Patch<n>:` line each. `os/tests/test_labwc_stage.py`: 131 tests (126 before).
+
+**The release tag moved: `aresos1` to `aresos2`** (`labwc-0.9.6-1.fc44.aresos2.x86_64`). One tag names one set of
+patches: R29 ships `aresos1` to the laptop with 311's patch alone, and `rpm -q labwc` there must tell which labwc
+runs. The image check, the stage and R29's release rule all compare the NEVRA, so a second build under the old tag
+would pass checks written for the first. Fedora's package notes put the NEVRA into both binaries
+(`.note.package`), so `labnag`'s pins changed too although its code did not (checked against `aresos1`'s
+`labnag`: only `.note.package` and `.note.gnu.build-id` differ, every other section is the same bytes;
+`evidence/step1c-labwc-rpm-compare.txt`).
+
+**The new pins** (two `--no-cache` builds of the `labwc` stage printed the same four hashes, then written by hand,
+as `stage.py`'s `PIN_RENEWAL` says; a third build passed them and is `localhost/aresos-labwc:321c`):
+
+| | `/usr/bin/labwc` | `/usr/bin/labnag` |
+|---|---|---|
+| normalized SHA-256 | `93d6d36f91442438131843ddbfca4d050052038256509c129f88ce1756a9e0cb` | `b8958beab24f41e21cbdf2e052d45c93cf95454a2c06c11bd03578c12c049505` |
+| loaded-image SHA-256 | `52cd76e644e8cec4922959648e4096e5fbcc4643b0d8db8d8fa335cee709a402` | `5538d4c5a6989c2c4ec826c76c1e7901ea0b4fc8f4bcc5e7e76472480d7bff49` |
+
+The RPM of the third build: `ee6257dbbeff0bf07e9205cf02a2cb4e1da9568e8d6c6f16c1c15e57c243055c` (not reproducible, as 311's: build time, host and build ID).
+
+**The backend** (`os/input-portal/src/wayland/state.rs`): `is_panic_key` and the modifier state it read are gone.
+During a capture Ctrl+Alt+Escape is forwarded like every key; the way out is labwc's binding. No new unit test
+(the key handlers need a compositor): test10 shows the chord at the client and the capture still held.
+
+**The harness** (`os/input-portal/harness/`):
+
+- `in-container.sh`: `rc.xml` marks `W-S-Escape` and `W-C-Escape` (`--release`, then a stand-in for the recovery
+  terminal) and binds, unmarked, what the image binds: `A-F4` Close, `A-Tab` NextWindow, volume, mute and brightness
+  keys, a lone `Super_L` that acts on release, and two mouse bindings in the `All` context (`A-Middle` press,
+  `A-Down` scroll), since only those apply over a layer surface. Each test command writes one line to
+  `bindings.log`. The default mouse bindings stay (`<default />`).
+- `clients/wl-harness.c`: `wl-harness layer NAMESPACE`, an overlay layer surface that asks for the keyboard
+  exclusively; the probe window prints `CLOSE` when labwc asks it to close.
+- `driver.py`, test10 (26 checks), in "What was shown" below.
+- `run.sh`, `Containerfile`: the images are `localhost/aresos-labwc:321c` and
+  `localhost/aresos-input-portal-harness:321c`; `HARNESS_IMAGE` names another harness image.
+
+### What was shown
+
+- **The labwc stage** (`evidence/step1c-build.txt`): two `--no-cache` builds with `aresos1`'s pins still in the lock
+  applied both patches, printed the same four hashes and stopped (`LABWC_REFUSED`); with the hashes written by hand
+  a third `--no-cache` build passed (`LABWC_BUILT labwc-0.9.6-1.fc44.aresos2.x86_64`, 10 min 35 s) and is
+  `localhost/aresos-labwc:321c`. Against `aresos1`'s RPM (`evidence/step1c-labwc-rpm-compare.txt`): the same 64
+  paths but the two `.build-id` links, and only `/usr/bin/labwc` and `/usr/bin/labnag` have other bytes.
+- **The stage's tests:** `test_labwc_stage.py` **131 passed** (126 before); `test_shell_assertions.py` 9 passed. The
+  image check's two `grep` lines were tried on both binaries: `aresos1`'s has neither string, `aresos2`'s has both.
+  The whole of `image-checks.sh` runs only in the hosted check build ("CI dispatches").
+- **The backend:** `dev/container.sh build` without `--cache` on `aa56738d`: no compiler warning,
+  `cargo test --locked --offline` **98 passed, 0 failed** (unchanged). Binary SHA-256
+  `569d2a26582cc85eefbda463db32765a50419380c748fa0b32e5ac941177c0b4`.
+- **The harness** (`evidence/step1c-harness/`, on that binary, `localhost/aresos-labwc:321c` and
+  `localhost/aresos-input-portal-harness:321c`): **129 passed, 0 failed**, twice with the same PASS lines: step 1b's
+  103 and test10's 26. Test10:
+  - outside a capture (5, the controls): the media keys and a lone Super run their commands, so do Alt+Middle and
+    Alt+scroll, Alt+F4 asks the probe window to close, Alt+Tab starts the window switcher, Super+Ctrl+Escape runs
+    the terminal's stand-in;
+  - the capture starts (1);
+  - during it (6): Alt+F4; Alt+Tab, then Tab and Down; a lone Super; volume, mute and brightness; Ctrl+Alt+Escape;
+    Alt+Middle and Alt+scroll. Each time no test command ran, the window was not asked to close, the client got
+    every key and button, and the key typed right after reached the client;
+  - the capture held through all of them, Ctrl+Alt+Escape included (no `Deactivated`), and the local window got
+    nothing (1);
+  - Super+Ctrl+Escape released it and ran the terminal's stand-in, and input was local again (2);
+  - a lone Super held as a capture starts ran no release action; a held volume key repeated outside a capture
+    (the control) and ran nothing in 1.5 s when held as a capture started; the next key reached the client each
+    time; input was local after (4);
+  - a layer surface named `harness-other-layer` got the keyboard exclusively and under it the media keys, the lone
+    Super, the mouse bindings and Alt+F4 all acted; one named `aresos-input-barrier` got the same keys with nothing
+    run, and Super+Ctrl+Escape still ran there; with both gone the bindings act (7).
+- **Super+Shift+Escape under the gate** is test3's and test9's (both pass with the marked binding): the capture
+  ends, and test3's INFO line shows the client got Super and Shift and never Escape.
+- **The control: test10 fails on a labwc without the patch** (`evidence/step1c-harness-control-aresos1/`). The same
+  driver, `rc.xml` and binary on `localhost/aresos-labwc:311e` (`aresos1`, R29's labwc; in a harness image built
+  against `aresos1`'s lock and removed after): 120 passed, **9 failed**, all of them test10's gate. Alt+F4 asked
+  the local window to close; the switcher took Tab and Down; the lone Super, the media keys and both mouse
+  bindings ran their commands and those keys and buttons never reached the client; the held Super ran its release action; the
+  held volume key kept repeating; the layer surface named `aresos-input-barrier` kept the bindings. Test10's other
+  17 pass there too: the controls, the marked chord, and Ctrl+Alt+Escape (that one is the backend's change).
+- **Not committed from the harness runs:** as in step 1b, the EIS receivers' logs, the probe window's log, the
+  virtual devices' logs and the signal dumps, and now the two layer clients' logs: they hold the harness's made-up
+  keys. `bindings.log` (the names of the test commands that ran) is committed. The control's `results.txt` is
+  committed whole: its nine FAIL lines list the probes' own key codes (the constants in `driver.py`).
+
+### What the code doesn't show
+
+- **The VT switch during a capture is read, not run.** labwc checks it before the gate, in code the patch does not
+  touch; the harness's labwc is headless and has no VT. Step 2's VM runs switch a VT; step 4's table should press
+  Ctrl+Alt+F3 during a real capture.
+- **No capture starts while a menu, the window switcher or a window move is active**, so the gate's "no menu or
+  switcher keys" is a second line: in those modes labwc gives no surface pointer focus (`cursor_update_common`), so
+  the barrier sees no crossing. Read, not run.
+- **Media keys go to the Mac** (the owner's answer T459): `rc.xml` gets no mark for them, and test10 shows volume,
+  mute and brightness at the client with nothing run on the laptop.
+- **The marks are only in the harness's `rc.xml`.** The image's `rc.xml` gets its two bindings' marks in step 3
+  (`linux-aresos`'s file); until then the image's labwc would gate everything, the recovery terminal included.
+  Step 3's image check should require exactly those two marks.
+- **For the release rule (`linux-aresos`):** R29's rule for 311 compares the NEVRA `aresos1`, the pins and "every
+  other file byte-exact". The next release needs `aresos2` and the pins above; the file list (64 paths) and every
+  file but `/usr/bin/labwc`, `/usr/bin/labnag` and the two `.build-id` links are unchanged by this patch.
+- **`os/Containerfile`'s comment on the labwc stage still says "one upstream fix".** The file is `linux-aresos`'s
+  and the stage needs no new line, so it was not touched ("For linux-aresos").
+- **The patch is not offered upstream yet.** As it stands it names AresOS's namespace; an upstream version would
+  take the namespace from `rc.xml` or be the inhibitor protocol. For the lead to decide after the final review.
+
 ## Left, in order
 
-**Step 1c** (Fable: the labwc shortcuts patch of "What to build" 6 in 311's stage, the mechanism picked and why, the
-marks in the harness's `rc.xml`, the backend's side if the inhibitor is the pick, the legacy chord's removal, and the
-gate in the harness). Note for it: the harness's `rc.xml` (in `harness/in-container.sh`) binds only `W-S-Escape`;
-test9's chord check expects labwc's `--release` to kill a stopped backend, so its marks must keep that binding live
-during a capture.
-
-**Then** step 2 (build stage and output check), step 3 (the image: Deskflow, its ID and scope name, the allow-list,
+Step 2 (build stage and output check), step 3 (the image: Deskflow, its ID and scope name, the allow-list,
 routing, the release key, the switch's helper, polkit actions, window and desktop entry, image checks), step 4 (VM
 checks 2 to 9), as the brief's "Steps" says. For step 3, from this step: the helper writes the switch as
 `on\n` (the backend accepts `on` with or without one line end) in one rename, mode 0644, root's, in
 `/etc/aresos/input-portal` (0755, root's), and the switch's program runs `aresos-input-portal --revoke` after `off`.
+For step 3, from step 1c: the image's `rc.xml` marks `W-S-Escape` and `W-C-Escape` with `allowWhenInhibited="yes"`
+and no other binding (the harness's `rc.xml` shows the form), and the image check requires exactly those two marks.
+For step 2: the harness and any check build now need `localhost/aresos-labwc:321c` (or CI's own stage build); the
+old `311e` image is `aresos1` and the harness refuses it.
 
 ## For linux-aresos
 
@@ -198,6 +388,17 @@ The lead sends this list when step 3 ends and at the final head.
 | File | Commit | Why |
 |---|---|---|
 | (none in steps 1 and 1b) | | |
+| `os/labwc/0002-no-bindings-for-the-capture-layer.patch` (new) | `fc81fccf` | Step 1c: the second labwc patch. While the backend's capture surface (layer namespace `aresos-input-barrier`) holds the keyboard exclusively, only keybinds marked `allowWhenInhibited="yes"` run and no mousebind. Code only (`src/`, `include/`). |
+| `os/labwc/labwc.lock.json` | `fc81fccf` | `patch` became the list `patches` (both files with their SHA-256); `result.nevra` is `labwc-0.9.6-1.fc44.aresos2.x86_64`; all four pins are new (table in step 1c above). Base, source and the 306 build dependencies are unchanged. |
+| `os/labwc/stage.py` | `fc81fccf` | Reads the list of patches (order by file name, one `Patch<n>:` line each), refuses a `.patch` file the lock does not name, release suffix `.aresos2`, the reviewed NEVRA. Nothing else changed: fetch, the environment check, the pins and the install are as 311 left them. |
+| `os/tests/test_labwc_stage.py` | `fc81fccf` | The stage's tests for the above (131, 126 before), and two for the lock: the patch's namespace equals the backend's, and the second patch touches code only. |
+| `os/ci/image-checks.sh` | `0ae53900` | The labwc check: NEVRA `aresos2`, the manifest lock names exactly the two patches in order, and `/usr/bin/labwc` holds the second patch's two strings (`allowWhenInhibited`, `aresos-input-barrier`). |
+
+Not touched in step 1c: `os/Containerfile` (the stage copies the whole `labwc/` folder, so the second patch needs no
+new line; its comment above the stage still says "one upstream fix" and should name both patches when the file is
+next changed), `os/ci/vm.py`, `os/packages.lock.json`, the image's `rc.xml`. **For `linux-aresos`'s release rule:** the
+lock's shape changed (`patch` to `patches`) and the NEVRA and pins moved; a rule written for `aresos1` must be
+re-aimed for the release that carries this package. R29 itself is not affected: it builds from `main`.
 
 ## For linux-hub
 
@@ -218,6 +419,12 @@ The lead sends this list when step 3 ends and at the final head.
 
 What the image gains or changes through this package, for `linux-aresos`'s release notes and checks.
 
+- **labwc (step 1c):** the RPM is `labwc-0.9.6-1.fc44.aresos2.x86_64` (R29: `aresos1`), built with a second patch.
+  Changed files: `/usr/bin/labwc` (the patch; pins in step 1c above), `/usr/bin/labnag` (only the NEVRA in its
+  `.note.package`), and so the two `.build-id` links. Same 64 paths; every other file is Fedora's, byte for byte.
+  New behaviour: bindings are off while the input portal's capture surface holds the keyboard, except keybinds
+  marked `allowWhenInhibited="yes"` (a new `rc.xml` attribute; step 3 marks two). Without a capture nothing changes.
+  The image check names both patches. Real hardware first at the release's laptop install, as 311's rule says.
 - The Rust build stage and its output (step 2): not built yet.
 - The installed binary `/usr/libexec/aresos-input-portal` and its service file (step 2): not built yet.
 - `os/input-portal/` kept out of the layer the final image inherits (`os/.containerignore`, step 2): not done yet.
@@ -225,7 +432,31 @@ What the image gains or changes through this package, for `linux-aresos`'s relea
 
 ## CI dispatches
 
-None in steps 1 and 1b (0 of the package's 8).
+None in steps 1 and 1b.
+
+| # | Step | Run | What |
+|---|---|---|---|
+| 1 of 8 | 1c | (dispatched after this commit is pushed; its ID comes with the commit table) | `check_build=build` on the step's head: it builds the labwc stage (the pins must hold on the hosted runner too) and the image, and runs the image checks, the labwc one included. Not waited for: the lead reads it. |
+
+## Podman, after step 1c
+
+Built and kept: `localhost/aresos-labwc:321c` (`936d94a84d10`, the third build; the harness and step 2 need it) and
+`localhost/aresos-input-portal-harness:321c` (`d1b0057d999c`). Built and removed: the control's harness image
+(`localhost/aresos-input-portal-harness:321c-control`, with its one own layer). `localhost/aresos-labwc:311e` was
+only read (the control and the RPM comparison); `localhost/aresos-input-portal-harness:316` was not used.
+
+Dangling layers of the builds that are kept, as build cache: the third build's `labwc-inputs` stage
+(`f1d2de0dc8d6`, `64aa955d5af5`, `bc7acf20d33a`, `61397b12d036`), the two parents of `321c` (`3bdf42b1cb0c`,
+`c8f538d7c56a`) and the harness image's (`24bb1a939ee9`, `5da4ff03b446`, `58839b6909b3`, `6847eafc8677`).
+
+Left for the lead, not touched: the dangling layers of the two refused pin builds (the first agent's). Build 1:
+`4e0e27c2256a`, `ec6d0a541cee`, `445d4ac8a064`, `43c03b4be1fb`, `34725236915e`, `6f8170a691fa`. Build 2:
+`5ca13dcd314f`, `1a47c49af60d`, `f61cf7553362`, `e13e4809f0b9`, `47bda253d393`, `ce83cfb38b9e`. Nothing uses them:
+the third build ran with `--no-cache`.
+
+Everything ran in throwaway containers (`--rm`), the harness without a network. The counted backend build used no
+cache volume (316's two are untouched). No `prune`. Nothing in `.work/` is over 500 MB; `.work/backend-1c/` is the
+counted backend build, `.work/backend-cached/` the first agent's cached one from before the comment change.
 
 ## Podman, after step 1b
 
