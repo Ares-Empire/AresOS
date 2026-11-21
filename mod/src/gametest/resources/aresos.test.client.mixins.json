@@ -8,6 +8,7 @@
     "HudTestAccess",
     "MouseTestAccess",
     "KeyboardTestAccess",
+    "WorldCaptureReleaseTestMixin",
     "AppsTestAccess",
     "ProvisioningAuditMixin",
     "BlockWriteAuditMixin",

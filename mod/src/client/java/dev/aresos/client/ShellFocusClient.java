@@ -34,7 +34,7 @@ public final class ShellFocusClient {
                     Minecraft.getInstance().schedule(() -> {
                         HomeScreen.appInFront(false);
                         HomePointer.reset();
-                        WorldCapture.reset();
+                        WorldCapture.helperLost(Minecraft.getInstance());
                     });
             }
 

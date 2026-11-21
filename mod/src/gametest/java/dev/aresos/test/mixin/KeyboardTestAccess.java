@@ -8,4 +8,5 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 @Mixin(KeyboardHandler.class)
 public interface KeyboardTestAccess {
     @Invoker("keyPress") void aresos$keyPress(long handle, int action, KeyEvent event);
+    @Invoker("lambda$setup$0") void aresos$nativeKey(long handle, int key, int scancode, int action, int modifiers);
 }

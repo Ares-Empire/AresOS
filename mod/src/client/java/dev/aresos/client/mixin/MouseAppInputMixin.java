@@ -74,7 +74,7 @@ public abstract class MouseAppInputMixin {
     // Package 328a: whenever the world lets go of the mouse in a desktop world, nothing it held stays held.
     @Inject(method = "releaseMouse", at = @At("HEAD"))
     private void aresos$releaseHeld(CallbackInfo ci) {
-        if (mouseGrabbed && HomeScreen.active(Minecraft.getInstance())) {
+        if (mouseGrabbed && (WorldCapture.ownsCapture() || HomeScreen.active(Minecraft.getInstance()))) {
             KeyMapping.releaseAll();
             AppInput.reset();
         }

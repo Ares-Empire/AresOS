@@ -3,9 +3,11 @@ package dev.aresos.client.mixin;
 import com.mojang.blaze3d.platform.DisplayData;
 import com.mojang.blaze3d.platform.Window;
 import dev.aresos.client.HomeScreen;
+import dev.aresos.client.WorldCapture;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
@@ -29,8 +31,8 @@ public abstract class WindowHomeScreenMixin {
     }
 
     // Package 328a: GLFW's focus callback, inside its event handling (WorldCapture.focusChanged says why).
-    @Inject(method = "onFocus", at = @At("HEAD"))
-    private void aresos$focusChanged(long handle, boolean focused, CallbackInfo ci) {
-        dev.aresos.client.WorldCapture.focusChanged(handle, focused);
+    @ModifyVariable(method = "onFocus", at = @At("HEAD"), argsOnly = true)
+    private boolean aresos$focusChanged(boolean focused, long handle) {
+        return WorldCapture.focusChanged(handle, focused);
     }
 }

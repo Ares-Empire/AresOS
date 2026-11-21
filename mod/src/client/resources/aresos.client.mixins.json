@@ -2,6 +2,6 @@
   "required": true,
   "package": "dev.aresos.client.mixin",
   "compatibilityLevel": "JAVA_25",
-  "client": ["MinecraftFocusMixin", "MinecraftAppInputMixin", "MouseAppInputMixin", "KeyboardAppInputMixin", "IconPackMixin", "ModeSwitchInteractionMixin", "ModeSwitchDropMixin", "ModeSwitchCreativeMixin", "WindowIdentityMixin", "WindowHomeScreenMixin", "MinecraftCoveredMixin", "FramerateCoveredMixin", "MusicCoveredMixin", "LiveHudMixin", "ContainerScreenAccess", "GuiMenuMixin", "GuiScreenMixin", "LevelLoadingCoverMixin", "SavingIndicatorMixin", "HotbarPointerMixin", "SearchCrosshairMixin", "RecipeBookSearchAccess", "OnboardingToastMixin"],
+  "client": ["MinecraftFocusMixin", "MinecraftAppInputMixin", "MouseAppInputMixin", "KeyboardAppInputMixin", "IconPackMixin", "ModeSwitchInteractionMixin", "ModeSwitchDropMixin", "ModeSwitchCreativeMixin", "WindowIdentityMixin", "WindowHomeScreenMixin", "RenderSystemCaptureMixin", "MinecraftCoveredMixin", "FramerateCoveredMixin", "MusicCoveredMixin", "LiveHudMixin", "ContainerScreenAccess", "GuiMenuMixin", "GuiScreenMixin", "LevelLoadingCoverMixin", "SavingIndicatorMixin", "HotbarPointerMixin", "SearchCrosshairMixin", "RecipeBookSearchAccess", "OnboardingToastMixin"],
   "injectors": {"defaultRequire": 1}
 }

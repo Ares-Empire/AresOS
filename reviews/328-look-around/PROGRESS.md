@@ -16,6 +16,11 @@ code doesn't show. The last step turns it into the report text.
   side, the game on the left one, and exports `ARESOS_POINTER_LAYOUT=2560x720`; package 56's `pointer.py` maps its
   absolute moves onto that layout (it assumed one 1280x720 output).
 - **Finding 5 is answered** below. Nothing changed for it.
+- **Review 1 fixes:** native capture is scoped to a connected desktop world. The helper's disconnect releases any
+  capture the mod owns, including held input, and cleanup can complete after the connected-world gate closes.
+  A release from a GLFW callback waits for Minecraft's event pump. The synthetic FocusOut re-checks real X focus
+  before Minecraft stores the result. The headless regression checks all three paths and verifies delivery of the
+  captured click and scroll to Minecraft.
 
 ## Left, in order
 
@@ -91,21 +96,14 @@ button is down. The X-level GLFW sequence alone produces the lock churn.
   `GLFWNativeX11`), before Minecraft's capture runs. Every warp is then made with a cursor X does not draw: Xwayland
   keeps its first lock and labwc never moves the cursor. Without `libXfixes` or off X11 the capture stays Minecraft's
   own (logged once).
-- **A clean release** (`WorldCapture.release`): if GLFW really captured and the game no longer has the X focus, the
-  release first sends the window a FocusOut event (`XSendEvent`, then `XSync` so the event is queued before the poll)
-  and lets GLFW handle it (`glfwPollEvents`): GLFW's own focus-out
-  handling lets go of everything, as when the focus leaves for good. Its focus callback (`Window.onFocus`, hooked in
-  `WindowHomeScreenMixin`) then turns the cursor mode normal at once, inside that same poll: GLFW's ungrab and warp can
-  make X send a pointer focus-in that the poll reads next, and a focus-in in the disabled mode makes GLFW capture
-  again (GLFW's `FocusIn` case calls `disableCursor` whenever the mode is disabled; read from GLFW's x11_window.c).
-  Then Minecraft's release runs; the X pointer goes
-  back to where the capture began while the cursor is still hidden, so Xwayland's last lock is hinted there and labwc
-  leaves the pointer in place (this also covers Minecraft letting go and taking the mouse again within one frame, which
-  `HomeScreen.frame`'s GLFW focus check did right after a click); the game's X grab is dropped and the cursor shown.
-  The pointer reappears where the world was clicked; after an app took the focus it appears at the world window's
-  centre, where labwc put it when the lock ended (visible, over the app that has the focus). Every XFixes hide of the
-  game gets its show, also if the session flag changed meanwhile: X keeps an unmatched hide for good, and Xwayland
-  then keeps its pointer lock (the full client suite found this; the product never changes the flag).
+- **A clean release** (`WorldCapture.release`): XFixes ownership is independent of the helper's state. When the helper
+  disconnects, the client releases the mouse and clears held input. Releases requested during callbacks, or after X
+  focus has moved, wait for Minecraft's normal event pump. If X focus is still away before that poll, the mod
+  queues a FocusOut for the game's X window so GLFW can clear its internal capture. The window callback sets the
+  cursor mode to normal before a later FocusIn can re-grab it, then reads the actual X focus so a synthetic
+  FocusOut cannot overwrite a real FocusIn.
+  Once the poll returns, the mod asks GLFW to restore the pointer, ungrabs it and pairs its XFixes hide with a
+  show. A focused release outside the event pump can finish immediately. New captures wait until cleanup completes.
 - **The safe fallback** (`PointerRules.mayCapture`, checked at the head of `grabMouse`): in a session's connected
   desktop world the world takes the mouse only when the compositor has given it the focus (the helper's `shell_focus`,
   or a press that reached the world: labwc focuses a window before it hands it the press) and GLFW says the pointer is
@@ -159,10 +157,19 @@ NVIDIA offload; Minecraft 26.2 itself asks GLFW for X11, so it needs a launch op
 - **The safe fallback changes one thing in classic mode:** when the world gets the focus without a click (Alt+Tab,
   Super, an app closing, the first join) while the pointer rests on an app or the other output, the world no longer
   takes the mouse; keys still walk, and the next click on the world takes it. Today it captured at once (and leaked).
-- **Without `libXfixes`, or with GLFW on Wayland,** the hidden-first capture is skipped (logged once) and the capture is
-  Minecraft's own; the safe fallback still applies.
-- **The release's own FocusOut** reaches only the game's GLFW (sent to its window); labwc and other clients never see
-  it.
+- **Review finding 4:** the traces support the centre-warp diagnosis, and the rig covers classic capture under steady
+  focus and focus returns with the pointer over another window or output.
+- **Review finding 5:** without `libXfixes`, on a non-X11 backend, or with no X display, the native path is skipped.
+  The missing-library fallback uses vanilla X11 release, where the stale-grab behavior is still possible. A server
+  without cursor hiding can silently omit the XFixes request. XFlush does not acknowledge it, and a rejected X
+  request can reach Xlib's fatal default handler.
+- **Review finding 6:** the native test now checks Minecraft's captured left press and hotbar scroll as well as camera
+  motion, probe exclusion and helper loss. World exit while captured has no dedicated native check. The pointer layout
+  retains the one-output default outside the two-output session. The duplicate World Search test registration was
+  removed in `2a817d4b`, before the review-fix passes below.
+- **Review finding 7:** covered-minimize requires a ready, non-minimized, maximized or fullscreen app on a known
+  desktop output. The rig confirmed that the desktop stays below a part-screen window. Why Chrome disappeared on
+  the owner's laptop remains undetermined.
 - **Not tried:** the owner's real mouse, Chrome itself, the real monitor, Prism's game and the installed helper. The rig
   used the native development client, the checkout's helper, an inert Wayland test app and virtual input on a
   headless labwc.
@@ -238,3 +245,33 @@ refusal and no other worktree's Gradle running at the start:
 - Before these, two full client runs failed at the new test's last check (the XFixes hide/show pairing above, found
   by the full suite; alone the test passed) and were fixed before the passes counted. The tracked screenshots the runs
   rewrote were put back, and the ones written under new numbers removed.
+
+## Review 1 fix verification
+
+Both builds ran 339 unit test cases with 333 passing and six Windows-only skips, and all 106 required server game
+tests passed. Both client runs used the full 30-entry suite with headless labwc, two outputs and the NVIDIA renderer.
+Every run started with at least 6 GiB available and no other Gradle build. No run needed an exit-75 retry.
+
+| Pass | Command | Result |
+| --- | --- | --- |
+| 1 | `mod/dev/build.sh` | BUILD SUCCESSFUL in 2m 56s |
+| 1 | `mod/dev/client-test.sh --session` | BUILD SUCCESSFUL in 14m 15s, exit 0 after 14 min 17 s |
+| 2 | `mod/dev/build.sh --rerun-tasks` | BUILD SUCCESSFUL in 2m 46s |
+| 2 | `mod/dev/client-test.sh --session` | BUILD SUCCESSFUL in 14m 17s, exit 0 after 14 min 18 s |
+
+The native regression checked the following in both client passes.
+
+- While the camera turned 46.8 degrees, Minecraft registered the captured left press and changed the selected
+  hotbar slot when scrolled. The probe counters stayed at [1, 0, 2, 0].
+- A virtual Escape arrived through GLFW and Minecraft's keyboard callback. The test changed real X focus just
+  before Minecraft handled the key. The menu opened inline and the native release finished after the callback.
+- The test restored real X focus immediately before the mod queued the synthetic FocusOut. Minecraft still recorded
+  the window as focused, and clicking exposed world captured again.
+- SIGKILL of the separate fake helper process closed the real Unix socket. The game stayed focused without a menu
+  while its cursor returned to the starting position. XFixes confirmed the hide was gone, another X client could
+  grab the pointer, and the pointer reached the probe. The held movement key was cleared.
+
+An initial build flagged an unavailable LWJGL JNI overload in the test fixture. After correcting it, a focused
+`mod/dev/client-test.sh --session` run using a temporary Gradle init script passed the 328a test before the two
+full client runs. Tracked review screenshots were restored and only newly generated untracked screenshots were
+removed. No files larger than 500 MB remained in `.work/`.
