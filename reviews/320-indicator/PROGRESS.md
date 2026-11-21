@@ -37,8 +37,8 @@ The public and private check before the first push: see the last section.
    checks), and `aresos-level` in the startup-commands file list (`os/ci/image-checks.sh`, about line 419). Then the
    PR's check build (`os-image.yml`, `check_build=build`).
 2. **Step 3:** the harness and tests 1 to 9, fixes, and the report in this file's last section.
-3. **A hosted `checks_only` run** to show the sandbox tests run (not skip) on CI's runner (see "What the code doesn't
-   show", 8). Not dispatched in step 1.
+3. **The hosted `checks_only` run** 44886308040 (dispatched at the end of step 1, the lead watches it) must show the
+   sandbox tests ran, not skipped, on CI's runner (see "What the code doesn't show", 8).
 4. After the three steps and the image package on main: rebase, `check_build=build` green with the layer library, the
    `linux-aresos` OK on the list below, then merge.
 
@@ -91,7 +91,9 @@ The public and private check before the first push: see the last section.
    refuses to go on unless both device tools are the stand-ins, and every leftover process ends with the namespace.
    The stand-in indicator serves the bus with PyGObject's Gio.
 8. **Not yet seen on CI.** Under `GITHUB_ACTIONS=true` the sandbox tests fail instead of skipping when the namespace or
-   Gio is missing, so a hosted run proves they ran. That run has not been dispatched yet.
+   Gio is missing, so a hosted run proves they ran: run 44886308040, still queued when step 1 ended.
+   `test_aresos_settings.OwnershipTest` fails if any other file in `os/config` names `settings.json`, comments
+   included: step 2's indicator reads the settings through `aresos-settings` only.
 9. **What step 1 cannot show:** the plate itself, the older-`Show` drop, the layer checks and everything on screen are
    steps 2 and 3. Whether labwc's repeat delivers 25 presses a second through `aresos-level` without piling up is step
    3's harness test 4 (the unit test holds a key at 25 a second for 12 presses and sees one program and the last level).
