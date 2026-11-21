@@ -76,10 +76,11 @@ CHROME_STEPS = [
     ('act', 'chrome-files', 'CONTROL_CHROME_FILES_PASS'),
     ('act', 'chrome-hand-loaded', None),
     ('act', 'chrome-install', None),
+    # These two captures provide visual evidence for review. The runner only checks that capture succeeded.
     ('screen', 'c2-pinned', None),
     ('act', 'chrome-his-tab', None),
-    # Alt+F opens Chrome's menu, whose last line says the browser is managed; Up from no selection selects that last
-    # line and scrolls the menu to it (run 44452254488's menu ended at More tools, 800 pixels down); Escape closes it.
+    # Alt+F opens Chrome's menu. Up from no selection scrolls to the bottom so the managed notice is visible
+    # (run 44452254488's menu ended at More tools, 800 pixels down). Escape closes it.
     ('keys', ['alt', 'f'], None),
     ('keys', ['up'], None),
     ('screen', 'c2-managed', None),

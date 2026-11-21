@@ -100,6 +100,22 @@ class ChromePassTest(unittest.TestCase):
     def actions(self):
         return load(CONTROL_CI / 'chrome_actions.py', f'chrome_actions_{id(self)}')
 
+    def test_c1_requires_control_json_to_be_0644(self):
+        chrome = self.actions()
+        with tempfile.TemporaryDirectory() as directory:
+            manifest = pathlib.Path(directory) / 'control.json'
+            manifest.write_text('{"files":{}}')
+            with mock.patch.object(chrome, 'RECORD', manifest), \
+                    mock.patch.object(chrome.pwd, 'getpwuid', return_value=types.SimpleNamespace(pw_name='root')), \
+                    mock.patch.object(chrome.grp, 'getgrgid', return_value=types.SimpleNamespace(gr_name='root')):
+                manifest.chmod(0o600)
+                with self.assertRaisesRegex(chrome.Failure, 'control.json is root:root 0644'):
+                    chrome.files({'expected': {'files': None}})
+                manifest.chmod(0o644)
+                # The next check reaches the contents only when the metadata is accepted.
+                with self.assertRaisesRegex(chrome.Failure, 'control.json files is what the commit installs'):
+                    chrome.files({'expected': {'files': None}})
+
     def test_the_layer_installs_the_chrome_actions_and_the_runner_asks_each_once(self):
         containerfile = (CONTROL_CI / 'Containerfile').read_text()
         self.assertIn('COPY os/ci/control/chrome_actions.py /usr/libexec/aresos-ci/actions.d/chrome.py\n', containerfile)

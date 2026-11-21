@@ -643,8 +643,9 @@ def files(request):
     """C1: every path of "Agree" in the booted guest, the two links, the policy folder, the placeholder after boot."""
     record = json.loads(RECORD.read_text())
     expected = request['expected']
-    rows = []
-    expect(metadata(RECORD, stat.S_ISREG)['owner'] == 'root:root', 'control.json is root:root')
+    manifest = metadata(RECORD, stat.S_ISREG)
+    expect((manifest['owner'], manifest['mode']) == ('root:root', '0644'), f'control.json is root:root 0644: {manifest}')
+    rows = [manifest]
     for key in ('files', 'links', 'directories'):
         expect(record[key] == expected[key], f'control.json {key} is what the commit installs')
     for name in (CODE / 'chrome/host', CODE / 'chrome/native_host.py', POLKIT_ACTION, TMPFILES):

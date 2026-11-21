@@ -283,6 +283,12 @@ def owned_link(path, target):
 
 
 def image(scan_root):
+    for name in ('usr/share/aresos-install-test', 'usr/libexec/aresos-install-test'):
+        try:
+            (scan_root / name).lstat()
+        except FileNotFoundError:
+            continue
+        raise AssertionError(f'test-only Chrome payload root: /{name}')
     manifest = Path('/usr/share/aresos/manifest/control.json')
     owned(manifest, 0o644)
     record = json.loads(manifest.read_bytes())

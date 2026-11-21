@@ -725,6 +725,64 @@ class ChromeImageTest(unittest.TestCase):
                 with self.assertRaises(Exception):
                     self.checker.bundle_content(f, r)
 
+    def test_release_image_rejects_the_test_layers_payload_paths_and_dangling_roots(self):
+        root = self.work / 'root'
+        files, extension = self.bundle()
+        build = 'c' * 64
+        record = {'chrome_extension': extension, 'chrome_build': build, 'files': {}, 'links': self.checker.LINKS}
+        code = 'usr/libexec/aresos-control/chrome'
+
+        def write(name, data):
+            path = root / name.lstrip('/')
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(data)
+            return path
+
+        for name, data in files.items():
+            write(f'{self.checker.BUNDLE}/{name}', data)
+        write('usr/share/aresos/manifest/control.json', json.dumps(record).encode())
+        write(f'{code}/build-id.json', json.dumps({'build': build}).encode())
+        for name in ('host', 'native_host.py', 'qualification.json'):
+            write(f'{code}/{name}', b'fixture')
+        for name, target in self.checker.LINKS.items():
+            path = root / name.lstrip('/')
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.symlink_to(target)
+        for name in ('tmp', 'var/tmp', 'root'):
+            (root / name).mkdir(parents=True)
+
+        def in_image(name):
+            path = pathlib.Path(name)
+            return path if path.is_relative_to(root) else root / path.relative_to('/')
+
+        other_files, _ = self.bundle()
+        with patch.object(self.checker, 'Path', in_image), patch.object(self.checker, 'owned'), \
+                patch.object(self.checker, 'owned_link'):
+            self.checker.image(root)
+            for name, payload in (
+                    ('usr/share/aresos-install-test/probe/extension.crx', {'': other_files['extension.crx']}),
+                    ('usr/libexec/aresos-install-test/probe-host', {'': b'#!/bin/sh\nexit 0\n'}),
+                    ('usr/share/aresos-install-test/bundles/b', other_files)):
+                with self.subTest(payload=name):
+                    for part, data in payload.items():
+                        path = write(f'{name}/{part}' if part else name, data)
+                        if name.endswith('/probe-host'):
+                            path.chmod(0o755)
+                    test_root = pathlib.Path(*pathlib.Path(name).parts[:3])
+                    try:
+                        with self.assertRaisesRegex(AssertionError, f'test-only Chrome payload root: /{test_root}'):
+                            self.checker.image(root)
+                    finally:
+                        shutil.rmtree(root / test_root)
+            for name in ('usr/share/aresos-install-test', 'usr/libexec/aresos-install-test'):
+                with self.subTest(dangling=name):
+                    path = root / name
+                    path.symlink_to('missing')
+                    self.assertFalse(path.exists())
+                    with self.assertRaisesRegex(AssertionError, f'test-only Chrome payload root: /{name}'):
+                        self.checker.image(root)
+                    path.unlink()
+
     def test_checkout_comparison_binds_payload_templates_build_and_links(self):
         _, extension = self.bundle()
         record = {'chrome_build': 'c' * 64, 'links': dict(CHROME_LINKS), 'chrome_extension': extension}
@@ -786,6 +844,11 @@ class ChromeImageTest(unittest.TestCase):
         self.assertIn('chrome_image.py compare', runner)
         self.assertIn('chrome_image.py build-log evidence/image/checks.txt evidence/build.log', build)
         self.assertLess(build.index('bash os/ci/check-image.sh'), build.index('chrome_image.py build-log'))
+        release_check = 'bash os/ci/check-image.sh localhost/aresos:check "$kind"'
+        self.assertEqual(build.count('bash os/ci/check-image.sh'), 1)
+        self.assertIn(release_check, build)
+        self.assertLess(build.index(release_check), build.index('--tag localhost/aresos:vm'))
+        self.assertLess(build.index(release_check), build.index('bash os/ci/control/runner.sh layer'))
 
     def test_image_metadata_rejects_wrong_mode_owner_group_and_unsafe_parents(self):
         path = self.work / 'record.json'
