@@ -11,7 +11,8 @@ done (and two of the brief's own small items with them); the rest of "What to bu
 | Commit | What |
 |---|---|
 | `b4e6069f` | The five follow-ups, the empty-ID refusal and the watchdog default, each with a unit test (79 in all, 72 before). |
-| the commit after it | `UPSTREAM.md`'s row, `KNOWN-LIMITS.md`, this file, the evidence (`evidence/step1-build.txt`, `evidence/step1-harness/`). |
+| `535e0bba` | `UPSTREAM.md`'s row, `KNOWN-LIMITS.md`, this file. |
+| `cea32bc6` | The evidence (`evidence/step1-build.txt`, `evidence/step1-harness/`), added with `-f` as 316's was (the repo ignores `evidence/` and `*.log`). |
 
 ### What step 1 built (`os/input-portal/src/`)
 
