@@ -1,6 +1,6 @@
 # 320: progress
 
-Brief: `briefs/320-indicator.md`. Branch `pkg/320-indicator` from main at `6a19b642`. Draft PR into main.
+Brief: `briefs/320-indicator.md`. Branch `pkg/320-indicator` from main at `6a19b642`. Draft PR #131 into main.
 
 ## Done
 
@@ -30,17 +30,56 @@ Not run: the image check itself (it runs in the image build, step 2's `check_bui
 
 The public and private check before the first push: see the last section.
 
+### Step 2 (the program and the image)
+
+- `aresos-indicator` serves `aresos.Indicator.Show(tss)` through GApplication and uses the cold-launch arguments from
+  `aresos-level`. It drops older requests, rereads the settings and pack for each showing, and creates a fresh passive
+  overlay with an empty input region before mapping. It draws Look A at 2x, 3x or 4x with Cairo and Pango, and
+  exits after 60 s idle. The plate hides after 1.5 s and the last step flashes for 150 ms on an up request at 100 %.
+- `os/look/make_pack.py` generates the 17 sprites and `look.json` from the public component study. Jersey 10 and
+  its SIL Open Font License 1.1 came unchanged from google/fonts commit
+  [`6e4b84c976cadb3c49a40fd9a1c203e4f7fcf2da`](https://github.com/google/fonts/tree/6e4b84c976cadb3c49a40fd9a1c203e4f7fcf2da/ofl/jersey10).
+  The font is 77,732 bytes and its SHA-256 is `db9cbd091617048a145d249daa2b815fe7083be6ab66ac26626e21a4e01c3e82`.
+  README credits the font.
+- The image checks cover the three programs' ownership and modes, the indicator's GTK 4 layer loader as the everyday
+  account, Jersey 10 and its licence, fontconfig, the pack's file names and combined SHA-256, and the commands
+  called by `aresos-level` through the startup-commands scan.
+
+Local verification ran each unittest module separately using
+`python3 -m unittest discover -s os/tests -p '<module>'` with `PYTHONPYCACHEPREFIX` under the worktree's `.work/`.
+`test_everyday_account.py`'s existing subids loader created a cache under `os/config` on the first run. Its file
+was removed and the rerun confirmed there was no `__pycache__` under `os/config`.
+
+| Module | Result |
+|---|---|
+| `test_aresos_indicator.py` | 23 tests, OK. Offscreen checks compared all plate and bar sprite pixels at 2x, 3x and 4x for the 100 % and flash states, plus six Jersey 10 glyphs at each scale and a Cyrillic fallback. |
+| `test_aresos_look_pack.py` | 1 test, OK. All 17 sprites and the manifest regenerated. |
+| `test_aresos_level.py` | 25 tests, OK. |
+| `test_aresos_settings.py` | 20 tests, OK. |
+| `test_everyday_account.py` | 34 tests, OK. |
+| `test_shell_assertions.py` | 9 tests, OK. |
+
+- `bash -n os/ci/image-checks.sh` and the staged diff's whitespace check excluding the upstream OFL exited 0.
+  The verbatim upstream licence has a trailing space on line 21. The image asset check passed with its share
+  path pointed at the checkout, and `fc-match` with a scratch Fontconfig file found the bundled
+  `Jersey10-Regular.ttf`.
+- The display-free loader check used Fedora's `gtk4-layer-shell-1.3.0-1.fc44.x86_64.rpm` extracted under `.work/`
+  after `rpm -K` printed `digests signatures OK`. The loader printed
+  `INDICATOR_GTK 4 22 cairo 1.28.0 gtk4-layer-shell 1 3 0`.
+- A private `dbus-run-session` smoke check with a stand-in GUI and real Gio showed `Show` returning `()`, a second
+  instance yielding to the primary, and `NameHasOwner` returning `(false,)` after the shortened idle deadline.
+- No file over 500 MB remained under `.work/`.
+- Hosted check build (`gh workflow run os-image.yml --ref pkg/320-indicator -f check_build=build`): dispatch pending the
+  first step 2 push. The image loader gate requires R29's layer library.
+
 ## Left, in order
 
-1. **Step 2, the program and the image:** `aresos-indicator`, Jersey 10 with its licence and README line, the pack and
-   its generator, their unit tests and image checks (including `aresos-indicator` root-owned 755 beside the two step 1
-   checks), and `aresos-level` in the startup-commands file list (`os/ci/image-checks.sh`, about line 419). Then the
-   PR's check build (`os-image.yml`, `check_build=build`).
-2. **Step 3:** the harness and tests 1 to 9, fixes, and the report in this file's last section.
-3. **The hosted `checks_only` run** 44886308040 (dispatched at the end of step 1, the lead watches it) must show the
-   sandbox tests ran, not skipped, on CI's runner (see "What the code doesn't show", 8).
-4. After the three steps and the image package on main: rebase, `check_build=build` green with the layer library, the
-   `linux-aresos` OK on the list below, then merge.
+1. **Step 3** builds the isolated harness, runs tests 1 to 9 and the package 316 build check, fixes any failures and
+   writes the report in this file. The harness needs the test overrides and PipeWire stand-in described below.
+2. **Hosted evidence.** The lead checks step 1's `checks_only` run 44886308040 for the sandbox tests and reviews the
+   step 2 check build. The layer-loader gate is expected to fail until R29 supplies gtk4-layer-shell.
+3. After step 3 and R29 land, rebase onto main and get a green `check_build=build` with the layer library. The lead
+   gets the `linux-aresos` OK before merge, then arranges the release and the real laptop checks with the owner.
 
 ## What the code doesn't show
 
@@ -94,9 +133,26 @@ The public and private check before the first push: see the last section.
    Gio is missing, so a hosted run proves they ran: run 44886308040, still queued when step 1 ended.
    `test_aresos_settings.OwnershipTest` fails if any other file in `os/config` names `settings.json`, comments
    included: step 2's indicator reads the settings through `aresos-settings` only.
-9. **What step 1 cannot show:** the plate itself, the older-`Show` drop, the layer checks and everything on screen are
-   steps 2 and 3. Whether labwc's repeat delivers 25 presses a second through `aresos-level` without piling up is step
-   3's harness test 4 (the unit test holds a key at 25 a second for 12 presses and sees one program and the last level).
+9. **The PipeWire label lookup.** The indicator runs the base image's `/usr/bin/pw-dump -N` read-only with a 300 ms
+   deadline. WirePlumber's default metadata names the sink. The indicator matches its `device.id` and
+   `card.profile.device` to the active output `Route` to distinguish speakers from headphones on the same sink.
+   Bluetooth takes the device name from BlueZ properties and uses Pango's plain-text ellipsis. The harness can put
+   a `pw-dump` stand-in at that path for named-output cases, or use `Volume` when it supplies no graph.
+   [WirePlumber's default metadata](https://github.com/PipeWire/wireplumber/blob/0.5.12/src/scripts/default-nodes/apply-default-node.lua)
+   [PipeWire's ALSA routes](https://github.com/PipeWire/pipewire/blob/1.6.9/spa/plugins/alsa/alsa-acp-device.c)
+   [PipeWire's JSON tool](https://github.com/PipeWire/pipewire/blob/1.6.9/src/tools/pw-dump.c)
+10. **Step 3's entry points.** Set `ARESOS_INDICATOR_TEST_EDP` to a named headless output,
+    `ARESOS_INDICATOR_TEST_IDLE_MS` to an idle interval in milliseconds, and
+    `ARESOS_INDICATOR_TEST_START_DELAY_MS` to a delay before taking the bus name. A successful first surface
+    request logs `aresos-indicator: started`, a colliding launch logs `started while another indicator owns the name`,
+    and the delay override logs `waiting before taking the bus name (test)`. Layer shell protocol v1 has the requests
+    the indicator uses. [gtk4-layer-shell's protocol](https://github.com/wmww/gtk4-layer-shell/blob/v1.3.0/protocol/wlr-layer-shell-unstable-v1.xml)
+11. **The compositor and the laptop remain unverified.** The unit tests and offscreen painter do not show pointer
+    lock, keyboard focus, click-through, stacking above fullscreen, actual output placement, the sustained repeat
+    rate, cold-launch latency, timing on screen, or full-frame capture pixels. These are step 3's harness checks.
+    The owner and lead check the actual game GUI scale, bottom clearance, real output names, brightness on the real
+    eDP, and how holding the keys feels. The new offscreen painter runs locally here and skips where Pango 1.56,
+    PyGObject, pycairo or Pillow is missing.
 
 ## For linux-aresos
 
@@ -125,10 +181,16 @@ The lead sends this list to `linux-aresos` before merge.
 - **`os/tests/test_aresos_level.py`** (commit `c8f195da`): the former six command strings now live in its `COMMANDS`,
   as the script's commands, with brightness changed by Decision 7 (`--class=backlight`, and brightness down's
   `max` read and raw `--min-value` floor) and volume up's added `set-mute @DEFAULT_AUDIO_SINK@ 0`.
-- **Still to come in step 2:** `aresos-level` joins the startup-commands file list (about line 419), so every
-  absolute path it names must exist in the image, `/usr/libexec/aresos-indicator` included.
+- **Step 2 image checks.** The startup-commands scan now includes `aresos-level` and requires finding
+  `/usr/libexec/aresos-indicator` in it. The ownership loop includes all three programs. The new checks assert
+  `pw-dump` exists, pin Jersey 10 and the look pack, check the licence and fontconfig, and load
+  `Gtk4LayerShell` as the everyday account. The branch needs R29 for that last check. The release's VM pass should
+  include `fc-match 'Jersey 10'` in the booted guest.
 
 ## The public and private check
 
 - Step 1, before the first push (`c8f195da`, `9e8a7d9b` and this file's commit): checked 11 staged files against the
   list: no match. Every file in the push is text written in this step; no binary is staged.
+- Step 2, before its first push, compared 28 staged files by SHA-256. No matches. The 17 PNGs are generated from the
+  public Look A study and the TTF matches the pinned Google Fonts download. The check read the digest field only
+  and kept its comparison in memory.
