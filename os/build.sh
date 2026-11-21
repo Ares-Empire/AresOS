@@ -304,7 +304,7 @@ PY
     if [[ $1 == control-tree ]]; then
         exit 0
     fi
-    python3 - <<'PY'
+    python3 -B - <<'PY'
 import hashlib, json, pathlib
 gh = json.loads(pathlib.Path('/usr/share/aresos/manifest/control.json').read_text())['gh']
 assert hashlib.sha256(pathlib.Path('/usr/bin/gh').read_bytes()).hexdigest() == gh['binary_sha256'], \

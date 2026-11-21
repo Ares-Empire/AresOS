@@ -22,10 +22,8 @@ import pathlib
 import pwd
 import re
 import stat
-import struct
 import subprocess
 import sys
-import tempfile
 import time
 import xml.etree.ElementTree as ET
 
@@ -201,6 +199,9 @@ def crx_fields(data):
 
 def crx_proof(data):
     """Verify the package with the embedded public key, independent of the image build's Python verifier."""
+    import struct
+    import tempfile
+
     if len(data) < 12 or data[:8] != b'Cr24\x03\0\0\0':
         raise ValueError('not CRX3')
     size = struct.unpack_from('<I', data, 8)[0]

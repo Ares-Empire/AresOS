@@ -11,7 +11,8 @@
     "18c-b step 4, round 2: the Chrome pass waits for his session (app helper, polkit agent) after each boot; a check's PASS line sits on its last step.",
     "18c-b step 4, round 3: the polkit probe's verdict follows his agent's answer (KDE reports Escape as 1, not authorized), screenshots before, during and after the dialog; C2's managed note from Chrome's menu.",
     "18c-b step 4, round 4: a PASS line on a keys step no longer stops the Chrome pass; a stand-in guest runs the whole sequence in os/tests.",
-    "18c-b step 6b: main merged after release 28 (package 42); os-image.yml keeps package 42's permissions comment with 18c-b's control limit 156; check-build.sh keeps the guardian boots and the Chrome pass."
+    "18c-b step 6b: main merged after release 28 (package 42); os-image.yml keeps package 42's permissions comment with 18c-b's control limit 156; check-build.sh keeps the guardian boots and the Chrome pass.",
+    "18c-b step 6b checks fix: release 28's rehearsal selects the service checks explicitly; the stand-in checks and passes their arguments; the Chrome signature imports are local to that check and the build's gh hash check uses python3 -B."
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -20,8 +21,12 @@
       "path": ".github/workflows/os-image.yml"
     },
     {
-      "sha256": "80f7ea82a58b56d3981b8c03d9b34eb4f00d86f24f492b1b837c2b7f52057cb2",
+      "sha256": "7c16d84fcfb08033da8119c2bb97d272b6cef35efdcafe843dc72e6148823de8",
       "path": "os/ci/control/release_checks.py"
+    },
+    {
+      "sha256": "873a08321e9709d278bdd28c2858f857ea9b0f8ff4509c39fb297681ab839ae3",
+      "path": "os/ci/release28_walk.py"
     },
     {
       "sha256": "b9af8f7a4fe4a43db15f2d27b181ed442a9f86a90b47c0577a6183efb48117c4",
@@ -34,6 +39,10 @@
     {
       "sha256": "1ced99a7a531f619ff92cbe8a0758d8d35d9ec0eca1712b1879f9c44f087de9d",
       "path": "os/tests/test_owner_path.py"
+    },
+    {
+      "sha256": "ebe736a65ba06f29bc049e87b4a78455a8a9a3decd5f9c07a34a00e2df1ce118",
+      "path": "os/tests/test_owner_walk.py"
     }
   ],
   "unwalked_commands": [],
