@@ -1,7 +1,11 @@
 """Package 323's resolve requests and image checks."""
 import hashlib
+import json
 import pathlib
+import sys
+import tempfile
 import unittest
+from unittest import mock
 
 OS = pathlib.Path(__file__).resolve().parents[1]
 IMAGE_CHECKS = (OS / 'ci/image-checks.sh').read_text()
@@ -40,3 +44,70 @@ class JetBrainsMonoTest(unittest.TestCase):
         self.assertIn("font=$(runuser -u ares -- env -i HOME=/tmp PATH=/usr/bin /usr/bin/fc-match "
                       "--format '%{file}' 'JetBrains Mono')\n"
                       f'test "$font" = {self.FONT_DIR}/JetBrainsMono-Variable.ttf', IMAGE_CHECKS)
+
+
+class LayerShellCheckTest(unittest.TestCase):
+    def test_the_image_checks_the_pin_and_preloads_the_library_for_laptop_home(self):
+        self.assertIn("layer_nevra=$(python3 -I - /usr/share/aresos/manifest/packages.lock.json <<'LAYER_NEVRA'",
+                      IMAGE_CHECKS)
+        self.assertIn('test "$(rpm -q --qf \'%{NEVRA}\\n\' gtk4-layer-shell)" = "$layer_nevra"', IMAGE_CHECKS)
+        self.assertIn('layer_verify=$(rpm -V gtk4-layer-shell)\ntest -z "$layer_verify"', IMAGE_CHECKS)
+        self.assertIn('layer_library=/usr/lib64/libgtk4-layer-shell.so.0\ntest -f "$layer_library"', IMAGE_CHECKS)
+        self.assertIn('runuser -u ares -- env -i HOME=/tmp PATH=/usr/bin LD_PRELOAD="$layer_library" '
+                      "/usr/bin/python3 - <<'LAPTOP_HOME_LAYER'", IMAGE_CHECKS)
+        body = IMAGE_CHECKS.split("<<'LAPTOP_HOME_LAYER'\n", 1)[1].split('\nLAPTOP_HOME_LAYER\n', 1)[0]
+        self.assertIn("SourceFileLoader('aresos_laptop_home', '/usr/libexec/aresos-laptop-home')", body)
+        self.assertIn('layer = home.load_gui().layer\nassert layer is not None', body)
+
+
+class DriverManifestCheckTest(unittest.TestCase):
+    def setUp(self):
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        self.root = pathlib.Path(folder.name)
+        body = IMAGE_CHECKS.split("<<'DRIVER_MANIFESTS'\n", 1)[1].split('\nDRIVER_MANIFESTS\n', 1)[0]
+        self.check = compile(body, 'image-checks.sh DRIVER_MANIFESTS', 'exec')
+
+    def check_manifests(self, libraries, cache=''):
+        manifests = []
+        for index, library in enumerate(libraries):
+            manifest = self.root / f'icd-{index}.json'
+            manifest.write_text(json.dumps({'ICD': {'library_path': str(library)}}))
+            manifests.append(str(manifest))
+        with mock.patch.object(sys, 'argv', ['-', *manifests]), \
+                mock.patch('subprocess.check_output', return_value=cache) as ldconfig, \
+                mock.patch('builtins.print'):
+            exec(self.check, {})
+        return ldconfig
+
+    def test_the_image_checks_both_regular_package_owned_manifests(self):
+        self.assertIn('mesa_egl=/usr/share/glvnd/egl_vendor.d/50_mesa.json\n'
+                      'intel_vulkan=/usr/share/vulkan/icd.d/intel_icd.x86_64.json\n'
+                      'for manifest in "$mesa_egl" "$intel_vulkan"; do\n'
+                      '    test -f "$manifest"\n'
+                      '    test ! -L "$manifest"\n'
+                      '    rpm -qf "$manifest"\n'
+                      'done\n'
+                      'python3 -I - "$mesa_egl" "$intel_vulkan" <<\'DRIVER_MANIFESTS\'', IMAGE_CHECKS)
+
+    def test_absolute_library_is_checked_directly(self):
+        library = self.root / 'libEGL_mesa.so.0'
+        with self.assertRaisesRegex(AssertionError, 'missing library'):
+            self.check_manifests([library])
+        library.touch()
+        self.check_manifests([library]).assert_not_called()
+
+    def test_soname_requires_an_existing_x86_64_cache_entry(self):
+        soname = 'libvulkan_intel.so'
+        library = self.root / soname
+        library.touch()
+        cache = (f'\t{soname} (libc6) => {library}\n'
+                 f'\t{soname} (libc6,x86-64) => {self.root / "missing.so"}\n')
+        with self.assertRaisesRegex(AssertionError, 'missing library'):
+            self.check_manifests([soname], cache)
+        cache += f'\t{soname} (libc6,x86-64, hwcap: "x86-64-v3") => {library}\n'
+        self.check_manifests([soname], cache).assert_called_once_with(['ldconfig', '-p'], text=True)
+
+    def test_relative_library_path_is_rejected(self):
+        with self.assertRaisesRegex(AssertionError, 'expected an absolute library path or soname'):
+            self.check_manifests(['drivers/libvulkan_intel.so'])
