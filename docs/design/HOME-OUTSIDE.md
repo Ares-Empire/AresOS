@@ -4,7 +4,8 @@
 Revised twice the same day. First after review 1 (`reviews/332-outside-game-design/REVIEW-1.md`, NOT READY), with
 `linux-desktop`'s OS part and the owner's answers (`reviews/332-outside-game-design/INPUTS-1.md`). Then after
 review 2 (`reviews/332-outside-game-design/REVIEW-2.md`, NOT READY, five blocking points), with the lead's scope
-decision below and `linux-desktop`'s new point on the bar (the last section of `INPUTS-1.md`). Nothing here is
+decision below and `linux-desktop`'s new point on the bar (the last section of `INPUTS-1.md`). The lead then fixed
+the targeted recheck's wording points by hand (`reviews/332-outside-game-design/RECHECK-1.md`). Nothing here is
 built. It decides the structure for the hub (`linux-hub`), the desktop (`linux-desktop`) and the supervisor
 (`linux-aresos`).
 
@@ -289,7 +290,8 @@ on" as its first row while the world is off, and from package 4 the Home slot's 
 command: `aresos-settings set world off`, which Claude can run for him. All end in the same supervisor request.
 
 **Off needs a launcher outside.** The supervisor refuses to turn the world off unless a view `home` is connected
-that negotiated the search. A notice says why. So he never trades the hotbar for nothing. Package 7 needs package 6
+that negotiated the search and answered its alive beat within the last few seconds. A silent or hung view counts as
+absent. A notice says why. So he never trades the hotbar for nothing. Package 7 needs package 6
 and 23c's Super key for the same reason (section 10).
 
 **What happens to the game and Prism: both are closed.** Not frozen, not swapped.
@@ -489,7 +491,7 @@ One bar on every output, the same content on each (the owner, T484). The helper 
 | 1 | A start-up cover or the black screen is up. | `none` | Hidden, and no strip. | no |
 | 2 | A window fills it (covered). | `edge` | Hidden. A strip at the bottom edge waits for the pointer. | no |
 | 3 | The awake world's window shows on it. | `none` | Hidden, and no strip. The world's own hotbar is the bar there (the owner, T483). | no |
-| 4 | Anything else: the picture, a still or a starting world, with or without part-screen windows. | `shown` | Visible, on the top layer. | yes, except on the home output unless the world is off |
+| 4 | Anything else: the picture, a still or a starting world, with or without part-screen windows. | `shown` | Visible, on the top layer. | yes, except on the home output while `world` is not `off` |
 
 - **`reserve` is the exclusive zone.** Yes: the bar's surface sets a zone of the bar's height, as a taskbar does.
   labwc then places, snaps and maximizes windows above it, so the bar covers none of their rows. No: the zone is 0.
@@ -500,7 +502,8 @@ One bar on every output, the same content on each (the owner, T484). The helper 
   (`linux-desktop`, revision 2). A zone would re-fit the world's own maximized window. Every switch between `none`
   and `shown` would then resize the game, and a still would no longer fit. The zone goes to 0 when a start begins,
   before the window maps, and comes back only when `world` is `off`.
-- **So the zone applies** on outputs without the world's window, and on the home output with the world off.
+- **So the zone applies only while the bar is `shown`,** on every output except the home output while `world` is not
+  `off`. That one phrase is the rule wherever this note mentions the zone.
 - **No resize loop.** `edge` follows covering, and covering follows the maximized and full-screen states, not
   sizes. A maximized window covers its output whatever the zone is.
 - **A full layout** counts as filling once the covering package ships. That is one condition in the helper.
@@ -650,9 +653,9 @@ from the first version of this note, so the desktop's packages are still 3, 4 an
 | 2 | **Open apps and "bring back".** `apps_state` and `activate_app`, with `open_app` kept as the fallback. The mod marks hotbar slots, sends `activate_app` from a left click, gates and `/name`, and adds the right click on a slot. | Open and active marks on the hotbar. A left click brings Chrome back with its tab. A right click opens a new window. | hub | Nothing. Beside 1. | M |
 | 3a | **The picture, one screen.** First the laptop home split into modules: no change in what it does, nothing removed. Then the program started by the supervisor, the view `home`, `aresos-picture` with `plain`, `black` and `file`, the converter, the picture settings, `screens` from the helper, and Root clicks that do nothing. | The plain picture wherever no world shows, for example behind the sign-in window. | desktop, with hub for `screens` and aresos for the start | 1 | M |
 | 6 | **Search outside.** The finder as `aresos-search`. Super's one route. The alive beat. The recovery key's third action. `notice`, and a first `aresos-toast` in look A. | Super works over any app and minimizes nothing. | hub, with desktop for the surfaces | 2, 3a, 23c's Super step | M |
-| G2 | **Gate 2's step.** OFF, its records and the two doors in the supervisor, reachable by command only. | Nothing. | aresos | 1 | S |
+| G2 | **Gate 2's step.** OFF, its records and the two doors in the supervisor, reachable by command only and only in the test rig. The image's command refuses OFF until package 7 ships. | Nothing. | aresos | 1 | S |
 | 7 | **The world-off switch.** The setting, the row in the AresOS menu, the search's first row, Prism's scopes, the memory check on the laptop. Off shows the chosen picture; no still yet. | The switch. | aresos with hub | 6 (so 1, 2 and 3a), gate 2 | M |
-| 4 | **The bar outside.** `aresos-bar` in look A, slots and marks, the app menu, the window requests, and section 8's rule with its zone. | A bar on the picture. Windows stop above it. The Home slot's menu. | desktop (surface) with hub (content) | 2, 3a, 6 (toasts) | L |
+| 4 | **The bar outside.** `aresos-bar` in look A, slots and marks, the app menu, the window requests, and section 8's rule with its zone. | A bar on the picture. Windows stop above it where it reserves its height (section 8's rule; not on the world's screen). The Home slot's menu. | desktop (surface) with hub (content) | 2, 3a, 6 (toasts) | L |
 | 5 | **The bar at the bottom edge.** The strip, reveal and hide, tested against B321's barrier. | The pointer at the bottom edge brings the bar up over an app. | desktop | 4 | M |
 | 3b | **The second screen.** The picture and the bar on the output without the world, and the hotplug rules. | With the monitor in, the laptop screen shows the picture and a bar. | desktop with aresos | 3a, 4, 23c | S |
 | 8 | **Stills and the quiet start.** The lifecycle channel's `still`. A still before every planned stop. The boot path. The world's window minimized until ready. | Boot shows his home at once; it comes alive when ready. | hub (mod) with aresos | 3a, 4 | L |
@@ -660,7 +663,7 @@ from the first version of this note, so the desktop's packages are still 3, 4 an
 | 9 | **The sleeping world.** `sleep`, `wake`, `resume`, the sleeping states, the wake signals. | The world sleeps and wakes. | hub with aresos | 7, 8, gates 1 and 3 | L |
 
 **Packages 1, 2, 3a, 3b, 4, 5 and 6 depend on no gate. Package 8 depends on none either:** it adds stills and a
-hidden start, and no sleep, freeze, wake or new start. If its brief grows one of those, gate 1 applies to it.
+hidden start, and no sleep, freeze, wake or new start. If its brief grows one of those, gates 1 and 3 apply to it.
 
 **What must still work after each package**
 
@@ -670,7 +673,7 @@ hidden start, and no sleep, freeze, wake or new start. If its brief grows one of
 | 2 | Opening from the world against a helper without `activate_app`. The laptop home's 1.2 view. | The mod against a 1.2 helper sends `open_app`. The 1.2 example messages pass unchanged. |
 | 3a | All that the laptop home does today. | Its tests pass unchanged after the split. No surface, slot or typing line is removed. |
 | 6 | Super over an awake world when the native search is absent, silent or hung. | Kill the native home: Super reaches the mod's search. Stop it mid-search: the alive beat ends it within seconds, and then Super does. The recovery key ends it with the supervisor stopped. |
-| 7 | A launcher at every moment, and the way back. | With the native home killed, turning the world off is refused with one line. In OFF, `world on` from the recovery terminal starts the world. |
+| 7 | A launcher at every moment, and the way back. | With the native home killed, and again with it stopped (hung), turning the world off is refused with one line. In OFF, `world on` from the recovery terminal starts the world. |
 | 4 | The world's own hotbar, untouched. | The mod's tests. The old view's slots, clock and battery leave only in this package. |
 | 8 | The start-up cover when there is no still, and every recovery window in view. | A first boot shows the cover. A slow start shows `slow_start` over the still. |
 
@@ -906,7 +909,7 @@ its point for revision 2 about the zone on the home output. The sections above u
 | Surface | Namespace | Layer | Keyboard | Details |
 |---|---|---|---|---|
 | Picture | `aresos-picture` | background | none | Anchored on all four edges, exclusive zone -1. Its input region is the whole output, so a click on it never reaches labwc's Root context. |
-| Bar | `aresos-bar` | top while `shown`: above windows, below a true full-screen window. Overlay while revealed, by `set_layer` (layer-shell version 2 or later), and back to top when it hides. | none | Anchored bottom, left and right. Exclusive zone: the bar's height while `shown` with `reserve` yes; 0 in every other case. So it is 0 at `edge`, at `none`, while revealed, and on the home output whenever the world's window exists (awake, asleep or starting). It is the bar's height on outputs without the world's window, and on the home output with the world off. Its menus are popups on it, pointer only. |
+| Bar | `aresos-bar` | top while `shown`: above windows, below a true full-screen window. Overlay while revealed, by `set_layer` (layer-shell version 2 or later), and back to top when it hides. | none | Anchored bottom, left and right. Exclusive zone: the bar's height while `shown` with `reserve` yes; 0 in every other case. So it is 0 at `edge`, at `none`, while revealed, and on the home output whenever the world's window exists (awake, asleep or starting). So it is the bar's height only while `shown`, on every output except the home output while `world` is not `off`. Its menus are popups on it, pointer only. |
 | Strip | `aresos-bar-edge` | overlay | none | It exists only while that output's bar is `edge`. 1 logical pixel high, full width, exclusive zone -1, a transparent buffer with an input region. |
 | Search | `aresos-search` | overlay | exclusive while open | Esc, a click outside, or the recovery key ends it. |
 | Toast | `aresos-toast` | top | none | An empty input region, so clicks pass through, as with the indicator. Not over a full-screen video. |
@@ -988,7 +991,8 @@ What must be true:
    harm.
 2. **A new supervisor finishes it or undoes it.** Killed at any step of going to sleep or of waking, the
    supervisor's replacement ends in one of three places: the world runs and is not paused; the world sleeps and is
-   adopted as ASLEEP or WAKING; the world is closed and counted as saved. Never a paused world that nobody
+   adopted as ASLEEP (a WAKING found at adoption finishes its wake and is resumed, or goes back to ASLEEP; it is never
+   a place to end in); the world is closed and counted as saved. Never a paused world that nobody
    resumes. Never STARTING with `slow_start`, and never `unready` for a missing heartbeat (supervisor
    `:1855-1877`, `:2554-2566`).
 3. **Nothing is frozen in view.** The freeze comes only after the compositor has confirmed that the window is
@@ -1019,8 +1023,8 @@ How a test shows it:
 - **Kills.** SIGKILL to the frozen scope from outside: the outcome of row 5. On the image's kernel, that SIGKILL
   ends the process without a thaw.
 - **Readers.** A backup started after `saved`, with a wake fired during the copy: the files do not change under it.
-- **Parts gone.** The helper killed while the world sleeps, then Home picked in Alt+Tab: no frozen window stays on
-  screen.
+- **Parts gone.** The helper killed while the world sleeps, then Home picked in Alt+Tab: no frozen window appears on
+  screen, not even for one frame the compositor maps.
 
 ### Gate 2: OFF holds, and a waiting start is one durable record
 
@@ -1088,7 +1092,8 @@ How a test shows it:
 
 - **Contention runs.** On the image, a memory load beside representative apps in `app.slice` scopes and a sleeping
   world. Twenty runs each of a slow fill, a fast spike and full swap. systemd's own results give the order in which
-  scopes ended. It passes with no app scope killed in any run while a sleeping world existed.
+  scopes ended. It passes only when, in every run where pressure reaches the point of killing, the sleeping world is dropped and
+  ends before any app scope. A run that kills nothing doesn't count towards the twenty.
 - **Blind runs.** With the pressure file unreadable, nothing is thawed and nothing is started.
 - **A pinned check** in the image's tests: the supervisor's limits stay below the system's, read from the image at
   build time.
