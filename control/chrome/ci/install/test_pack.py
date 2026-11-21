@@ -17,6 +17,7 @@ import struct
 import subprocess
 import sys
 import tempfile
+import textwrap
 import unittest
 from unittest.mock import patch
 from xml.etree import ElementTree
@@ -224,6 +225,33 @@ class NoKeyLeft(Scratch):
         self.assertEqual(list(inspect.signature(pack.pack).parameters), ['folder'])
         self.assertEqual(list(inspect.signature(pack.write).parameters), ['folder', 'output'])
         self.assertEqual(list(inspect.signature(pack._sign_with_fresh_key).parameters), ['archive'])
+
+    def test_signing_does_not_open_any_named_file_for_writing(self):
+        # Audit hooks live for the life of the interpreter, so scope this one to a child.
+        program = textwrap.dedent('''\
+            import os
+            import sys
+
+            sys.path.insert(0, sys.argv[1])
+            import pack
+
+            writes = []
+            write_flags = os.O_WRONLY | os.O_RDWR | os.O_CREAT | os.O_TRUNC
+
+            def audit(event, args):
+                if event == 'open':
+                    path, _, flags = args
+                    if not isinstance(path, int) and flags & write_flags:
+                        writes.append(path)
+
+            sys.addaudithook(audit)
+            pack._sign_with_fresh_key(b'synthetic archive')
+            assert not writes, 'named file opened for writing while signing'
+        ''')
+        done = subprocess.run([sys.executable, '-I', '-B', '-c', program, str(PACKAGING)],
+                              cwd=self.work, env={**os.environ, 'TMPDIR': str(self.work)},
+                              capture_output=True, text=True, timeout=120)
+        self.assertEqual(done.returncode, 0, done.stderr)
 
     def test_no_private_key_in_what_is_returned_written_or_left_behind(self):
         made = []

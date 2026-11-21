@@ -82,6 +82,7 @@ CHECK_ALL = ('(() => { const done = chrome.developerPrivate.autoUpdate(); '
 # The parts of a profile's record of an extension that Chrome could load or that grant something.
 GRANTING = ('manifest', 'path', 'location', 'active_permissions', 'granted_permissions', 'runtime_granted_permissions')
 REFUSED = 'Access to the specified native messaging host is forbidden.'
+SIGNATURE_REFUSAL = "Package is invalid: 'CRX_SIGNATURE_VERIFICATION_FAILED'"
 CANNOT_MODIFY = 'cannot be modified by user'
 STARTED = time.monotonic()
 
@@ -832,6 +833,8 @@ def case_broken(p):
         expect(chrome.process.poll() is None and p.service.poll() is None, 'Chrome and the service stay up')
         expect(p.pages.seen(f'step={label}-start'), 'Chrome loaded its start page')
         p.browse(label + '-after')
+        if label == 'changed':
+            expect(p.log_lines(chrome, SIGNATURE_REFUSAL), 'Chrome must report CRX_SIGNATURE_VERIFICATION_FAILED for changed bytes')
         result['fresh_' + label] = {'samples': samples, 'chrome_log': p.log_lines(chrome, c['id'], 'CRX', 'crx')}
     p.stop()
     p.place(c)

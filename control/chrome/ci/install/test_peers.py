@@ -1,4 +1,4 @@
-"""The proof's socket observation follows 18e's atomic listener publication.
+"""Checks of the install proof, including 18e's atomic listener publication.
 
 Extract only the functions under test: importing proof.py itself is rightly
 refused outside its GitHub container. No Chrome or service is started here.
@@ -9,6 +9,7 @@ from pathlib import Path
 import shutil
 import socket
 import stat
+import struct
 import subprocess
 import tempfile
 from types import SimpleNamespace
@@ -92,6 +93,44 @@ class Peers(unittest.TestCase):
             p.extensions_page.side_effect = error
             with self.assertRaisesRegex(Failure, 'must allow the hand-loaded extension to be asked'):
                 ordinary(p)
+
+
+class PackageFault(unittest.TestCase):
+    def test_case_four_requires_the_signature_error_on_the_changed_start(self):
+        class Failure(Exception):
+            pass
+
+        refusal = "Package is invalid: 'CRX_SIGNATURE_VERIFICATION_FAILED'"
+        case_broken = functions(PROOF, ['case_broken', 'expect'], {
+            'Failure': Failure, 'SIGNATURE_REFUSAL': refusal, 'struct': struct, 'ADDRESS': 'http://localhost:18766',
+            'time': SimpleNamespace(sleep=lambda _: None), 'extension_folders': lambda profile: profile(),
+        })['case_broken']
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            (folder / 'extension.crx').write_bytes(b'Cr24\x03\0\0\0' + struct.pack('<I', 0) + b'signed archive')
+            identity = 'a' * 32
+            for changed_log in (refusal, "Package is invalid: 'UNZIP_FAILED'", ''):
+                with self.subTest(changed_log=changed_log):
+                    proof = Mock(install_seconds=1, bundles={'c': {'id': identity, 'folder': folder}})
+                    proof.profile.return_value = Mock(side_effect=[[], [], [identity], [identity]])
+                    proof.since.side_effect = [0, 20, 0, 20]
+                    proof.service.poll.return_value = None
+                    proof.installed.side_effect = [None, None, {'enabled': True}, {'enabled': True}]
+                    proof.launch.side_effect = lambda profile, label, **kw: SimpleNamespace(
+                        label=label, process=Mock(poll=Mock(return_value=None)))
+                    logs = {'case4-fresh-changed': changed_log}
+                    if changed_log != refusal:
+                        # A signature error from another start cannot count for the changed package.
+                        logs['case4-fresh-missing'] = refusal
+                    proof.log_lines.side_effect = lambda chrome, *words: [
+                        line for line in logs.get(chrome.label, '').splitlines() if any(word in line for word in words)]
+                    if changed_log == refusal:
+                        result = case_broken(proof)
+                        self.assertEqual(result['fresh_changed'], {'samples': 1, 'chrome_log': [refusal]})
+                        self.assertEqual(result['fresh_missing'], {'samples': 1, 'chrome_log': []})
+                    else:
+                        with self.assertRaisesRegex(Failure, 'CRX_SIGNATURE_VERIFICATION_FAILED'):
+                            case_broken(proof)
 
 
 if __name__ == '__main__':
