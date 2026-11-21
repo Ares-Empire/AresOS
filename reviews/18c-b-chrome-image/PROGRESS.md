@@ -3,6 +3,98 @@
 Brief: `briefs/18c-b-chrome-image.md` (on `main` since PR #73).
 Branch `pkg/18c-b-chrome`, one builder at a time. Each step is a fresh agent; this file is the handoff.
 
+## Step 6b (2026-11-21), release 28 merge and final evidence
+
+### Done
+
+- **Run, Git.** Fetched `origin` and merged `f4d59cc6` into `pkg/18c-b-chrome` in `b8b267e2`.
+  The merge includes package 42's release 28 and owner tools version 5 from `6ae4da41`.
+  Control attempt head `6df045c8` includes the follow-up records fix. The checks_only retry tested
+  `c5288fc2`, which fixes the release 28 rehearsal and import-bytecode regressions. Both were pushed
+  to draft PR #76.
+- **Run, local.** The targeted OS and Control suites, standalone records check, `git diff --check
+  origin/main...HEAD`, and Repo privacy check passed. The package's added lines were checked for
+  personal names after a `git grep -n` over its changed files. See Verified for the counts.
+- **Run, hosted.** Control run [44879115402](https://github.com/Ares-Empire/AresOS/actions/runs/44879115402)
+  timed out in runner tool setup on both attempts. The second Control dispatch is gated on a green first
+  run. **11 of 12 Control dispatches used**, with one failed-jobs rerun on the same ID.
+- **Run, hosted.** The first checks_only run [44882775213](https://github.com/Ares-Empire/AresOS/actions/runs/44882775213)
+  ran 2456 tests and failed on the merge issues below. The retry
+  [44885414951](https://github.com/Ares-Empire/AresOS/actions/runs/44885414951) ran 2461 tests (4705)
+  and passed with 23 skips (4707). The separate full ways-back model also passed (403 and 405).
+- **Run, scratch.** `find .work -type f -size +500000000c -print` produced no paths at close.
+
+### Merge and conflict resolutions
+
+- **Read, `.github/workflows/os-image.yml` at `b8b267e2`.** Kept package 42's read-only permissions
+  comment verbatim and the branch's 156-minute Control limit and sum. The separate VM steps retain
+  16 and 25 minutes. Package 42's budget guard is scoped to its own branch.
+- **Read, `os/ci/check-build.sh`, `os/ci/vm.py` and `os/ci/control/control_vm.py` at `b8b267e2`.**
+  Check the Chrome build log directly after image checks create `evidence/image/checks.txt`, before
+  applying any CI layers. In `build` mode, main's two guardian boots from `61a66d78` use fresh
+  overlays of the ordinary CI disk. Pass 1's policy and keymap evidence is read before pass 2. In
+  `control` mode, the build creates the Control disk, then the workflow runs 18c followed by the Chrome
+  pass. Each pass starts on a fresh overlay of that disk, and Chrome keeps its overlay across its reboot.
+- **Run, pending source bindings.** Took main's `os/manifest/ci/16/pending-rebind.json` and ran
+  `python3 -B reviews/27-first-update-release/rebind.py pending "<note>"` with all five notes under
+  Step 6a's “Left, in order” verbatim and then with the merge note below. Package 42's active tables
+  made each call print `pending: 5 bound files differ from the active bindings, 0 removed`. The three
+  pending paths from main stayed listed. The workflow and Chrome rehearsal checker added two paths.
+  After the regressions fix a seventh tool call added the note below and printed
+  `pending: 7 bound files differ from the active bindings, 0 removed`.
+
+  ```text
+  18c-b step 6b: main merged after release 28 (package 42); os-image.yml keeps package 42's permissions comment with 18c-b's control limit 156; check-build.sh keeps the guardian boots and the Chrome pass.
+  18c-b step 6b checks fix: release 28's rehearsal selects the service checks explicitly; the stand-in checks and passes their arguments; the Chrome signature imports are local to that check and the build's gh hash check uses python3 -B.
+  ```
+
+### What the code doesn't show
+
+- **Read, `os/ci/control/release_checks.py` and `os/ci/control/chrome_layer.py` at `6df045c8`.**
+  The release rehearsal still needs a probe-free deployment, the three shared-list hashes, and an update
+  and rollback with Chrome open. The actual profile, agent and terminal size remain for the live sitting.
+- **Read, CROSS-5 at `30ff4401`.** The combined 28b profile handoff remains a separate proof.
+
+### JUDGMENT-CALLs
+
+- **Read, `control/chrome/record_build.py` at `6df045c8`.** The records checker recognizes the exact
+  source-only Control object on the published release 28 tag and source, at its current and archived
+  manifest paths. Changing the published manifests would rewrite the release record. Accepting arbitrary
+  source-only objects would let a later Chrome release omit its hash. The historical case can be removed
+  if both manifests no longer need validation. The existing owner-facing choices are in the report.
+
+### PLAN-GAPs
+
+- **Read, `os/manifest/release.json` and `os/manifest/releases/28.json` at `f4d59cc6`.** The brief
+  assumed the current release would omit `control` until Chrome shipped. Release 28 carries its own
+  Control source revision and no Chrome build. The records checker needed to handle that published shape.
+- **Read, `os/ci/release28_walk.py` at `b8b267e2` and `release_checks.py` at `dbeaff72`.**
+  Release 28's rehearsal had called the checker without naming its checks. After 18c-b that default also
+  requires browser install records that release 28 never shipped. The rehearsal now requests all five
+  original service checks and still enforces their verdict and the boot login dependency checks.
+- **Read, `reviews/27-first-update-release/rebind.py` at `f4d59cc6`.** Step 6a listed the tool
+  under `os/ci/`. Its actual path is under the package 27 review.
+- **Read, brief “Done” at `f4d59cc6`.** A separate final-head `check_build=build` is also listed in
+  the brief. The step 6b dispatch list covers the two Control runs and checks_only. Earlier build-mode
+  receipts are in Verified.
+
+### The os/ diff for linux-aresos
+
+**Read, net against `dd3f0007` with main's changes excluded.**
+
+- `os/ci/check-build.sh` retains the Chrome build-log check and pass alongside main's guardian boots.
+- `os/manifest/ci/16/pending-rebind.json` carries the five replayed notes, the merge note and the
+  refreshed rows for the workflow and rehearsal checker relative to package 42's bindings.
+- `os/tests/test_control_image.py` follows main's `python3 -B` installer invocation in the Chrome fixture.
+  `os/tests/test_release28.py` models the shared Chrome and polkit directories and creates the image
+  evidence directory in its check-image stand-in. The existing release assertions still run.
+- `os/build.sh` uses `-B` for the added `gh` digest check. `os/ci/control/release_checks.py` loads the
+  signature parser's imports inside that check.
+- `os/ci/release28_walk.py` passes the five original service check names. The stand-in in
+  `os/tests/test_owner_walk.py` enforces that argument list and passes it to the embedded checker.
+  Both bound rehearsal paths are now on the pending list. `git diff b8b267e2..c5288fc2 -- os/` is
+  five files, 23 insertions and 10 deletions.
+
 ## Step 6a (2026-11-20), rehearsal checks and closing text
 
 ### Done
@@ -107,6 +199,33 @@ lines 3863 and 3865. The eleven new tests all reported `ok` at lines 2405–2415
 
 ### Verified
 
+- **Run, local step 6b, `6df045c8` and its merge.** Ran
+  `python3 -B -m unittest discover -s os/tests -p 'test_<module>.py'` one module at a time, with
+  `TMPDIR` under `.work/18c-b-6b/tmp`. Each printed `OK`:
+  `guardian_vm` 19, `release28` 94, `control_vm` 97, `control_image` 48, `checkout_sources` 10,
+  `ci_api_permissions` 4 and `console_keymap` 21. The same command with `test_aresos_desktop.py
+  -k ModJarPinTest` printed 7 and `OK`. The first runs exposed the Release 28 stand-in assumptions and
+  the expected installer invocation. The final counts above are the reruns after correcting the fixtures.
+- **Run, local step 6b, `6df045c8` and its merge.** Python unittest discovery under
+  `control/chrome/ci/install` and `control/chrome/ci/records` printed 28 and 22 tests with `OK`.
+  With `PYTHONPATH=control`, the modules `test_excluded_sites_placeholder.py`, `test_exclusions.py`,
+  `test_extension_stores_nothing.py`, `test_owner_confirm.py` and `test_build.py` under
+  `control/chrome_tests` printed 9, 3, 3, 15 and 3 tests, all `OK`.
+  `python3 -B control/chrome/record_build.py check` identified both historical release 28 manifests
+  and printed `record_build check passed`. The local Node command returned 127 because Node is absent.
+- **Run, hosted step 6b, `6df045c8`.** Control Chrome records run
+  [44879117347](https://github.com/Ares-Empire/AresOS/actions/runs/44879117347), attempt 1,
+  ran 22 tests (200), identified release 28's two historical manifests (207 and 211) and printed
+  `record_build check passed` (212). Repo privacy
+  [44879117291](https://github.com/Ares-Empire/AresOS/actions/runs/44879117291) passed on the same head.
+- **Run, hosted step 6b, `6df045c8`.** Control Chrome install run
+  [44879117389](https://github.com/Ares-Empire/AresOS/actions/runs/44879117389), attempt 1,
+  passed 28 packaging tests (2227), the Node crypto cross-check (2233 and 2241) and the pinned Chrome
+  install proof (2310).
+- **Run, local checks_only fix, `c5288fc2`.** `bash -n os/build.sh` exited zero. The
+  `test_release28_control.py -k ControlBuildBytecodeTest` subset ran 2 tests, `test_control_vm.py`
+  ran 97, `test_control_image.py` ran 48 and `test_checkout_sources.py` ran 10. Each printed `OK`.
+  The hosted retry covers the owner-walk module.
 - **Run, local step 6a, `dbeaff72`.** With `TMPDIR` in `.work/18c-b-6a/tmp`,
   `python3 -B -m unittest discover -s os/tests -p 'test_control_vm.py'` printed
   `Ran 97 tests in 2.468s` and `OK` (local log lines 3 and 5). The new tests exercise real OpenSSL on a
@@ -167,58 +286,87 @@ lines 3863 and 3865. The eleven new tests all reported `ok` at lines 2405–2415
   full question at 120 rows (4477). Step 6a read the retained C2 managed and C7 dialog images. Step 5 records
   the original C8 inspection.
 
-#### Final-head verification to fill in 6b
+#### Final-head verification
 
-**Assumed until run.** Final merged head `[6b FINAL_HEAD]`. Final Control green 1
-`[6b RUN_1_ID / ATTEMPT]` and green 2 `[6b RUN_2_ID / ATTEMPT]`. The 522c1113 column is from
-**run 44621559332 attempt 2**. Fill the other columns with full-log line numbers and retain both timing
-rows. Record checks_only as `[6b CHECKS_ONLY_ID / TEST_COUNT / COUNT_LINE / VERDICT_LINE]`. Record the
-final build/check evidence as `[6b CHECK_BUILD_EVIDENCE]`.
+**Run, tested head `6df045c8`.** Control [44879115402](https://github.com/Ares-Empire/AresOS/actions/runs/44879115402) ran twice under the same dispatch ID.
+Both attempts stopped in the pinned Ubuntu snapshot tool setup, before the image build or either VM.
 
-| VM marker or timing | 522c1113 | Green 1 | Green 2 |
+| Attempt | Outcome | Full-log lines |
+|---|---|---|
+| 1 | Tool setup reached its 20-minute limit while APT was fetching and retrying packages | 414–443 |
+| 2 | Failed-jobs infrastructure rerun reached the same limit while APT was still fetching packages | 429–445 |
+
+**Run.** Dispatched with `gh workflow run os-image.yml -R Ares-Empire/AresOS --ref pkg/18c-b-chrome
+-f check_build=control`. Reran failed jobs once with
+`gh run rerun 44879115402 -R Ares-Empire/AresOS --failed`. Each was watched with
+`gh run watch 44879115402 -R Ares-Empire/AresOS --exit-status --interval 300`. The first local watcher
+lost its API connection as the run finished. GitHub's metadata and the full attempt log report the failure.
+Both attempt logs came from `gh run view 44879115402 -R Ares-Empire/AresOS --attempt <attempt> --log`.
+
+**Run.** Dispatched the separate regression verification first on `6df045c8` and once more on `c5288fc2` with
+`gh workflow run os-image.yml -R Ares-Empire/AresOS --ref pkg/18c-b-chrome -f checks_only=true` and
+watched each with `gh run watch <id> -R Ares-Empire/AresOS --exit-status --interval 300`.
+The first run [44882775213](https://github.com/Ares-Empire/AresOS/actions/runs/44882775213), attempt 1,
+printed `Ran 2456 tests in 1701.672s` (4722) and `FAILED (failures=12, errors=1, skipped=23)` (4724).
+The R28 rehearsal lost its checker contract after the Chrome checks were added (4525–4711).
+The build bytecode test also detected the new root invocation without `-B` (4714–4719).
+The retry [44885414951](https://github.com/Ares-Empire/AresOS/actions/runs/44885414951), attempt 1,
+printed `Ran 2461 tests in 1727.511s` (4705) and `OK (skipped=23)` (4707). The bytecode and R28
+checker-selection tests passed (4181 and 4235). The separate full ways-back model ran one test in
+1046.347 s (403) and passed (405).
+
+**Read, both Control attempt logs.** The image build gave no Chrome audit or Control disk verdict.
+Neither VM started, so the final-head PASS markers, VM timings and reconnect result are unavailable.
+The second Control dispatch stays unused. The `522c1113` receipts below are still from the earlier
+run 44621559332 attempt 2. A dash marks evidence that the final sequence did not produce.
+
+| VM marker or timing | 522c1113 | Final Control 1 | Final Control 2 |
 |---|---:|---|---|
-| `CONTROL_IMAGE_FILES_PASS` | 4395 | [6b line] | [6b line] |
-| `CONTROL_ETC_CLAUDE_CODE_PASS` | 4397 | [6b line] | [6b line] |
-| `CONTROL_RELEASE_CHECKS_PASS` | 4399 | [6b line] | [6b line] |
-| `CONTROL_IDLE_FOOTPRINT_RECORDED` | 4401 | [6b line] | [6b line] |
-| `CONTROL_FIXTURES_REACHABLE` | 4403 | [6b line] | [6b line] |
-| `CONTROL_ENTRY_POINTS_PASS` | 4405 | [6b line] | [6b line] |
-| `CONTROL_PRECONDITION_PASS` | 4407 | [6b line] | [6b line] |
-| `CONTROL_USER_MCP_INSTALL_PASS` | 4409 | [6b line] | [6b line] |
-| `CONTROL_SERVICE_SANDBOX_PASS` | 4411 | [6b line] | [6b line] |
-| `CONTROL_ORDINARY_SESSION_PASS` | 4413 | [6b line] | [6b line] |
-| `CONTROL_MAIL_FLOWS_PASS` | 4415 | [6b line] | [6b line] |
-| `CONTROL_PERMISSION_REQUEST_RECORDED` | 4417 | [6b line] | [6b line] |
-| `CONTROL_INTERACTIVE_ASK_PASS` | 4418 | [6b line] | [6b line] |
-| `CONTROL_PASSWORDS_PRIVATE_PASS` | 4420 | [6b line] | [6b line] |
-| `CONTROL_SELINUX_AFTER_CHECKS_PASS` | 4422 | [6b line] | [6b line] |
-| `CONTROL_STORAGE_TESTS_PASS` | 4424 | [6b line] | [6b line] |
-| `CONTROL_SERVICE_RESTART_PASS` | 4426 | [6b line] | [6b line] |
-| `CONTROL_VM_POWEROFF_CLEAN` | 4428 | [6b line] | [6b line] |
-| Control VM timing | 4429 | [6b line / time] | [6b line / time] |
-| `CHECK_BUILD_CONTROL_PASSED` | 4430 | [6b line] | [6b line] |
-| `CONTROL_CHROME_POLKIT_PROBE_PASS` | 4441 | [6b line] | [6b line] |
-| `CONTROL_CHROME_FILES_PASS` | 4443 | [6b line] | [6b line] |
-| `CONTROL_CHROME_INSTALL_PASS` | 4447 | [6b line] | [6b line] |
-| `CONTROL_CHROME_SITES_FIRST_USE_PASS` | 4449 | [6b line] | [6b line] |
-| `CONTROL_CHROME_REBOOTED` | 4450 | [6b line] | [6b line] |
-| `CONTROL_CHROME_SITES_REBOOT_PASS` | 4452 | [6b line] | [6b line] |
-| `CONTROL_CHROME_NATIVE_HOST_PASS` | 4454 | [6b line] | [6b line] |
-| `CONTROL_CHROME_SITES_PASS` | 4456 | [6b line] | [6b line] |
-| `CONTROL_GH_PASS` | 4458 | [6b line] | [6b line] |
-| `CONTROL_CHROME_RECORDS_PASS` | 4460 | [6b line] | [6b line] |
-| `CONTROL_CHROME_UPDATE_PASS` | 4462 | [6b line] | [6b line] |
-| `CONTROL_CHROME_PACKAGE_FAULT_PASS` | 4464 | [6b line] | [6b line] |
-| `CONTROL_CHROME_NO_STORE_PASS` | 4466 | [6b line] | [6b line] |
-| `CONTROL_CHROME_POLKIT_PASS` | 4475 | [6b line] | [6b line] |
-| `CONTROL_CHROME_ASK_PASS` | 4477 | [6b line] | [6b line] |
-| `CONTROL_CHROME_SELINUX_PASS` | 4479 | [6b line] | [6b line] |
-| `CONTROL_CHROME_VM_POWEROFF_CLEAN` | 4480 | [6b line] | [6b line] |
-| Chrome VM timing | 4481 | [6b line / time] | [6b line / time] |
-| `CHECK_BUILD_CONTROL_CHROME_PASSED` | 4482 | [6b line] | [6b line] |
+| `CONTROL_IMAGE_FILES_PASS` | 4395 | — | — |
+| `CONTROL_ETC_CLAUDE_CODE_PASS` | 4397 | — | — |
+| `CONTROL_RELEASE_CHECKS_PASS` | 4399 | — | — |
+| `CONTROL_IDLE_FOOTPRINT_RECORDED` | 4401 | — | — |
+| `CONTROL_FIXTURES_REACHABLE` | 4403 | — | — |
+| `CONTROL_ENTRY_POINTS_PASS` | 4405 | — | — |
+| `CONTROL_PRECONDITION_PASS` | 4407 | — | — |
+| `CONTROL_USER_MCP_INSTALL_PASS` | 4409 | — | — |
+| `CONTROL_SERVICE_SANDBOX_PASS` | 4411 | — | — |
+| `CONTROL_ORDINARY_SESSION_PASS` | 4413 | — | — |
+| `CONTROL_MAIL_FLOWS_PASS` | 4415 | — | — |
+| `CONTROL_PERMISSION_REQUEST_RECORDED` | 4417 | — | — |
+| `CONTROL_INTERACTIVE_ASK_PASS` | 4418 | — | — |
+| `CONTROL_PASSWORDS_PRIVATE_PASS` | 4420 | — | — |
+| `CONTROL_SELINUX_AFTER_CHECKS_PASS` | 4422 | — | — |
+| `CONTROL_STORAGE_TESTS_PASS` | 4424 | — | — |
+| `CONTROL_SERVICE_RESTART_PASS` | 4426 | — | — |
+| `CONTROL_VM_POWEROFF_CLEAN` | 4428 | — | — |
+| Control VM timing | 4429 | — | — |
+| `CHECK_BUILD_CONTROL_PASSED` | 4430 | — | — |
+| `CONTROL_CHROME_POLKIT_PROBE_PASS` | 4441 | — | — |
+| `CONTROL_CHROME_FILES_PASS` | 4443 | — | — |
+| `CONTROL_CHROME_INSTALL_PASS` | 4447 | — | — |
+| `CONTROL_CHROME_SITES_FIRST_USE_PASS` | 4449 | — | — |
+| `CONTROL_CHROME_REBOOTED` | 4450 | — | — |
+| `CONTROL_CHROME_SITES_REBOOT_PASS` | 4452 | — | — |
+| `CONTROL_CHROME_NATIVE_HOST_PASS` | 4454 | — | — |
+| `CONTROL_CHROME_SITES_PASS` | 4456 | — | — |
+| `CONTROL_GH_PASS` | 4458 | — | — |
+| `CONTROL_CHROME_RECORDS_PASS` | 4460 | — | — |
+| `CONTROL_CHROME_UPDATE_PASS` | 4462 | — | — |
+| `CONTROL_CHROME_PACKAGE_FAULT_PASS` | 4464 | — | — |
+| `CONTROL_CHROME_NO_STORE_PASS` | 4466 | — | — |
+| `CONTROL_CHROME_POLKIT_PASS` | 4475 | — | — |
+| `CONTROL_CHROME_ASK_PASS` | 4477 | — | — |
+| `CONTROL_CHROME_SELINUX_PASS` | 4479 | — | — |
+| `CONTROL_CHROME_VM_POWEROFF_CLEAN` | 4480 | — | — |
+| Chrome VM timing | 4481 | — | — |
+| `CHECK_BUILD_CONTROL_CHROME_PASSED` | 4482 | — | — |
 
 ### Not verified
 
+- **Run, 44879115402 attempts 1 and 2, lines 443 and 445.** Final-head Control VM results are blocked
+  by runner tool setup. The daily-profile reconnect and the compatible release-check subset need the
+  two final greens. The earlier successful runs remain recorded above.
 - **Read, `os/ci/control/chrome_actions.py` at `522c1113`.** A real deployment switch with Chrome open,
   followed by an update and rollback rehearsal of the probe-free image and the three hashes, still needs
   evidence. C4 restarts Chrome around a guest bind mount.
@@ -229,7 +377,7 @@ final build/check evidence as `[6b CHECK_BUILD_EVIDENCE]`.
   combined proof. Steps 4 and 5 exercised the package and connection with the existing service.
 - **Read, `os/ci/control/actions.py` and `release_checks.py` at `dbeaff72`.** 6a's test root is synthetic.
   The probe-free deployment view and the actual image's OpenSSL and executable are rehearsal evidence, with
-  the compatible subset due to run in the 6b Control guests.
+  the compatible subset still awaiting the final Control guests.
 
 ### JUDGMENT-CALLs
 
@@ -393,7 +541,7 @@ final build/check evidence as `[6b CHECK_BUILD_EVIDENCE]`.
 ### Open questions
 
 - **Assumed.** Will the two final merged-head runs stay green, including the daily-profile reconnect and
-  the new checks with image OpenSSL? The 6b rows above hold the open evidence.
+  the new checks with image OpenSSL? Tool setup blocked both attempts at the first final run.
 - **Assumed.** Which rollback source will linux-aresos use to prove the three-list-hash check and the
   browser-side install records, and when will the lead schedule the 28b combined image proof?
 - **Assumed.** At the live sitting, can the owner see the full C8 question in his terminal, and does his
