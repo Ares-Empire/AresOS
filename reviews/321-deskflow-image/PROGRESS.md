@@ -192,7 +192,7 @@ under "What was shown".
 | `fc81fccf` | `os/labwc/`: the second patch, the lock (two patches, `aresos2`, new pins), `stage.py` for a list of patches; `os/tests/test_labwc_stage.py`. |
 | `0ae53900` | `os/ci/image-checks.sh`: the image check names both patches and the new NEVRA. |
 | `aa56738d` | The backend's Ctrl+Alt+Escape chord removed; the harness's bindings and marks, its layer-surface test client and test10. |
-| (this commit) | `UPSTREAM.md`'s row, `KNOWN-LIMITS.md`, this file, the evidence. |
+| `0b1f9339` | `UPSTREAM.md`'s row, `KNOWN-LIMITS.md`, this file, the evidence. |
 
 ### The mechanism: layer focus, by the capture surface's namespace
 
@@ -436,7 +436,7 @@ None in steps 1 and 1b.
 
 | # | Step | Run | What |
 |---|---|---|---|
-| 1 of 8 | 1c | (dispatched after this commit is pushed; its ID comes with the commit table) | `check_build=build` on the step's head: it builds the labwc stage (the pins must hold on the hosted runner too) and the image, and runs the image checks, the labwc one included. Not waited for: the lead reads it. |
+| 1 of 8 | 1c | `44935351683`, on `0b1f9339` (dispatched 2026-11-21 19:24) | `check_build=build` on the step's head: it builds the labwc stage (the pins must hold on the hosted runner too) and the image, and runs the image checks, the labwc one included. Not waited for: the lead reads it. |
 
 ## Podman, after step 1c
 
