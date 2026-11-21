@@ -188,6 +188,16 @@ The lead sends this list to `linux-aresos` before merge.
   environment. R29 must supply the layer library. The release VM pass should include `fc-match 'Jersey 10'`
   in the booted guest.
 
+- **Files B320 adds to the image** (for R29's image diff; listed by the lead from `git diff --diff-filter=A origin/main...HEAD -- os/config` at `988b7c17`), 23 in all:
+  - `/usr/libexec/aresos-indicator`
+  - `/usr/libexec/aresos-level`
+  - `/usr/libexec/aresos-settings`
+  - `/usr/share/aresos/look/look.json`
+  - `/usr/share/fonts/aresos/Jersey10-Regular.ttf`
+  - `/usr/share/fonts/aresos/OFL-Jersey10.txt`
+  - 17 sprites under `/usr/share/aresos/look/sprites/`: `microphone-off-unavailable.png`, `microphone-off.png`, `microphone-unavailable.png`, `microphone.png`, `plate.png`, `slot.png`, `speaker-muted-unavailable.png`, `speaker-muted.png`, `speaker-unavailable.png`, `speaker.png`, `step-limit.png`, `step-lit.png`, `step-muted.png`, `step-part.png`, `step-unlit.png`, `sun-unavailable.png`, `sun.png`
+- **Files B320 changes in the image:** `/usr/share/aresos/labwc/rc.xml` (the six key lines only). No package or pin changes.
+
 ## The public and private check
 
 - Step 1, before the first push (`c8f195da`, `9e8a7d9b` and this file's commit): checked 11 staged files against the
