@@ -1,5 +1,33 @@
 # Package 28a: Chrome acting progress
 
+## Fix round 1b — 2026-11-21
+
+Draft PR #116 started at `b4cb60ed`. The fixture fix is `375f4f4b`.
+
+| Red check on `815af6cc` | Failure in the log (UTC) | Fix and evidence |
+|---|---|---|
+| Control Chrome `44882899442`, `fixtures (external, core)` and `fixtures (policy, core)` | `READ BRIEF28 H1 names values options tables forms paths stale lines titles and dialogs stay quoted FAIL AssertionError [ERR_ASSERTION]: option 6` at `outline-read.mjs:403:18` (external `08:53:17.4624991`, policy `08:46:29.1558278`). | The option has no `label` attribute. Chrome strips and collapses ASCII whitespace in the option text, so U+2028 and U+2029 survive and are escaped in the outline. The old expectation used `squeezed()` and lost both separators. H1 now computes the expected native text before applying `quoted()`. A browser-free replay through the service renderer reproduced `option 6` with the old assertion and passed the new assertion and `hostileGrammar` with the native label. |
+| Qualification `44882916139`, both `qualification-pairs` core jobs | First failing browser check was the same `FAIL AssertionError [ERR_ASSERTION]: option 6` at `outline-read.mjs:403:18` (job `136782020870` at `09:13:20.6523326`, job `136782020951` at `09:05:58.6296852`). | The qualification driver runs the same H1 check. The fixture fix and the replay cover both pairs. |
+| Qualification `44882916139`, both `qualification-combine` jobs | `AssertionError [ERR_ASSERTION]: every browser shard is required` and `8 !== 9` at `merge-shards.mjs:10:10` (job `136801491301` at `09:23:32.8471338`, job `136801491339` at `09:23:41.2313562`). | Both core jobs failed before writing `shard-complete.json`. Fixing H1 lets core reach that write. The Node case `all named blocks and word shards are required before any combined qualification` passed, including refusal when a shard is missing. |
+
+### Verified locally
+
+- `.work/pkg28a-0a/node-v22.15.0-linux-x64/bin/node --test --test-concurrency=2 control/chrome_tests/*.test.mjs`
+  reported 647 passed, 0 failed, 0 skipped (18.2 s).
+- `PYTHONPATH=control:control/chrome_tests python3 -B -m unittest -v test_view_hostile test_view_outline
+  test_view_nodes test_qualification_shards test_instruction_rules` reported 87 tests, `OK` (1.087 s).
+- `PYTHONPATH=control python3 control/generate.py --check` reported `Generated artifacts match definitions`.
+  `git diff --check` was clean. Generated ask rules matched `origin/main` byte for byte.
+  `find .work -type f -size +500M -print` returned nothing.
+- The focused replay used a synthetic native label with the service renderer. The optional artifact download
+  timed out. The hosted logs supplied the CI failure evidence.
+
+### PLAN-GAP
+
+The browser-free option DOM double uses JavaScript's broader whitespace rule. Fix round 1's local suite
+therefore missed the difference between generic squeezing and Chrome's option text on the existing H1
+fixture. Running H1 against Chrome and confirming shard completion are part of the lead's hosted verification.
+
 ## Fix round 1 — 2026-11-21
 
 Draft PR #116, still stacked on `pkg/28-chrome`. Started at `8ad1fdaf` (code `ffbb8c36`); fix code `94330e7e`.
