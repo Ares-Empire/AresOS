@@ -3,6 +3,7 @@ package dev.aresos.item;
 import com.mojang.serialization.Codec;
 import dev.aresos.AresOs;
 import dev.aresos.config.AppDefinition;
+import dev.aresos.icon.TerminalAppearance;
 import dev.aresos.world.DesktopWorld;
 import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponentType;
@@ -38,14 +39,17 @@ public final class AppItems {
         var stack = new ItemStack(APP);
         stack.set(APP_ID, app.id());
         stack.set(DataComponents.CUSTOM_NAME, Component.literal(app.name()));
-        Identifier lookId = Identifier.parse(app.look());
+        boolean builtInTerminal = TerminalAppearance.usesBuiltInPicture(app);
+        String lookName = builtInTerminal && app.look().equals(TerminalAppearance.LEGACY_ITEM)
+                ? TerminalAppearance.ITEM : app.look();
+        Identifier lookId = Identifier.parse(lookName);
         var look = BuiltInRegistries.ITEM.containsKey(lookId) ? BuiltInRegistries.ITEM.getValue(lookId) : null;
         var model = look == null ? null : look.components().get(DataComponents.ITEM_MODEL);
         if (model == null) {
             AresOs.LOGGER.warn("Unknown item look {} for {}; using writable_book", app.look(), app.id());
             model = Identifier.withDefaultNamespace("writable_book");
         }
-        if (AresOs.generatedIcons.contains(app.id())) model = AresOs.id("apps/" + app.id());
+        if (!builtInTerminal && AresOs.generatedIcons.contains(app.id())) model = AresOs.id("apps/" + app.id());
         stack.set(DataComponents.ITEM_MODEL, model);
         return stack;
     }

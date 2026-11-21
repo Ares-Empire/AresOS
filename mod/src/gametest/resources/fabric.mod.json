@@ -47,7 +47,8 @@
       "dev.aresos.test.TownArrivalClientGameTest",
       "dev.aresos.test.HomePublishClientGameTest",
       "dev.aresos.test.FreePointerClientGameTest",
-      "dev.aresos.test.WorldSearchClientGameTest"
+      "dev.aresos.test.WorldSearchClientGameTest",
+      "dev.aresos.test.HomeTryoutClientGameTest"
     ]
   },
   "mixins": [
