@@ -198,6 +198,20 @@ class HostCheckTest(base.Base):
         journal.rows = [row for row in journal.rows if row.get('UNIT') != 'var-home.mount']
         self.assertIsNone(self.check('save', journal)['began_to_stop']['var-home.mount'])
 
+    def test_boot_1_a_lid_read_just_before_the_journal_stamps_save_asked(self):
+        # Run 44917067389 (package 324): the lid's own time, rounded to the millisecond, read 67 µs before journald
+        # stamped the fixture's save_asked line. The lid waits for the fixture's marker, so it closed during the save.
+        lid = '"t": 100.5'
+        for t in (100.299, 100.3 - host.LID_SLACK_SECONDS + 0.01):
+            with self.subTest(t=t):
+                self.check('save', self.changed(save_boot(), lid, f'"t": {t}'))
+        for name, t in (('a lid long before the save was asked', 100.3 - host.LID_SLACK_SECONDS - 0.01),
+                        ('a lid after the save was answered', 105.31)):
+            with self.subTest(name):
+                with self.assertRaises(AssertionError) as refused:
+                    self.check('save', self.changed(save_boot(), lid, f'"t": {t}'))
+                self.assertEqual(refused.exception.args[0][0], 'no lid event during the save')
+
     def test_boot_1_is_refused_when_the_order_or_the_record_is_wrong(self):
         for name, change in (
                 ('the session began to stop during the save', lambda j: j.systemd(

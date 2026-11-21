@@ -20,6 +20,12 @@ POWER_OFF_BOUND = 85 + 15 + 20
 BLACK_LEVEL = 8
 BLACK_SHARE = 0.001
 SAVE_SECONDS = 5.0
+# How long before the journal's save_asked the lid's own time may read (package 324). The lid watcher closes the
+# lid only once the fixture has written its marker, which it does after printing save_asked, so the lid cannot
+# close before the save is asked. But its time is rounded to the millisecond, and journald stamps the fixture's
+# stdout line when it reads it, which can be later than the print: run 44917067389 read the lid 67 µs before
+# save_asked. Half a second absorbs both and still lies well inside the 5 s save.
+LID_SLACK_SECONDS = 0.5
 
 
 def scenario(vm_pass):
@@ -220,7 +226,11 @@ def check(evidence, kind, armed, watched, seconds, before_lit):
         assert any(peer.get('dropped') for peer in peers), ('the peer that never reads was not dropped', peers)
         # The lid closed during the save, and nothing came of it.
         lids = [value for _, value in tagged(records, 'aresos-ci-lid', 'GUARDIAN_LID') if value.get('closed')]
-        assert lids and asked <= int(lids[0]['t'] * 1_000_000) <= answered, ('no lid event during the save', lids)
+        closed_at = round(lids[0]['t'] * 1_000_000) if lids else None
+        assert closed_at is not None and asked - int(LID_SLACK_SECONDS * 1_000_000) <= closed_at <= answered, (
+            'no lid event during the save', lids, dict(save_asked=seconds_after_key(asked),
+                                                       lid=seconds_after_key(closed_at),
+                                                       save_answered=seconds_after_key(answered)))
         assert lids[0]['logind_lid_closed'] == 'b true', lids
         summary.update(save_answered=seconds_after_key(answered), lid=lids[0], peer_dropped=True)
         if not (summary['lid_block_held'] and lids[0]['aresos_lid_blocks']):
