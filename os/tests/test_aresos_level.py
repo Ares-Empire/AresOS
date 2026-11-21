@@ -216,9 +216,17 @@ class LockTest(LevelCase):
     def test_a_second_key_changes_at_once_while_the_first_read_back_hangs(self):
         box = self.box(hang=['wpctl get-volume'])
         result = self.run_ok(box, '$L volume-up\n'
+                                  'pending() { [[ $(ps -o state= -p "$first") == S ]]; }\n'
+                                  'for _ in {1..100}; do\n'
+                                  '  { read -r first < "$STANDIN_DIR/read-blocked"; } 2>/dev/null && pending && break\n'
+                                  '  sleep 0.01\n'
+                                  'done\n'
+                                  '[[ -n $first ]] && pending || { echo "first read did not block" >&2; exit 1; }\n'
                                   'flock -n $R/aresos-level.lock echo LOCK-FREE\n'
                                   't0=$(now); $L volume-up; echo "ms=$(($(now) - t0))"\n'
-                                  'cat "$STANDIN_DIR/state.json"; echo; settle 15\n')
+                                  'cat "$STANDIN_DIR/state.json"; echo\n'
+                                  'pending || { echo "first read finished before the second change" >&2; exit 1; }\n'
+                                  'settle 15\n')
         self.assertIn('LOCK-FREE', result.stdout)
         self.assertLess(int(result.stdout.split('ms=')[1].split()[0]), 900)
         self.assertIn('"volume": 0.5', result.stdout)
