@@ -169,3 +169,9 @@ PR #125 merged as `61a66d78` (details in STATE.md and `reviews/25-guardian/REPOR
 `mac-capacity` "ready to clear", done with this note). Package 53's step 4 and the laptop trial belong to 23c
 (`linux-aresos`). Worktree `~/AresOS-25-guardian` removed; the remote branch is kept.
 
+## Sat 2026-11-21: 53a's follow-ups merged as package 322
+
+Board T358's three follow-ups were built as brief 322 (Codex gpt-6.2-sol high, slot from `mac-capacity`) and merged
+with PR134 (`reviews/322-helper-followups/`): review 1 (gpt-6.2-sol) SAFE, `linux-aresos` read the os/ diff, hosted OS
+regressions green on the code commit (run 44911039176). Two notes went to the REPORT's Known limits. **Nothing of
+this lead's is open.** Package 53's step 4 and the laptop trial belong to 23c (`linux-aresos`).
