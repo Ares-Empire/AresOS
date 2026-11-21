@@ -6,7 +6,7 @@ Written Fri 2026-11-20 13:50 by `linux-hub` (Claude Opus 5.5), before a clear at
 
 ## Resume here
 
-Updated Sat 2026-11-21 22:40 (by `date`) by `linux-hub` (Claude Opus 5.5). R28 runs on the laptop since 18:00; the owner's first try-out and his answers are in the section below.
+Updated Sat 2026-11-21 22:31 (by `date`) by `linux-hub` (Claude Opus 5.5). R28 runs on the laptop since 18:00; the owner's first try-out and his answers are in the section below.
 
 1. **B327 is merged** (PR142, `4dd5288b`): tutorial toasts off in the home, nothing breaks in Live, Build mode in the Esc menu, "Start a new home…", the Terminal's look, and the town keeper changes nothing with desktop mode off. Reviews: Codex `gpt-6.2-astra` NOT SAFE, fixed, `gpt-6.2-sol` recheck SAFE. It rides R29 (`linux-aresos` has the jar note).
 2. **B328 (look around without holding a button)** is on `pkg/328-look-around` (`~/AresOS-328-look-around`). Step 328a (the click leak, and the check of finding 5) runs on one Opus agent since 19:35. Then 328b (click to look), 328c (edge turning), 328d (switch and two-screen trial), one fresh agent each, as the week allows. Its final review: Codex Sol (Astra only for security, `mac-capacity` 2026-11-21).
