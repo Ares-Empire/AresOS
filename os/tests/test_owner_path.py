@@ -916,7 +916,7 @@ class OwnerPathTest(unittest.TestCase):
         self.assertIn('**R27 (previous):** `' + previous + '`', text)
         self.assertIn('**R28 (on the laptop):** `' + current + '`', text)
         announced, = [line for line in text.splitlines() if line.startswith('- **R28 ')]
-        self.assertTrue(announced.endswith('Published privately and rehearsed in the VM on 2026-11-21 (signed-update row below). '
+        self.assertTrue(announced.endswith('Published privately on 2026-11-19 and rehearsed in the VM on 2026-11-21 (signed-update row below). '
                                            'The laptop runs it since 2026-11-21, reached through the step 8 update route, '
                                            'with R27 as its rollback and the corrected stock still pinned.'))
         self.assertIn('**R13 (earlier):** `' + earlier + '`', text)
@@ -1828,7 +1828,7 @@ class OwnerPathTest(unittest.TestCase):
         bindings = json.loads((ROOT/'os/manifest/ci/22c/source-bindings.json').read_text())
         # 22d carried 22c's ways back onto the laptop; version 3's fingerprint stays historical.
         for value in ('**BUILT AND REVIEWED; VM REHEARSAL PASSED; ON THE LAPTOP 2026-11-17 (IN VERSION 4); CALM TEST OPEN**',
-                      'Ways back on the laptop in tools version 4 since 2026-11-17',
+                      'Ways back on the laptop since 2026-11-17: in tools version 4 (same R27 release history), in version 5 since 2026-11-21',
                       'Tools fingerprint `2084c786…`', 'version 3 itself never went on the laptop',
                       "package 22d's version 4 (next row) brought these ways back over version 2 on 2026-11-17",
                       '(../reviews/22c-ways-back-after-update/REPORT.md)', '**VM rehearsal passed**',
@@ -1850,7 +1850,7 @@ class OwnerPathTest(unittest.TestCase):
         # 22d's rehearsal passed and its record step rebound the sources: the row links the run the bindings name.
         rebound = json.loads((ROOT/'os/manifest/ci/22d/source-bindings.json').read_text())
         for value in ('**BUILT AND REVIEWED; VM REHEARSAL PASSED; ON THE LAPTOP 2026-11-17**',
-                      'on the laptop since 2026-11-17 over version 2 `851eb742…`',
+                      'on the laptop from 2026-11-17 over version 2 `851eb742…` until version 5 replaced it on 2026-11-21',
                       'Tools fingerprint `' + release28_walk.TOOLS_V4 + '`',
                       'https://github.com/Ares-Empire/AresOS/blob/' + release28_walk.V4_COMMIT + '/docs/OWNER-TOOLS.md',
                       '**Enter SSH Credentials**',
@@ -1879,7 +1879,8 @@ class OwnerPathTest(unittest.TestCase):
         self.assertEqual(status.splitlines().index(row) - 1,
                          next(i for i, line in enumerate(status.splitlines()) if line.startswith('| Ways back after an update (package 22c) |')))
         update = next(line for line in status.splitlines() if line.startswith('| Update route (packages 22 and 27) |'))
-        self.assertIn("the laptop's tools are version 4 (`dcbc375f…`) since 2026-11-17", update)
+        self.assertIn("the laptop's tools were version 4 (`dcbc375f…`) from 2026-11-17 (package 22d, two rows below) "
+                      "and are version 5 since 2026-11-21 (signed-update row above).", update)
         self.assertNotIn(fingerprint, update)
         menu = next(line for line in status.splitlines() if line.startswith('| LOQ shortcuts and recovery menu |'))
         self.assertIn('**OPEN**', menu)
