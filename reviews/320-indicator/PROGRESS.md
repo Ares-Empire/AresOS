@@ -314,3 +314,14 @@ owner are still pending.
   under `.work/`.
 - Before pushing, every staged file version in the four commits was compared by SHA-256 against the private
   digest list. Eight text files were compared, with zero matches.
+
+- **Recheck fix (finding 3).** `641c1ce2` traces test 9's delayed cold launch and checks that the notifier
+  reaps the delayed PID before closing or unlocking the launch lock. Both rootless harness runs exited 0
+  with 25 isolation checks, the private bus check and 52 checks across nine tests. The lock handoffs took
+  5.258 s and 5.232 s, with one termination each. A container-only copy closed the lock before sending
+  SIGTERM. It still recorded one termination and a 5.190 s handoff, then failed test 9 on the new order
+  assertion (eight tests passed, exit 1). The traces are in `.work/320/recheck-finding3/`.
+  `python3 -m unittest discover -s os/tests -p 'test_aresos_level.py' -v` ran twice without `-B` in the rootless
+  clients image. Both runs reported 25 tests, OK, with no `__pycache__` under `os/config` in the containers or
+  worktree. The SHA-256 comparison against the private digest list found zero matches across the three staged
+  file versions. No file over 500 MB remained under `.work/`.
