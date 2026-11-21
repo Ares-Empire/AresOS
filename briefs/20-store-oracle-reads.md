@@ -61,6 +61,19 @@ reproduced on main before this revision ("Writers' local evidence").
 | 2 | BLOCKER. The first pending pass runs before the flush, so a request can send `configure`, prune upload copies and refresh qualification before it is refused. A nested owner request reads the outstanding command's reply. | Both are on main today. The first pending pass of every request takes Chrome's rows without asking the browser, and so does every pass of a nested request. | Section 2, decisions 3 and 4; tests i5, i6, i7 |
 | 3 | NIT. The restart promise. | Every barred answer carries the first storage error; only a latched store adds the restart advice; a first fence that was undone needs no restart. | Section 2, decision 8; "JUDGMENT-CALL" |
 
+**The lead's calls on revision 2's open points (`linux-tools`, 2026-11-21).**
+- **The uniform rule stands:** once a request is barred, nothing goes to the browser, including when it becomes
+  barred during its own dispatch. The one acceptance line in Chrome's state view (`unchecked` allowed in a reply
+  that is not `ok`) is part of this package. Deciding at the gate only would keep a live `validity` after a
+  storage failure, the effect recheck 1 called real harm.
+- **Requests refused without a barrier** (a change refused by a surviving latch with nothing queued, a quota
+  refusal, `chrome_read_typed_fields` under the latch) keep asking the browser in their reply section, as on
+  main. A known limit: in that state every read and the Stop hook ask the same questions, and making
+  `ensure_writable` set the barrier touches every writer, which is wider than this package.
+- **Healthy requests' first pass** no longer asks the browser, so another app's request no longer applies a
+  changed excluded-sites list while a typed-read approval waits. Accepted: the next Chrome request, and every
+  all-app section, applies it before anything reaches a page.
+
 ## 1. N8: a queued recovery notice the replay made untrue
 
 ### Verified facts
