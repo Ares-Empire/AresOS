@@ -117,6 +117,8 @@ licences:
 
 - Space Grotesk (`os/config/usr/share/fonts/aresos/`): © 2020 The Space Grotesk Project Authors,
   SIL Open Font License 1.1; the unchanged font and its licence are bundled together.
+- Jersey 10 (`os/config/usr/share/fonts/aresos/`), © 2023 The Soft Type Project Authors, is bundled with its
+  SIL Open Font License 1.1.
 - The Gradle wrapper (`mod/gradlew`, `mod/gradlew.bat`, `mod/gradle/wrapper/`): Apache-2.0.
 - Everything kept as test evidence under `os/manifest/ci/`: files and source archives copied from other projects,
   including the Bazzite and Fedora installers, the Linux kernel, QEMU, systemd, util-linux, coreutils, glibc, OSTree,

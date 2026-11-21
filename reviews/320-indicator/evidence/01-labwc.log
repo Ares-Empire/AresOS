@@ -1,0 +1,3 @@
+/usr/libexec/aresos-indicator:400: DeprecationWarning: Gio.DBusConnection.register_object is deprecated
+  connection.register_object(OBJECT, interface, indicator.on_show, None, None)
+aresos-indicator: started

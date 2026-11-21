@@ -420,11 +420,12 @@ startup_commands=$( (grep -ohE '/usr/(local/)?(s?bin|libexec)/[A-Za-z0-9/._-]+' 
     /usr/bin/aresos-session /usr/bin/aresos-terminal /usr/share/aresos/bashrc /etc/profile.d/aresos.sh \
     /usr/share/aresos/labwc/autostart /usr/share/aresos/labwc/rc.xml /usr/libexec/aresos-keyboard \
     /usr/libexec/aresos-subids /usr/bin/brew /usr/libexec/aresos-shell /usr/share/aresos/apps/*.json \
-    /usr/libexec/aresos-desktop /usr/libexec/aresos-desktop-java /usr/share/aresos/desktop-view.bashrc) | sort -u)
+    /usr/libexec/aresos-desktop /usr/libexec/aresos-desktop-java /usr/share/aresos/desktop-view.bashrc \
+    /usr/libexec/aresos-level) | sort -u)
 for command in /usr/bin/dbus-run-session /usr/bin/dbus-daemon /usr/bin/labwc /usr/bin/busctl /usr/bin/foot \
     /usr/libexec/aresos-shell /usr/bin/systemd-run /usr/bin/systemctl /usr/bin/kwrite /usr/bin/google-chrome \
     /usr/libexec/aresos-desktop /usr/libexec/aresos-desktop-java /usr/libexec/aresos-cover /usr/bin/prismlauncher \
-    /usr/bin/python3 /usr/bin/cat; do
+    /usr/bin/python3 /usr/bin/cat /usr/libexec/aresos-indicator; do
     grep -qx "$command" <<< "$startup_commands"
 done
 for command in $startup_commands; do
@@ -566,16 +567,26 @@ import os, xml.etree.ElementTree as ET
 root = ET.parse('/usr/share/aresos/labwc/rc.xml').getroot()
 binds = {b.get('key'): b.find('action').get('command') for b in root.iter('keybind')}
 library = open(next(p for p in ('/usr/lib64/libxkbcommon.so.0',) if os.path.exists(p)), 'rb').read()
-for key in ('XF86MonBrightnessUp', 'XF86MonBrightnessDown', 'XF86AudioRaiseVolume', 'XF86AudioLowerVolume',
-            'XF86AudioMute', 'XF86AudioMicMute'):
-    command = binds[key].split()
-    assert os.access(command[0], os.X_OK), (key, command)
+# Package 320: each key runs aresos-level with its action; the script makes the change, then tells the indicator.
+actions = {'XF86MonBrightnessUp': 'brightness-up', 'XF86MonBrightnessDown': 'brightness-down',
+           'XF86AudioRaiseVolume': 'volume-up', 'XF86AudioLowerVolume': 'volume-down',
+           'XF86AudioMute': 'mute', 'XF86AudioMicMute': 'mic-mute'}
+for key, action in actions.items():
+    assert binds[key] == f'/usr/libexec/aresos-level {action}', (key, binds[key])
     assert b'\0' + key.encode() + b'\0' in library, f'{key} is not a keysym name libxkbcommon knows'
-    print(key, '->', ' '.join(command))
+    print(key, '->', binds[key])
+assert os.access('/usr/libexec/aresos-level', os.X_OK)
 assert binds['W-C-Escape'] == '/usr/bin/aresos-terminal --recovery'
 PY
-pass 'brightness, volume, mute and mic-mute keys are bound to brightnessctl and wpctl; recovery terminal kept'
-for command in script qrencode brightnessctl wpctl; do
+for program in /usr/libexec/aresos-level /usr/libexec/aresos-settings /usr/libexec/aresos-indicator; do
+    test "$(stat -c '%U:%G %a' "$program")" = 'root:root 755'
+done
+bash -n /usr/libexec/aresos-level
+# With no settings file, aresos-settings gives the defaults (package 320) and writes nothing.
+settings=$(runuser -u ares -- env -i HOME=/nonexistent PATH=/usr/bin /usr/libexec/aresos-settings get)
+test "$settings" = '{"indicator-place": "top", "indicator-size": "medium", "look": "B"}'
+pass "brightness, volume, mute and mic-mute keys run aresos-level (package 320); aresos-settings gives the defaults ($settings); recovery terminal kept"
+for command in script qrencode brightnessctl wpctl gdbus flock timeout setsid; do
     command -v "$command"
 done
 script --version
@@ -735,6 +746,52 @@ PY
 font=$(runuser -u ares -- env -i HOME=/tmp PATH=/usr/bin /usr/bin/fc-match --format '%{file}' 'Space Grotesk:bold')
 test "$font" = /usr/share/fonts/aresos/SpaceGrotesk-Variable.ttf
 pass "the startup cover is installed and loads GTK 4 as ares; fontconfig finds Space Grotesk ($font); its labwc rule is set"
+# Package 320: the indicator pack and its font, followed by the program's real loader without a display.
+python3 - <<'PY'
+import hashlib
+from pathlib import Path
+
+share = Path('/usr/share')
+font = share / 'fonts/aresos/Jersey10-Regular.ttf'
+assert font.stat().st_size == 77732
+assert hashlib.sha256(font.read_bytes()).hexdigest() == 'db9cbd091617048a145d249daa2b815fe7083be6ab66ac26626e21a4e01c3e82'
+licence = font.with_name('OFL-Jersey10.txt').read_text()
+assert 'Copyright 2023 The Soft Type Project Authors' in licence
+assert 'SIL OPEN FONT LICENSE Version 1.1' in licence
+
+pack = share / 'aresos/look'
+icons = ('sun', 'speaker', 'speaker-muted', 'microphone', 'microphone-off')
+names = {'plate', 'slot', *icons, *(f'{icon}-unavailable' for icon in icons),
+         *(f'step-{kind}' for kind in ('lit', 'unlit', 'muted', 'part', 'limit'))}
+expected = {'look.json', 'sprites', *(f'sprites/{name}.png' for name in names)}
+paths = {path.relative_to(pack).as_posix() for path in pack.rglob('*')}
+assert paths == expected, f'look A file list differs: {paths ^ expected}'
+files = sorted(paths - {'sprites'})
+tree = '\n'.join(f'{hashlib.sha256((pack / name).read_bytes()).hexdigest()}  {name}' for name in files)
+digest = hashlib.sha256(tree.encode()).hexdigest()
+assert digest == '386d46534f4c38d5b0d53688628095e47a707bb60be2f902e0b861b447617ede', f'look A differs: {digest}'
+PY
+font=$(runuser -u ares -- env -i HOME=/nonexistent PATH=/usr/bin /usr/bin/fc-match --format '%{file}' 'Jersey 10')
+test "$font" = /usr/share/fonts/aresos/Jersey10-Regular.ttf
+test -x /usr/bin/pw-dump
+pass "Jersey 10 and its licence are installed ($font); the look A indicator pack matches its pin"
+layer=/usr/lib64/libgtk4-layer-shell.so.0
+if [[ ! -r $layer ]]; then
+    echo 'The indicator requires gtk4-layer-shell from the R29 image package' >&2
+    exit 1
+fi
+runuser -u ares -- env -i HOME=/nonexistent PATH=/usr/bin LD_PRELOAD="$layer" /usr/bin/python3 - <<'PY'
+import os
+import runpy
+
+gui = runpy.run_path('/usr/libexec/aresos-indicator')['load_gui']()
+assert gui.Gtk.get_major_version() == 4
+assert gui.layer.get_major_version() >= 1
+assert (os.environ['GDK_DISABLE'], os.environ['GSK_RENDERER']) == ('gl,vulkan', 'cairo')
+print('INDICATOR_GTK', gui.Gtk.get_major_version(), gui.Gtk.get_minor_version(), 'cairo', gui.cairo.version,
+      'gtk4-layer-shell', gui.layer.get_major_version(), gui.layer.get_minor_version(), gui.layer.get_micro_version())
+PY
+pass 'the indicator loads GTK 4, Pango, Cairo and Gtk4LayerShell as the everyday account'
 # Package 53f: the laptop home draws natively. Load the program's own load_gui() without a display, as the cover's
 # check does: GTK 4, Pango and Cairo as ares, with the Cairo renderer and no GPU device asked for.
 test -x /usr/libexec/aresos-laptop-home
