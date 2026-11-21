@@ -10,6 +10,35 @@ Every claim is marked **run** (a workflow run and its log line or artifact), **r
 branch's head unless another ref is named) or **assumed**. "44705819383" etc. are Control Chrome runs unless
 another workflow is named. Line numbers are those of step 4's code commit.
 
+## Fix round 1 — 2026-11-21
+
+- **Done:** Projected the prepared confirmation's address and removed element fingerprints from public replies,
+  stages and audit records. Native option labels stay bound; a library ref cannot cross a reconnect. Loss reports
+  mark owner work across the cap and require chat OK when not all loss is shown as Claude's typing.
+- **Done:** Replaced dialogs from another frame are stale; `chrome_do` requires 150 ms quiet after arrival and
+  reports late activation uncertainty with the input's committed ID. Released Claude-opened tabs can close with
+  the same protections. Unwatched editable native button text stays private while the control still asks.
+- **Verified:** 647 Node tests, 586 targeted Python tests, and 16 failing scratch mutations.
+  [PROGRESS.md](PROGRESS.md#fix-round-1--2026-11-21) lists the exact commands and results.
+  No real site contacted by Chrome fixtures; no local browser or owner profile was used. The fixed-clock case
+  reports loaded 250 ms after the first arrival sample, 150 ms after the token changes at the next poll, versus
+  0 ms with the previous two-look check in that case. No hosted latency result measured here. Instructions are
+  2,796 characters (−2), descriptions 5,963 (−12), combined 8,759 (−14), input schemas and names 6,729 (unchanged).
+- **JUDGMENT-CALL (lead, `linux-tools`, 2026-11-21):** Accepted bounded input setup waits and the second deadline
+  check after the hit test (`e3da3a8d`). They only stop dispatch; security review 1 confirmed that. Accepted the
+  qualification workflow's two CI-only flags (`e6737d29`, `df24623d`; record and publishing unchanged), the lead's
+  `chrome_show` design line (`1c67199b`), and step 3b's old-text pins under `reviews/20-chrome/` (its `records/`
+  untouched). No fix-round code changes for those decisions.
+- **JUDGMENT-CALL:** Require chat OK if any loss details were omitted, even when every reported field is marked
+  Claude's. This favors an extra question over relying on a capped list; relaxing it later needs a reviewed rule
+  change, not a discard-policy rewrite. An unnamed unwatched native button gets the conservative activation rule,
+  rather than reading its text to recover a specific kind.
+- **PLAN-GAP:** The inherited discard check cannot establish loss in canvas work, earlier completed wizard
+  steps, or a form in flight; see [KNOWN-LIMITS.md](KNOWN-LIMITS.md). The hosted gate has not yet measured the new
+  quiet wait after a `chrome_do` navigation; sample counts, ceilings and references did not change.
+- **Not verified / open:** The lead's hosted pass (including group 16 and the latency gate) and final package and
+  security look. See the fix-round dispatch IDs in [PROGRESS.md](PROGRESS.md).
+
 ## Done
 
 - **The tool list Claude is offered: 30 tools become 19** (**read** `control/generated/chrome-tools.json`):
@@ -148,10 +177,10 @@ fills through the command end by their deadline" checks the cut, **run** below).
 
 ## The tool descriptions and instructions as Claude reads them
 
-Copied unchanged from [TOOL-DESCRIPTIONS.md](TOOL-DESCRIPTIONS.md), which `test_instruction_rules` writes from
-`instructions_for('chrome')` and `tools_for('chrome')` and fails on when they differ (**run** locally, step 4).
-Sizes (**read** that file): 19 tools, descriptions 5,975 characters, server instructions 2,798 (limit 2,800),
-together 8,773 (main 9,178), names plus input schemas 6,729 (main 11,080).
+The exact text is in [TOOL-DESCRIPTIONS.md](TOOL-DESCRIPTIONS.md). `test_instruction_rules` compares it with
+`instructions_for('chrome')` and `tools_for('chrome')`; it does not write the file.
+Fix-round sizes: 19 tools, descriptions 5,963 characters, server instructions 2,796 (limit 2,800), together
+8,759 (step 4: 8,773; main: 9,178), names plus input schemas 6,729 (main: 11,080).
 
 **Where I'm unsure it reads well:**
 
@@ -419,11 +448,11 @@ The brief claims nothing about this binding; the runs show the cases above.
 | Bullet | Evidence |
 |---|---|
 | The nineteen tools exist with the inputs and results above; brief 20's replaced tools, the internal action and the test-only switch are gone. | **Read** `control/generated/chrome-tools.json` (19 entries). **Run** locally: `test_instruction_rules` (catalogue absence, the removed-name scan over descriptions, instructions, `adapter.py` and `background.js`), `test_outline_action`'s absence checks (step 3b). **Run** 44705819383: every fixture shard green. |
-| Groups 14, 15 and 16 pass, and groups 1 to 13 pass twice on the final head through the new tools. | **Run** 44705819383 (`c2a20dcb`): 22 `ACT BRIEF28A` cases `PASS` in both recheck2 shards; group 16's efficiency step `success` with no miss (`latency (plain)` 136185162311, step 5); every fixture shard and both aggregates green. **Final head, twice:** pass 1 (below) and pass 2 **[PASS 2: placeholder, the lead's shell]**. |
-| Every budget holds against the committed baseline. | **Run** 44705819383: group 16's read, act and size rows have no miss. PR #27's gate failed there only for `navigate`; with step 4's ceiling and reference it passes on the same artifacts (**run** locally, replay above). Final head: pass 1 and **[PASS 2: placeholder]**. |
+| Groups 14, 15 and 16 pass, and groups 1 to 13 pass twice through the new tools. | **Run** 44705819383 (`c2a20dcb`): 22 `ACT BRIEF28A` cases `PASS` in both recheck2 shards; group 16's efficiency step `success` with no miss (`latency (plain)` 136185162311, step 5); every fixture shard and both aggregates green. For step 4's two hosted passes, see “Pass 2 and the reviews”; fix-round rerun pending. |
+| Every budget holds against the committed baseline. | **Run** 44705819383: group 16's read, act and size rows have no miss. PR #27's gate failed there only for `navigate`; with step 4's ceiling and reference it passes on the same artifacts (**run** locally, replay above). See fix round 1 for the new local size counts. |
 | The generated Chrome ask rules are byte-identical to `main`'s. | **Run** locally: `cmp <(git show origin/main:control/settings/ask-rules.json) control/settings/ask-rules.json` (identical); `test_instruction_rules` compares them with `fixtures/28a-instructions/main-ask-rules.json`. |
 | `HARNESS-MAP.md` accounts for every changed helper and every rewritten staleness test. | **Read** [HARNESS-MAP.md](HARNESS-MAP.md), above. |
-| No secrets, real addresses, account names, provider names or real sites. | **Run** Repo privacy 44705838823 (`c2a20dcb`) green; the pre-push privacy check on every push; pass 1's privacy run on the final head. The fixtures use `*.test` hosts (**read** `act-fixtures.mjs`, `efficiency-fixtures.mjs`). |
+| No secrets or personal data in fixtures; no real site contacted by the fixtures. | **Run** Repo privacy 44705838823 (`c2a20dcb`) green; the pre-push privacy check on every push. Browser fixtures use `*.test` (**read** `act-fixtures.mjs`, `efficiency-fixtures.mjs`); offline policy pins and stand-ins can contain host literals. |
 
 ## Verified
 
@@ -432,8 +461,8 @@ Hosted, on `c2a20dcb` (the lead's record of results): Control Chrome 44705819383
 green. Qualification 44705823983, Control Base 44705828872, Control Mail 44705834097 and Repo privacy 44705838823
 green.
 
-Pass 1, dispatched once each on `faad16c8` (step 4's report commit; the code is `ffbb8c36`'s), verdicts
-**[PASS 1: placeholder, the lead's shell]**:
+Pass 1, dispatched once each on `faad16c8` (step 4's report commit; the code is `ffbb8c36`'s). The two
+green passes are supplied evidence in [security review 1](SECURITY-REVIEW-1.md):
 
 - [Control Chrome 44741976446](https://github.com/Ares-Empire/AresOS/actions/runs/44741976446)
 - [Control Chrome qualification 44741981631](https://github.com/Ares-Empire/AresOS/actions/runs/44741981631)
@@ -467,7 +496,7 @@ Local, step 4 (no browser ran locally):
 
 - Real Chrome on the owner's laptop, his profile and real sites: never in this package (brief, "Out of scope").
   The latency numbers are GitHub-hosted runners'; how `chrome_go`'s third of a second feels is for his live test.
-- Pass 2 on the final head and the package and security reviews: **[PASS 2 / REVIEWS: placeholders]**.
+- The fix-round hosted pass and final package and security look are pending.
 - Section 6's known limits weren't re-verified line by line in step 4 ([KNOWN-LIMITS.md](KNOWN-LIMITS.md)).
 
 ## JUDGMENT-CALLs
@@ -503,12 +532,12 @@ Each step's own calls are in [PROGRESS.md](PROGRESS.md); these are the ones that
   - `e3da3a8d`, **the input deadline during frame setup:** the waits before an input (each frame's control and
     arming replies, the reveal, the last facts read, the hit test) carry the input's time, and a pointer input
     checks it again after its hit test, right before the mouse dispatch. Each can only stop a dispatch. In letter
-    this is more than the brief's "one check right before the dispatch"; the security review should look at it
-    first (PLAN-GAPs).
+    this is more than the brief's "one check right before the dispatch". Security review 1 confirmed it can
+    only stop input; the lead approved the deviation in fix round 1 (PLAN-GAPs).
   - `9b482732`, **image-map links by hit bounds and an editable Pay button:** an `area` is read as a link when its
     mapped image is visible and gives it a hit region (Chrome gives areas no layout box), the same geometry the
-    input's hit test uses; a `<button contenteditable>` keeps its button role and label, so its click still asks.
-    The second makes such a button's typed text its label (KNOWN-LIMITS, step 4).
+    input's hit test uses. A `<button contenteditable>` keeps its button role and asking behavior; fix round 1
+    withholds its unwatched editable text (KNOWN-LIMITS).
   - `7dd773c0`, **the settle and quiet waits:** `chrome_do`'s report counts the look taken with the
     before-outline, so an asking first step on a still page no longer sleeps a poll; `chrome_go`, `chrome_open` and
     `chrome_take` look again when the 150 ms of quiet are reached instead of at the next 100 ms poll. Quiet,
@@ -531,10 +560,11 @@ Each step's own calls are in [PROGRESS.md](PROGRESS.md); these are the ones that
 
 - **The time check in `input` is more than one check** (`e3da3a8d`): bounded setup waits and a second check after
   the hit test. The brief and the lead's decision name one check right before the dispatch, a bounded wait in the
-  bridge and dropping a late reply. Each addition can only stop a dispatch.
+  bridge and dropping a late reply. The lead accepted the wider checks on 2026-11-21; each only stops a dispatch.
 - **The qualification workflow changed** (`e6737d29`, `df24623d`): its browser-test job passes
   `CHROME_FIXTURE_OBSERVER` and `ACT_INPUT_BOUNDARY` to the container, as `control-chrome.yml` does, so its shards
-  run the same instrumented harness. The brief's paths name only `control-chrome.yml`. The record's format,
+  run the same instrumented harness. The brief's paths name only `control-chrome.yml`; the lead accepted these
+  CI-only changes on 2026-11-21. The record's format,
   `qualification.py`, `qualify.py` and the publishing steps are unchanged (**read** `git diff origin/main --
   .github/workflows/control-chrome-qualification.yml`: two env lines and the two `-e` flags).
 - **`navigate` couldn't meet PR #27's ceilings** with brief 28's quiet rule (the 150 ms alone is over 100 ms):
@@ -556,10 +586,11 @@ Each step's own calls are in [PROGRESS.md](PROGRESS.md); these are the ones that
 
 ## Pass 2 and the reviews
 
-- **[PASS 2: placeholder.]** The lead's shell dispatches pass 2 after pass 1; its run IDs and verdicts go here.
-- **[PACKAGE REVIEW: placeholder.]**
-- **[SECURITY REVIEW: placeholder.]** Places to look at first, after the brief's list: the time-check additions
-  (`e3da3a8d`), the editable-button reading (`9b482732`), the private view digest.
+- [Package review 1](REVIEW-1.md): **CHANGES-NEEDED**. The reviewer confirmed the supplied Chrome and
+  qualification run records and checked the pass-2 aggregate (999 word cases, real group 12, 764 Python
+  tests); not every group on both passes was independently re-audited.
+- [Security review 1](SECURITY-REVIEW-1.md): **CHANGES-NEEDED**. The two green hosted passes were supplied
+  evidence, not repeated by the reviewer. Fix-round dispatches are recorded separately in [PROGRESS.md](PROGRESS.md).
 
 ## Open questions
 

@@ -64,16 +64,11 @@ list line by line. None of the lines it checked was found untrue.
 
 ### Reading (found in `9b482732`)
 
-- **An editable native button reads as a button, with its text as its label.** `9b482732` moved
-  the reader's `isContentEditable` rule below the native `button` tag (`reader.js`, **read**
-  `outlineRole`), so `<button contenteditable>` keeps its role and its visible text as its name,
-  as an element with an explicit `role=button` already did on brief 28's read. Text typed into
-  such a button is shown as its label, not as "(filled, not read)". *Harm:* text the owner typed
-  into an editable button of an unwatched page reaches Claude. *Accepted:* low (**assumed**): an
-  editable button is a misuse no sign-in or code entry relies on; inputs, textareas and other
-  editable elements stay on the withholding path and password fields stay excluded. The fix it
-  came with keeps an editable Pay button's role and label, so the click on it still asks. The
-  security review should confirm this reading.
+- **Unwatched editable native buttons may appear without a name.** Fix round 1 keeps the
+  button role and conservative asking behavior without showing its editable text as a name,
+  in rich identity or through the compose preview. Explicit labels can still identify it.
+  *Harm:* a button with no independent label is harder to identify. *Accepted:* the owner
+  can inspect it directly; the tool does not trade away privacy to name it.
 
 ### Time (found in `e3da3a8d`)
 
@@ -121,3 +116,18 @@ list line by line. None of the lines it checked was found untrue.
   reload and ask the owner to handle the page. The browser case separately checks this
   refusal, genuine owner typing, and the successful reload/navigation of a page without
   editable fields. Changing the frozen guard belongs in a later reviewed item.
+
+### Discard reports do not see all page work — inherited (item 6)
+
+- **Canvas work:** the guard does not see strokes or other state kept in a canvas. Leaving or
+  closing the page can lose an unsaved drawing or edit without a warning.
+- **Completed wizard steps:** the guard sees present fields, not the answers kept from earlier
+  steps whose fields are gone. Leaving the wizard can lose that progress without a warning.
+- **A form in flight:** the guard cannot tell that a page request is still on its way to the
+  server, or whether it arrived. Leaving can interrupt the send; do not assume it failed or retry it.
+
+These are inherited limits of the field/media check, not permission to discard known work.
+For those workflows the owner saves, finishes, or confirms the result in the page before leaving.
+The round keeps the discard policy and reports owner typing across all fields it can inspect,
+including beyond the display cap. Omitted fields, uninspected frames and unavailable reports
+do not establish that all loss is Claude's typing.

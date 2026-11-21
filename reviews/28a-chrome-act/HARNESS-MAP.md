@@ -221,6 +221,11 @@ rather than additional dispatched cases.
 
 ## Step 4
 
+- **`compatibility.mjs`'s native click window.** `nativeCompatibilityClick(window)` accepts the
+  exact window `browser.mjs` locates from a fixture's title in `ownerClickPage`. The harness
+  asserts that window owns focus after the click. Callers without a window keep the existing
+  visible-browser search. The compatibility result and publishing record are unchanged.
+
 - **`test_doing`'s fake extension and time cases.** `Steps.input` records in `reached` when each input
   passed its last time check, right before its dispatch. The time cases count, through the new `timed`
   helper, a step's start (right after `run_steps`' check of the dispatch second) and an input's dispatch,
@@ -228,3 +233,16 @@ rather than additional dispatched cases.
   the call. A refused late attempt dispatched nothing and still counts in `not_run`; the assertions on
   outcomes, `deadline`, `not_run` and the receiver are unchanged. Two deterministic cases cover a step whose
   page work runs past the cut and a step started before the cut whose input comes after it.
+
+## Fix round 1
+
+- **Reader and final input.** `outline-dom.mjs` models native `option.text`; the reader tests an
+  explicit option label and its empty-attribute fallback. `background.test.mjs` uses those
+  reader facts before approval and changes only the label during arming, with no selection sent.
+  The reader and service tests also pair a withheld editable name with an asking native button.
+- **Private acting facts.** The dialog wire fixture carries frame and address, but the public
+  outline still carries only kind and text. The operation projection fixtures exercise both free
+  and approved stage records and confirm that the full address stays in the private confirmation.
+- **Loss, navigation and ownership.** Wire stand-ins include `owner_work_present`. The background
+  test puts owner work outside the cap and exercises the real release/close routes. `test_doing`'s
+  replacement-frame, fixed-clock and late-queue probes leave the existing timing and call pins alone.

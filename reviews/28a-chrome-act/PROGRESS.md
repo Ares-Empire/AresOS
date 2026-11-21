@@ -1,5 +1,79 @@
 # Package 28a: Chrome acting progress
 
+## Fix round 1 — 2026-11-21
+
+Draft PR #116, still stacked on `pkg/28-chrome`. Started at `8ad1fdaf` (code `ffbb8c36`); fix code `94330e7e`.
+Findings: [security review 1](SECURITY-REVIEW-1.md) and [package review 1](REVIEW-1.md).
+
+### Done, with regression evidence
+
+All 16 mutations were applied one at a time in a scratch copy, with the targeted test passing before each change.
+Each mutation failed the named test's assertions. No mutation is in the branch.
+
+| Finding | Change and test | Mutation that failed |
+|---|---|---|
+| Security 1 (blocker) | Project the whole public approval description; `test_operation_projection` checks a synthetic code in the private confirmation but not the prepared reply or operation status. | Return the raw confirmation inside the otherwise projected description. |
+| Security 2 | Native option labels drive outline, current and proposed choices, digest and final comparison; `outline.test.mjs`, `background.test.mjs` and `test_operation_projection` cover an attribute that differs from text and a label-only change after approval. | Use option text alone (fails both Node cases), or omit options from the final comparison (fails dispatch refusal). |
+| Security 3 | Check bridge session when opening a library ref; `test_small_tools` uses a ref from A on B before any read. | Skip the session comparison. |
+| Security 4 | Strip private element fingerprints recursively; `test_operation_projection` checks the reply, operation status, both stored stages and audit. `test_acting_references` checks the reference still refreshes after input from private evidence. | Export `fingerprint` again, or refresh the reference from the projected reply. |
+| Security 5 / review 5 | Count owner typing across all fields and require chat OK when the loss report cannot show only Claude's typing; `background.test.mjs` puts the owner field eleventh, `test_loss_errors` checks the checked wire shape and `test_instruction_rules` pins the chat rule. | Compute ownership only from the ten displayed fields. |
+| Review 1 | Keep the last-shown dialog's private frame site and frame ID; `test_doing` refuses the same words from a replacement frame without dispatch. | Compare kind and text only. |
+| Review 2 | Share `going.py`'s elapsed quiet check after a step navigates; `test_doing` changes the token within the 150 ms window. | Accept two consecutive equal tokens instead. |
+| Review 3 | Late activation uncertainty updates the committed step's `outcome` and `unknown` ID; `test_doing` checks the queued case, including what did not run. | Treat the unknown as a stopped activation. |
+| Review 4 | Close a released Claude-opened tab without dropping the excluded-site or loss checks; `background.test.mjs` also refuses a tab the owner opened and keeps a tab with missing inspection. | Require active control again. |
+| Review 6 | Withhold unwatched editable text without losing native button role or conservative asking; `outline.test.mjs` checks the reader, `test_operation_projection` checks asking, and `test_instruction_rules` checks the credential wording. | Restore the text read, drop conservative asking on the withheld name, or restore the absolute credential claim. |
+| Review 8 | Map the explicit compatibility window, correct the description-document comparison and use a synthetic excluded host in `test_going`. No real site contacted by the fixtures. | Restore “Written by” in the description document: the exact document comparison fails. |
+
+### Verified locally
+
+- `.work/pkg28a-0a/node-v22.15.0-linux-x64/bin/node --test --test-concurrency=2 control/chrome_tests/*.test.mjs`:
+  647 passed, 0 failed, 18.7 s.
+- `PYTHONPATH=control:control/chrome_tests python3 -B -m unittest -v test_doing test_going test_questions
+  test_engine test_acting_references test_view_references test_latency test_efficiency test_instruction_rules
+  test_view_outline test_view_nodes test_outline_action test_outline_time test_small_tools test_loss_errors
+  test_operation_projection test_field_descriptions test_policy test_credentials test_excluded_sites_28a`:
+  438 tests, `OK`, 96.1 s. `EFFICIENCY MISS` lines are intentional negative fixtures.
+- `PYTHONPATH=control:control/chrome_tests python3 -B -m unittest -v test_committed test_exclusions test_fix_x1
+  test_full_disk_reads test_qualification_service test_sites test_unit test_view_address test_view_budgets
+  test_view_hostile test_view_paging`: 148 more tests, `OK`, 55.9 s. The qualification rate-limit warning is a
+  mocked transport error. An earlier broader run showed failures during iteration and was stopped before its
+  summary; it is not a pass. These final commands exclude the fault surface and state sweeps.
+- `PYTHONPATH=control python3 control/generate.py --check`: `Generated artifacts match definitions`.
+  `cmp <(git show origin/main:control/settings/ask-rules.json) control/settings/ask-rules.json`: identical.
+  `git diff --check`: clean. `find .work -type f -size +500M -print`: none.
+- Budgets: 19 tools; instructions 2,796 (−2; ceiling 2,800), descriptions 5,963 (−12), combined 8,759
+  (−14; ceiling 8,773); names and input schemas 6,729 (unchanged). Only the loss output gains one fact.
+- Latency: the fixed-clock case reports loaded at 250 ms from first arrival (token changes at 100 ms),
+  compared with 0 ms for the old two-look check in that fixture. No local browser or group 16 measurement;
+  sample counts, ceilings and references did not change.
+
+### The lead's decisions (`linux-tools`, 2026-11-21)
+
+- Review 7: accept the deviation from “one final check”: bounded input setup waits and the deadline check
+  after the hit test (`e3da3a8d`) can only stop a dispatch, never start or change one. Security review 1
+  confirmed this. No change in this round.
+- Review 7: accept the qualification workflow's CI-only flags (`e6737d29`, `df24623d`; record and publishing
+  unchanged), the lead's `chrome_show` line in `docs/design/CONTROL.md` (`1c67199b`), and the old-text pins
+  under `reviews/20-chrome/` allowed in step 3b (its `records/` untouched). No change in this round.
+- Security review 1's loss-report nit is fixed above, not accepted as a limit.
+
+### JUDGMENT-CALLs
+
+- Chat OK when loss details are omitted, even if the shown fields are all Claude's. Relaxing that would be
+  a reviewed change to the owner-facing rule. Keep an unnamed native button conservative rather than read
+  unwatched text to recover its kind; the cost is a generic question rather than a more specific label.
+
+### PLAN-GAPs
+
+- Inherited loss detection does not cover canvas work, completed wizard steps, or a form in flight; the harm
+  and reason are in [KNOWN-LIMITS.md](KNOWN-LIMITS.md). No claim that an empty report proves there is no loss.
+- Browser timing (in particular group 16 and the latency gate) is only verified by the lead's hosted run.
+
+### Left
+
+- The lead's hosted CI pass and final package and security look. No workflow was watched in this round.
+- Fix-round dispatch IDs to record after the report head is pushed.
+
 ## Step 4
 
 2026-11-20. Draft PR #116. Built by a Claude agent (claude-opus-5-5) for the `linux-tools` lead. Code and
