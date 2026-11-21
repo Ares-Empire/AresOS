@@ -6,6 +6,26 @@ Written 2026-11-13 (last update 19:00) by `linux-aresos`, the OS lead, now runni
 
 ## Running right now
 
+**Newest first: 2026-11-21 afternoon (`linux-aresos`).**
+
+- **Waiting on the owner:** board T454, when to run the R28 laptop update session. The steps are in the R28 entry below.
+- **R29's image package is merged:** B323, PR135, main `6fe289e4`.
+  - **What it adds:**
+    - gtk4-layer-shell-1.3.0-1.fc44.x86_64 in the lock, x86_64 only. Requested by name, dnf pulled i686 and 23 multilib packages.
+    - JetBrains Mono in `/usr/share/fonts/aresos/`.
+    - Image checks for the layer library under `LD_PRELOAD`, the font, and Mesa's EGL and Intel's Vulkan files.
+    - 18c-b's one-layer labwc swap (`6d610587`). The two-layer layout lost the swap once in three builds, in run 44888933298.
+  - **Proof:** check build 44919908251 is green, and REVIEW-1 (Codex Sol) is SAFE.
+  - **Tests:** test_release27 and test_release28 now read R28's recorded lock (`test_release27.released`), so later lock changes don't break them.
+  - **Told:** linux-desktop, that B320 (PR131) can rebase, build and merge; linux-tools, that its labwc fix is on main.
+- **Package 25's guardian lid check race:** its lid time is rounded to the millisecond (run 44917067389). linux-laptop-home's PR136 fixes it, and its os/ diff read OK. A check build failing at guardian_host.py:223 before PR136 merges is that race.
+- **Read OK today:**
+  - 18c-b `a58d5366`: the release image check refuses the test payload roots;
+  - PR134 (53a's helper follow-ups, merged `182005e6`), with its known limit for finder-opened apps;
+  - PR136.
+- **R29 notes on the board:** T462, the update into R29 keeps Alt+F4 first (package 25 lets R30 drop it). The rest are in the R29 entry below.
+- **Next for this lead:** R29's release package. It needs R29's release_diff profile, with gtk4-layer-shell's and JetBrains Mono's reasons and 18c-b's Chrome, and its own Control check list. Start it only when mac-capacity's budget allows.
+
 1. **Package 23 is merged** (PR #36, `3bff81b6`, 2026-11-13 20:57; see `STATE.md`, Done). `linux-hub` (briefs 30 and 31) and `linux-tools` (18c's `os/` part) were told; both cut from this main.
 2. **27b is merged** (PR #41, `4d0c4dc5`, 2026-11-13): INSTALL-STATUS records the laptop's update, bound files may wait again in `os/manifest/ci/16/pending-rebind.json`, and the hosted checks-only job is green again (it now fetches full history).
 3. **22c, every way back works after an update** (empire brief 278; brief `briefs/22c-ways-back-after-update.md`, on main since `6cca14b6`; worktree `~/AresOS-22c-ways-back-after-update`, branch `pkg/22c-ways-back-after-update`). The council's verdict is `reviews/councils/2026-11-13-22c-ways-back/VERDICT.md` (GAPS-FOUND 11, the direction stands); the brief carries every finding and a fresh Codex check's six edits.
