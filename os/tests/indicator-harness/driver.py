@@ -38,7 +38,7 @@ W, H = 1000, 640
 WORLD = (32, 64, 96)
 # Linux input event codes, mapped through the virtual keyboard's evdev keymap.
 KEY = dict(brightness_up=225, brightness_down=224, volume_up=115, volume_down=114, mute=113, mic_mute=248)
-START_LINES = ('aresos-indicator: started', 'aresos-indicator: started while another indicator owns the name')
+START_LINE = 'aresos-indicator: started'
 
 loader = importlib.machinery.SourceFileLoader('shell', '/harness/os/config/usr/libexec/aresos-shell')
 shell = importlib.util.module_from_spec(importlib.util.spec_from_loader(loader.name, loader))
@@ -276,7 +276,7 @@ class Session:
         return self.log_path.read_text(errors='replace')
 
     def launches(self):
-        return [line for line in self.log().splitlines() if line in START_LINES]
+        return self.log().splitlines().count(START_LINE)
 
     def world_lines(self):
         return self.world_path.read_text().splitlines()
@@ -473,8 +473,8 @@ assert not Gtk4LayerShell.is_supported()
     (EV / '03-xwayland-indicator.log').write_bytes(failed.stderr)
     app.observer.roundtrip()
     app.check(failed.returncode == 1 and failed.stderr.decode().splitlines()
-              == ['aresos-indicator: the compositor has no usable layer-shell protocol'],
-              'loadable real layer library without the protocol logged once and exited 1')
+              == [START_LINE, 'aresos-indicator: the compositor has no usable layer-shell protocol'],
+              'loadable real layer library without the protocol logged its entry and one error, then exited 1')
     app.check(len(app.toplevels.announced) == 1 and 'KBD_LEAVE' not in app.world_lines()[mark:]
               and not has_owner() and all(not app.frame(o)[1] for o in app.outputs),
               'zero new toplevels, plates or keyboard leaves through all failure cases')
@@ -534,7 +534,7 @@ def test4(app):
     seen = [value for value in observations if value is not None]
     app.check(len(set(seen)) >= 2 and seen == sorted(seen, reverse=True), f'visible bar traversed levels {sorted(set(seen), reverse=True)}')
     expect_level(app, final, capture='04-final-repeat-level')
-    app.check(len(processes(INDICATOR)) == 1 and len(app.launches()) == 1 and not processes(LEVEL),
+    app.check(len(processes(INDICATOR)) == 1 and app.launches() == 1 and not processes(LEVEL),
               'one program and one start line, all key scripts and notifiers finished')
     wait = app.gone() - released
     app.check(1.30 <= wait <= 1.85, f'plate vanished {wait:.3f} s after release')
@@ -658,7 +658,7 @@ def test8(app):
 
 
 def cold(app, repeat_mode):
-    mark = len(app.launches())
+    mark = app.launches()
     reset_devices(sink=dict(volume=1.0, mute=False))
     start = time.monotonic()
     if repeat_mode:
@@ -675,7 +675,7 @@ def cold(app, repeat_mode):
     final = round(state()['sink']['volume'] * 100)
     assert final <= 90, f'only one key action from cold, final {final}%'
     expect_level(app, final)
-    app.check(len(app.launches()) - mark == 1 and len(processes(INDICATOR)) == 1,
+    app.check(app.launches() - mark == 1 and len(processes(INDICATOR)) == 1,
               f'{("held key" if repeat_mode else "two quick presses")} from cold: one start line, one process, '
               f'first visible frame within {latency * 1000:.0f} ms of the first press, final {final}%')
 
@@ -697,30 +697,26 @@ def test9(app):
     app.start(delay=6500)
     reset_devices(sink=dict(volume=1.0, mute=False))
     mark = len(app.log())
+    launches = app.launches()
+    start = time.monotonic()
     app.tap('volume_down')
     until(lambda: 'waiting before taking the bus name (test)' in app.log()[mark:], 'delayed program pre-registration')
     first, = processes(INDICATOR)
-    app.tap('volume_down')
-    until(lambda: state()['sink']['volume'] == 0.90, 'both level changes before bus ownership')
-    app.check(not has_owner() and processes(INDICATOR) == [first], 'both levels changed while the first delayed program held the launch lock')
+    app.check(state()['sink']['volume'] == 0.95 and not has_owner(),
+              'the key changed the level while the delayed program was waiting to register')
     launch_lock = RUNTIME / 'aresos-indicator.launch'
     with launch_lock.open() as handle:
-        def reaped_before_release():
-            try:
-                fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            except BlockingIOError:
-                others = [pid for pid in processes(INDICATOR) if pid != first]
-                if not others:
-                    return False
-            else:
-                fcntl.flock(handle, fcntl.LOCK_UN)
-            assert not Path(f'/proc/{first}').exists(), 'first program survived (or was a zombie) after lock release'
-            return True
-        until(reaped_before_release, 'first delayed process reaped before lock release', timeout=7)
+        # Be the sole waiter so a second notifier cannot hide the first lock handoff.
+        fd = handle.fileno()
+        subprocess.run(['/usr/bin/flock', '-w', '7', str(fd)], pass_fds=(fd,), check=True, timeout=8)
+        elapsed = time.monotonic() - start
+        assert not Path(f'/proc/{first}').exists(), 'delayed program survived (or was a zombie) at lock handoff'
+        assert 5.0 <= elapsed < 5.5, f'launch lock handed off after {elapsed:.3f} s, expected 5.0–5.5 s'
     idle_keys()
     timed = app.log()[mark:].count('did not take its bus name within 5 s and was ended')
-    app.check(1 <= timed <= 2 and not has_owner() and not processes(INDICATOR) and not app.frame(LEFT)[1],
-              f'{timed} deadline termination(s); first PID was reaped before release, no survivor, owner or plate')
+    app.check(app.launches() - launches == timed == 1 and not has_owner() and not processes(INDICATOR)
+              and not app.frame(LEFT)[1],
+              f'one termination, lock handed off after {elapsed:.3f} s with PID reaped and no survivor, owner or plate')
 
 
 def main():

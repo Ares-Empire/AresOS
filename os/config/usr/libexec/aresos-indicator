@@ -296,7 +296,7 @@ class Indicator:
         self.gui, self.app, self.display, self.settings = gui, app, display, settings
         self.last, self.request, self.window = -1, None, None
         self.hide_timer = self.idle_timer = self.paint_source = 0
-        self.started = self.failed = False
+        self.failed = False
         self.worker = ThreadPoolExecutor(max_workers=1)
         self.query = None
 
@@ -371,9 +371,6 @@ class Indicator:
             glib.timeout_add(FLASH_MS, area.queue_draw)
         self.window.set_child(area)
         self.window.set_visible(True)
-        if not self.started:
-            self.started = True
-            log('started')
 
     def on_show(self, _connection, _sender, _path, _interface, _method, parameters, reply):
         reply.return_value(None)
@@ -387,22 +384,34 @@ def run(gui, first):
             or gui.layer.get_protocol_version() < 1):
         log('the compositor has no usable layer-shell protocol')
         return 1
-    app = gui.Gio.Application(application_id=NAME)
+    class Application(gui.Gio.Application):
+        show_registration = 0
+
+        def do_dbus_register(self, connection, _path):
+            # GDBus can receive a Show as soon as the application owns the name.
+            interface = gui.Gio.DBusNodeInfo.new_for_xml(INTERFACE).interfaces[0]
+            self.show_registration = connection.register_object(OBJECT, interface, self.indicator.on_show, None, None)
+            return True
+
+        def do_dbus_unregister(self, connection, _path):
+            if self.show_registration:
+                connection.unregister_object(self.show_registration)
+                self.show_registration = 0
+
+    app = Application(application_id=NAME)
     indicator = Indicator(gui, app, display, runpy.run_path(SETTINGS)['load'])
+    app.indicator = indicator
 
     def startup(application):
-        interface = gui.Gio.DBusNodeInfo.new_for_xml(INTERFACE).interfaces[0]
-        connection = application.get_dbus_connection()
-        if connection is None:
+        if application.get_dbus_connection() is None:
             log('no session bus connection')
-            indicator.failed = True
+            application.indicator.failed = True
             return
-        connection.register_object(OBJECT, interface, indicator.on_show, None, None)
         provider = gui.Gtk.CssProvider()
         provider.load_from_string('window.aresos-indicator { background: transparent; box-shadow: none; }')
         gui.Gtk.StyleContext.add_provider_for_display(display, provider, gui.Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         application.hold()
-        indicator.show(*first)
+        application.indicator.show(*first)
 
     app.connect('startup', startup)
     app.connect('activate', lambda _app: None)
@@ -426,9 +435,11 @@ def run(gui, first):
     finally:
         indicator.close_window()
         indicator.worker.shutdown(wait=False)
+        del app.indicator
 
 
 def main(argv):
+    log('started')
     os.environ.pop('LD_PRELOAD', None)
     os.unsetenv('LD_PRELOAD')
     if len(argv) != 3 or not re.fullmatch(r'[0-9]{1,20}', argv[0]) or not reading_valid(*argv[1:]):
