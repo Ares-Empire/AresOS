@@ -337,7 +337,7 @@ During a capture Ctrl+Alt+Escape is forwarded like every key; the way out is lab
 - **Super+Shift+Escape under the gate** is test3's and test9's (both pass with the marked binding): the capture
   ends, and test3's INFO line shows the client got Super and Shift and never Escape.
 - **The control: test10 fails on a labwc without the patch** (`evidence/step1c-harness-control-aresos1/`). The same
-  driver, `rc.xml` and binary on `localhost/aresos-labwc:311e` (`aresos1`, R29's labwc; in a harness image built
+  driver, `rc.xml` and binary on `localhost/aresos-labwc:311e` (`aresos1`, main's labwc then; in a harness image built
   against `aresos1`'s lock and removed after): 120 passed, **9 failed**, all of them test10's gate. Alt+F4 asked
   the local window to close; the switcher took Tab and Down; the lone Super, the media keys and both mouse
   bindings ran their commands and those keys and buttons never reached the client; the held Super ran its release action; the
