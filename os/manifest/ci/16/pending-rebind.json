@@ -5,7 +5,8 @@
   "changes": [
     "42 record: rehearsal 8 (44836654799) qualified a61a393c; INSTALL-STATUS's signed-update row",
     "42 merge retains main's newer VM and desktop supervisor",
-    "42 final look: INSTALL-STATUS's R28 summary says rehearsed, and test_owner_path pins it"
+    "42 final look: INSTALL-STATUS's R28 summary says rehearsed, and test_owner_path pins it",
+    "T475: INSTALL-STATUS records the laptop on R28 (R13 earlier, R27 previous, R28 on the laptop); test_owner_path and test_owner_equality follow the new labels"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -18,7 +19,11 @@
       "path": "os/config/usr/libexec/aresos-desktop"
     },
     {
-      "sha256": "1ced99a7a531f619ff92cbe8a0758d8d35d9ec0eca1712b1879f9c44f087de9d",
+      "sha256": "23c4da91d08619ef8b1c37ca8f25c16f7dd9ba82e8135dd6c754f561c62050a4",
+      "path": "os/tests/test_owner_equality.py"
+    },
+    {
+      "sha256": "4f5d3013902ecf1b92bd9edfb27d70124575287f56fe54b2b8c8fee5aaaa1ad5",
       "path": "os/tests/test_owner_path.py"
     }
   ],

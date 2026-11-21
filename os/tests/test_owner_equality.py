@@ -75,7 +75,7 @@ def check_fingerprints(documents, fingerprint):
     pins=set()
     for name in ('installer-isos.json','media-tools.json','release.json','releases/13.json','ci/11n/b-1/release.json'):
         pins.update(re.findall(r'\b[0-9a-f]{64}\b',(ROOT/'os/manifest'/name).read_text()))
-    laptop=json.loads(walk.R27_RECORD.read_text())['reference']
+    r27=json.loads(walk.R27_RECORD.read_text())['reference']
     seen=False
     for page,text in documents.items():
         if page == 'INSTALL-STATUS.md':
@@ -83,7 +83,7 @@ def check_fingerprints(documents, fingerprint):
             retired = 'Tools fingerprint `' + release28_walk.TOOLS_V4 + '`'
             text = re.sub(r'(?m)^(\| Owner tools without the stick \(package 22d\) \|[^\n]+? \| )'
                           + re.escape(retired), r'\1', text, count=1)
-            text = text.replace('- **R27 (on the laptop):** `' + laptop + '`', '', 1)
+            text = text.replace('- **R27 (previous):** `' + r27 + '`', '', 1)
         for value in re.findall(r'\b[0-9a-f]{64}\b',text):
             if value not in pins | {fingerprint}:
                 raise AssertionError(f'Stale tools fingerprint or unbound hash in {page}: {value}')

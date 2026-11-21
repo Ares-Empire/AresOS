@@ -6,9 +6,18 @@ Written 2026-11-13 (last update 19:00) by `linux-aresos`, the OS lead, now runni
 
 ## Running right now
 
-**Newest first: 2026-11-21 afternoon (`linux-aresos`).**
+**Newest first: 2026-11-21 evening (`linux-aresos`).**
 
-- **Waiting on the owner:** board T454, when to run the R28 laptop update session. The steps are in the R28 entry below.
+- **The laptop runs R28** (board T454 done): the owner's update session ran on 2026-11-21. The lead typed `at update`, `at title` and `at reboot` at his request behind his password windows; after the restart `at check` confirmed the update. Boot menu: R28, R27, the pinned stock. INSTALL-STATUS, STATE and the tests that pin their lines: branch `docs/475-laptop-on-r28` (board T475).
+- **What he saw after the restart:**
+  - The Microsoft sign-in in the browser kept handing back to `prismlauncher://`, which R28 has no handler for. He signed in with the device code (`aresos-desktop retry`) and is in the hub. R29: a NoDisplay desktop entry for `x-scheme-handler/prismlauncher` (board T474).
+  - The terminal he found is foot, with no tabs. Konsole as the everyday terminal is already planned.
+  - Windows still wear Ares-Crown. He decided on 2026-11-20 (T432) that they follow the look. linux-desktop's frame package (brief 329, look A only; look B's game textures come with COMPONENTS section 5's sync step) is planned for Monday or Tuesday, and **R29's cut takes it if it is on main by then** (agreed with linux-desktop, T476). It brings its image-difference list, an owner-summary line and the rc.xml rebase rule.
+- **B320 (the indicator) is merged:** PR131, `06883a3d`.
+- **All four laptop sessions run again after the restart** (linux-tools, linux-hub, linux-laptop-home, linux-desktop). linux-hub was told the laptop runs R28, so its try-out of the real home can start.
+
+**2026-11-21 afternoon (`linux-aresos`).**
+
 - **R29's image package is merged:** B323, PR135, main `6fe289e4`.
   - **What it adds:**
     - gtk4-layer-shell-1.3.0-1.fc44.x86_64 in the lock, x86_64 only. Requested by name, dnf pulled i686 and 23 multilib packages.
