@@ -23,6 +23,11 @@ ROLES = json.loads((PACK / 'look.json').read_text())['frame_colours']
 THEME = Path('/usr/share/themes/AresOS/labwc')
 LEFT_BUTTON, RIGHT_BUTTON, MIDDLE_BUTTON = 272, 273, 274
 ESC, TAB, ALT, SHIFT, SUPER, F4 = 1, 15, 56, 42, 125, 62
+UNBOUND_KEY = 30  # A, with no modifiers
+THEME_ERROR = re.compile(
+    r'^.*\[ERROR\] \[(?:[^\]\s]*/)?(?:theme\.c|(?:img|ssd|decorations)/[^/\]\s]+\.c):\d+\].*$',
+    re.MULTILINE,
+)
 SHIPPED = ('menu', 'iconify', 'max', 'close')
 ALL_BUTTONS = ('menu', 'shade', 'desk', 'iconify', 'max', 'close')
 COLOURS = ('#725238', '#385869', '#4f673a', '#705776')
@@ -100,9 +105,7 @@ class FrameSession(Session):
     def __exit__(self, *error):
         super().__exit__(*error)
         if error[0] is None:
-            bad = re.findall(r'^.*(?:theme\.c|img/png\.c|ssd.*\.c).*'
-                             r'(?:[Ee]rror|[Ff]ail|[Ii]nvalid|[Uu]nknown|[Cc]annot).*$',
-                             self.log(), re.MULTILINE)
+            bad = THEME_ERROR.findall(self.log())
             assert not bad, bad
 
     def windows(self):
@@ -675,6 +678,15 @@ def motion_sample(app, world):
     return lock_events(world.lines()[start:])
 
 
+def keyboard_sample(app, world):
+    start = len(world.lines())
+    app.tap(UNBOUND_KEY)
+    # The later pointer event confirms the world has processed events queued before it.
+    motion = motion_sample(app, world)
+    keys = [line for line in world.lines()[start:] if line.startswith(f'KEY {UNBOUND_KEY} ')]
+    return {'key_events': keys, 'motion_events': motion}
+
+
 def panel_metrics(image, count):
     l = (WIDTH - count * 280) // 2
     top = (HEIGHT - 208) // 2
@@ -725,8 +737,9 @@ def switch_run(source):
         data['world_configures'] = configures
         if branch:
             capture('06-world-below-app', original)
-        data['before'] = motion_sample(app, world)
-        assert data['before'] == ['REL 10.00 5.00'], data
+        data['before'] = keyboard_sample(app, world)
+        assert data['before'] == {'key_events': [f'KEY {UNBOUND_KEY} 1', f'KEY {UNBOUND_KEY} 0'],
+                                  'motion_events': ['REL 10.00 5.00']}, data
         mark = len(world.lines())
         right_before = app.grab(RIGHT)
         alt_tab(app, held=True)
@@ -746,7 +759,7 @@ def switch_run(source):
         if branch:
             assert not ImageChops.difference(original, app.grab(LEFT)).getbbox()
         data['cancel_events'] = lock_events(world.lines()[mark:])
-        data['after_cancel'] = motion_sample(app, world)
+        data['after_cancel'] = keyboard_sample(app, world)
 
         mark = len(world.lines())
         alt_tab(app)
@@ -759,7 +772,8 @@ def switch_run(source):
         app.expect_focus(world)
         until(lambda: 'LOCKED' in world.lines()[mark:], 'world relock on returned focus')
         data['back_events'] = lock_events(world.lines()[mark:])
-        data['after_back'] = motion_sample(app, world)
+        data['after_back'] = keyboard_sample(app, world)
+        assert data['after_back'] == data['before'], data
 
         if branch:
             alt_tab(app, held=True, reverse=True)
@@ -776,34 +790,45 @@ def switch_run(source):
             data['minimized_tile'] = {'box': rect, 'thumbnail_client_colour_box': thumb, 'label_ink': label}
             capture('06-minimized-restored', app.grab(LEFT))
 
-            # Focus an app on the second output, then click the tile for the left app while Alt is still held.
+            # Keep focus on the right while the pointer is on the left, then select a tile by click.
             bx = app.box(remote, RIGHT)
             app.click((bx[0]+15, bx[1]+15), output=RIGHT)
+            mark = len(world.lines())
+            app.goto(LEFT, 1600, 220)
+            until(lambda: any(line in ('ENTER 1600.0 220.0', 'MOTION 1600.0 220.0')
+                              for line in world.lines()[mark:]), 'pointer on left output')
             app.expect_focus(remote)
+            l = (WIDTH - 5 * 280) // 2
+            top = (HEIGHT - 208) // 2
+            panel_band = (l, top-8, l+5*280, top)
+            left_before = app.grab(LEFT).crop(panel_band)
             alt_tab(app, held=True)
             shot = app.grab(RIGHT)
             panel_metrics(shot, 5)
+            assert not ImageChops.difference(left_before, app.grab(LEFT).crop(panel_band)).getbbox(), (
+                'switcher panel changed the output under the pointer')
             capture('06-panel-focused-right', shot)
-            l = (WIDTH - 5 * 280) // 2
             tiles = [shot.crop((l+i*280, 436, l+(i+1)*280, 580)) for i in range(5)]
             index, = [i for i, tile in enumerate(tiles) if colour_box(tile, overlap.colour)]
             app.click((l+index*280+140, 520), output=RIGHT)
             app.expect_focus(overlap)
             app.key(ALT, False)
-            data['panel_click'] = {'tile': index, 'focus_before_releasing_alt': app.focused()}
+            data['panel_click'] = {'pointer_output_at_open': LEFT, 'focused_output_at_open': RIGHT,
+                                   'panel_on_pointer_output': False, 'tile': index,
+                                   'focus_before_releasing_alt': app.focused()}
     return data
 
 
 def check_switcher():
     baseline = switch_run(BASELINE)
     branch = switch_run(BRANCH)
-    for key in ('before', 'cancel_events', 'after_cancel', 'away_events', 'while_away', 'back_events', 'after_back'):
-        assert baseline[key] == branch[key], (key, baseline[key], branch[key])
     (EV / '06-switcher.json').write_text(json.dumps({
         'merge_base': Path('/harness/merge-base.txt').read_text().strip(),
         'baseline': baseline, 'branch': branch,
     }, indent=2) + '\n')
-    return 7
+    for key in ('before', 'cancel_events', 'after_cancel', 'away_events', 'while_away', 'back_events', 'after_back'):
+        assert baseline[key] == branch[key], (key, baseline[key], branch[key])
+    return 8
 
 
 def check_look():
