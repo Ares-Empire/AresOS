@@ -488,7 +488,8 @@ None in steps 1 and 1b.
 
 | # | Step | Run | What |
 |---|---|---|---|
-| 1 of 8 | 1c | `44935351683`, on `0b1f9339` (dispatched 2026-11-21 19:24) | `check_build=build` on the step's head: it builds the labwc stage (the pins must hold on the hosted runner too) and the image, and runs the image checks, the labwc one included. Not waited for: the lead reads it. |
+| 1 of 8 | 1c | `44935351683`, on `0b1f9339` (dispatched 2026-11-21 19:24) | `check_build=build` on the step's head: it builds the labwc stage (the pins must hold on the hosted runner too) and the image, and runs the image checks, the labwc one included. **Green** (the lead, 2026-11-21 20:22). |
+| 2 of 8 | 1c review fixes | `44937064135`, on `7d38fa7b` (dispatched by the lead 2026-11-21 19:44) | `check_build=build` after fix 8: image-checks.sh now runs `stage.py check-installed` against the manifest lock, piped in by check-image.sh. **Green** (2026-11-21 21:25). |
 
 ## Podman, after step 1c
 
