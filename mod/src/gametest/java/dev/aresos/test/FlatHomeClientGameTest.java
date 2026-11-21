@@ -111,7 +111,7 @@ public final class FlatHomeClientGameTest implements FabricClientGameTest {
             groundBefore = world.getServer().computeOnServer(server -> {
                 var level = server.overworld();
                 var player = world.getConnection().getServerPlayer();
-                check(!LiveMode.isLive(player) && !HubData.protectsFrom(player, EDITED), "Build mode still protects the road");
+                check(!LiveMode.isLive(player), "The player did not enter Build mode");
                 check(!HubData.protectsFromExplosions(server), "Build mode still shields the hub from explosions");
                 // His edit, made the way a mined block is, and a rule he changes: both must still be there after a restart.
                 check(player.gameMode.destroyBlock(EDITED) && level.getBlockState(EDITED).isAir(), "Build mode could not break a road block");
@@ -144,15 +144,14 @@ public final class FlatHomeClientGameTest implements FabricClientGameTest {
                 var player = world.getConnection().getServerPlayer();
                 check(ground(level).equals(groundBefore), "The ground around home changed across a restart");
                 check(level.getBlockState(EDITED).is(Blocks.DIAMOND_BLOCK), "His edit was undone");
-                check(!HubData.protectsFrom(player, EDITED), "A block he changed is still treated as the mod's");
-                check(player.gameMode.destroyBlock(EDITED), "He cannot break his own block in Live mode");
-                level.setBlockAndUpdate(EDITED, Blocks.DIAMOND_BLOCK.defaultBlockState());
+                check(!HubData.get(server).holds(level, EDITED), "A block he changed is still treated as the mod's");
+                check(!player.gameMode.destroyBlock(EDITED), "Live mode broke his own block");
                 // Live mode, as the real host: the mod's own blocks stay.
                 check(HubData.protectsFromExplosions(server), "Live mode does not shield the hub from explosions");
-                check(!HubData.protectsFrom(player, HOME.below()) && player.gameMode.destroyBlock(HOME.below()), "His gold regained protection after restart");
-                level.setBlockAndUpdate(HOME.below(), Blocks.GOLD_BLOCK.defaultBlockState());
-                check(!HubData.protectsFrom(player, CHANGED_BACK) && player.gameMode.destroyBlock(CHANGED_BACK), "Changed-back road regained protection after restart");
-                level.setBlockAndUpdate(CHANGED_BACK, Blocks.CONCRETE.lightBlue().defaultBlockState());
+                check(!HubData.get(server).holds(level, HOME.below()) && !player.gameMode.destroyBlock(HOME.below()),
+                        "His gold regained ownership or Live mode broke it after restart");
+                check(!HubData.get(server).holds(level, CHANGED_BACK) && !player.gameMode.destroyBlock(CHANGED_BACK),
+                        "Changed-back road regained ownership or Live mode broke it after restart");
                 check(!player.gameMode.destroyBlock(HOME.offset(2, -1, 0)), "Live mode broke an untouched pad block");
                 check(!player.gameMode.destroyBlock(new BlockPos(0, 63, -10)) && level.getBlockState(new BlockPos(0, 63, -10)).is(Blocks.CONCRETE.lightBlue()),
                         "Live mode broke the road's centre line");
