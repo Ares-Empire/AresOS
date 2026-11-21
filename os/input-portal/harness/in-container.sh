@@ -68,8 +68,7 @@ cat > "$XDG_CONFIG_HOME/labwc/rc.xml" <<'XML'
       <action name="Execute" command="/usr/libexec/aresos-input-portal --release" />
     </keybind>
     <keybind key="W-C-Escape" allowWhenInhibited="yes">
-      <action name="Execute" command="/usr/libexec/aresos-input-portal --release" />
-      <action name="Execute" command="/harness/binding recovery-terminal" />
+      <action name="Execute" command="sh -c '/usr/libexec/aresos-input-portal --release; exec /harness/binding recovery-terminal'" />
     </keybind>
     <keybind key="A-F4"><action name="Close" /></keybind>
     <keybind key="A-Tab"><action name="NextWindow" /></keybind>
@@ -88,10 +87,14 @@ cat > "$XDG_CONFIG_HOME/labwc/rc.xml" <<'XML'
 </labwc_config>
 XML
 cp "$XDG_CONFIG_HOME/labwc/rc.xml" "$EV/labwc-rc.xml"
-# What the test bindings run: one line per run, so the driver sees which binding acted and how often.
+# What the test bindings run: one line per run, and a new Wayland window for recovery.
 cat > /harness/binding <<'SH'
 #!/usr/bin/bash
 echo "$1" >> /evidence/bindings.log
+if [ "$1" = recovery-terminal ]; then
+    echo "$$" > /harness/recovery-window.pid
+    exec /opt/harness/bin/wl-harness window >> /evidence/recovery-window.log 2>&1
+fi
 SH
 chmod 0755 /harness/binding
 : > "$EV/bindings.log"

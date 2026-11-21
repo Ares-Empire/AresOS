@@ -1312,6 +1312,7 @@ BINDINGS = f"{EV}/bindings.log"
 # evdev codes of the keys the gate is tried with.
 ESC, TAB, KEY_A, CTRL, SHIFT, ALT, F4, DOWN, MUTE, VOLUME_UP, SUPER, BRIGHTNESS_UP = 1, 15, 30, 29, 42, 56, 62, 108, 113, 115, 125, 225
 MIDDLE = 274
+RECOVERY_PID = "/harness/recovery-window.pid"
 
 
 def ran():
@@ -1376,6 +1377,35 @@ def test10_shortcuts(fe, admin):
               runs(alt_middle, "mouse-press") and runs(alt_scroll, "mouse-scroll"), f"{ran()[-6:]}")
         check(T, f"{where} Alt+F4 asks the window to close", window_gets(lambda: keys(ALT, F4), "CLOSE"), f"{window()[-4:]}")
 
+    def recovery_window(expect_key=True):
+        seen = len(lines_of("recovery-window"))
+
+        def events():
+            return lines_of("recovery-window")[seen:]
+
+        keys(SUPER, CTRL, ESC)
+        focused = False
+        try:
+            opened = wait_for(lambda: any(line.startswith("CONFIGURED ") for line in events()), 3)
+            if opened and expect_key:
+                focused = wait_for(lambda: "KBD_ENTER" in events(), 2)
+                if focused:
+                    keys(KEY_A)
+                    return opened, wait_for(lambda: in_order(events(), typed(KEY_A)), 2)
+            return opened, False
+        finally:
+            if os.path.exists(RECOVERY_PID):
+                with open(RECOVERY_PID) as handle:
+                    pid = int(handle.read())
+                os.unlink(RECOVERY_PID)
+                seen_probe = len(window())
+                try:
+                    os.kill(pid, signal.SIGTERM)
+                except ProcessLookupError:
+                    pass
+                if focused:
+                    wait_for(lambda: "KBD_ENTER" in window()[seen_probe:], 2)
+
     # Outside a capture every binding works as before.
     bindings_act("outside a capture")
     seen = len(window())
@@ -1386,7 +1416,8 @@ def test10_shortcuts(fe, admin):
     vkbd.cmd(f"key {ALT} 0")
     check(T, "outside a capture Alt+Tab starts the window switcher (the window loses the keyboard until Alt is released)",
           switcher and wait_for(lambda: in_order(window()[seen:], ["KBD_LEAVE", "KBD_ENTER"]), 2), f"{window()[seen:]}")
-    check(T, "outside a capture Super+Ctrl+Escape runs the recovery terminal's stand-in", runs(lambda: keys(SUPER, CTRL, ESC), "recovery-terminal") and local_key())
+    opened, got_key = recovery_window()
+    check(T, "outside a capture Super+Ctrl+Escape opens the recovery window and it gets the next key", opened and got_key)
 
     # During a capture: nothing on the compositor's side, and every key and button reaches the client.
     activated = capture(session)
@@ -1423,12 +1454,11 @@ def test10_shortcuts(fe, admin):
           not fe.sig("Deactivated", session.path, mark) and not leaked, f"{leaked}")
 
     # The second marked chord (the first, Super+Shift+Escape, is test3's and test9's): out, and the terminal.
-    before = len(ran())
-    keys(SUPER, CTRL, ESC)
+    opened, got_key = recovery_window()
     ended = wait_for(lambda: fe.sig("Deactivated", session.path, mark), 3)
-    check(T, "during a capture Super+Ctrl+Escape releases it and runs the recovery terminal's stand-in",
-          ended and wait_for(lambda: "recovery-terminal" in ran()[before:], 2), f"Deactivated {bool(ended)}, ran {ran()[before:]}")
-    check(T, "and the pointer and the keyboard are local again", local_motion() and local_key())
+    check(T, "during a capture Super+Ctrl+Escape releases it and opens the recovery window",
+          ended and opened, f"Deactivated {bool(ended)}, opened {bool(opened)}")
+    check(T, "the new recovery window gets the next key and the pointer is local again", got_key and local_motion())
 
     # A binding held as the capture starts: its release action and its repeats are dropped.
     shove = approach("left")
@@ -1489,7 +1519,8 @@ def test10_shortcuts(fe, admin):
     got = wait_for(lambda: in_order(lines_of("layer-barrier")[seen:], typed(ALT, F4) + typed(VOLUME_UP) + typed(SUPER)), 2)
     check(T, "under a layer surface with the capture surface's namespace the same keys and buttons run nothing, and the keys reach that surface",
           focused and silent and got, f"focused {focused}, nothing ran {silent}, it got {lines_of('layer-barrier')[seen:]}")
-    check(T, "and Super+Ctrl+Escape still runs there", runs(lambda: keys(SUPER, CTRL, ESC), "recovery-terminal"), f"{ran()[-3:]}")
+    opened, _ = recovery_window(expect_key=False)
+    check(T, "and Super+Ctrl+Escape still opens the recovery window there", opened)
     stop("layer-barrier")
     pump(0.3)
     check(T, "with the layer surfaces gone the window has the keyboard again and the bindings act", local_key() and runs(lambda: keys(VOLUME_UP), "volume-up"))
