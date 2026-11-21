@@ -1,0 +1,137 @@
+2026-11-21T10:18:05.304425Z  INFO aresos_input_portal::wayland::state: the screens changed: 1 now zone_set=2
+2026-11-21T10:18:05.309387Z DEBUG aresos_input_portal::wayland::clipboard: watching the clipboard through ext-data-control
+2026-11-21T10:18:05.312028Z DEBUG aresos_input_portal::wayland::state: captured a 35355 byte xkb keymap from the compositor
+2026-11-21T10:18:05.312052Z DEBUG aresos_input_portal::wayland::state: clipboard selection changed types=0 is_ours=false
+2026-11-21T10:18:05.312068Z  INFO aresos_input_portal::wayland::state: Wayland barrier thread ready, 1 screen(s) in the snapshot
+2026-11-21T10:18:05.312115Z  INFO aresos_input_portal: screen HEADLESS-2: 1280x720 at (0, 0) scale 1 Normal
+2026-11-21T10:18:05.313262Z  INFO aresos_input_portal::portal: sharing is on
+2026-11-21T10:18:05.313570Z  INFO aresos_input_portal: org.freedesktop.impl.portal.desktop.aresos-input ready at /org/freedesktop/portal/desktop; idle watchdog disabled
+2026-11-21T10:18:05.332312Z  INFO aresos_input_portal::portal: sharing is off: there is no switch file
+2026-11-21T10:18:05.332346Z  WARN aresos_input_portal::portal: refused: sharing is off method="CreateSession"
+2026-11-21T10:18:05.334311Z  WARN aresos_input_portal::portal: sharing is off: its content is not `on`
+2026-11-21T10:18:05.334321Z  WARN aresos_input_portal::portal: refused: sharing is off method="CreateSession"
+2026-11-21T10:18:05.335770Z  WARN aresos_input_portal::portal: sharing is off: the switch file is a symlink
+2026-11-21T10:18:05.335777Z  WARN aresos_input_portal::portal: refused: sharing is off method="CreateSession"
+2026-11-21T10:18:05.336616Z  WARN aresos_input_portal::portal: sharing is off: /etc/aresos/input-portal's group or everyone may write to it
+2026-11-21T10:18:05.336623Z  WARN aresos_input_portal::portal: refused: sharing is off method="CreateSession"
+2026-11-21T10:18:05.343131Z  INFO aresos_input_portal::portal: sharing is on
+2026-11-21T10:18:05.343176Z  INFO aresos_input_portal::portal: session created app_id="org.aresos.harness" session=/org/freedesktop/portal/desktop/session/harness/off_while_typing capabilities=0 started=false
+2026-11-21T10:18:05.343657Z  INFO aresos_input_portal::portal: clipboard access requested session=/org/freedesktop/portal/desktop/session/harness/off_while_typing
+2026-11-21T10:18:05.344103Z  INFO aresos_input_portal::portal: session started session=/org/freedesktop/portal/desktop/session/harness/off_while_typing capabilities=3 clipboard_enabled=true
+2026-11-21T10:18:05.344552Z  INFO aresos_input_portal::portal: handed EIS socket to client session=/org/freedesktop/portal/desktop/session/harness/off_while_typing
+2026-11-21T10:18:05.345675Z  INFO aresos_input_portal::eis_server: EIS handshake complete, client is a Receiver context session=/org/freedesktop/portal/desktop/session/harness/off_while_typing
+2026-11-21T10:18:05.345768Z DEBUG aresos_input_portal::eis_server: client bound seat with BitFlags<DeviceCapability>(0b110101, Pointer | Keyboard | Scroll | Button) session=/org/freedesktop/portal/desktop/session/harness/off_while_typing
+2026-11-21T10:18:05.345786Z DEBUG aresos_input_portal::eis_server: reported device region 1280x720
+2026-11-21T10:18:05.345828Z DEBUG aresos_input_portal::eis_server: reported device region 1280x720
+2026-11-21T10:18:05.345869Z DEBUG aresos_input_portal::eis_server: sent a 35356 byte xkb keymap to the client
+2026-11-21T10:18:05.376935Z DEBUG aresos_input_portal::portal: returning 1 zone(s) zone_set=2
+2026-11-21T10:18:05.378658Z  INFO aresos_input_portal::portal: accepted 1 barrier(s), rejected 0
+2026-11-21T10:18:05.379547Z  INFO aresos_input_portal::portal: capture enabled session=/org/freedesktop/portal/desktop/session/harness/off_while_typing barriers=1
+2026-11-21T10:18:05.379692Z  INFO aresos_input_portal::wayland::state: armed 1 barrier surface(s)
+2026-11-21T10:18:05.380934Z  INFO aresos_input_portal::wayland::state: barrier crossed, asking the compositor for the grab barrier=1
+2026-11-21T10:18:05.381051Z DEBUG aresos_input_portal::wayland::state: the barrier's surface has keyboard focus
+2026-11-21T10:18:05.381072Z DEBUG aresos_input_portal::wayland::state: the compositor granted the pointer lock
+2026-11-21T10:18:05.381094Z  INFO aresos_input_portal::wayland::state: the grab is held, capturing input barrier=1
+2026-11-21T10:18:05.564130Z  INFO aresos_input_portal::portal: sharing is off: there is no switch file
+2026-11-21T10:18:05.564221Z  WARN aresos_input_portal::portal: sharing was turned off: closing 1 session(s)
+2026-11-21T10:18:05.564383Z  INFO aresos_input_portal::wayland::state: capture ended, pointer released barrier=1 motions=9 keys=16 buttons=2 scrolls=2 confirmed=true
+2026-11-21T10:18:05.564445Z DEBUG aresos_input_portal::wayland::state: tearing down 1 barrier surface(s)
+2026-11-21T10:18:05.564678Z  INFO aresos_input_portal::eis_server: EIS connection closed session=/org/freedesktop/portal/desktop/session/harness/off_while_typing
+2026-11-21T10:18:05.565074Z DEBUG aresos_input_portal::portal: the compositor confirmed the end of the capture after Off
+2026-11-21T10:18:09.475381Z  INFO aresos_input_portal::portal: sharing is on
+2026-11-21T10:18:09.475506Z  INFO aresos_input_portal::portal: session created app_id="org.aresos.harness" session=/org/freedesktop/portal/desktop/session/harness/off_while_reading capabilities=0 started=false
+2026-11-21T10:18:09.477916Z  INFO aresos_input_portal::portal: clipboard access requested session=/org/freedesktop/portal/desktop/session/harness/off_while_reading
+2026-11-21T10:18:09.479623Z  INFO aresos_input_portal::portal: session started session=/org/freedesktop/portal/desktop/session/harness/off_while_reading capabilities=3 clipboard_enabled=true
+2026-11-21T10:18:09.481072Z  INFO aresos_input_portal::portal: handed EIS socket to client session=/org/freedesktop/portal/desktop/session/harness/off_while_reading
+2026-11-21T10:18:09.483546Z  INFO aresos_input_portal::eis_server: EIS handshake complete, client is a Receiver context session=/org/freedesktop/portal/desktop/session/harness/off_while_reading
+2026-11-21T10:18:09.483747Z DEBUG aresos_input_portal::eis_server: client bound seat with BitFlags<DeviceCapability>(0b110101, Pointer | Keyboard | Scroll | Button) session=/org/freedesktop/portal/desktop/session/harness/off_while_reading
+2026-11-21T10:18:09.483786Z DEBUG aresos_input_portal::eis_server: reported device region 1280x720
+2026-11-21T10:18:09.483834Z DEBUG aresos_input_portal::eis_server: reported device region 1280x720
+2026-11-21T10:18:09.483882Z DEBUG aresos_input_portal::eis_server: sent a 35356 byte xkb keymap to the client
+2026-11-21T10:18:09.516622Z DEBUG aresos_input_portal::wayland::state: clipboard selection changed types=5 is_ours=false
+2026-11-21T10:18:09.754599Z  INFO aresos_input_portal::portal: sharing is off: there is no switch file
+2026-11-21T10:18:09.754671Z  WARN aresos_input_portal::portal: sharing was turned off: closing 1 session(s)
+2026-11-21T10:18:09.755093Z  INFO aresos_input_portal::eis_server: EIS connection closed session=/org/freedesktop/portal/desktop/session/harness/off_while_reading
+2026-11-21T10:18:09.755494Z DEBUG aresos_input_portal::portal: the compositor confirmed the end of the capture after Off
+2026-11-21T10:18:09.756077Z DEBUG aresos_input_portal::portal: sharing is off: there is no switch file
+2026-11-21T10:18:09.756142Z  WARN aresos_input_portal::portal: refused: sharing is off method="SelectionRead"
+2026-11-21T10:18:09.821165Z  INFO aresos_input_portal::portal: sharing is on
+2026-11-21T10:18:09.821264Z  INFO aresos_input_portal::portal: session created app_id="org.aresos.harness" session=/org/freedesktop/portal/desktop/session/harness/off_clipboard capabilities=0 started=false
+2026-11-21T10:18:09.823356Z  INFO aresos_input_portal::portal: clipboard access requested session=/org/freedesktop/portal/desktop/session/harness/off_clipboard
+2026-11-21T10:18:09.825265Z  INFO aresos_input_portal::portal: session started session=/org/freedesktop/portal/desktop/session/harness/off_clipboard capabilities=3 clipboard_enabled=true
+2026-11-21T10:18:09.826772Z  INFO aresos_input_portal::portal: handed EIS socket to client session=/org/freedesktop/portal/desktop/session/harness/off_clipboard
+2026-11-21T10:18:09.829117Z  INFO aresos_input_portal::eis_server: EIS handshake complete, client is a Receiver context session=/org/freedesktop/portal/desktop/session/harness/off_clipboard
+2026-11-21T10:18:09.829271Z DEBUG aresos_input_portal::eis_server: client bound seat with BitFlags<DeviceCapability>(0b110101, Pointer | Keyboard | Scroll | Button) session=/org/freedesktop/portal/desktop/session/harness/off_clipboard
+2026-11-21T10:18:09.829297Z DEBUG aresos_input_portal::eis_server: reported device region 1280x720
+2026-11-21T10:18:09.829358Z DEBUG aresos_input_portal::eis_server: reported device region 1280x720
+2026-11-21T10:18:09.829430Z DEBUG aresos_input_portal::eis_server: sent a 35356 byte xkb keymap to the client
+2026-11-21T10:18:09.861175Z  INFO aresos_input_portal::portal: session claimed the clipboard session=/org/freedesktop/portal/desktop/session/harness/off_clipboard types=2
+2026-11-21T10:18:09.861354Z DEBUG aresos_input_portal::wayland::clipboard: claimed the clipboard types=2
+2026-11-21T10:18:09.861641Z DEBUG aresos_input_portal::wayland::state: clipboard selection changed types=2 is_ours=true
+2026-11-21T10:18:10.005831Z  INFO aresos_input_portal::portal: sharing is off: there is no switch file
+2026-11-21T10:18:10.005900Z  WARN aresos_input_portal::portal: sharing was turned off: closing 1 session(s)
+2026-11-21T10:18:10.006001Z DEBUG aresos_input_portal::wayland::clipboard: released the clipboard claim
+2026-11-21T10:18:10.006199Z DEBUG aresos_input_portal::wayland::state: clipboard selection changed types=0 is_ours=false
+2026-11-21T10:18:10.006199Z  INFO aresos_input_portal::eis_server: EIS connection closed session=/org/freedesktop/portal/desktop/session/harness/off_clipboard
+2026-11-21T10:18:10.006256Z DEBUG aresos_input_portal::portal: the compositor confirmed the end of the capture after Off
+2026-11-21T10:18:10.006303Z DEBUG aresos_input_portal::portal: sharing is off: there is no switch file
+2026-11-21T10:18:10.022471Z DEBUG aresos_input_portal::portal: sharing is off: there is no switch file
+2026-11-21T10:18:10.022516Z  WARN aresos_input_portal::portal: refused: sharing is off method="SelectionWrite"
+2026-11-21T10:18:10.024488Z DEBUG aresos_input_portal::portal: sharing is off: there is no switch file
+2026-11-21T10:18:10.024525Z  WARN aresos_input_portal::portal: refused: sharing is off method="SelectionRead"
+2026-11-21T10:18:10.026034Z DEBUG aresos_input_portal::portal: sharing is off: there is no switch file
+2026-11-21T10:18:10.026060Z  WARN aresos_input_portal::portal: refused: sharing is off method="SetSelection"
+2026-11-21T10:18:10.028354Z DEBUG aresos_input_portal::wayland::state: clipboard selection changed types=5 is_ours=false
+2026-11-21T10:18:10.028444Z DEBUG aresos_input_portal::portal: sharing is off: there is no switch file
+2026-11-21T10:18:10.537467Z  INFO aresos_input_portal::portal: sharing is on
+2026-11-21T10:18:10.537559Z  INFO aresos_input_portal::portal: session created app_id="org.aresos.harness" session=/org/freedesktop/portal/desktop/session/harness/revoked capabilities=0 started=false
+2026-11-21T10:18:10.540080Z  INFO aresos_input_portal::portal: clipboard access requested session=/org/freedesktop/portal/desktop/session/harness/revoked
+2026-11-21T10:18:10.541976Z  INFO aresos_input_portal::portal: session started session=/org/freedesktop/portal/desktop/session/harness/revoked capabilities=3 clipboard_enabled=true
+2026-11-21T10:18:10.543613Z  INFO aresos_input_portal::portal: handed EIS socket to client session=/org/freedesktop/portal/desktop/session/harness/revoked
+2026-11-21T10:18:10.546017Z  INFO aresos_input_portal::eis_server: EIS handshake complete, client is a Receiver context session=/org/freedesktop/portal/desktop/session/harness/revoked
+2026-11-21T10:18:10.546280Z DEBUG aresos_input_portal::eis_server: client bound seat with BitFlags<DeviceCapability>(0b110101, Pointer | Keyboard | Scroll | Button) session=/org/freedesktop/portal/desktop/session/harness/revoked
+2026-11-21T10:18:10.546315Z DEBUG aresos_input_portal::eis_server: reported device region 1280x720
+2026-11-21T10:18:10.546349Z DEBUG aresos_input_portal::eis_server: reported device region 1280x720
+2026-11-21T10:18:10.546428Z DEBUG aresos_input_portal::eis_server: sent a 35356 byte xkb keymap to the client
+2026-11-21T10:18:10.577392Z DEBUG aresos_input_portal::portal: returning 1 zone(s) zone_set=2
+2026-11-21T10:18:10.580129Z  INFO aresos_input_portal::portal: accepted 1 barrier(s), rejected 0
+2026-11-21T10:18:10.581785Z  INFO aresos_input_portal::portal: capture enabled session=/org/freedesktop/portal/desktop/session/harness/revoked barriers=1
+2026-11-21T10:18:10.581991Z  INFO aresos_input_portal::wayland::state: armed 1 barrier surface(s)
+2026-11-21T10:18:10.582831Z  INFO aresos_input_portal::wayland::state: barrier crossed, asking the compositor for the grab barrier=1
+2026-11-21T10:18:10.582977Z DEBUG aresos_input_portal::wayland::state: the barrier's surface has keyboard focus
+2026-11-21T10:18:10.582998Z DEBUG aresos_input_portal::wayland::state: the compositor granted the pointer lock
+2026-11-21T10:18:10.583003Z  INFO aresos_input_portal::wayland::state: the grab is held, capturing input barrier=1
+2026-11-21T10:18:10.621701Z  INFO aresos_input_portal::portal: Revoke requested
+2026-11-21T10:18:10.630872Z  INFO aresos_input_portal::portal: Revoke requested
+2026-11-21T10:18:10.630930Z  INFO aresos_input_portal::portal: sharing is off: there is no switch file
+2026-11-21T10:18:10.630938Z  WARN aresos_input_portal::portal: sharing was turned off: closing 1 session(s)
+2026-11-21T10:18:10.631018Z  INFO aresos_input_portal::wayland::state: capture ended, pointer released barrier=1 motions=0 keys=0 buttons=0 scrolls=0 confirmed=true
+2026-11-21T10:18:10.631038Z DEBUG aresos_input_portal::wayland::state: tearing down 1 barrier surface(s)
+2026-11-21T10:18:10.631064Z  INFO aresos_input_portal::eis_server: EIS connection closed session=/org/freedesktop/portal/desktop/session/harness/revoked
+2026-11-21T10:18:10.631206Z DEBUG aresos_input_portal::portal: the compositor confirmed the end of the capture after Off
+2026-11-21T10:18:10.730461Z  INFO aresos_input_portal::portal: sharing is on
+2026-11-21T10:18:10.730525Z  INFO aresos_input_portal::portal: session created app_id="org.aresos.harness" session=/org/freedesktop/portal/desktop/session/harness/off_labwc_stopped capabilities=0 started=false
+2026-11-21T10:18:10.732168Z  INFO aresos_input_portal::portal: clipboard access requested session=/org/freedesktop/portal/desktop/session/harness/off_labwc_stopped
+2026-11-21T10:18:10.733394Z  INFO aresos_input_portal::portal: session started session=/org/freedesktop/portal/desktop/session/harness/off_labwc_stopped capabilities=3 clipboard_enabled=true
+2026-11-21T10:18:10.734441Z  INFO aresos_input_portal::portal: handed EIS socket to client session=/org/freedesktop/portal/desktop/session/harness/off_labwc_stopped
+2026-11-21T10:18:10.736350Z  INFO aresos_input_portal::eis_server: EIS handshake complete, client is a Receiver context session=/org/freedesktop/portal/desktop/session/harness/off_labwc_stopped
+2026-11-21T10:18:10.736542Z DEBUG aresos_input_portal::eis_server: client bound seat with BitFlags<DeviceCapability>(0b110101, Pointer | Keyboard | Scroll | Button) session=/org/freedesktop/portal/desktop/session/harness/off_labwc_stopped
+2026-11-21T10:18:10.736576Z DEBUG aresos_input_portal::eis_server: reported device region 1280x720
+2026-11-21T10:18:10.736624Z DEBUG aresos_input_portal::eis_server: reported device region 1280x720
+2026-11-21T10:18:10.736683Z DEBUG aresos_input_portal::eis_server: sent a 35356 byte xkb keymap to the client
+2026-11-21T10:18:10.766972Z DEBUG aresos_input_portal::portal: returning 1 zone(s) zone_set=2
+2026-11-21T10:18:10.768388Z  INFO aresos_input_portal::portal: accepted 1 barrier(s), rejected 0
+2026-11-21T10:18:10.769018Z  INFO aresos_input_portal::portal: capture enabled session=/org/freedesktop/portal/desktop/session/harness/off_labwc_stopped barriers=1
+2026-11-21T10:18:10.769159Z  INFO aresos_input_portal::wayland::state: armed 1 barrier surface(s)
+2026-11-21T10:18:10.770187Z  INFO aresos_input_portal::wayland::state: barrier crossed, asking the compositor for the grab barrier=1
+2026-11-21T10:18:10.770457Z DEBUG aresos_input_portal::wayland::state: the barrier's surface has keyboard focus
+2026-11-21T10:18:10.770502Z DEBUG aresos_input_portal::wayland::state: the compositor granted the pointer lock
+2026-11-21T10:18:10.770513Z  INFO aresos_input_portal::wayland::state: the grab is held, capturing input barrier=1
+2026-11-21T10:18:11.006253Z  INFO aresos_input_portal::portal: sharing is off: there is no switch file
+2026-11-21T10:18:11.006314Z  WARN aresos_input_portal::portal: sharing was turned off: closing 1 session(s)
+2026-11-21T10:18:11.006462Z  INFO aresos_input_portal::wayland::state: capture ended, pointer released barrier=1 motions=0 keys=0 buttons=0 scrolls=0 confirmed=true
+2026-11-21T10:18:11.006541Z DEBUG aresos_input_portal::wayland::state: tearing down 1 barrier surface(s)
+2026-11-21T10:18:11.006682Z  INFO aresos_input_portal::eis_server: EIS connection closed session=/org/freedesktop/portal/desktop/session/harness/off_labwc_stopped
+2026-11-21T10:18:12.007751Z ERROR aresos_input_portal::portal: the compositor did not confirm the end of the capture within a second of Off: stopping
+2026-11-21T10:18:12.007977Z  INFO aresos_input_portal: shutting down
+Error: the compositor did not confirm the end of the capture after sharing was turned off

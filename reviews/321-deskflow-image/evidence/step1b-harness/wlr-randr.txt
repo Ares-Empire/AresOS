@@ -1,0 +1,16 @@
+HEADLESS-1 "Headless output 1"
+  Enabled: yes
+  Modes:
+    1280x720 px (current)
+  Position: 1280,0
+  Transform: normal
+  Scale: 1.000000
+  Adaptive Sync: disabled
+HEADLESS-2 "Headless output 2"
+  Enabled: yes
+  Modes:
+    1280x720 px (current)
+  Position: 0,0
+  Transform: normal
+  Scale: 1.000000
+  Adaptive Sync: disabled

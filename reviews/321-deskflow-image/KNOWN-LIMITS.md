@@ -43,3 +43,26 @@ entry there is the record of how it was.
   unseen, with his next keys in a local window. A capture now ends by the release chord, `--release`, the client's
   own `Release`, its EIS connection or session ending, the frontend or bus going, or a change of screens.
   `ARESOS_INPUT_PORTAL_IDLE_TIMEOUT` still sets a watchdog (316's harness uses 3 seconds).
+
+## The sharing switch (step 1b)
+
+- **A clipboard pipe handed out before Off** (the lead, 2026-11-21; brief 321, "The trust model"). Its ends are held
+  outside the backend (`src/portal.rs`, `src/wayland/clipboard.rs`), so it can still finish carrying the one item the
+  owner's session asked for while sharing was on. No new transfer starts after Off (every clipboard call reads the
+  switch, and `SelectionRead` reads it again after its wait, before the pipe goes out) and Deskflow's session is
+  closed, so nothing further leaves; a revocable relay in both directions would be a new design for that one item.
+- **Off and on again inside one reread goes unseen.** Without `--revoke` the backend reads the switch every 250 ms
+  while a session exists (and at every check point). If the switch goes off and is back on before the next read,
+  nothing is closed. The file says on by then, and only the owner's password turns it on. The switch's own program
+  runs `--revoke` after `off`, which makes the read immediate.
+- **A compositor slower than a second to confirm loses the session.** After Off, and for `ForceRelease`, the backend
+  waits one second for labwc's answer to a `wl_display.sync`. A labwc that is busy for longer looks like a stopped
+  one: after Off the backend exits, and `--release` kills it. Either way the grab goes with the connection and the
+  next Deskflow session starts a fresh backend; nothing reaches the Mac that shouldn't.
+- **`--release` signals only `/usr/libexec/aresos-input-portal` of the same user.** A backend run from another path,
+  or whose binary was replaced under it (the kernel then names it `... (deleted)`), is refused rather than killed. On
+  the image `/usr` is read-only and changes only at a reboot, and the backend is always started from that path.
+- **A stopped session bus stops `--release` too.** It finds the backend through the bus (the name's owner, its
+  credentials, the question), so with the bus daemon stopped it waits and kills nothing: there is no pidfd to kill
+  through without the bus naming the process. Nothing else on the session works then either; the recovery is a VT
+  switch or SSH, and `kill` by hand.

@@ -1,0 +1,7 @@
+aresos-input-portal --release: pinned the backend, pid 87; asking it to release (pinned by the bus's ProcessFD)
+released 1 capture(s)
+aresos-input-portal --release: pinned the backend, pid 463; asking it to release (pinned by the bus's ProcessFD)
+aresos-input-portal --release: no confirmed release (no answer within 2 s); killing pid 463 through its pidfd
+killed the backend (pid 463): the compositor drops its grab
+labwc: types/wlr_output_management_v1.c:777: head_send_state: Assertion `found' failed.
+labwc: types/wlr_output_management_v1.c:777: head_send_state: Assertion `found' failed.

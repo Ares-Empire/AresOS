@@ -1,0 +1,9 @@
+os/input-portal/dev/container.sh build <dir>, without --cache, on the tree of commit 6d2c1cbf
+   Compiling aresos-input-portal v0.1.0 (/src)
+    Finished `release` profile [optimized] target(s) in 42.06s
+   Compiling aresos-input-portal v0.1.0 (/src)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 21.98s
+test result: ok. 98 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.04s
+compiler warnings: 0
+INPUT_PORTAL_BUILT aresos-input-portal 48feb9e7987a199b5adfe0d2aa51438cdd9d6e810f2b03c57cc95929ed27844f
+harness/run.sh run on that binary: SUMMARY 103 passed, 0 failed, exit 0
