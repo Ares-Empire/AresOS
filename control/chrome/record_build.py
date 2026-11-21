@@ -25,6 +25,7 @@ ROOT = Path(__file__).resolve().parents[2]
 REGISTRY = 'control/chrome/builds.json'
 RELEASE = 'os/manifest/release.json'
 RELEASES = 'os/manifest/releases'
+RELEASE_28_SOURCE = '7d5fbbf2c7f7c5b4d41dd707a9407e6401a4d062'
 KEEP = 3
 COMMIT = re.compile(r'[0-9a-f]{40}')
 BUILD = re.compile(r'[0-9a-f]{64}')
@@ -182,6 +183,13 @@ def check(root=ROOT):
             notes.append(name + ': no control object; nothing to check')
             continue
         control = manifest['control']
+        # Release 28 shipped the Control service before the browser integration.
+        if (name in (RELEASE, f'{RELEASES}/28.json')
+                and manifest.get('tag') == f'28-{RELEASE_28_SOURCE}'
+                and manifest.get('source_commit') == RELEASE_28_SOURCE
+                and control == {'source_revision': RELEASE_28_SOURCE}):
+            notes.append(name + ': release 28 predates Chrome build records')
+            continue
         if type(control) is not dict or set(control) != {'source_revision', 'chrome_build'} \
                 or type(control['source_revision']) is not str or not COMMIT.fullmatch(control['source_revision']) \
                 or type(control['chrome_build']) is not str or not BUILD.fullmatch(control['chrome_build']):

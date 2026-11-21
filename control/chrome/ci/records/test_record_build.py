@@ -246,9 +246,9 @@ class Check(unittest.TestCase):
     def row(self, commit=None, build=None):
         return {'commit': commit or self.COMMIT, 'build': build or self.BUILD, 'shipped_at': T[0]}
 
-    def manifest(self, name, commit=None, control=True):
+    def manifest(self, name, commit=None, control=True, tag='synthetic'):
         # control: True for the matching object, ABSENT for none, anything else as it stands.
-        data = {'tag': 'synthetic', 'source_commit': commit or self.COMMIT}
+        data = {'tag': tag, 'source_commit': commit or self.COMMIT}
         if control is True:
             data['control'] = {'source_revision': commit or self.COMMIT, 'chrome_build': self.BUILD}
         elif control is not ABSENT:
@@ -288,6 +288,21 @@ class Check(unittest.TestCase):
         self.assertEqual(failures, [])
         self.assertEqual(notes, ['os/manifest/release.json: no control object; nothing to check',
                                  'os/manifest/releases/06.json: no control object; nothing to check'])
+
+    def test_only_the_published_release_28_can_have_a_source_only_control_object(self):
+        commit = record_build.RELEASE_28_SOURCE
+        release = dict(commit=commit, control={'source_revision': commit}, tag=f'28-{commit}')
+        self.manifest('release.json', **release)
+        self.manifest('releases/28.json', **release)
+        failures, notes = self.check()
+        self.assertEqual(failures, [])
+        self.assertEqual(notes, ['os/manifest/release.json: release 28 predates Chrome build records',
+                                 'os/manifest/releases/28.json: release 28 predates Chrome build records'])
+        self.manifest('releases/29.json', **release)
+        self.manifest('release.json', **dict(release, tag=f'29-{commit}'))
+        failures, _ = self.check()
+        self.assertEqual(len(failures), 2)
+        self.assertTrue(all('control must be exactly' in failure for failure in failures))
 
     def test_a_malformed_control_object_fails(self):
         self.rows([self.row()])
