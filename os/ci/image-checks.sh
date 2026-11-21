@@ -768,6 +768,14 @@ else:
     print('LAPTOP_HOME_DECODER decoded in bubblewrap')
 PY
 pass 'the laptop home loads GTK 4, Pango and Cairo as ares with the Cairo renderer, and its icon decoder is sandboxed'
+# Package 323: the laptop home's monospace font and its licence.
+sha256sum -c <<'JETBRAINS_MONO_SHA256'
+48715a42ec242c21e9f02692891e147d022299a52e48d5e413e1a942193ffeda  /usr/share/fonts/aresos/JetBrainsMono-Variable.ttf
+b2fe5e8987594e9ffd1d2ca52a2f5d73eb8335243893c5d6254b5ad69269591d  /usr/share/fonts/aresos/OFL-JetBrainsMono.txt
+JETBRAINS_MONO_SHA256
+font=$(runuser -u ares -- env -i HOME=/tmp PATH=/usr/bin /usr/bin/fc-match --format '%{file}' 'JetBrains Mono')
+test "$font" = /usr/share/fonts/aresos/JetBrainsMono-Variable.ttf
+pass "fontconfig finds the pinned JetBrains Mono ($font) as ares, and its licence is installed"
 # Super+Ctrl+Escape opens the recovery terminal, then ends the cover through the supervisor (PLAN-GAP 2). The
 # supervisor takes the command as ares; with no supervisor running here it says so and exits 1.
 python3 - <<'PY'
