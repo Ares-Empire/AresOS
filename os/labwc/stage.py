@@ -6,6 +6,7 @@ added the second patch: the lock lists the patches in the order they are applied
   stage.py build <lock folder> <inputs> <out>       labwc stage, on the locked fedora:44: the RPM and nothing else,
                                                     once its binaries match the lock's normalized and loaded pins
   stage.py install <rpm folder> <lock folder>       packages stage: our RPM replaces Fedora's labwc
+  stage.py check-installed <lock folder>           check the installed binaries against both pins
   stage.py resolve <lock folder> <resolved> <out>   check_build=resolve: a candidate from resolve-download.sh's folder
 
 fedora:44 has no Python, so the pinned AresOS base fetches the inputs and install-inputs.sh installs them before
@@ -315,21 +316,19 @@ def unpack_pinned_binaries(rpm, folder):
         raise Refusal(f'the payload of {pathlib.Path(rpm).name} cannot be unpacked: {detail}')
 
 
-def require_pinned_binaries(rpm, lock):
-    """The code in this RPM is the reviewed code: its sections and the bytes the loader maps both match the lock."""
+def require_binary_pins(root, lock, source):
+    """Check the ELF sections and the bytes the loader maps against the lock."""
     image = loaded_image_module()
     normalized, loaded = {}, {}
-    with tempfile.TemporaryDirectory(prefix='aresos-labwc-payload-') as folder:
-        unpack_pinned_binaries(rpm, folder)
-        for path in PINNED_BINARIES:
-            binary = pathlib.Path(folder) / path.lstrip('/')
-            if binary.is_symlink() or not binary.is_file():
-                raise Refusal(f'the RPM holds no file {path}')
-            normalized[path] = normalized_sha256(binary)
-            try:
-                loaded[path] = image.loaded_sha256(binary)
-            except image.LoadedImageRefused as refusal:
-                raise Refusal(f'the loaded image of {path} cannot be pinned: {refusal}') from refusal
+    for path in PINNED_BINARIES:
+        binary = pathlib.Path(root) / path.lstrip('/')
+        if binary.is_symlink() or not binary.is_file():
+            raise Refusal(f'{source} holds no file {path}')
+        normalized[path] = normalized_sha256(binary)
+        try:
+            loaded[path] = image.loaded_sha256(binary)
+        except image.LoadedImageRefused as refusal:
+            raise Refusal(f'the loaded image of {path} cannot be pinned: {refusal}') from refusal
     for path in PINNED_BINARIES:
         print(f'LABWC_NORMALIZED {path} {normalized[path]}', flush=True)
     for path in PINNED_BINARIES:
@@ -343,6 +342,16 @@ def require_pinned_binaries(rpm, lock):
             wrong.append(f'the {name} SHA-256 of {"; ".join(differing)}')
     if wrong:
         raise Refusal('; '.join(wrong))
+
+
+def require_pinned_binaries(rpm, lock):
+    with tempfile.TemporaryDirectory(prefix='aresos-labwc-payload-') as folder:
+        unpack_pinned_binaries(rpm, folder)
+        require_binary_pins(folder, lock, 'the RPM')
+
+
+def check_installed(lock_folder):
+    require_binary_pins('/', load_lock(lock_folder), 'the image')
 
 
 def build(lock_folder, inputs, out):
@@ -496,7 +505,8 @@ def resolve(lock_folder, resolved, out):
 
 
 def main(argv):
-    commands = {'fetch': (fetch_inputs, 2), 'build': (build, 3), 'install': (install, 2), 'resolve': (resolve, 3)}
+    commands = {'fetch': (fetch_inputs, 2), 'build': (build, 3), 'install': (install, 2),
+                'check-installed': (check_installed, 1), 'resolve': (resolve, 3)}
     if len(argv) < 2 or argv[1] not in commands or len(argv) != commands[argv[1]][1] + 2:
         print(__doc__, file=sys.stderr)
         return 2

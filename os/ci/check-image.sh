@@ -10,8 +10,13 @@ mkdir -p "$out/polkit" "$out/manifest"
 
 # Checks that run inside the image, as root, without network. runuser and
 # podman need their PAM session and user namespaces, hence --privileged.
-sudo podman run --rm -i --privileged --network=none --entrypoint /usr/bin/bash "$image" -s < os/ci/image-checks.sh \
-    2>&1 | tee "$out/checks.txt"
+# Send the checkout's labwc pin checker with the script so the image needn't ship it.
+tar -cf - -C os ci/image-checks.sh labwc/stage.py labwc/loaded_image.py |
+    sudo podman run --rm -i --privileged --network=none --entrypoint /usr/bin/bash "$image" -ec '
+        check_dir=$(mktemp -d)
+        tar -xf - -C "$check_dir"
+        exec bash "$check_dir/ci/image-checks.sh"
+    ' 2>&1 | tee "$out/checks.txt"
 grep -qx IMAGE_CHECKS_PASSED "$out/checks.txt"
 
 # Rootless containers for the daily account need its subordinate ID ranges.
