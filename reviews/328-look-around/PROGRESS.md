@@ -19,10 +19,9 @@ code doesn't show. The last step turns it into the report text.
 
 ## Left, in order
 
-1. **328a:** two full passes of build and client tests (see "Test results"), then this file's results.
-2. **328b:** prototype A, "click to look".
-3. **328c:** prototype B, "edge turning".
-4. **328d:** the `look` setting, `run-hub.sh --outputs 2`, the README line, the report and the PR.
+1. **328b:** prototype A, "click to look".
+2. **328c:** prototype B, "edge turning".
+3. **328d:** the `look` setting, `run-hub.sh --outputs 2`, the README line, the report and the PR.
 
 ## The proven cause of the click leak (owner's finding 4)
 
@@ -104,7 +103,9 @@ button is down. The X-level GLFW sequence alone produces the lock churn.
   leaves the pointer in place (this also covers Minecraft letting go and taking the mouse again within one frame, which
   `HomeScreen.frame`'s GLFW focus check did right after a click); the game's X grab is dropped and the cursor shown.
   The pointer reappears where the world was clicked; after an app took the focus it appears at the world window's
-  centre, where labwc put it when the lock ended (visible, over the app that has the focus).
+  centre, where labwc put it when the lock ended (visible, over the app that has the focus). Every XFixes hide of the
+  game gets its show, also if the session flag changed meanwhile: X keeps an unmatched hide for good, and Xwayland
+  then keeps its pointer lock (the full client suite found this; the product never changes the flag).
 - **The safe fallback** (`PointerRules.mayCapture`, checked at the head of `grabMouse`): in a session's connected
   desktop world the world takes the mouse only when the compositor has given it the focus (the helper's `shell_focus`,
   or a press that reached the world: labwc focuses a window before it hands it the press) and GLFW says the pointer is
@@ -120,7 +121,7 @@ button is down. The X-level GLFW sequence alone produces the lock churn.
 
 **The helper's covered-minimize cannot fire for a part-screen window.** `Helper.uncover()`
 (`os/config/usr/libexec/aresos-shell`) minimizes only `Windows.covering(known_screen=True)`: windows that are ready,
-not the desktop's own, not a cover or the laptop home, **not minimized, maximized or fullscreen** (labwc's
+not the desktop's own, not a cover or the laptop home, not minimized, and **maximized or fullscreen** (labwc's
 foreign-toplevel state), and on an output the world's window is on. It runs only when the world becomes the active
 window after another window was (a click, Alt+Tab, a return): not at start-up, not for the restored desktop's
 focus bounce, not during Super's own activation. A part-screen window is neither maximized nor fullscreen, so it is
@@ -132,12 +133,14 @@ native client: a click on the world beside the part-screen probe activated the w
 The same rig with the probe maximized: when the world then got the focus, the helper logged "the desktop got the
 focus; minimized 1 window(s) that covered it" and the probe was minimized, exactly the condition above.
 
-**So what the owner saw needs one of these, which only his laptop can tell:** his Chrome was maximized or fullscreen
-in labwc's state while looking part-screen (then the helper minimizes it, as designed in package 40), or the click
-never reached the world: with the leak above, a click "on the world" can land in Chrome instead. The second one ends
-with this fix. A check on his laptop: the helper's log line "the desktop got the focus; minimized 1 window(s) that
-covered it" at the moment the window disappeared means the first. `linux-desktop` and the hub act on this answer; the
-owner's decision stands (the world stays below, a part-screen app stays visible).
+**So what the owner saw is not reproduced in the rig,** and the difference must be on his laptop. The likeliest: his
+Chrome window was maximized or fullscreen in labwc's state while it looked part-screen to him; the helper then
+minimizes it by design (package 40). Two checks there tell it: the helper's journal line "the desktop got the focus;
+minimized 1 window(s) that covered it" at the moment the window disappeared, and the window's foreign-toplevel state
+(`reviews/40-real-home/rig/tl.py`-style listing: `maximized` or `fullscreen` on Chrome). If neither shows, the world's
+window was not the always-on-bottom one at the time (its rule applies once, when the window first maps). The click
+leak does not explain it: a click that lands in Chrome brings Chrome forward. `linux-desktop` and the hub act on this
+answer; the owner's decision stands (the world stays below, a part-screen app stays visible).
 
 ## Running the game natively on Wayland (out of scope)
 
@@ -223,4 +226,14 @@ commands on stdin (a FIFO kept open).
   check skips the capture at the press; the helper's `desktop_activated`, a few milliseconds later, captures. Both
   paths were clean.
 
-**Builds** (`mod/dev/build.sh`, `mod/dev/client-test.sh --session`): filled in below as they finish.
+**Builds**, on commit `2b1b3a7f` (only docs changed after it), through the dev scripts with no `--force`, no exit-75
+refusal and no other worktree's Gradle running at the start:
+
+- Pass 1: `mod/dev/build.sh` BUILD SUCCESSFUL in 2m 42s: 335 unit tests, 0 failures, 6 Windows-only skips; all 106
+  server game tests passed. `mod/dev/client-test.sh --session` (two outputs) BUILD SUCCESSFUL in 14m 1s, exit 0: the
+  whole client suite, package 56's native checks included, and `WorldKeepsPointerClientGameTest` ("328a native capture:
+  probe [1, 0, 2, 0] -> [1, 0, 2, 0], camera turned 46.8 degrees"; "328a world-keeps-pointer checks passed").
+- Pass 2: `mod/dev/build.sh` BUILD SUCCESSFUL in 1m 50s with the same counts. Client tests: see below.
+- Before these, two full client runs failed at the new test's last check (the XFixes hide/show pairing above, found
+  by the full suite; alone the test passed) and were fixed before the passes counted. The tracked screenshots the runs
+  rewrote were put back, and the ones written under new numbers removed.
