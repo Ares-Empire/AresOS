@@ -37,6 +37,11 @@
       <mousebind direction="Up" action="Scroll"><action name="None" /></mousebind>
       <mousebind direction="Down" action="Scroll"><action name="None" /></mousebind>
     </context>
+    <context name="Root">
+      <mousebind button="Left" action="Press"><action name="None" /></mousebind>
+      <mousebind button="Right" action="Press"><action name="None" /></mousebind>
+      <mousebind button="Middle" action="Press"><action name="None" /></mousebind>
+    </context>
   </mouse>
   <windowRules>
     <windowRule identifier="foot"><action name="Maximize" /></windowRule>

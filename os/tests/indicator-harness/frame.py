@@ -414,24 +414,20 @@ def menu(app, point, button, output=LEFT):
     return before, *until(shown, 'built-in menu')
 
 
-def menu_pixels(app, image, box, rows, *, separator_at=None):
+def menu_pixels(image, box, rows):
     l, t, r, b = box
     bg, border = role('menu', 'bg'), role('menu', 'border')
-    sep_height = 10 if separator_at is not None else 0
-    assert 200 <= r - l <= 400 and b - t == 4 + len(rows) * 40 + sep_height, (rows, box)
+    assert 200 <= r - l <= 400 and b - t == 4 + len(rows) * 40, (rows, box)
     for area in ((l, t, r, t+2), (l, b-2, r, b), (l, t, l+2, b), (r-2, t, r, b)):
         assert filled(image, area, border), (rows, area)
     measurements = {}
     for index, label in enumerate(rows):
-        y = t + 2 + index * 40 + (sep_height if separator_at is not None and index >= separator_at else 0)
+        y = t + 2 + index * 40
         assert filled(image, (r-8, y, r-2, y+40), bg), label
         row = image.crop((l+2, y, r-2, y+40))
         ink = colour_box(row, role('menu', 'text'))
         assert ink and ink[0] >= 8 and ink[2] <= row.width - 8 and 0 < ink[1] < ink[3] < 40, (label, ink)
         measurements[label] = ink
-    if separator_at is not None:
-        y = t + 2 + separator_at * 40 + 4
-        assert filled(image, (l+10, y, r-10, y+2), role('menu', 'separator'))
     return measurements
 
 
@@ -447,7 +443,7 @@ def check_menus():
         ):
             before, image, rect = menu(app, point, button)
             capture(f'04-{method}-menu', image)
-            data[method] = {'rect': rect, 'rows': menu_pixels(app, image, rect, MENU_ROWS)}
+            data[method] = {'rect': rect, 'rows': menu_pixels(image, rect, MENU_ROWS)}
             l, t, r, _ = rect
             y = t + 2 + MENU_ROWS.index('Always on Top') * 40
             app.goto(LEFT, r - 12, y + 20)
@@ -461,14 +457,19 @@ def check_menus():
             until(lambda: not ImageChops.difference(app.grab(LEFT), before).getbbox(), 'menu dismissed')
             app.expect_focus(client)
             app.check(True, f'{method} window menu has 8 complete 40px rows, 2px border, hover colours and Escape focus')
-        before, image, rect = menu(app, (600, 220), LEFT_BUTTON, output=RIGHT)
-        capture('04-root-menu', image)
-        data['root'] = {'rect': rect, 'rows': menu_pixels(app, image, rect, ('Terminal', 'Reconfigure', 'Exit'),
-                                                        separator_at=1)}
-        app.tap(ESC)
-        until(lambda: not ImageChops.difference(app.grab(RIGHT), before).getbbox(), 'root menu dismissed')
+        app.goto(RIGHT, 600, 220)
+        bare = app.grab(RIGHT)
+        assert bare.getcolors(1), 'the second output must be empty'
+        data['root'] = {}
+        for name, code in (('Left', LEFT_BUTTON), ('Right', RIGHT_BUTTON), ('Middle', MIDDLE_BUTTON)):
+            for down in (True, False):
+                app.button(code, down)
+                assert not ImageChops.difference(app.grab(RIGHT), bare).getbbox(), (name, down)
+            app.expect_focus(client)
+            data['root'][name] = {'menu_on_press': False, 'menu_on_release': False}
+            app.check(True, f'{name} click on empty output leaves the root menu closed')
+        capture('04-root-menu', app.grab(RIGHT))
         (EV / '04-menu-rows.json').write_text(json.dumps(data, indent=2) + '\n')
-        app.check(True, 'empty output root menu shows Terminal, separator, Reconfigure, Exit in Look A')
         return app.count
 
 

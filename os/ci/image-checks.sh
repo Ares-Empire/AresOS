@@ -1143,9 +1143,14 @@ expect('mouse', '''<mouse>
       <mousebind direction="Up" action="Scroll"><action name="None" /></mousebind>
       <mousebind direction="Down" action="Scroll"><action name="None" /></mousebind>
     </context>
+    <context name="Root">
+      <mousebind button="Left" action="Press"><action name="None" /></mousebind>
+      <mousebind button="Right" action="Press"><action name="None" /></mousebind>
+      <mousebind button="Middle" action="Press"><action name="None" /></mousebind>
+    </context>
     </mouse>''')
 PY
-pass 'the pinned AresOS theme has 36 RGBA buttons, and labwc selects it with the frame, switcher and scroll settings'
+pass 'the pinned AresOS theme has 36 RGBA buttons, and labwc selects it with the frame, switcher and mouse settings'
 
 # --- Package 18c: the Control tools (the tool service, its commands, Claude
 # Code's managed files). Every path the image records in control.json is here

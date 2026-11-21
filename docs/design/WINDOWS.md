@@ -210,7 +210,8 @@ In `<keyboard>`, `A-S-Tab` steps back through the switcher.
 ```
 
 The switcher shows thumbnails on the focused output in focus order. The mouse block loads labwc's defaults for
-moving, resizing and the title-bar menu, then clears both title-bar scroll actions.
+moving, resizing and the title-bar menu. It clears both title-bar scroll actions and the three bare-desktop
+button presses so a stray click cannot open the built-in menu with its session-ending Exit item.
 
 ```xml
   <windowSwitcher preview="yes" outlines="yes" order="focus">
@@ -221,6 +222,11 @@ moving, resizing and the title-bar menu, then clears both title-bar scroll actio
     <context name="TitleBar">
       <mousebind direction="Up" action="Scroll"><action name="None" /></mousebind>
       <mousebind direction="Down" action="Scroll"><action name="None" /></mousebind>
+    </context>
+    <context name="Root">
+      <mousebind button="Left" action="Press"><action name="None" /></mousebind>
+      <mousebind button="Right" action="Press"><action name="None" /></mousebind>
+      <mousebind button="Middle" action="Press"><action name="None" /></mousebind>
     </context>
   </mouse>
 ```
