@@ -198,6 +198,9 @@ impl Devices {
     }
 
     fn apply(&mut self, cmd: &EisCommand, started: Instant) {
+        if !input_allowed(self.emulating, cmd) {
+            return;
+        }
         match cmd {
             EisCommand::StartEmulating { sequence } => {
                 if self.emulating {
@@ -303,6 +306,34 @@ impl Devices {
             // Handled by the connection's task, which owns what they need.
             EisCommand::SetRegion(_) | EisCommand::Close => {}
         }
+    }
+}
+
+/// Whether `cmd` may be written to the receiver while its devices are (or are
+/// not) `emulating`. Input goes out only inside a capture run, between
+/// `StartEmulating` and `StopEmulating` (REVIEW-3, finding 1).
+///
+/// When the portal ends a run (another session armed, `Release`, the way out),
+/// it stops emulation here at once but the Wayland thread's teardown is queued
+/// behind it: a key or button that thread handles in between still arrives on
+/// this channel, after the client was told `Deactivated`. It is dropped here.
+/// The next run's first keys are not: the portal sends `StartEmulating` on this
+/// channel before it sends `AttachEis` to the Wayland thread, and that thread
+/// writes what it held for the crossing only once `AttachEis` has come, so
+/// those keys always come after the `StartEmulating` that lets them through.
+fn input_allowed(emulating: bool, cmd: &EisCommand) -> bool {
+    match cmd {
+        EisCommand::Motion { .. }
+        | EisCommand::Button { .. }
+        | EisCommand::Scroll { .. }
+        | EisCommand::ScrollDiscrete { .. }
+        | EisCommand::ScrollStop
+        | EisCommand::Key { .. }
+        | EisCommand::Frame => emulating,
+        EisCommand::StartEmulating { .. }
+        | EisCommand::StopEmulating
+        | EisCommand::SetRegion(_)
+        | EisCommand::Close => true,
     }
 }
 
@@ -661,6 +692,50 @@ mod tests {
         assert_eq!(bound_devices(both, DeviceCapability::Button | DeviceCapability::Scroll), (false, false));
         // Granted the pointer, binding the keyboard: neither.
         assert_eq!(bound_devices(CAP_POINTER, DeviceCapability::Keyboard.into()), (false, false));
+    }
+
+    #[test]
+    fn input_reaches_the_receiver_only_inside_a_capture_run() {
+        let started = Instant::now();
+        let mut devices = Devices::default();
+        let input = [
+            EisCommand::Key { keycode: 30, press: true },
+            EisCommand::Button { button: 272, press: true },
+            EisCommand::Motion { dx: 1.0, dy: 1.0 },
+            EisCommand::Scroll { dx: 0.0, dy: 1.0 },
+            EisCommand::ScrollDiscrete { dx: 0, dy: 120 },
+            EisCommand::ScrollStop,
+            EisCommand::Frame,
+        ];
+        let passes = |devices: &Devices| -> Vec<bool> {
+            input.iter().map(|cmd| input_allowed(devices.emulating, cmd)).collect()
+        };
+
+        // Before any capture nothing goes out.
+        assert!(passes(&devices).iter().all(|passes| !passes));
+
+        // Session A's capture.
+        devices.apply(&EisCommand::StartEmulating { sequence: 1 }, started);
+        assert!(passes(&devices).iter().all(|passes| *passes));
+
+        // Session B arms: the portal stops A's run. A key the Wayland thread
+        // handled before its queued teardown arrives after that and is dropped.
+        devices.apply(&EisCommand::StopEmulating, started);
+        assert!(passes(&devices).iter().all(|passes| !passes));
+
+        // A's next capture: its first keys follow its StartEmulating and go out.
+        devices.apply(&EisCommand::StartEmulating { sequence: 2 }, started);
+        assert!(passes(&devices).iter().all(|passes| *passes));
+
+        // The commands that manage the run are never held back.
+        for control in [
+            EisCommand::StartEmulating { sequence: 3 },
+            EisCommand::StopEmulating,
+            EisCommand::SetRegion(None),
+            EisCommand::Close,
+        ] {
+            assert!(input_allowed(false, &control), "{control:?}");
+        }
     }
 
     #[test]

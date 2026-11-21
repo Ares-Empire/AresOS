@@ -319,15 +319,20 @@ impl std::fmt::Debug for Signal {
 enum Frontend {
     /// Ask the bus, for every call.
     Bus,
+    /// A test sets the owner, and changes it to hand the name over.
     #[cfg(test)]
-    Fixed(Option<String>),
+    Fixed(std::sync::Mutex<Option<String>>),
 }
 
-/// Where signals go.
+/// Where signals go, and where the impl-side Session objects are exported.
 enum SignalSink {
     Bus,
     #[cfg(test)]
-    Record(Arc<std::sync::Mutex<Vec<(Option<String>, Signal)>>>),
+    Record {
+        signals: Arc<std::sync::Mutex<Vec<(Option<String>, Signal)>>>,
+        /// The paths that have a Session object.
+        objects: Arc<std::sync::Mutex<std::collections::HashSet<OwnedObjectPath>>>,
+    },
 }
 
 struct Trust {
@@ -351,8 +356,13 @@ pub struct State {
     inner: Arc<Mutex<Inner>>,
     next_activation: Arc<AtomicU32>,
     next_arming: Arc<std::sync::atomic::AtomicU64>,
-    /// Signalled when the bus connection has ended and the process must stop.
+    /// Signalled when the bus or the Wayland connection has ended and the
+    /// process must stop; `stop_reason` says which.
     stop: Arc<tokio::sync::Notify>,
+    stop_reason: Arc<OnceLock<&'static str>>,
+    /// Held while a Session object is exported or removed, so a removal can't
+    /// take the object of a new session at the same path (`remove_session_object`).
+    objects: Arc<Mutex<()>>,
     wayland: Arc<WaylandHandle>,
     screens: SharedScreens,
     keymap: eis_server::SharedKeymap,
@@ -403,6 +413,8 @@ impl State {
             next_activation: Arc::new(AtomicU32::new(1)),
             next_arming: Arc::new(std::sync::atomic::AtomicU64::new(1)),
             stop: Arc::new(tokio::sync::Notify::new()),
+            stop_reason: Arc::new(OnceLock::new()),
+            objects: Arc::new(Mutex::new(())),
             wayland,
             screens,
             keymap,
@@ -445,7 +457,7 @@ impl State {
                 reply.body().deserialize::<String>().ok()
             }
             #[cfg(test)]
-            Frontend::Fixed(owner) => owner.clone(),
+            Frontend::Fixed(owner) => owner.lock().expect("fixed frontend").clone(),
         }
     }
 
@@ -453,13 +465,45 @@ impl State {
     /// before it reads its arguments or touches any state.
     async fn authorize(&self, sender: Option<&str>, method: &'static str) -> fdo::Result<()> {
         let owner = self.frontend_owner().await;
-        if trust::is_frontend(sender, owner.as_deref()) {
-            return Ok(());
+        if !trust::is_frontend(sender, owner.as_deref()) {
+            warn!(method, sender = ?sender, "refused: the caller is not the portal frontend");
+            return Err(fdo::Error::AccessDenied(
+                "only the portal frontend may call this".into(),
+            ));
         }
-        warn!(method, sender = ?sender, "refused: the caller is not the portal frontend");
-        Err(fdo::Error::AccessDenied(
-            "only the portal frontend may call this".into(),
-        ))
+        self.adopt_frontend(sender).await;
+        Ok(())
+    }
+
+    /// Make `sender`, which has just passed the frontend check, the frontend the
+    /// sessions belong to.
+    ///
+    /// Every session here was made by one frontend (`Inner::frontend`). A caller
+    /// that passed the check under another bus name is a new owner of the
+    /// frontend's name, so the old owner's sessions end before this call touches
+    /// anything: it can't get an old session's EIS socket or clipboard pipe by
+    /// its path (REVIEW-3, finding 2; REVIEW-2, finding 3). The watch on the name
+    /// does the same, but may not have run yet. Nobody is left to tell.
+    async fn adopt_frontend(&self, sender: Option<&str>) {
+        let mut orphaned = Vec::new();
+        {
+            let mut inner = self.inner.lock().await;
+            if inner.frontend.as_deref() == sender {
+                return;
+            }
+            let stale: Vec<OwnedObjectPath> = inner.sessions.keys().cloned().collect();
+            if !stale.is_empty() {
+                warn!(
+                    "a new owner of the frontend's name: closing {} session(s) of the old one",
+                    stale.len()
+                );
+            }
+            for old in &stale {
+                self.remove_session(&mut inner, old, &mut orphaned);
+            }
+            inner.frontend = sender.map(str::to_owned);
+        }
+        self.emit_all(None, orphaned).await;
     }
 
     // ---- signals ----------------------------------------------------------
@@ -477,23 +521,92 @@ impl State {
     }
 
     async fn emit(&self, to: Option<&str>, signal: Signal) {
+        // A closed session's object goes with its `Closed`, whether or not
+        // anybody was left to tell.
+        let closed = match &signal {
+            Signal::SessionClosed { session } => Some(session.clone()),
+            _ => None,
+        };
         match &self.trust.signals {
-            SignalSink::Bus => {}
+            SignalSink::Bus => match self.connection() {
+                Some(conn) => {
+                    let name = signal.name();
+                    if let Err(err) = send_signal(conn, to, signal).await {
+                        error!(signal = name, "failed to emit a portal signal: {err}");
+                    }
+                }
+                None => debug!(signal = signal.name(), "no bus connection yet, a signal was dropped"),
+            },
             #[cfg(test)]
-            SignalSink::Record(sink) => {
-                sink.lock()
+            SignalSink::Record { signals, .. } => {
+                signals
+                    .lock()
                     .expect("signal sink")
                     .push((to.map(str::to_owned), signal));
-                return;
             }
         }
-        let Some(conn) = self.connection() else {
-            debug!(signal = signal.name(), "no bus connection yet, a signal was dropped");
+        if let Some(session) = closed {
+            self.remove_session_object(&session).await;
+        }
+    }
+
+    /// Export the impl-side Session object for a session just stored in
+    /// `sessions`. An object already standing at the path is an earlier
+    /// session's whose removal hasn't run yet: it stays and serves this session,
+    /// since a `SessionObject` finds its session by path.
+    async fn export_session_object(&self, handle: &OwnedObjectPath) -> fdo::Result<()> {
+        let _objects = self.objects.lock().await;
+        match &self.trust.signals {
+            SignalSink::Bus => {
+                let Some(conn) = self.connection() else {
+                    return Ok(());
+                };
+                let object = SessionObject {
+                    state: self.clone(),
+                    handle: handle.clone(),
+                };
+                match conn.object_server().at(handle, object).await {
+                    Ok(true) => {}
+                    Ok(false) => debug!(session = %handle.as_str(), "an earlier object at this path serves the new session"),
+                    Err(err) => {
+                        return Err(fdo::Error::Failed(format!(
+                            "failed to export the session object: {err}"
+                        )))
+                    }
+                }
+            }
+            #[cfg(test)]
+            SignalSink::Record { objects, .. } => {
+                objects.lock().expect("object sink").insert(handle.clone());
+            }
+        }
+        Ok(())
+    }
+
+    /// Remove the Session object at a closed session's path, unless a session
+    /// with that path exists again (REVIEW-2, finding 4).
+    ///
+    /// A client can close a session and make a new one at the same path straight
+    /// away; the old `Closed` may then go out after the new session was stored,
+    /// and removing the object would leave the new session without `Close`. The
+    /// check and the removal hold the same lock as `export_session_object`, so
+    /// they can't straddle the new session's export.
+    async fn remove_session_object(&self, handle: &OwnedObjectPath) {
+        let _objects = self.objects.lock().await;
+        if self.inner.lock().await.sessions.contains_key(handle) {
+            debug!(session = %handle.as_str(), "a new session has this path: its object stays");
             return;
-        };
-        let name = signal.name();
-        if let Err(err) = send_signal(conn, to, signal).await {
-            error!(signal = name, "failed to emit a portal signal: {err}");
+        }
+        match &self.trust.signals {
+            SignalSink::Bus => {
+                if let Some(conn) = self.connection() {
+                    let _ = conn.object_server().remove::<SessionObject, _>(handle).await;
+                }
+            }
+            #[cfg(test)]
+            SignalSink::Record { objects, .. } => {
+                objects.lock().expect("object sink").remove(handle);
+            }
         }
     }
 
@@ -604,6 +717,14 @@ impl State {
     ) -> fdo::Result<u32> {
         self.authorize(sender, "CreateSession").await?;
 
+        // A host program without a desktop file reaches the backend with an
+        // empty ID, so it names nobody: refused whatever the list holds.
+        if app_id.is_empty() {
+            warn!("refused: the application has no ID");
+            return Err(fdo::Error::AccessDenied(
+                "this application may not capture input".into(),
+            ));
+        }
         // Read for every session, so the list in force is the one on disk now.
         let allowed = AllowList::load(&self.trust.allow_list, self.trust.allow_list_owner);
         if !allowed.allows(app_id) {
@@ -619,21 +740,10 @@ impl State {
         }
         let started = v1_capabilities.is_some();
 
-        let mut orphaned = Vec::new();
         {
+            // `authorize` has made the caller the frontend these sessions
+            // belong to, closing an earlier owner's first.
             let mut inner = self.inner.lock().await;
-            // Every session here was made by one frontend. A caller that passed
-            // the check above under another bus name is a new owner of the
-            // frontend's name: the old owner's sessions end now (the watch on
-            // the name does the same, but may not have run yet), and nobody is
-            // left to tell.
-            if inner.frontend.as_deref() != sender {
-                let stale: Vec<OwnedObjectPath> = inner.sessions.keys().cloned().collect();
-                for old in &stale {
-                    self.remove_session(&mut inner, old, &mut orphaned);
-                }
-                inner.frontend = sender.map(str::to_owned);
-            }
             if inner.sessions.contains_key(handle) {
                 return Err(fdo::Error::Failed("this session already exists".into()));
             }
@@ -658,20 +768,11 @@ impl State {
                 },
             );
         }
-        self.emit_all(None, orphaned).await;
 
         // The backend owns the impl-side Session object.
-        if let Some(conn) = self.connection() {
-            let object = SessionObject {
-                state: self.clone(),
-                handle: handle.clone(),
-            };
-            if let Err(err) = conn.object_server().at(handle, object).await {
-                self.inner.lock().await.sessions.remove(handle);
-                return Err(fdo::Error::Failed(format!(
-                    "failed to export the session object: {err}"
-                )));
-            }
+        if let Err(err) = self.export_session_object(handle).await {
+            self.inner.lock().await.sessions.remove(handle);
+            return Err(err);
         }
 
         info!(app_id = ?app_id, session = %handle.as_str(), capabilities = granted, started, "session created");
@@ -1067,10 +1168,28 @@ impl State {
     /// The frontend left the bus (or was replaced): nobody is left who could
     /// close its sessions, and a new frontend knows nothing about them.
     pub async fn close_all_sessions(&self, why: &str) {
+        self.close_sessions(None, why).await;
+    }
+
+    /// The watch on the frontend's name saw `old_owner` give it up. Only the
+    /// sessions that owner made are closed: by the time a late notice arrives,
+    /// a new owner may already have made sessions of its own (REVIEW-3,
+    /// finding 2), and those stay.
+    pub async fn frontend_left(&self, old_owner: &str) {
+        self.close_sessions(Some(old_owner), "the portal frontend left the bus")
+            .await;
+    }
+
+    /// Close every session, or with `only_of` every session if they belong to
+    /// that frontend and none otherwise.
+    async fn close_sessions(&self, only_of: Option<&str>, why: &str) {
         let mut out = Vec::new();
         let to;
         {
             let mut inner = self.inner.lock().await;
+            if only_of.is_some() && inner.frontend.as_deref() != only_of {
+                return;
+            }
             to = inner.frontend.take();
             let handles: Vec<OwnedObjectPath> = inner.sessions.keys().cloned().collect();
             if !handles.is_empty() {
@@ -1089,14 +1208,31 @@ impl State {
     /// session is closed (its barriers go, its EIS connection is cut), whatever
     /// is captured is released, and `serve` is told to stop the process.
     pub async fn bus_lost(&self) {
-        self.close_all_sessions("the bus connection ended").await;
+        self.stop_serving("the session bus connection ended").await;
+    }
+
+    /// The connection to the compositor has ended (REVIEW-2, finding 2). No
+    /// barrier can be placed and no crossing seen any more, while the bus would
+    /// keep answering: `Enable` would succeed and sharing would look alive but
+    /// be dead. So it ends as a lost bus does, and the next call from the
+    /// frontend starts a fresh backend through D-Bus activation. No input can
+    /// leak meanwhile: the compositor dropped the grab with the connection.
+    pub async fn wayland_lost(&self) {
+        self.stop_serving("the Wayland connection ended").await;
+    }
+
+    async fn stop_serving(&self, why: &'static str) {
+        self.close_all_sessions(why).await;
         self.release_everything();
+        let _ = self.stop_reason.set(why);
         self.stop.notify_one();
     }
 
-    /// Resolves once the bus connection has ended and the sessions are closed.
-    pub async fn wait_for_bus_loss(&self) {
+    /// Resolves once the bus or the Wayland connection has ended and the
+    /// sessions are closed, with which of the two it was.
+    pub async fn wait_for_stop(&self) -> &'static str {
         self.stop.notified().await;
+        self.stop_reason.get().copied().unwrap_or("stopped")
     }
 
     /// An EIS connection ended. If a session still depends on it, the session is
@@ -1456,26 +1592,15 @@ impl State {
 }
 
 /// Send one signal to the frontend `to` and to nobody else. With nobody to
-/// tell, nothing is sent. A closed session's object is removed either way.
+/// tell, nothing is sent.
 async fn send_signal(conn: &zbus::Connection, to: Option<&str>, signal: Signal) -> zbus::Result<()> {
-    let closed = match &signal {
-        Signal::SessionClosed { session } => Some(session.clone()),
-        _ => None,
-    };
-    let sent = match to {
+    match to {
         Some(to) => send_signal_to(conn, to, signal).await,
         None => {
             debug!(signal = signal.name(), "no frontend to tell, a signal was dropped");
             Ok(())
         }
-    };
-    if let Some(session) = closed {
-        let _ = conn
-            .object_server()
-            .remove::<SessionObject, _>(&session)
-            .await;
     }
-    sent
 }
 
 /// Put one signal on the bus, addressed to `to`.
@@ -1941,6 +2066,10 @@ pub async fn pump_wayland_events(state: State, mut events: mpsc::UnboundedReceiv
     while let Some(event) = events.recv().await {
         state.handle_event(event).await;
     }
+    // The Wayland thread holds the sending end until it stops, and it stops
+    // only when its connection to the compositor fails or the process ends.
+    warn!("the Wayland connection ended: closing every session and stopping");
+    state.wayland_lost().await;
 }
 
 /// Close every session when the frontend's bus name changes hands or is given
@@ -1954,10 +2083,8 @@ pub async fn watch_frontend(state: State, mut changes: fdo::NameOwnerChangedStre
         };
         // Somebody owned the name until now. Whether nobody or somebody else owns
         // it from here on, the sessions that owner made have lost their frontend.
-        if args.old_owner().is_some() {
-            state
-                .close_all_sessions("the portal frontend left the bus")
-                .await;
+        if let Some(old_owner) = &**args.old_owner() {
+            state.frontend_left(old_owner.as_str()).await;
         }
     }
     // The stream ends when the connection does, with no last word about the
@@ -2015,6 +2142,7 @@ mod tests {
         state: State,
         cmds: calloop::channel::Channel<WaylandCmd>,
         signals: Arc<std::sync::Mutex<Vec<(Option<String>, Signal)>>>,
+        objects: Arc<std::sync::Mutex<std::collections::HashSet<OwnedObjectPath>>>,
         screens: SharedScreens,
         /// The clients' ends of the EIS connections, kept open.
         eis_clients: Vec<OwnedFd>,
@@ -2031,6 +2159,7 @@ mod tests {
             let list = TempList::new(allow_list);
             let (wayland, cmds) = WaylandHandle::recording();
             let signals = Arc::new(std::sync::Mutex::new(Vec::new()));
+            let objects = Arc::new(std::sync::Mutex::new(std::collections::HashSet::new()));
             let screens = SharedScreens::new();
             // Two screens side by side: zone set 2.
             screens.commit(vec![screen("A", 0, 0, 1920, 1080), screen("B", 1920, 0, 1920, 1080)]);
@@ -2041,14 +2170,18 @@ mod tests {
                 Trust {
                     allow_list: list.path.clone(),
                     allow_list_owner: list.owner,
-                    frontend: Frontend::Fixed(frontend.map(str::to_owned)),
-                    signals: SignalSink::Record(signals.clone()),
+                    frontend: Frontend::Fixed(std::sync::Mutex::new(frontend.map(str::to_owned))),
+                    signals: SignalSink::Record {
+                        signals: signals.clone(),
+                        objects: objects.clone(),
+                    },
                 },
             );
             Self {
                 state,
                 cmds,
                 signals,
+                objects,
                 screens,
                 eis_clients: Vec::new(),
                 _list: list,
@@ -2097,6 +2230,19 @@ mod tests {
 
         async fn enabled(&self, handle: &OwnedObjectPath) -> bool {
             self.state.inner.lock().await.sessions[handle].enabled
+        }
+
+        /// Whether a Session object stands at this path.
+        fn has_object(&self, handle: &OwnedObjectPath) -> bool {
+            self.objects.lock().unwrap().contains(handle)
+        }
+
+        /// Hand the frontend's bus name to another connection.
+        fn set_frontend(&self, owner: Option<&str>) {
+            let Frontend::Fixed(fixed) = &self.state.trust.frontend else {
+                unreachable!("the rig's frontend is fixed");
+            };
+            *fixed.lock().unwrap() = owner.map(str::to_owned);
         }
     }
 
@@ -3126,9 +3272,123 @@ mod tests {
         assert!(!rig.signals().iter().any(|s| matches!(s, Signal::Activated { .. })));
 
         // `serve` waits on this to end the process.
-        tokio::time::timeout(std::time::Duration::from_secs(1), rig.state.wait_for_bus_loss())
+        let why = tokio::time::timeout(std::time::Duration::from_secs(1), rig.state.wait_for_stop())
             .await
             .expect("the backend is told to stop");
+        assert_eq!(why, "the session bus connection ended");
+    }
+
+    // ---- 316's follow-ups, brief 321 "What to build" 1 ----
+
+    #[tokio::test]
+    async fn losing_the_wayland_connection_closes_every_session_and_stops_the_backend() {
+        let mut rig = Rig::new();
+        let (busy, _) = busy_session(&mut rig, "busy").await;
+        let idle = rig.session("idle").await;
+        rig.cmds();
+        rig.signals();
+
+        // The Wayland thread holds the sending end; it ends with its connection.
+        let (events, wayland_events) = mpsc::unbounded_channel::<WaylandEvent>();
+        let pump = tokio::spawn(pump_wayland_events(rig.state.clone(), wayland_events));
+        drop(events);
+        tokio::time::timeout(std::time::Duration::from_secs(1), pump)
+            .await
+            .expect("the pump ends")
+            .unwrap();
+
+        assert_eq!(rig.session_count().await, 0);
+        let closed: Vec<Signal> = rig
+            .signals()
+            .into_iter()
+            .filter(|signal| matches!(signal, Signal::SessionClosed { .. }))
+            .collect();
+        assert_eq!(closed.len(), 2, "both sessions are closed and their clients told");
+        assert!(!rig.has_object(&busy) && !rig.has_object(&idle));
+        let cmds = rig.cmds();
+        assert!(cmds.iter().any(|c| matches!(c, WaylandCmd::EndCapture { crossing: None, .. })));
+        assert!(matches!(cmds.last(), Some(WaylandCmd::Disarm)));
+        let why = tokio::time::timeout(std::time::Duration::from_secs(1), rig.state.wait_for_stop())
+            .await
+            .expect("the backend is told to stop");
+        assert_eq!(why, "the Wayland connection ended");
+    }
+
+    #[tokio::test]
+    async fn a_new_owner_of_the_frontend_name_gets_nothing_of_the_old_owner_s_sessions() {
+        const NEW: &str = ":1.6";
+        let mut rig = Rig::new();
+        let (old, _) = busy_session(&mut rig, "old").await;
+        let s = &rig.state;
+        s.handle_event(WaylandEvent::ClipboardSelection {
+            mime_types: vec!["text/plain".into()],
+            is_ours: false,
+        })
+        .await;
+        rig.cmds();
+        rig.signals();
+
+        // The name changes hands; the watch has not run yet.
+        rig.set_frontend(Some(NEW));
+        // The old owner is refused like any stranger.
+        assert!(denied(s.selection_read(Some(FRONTEND), &old, "text/plain".into()).await));
+        assert_eq!(rig.session_count().await, 1);
+
+        // The new owner's first call, whichever method it is, closes the old
+        // owner's sessions before it looks: no pipe and no EIS socket for it.
+        assert!(s.selection_read(Some(NEW), &old, "text/plain".into()).await.is_err());
+        assert!(!rig.cmds().iter().any(|c| matches!(c, WaylandCmd::ClipboardRead { .. })));
+        assert_eq!(rig.session_count().await, 0);
+        assert!(s.connect_to_eis(Some(NEW), &old).await.is_err());
+        // The old session's signals go to nobody, and certainly not to the new owner.
+        let sent = rig.addressed();
+        assert!(sent.iter().any(|(_, signal)| *signal == Signal::SessionClosed { session: old.clone() }));
+        assert!(sent.iter().all(|(to, _)| to.is_none()), "{sent:?}");
+
+        // The new owner's own session.
+        let new = path("new");
+        s.create_session(Some(NEW), &new, APP, None).await.unwrap();
+        // A late notice that the old owner left closes nothing of the new one's.
+        s.frontend_left(FRONTEND).await;
+        assert_eq!(rig.session_count().await, 1);
+        // The notice for the new owner does.
+        s.frontend_left(NEW).await;
+        assert_eq!(rig.session_count().await, 0);
+    }
+
+    #[tokio::test]
+    async fn a_session_made_at_a_path_just_closed_keeps_its_object() {
+        let mut rig = Rig::new();
+        let handle = rig.session("reused").await;
+        assert!(rig.has_object(&handle));
+
+        // `Close` and `CreateSession2` for the same path right after each other:
+        // the new session is stored before the old one's `Closed` goes out.
+        let mut out = Vec::new();
+        {
+            let mut inner = rig.state.inner.lock().await;
+            assert!(rig.state.remove_session(&mut inner, &handle, &mut out));
+        }
+        rig.state
+            .create_session(Some(FRONTEND), &handle, APP, None)
+            .await
+            .unwrap();
+        rig.state.emit_all(Some(FRONTEND.to_owned()), out).await;
+        assert!(rig.has_object(&handle), "the new session can still be closed");
+
+        // Closing the new session removes the object.
+        rig.state.close_session(Some(FRONTEND), &handle).await.unwrap();
+        assert_eq!(rig.session_count().await, 0);
+        assert!(!rig.has_object(&handle));
+    }
+
+    #[tokio::test]
+    async fn an_empty_id_is_refused_whatever_the_list_holds() {
+        let rig = Rig::with(Some("\n \norg.deskflow.deskflow\n\n"), Some(FRONTEND));
+        let result = rig.state.create_session(Some(FRONTEND), &path("a"), "", None).await;
+        assert!(denied(result));
+        assert_eq!(rig.session_count().await, 0);
+        assert!(!rig.has_object(&path("a")));
     }
 
     #[test]

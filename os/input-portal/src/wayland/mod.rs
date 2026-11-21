@@ -241,35 +241,37 @@ impl Drop for WaylandHandle {
     }
 }
 
+/// The idle watchdog's timeout when nothing sets one: off (brief 321, "The trust
+/// model"). Upstream ended a capture after 15 seconds without input, but the owner
+/// reads on the other machine for longer than that every day: control would fall
+/// back to this laptop unseen and his next keys would land in a local window. The
+/// release chord and the teardown for a dead client end a capture instead.
+/// `Duration::MAX` is "never".
+pub const DEFAULT_IDLE_TIMEOUT: std::time::Duration = std::time::Duration::MAX;
+
+/// The idle timeout `ARESOS_INPUT_PORTAL_IDLE_TIMEOUT` asks for, in seconds; `0`
+/// and an unset variable mean no watchdog, and anything else falls back to that.
+pub fn idle_timeout_from_env() -> std::time::Duration {
+    idle_timeout(std::env::var("ARESOS_INPUT_PORTAL_IDLE_TIMEOUT").ok().as_deref())
+}
+
+fn idle_timeout(raw: Option<&str>) -> std::time::Duration {
+    let Some(raw) = raw else {
+        return DEFAULT_IDLE_TIMEOUT;
+    };
+    match raw.trim().parse::<u64>() {
+        Ok(0) => std::time::Duration::MAX,
+        Ok(secs) => std::time::Duration::from_secs(secs),
+        Err(_) => {
+            warn!("ignoring unparseable ARESOS_INPUT_PORTAL_IDLE_TIMEOUT={raw:?}");
+            DEFAULT_IDLE_TIMEOUT
+        }
+    }
+}
+
 /// Start the Wayland thread.
 ///
 /// Returns a handle for sending commands plus the stream of barrier events.
-/// Default idle timeout before a capture is force-released.
-///
-/// A capture that is doing its job never goes quiet for this long, because the
-/// user is driving the remote screen with this machine's own mouse and keyboard.
-pub const DEFAULT_IDLE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(15);
-
-/// Read the idle timeout from the environment, falling back to the default.
-///
-/// `0` disables the watchdog, which is only sensible when something else is
-/// guaranteed to end the capture.
-pub fn idle_timeout_from_env() -> std::time::Duration {
-    match std::env::var("ARESOS_INPUT_PORTAL_IDLE_TIMEOUT") {
-        Ok(raw) => match raw.trim().parse::<u64>() {
-            Ok(0) => {
-                warn!("idle watchdog disabled; a stuck capture will need ForceRelease");
-                std::time::Duration::MAX
-            }
-            Ok(secs) => std::time::Duration::from_secs(secs),
-            Err(_) => {
-                warn!("ignoring unparseable ARESOS_INPUT_PORTAL_IDLE_TIMEOUT={raw:?}");
-                DEFAULT_IDLE_TIMEOUT
-            }
-        },
-        Err(_) => DEFAULT_IDLE_TIMEOUT,
-    }
-}
 
 pub fn spawn(
     keymap: crate::eis_server::SharedKeymap,
@@ -603,6 +605,18 @@ mod tests {
         assert!(rejected.is_empty());
         assert_eq!(placed[0].edge, Edge::Right);
         assert_eq!(placed[1].edge, Edge::Bottom);
+    }
+
+    #[test]
+    fn the_idle_watchdog_is_off_unless_a_timeout_is_set() {
+        use std::time::Duration;
+        assert_eq!(idle_timeout(None), Duration::MAX);
+        assert_eq!(idle_timeout(Some("0")), Duration::MAX);
+        assert_eq!(idle_timeout(Some(" 3\n")), Duration::from_secs(3));
+        assert_eq!(idle_timeout(Some("15")), Duration::from_secs(15));
+        for not_a_number in ["", "-1", "1.5", "15s", "never"] {
+            assert_eq!(idle_timeout(Some(not_a_number)), Duration::MAX, "{not_a_number:?}");
+        }
     }
 
     #[test]
