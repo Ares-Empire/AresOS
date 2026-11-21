@@ -32,6 +32,10 @@ After Escape, the injected unbound `A` delivered neither press nor release to th
 
 Review round 1 ran `HARNESS_IMAGE_TAG=329-fix1 os/tests/indicator-harness/run.sh image`, then `frame` and `run` twice each, one rootless container at a time. Frame mode passed 38 checks, 36 exact PNG comparisons and eight review sheets each time. Indicator mode passed nine scenarios and 52 checks each time. The retained default mouse gestures include the verified title-bar drag, close button and edge resize. `python3 -m unittest discover -s os/tests -p 'test_aresos_labwc_rc.py' -v` reported `Ran 2 tests` and `OK` with bytecode writes disabled. `bash -n os/ci/image-checks.sh` and the package 329 image assertions against the staged paths also passed. [Run counts](evidence/fix-round-1-results.txt) · [Bindings](evidence/05-bindings.json)
 
+A private failure check changed `output` to `cursor`, added `titlebar.height` and corrupted one button PNG in the container's staged files. Frame mode exited 1. The focused output lacked the picker, and the harness reported `[ERROR]` from both `theme.c` and `img/img-png.c`. The two local test images were removed by their exact tags with `podman rmi --no-prune`.
+
+The review-round `check_build=build` passed on the pushed fix and evidence commit `67287246152f5b335f9fe9dfaff9a55ded335731`. The image checks, build and UEFI guest checks all passed. [Check build 44953934586](https://github.com/Ares-Empire/AresOS/actions/runs/44953934586)
+
 ## Not verified
 
 The real panel and owner app list need a separate test. Live B/C sync and reconfigure, Super+Tab, cover filters and the foreign-toplevel activation request belong to their later packages. The package changes OS files and two private headless clients. No Gradle or Minecraft client run was performed for this proof. [Known limits](KNOWN-LIMITS.md)
