@@ -9,6 +9,8 @@ Scenarios, each starting with the probe (the test app) in front and holding the 
   click    a click on the world beside the probe, then capture after the release
   press    a click on the world beside the probe, capture while the button is still down (HomePointer's path)
   keyboard capture while the probe keeps the keyboard and the pointer rests on the world (a regrab path)
+  churn    as click, then the capture is let go and taken again at once (GLFW's enableCursor and disableCursor, as
+           on an X focus change), and no motion follows
   over     the world activated through foreign-toplevel while the pointer rests on the probe (Super, Alt+Tab,
            the helper's return), then capture
 hide: XFixesHideCursor on the window before capturing (a cursor X does not draw at all)."""
@@ -77,11 +79,11 @@ say(f'mapped {geometry.width}x{geometry.height}; probe {probe()}')
 subprocess.run([sys.executable, '-I', os.path.join(here, '..', '..', '40-real-home', 'rig', 'tl.py'), rig, 'activate',
                 'aresos.pkg328.probe'], check=True, capture_output=True)
 pump(0.3)
-if scenario in ('click', 'press', 'keyboard'):
+if scenario in ('click', 'press', 'keyboard', 'churn'):
     vin('abs', 100, 100)
 if scenario == 'over':
     vin('abs', 640, 360)
-if scenario == 'click':
+if scenario in ('click', 'churn'):
     vin('click', 'left')
 elif scenario == 'press':
     vin('button', 'left', 'down')
@@ -99,20 +101,50 @@ hidden = pixmap.create_cursor(pixmap, (0, 0, 0), (0, 0, 0), 0, 0)
 if hide_cursor:
     d.xfixes_query_version()
     window.xfixes_hide_cursor()
-window.change_attributes(cursor=hidden)
-window.warp_pointer(geometry.width // 2, geometry.height // 2)
-grab = window.grab_pointer(True, X.ButtonPressMask | X.ButtonReleaseMask | X.PointerMotionMask,
-                           X.GrabModeAsync, X.GrabModeAsync, window, X.NONE, X.CurrentTime)
-d.sync()
-say(f'captured ({scenario}{" hide" if hide_cursor else ""}); grab status {grab}')
+# ORDER names the capture's X requests in order (default: the first stand-in's, the hidden cursor before any warp):
+#   prewarp  XWarpPointer to the centre (Minecraft's glfwSetCursorPos before it switches the mode)
+#   here     XWarpPointer to where the pointer already is
+#   hide     the transparent cursor image (GLFW's updateCursorImage)
+#   centre   XWarpPointer to the centre (GLFW's _glfwCenterCursorInContentArea)
+#   grab     XGrabPointer confined to the window (GLFW's captureCursor)
+#   ungrab   XUngrabPointer (GLFW's releaseCursor, part of every switch to a mode that does not capture)
+# GLFW 3.5 with Minecraft's grabMouse, as the game's trace shows it: prewarp,centre,grab,hide
+grab = None
+for step in os.environ.get('ORDER', 'hide,centre,grab').split(','):
+    if step in ('prewarp', 'centre'):
+        window.warp_pointer(geometry.width // 2, geometry.height // 2)
+    elif step == 'here':
+        where = window.query_pointer()
+        window.warp_pointer(where.win_x, where.win_y)
+    elif step == 'hide':
+        window.change_attributes(cursor=hidden)
+    elif step == 'ungrab':
+        d.ungrab_pointer(X.CurrentTime)
+    elif step == 'grab':
+        grab = window.grab_pointer(True, X.ButtonPressMask | X.ButtonReleaseMask | X.PointerMotionMask,
+                                   X.GrabModeAsync, X.GrabModeAsync, window, X.NONE, X.CurrentTime)
+    d.sync()
+say(f'captured ({scenario}{" hide" if hide_cursor else ""}, order {os.environ.get("ORDER", "hide,centre,grab")}); grab status {grab}')
 if scenario == 'press':
     vin('button', 'left', 'up')
 pump(0.5)
 
+if scenario == 'churn':
+    d.ungrab_pointer(X.CurrentTime)
+    window.change_attributes(cursor=X.NONE)
+    window.warp_pointer(geometry.width // 2, geometry.height // 2)
+    d.sync()
+    window.change_attributes(cursor=hidden)
+    window.warp_pointer(geometry.width // 2, geometry.height // 2)
+    window.grab_pointer(True, X.ButtonPressMask | X.ButtonReleaseMask | X.PointerMotionMask,
+                        X.GrabModeAsync, X.GrabModeAsync, window, X.NONE, X.CurrentTime)
+    d.sync()
+    pump(0.5)
+    say('let go and captured again')
 before = probe()
 pressed_before = counts['ButtonPress']
 # The owner moves the mouse while the world steers: towards and across the probe's rectangle.
-for step in range(40):
+for step in range(0 if scenario == 'churn' else int(os.environ.get('MOVES', '40'))):
     vin('rel', 12, 8)
     # GLFW re-centres the X pointer at every poll while disabled.
     window.warp_pointer(geometry.width // 2, geometry.height // 2)
