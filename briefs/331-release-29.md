@@ -1,9 +1,9 @@
 # 331: Release 29 (the indicator, Chrome Control, Deskflow and the signed update)
 
-Board brief 331. Lead `linux-aresos`. Branch `pkg/331-release-29`. Start the diff and walk on main now. The lead takes the cut after 18c-b, B330 and B321 land and Deskflow resolves from Fedora stable.
-B329 rides if merged by the cut. The baseline below is fetched main `a9863055`. (`HANDOFF.md:13`, `HANDOFF.md:97`)
+Board brief 331. Lead `linux-aresos`. Branch `pkg/331-release-29`. Start the diff and walk from main now. The cut needs 18c-b and B330 merged, the Chrome decision below and the Deskflow gate
+if confirmed. B329 rides if merged by the cut. The baseline below is fetched main `a9863055`. (`HANDOFF.md:13`, `HANDOFF.md:97`)
 
-**Builder and reviews.** One fresh Codex builder per step, about 80 tool calls each. Model and reviewer choices are in Steps. One fresh Codex `gpt-6.2-sol` high brief review while Claude's allowance is
+**Builder and reviews.** One fresh Codex builder per slice, about 80 tool calls each. Model and reviewer choices are in Steps. One fresh Codex `gpt-6.2-sol` high brief review while Claude's allowance is
 tight. The lead decides what to fold in. Recheck must-fixes and the affected scope. Use a fresh reviewer for each code review and name the reviewed head. **Bar (decision 24).** “Reasonably safe”. Fix real
 harm or a sure failure. Put low-harm edge cases in Known limits. (`briefs/323-r29-image.md:5`, `docs/REVIEW.md:3`, `docs/design/CONTROL.md:348`)
 
@@ -29,29 +29,28 @@ harm or a sure failure. Put low-harm edge cases in Known limits. (`briefs/323-r2
      `os/build.sh:449`)
    - **Chrome, gh and the command.** The regular Chrome browser already ships in R28, along with Control Part A and its `aresos` CLI. R28's record has a Control source revision only. 18c-b adds the
      browser-side bundle and the locked GitHub CLI binary. Package 43's desktop maintenance dispatcher is separate. Its branch adds OS words, moves the Control wrapper to `/usr/libexec/aresos-control/cli`
-     and changes the tools. Steps 6 and 7 are still due in its handoff. Do not promise its route until that handoff is complete. (`os/manifest/releases/28.json:799`, `os/ci/release_diff.py:1693`,
-     `control/packaging/aresos:3`, `HANDOFF.md:83`, `HANDOFF.md:99`, `pkg/43-aresos-command:reviews/43-aresos-command/PROGRESS.md:96`, `pkg/43-aresos-command:reviews/43-aresos-command/PROGRESS.md:460`)
+     and changes the tools. Its route follows the decision below. (`os/manifest/releases/28.json:799`, `os/ci/release_diff.py:1693`, `control/packaging/aresos:3`, `HANDOFF.md:99`)
 
 2. **What the late packages hand over.** Each lead gives the merged SHA, green check and review, exact expected image additions, changes and removals with reasons, and one line for the owner's summary.
    Use the final merged code and the build evidence. The following lists are the starting points.
    - **18c-b (PR76, `linux-tools`).** The fetched branch has the 11-check checker. Get the exact Control install-map and vendor delta, per-build Chrome bundle, managed policy and native-host links,
      action, tmpfiles rule and updated manifest. Get the `gh` binary, licence and installed lock with their pins. `gh` is extracted from a signature-checked RPM. It is outside the installed RPM set.
-     Summary draft, “Claude's tools can work in Chrome once the browser setup is ready.” Confirm the profile and approval gate below. (`HANDOFF.md:98`, `pkg/18c-b-chrome:briefs/18c-b-chrome-image.md:615`,
+     The owner's summary must reflect the chosen Chrome state below. (`HANDOFF.md:98`, `pkg/18c-b-chrome:briefs/18c-b-chrome-image.md:615`,
      `pkg/18c-b-chrome:os/build.sh:429`, `pkg/18c-b-chrome:os/build.sh:500`)
-   - **B330 (`linux-aresos`).** At `5e0c8829` the diff list names the hidden Prism desktop entry and the MIME default, with no cache rebuild. Take those two paths with the reasons and hosted proof at
-     merge. Summary draft, “Microsoft browser sign-in can now return to Prism Launcher.” (`HANDOFF.md:13`, `pkg/330-prism-handler:os/config/usr/share/applications/aresos-prismlauncher.desktop:4`,
-     `pkg/330-prism-handler:os/config/usr/share/applications/aresos-mimeapps.list:9`, `pkg/330-prism-handler:reviews/330-prism-handler/PROGRESS.md:22`)
+   - **B330 (`linux-aresos`).** At `9a0c7349`, B330 registers the hidden `org.prismlauncher.PrismLauncher.desktop` as the default for `x-scheme-handler/prismlauncher`. Take the two paths with
+     reasons and hosted proof at merge. Keep the existing cache generation. The summary says the callback is registered. Live Microsoft sign-in stays open.
+     (`9a0c7349:os/config/usr/share/applications/aresos-mimeapps.list:9`, `9a0c7349:reviews/330-prism-handler/PROGRESS.md:23`)
    - **B329 (`linux-desktop`, only if merged at the cut).** Take its theme folder (37 files), 36 frame sprites, `look.json` and `rc.xml` rows for theme, switcher, Shift+Alt+Tab and mouse. Keep the Crown
      file pin. Expect the guest to use `AresOS` when B329 rides. Take the brief's summary line about the pixel frame, backward Alt+Tab and disabled title-bar scrolling. (`HANDOFF.md:15`,
-     `briefs/329-window-frame:briefs/329-window-frame.md:74`)
-   - **B321 (`linux-desktop`, cut gate).** Get the Deskflow 1.27.0 RPM and dependency reasons, the second labwc patch and rebuilt RPM evidence, plus the backend, portal routing and allow-list, sharing
-     switch, polkit, launch and recovery binding changes. The fetched branch has step 1c and the `aresos2` result lock. The rest of the installed list comes from the final package. Take its owner-summary
-     line, covering sharing off at first, password to turn it on and Super+Shift+Esc to get the mouse back. Require its own Deskflow VM and lead's read-clean. Testing may use the pinned RPM from
-     `updates-testing`. The release resolves the reviewed NEVRA and SHA-256 from stable `updates`. Around 28 November is an estimate. (`HANDOFF.md:97`, `briefs/321-deskflow-image.md:21`,
-     `briefs/321-deskflow-image.md:50`, `briefs/321-deskflow-image.md:77`, `pkg/321-deskflow-image:os/labwc/labwc.lock.json:163`)
+     `cc158e65:briefs/329-window-frame.md:74`)
+   - **B321 (`linux-desktop`, cut gate if confirmed).** Get the Deskflow 1.27.0 RPM and dependency reasons, the second labwc patch and rebuilt RPM evidence, and the backend, portal routing and allow-list,
+     sharing switch, polkit, launch and recovery binding changes. Require the final reviewed handoff, the OS lead's read-clean and green Deskflow VM evidence. Take the summary about sharing off at first,
+     password to turn it on and Super+Shift+Esc to get the mouse back. Re-resolve the reviewed NEVRA and SHA-256 from Fedora stable `updates`. Testing may use the pinned RPM from `updates-testing`.
+     If B329 also rides, whoever merges second shows the combined `rc.xml` and binding tests passing on the merged tree. (`HANDOFF.md:97`, `briefs/321-deskflow-image.md:50`,
+     `cc158e65:briefs/329-window-frame.md:76`, `bf10ae9a:os/labwc/labwc.lock.json:168`)
    - Add late packages in their own profile commits after the main merge. Tie each reason to the cut's source or lock. Add exact metadata and content checks for built files, update the expected `rc.xml`
-     rows and guest probes, and add near-miss tests. Re-read the combined `rc.xml` if B329 and B321 both ride. A package landing after the cut waits for another release or a new cut with its own resolve
-     and dry run. (`os/ci/release_diff.py:1230`, `os/ci/release_diff.py:1269`, `briefs/329-window-frame:briefs/329-window-frame.md:76`)
+     rows and guest probes, and add near-miss tests. A package landing after the cut waits for another release or a new cut with its own resolve and dry run.
+     (`os/ci/release_diff.py:1230`, `os/ci/release_diff.py:1269`, `cc158e65:briefs/329-window-frame.md:76`)
 
 3. **The R29 diff (start on main).** Add `RELEASES['29']`, `PACKAGE_REASONS_29` and `Classifier29`. Compare the complete image inventories, RPMs and units against R28. Keep R27/R28 results and source
    lists fixed. Read old locks and historical test inputs from the recorded release via `released()` or its verified source. Use `CHMOD_0755_28` and `GENERATED_28` as references for R29's own rules. The
@@ -79,10 +78,13 @@ harm or a sure failure. Put low-harm edge cases in Known limits. (`briefs/323-r2
      an unreviewed unmask, a wrong merge resolution and stopped result status. (`os/ci/release_diff.py:452`, `os/ci/release_diff.py:724`, `os/ci/release_diff.py:1797`, `os/ci/release_diff.py:1836`,
      `reviews/42-release-28/REVIEW-2.md:48`, `reviews/42-release-28/REVIEW-2.md:63`, `reviews/42-release-28/REVIEW-2.md:94`)
 
-4. **The R29 walk (start with local fixtures).** Add `release29_walk.py` and a `rehearsal=release-29` route from R28. Reuse the R28 and tools-local legs to create the historical baseline on disposable
-   disks. Assert R28 runs with v5, only R27 and pinned stock behind it, R13 gone and no transaction. Read and verify R27/R28's immutable records and v5 bytes at their recorded source. Pin each historical
-   leg to its own target and tools before moving the active pointer. (`os/ci/release28_walk.py:698`, `os/ci/release28_walk.py:708`, `os/ci/owner_vm.py:1533`, `os/ci/verify_release.py:83`,
-   `reviews/42-release-28/PROGRESS.md:1441`)
+4. **The R29 walk (start with local fixtures).** Add `release29_walk.py` and a `rehearsal=release-29` route from R28. Reuse the R28 and tools-local legs through R13 and R27 on disposable disks.
+   Pin each leg to its immutable release record and tools bytes at the recorded source before moving the active pointer. Confirm R28 with v5, R27 retained, corrected stock pinned, R13 gone and the
+   transaction idle. (`os/ci/release28_walk.py:698`, `os/ci/owner_vm.py:1533`, `os/ci/verify_release.py:83`, `reviews/42-release-28/PROGRESS.md:1441`)
+   - Run that baseline as a read-only hosted preflight before any private upload. Verify job-token reads and exact signatures against each historical image record used by the route, including R13, R27
+     and R28. The current registry preflight reads one active `release.json`. Add explicit historical targets and test them as well as the branch allowlist. Verify the pinned ISO and the served Web UI
+     bundle and source map against their exact hashes in the baseline preflight. Keep the passing receipt and rerun if baseline inputs change. (`os/ci/registry_auth.py:14`, `os/ci/registry_auth.py:131`,
+     `reviews/42-release-28/PROGRESS.md:1002`)
    - From R28, follow the folder and routine route with the new bundle in the stand-in origin. Compare the fingerprint in the window and guide, and require install, check and title PASS with no cached
      sudo ticket. Keep the identical-bundle no-op, equal-version mismatch and downgrade cases. Only an unchanged v5 baseline may defer real-commit comparison in a local prep fixture. Qualification
      requires equality of the real candidate trees, bundle and guide before the walk. Bind the checker and settings in the host receipt. Execute the actual submitted probe scripts in local tests with
@@ -91,26 +93,31 @@ harm or a sure failure. Put low-harm edge cases in Known limits. (`briefs/323-r2
      Check the shape at staging and after every boot. R27 is the one release the R29 update retires. `at previous` returns to R28 and `at forward` returns to R29. Require their own confirmations and fresh
      titles. Preserve the stock pin, protected Windows disk and boot entry, Windows firmware default and all R28 audits, including on failure. (`docs/INSTALL.md:345`, `docs/INSTALL.md:375`,
      `docs/INSTALL.md:417`, `os/ci/release28_walk.py:784`, `os/ci/release28_walk.py:839`, `os/ci/owner_vm.py:1038`)
+   - Before every restart or shutdown out of R28, including the first update, forward after `previous` and failed-update recovery, check whether its world is open. If so, focus it, press Alt+F4
+     (or Alt+Fn+F4) and wait for “Minecraft was closed. Nothing is wrong.” If it is missing, go to Help before restarting. Test that ordering in the walk. The VM in SETUP can check the route order,
+     Terminal prerequisites and preservation of planted files. The actual Alt+F4 close, normal-close message and live world save on R28 need a manual check. (`docs/INSTALL.md:230`, `docs/INSTALL.md:406`,
+     `docs/EMERGENCY.md:20`, `reviews/42-release-28/PROGRESS.md:1447`)
    - On the first R28 boot plant the schema-4 apps fixture and synthetic `level.dat` and region data. Use the real provisioner's instance links (`patches`, `libraries`, `minecraft/mods`,
      `minecraft/saves`). Compare content, owner, mode, type, link text and access by the daily user across update, previous and forward. Keep the narrow Prism mutable-file allowance. Require both
-     releases' own image targets on their boots. Both ship the desktop payload. Save the game-scope/JVM probe for the end. It proves placement and `memory.high=2684354560`. Record actual play and
-     live-save checks as manual. (`os/ci/release28_walk.py:85`, `os/ci/release28_walk.py:635`, `os/ci/release28_walk.py:689`, `reviews/42-release-28/FIXES-6.md:10`, `reviews/42-release-28/FIXES-4.md:142`)
-   - Check the booted theme, fontconfig and runtime privilege, polkit and terminal PATH. Keep the no-foot STOP check where the installed tools require foot. Reopen the exact Terminal app command from the
-     one supervisor's Wayland environment and the daily user's home, after tty1 is active. Check the same PID survives and retain its log. Retry only the missing-monitor case, up to the existing five
+     releases' own image targets on their boots. Both ship the desktop payload. Save the game-scope/JVM probe for the end. It proves placement and `memory.high=2684354560`. Actual play stays manual.
+     (`os/ci/release28_walk.py:85`, `os/ci/release28_walk.py:635`, `os/ci/release28_walk.py:689`, `reviews/42-release-28/FIXES-6.md:10`, `reviews/42-release-28/FIXES-4.md:142`)
+   - Open Terminal before the routine `check` on starting R28 and before the rollback confirmation `check` on R28 while the candidate tools require `foot`. Keep it open through PASS. Keep the no-foot
+     STOP check where required. Check theme, fontconfig, runtime privilege, polkit and terminal PATH. After tty1 is active, reopen the exact Terminal app command from the supervisor's Wayland
+     environment and the daily user's home. Check the same PID survives and retain its log. Retry only the missing-monitor case, up to the existing five
      attempts. Include negative cases for display, cwd and VT in the fake. (`os/ci/release28_walk.py:625`, `os/ci/release28_walk.py:666`, `os/ci/release28_walk.py:811`,
-     `reviews/42-release-28/FIXES-4.md:37`, `reviews/42-release-28/PROGRESS.md:1867`)
-   - Use the stock rewind with exact ISO and Web UI checks, runner space check, offline first boot and pinned stock identity. Keep the verified 9p copy, loop-backed store, scratch cleanup and both disk
-     audits. A changed ISO requires requalification. Save `finish_shutdown` output on failure. If the live console stalls again before login, bring its transcript to the lead for a bounded fix.
+     `os/owner-tools/owner.py:2017`, `reviews/42-release-28/FIXES-4.md:37`, `reviews/42-release-28/PROGRESS.md:1867`)
+   - Use the stock rewind with the preflight's exact ISO and Web UI checks, runner space check, offline first boot and pinned stock identity. Keep the verified 9p copy, loop-backed store, scratch
+     cleanup and both disk audits. A changed ISO requires requalification. Save `finish_shutdown` output on failure. If the live console stalls before login, bring its transcript to the lead.
      (`reviews/42-release-28/PROGRESS.md:996`, `reviews/42-release-28/PROGRESS.md:1239`, `reviews/42-release-28/PROGRESS.md:1859`, `os/ci/owner_vm.py:255`)
 
-5. **The R29 Control list (start now with PR76's contract).** Pass these names explicitly to the bound stdin checker. Assert each check's result and the whole key set on the first and final R29 boots.
-   Preserve output before the login-graph probe. Keep R28's own five-check behavior. (`HANDOFF.md:98`, `os/ci/release28_walk.py:525`, `pkg/18c-b-chrome:os/ci/control/release_checks.py:321`,
+5. **The R29 Control list (start with PR76's checker).** Pass these names explicitly to the bound stdin checker. Assert each check's result and the whole key set on the first and final R29 boots under
+   the chosen Chrome contract below. Preserve output before the login-graph probe. (`HANDOFF.md:98`, `os/ci/release28_walk.py:525`, `pkg/18c-b-chrome:os/ci/control/release_checks.py:321`,
    `reviews/42-release-28/REVIEW-10.md:5`)
    - Service checks: `service_user`, `unit`, `claude_code_files`, `folders`, `state_folders`. Keep UID/GID 250 and the state ownership checks. Follow the login dependency graph. Allow a masked non-root
      unit as an ordering-only reference. Traverse it and refuse any masked requirement or dependency on Control. (`os/ci/release28_walk.py:558`, `os/ci/release28_walk.py:579`, `HANDOFF.md:100`)
-   - Chrome checks: `chrome_links`, `chrome_bundle`, `chrome_other_ids`, `chrome_sites`, `gh`, `chrome_polkit`. On starting R28 use root's `tee` to write `{"format":1,"hosts":["rehearsal.invalid"]}` to
-     `/var/lib/aresos-control/chrome-excluded-sites.json` and save the hash. Require the same bytes and expected metadata on R29. On rollback to R28 prove the hash independently and run the five service
-     checks. R28 cannot supply R29's browser records. Require the checker hash line on R29, where the checker also verifies list ownership and mode. Check again on forward. Reject a rewritten list,
+   - Chrome checks: `chrome_links`, `chrome_bundle`, `chrome_other_ids`, `chrome_sites`, `gh`, `chrome_polkit`. On starting R28, in the disposable guest, use root's `tee` to write
+     `{"format":1,"hosts":["rehearsal.invalid"]}` to `/var/lib/aresos-control/chrome-excluded-sites.json` and save the hash. Require the same bytes and expected metadata on R29. For the proposed rollback
+     contract, hash the list independently and run the five service checks on starting R28 and again after `previous`. Require the checker hash line, ownership and mode on both R29 boots. Reject a rewritten list,
      placeholder, missing file and missing check in tests. Keep the real list and its hash private. (`os/manifest/releases/28.json:799`, `os/ci/release28_walk.py:612`,
      `pkg/18c-b-chrome:os/ci/control/release_checks.py:283`, `pkg/18c-b-chrome:os/ci/control/release_checks.py:337`, `pkg/18c-b-chrome:reviews/18c-b-chrome-image/PROGRESS.md:1046`)
 
@@ -120,40 +127,41 @@ harm or a sure failure. Put low-harm edge cases in Known limits. (`briefs/323-r2
    (`pkg/18c-b-chrome:briefs/18c-b-chrome-image.md:425`) (`briefs/42-release-28.md:64`, `briefs/323-r29-image.md:23`, `os/ci/release_diff.py:671`, `os/ci/check-resolve.sh:253`,
    `reviews/42-release-28/REVIEW-2.md:27`)
    - Give `dry_run_29`, `release_29` and `release-29` distinct guarded modes on the exact branch ref. Extend the release job, `build_tools`, `registry_auth`, `publish.sh`, verification, owner runner
-     allowlists and ledger with narrow entries and tests. The dry run has read permissions only and the same build, image checks, first VM pass, release isolation and diff as publish. Check selector
-     collisions and reject tag refs. Start both publish caps and the rehearsal cap at zero. Count all dispatches, including early failures and cancelled runs. Use the on-job checks and resolve guards.
+     allowlists and ledger with narrow entries and tests. The read-only dry run and the publish job use the same build, image checks, both guardian boot receipts, release isolation and diff on the final cut.
+     Check selector collisions and reject tag refs. Use the on-job checks and resolve guards. Start `dispatch_caps.publish-29`, `publish_cap` and the qualifying rehearsal cap at zero. Count all dispatches,
+     including early failures and cancellations. Test that closing both publish caps keeps the spent dispatch and upload in the ledger, permits checks and rehearsals, and refuses another release dispatch.
      (`.github/workflows/os-image.yml:202`, `.github/workflows/os-image.yml:521`, `.github/workflows/os-image.yml:632`, `os/ci/build_tools.py:87`, `os/ci/registry_auth.py:23`, `os/ci/publish.sh:5`,
-     `reviews/42-release-28/REVIEW-2.md:29`, `reviews/42-release-28/REVIEW-2.md:56`)
-   - Once the cut's checks, dry-run evidence and fresh review pass, open both publish caps for one publish under #388. The lead dispatches `release_29=true` once on the reviewed head. The job repeats
-     every gate before pushing to private GHCR and signing with `os-image.yml@refs/heads/pkg/331-release-29`. Use the scoped job token and keep immutable tags and historical records. The standing rule
-     covers private publication and pins. The signed image must exist for the update rehearsal. Leave the owner-facing pin until the rehearsal and final review pass. (`STATE.md:160`, `HANDOFF.md:102`,
-     `os/ci/publish.sh:18`, `reviews/42-release-28/REVIEW-12.md:13`, `briefs/27-first-update-release.md:20`)
+     `os/ci/check-build.sh:63`, `os/ci/rehearsal_guard.py:402`)
+   - Dry-run the release record checks. Before any upload, validate the source trees and extracted Control manifest, and test the prospective Chrome shipment on a temporary ledger copy. Require the row
+     for that job's source SHA and checked build hash. Treat a refusal or a returned row for another commit as a failed gate. (`os/ci/publish.sh:45`, `b2a404cd:control/chrome/record_build.py:137`)
+   - The lead opens both publish caps for one private upload only after the owner says yes on T480 and the baseline preflight, cut checks, dry run and fresh review pass. The lead dispatches
+     `release_29=true` once on the reviewed gate head. The job repeats the gates before pushing to private GHCR and signing with `os-image.yml@refs/heads/pkg/331-release-29`. Use the scoped job token,
+     immutable tags and historical records. Rehearse the exact signed image before the live pin. (`STATE.md:160`, `CLAUDE.md:66`, `os/ci/rehearsal_guard.py:530`, `reviews/42-release-28/PROGRESS.md:867`)
 
 7. **Record, rehearse, final review, pin, in that order after publishing.**
    - Write `os/manifest/releases/29.json` from the publish artifacts. Keep the digest, signature and issuer, run, base, image diff, source trees and `daily_wheel: true`. Bind R29's
-     `control.source_revision` and `chrome_build` to the image's checked manifest. Run `record_build.py add` in the job with the published commit and expected build hash. Carry its validated ledger update
-     in the pinning PR. Keep full source binding to the published commit. If the ledger moves in the candidate checkout, allow only the validated `control/chrome/builds.json` update for this shipment
-     while holding every other Control path and mode to the published tree. Test both the record and rejection paths. (`reviews/42-release-28/payload.py:31`, `os/ci/verify_release.py:49`,
+     `control.source_revision` and `chrome_build` to the image's checked manifest. Record the actual shipment with `record_build.py add` in the job, bound to the published SHA and checked build hash.
+     Carry that validated row in the pinning PR. Keep full source binding to the published commit. Allow the validated `control/chrome/builds.json` update for this shipment and hold every other Control
+     path and mode to the published tree. Test both the record and rejection paths. (`reviews/42-release-28/payload.py:31`, `os/ci/verify_release.py:49`,
      `pkg/18c-b-chrome:briefs/18c-b-chrome-image.md:615`, `pkg/18c-b-chrome:control/chrome/build.py:8`, `pkg/18c-b-chrome:control/chrome/record_build.py:137`)
-   - Prepare the exact candidate payload on the release branch for the rehearsal. Append history, bump to the agreed fresh tools version and generate both manifest copies, `commands.json`, bundle sums and
+   - Prepare the exact candidate payload on the release branch for the rehearsal. Append history, use the next free tools version at generation and generate both manifest copies, `commands.json`, bundle sums and
      `OWNER-TOOLS.md` fingerprint lines. Make one generator serve the stand-in and the real candidate. If 43 lands, use its reviewed tools bytes as the agreed transition. Require a refresh to leave
      identical bytes. Stage bound guide changes before the qualifying run. Move every digest and fingerprint reference together, including the install and emergency routes. The default pin on main remains
      R28 at this point. Keep the draft PR unannounced. Record the v5 installer refusal with an older update already staged as a baseline limit. Test that refusal leaves deployment and tools state
      unchanged. (`reviews/42-release-28/PROGRESS.md:931`, `reviews/42-release-28/payload.py:11`, `reviews/42-release-28/payload.py:57`, `reviews/42-release-28/FIXES-4.md:9`, `HANDOFF.md:102`)
-   - Keep the R28 save-and-close step first for this update (T462). Focus Minecraft, press Alt+F4 or Alt+Fn+F4 and wait for “Minecraft was closed. Nothing is wrong.” The reboot into R29 runs under R28's
-     supervisor. Package 25 lets the next update from R29 drop the manual step. Keep the Terminal and recovery key guidance the tools still need, and show R28's Minecraft desktop on rollback. Preserve the
-     no-stick export lines, provisional title off the laptop, F12 and hands off GRUB, failed-update card, install hold and exact route outputs. (`HANDOFF.md:35`, `docs/INSTALL.md:230`, `docs/INSTALL.md:375`,
-     `reviews/42-release-28/PROGRESS.md:1406`, `reviews/42-release-28/PROGRESS.md:1632`)
+   - Guide acceptance requires the same save gate on every way out of R28, including first update, forward and failed-update recovery. Whenever the R28 world is open, focus Minecraft, press Alt+F4 or
+     Alt+Fn+F4 and wait for “Minecraft was closed. Nothing is wrong.” If it is missing, go to Help before restarting. The routine box opens Terminal before `check` on starting R28, and the rollback box
+     does so before confirmation on R28 while the candidate tools require `foot`. Keep the recovery terminal shortcut and show R28's Minecraft desktop on rollback. Preserve no-stick export, provisional
+     title off the laptop, F12 and hands off GRUB, the failed-update card, install hold and exact route outputs. (`docs/INSTALL.md:230`, `docs/INSTALL.md:242`, `docs/INSTALL.md:406`, `docs/EMERGENCY.md:20`)
    - Carry pending hashes forward from main. Refresh affected rows with the lead's `rebind.py pending` notes. Keep package 42's recorded bindings and historical receipt. Generate the 331 host receipt and
      require the same head's hosted checks/full model and native preflight. Check exact private signatures and job-token reads for the qualified targets. Record the actual passing run's result, audits and
      `331-bound-sources` under package 331. Verify the qualified bytes, make 331 active and empty the pending list. Test that the binding package matches its directory. Bind safe evidence only.
      (`os/manifest/ci/16/pending-rebind.json:4`, `os/manifest/ci/42/source-bindings.json:124`, `os/ci/owner_vm.py:2309`, `os/ci/checkout_sources.py:106`, `reviews/27-first-update-release/rebind.py:85`,
      `reviews/42-release-28/PROGRESS.md:1455`, `reviews/42-release-28/PROGRESS.md:1913`)
-   - After the final review, make the checked branch payload the pin. Update INSTALL-STATUS's summary and signed-update row together. Name the actual passing run and tools fingerprint, and say the laptop
-     still runs R28. Require the release, tools and guides to equal the qualified bytes. Any change to rehearsed owner-facing bytes goes back through qualification. Compare the route and card outputs with
-     the released CLI in `test_owner_guide_output`, `test_owner_path` and `test_owner_equality`. Give the owner the short summary, exact digest, announced commit and fingerprint after the pin lands.
-     The owner runs `at update`. (`HANDOFF.md:100`, `docs/INSTALL-STATUS.md:10`,
-     `docs/INSTALL-STATUS.md:29`, `os/tests/test_checkout_sources.py:108`, `reviews/42-release-28/PROGRESS.md:1645`)
+   - Update INSTALL-STATUS's summary and signed-update row together. Name the passing run and tools fingerprint, and say the laptop still runs R28. Compare the route and card outputs with the released CLI
+     in `test_owner_guide_output`, `test_owner_path` and `test_owner_equality`. After rehearsal and final review, the lead checks the prospective merge's release, tools, guides and bound files against
+     the qualified head before merging the live pin. Recheck any later status or gate edit and requalify changes to rehearsed bytes. After merge, compare the announcement to main and send the owner the
+     short summary, exact digest, announced commit and fingerprint. The owner runs `at update`. (`docs/REVIEW.md:7`, `HANDOFF.md:100`, `docs/INSTALL-STATUS.md:10`, `docs/INSTALL-STATUS.md:29`)
 
 ## Not in this package
 
@@ -164,54 +172,64 @@ harm or a sure failure. Put low-harm edge cases in Known limits. (`briefs/323-r2
 
 ## Steps
 
-All builder steps end with commits, a push to `pkg/331-release-29` and a stop. Keep `reviews/331-release-29/PROGRESS.md` current with done, left in order, what the code doesn't show, source and run SHAs
-and the ledger. Open a draft build PR in turn 1 after brief approval. The lead dispatches between turns and reads each review. “Sol” is `gpt-6.2-sol`, “Astra” is `gpt-6.2-astra`. Builders use xhigh.
-Reviewers use high. Use a fresh turn for any remaining slice at the call limit. Steps 1–5 can start now. Steps 6–12 wait for the cut.
+Plan the slices below before launching builders. Each slice ends with focused checks and commits, including an update to `reviews/331-release-29/PROGRESS.md` with done, left in order, limits, source
+and run SHAs and ledger. Push to `pkg/331-release-29` with both publish caps at zero, then stop. Builders may prepare candidate files on that branch. The lead owns gate changes, dispatches, hosted
+waits and retries, the live pin, merge and announcement. The lead closes the publish caps before handing the branch back to builders. Open a draft build PR in turn 1 after brief approval.
+“Sol” is `gpt-6.2-sol`, “Astra” is `gpt-6.2-astra`. Builders use xhigh and reviewers high. Use a fresh turn for any slice left at the call limit. Steps 1–5 can start now.
+
+Run `sudo`, `rpm-ostree`, `bootc` and real owner-tool entry points only on disposable hosted runners or inside their guests. This includes item 5's root `tee` in the guest. `test_owner_update`
+is hosted-only. Local checks use fixtures and one affected safe test module at a time. (`AGENTS.md:26`, `os/ci/rehearsal_guard.py:530`)
 
 1. **Diff for current main** (Sol / Sol, file rules against a fixed baseline). Build item 3's profile and tests, including the main source stop. Leave the labwc payload comparison for step 2. The lead
    reviews the classifier.
 2. **Labwc evidence** (Sol / Astra, executable bytes and RPM provenance). Add 311's exact comparison, source bindings and near misses. The lead checks the limits of the RPM exception.
-3. **Local walk baseline and update** (Sol / Astra, deployment shape and rollback). Build the R28/v5 starting leg, candidate equality and R29 console and boot route. Prove the shape and failure paths on
-   the model.
+3. **Walk** (Sol / Astra, deployment shape and rollback). First build the historical VM baseline leg through confirmed R28/v5 and check its fixtures. In a fresh slice build candidate equality and the
+   new local R29 update, recovery and boot walk. Check shape, route ordering and failures on the model.
 4. **Guest probes and Control** (Sol / Sol, precise probe contracts). Add the home, Terminal, game and eleven Control checks. Test the submitted scripts and retain diagnostics. Produce the local host
    receipt.
-5. **Hosted wiring** (Sol / Astra, permissions and dispatch scope). Wire the rehearsal and release selectors, auth, receipts, budgets, tests and closed gates. The lead runs `checks_only=true` and reviews.
-   The lead uses `check_build=build` for incoming packages on their branches and their separate `control` and Deskflow qualification modes as applicable.
-6. **Cut and late rules** (Sol / Astra, exact source and package deltas). Wait for the handoffs and stable Deskflow. The lead names the cut and merges main into the release branch. Add the late reasons,
-   probes and regressions. If needed, give 18c-b its own fresh turn before B321's. The lead dispatches `check_build=resolve` on the final cut head.
+5. **Hosted wiring** (Sol / Astra, permissions and dispatch scope). First wire and test selectors, permissions and closed caps. In a fresh slice wire and test registry targets, runner allowlists, receipts
+   and budgets. The lead runs `checks_only=true` and the read-only historical baseline preflight. The lead uses `check_build=build` and separate Control and Deskflow modes as applicable on incoming branches.
+6. **Cut and late rules** (Sol / Astra, exact source and package deltas). The lead settles the cut gates, names the cut and merges main into the release branch. Give each late package its own slice for
+   reasons, probes and regressions, with focused checks on the combined rules. The lead dispatches `check_build=resolve` on the final cut head.
 7. **Resolve evidence and dry run** (Sol / Sol, lock and jar pin). Verify and apply item 6's allowed pin. Run the targeted checks and refresh the receipt. The lead runs hosted checks and
    `dry_run_29=true`. Any unresolved diff stops the release. Each fix gets a fresh turn, review and new dry run. Save a spare dry-run allowance. A failed publish dispatch also counts. Verify whether
    the upload was attempted before considering any retry. (`reviews/42-release-28/REVIEW-2.md:89`, `reviews/42-release-28/REVIEW-12.md:13`)
-8. **Publish gate** (Sol / Astra, final look before signing). Collect the green evidence and open the one-publish gate. After the gate review, the lead dispatches `release_29=true` on that reviewed head.
+8. **Publish gate** (lead / Astra, final look before signing). Builders hand over green evidence with both publish caps at zero. The lead records T480 approval, opens the one-publish gate after the cut
+   review, and dispatches `release_29=true` after review of the gate head.
 9. **Published release record** (Sol / Sol, artifact and source identity). Record the signed digest and reconcile the Chrome ledger with the artifact and published commit. Leave the active pin for the
    candidate step.
-10. **Candidate tools and guides** (Sol / Astra, exact tools and owner route). Prepare the branch-only payload, bound guide edits and final host receipt. Open the reviewed rehearsal allowance. The lead
-    runs `checks_only=true`, checks the full model on that head and dispatches `rehearsal=release-29`. Fix failures in fresh turns with same-head checks before each rerun.
+10. **Candidate tools and guides** (Sol / Astra, exact tools and owner route). First generate and check the branch-only payload. In a fresh slice bind the guide edits and final host receipt and check
+    equality. The lead opens the reviewed rehearsal allowance, runs `checks_only=true`, checks the full model on that head and dispatches `rehearsal=release-29`. Fix failures in fresh turns with
+    same-head checks before each rerun.
 11. **Record the passing walk** (Sol / Astra, final laptop-facing review). Verify the exact passing head, digest, receipts and audit proofs. Record the bindings and fill in the status evidence. Astra
     gives the final look across the whole candidate, checks and guides. The lead asks for targeted fixes and rechecks as needed.
-12. **Pin** (Sol / Sol, approved bytes and release pointers). Finalize the pinning PR and `reviews/331-release-29/REPORT.md`, including Known limits, run links, summary and budget used. The lead reads the
-    final diff and checks, merges, verifies the announcement against main and sends the summary.
+12. **Pin** (Sol / Sol, approved bytes and release pointers). Prepare the pinning PR and `reviews/331-release-29/REPORT.md`, including Known limits, run links, summary and budget used. The lead checks
+    the prospective merge against the qualified head, merges the live pin, verifies the announcement against main and sends the summary.
 
-Use hosted runners for the full suite, privileged tests, builds and VM. Locally use one affected safe module at a time and discovery. Keep temporary umask changes inside their test. Use reachable Git
+Use hosted runners for the full suite, privileged tests, builds and VM. Use discovery for local modules. Keep temporary umask changes inside their test. Use reachable Git
 inputs or explicitly fetch the recorded source, including old squash-merged refs. Check bound-source and guide equality tests before dispatch. Use `gh run watch <id> --exit-status --interval 60`, one
 dispatch per branch at a time. Account for checks job time, the model gate and rehearsal setup, VM and upload bounds. The lead reviews any cap increase before a retry. Use free standard runners. Record
 exact commands and results. Leave laptop-only checks open. (`AGENTS.md:22`, `HANDOFF.md:100`, `HANDOFF.md:102`, `reviews/42-release-28/PROGRESS.md:1317`, `reviews/42-release-28/PROGRESS.md:1430`)
 
-## Open questions for the lead
+## Decided
 
-- **Deskflow timing.** B321's brief and STATE still place (c) after R29. This draft follows the newer handoff and makes it a cut gate. Confirm that with `linux-desktop`. Recommend waiting for the stable
-  resolve and full B321 image/VM handoff. (`briefs/321-deskflow-image.md:3`, `STATE.md:224`, `HANDOFF.md:97`)
-- **Chrome activation.** The 18c-b release handoff asks for all new checks after `previous` and also gates use on 28b's combined proof and a live C8 check at the owner's actual terminal size. Recommend
-  five service checks and an independent hash on R28, all eleven on both R29 boots, and holding owner use until the combined and live gates pass. Confirm whether those gates also hold the cut or publish.
-  (`pkg/18c-b-chrome:reviews/18c-b-chrome-image/PROGRESS.md:1046`, `os/manifest/releases/28.json:799`)
-- **43 and the next tools version.** The old R29 note includes the dispatcher. Its branch still calls for the R28 bridge and handoff. Recommend treating 43 as separate unless it is reviewed and merged by
-  the cut, and reserving the next free version with its lead before generating any candidate. v5 is the rehearsal baseline. If 43 lands first, settle its dispatcher stages and bundle/version order before
-  dispatch. (`HANDOFF.md:99`, `pkg/43-aresos-command:reviews/43-aresos-command/PROGRESS.md:96`, `pkg/43-aresos-command:reviews/43-aresos-command/PROGRESS.md:1103`)
-- **ISO and budget.** R28's live ISO rotated and cost three early stops. Recommend checking the pinned ISO and installer assets before spending a rehearsal and arranging durable hosting in its own
-  decision. Start with R28's 345-minute ceiling for a VM job, two dry runs plus reviewed retries, one publish and up to three rehearsal attempts. Confirm the branch and shared minute allowances against
-  the longer R29 route. (`HANDOFF.md:102`, `reviews/42-release-28/PROGRESS.md:1317`, `os/ci/rehearsal-packages.json:177`)
-- **Publication interpretation.** #388 records reviews, checks and rehearsal as conditions. R28 used a reviewed private upload to make the signed candidate available to the rehearsal. Recommend repeating
-  that ordering, with the owner-facing pin and summary gated on the passing walk and final review. Confirm the gate note before opening the caps. (`STATE.md:160`, `HANDOFF.md:102`,
-  `os/ci/owner_vm.py:2411`)
+- **43 and tools.** R29 proceeds on its own schedule. Package 43 rides only if reviewed and merged before the cut. Coordinate with its lead and take the next free version when generating R29's candidate.
+  Rehearse from installed v5 either way. If 43 ships after R29, it renumbers and refreshes its proofs. (`HANDOFF.md:99`, `f86fdd2b:docs/OWNER-TOOLS.md:1`)
+- **ISO and budget.** Start with two dry runs, one publish and up to three qualifying rehearsals, with separately reviewed allowance for the baseline preflight, same-head checks and retries. Keep
+  345 minutes as the initial job ceiling and measure the longer route before fixing the VM-step limit. Verify the pinned ISO and installer assets in the baseline preflight. R28's first three stops were
+  the rotated ISO, missing real candidate bytes and changed embedded stock. Two were ISO-related. R28 used seven dry runs and eight rehearsal dispatches. Durable hosting is a separate decision. (`HANDOFF.md:101`,
+  `reviews/42-release-28/PROGRESS.md:1317`, `os/ci/rehearsal-packages.json:177`)
+
+## Waiting on
+
+- **`linux-desktop`** to confirm B321 as a cut gate, fix B321's post-R29 labels and sign off on the direct delta from R28's Fedora RPM to final `aresos2`, including final portal and Deskflow paths, pins
+  and VM proof. Require item 2's final handoff, green Deskflow VM and stable Fedora resolve. 28 November is an estimate. (`HANDOFF.md:97`, `briefs/321-deskflow-image.md:3`,
+  `aea67629:reviews/321-deskflow-image/PROGRESS.md:461`)
+- **`linux-tools`** to choose one Chrome path before the cut. Enabled requires 28b's combined profile proof and live C8 at the owner's actual terminal size before the cut. The earlier handoff holds
+  package 28 until after the cut, so settle that timing with the lead. Disabled requires a reviewed configuration and proof the tools stay disabled, with the proposed rollback contract of five service
+  checks and an independent synthetic-list hash on starting R28 and after `previous`, and all eleven checks on both R29 boots. Keep only the agreed path when the answer comes. The live C8 sitting stays
+  outside 331. (`b2a404cd:reviews/18c-b-chrome-image/REPORT.md:27`, `b2a404cd:reviews/18c-b-chrome-image/REPORT.md:50`, `docs/control/TOOLS-HANDOFF.md:197`)
+- **The owner** on T480, whether a private candidate may be uploaded before its VM rehearsal from R29 on. Rule #388 puts rehearsal first. Both publish caps stay at zero until a yes. The live pin and
+  announcement always wait for the passing rehearsal, final review and pre-merge equality check. (`STATE.md:160`, `CLAUDE.md:66`, `reviews/42-release-28/PROGRESS.md:867`)
 
 AGENTS.md applies. In anything committed, write “the owner”, never a name.
