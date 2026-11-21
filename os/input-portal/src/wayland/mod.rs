@@ -143,6 +143,10 @@ pub enum WaylandCmd {
     ClipboardClaim { claim_id: u32, mime_types: Vec<String> },
     /// Give up an earlier claim.
     ClipboardRelease,
+    /// Answer `done` once the compositor has processed every request this
+    /// thread made for the commands before this one (a `wl_display.sync`): after
+    /// `EndCapture` that the lock is destroyed and the keyboard given back.
+    Sync { done: oneshot::Sender<()> },
     Shutdown,
 }
 
@@ -158,6 +162,7 @@ impl std::fmt::Debug for WaylandCmd {
             Self::ClipboardRead { .. } => "ClipboardRead",
             Self::ClipboardClaim { .. } => "ClipboardClaim",
             Self::ClipboardRelease => "ClipboardRelease",
+            Self::Sync { .. } => "Sync",
             Self::Shutdown => "Shutdown",
         })
     }
@@ -227,6 +232,15 @@ impl WaylandHandle {
         }
     }
 
+    /// Whether the compositor confirms, within `within`, that it has processed
+    /// everything sent to the Wayland thread before this call ([`WaylandCmd::Sync`]).
+    /// A stopped compositor, or a thread that is gone, never confirms.
+    pub async fn confirm(&self, within: std::time::Duration) -> bool {
+        let (done, confirmed) = oneshot::channel();
+        self.send(WaylandCmd::Sync { done });
+        matches!(tokio::time::timeout(within, confirmed).await, Ok(Ok(())))
+    }
+
     /// A handle with no Wayland thread behind it: the test reads what was sent.
     #[cfg(test)]
     pub fn recording() -> (Self, calloop::channel::Channel<WaylandCmd>) {
@@ -273,10 +287,14 @@ fn idle_timeout(raw: Option<&str>) -> std::time::Duration {
 ///
 /// Returns a handle for sending commands plus the stream of barrier events.
 
+///
+/// `gate` is read before every captured event is handed on: closed (sharing is
+/// off), nothing is forwarded or buffered.
 pub fn spawn(
     keymap: crate::eis_server::SharedKeymap,
     idle_timeout: std::time::Duration,
     screens: SharedScreens,
+    gate: crate::sharing::Gate,
 ) -> Result<(WaylandHandle, mpsc::UnboundedReceiver<WaylandEvent>)> {
     let (cmd_tx, cmd_rx) = calloop::channel::channel::<WaylandCmd>();
     let (event_tx, event_rx) = mpsc::unbounded_channel::<WaylandEvent>();
@@ -284,7 +302,7 @@ pub fn spawn(
 
     thread::Builder::new()
         .name("wayland-barriers".into())
-        .spawn(move || match state::run(cmd_rx, event_tx, keymap, idle_timeout, screens, &ready_tx) {
+        .spawn(move || match state::run(cmd_rx, event_tx, keymap, idle_timeout, screens, gate, &ready_tx) {
             Ok(()) => info!("Wayland barrier thread stopped"),
             Err(err) => {
                 // If startup failed the error goes to `ready_rx`; a later failure

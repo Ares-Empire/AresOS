@@ -5,6 +5,7 @@ use super::heads::{HeadsHandler, HeadsState};
 use super::{place, Edge, PlacedBarrier, WaylandCmd, WaylandEvent};
 use crate::eis_server::{EisCommand, EisHandle, SharedKeymap};
 use crate::screens::{screens_from_heads, SharedScreens};
+use crate::sharing::Gate;
 use anyhow::{Context, Result};
 use smithay_client_toolkit::{
     compositor::{CompositorHandler, CompositorState, Region},
@@ -33,7 +34,7 @@ use tracing::{debug, info, warn};
 use wayland_client::{
     globals::registry_queue_init,
     protocol::{
-        wl_buffer, wl_keyboard, wl_output, wl_pointer, wl_seat, wl_shm, wl_surface,
+        wl_buffer, wl_callback, wl_keyboard, wl_output, wl_pointer, wl_seat, wl_shm, wl_surface,
     },
     Connection, QueueHandle,
 };
@@ -171,6 +172,8 @@ struct AppState {
     clipboard: Option<ClipboardState>,
     /// How long a capture may see no input at all before it is force-released.
     idle_timeout: std::time::Duration,
+    /// Closed while sharing is off: nothing captured is handed on.
+    gate: Gate,
     event_tx: mpsc::UnboundedSender<WaylandEvent>,
     exit: bool,
 }
@@ -603,7 +606,14 @@ impl AppState {
     }
 
     /// Route one event to the client, buffering if EIS is not attached yet.
+    ///
+    /// Nothing goes on, and nothing is buffered, while the gate is closed: the
+    /// portal closes it the moment it reads that sharing is off, before its
+    /// `EndCapture` has reached this thread.
     fn forward(&mut self, cmd: EisCommand) {
+        if !self.gate.is_open() {
+            return;
+        }
         let Some(capture) = &mut self.capture else {
             return;
         };
@@ -1195,6 +1205,27 @@ impl ProvidesRegistryState for AppState {
     registry_handlers![OutputState, SeatState];
 }
 
+/// The user data of a `wl_display.sync` callback: who to tell when it is done.
+struct SyncDone(std::sync::Mutex<Option<tokio::sync::oneshot::Sender<()>>>);
+
+impl<D> smithay_client_toolkit::dispatch2::Dispatch2<wl_callback::WlCallback, D> for SyncDone {
+    fn event(
+        &self,
+        _: &mut D,
+        _: &wl_callback::WlCallback,
+        event: wl_callback::Event,
+        _: &Connection,
+        _: &QueueHandle<D>,
+    ) {
+        if let wl_callback::Event::Done { .. } = event {
+            if let Some(done) = self.0.lock().ok().and_then(|mut done| done.take()) {
+                // The asker may have given up waiting; nothing to do then.
+                let _ = done.send(());
+            }
+        }
+    }
+}
+
 delegate_registry!(AppState);
 // sctk 0.21 replaced the per-protocol delegate macros with one blanket impl.
 smithay_client_toolkit::delegate_dispatch2!(AppState);
@@ -1205,6 +1236,7 @@ pub fn run(
     keymap: SharedKeymap,
     idle_timeout: std::time::Duration,
     screens: SharedScreens,
+    gate: Gate,
     ready: &std::sync::mpsc::Sender<Result<()>>,
 ) -> Result<()> {
     let conn = Connection::connect_to_env().context("failed to connect to the Wayland display")?;
@@ -1253,6 +1285,7 @@ pub fn run(
         capture: None,
         clipboard,
         idle_timeout,
+        gate,
         event_tx,
         exit: false,
     };
@@ -1324,6 +1357,12 @@ pub fn run(
                         clipboard.release();
                         let _ = cmd_conn.flush();
                     }
+                }
+                WaylandCmd::Sync { done } => {
+                    // Queued behind every request the commands before it made;
+                    // the compositor answers `done` only after it has handled them.
+                    cmd_conn.display().sync(&cmd_qh, SyncDone(std::sync::Mutex::new(Some(done))));
+                    let _ = cmd_conn.flush();
                 }
                 WaylandCmd::Shutdown => state.exit = true,
             }

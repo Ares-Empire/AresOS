@@ -25,6 +25,8 @@ use std::{
 use tokio::{io::unix::AsyncFd, sync::mpsc};
 use tracing::{debug, info, warn};
 
+use crate::sharing::Gate;
+
 /// Everything the capture side can ask the EIS connection to emit.
 #[derive(Clone)]
 pub enum EisCommand {
@@ -197,8 +199,10 @@ impl Devices {
         self.ensure(conn, sequence, keymap, region);
     }
 
-    fn apply(&mut self, cmd: &EisCommand, started: Instant) {
-        if !input_allowed(self.emulating, cmd) {
+    /// `sharing` is the gate (`sharing.rs`) as it is now: closed, no input goes
+    /// out even inside a capture run.
+    fn apply(&mut self, cmd: &EisCommand, started: Instant, sharing: bool) {
+        if !input_allowed(self.emulating && sharing, cmd) {
             return;
         }
         match cmd {
@@ -356,6 +360,9 @@ pub type SharedKeymap = Arc<RwLock<Option<String>>>;
 ///
 /// `capabilities` is what the session was granted (`CAP_*` bits). The seat
 /// offers that and no more, whatever the receiver asks to bind.
+///
+/// `gate` is read before every input event is written: when sharing goes off,
+/// nothing more goes out, also what is already queued on this channel.
 pub fn spawn(
     socket: UnixStream,
     label: String,
@@ -363,6 +370,7 @@ pub fn spawn(
     closed_tx: mpsc::UnboundedSender<(String, u32)>,
     region: Option<Region>,
     capabilities: u32,
+    gate: Gate,
 ) -> Result<EisHandle> {
     static NEXT_ID: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(1);
 
@@ -371,7 +379,7 @@ pub fn spawn(
     let id = NEXT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
     tokio::spawn(async move {
-        if let Err(err) = run(context, rx, &label, &keymap, region, capabilities).await {
+        if let Err(err) = run(context, rx, &label, &keymap, region, capabilities, &gate).await {
             warn!(session = %label, "EIS connection ended: {err:#}");
         } else {
             info!(session = %label, "EIS connection closed");
@@ -406,6 +414,7 @@ async fn run(
     keymap: &SharedKeymap,
     mut region: Option<Region>,
     capabilities: u32,
+    gate: &Gate,
 ) -> Result<()> {
     let started = Instant::now();
     // SAFETY: the context keeps its socket open for as long as any clone of it
@@ -447,7 +456,7 @@ async fn run(
                 // client has not bound a seat yet and there is nothing to emit on.
                 Some(cmd) => {
                     if connected.is_some() {
-                        devices.apply(&cmd, started);
+                        devices.apply(&cmd, started, gate.is_open());
                         let _ = context.flush();
                     }
                 }
@@ -715,16 +724,16 @@ mod tests {
         assert!(passes(&devices).iter().all(|passes| !passes));
 
         // Session A's capture.
-        devices.apply(&EisCommand::StartEmulating { sequence: 1 }, started);
+        devices.apply(&EisCommand::StartEmulating { sequence: 1 }, started, true);
         assert!(passes(&devices).iter().all(|passes| *passes));
 
         // Session B arms: the portal stops A's run. A key the Wayland thread
         // handled before its queued teardown arrives after that and is dropped.
-        devices.apply(&EisCommand::StopEmulating, started);
+        devices.apply(&EisCommand::StopEmulating, started, true);
         assert!(passes(&devices).iter().all(|passes| !passes));
 
         // A's next capture: its first keys follow its StartEmulating and go out.
-        devices.apply(&EisCommand::StartEmulating { sequence: 2 }, started);
+        devices.apply(&EisCommand::StartEmulating { sequence: 2 }, started, true);
         assert!(passes(&devices).iter().all(|passes| *passes));
 
         // The commands that manage the run are never held back.
@@ -736,6 +745,35 @@ mod tests {
         ] {
             assert!(input_allowed(false, &control), "{control:?}");
         }
+    }
+
+    #[test]
+    fn a_closed_gate_drops_input_even_inside_a_capture_run() {
+        let started = Instant::now();
+        let mut devices = Devices::default();
+        // A capture run is going, with sharing on.
+        devices.apply(&EisCommand::StartEmulating { sequence: 1 }, started, true);
+        assert!(devices.emulating);
+        // Sharing goes off: the gate closes before the portal's StopEmulating
+        // and Close have come through this channel. Every input command that is
+        // still queued is dropped where it would be written.
+        let gate = Gate::default();
+        assert!(!gate.is_open());
+        for cmd in [
+            EisCommand::Key { keycode: 30, press: true },
+            EisCommand::Button { button: 272, press: false },
+            EisCommand::Motion { dx: 1.0, dy: 1.0 },
+            EisCommand::Scroll { dx: 0.0, dy: 1.0 },
+            EisCommand::ScrollDiscrete { dx: 0, dy: 120 },
+            EisCommand::ScrollStop,
+            EisCommand::Frame,
+        ] {
+            assert!(!input_allowed(devices.emulating && gate.is_open(), &cmd), "{cmd:?}");
+            assert!(input_allowed(devices.emulating && !gate.is_open(), &cmd), "{cmd:?} with the gate open");
+        }
+        // The run's own commands still pass, so the teardown can stop it.
+        devices.apply(&EisCommand::StopEmulating, started, gate.is_open());
+        assert!(!devices.emulating);
     }
 
     #[test]

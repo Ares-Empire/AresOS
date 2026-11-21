@@ -1,5 +1,6 @@
 #!/usr/bin/python3 -I
-"""Package 316's harness, inside its container: the tests of briefs/316-input-portal.md, "Tests".
+"""Package 316's harness, inside its container: the tests of briefs/316-input-portal.md, "Tests", and the
+switch and way-out checks of briefs/321-deskflow-image.md, "What to build" 1 (test8, test9).
 
 in-container.sh starts this once the container has proved it is cut off from the host. It starts a private
 session bus and a private headless labwc with two outputs, a full-screen probe window, a virtual pointer and
@@ -17,6 +18,7 @@ import os
 import re
 import select
 import signal
+import stat
 import subprocess
 import sys
 import time
@@ -43,6 +45,8 @@ CLIP = "org.freedesktop.impl.portal.Clipboard"
 SESSION = "org.freedesktop.impl.portal.Session"
 APP = "org.aresos.harness"
 DENIED = "org.freedesktop.DBus.Error.AccessDenied"
+# The sharing switch, which in-container.sh installs on. Only test8 changes it, and puts it back.
+SWITCH = "/etc/aresos/input-portal/sharing"
 V = GLib.Variant
 
 # The only environment any process of the harness gets: nothing is inherited.
@@ -177,7 +181,8 @@ class Bus:
         buses.append(self)
 
     def _signal(self, _conn, sender, path, iface, member, params, *_):
-        self.signals.append({"sender": sender, "path": path, "iface": iface, "member": member, "args": params.unpack()})
+        # t: when the harness saw it, so a deadline is measured from the far side.
+        self.signals.append({"sender": sender, "path": path, "iface": iface, "member": member, "args": params.unpack(), "t": time.monotonic()})
 
     def call(self, path, iface, method, params=None, dest=NAME, timeout=5000):
         try:
@@ -187,6 +192,20 @@ class Bus:
             return Reply(value, fds)
         except GLib.Error as error:
             return Reply(error=error)
+
+    def call_async(self, path, iface, method, params=None, dest=NAME, timeout=5000):
+        """Send a call and return at once; the reply lands in the returned dict's "reply" while pump() runs."""
+        box = {}
+
+        def done(conn, result, *_):
+            try:
+                value, fds = conn.call_with_unix_fd_list_finish(result)
+                box["reply"] = Reply(value, fds)
+            except GLib.Error as error:
+                box["reply"] = Reply(error=error)
+
+        self.conn.call_with_unix_fd_list(dest, path, iface, method, params, None, Gio.DBusCallFlags.NO_AUTO_START, timeout, None, None, done, None)
+        return box
 
     def own_frontend(self):
         reply = self.call("/org/freedesktop/DBus", "org.freedesktop.DBus", "RequestName", V("(su)", (FRONTEND_NAME, 4)), dest="org.freedesktop.DBus")
@@ -1025,6 +1044,267 @@ def review4_signals():
     check(T, "a second bus connection, subscribed to every signal on the bus for the whole run, received none of them", heard > 0 and not leaked, f"{leaked[:3]}")
 
 
+# ---- brief 321: the sharing switch and the way out ------------------------------------------------------------------
+
+
+def set_switch(content):
+    """Write the switch as the image's helper will (one rename; root's, 0644), or remove it (None)."""
+    if content is None:
+        if os.path.lexists(SWITCH):
+            os.unlink(SWITCH)
+        return
+    new = SWITCH + ".new"
+    with open(new, "w") as handle:
+        handle.write(content)
+    os.chmod(new, 0o644)
+    os.replace(new, SWITCH)
+
+
+def is_input(line):
+    return line.split()[:1] in (["MOTION"], ["BUTTON"], ["KEY"], ["SCROLL"], ["SCROLL_DISCRETE"], ["SCROLL_STOP"])
+
+
+def status_of():
+    return tool([BACKEND, "--status"]).stdout.strip()
+
+
+def paste_now():
+    """What a local paste gets right now, or why it got nothing."""
+    try:
+        pasted = tool(["wl-paste", "--no-newline"], timeout=5)
+        return pasted.stdout if pasted.returncode == 0 else f"(nothing: exit {pasted.returncode})"
+    except subprocess.TimeoutExpired:
+        return "(wl-paste got nothing within 5 s)"
+
+
+def test8_switch(fe, admin):
+    T = "test8"
+    backend = start_backend(admin)
+    folder = os.path.dirname(SWITCH)
+    real = f"{folder}/real-switch"
+
+    def symlinked():
+        set_switch(None)
+        with open(real, "w") as handle:
+            handle.write("on\n")
+        os.chmod(real, 0o644)
+        os.symlink(real, SWITCH)
+
+    def unlinked():
+        for path in (SWITCH, real):
+            if os.path.lexists(path):
+                os.unlink(path)
+
+    try:
+        # Off, in each way the switch can be off: the allow-listed ID is refused.
+        for what, make, undo in (
+            ("the switch file removed", lambda: set_switch(None), lambda: None),
+            ("the switch saying ON", lambda: set_switch("ON\n"), lambda: None),
+            ("the switch a symlink to a file that says on", symlinked, unlinked),
+            ("the switch's folder writable by everyone", lambda: os.chmod(folder, 0o777), lambda: os.chmod(folder, 0o755)),
+        ):
+            make()
+            reply = Session(fe, "switch-off", app_id=APP).create()
+            undo()
+            set_switch("on\n")
+            check(T, f"with {what}, the listed app_id is refused (sharing is off), and no file descriptor comes back",
+                  reply.error == DENIED and "sharing is off" in reply.message and reply.nfds == 0, f"{reply.error} {reply.message}")
+        check(T, "none of them left a session behind", status_of() == "no sessions")
+
+        # The switch removed while input is flowing, and nobody calls --revoke.
+        session = Session(fe, "off-while-typing").open()
+        activated = capture(session)
+        burst()
+        flowing = wait_for(lambda: "KEY 48 0" in session.eis(), 2)
+        mark, began = len(fe.signals), time.monotonic()
+        set_switch(None)
+        at_deadline = None
+        while time.monotonic() - began < 2.6:
+            vkbd.cmd("key 30 1")
+            vkbd.cmd("key 30 0")
+            vptr.cmd("rel -3 2")
+            pump(0.02)
+            if at_deadline is None and time.monotonic() - began >= 2.0:
+                at_deadline = len(session.eis())
+        pump(0.3)
+        closed, ended = fe.sig("Closed", session.path, mark), fe.sig("Deactivated", session.path, mark)
+        closed_after = closed[0]["t"] - began if closed else None
+        ended_after = ended[0]["t"] - began if ended else None
+        late = [line for line in session.eis()[at_deadline or 0:] if is_input(line)]
+        info(f"test8 the switch removed during a capture: Deactivated after {ended_after and round(ended_after, 2)} s, Closed after {closed_after and round(closed_after, 2)} s")
+        check(T, "the switch file removed while input flows, nobody calls --revoke: within 2 s the capture has ended (Deactivated) and the session is closed",
+              activated and flowing and closed and ended and closed_after <= 2.0 and ended_after <= 2.0, f"activated {bool(activated)}, flowing {bool(flowing)}, Deactivated {ended_after}, Closed {closed_after}")
+        check(T, "from the 2 s deadline on no event reaches the client, though keys and motion kept coming", at_deadline is not None and not late, f"{late[:5]}")
+        check(T, "its EIS receiver is disconnected and --status says no sessions", "DISCONNECT" in session.eis() and status_of() == "no sessions", f"{session.eis()[-2:]}")
+        check(T, "the pointer and the keyboard are local again, and the next crossing stays local", local_motion() and local_key() and stays_local(fe, backend))
+        check(T, "the compositor confirmed the end of the capture: the backend is still running", procs[backend].poll() is None)
+        stop(session.receiver)
+
+        # The same with a clipboard read in flight: the read is on its way to a backend that is stopped for the
+        # moment, and the switch goes off before it gets there.
+        set_switch("on\n")
+        session = Session(fe, "off-while-reading").open(armed=False)
+        mark = len(fe.signals)
+        copy("aresos-321 a clipboard read in flight 3d7e")
+        offered = wait_for(lambda: fe.sig("SelectionOwnerChanged", session.path, mark), 3)
+        os.kill(procs[backend].pid, signal.SIGSTOP)
+        try:
+            pending = fe.call_async(PORTAL, CLIP, "SelectionRead", V("(os)", (session.path, "text/plain;charset=utf-8")))
+            pump(0.2)
+            mark = len(fe.signals)
+            set_switch(None)
+        finally:
+            os.kill(procs[backend].pid, signal.SIGCONT)
+        got = wait_for(lambda: pending.get("reply"), 3)
+        if got and got.ok and got.nfds:
+            os.close(got.fd())
+        closed = wait_for(lambda: fe.sig("Closed", session.path, mark), 3)
+        check(T, "the same with a clipboard read in flight: no file descriptor comes back, and the session is closed",
+              offered and got and not got.ok and got.nfds == 0 and closed, f"offered {bool(offered)}, reply {got and (got.ok, got.error, got.nfds)}, Closed {bool(closed)}")
+        stop(session.receiver)
+
+        # After Off no new clipboard transfer starts, either way.
+        set_switch("on\n")
+        session = Session(fe, "off-clipboard").open(armed=False)
+        mark = len(fe.signals)
+        session.must(CLIP, "SetSelection", V("(oa{sv})", (session.path, {"mime_types": V("as", ["text/plain;charset=utf-8", "text/plain"])})))
+        owns = wait_for(lambda: fe.sig("SelectionOwnerChanged", session.path, mark, lambda s: s["args"][1].get("session_is_owner")), 3)
+        mark = len(fe.signals)
+        set_switch(None)
+        closed = wait_for(lambda: fe.sig("Closed", session.path, mark), 3)
+        pasted = paste_now()
+        write = session.call(CLIP, "SelectionWrite", V("(ou)", (session.path, 1)))
+        read = session.call(CLIP, "SelectionRead", V("(os)", (session.path, "text/plain")))
+        if read.ok and read.nfds:
+            os.close(read.fd())
+        claim = session.call(CLIP, "SetSelection", V("(oa{sv})", (session.path, {"mime_types": V("as", ["text/plain"])})))
+        copy("aresos-321 copied after Off 5a1b")
+        pump(0.5)
+        transfers, announced = fe.sig("SelectionTransfer", None, mark), fe.sig("SelectionOwnerChanged", None, mark)
+        check(T, "after Off no new clipboard transfer starts either way: a local paste asks no session (no SelectionTransfer) and gets nothing of it; "
+                 "SelectionWrite, SelectionRead and SetSelection are refused with no file descriptor; a local copy is offered to nobody",
+              owns and closed and not transfers and "aresos" not in pasted and not write.ok and write.nfds == 0 and not read.ok and read.nfds == 0
+              and not claim.ok and not announced,
+              f"owned {bool(owns)}, Closed {bool(closed)}, transfers {len(transfers)}, paste {'got text' if 'aresos' in pasted else pasted}, "
+              f"write {write.error}, read {read.error} {read.nfds}, claim {claim.error}, announced {len(announced)}")
+        stop(session.receiver)
+
+        # --revoke only makes it immediate.
+        set_switch("on\n")
+        session = Session(fe, "revoked").open()
+        activated = capture(session)
+        mark = len(fe.signals)
+        said_on = tool([BACKEND, "--revoke"]).stdout.strip()
+        kept = not fe.sig("Closed", session.path, mark) and "capturing=true" in status_of()
+        set_switch(None)
+        said = tool([BACKEND, "--revoke"]).stdout.strip()
+        right_after = status_of()
+        closed = wait_for(lambda: fe.sig("Closed", session.path, mark), 1)
+        check(T, "--revoke with the switch on changes nothing: the capture holds", "sharing is on" in said_on and kept, f"{said_on!r}")
+        check(T, "--revoke right after the switch is removed: by its answer the session is closed and the capture over",
+              activated and said.startswith("sharing is off") and right_after == "no sessions" and closed and local_motion() and local_key(), f"{said!r}, then --status {right_after!r}")
+        stop(session.receiver)
+
+        # labwc can't confirm the end of the capture: the backend exits, and labwc drops the grab with it.
+        set_switch("on\n")
+        session = Session(fe, "off-labwc-stopped").open()
+        activated = capture(session)
+        os.kill(procs["labwc"].pid, signal.SIGSTOP)
+        try:
+            began = time.monotonic()
+            set_switch(None)
+            exited = wait_for(lambda: procs[backend].poll() is not None, 4)
+            took = time.monotonic() - began
+        finally:
+            os.kill(procs["labwc"].pid, signal.SIGCONT)
+        code = procs[backend].returncode
+        info(f"test8 with labwc stopped the backend exited {round(took, 2)} s after the switch was removed, code {code}")
+        check(T, "labwc stopped so it can't confirm: within 2 s of the switch going off the backend exits with an error",
+              activated and exited and code not in (None, 0, -signal.SIGKILL) and took <= 2.0, f"exit {code} after {took:.2f} s")
+        pump(0.5)
+        check(T, "after SIGCONT labwc has dropped the grab: the pointer and the keyboard are local again", local_motion() and local_key())
+        stop(session.receiver)
+        stop(backend)
+    finally:
+        unlinked()
+        os.chmod(folder, 0o755)
+        set_switch("on\n")
+
+
+def test9_way_out(fe, admin):
+    T = "test9"
+    chord = ("key 125 1", "key 42 1", "key 1 1", "key 1 0", "key 42 0", "key 125 0")
+
+    # The backend stopped: the chord's --release gets no answer and kills it through its pidfd.
+    backend = start_backend(admin)
+    session = Session(fe, "chord-backend-stopped").open()
+    activated = capture(session)
+    os.kill(procs[backend].pid, signal.SIGSTOP)
+    began = time.monotonic()
+    for command in chord:
+        vkbd.cmd(command)
+    exited = wait_for(lambda: procs[backend].poll() is not None, 5)
+    took = time.monotonic() - began
+    code = procs[backend].returncode
+    check(T, "the backend stopped with SIGSTOP: Super+Shift+Escape runs --release, which gets no answer within 2 s and kills it through its pidfd",
+          activated and exited and code == -signal.SIGKILL and 1.5 <= took <= 3.5, f"exit {code} after {took:.2f} s; labwc: {lines_of('labwc')[-3:]}")
+    check(T, "and the pointer and the keyboard are local again", local_motion() and local_key())
+    stop(session.receiver)
+    stop(backend)
+
+    # labwc stopped, so no confirmation can come: --release run by hand ends the backend.
+    backend = start_backend(admin)
+    session = Session(fe, "release-labwc-stopped").open()
+    activated = capture(session)
+    os.kill(procs["labwc"].pid, signal.SIGSTOP)
+    try:
+        began = time.monotonic()
+        released = tool([BACKEND, "--release"])
+        took = time.monotonic() - began
+        exited = wait_for(lambda: procs[backend].poll() is not None, 3)
+    finally:
+        os.kill(procs["labwc"].pid, signal.SIGCONT)
+    code = procs[backend].returncode
+    check(T, "labwc stopped with SIGSTOP: --release run by hand gets no confirmed answer and kills the backend through its pidfd",
+          activated and exited and code == -signal.SIGKILL and "killed the backend" in released.stdout and took <= 3.0,
+          f"exit {code} after {took:.2f} s; --release said {released.stdout!r} {released.stderr!r}")
+    pump(0.5)
+    check(T, "after SIGCONT the pointer and the keyboard are local", local_motion() and local_key())
+    stop(session.receiver)
+    stop(backend)
+
+    # A process that takes the bus name after --release made its pidfd is neither asked nor killed.
+    first = start_backend(admin)
+    first_pid = procs[first].pid
+    os.kill(first_pid, signal.SIGSTOP)  # so that --release's question waits
+    releaser = subprocess.Popen([BACKEND, "--release"], env=CLIENT_ENV, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    pinned = ""
+    try:
+        end = time.monotonic() + 5
+        while "pinned the backend" not in pinned and time.monotonic() < end:
+            ready, _, _ = select.select([releaser.stderr], [], [], 0.5)
+            if ready:
+                line = releaser.stderr.readline().decode()
+                if not line:
+                    break
+                pinned += line
+        os.kill(releaser.pid, signal.SIGSTOP)
+        stop(first, signal.SIGKILL)
+        # The bus has seen it go before the second one takes the name.
+        wait_for(lambda: not admin.has_owner(NAME), 3)
+        second = start_backend(admin)
+    finally:
+        os.kill(releaser.pid, signal.SIGCONT)
+    out, err = releaser.communicate(timeout=10)
+    pump(0.3)
+    alive = procs[second].poll() is None
+    asked = "ForceRelease requested" in log_of(second)
+    check(T, "a backend that takes the bus name after --release pinned the old one is neither asked nor killed: the kill finds the pinned process gone",
+          f"pid {first_pid};" in pinned and alive and not asked and "had already ended" in out.decode(),
+          f"pinned {pinned.strip()!r}, second alive {alive}, asked {asked}, --release said {out.decode()!r} {err.decode()!r}")
+    stop(second, signal.SIGINT)
+
+
 # ---- the run -------------------------------------------------------------------------------------------------------
 
 
@@ -1078,6 +1358,9 @@ def setup():
     pump(0.3)
     check("setup", "the probe window is full-screen on the first output and receives local input", local_motion() and local_button() and local_key(), f"{window()[-6:]}")
     check("setup", "labwc was told not to update any activation environment, and did not", "Updating dbus execution environment" not in log_of("labwc"))
+    meta = os.lstat(SWITCH)
+    check("setup", "the sharing switch is on: root's regular file, 0644, saying on", stat.S_ISREG(meta.st_mode) and meta.st_uid == 0
+          and stat.S_IMODE(meta.st_mode) == 0o644 and open(SWITCH).read() == "on\n")
 
 
 def run(name, function, *args):
@@ -1116,6 +1399,8 @@ def main():
         run("test3", test3_kill_and_watchdog, fe, stranger, backend)
         run("test7", test7_logs, fe, stranger, stranger)
         run("test1", test1_output_off, fe, stranger)
+        run("test8", test8_switch, fe, stranger)
+        run("test9", test9_way_out, fe, stranger)
         run("review1-finding2", review2_bus_loss, fe, stranger)
         run("review1-finding4", review4_signals)
         code = 1 if any(line.startswith("FAIL") for line in results) else 0
