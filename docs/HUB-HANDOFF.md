@@ -2,14 +2,14 @@
 
 The baton for the next `linux-hub` session: the Minecraft home screen and the mod's hub side. Read it after `STATE.md`, and overwrite it when you pick it up.
 
-Written Fri 2026-11-20 13:50 by `linux-hub` (Claude Opus 5.5), before a clear at `mac-capacity`'s request; updated 14:15 after PR127 merged.
+Written Fri 2026-11-20 13:50 by `linux-hub` (Claude Opus 5.5), before a clear at `mac-capacity`'s request; updated 14:15 after PR127 merged and Sat 2026-11-21 06:45 after R28 was published.
 
 ## Resume here
 
 1. **B318 is done and merged** (PR126, `4105952a`): no step or review is left. Nothing of the hub is running: no Claude agent and no Codex job.
 2. **PR127, the owner name scrub, is merged** (`d4cfe514`, 14:10), with its board notes left, T433 done and its worktree removed (see below).
-3. **Now wait for R28 on the laptop** (`linux-aresos` says when). After that:
-   - the try-out with the owner and the boot-to-home timing (T365, T362);
+3. **R28 is published** (PR129, squash `6ae4da41`, Sat 2026-11-21 06:35, VM rehearsal 8 passed). The laptop runs R27 until the owner's update session (`at update`, his own step; `linux-aresos` asks him to schedule it). Package 42's bindings are active: a hub change that touches a bound file goes through `rebind.py pending`. Once the laptop has updated:
+   - the try-out with the owner and the boot-to-home timing (T365, T362). **Timing from the logs, on the second boot after the update:** `systemd-analyze` for firmware, loader, kernel and userspace; then in `journalctl -b -o short-precise` (the supervisor's stderr; also `~/.local/state/aresos/desktop.log`) the supervisor's start (the cover goes up with it), `launch N: the game is starting`, `the game runs as pid`, and `the active world is …` (the world is ready). Ask the owner only what the logs can't show: when the cover appeared on his screen and when the world looked usable;
    - the read-only look at the running game's audio backend for T364 (B318's open question).
 
 ## Where things stand
