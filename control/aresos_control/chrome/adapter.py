@@ -1188,7 +1188,10 @@ class Chrome:
                     changes,_=check_result(self.store,source,key,'page_activation',step,{'reason':text,'warning':text})
                 self.store.write({key:source,**changes},'chrome_page_step','Stale page step result committed without dispatch')
                 self.bridge.call('ack_steps',tab=tab,steps=[step])
-                followups.append({'dropped':True,'reason':source['reason']})
+                if step['kind']=='activation_unknown':
+                    followups.append({'unknown':True,'untrusted_content':{'reason':text}})
+                else:
+                    followups.append({'dropped':True,'reason':source['reason']})
                 continue
             reference = {'session':facts['session'],'tab':tab,'frame':frame['frame'],'document':frame['document'],
                          'view':view_identity(facts),'element':step.get('submitter') or step['element']}

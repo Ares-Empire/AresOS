@@ -399,6 +399,7 @@ class Doing:
                     return True
                 document = state.get('document')
                 if document is None:
+                    self.look_for_late_activation(state)
                     return True  # no top document right now: a navigation is under way
                 if self.start is None:
                     self.start = document  # the list started behind a dialog
@@ -406,6 +407,7 @@ class Doing:
                 if self.navigated:
                     self.quiet_page.observe(state, time.monotonic())
                 if self.new_page:
+                    self.look_for_late_activation(state)
                     return True
                 if state.get('queued'):
                     queued = self.bridge.call('queued_steps', tab=self.tab)
@@ -417,21 +419,38 @@ class Doing:
             return True
         return False
 
+    def look_for_late_activation(self, state):
+        # A replaced top document still stops the list without preparing any
+        # queued submissions. An uncertainty already in the queue needs no read.
+        if state.get('queued') and any(step['kind'] == 'activation_unknown'
+                                      for step in self.bridge.call('queued_steps', tab=self.tab)):
+            self.activation_unknown()
+
+    def activation_unknown(self):
+        entry = next((entry for entry in reversed(self.entries) if entry.get('operation_id') and
+                      entry['outcome'] in ('done', 'unchanged', 'unknown')), None)
+        if entry is None:
+            self.error = {'code': 'unknown', 'message': ACTIVATION_UNKNOWN}
+            return
+        operation_id = entry['operation_id']
+        if operation_id in self.unknown:
+            return
+        key = 'op:' + operation_id
+        operation = self.chrome.store.get(key)
+        if operation['state'] == 'done':
+            operation.update(state='unknown', reason=ACTIVATION_UNKNOWN)
+            self.chrome.store.write({key: operation}, operation['action'], 'Late page activation outcome unknown',
+                                    operation_id, outcome='unknown')
+        self.unknown.append(operation_id)
+        entry.update(outcome='unknown', code='unknown', message=ACTIVATION_UNKNOWN)
+
     def followups(self, items):
         """Separate prepared submissions, uncertain activations and stopped page steps."""
         for item in items:
             if isinstance(item, dict) and item.get('approval'):
                 self.prepared.append(item)
             elif isinstance(item, dict) and item.get('unknown') is True:
-                entry = next((entry for entry in reversed(self.entries) if entry.get('operation_id') and
-                              entry['outcome'] in ('done', 'unchanged', 'unknown')), None)
-                if entry is None:
-                    self.error = {'code': 'unknown', 'message': ACTIVATION_UNKNOWN}
-                    continue
-                operation_id = entry['operation_id']
-                if operation_id not in self.unknown:
-                    self.unknown.append(operation_id)
-                    entry.update(outcome='unknown', code='unknown', message=ACTIVATION_UNKNOWN)
+                self.activation_unknown()
             else:
                 self.stopped.append(visible(item))
         return bool(items)

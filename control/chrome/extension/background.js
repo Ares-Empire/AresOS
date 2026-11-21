@@ -759,8 +759,9 @@ async function discardReport(tab,act,frames,uninspected=0){
       // Only typing the reader marks as all Claude's is his; anything else may be the owner's.
       if(state.unsaved&&state.claude_only!==true&&!own.some(field=>field.by==='owner'))for(const field of own)field.by='owner';
       fields.push(...own);media ||= !!state.playing;}
-    // A tab Claude just opened shows about:blank with no reader; it holds nothing.
-    catch(error){if(!(error.readerUnavailable&&frame.frameId===0&&frame.url==='about:blank'))uninspected++;}
+    // Navigation uses the fresh-tab exception. A blank popup can hold a draft
+    // at the same address, so closing always needs an inspection or discard.
+    catch(error){if(act==='close'||!(error.readerUnavailable&&frame.frameId===0&&frame.url==='about:blank'))uninspected++;}
   }
   const owner_work_present=fields.some(field=>field.by==='owner');
   return {act,fields:distinctDescriptions(fields).slice(0,LOSS_FIELDS),more_fields:Math.max(0,fields.length-LOSS_FIELDS),frames_uninspected:uninspected,media,owner_work_present};
@@ -1224,7 +1225,7 @@ async function dispatch(command,expires=null) {
     const current=controlled.has(tab)?await requireTab(tab):await chrome.tabs.get(tab);
     safeURL(current.url);
     const frames=await chrome.webNavigation.getAllFrames({tabId:tab})||[];
-    await requireDiscard(tab,command,'close',frames,!frames.length&&current.url!=='about:blank'?1:0);
+    await requireDiscard(tab,command,'close',frames,frames.length?0:1);
     await release(tab);await chrome.tabs.remove(tab);return {closed:tab};
   }
   await requireTab(tab,['input','resume'].includes(command.name)?expires:null);dispatchEpoch=controlled.get(tab).epoch;
