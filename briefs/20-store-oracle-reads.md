@@ -81,7 +81,7 @@ changes the design above, each adds a guard and its test. They come before the h
 
 | # | Finding | Rule for the builder | Test and mutation |
 |---|---|---|---|
-| 1 | BLOCKER. A barrier inherited from a nested request mid-command (for example during an approved upload's first `stage_file`, the owner's `chrome_sites` write hits an undone first fence) leaves the outer handler free to send another `stage_file` and `input`, or to run housekeeping after `configure`. | Check the request's barrier before every new browser command and before any housekeeping after `configure`. The outstanding command's reply is still drained, so the bridge stays in step; nothing new is sent once the barrier is set. | A test injects the nested storage fault during the first `stage_file` of a two-file upload and during `configure`, and asserts no further command and no `input` in the trace. Mutation: omit the check between commands; the test fails. i7.2 asserts the full post-barrier trace. |
+| 1 | BLOCKER. A barrier inherited from a nested request mid-command (for example during an approved upload's first `stage_file`, the owner's `chrome_sites` write hits an undone first fence) leaves the outer handler free to send another `stage_file` and `input`, or to run housekeeping after `configure`. | Check the request's barrier before every new browser command (one shared guard, see "May change") and before any housekeeping after `configure`. The outstanding command's reply is still drained, so the bridge stays in step; nothing new is sent once the barrier is set. | (a) The nested storage fault during the first `stage_file` of one approved file larger than 512 KiB (so the upload needs a second chunk): no second `stage_file`, no `input` in the trace. Mutation: drop the shared guard; the test fails. (b) The fault during `configure`: the expired upload copy is still on disk and no qualification refresh ran, which the command trace cannot show. Mutation: drop only the post-`configure` check; the test fails. i7.2 asserts the full post-barrier trace. |
 | 2 | BLOCKER. With a surviving latch and nothing queued, a request refused at `ensure_writable` before dispatch (for example `mail_operation_cancel`) still runs `configure` and upload pruning in its all-app error reply. | Once a request has observed a storage refusal (a barrier, or a storage-error refusal at admission or at `ensure_writable`), its replies use passive Chrome rows, as a barred request does. `ensure_writable` itself does not change. Healthy reads in a latched store keep their live checks. | An empty-queue latch test with i5's zero-effect assertions (no `configure`, no pruning, no `validity`, no `typed_fields`). Mutation: gate the passive rows on the barrier only; the test fails. |
 | 3 | SHOULD-FIX. A healthy `control_pending` whose ordinary row comes first sends `validity` before `configure`, so `requireTab` can use the extension's old excluded-sites list. | The configuration step runs before the first live projection probe in any pass that asks the browser. | A test with the ordinary row first and a newly excluded host asserts `configure` precedes `validity`. Mutation: probe before configuring; the test fails. |
 | 4 | NIT. Make the named tests' assertions explicit. | i4 gets a spy proving the patched handler called `mode()`. i6's `queued_steps` assertion uses a same-session open check whose peer reply keeps it open. i3 uses distinct saved reasons, so a replaced reason fails. | As written in recheck 2's finding 4. |
@@ -800,7 +800,12 @@ May change:
   status branch's copy of the warning;
 - decision 3's switch: one attribute, on the store next to `in_request` or on the Chrome adapter;
 - `chrome/adapter.py`: the early return in `pending_state`, the barrier check in `mode()` and in
-  `reconcile_open_checks`, nothing else;
+  `reconcile_open_checks`; for "Recheck 2": one shared guard that checks the request's barrier before
+  each new browser command (in the adapter's command helper, or in `Bridge.call` before it sends,
+  never between a send and the drain of its reply), the barrier check after `configure` and before
+  maintenance (upload pruning, qualification refresh) in `mode()`, and in `pending_state`'s live
+  branch the configuration step before its first probe, behind the existing passive checks; nothing
+  else;
 - the test files named above, one new module under `control/chrome_tests/`, and the one line in
   `control/chrome_tests/state_views.py`;
 - `control/README.md:193-202`; `reviews/19b-owner-state/KNOWN-GAPS.json` and `KNOWN-GAPS.md`;
@@ -813,8 +818,9 @@ Must not touch:
 - `definitions.py`, the tool schemas and the generated artifacts (`generate.py --check` stays clean);
 - `owner_state_oracle/` and Chrome's state checks: no expectation changes beyond that one line.
   `FORMAT.md` only if a sentence becomes untrue;
-- Chrome's committed projection, its pending projection beyond that one return, its two recovery
-  rules, the bridge and the extension; the restore-lock allow-list (`engine.py:575`); app approval,
+- Chrome's committed projection, its pending projection beyond that one return and the configuration
+  step before its first probe, its two recovery rules, the bridge beyond the one pre-send guard, and
+  the extension; the restore-lock allow-list (`engine.py:575`); app approval,
   no-resubmission, storage reservations, the durability order;
 - `.github/workflows/`, `os/`, `mod/`, the installed service.
 
