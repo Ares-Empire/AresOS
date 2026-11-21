@@ -1,0 +1,299 @@
+{
+  "colours": {
+    "gold-100": "#f7e2a6",
+    "gold-300": "#edca77",
+    "gold-500": "#cfa24f",
+    "gold-700": "#94702f",
+    "gold-900": "#5b431b",
+    "ink": "#f3f1ea",
+    "ink-dim": "#6f6b62",
+    "ink-quiet": "#a6a39a",
+    "outline": "#0d0d10",
+    "quiet": "#a6a39a",
+    "red-300": "#ff6257",
+    "red-600": "#b63a32",
+    "red-800": "#7c2620",
+    "stone-300": "#948fa0",
+    "stone-400": "#6c6779",
+    "stone-500": "#504b5c",
+    "stone-600": "#3a3644",
+    "stone-700": "#2b2832",
+    "stone-800": "#221f28",
+    "stone-900": "#1a181f",
+    "stone-950": "#121117",
+    "value": "#edca77",
+    "warn": "#ff6257"
+  },
+  "font": {
+    "em": [
+      1400,
+      75
+    ],
+    "family": "Jersey 10"
+  },
+  "look": "A",
+  "sizes": {
+    "bar_h": 8,
+    "bar_w": 143,
+    "bottom_margin": 64,
+    "cap": 10,
+    "gap": 4,
+    "icon_box": 20,
+    "line_gap": 3,
+    "pad": 4,
+    "row_gap": 4,
+    "shadow_offset": 1,
+    "step_gap": 1,
+    "top_margin": 8
+  },
+  "sprites": {
+    "microphone": {
+      "file": "sprites/microphone.png",
+      "insets": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "size": [
+        16,
+        16
+      ],
+      "states": {
+        "unavailable": "microphone-unavailable"
+      }
+    },
+    "microphone-off": {
+      "file": "sprites/microphone-off.png",
+      "insets": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "size": [
+        16,
+        16
+      ],
+      "states": {
+        "unavailable": "microphone-off-unavailable"
+      }
+    },
+    "microphone-off-unavailable": {
+      "file": "sprites/microphone-off-unavailable.png",
+      "insets": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "size": [
+        16,
+        16
+      ],
+      "states": {}
+    },
+    "microphone-unavailable": {
+      "file": "sprites/microphone-unavailable.png",
+      "insets": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "size": [
+        16,
+        16
+      ],
+      "states": {}
+    },
+    "plate": {
+      "file": "sprites/plate.png",
+      "insets": [
+        3,
+        3,
+        3,
+        3
+      ],
+      "size": [
+        9,
+        9
+      ],
+      "states": {}
+    },
+    "slot": {
+      "file": "sprites/slot.png",
+      "insets": [
+        2,
+        2,
+        2,
+        2
+      ],
+      "size": [
+        7,
+        7
+      ],
+      "states": {}
+    },
+    "speaker": {
+      "file": "sprites/speaker.png",
+      "insets": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "size": [
+        16,
+        16
+      ],
+      "states": {
+        "unavailable": "speaker-unavailable"
+      }
+    },
+    "speaker-muted": {
+      "file": "sprites/speaker-muted.png",
+      "insets": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "size": [
+        16,
+        16
+      ],
+      "states": {
+        "unavailable": "speaker-muted-unavailable"
+      }
+    },
+    "speaker-muted-unavailable": {
+      "file": "sprites/speaker-muted-unavailable.png",
+      "insets": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "size": [
+        16,
+        16
+      ],
+      "states": {}
+    },
+    "speaker-unavailable": {
+      "file": "sprites/speaker-unavailable.png",
+      "insets": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "size": [
+        16,
+        16
+      ],
+      "states": {}
+    },
+    "step-limit": {
+      "file": "sprites/step-limit.png",
+      "insets": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "size": [
+        6,
+        4
+      ],
+      "states": {}
+    },
+    "step-lit": {
+      "file": "sprites/step-lit.png",
+      "insets": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "size": [
+        6,
+        4
+      ],
+      "states": {}
+    },
+    "step-muted": {
+      "file": "sprites/step-muted.png",
+      "insets": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "size": [
+        6,
+        4
+      ],
+      "states": {}
+    },
+    "step-part": {
+      "file": "sprites/step-part.png",
+      "insets": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "size": [
+        6,
+        4
+      ],
+      "states": {}
+    },
+    "step-unlit": {
+      "file": "sprites/step-unlit.png",
+      "insets": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "size": [
+        6,
+        4
+      ],
+      "states": {}
+    },
+    "sun": {
+      "file": "sprites/sun.png",
+      "insets": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "size": [
+        16,
+        16
+      ],
+      "states": {
+        "unavailable": "sun-unavailable"
+      }
+    },
+    "sun-unavailable": {
+      "file": "sprites/sun-unavailable.png",
+      "insets": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "size": [
+        16,
+        16
+      ],
+      "states": {}
+    }
+  }
+}
