@@ -10,8 +10,11 @@ pass 2 on `57b63f08` (Chrome `44914563232`, qualification `44914566119`), all gr
 uncertainty in the report) is a known limit ([KNOWN-LIMITS.md](KNOWN-LIMITS.md#final-look-2-2026-11-21));
 NIT 2 (the report's stale "pending" line) is corrected in this commit.
 
-Left: PR #116 merges after PR #72 and R29's cut, once the owner has answered the two JUDGMENT-CALLs he
-would notice (a list refused whole; a chat OK when loss details were omitted), asked on the board.
+The owner's answer (board, 2026-11-21): **both fine** to the two JUDGMENT-CALLs he would notice, a list
+refused whole when a native fallback would read protected content, and a chat OK before a close when
+loss details were omitted.
+
+Left: PR #116 merges after PR #72 and R29's cut.
 
 ## Fix round 2 — 2026-11-21
 

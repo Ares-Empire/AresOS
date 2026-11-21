@@ -19,6 +19,8 @@ Pass 2 on `57b63f08` covered Chrome `44914563232` and qualification `44914566119
 the four package items and the four findings of the first final look. Its two NITs need no code round
 (the lead, `linux-tools`, 2026-11-21): a late native alert hiding queued uncertainty is a known limit
 ([KNOWN-LIMITS.md](KNOWN-LIMITS.md#final-look-2-2026-11-21)), and this section answers the stale "pending" line.
+The owner answered the two JUDGMENT-CALLs he would notice (the list refused whole above; the chat OK
+when loss details were omitted, below): both fine (board, 2026-11-21).
 
 ## Fix round 2 — 2026-11-21
 
