@@ -75,10 +75,16 @@ was removed and the rerun confirmed there was no `__pycache__` under `os/config`
 
 ## Left, in order
 
-1. **Hosted evidence.** The lead checks step 1's `checks_only` run 44886308040 for the sandbox tests and reviews the
-   step 2 check build. The layer-loader gate is expected to fail until R29 supplies gtk4-layer-shell.
-2. Once R29 lands, rebase onto main and get a green `check_build=build` with the layer library. The lead
-   gets the `linux-aresos` OK before merge, then arranges the release and the real laptop checks with the owner.
+1. **Done (2026-11-21).** Step 1's `checks_only` rerun 44889417073 was green. Step 2's check build 44895737105 passed
+   everything up to the expected stop for the missing layer library. `linux-aresos` read the `rc.xml` lines, the
+   image checks and `test_everyday_account.py` clean at `988b7c17`, and only the indicator harness changed after.
+   REVIEW-1's four findings are resolved (REVIEW-1-RECHECK.md, REVIEW-1-RECHECK-2.md SAFE).
+2. **Done (2026-11-21).** R29's image package (B323, PR135, main `6fe289e4`) brought gtk4-layer-shell. The branch
+   was rebased onto it with no conflict and B320's diff unchanged, and the unit tests passed again. Check build
+   44922397439 (`check_build=build`) ran on `36064a9e`.
+3. **After merge.** The indicator rides R29 to the laptop. After the owner installs it, check on the real laptop:
+   the game's GUI scale beside the plate, the three sizes, the bottom clearance, the real device names,
+   brightness on the laptop's own screen, and how a held key's repeat feels.
 
 ## What the code doesn't show
 
