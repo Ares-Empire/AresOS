@@ -49,3 +49,15 @@ key from changing its level, take the keyboard or the pointer, or touch the owne
 4. **The hide interval starts when the indicator receives the request.** The request carries a sequence and a
    reading. A cold start or a slow read-back can shift the plate's appearance and disappearance later than the
    physical press. Step 3 measures the normal lag and repeat behaviour.
+
+## Step 3 (headless checks)
+
+1. **Tall fallback glyphs can touch the plate's top border.** Pango aligns a fallback face with the Jersey 10
+   baseline. The Cyrillic Ж from the test font reaches the first few rows in the 2x capture. Its foreground and
+   shadow use the pack's colours, and the rest of the plate matches the study. Reason for keeping the shared
+   baseline: the fallback handles uncommon letters in sound device names, and moving the baseline would also shift
+   the Jersey 10 letters in a mixed name.
+2. **The installed PyGObject emits a deprecation warning at bus registration.** Fedora 44's PyGObject 3.56.3
+   reports the warning from `Gio.DBusConnection.register_object` on healthy startup. Reason for leaving it: the
+   callback, name ownership, cold and warm calls and the no-protocol exit all worked with the pinned harness
+   packages. The warning is diagnostic and the registered method still works.
