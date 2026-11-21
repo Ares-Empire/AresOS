@@ -16,20 +16,24 @@ Board brief 327. These are five of the owner's findings from his first try-out o
    - **Today:** in Live mode the logos, the home pad and the roads refuse to break (`WalkInZones`, `HubData.protection`), but the ground and the other blocks don't.
    - **Afterwards:** in Live mode in a desktop world, every block refuses to break, with one refusal line in the action bar. Logos and pad keep their own wording; any other block says "The home is protected. Press G or use Build mode in the menu to change it."
    - **Build mode** (G) stays the way to change the world, and works exactly as today.
+   - **Scope: his own breaking only** (mining, through `PlayerBlockBreakEvents.BEFORE`). Explosions and other damage keep today's rules (`HubData.protectsFromExplosions`); he has no TNT in Live. Put that under Known limits. Don't add a blanket block-write veto: the town keeper must still be able to rebuild and refresh its blocks.
+   - **Existing tests:** update the old Live-mining assertions (`FlatHomeGameTests` and `FlatHomeClientGameTest`) to the new rule, and keep their ownership and restart checks.
    - **Placing blocks** is unchanged.
    - **Outside desktop worlds,** nothing changes.
 3. **Build mode in the Esc menu.**
    - **What he saw:** he didn't know Build mode exists. He suggested editing only in a build mode.
    - **The AresOS menu** (`AresOsMenuScreen`) gets a button that shows the current mode ("Build mode: Off" / "Build mode: On") and switches it exactly as G does, through the same code path. Its tooltip says: "In Build mode you can change the home's blocks. G switches it too."
+   - **The switch** uses `ModeSwitchClient.requestToggle()` with the same network and pending checks as G, and its label follows the synced mode.
    - **Order:** place it with the existing buttons so the layout stays tidy at 1920×1080 and at the smallest supported window size.
 4. **New home says what it does.**
    - **What he said:** "I actually like the menu. I am just not sure what new home does."
    - **The button** becomes "Start a new home…", with the tooltip "Builds a fresh home world and switches to it. Your current home is kept."
-   - **The confirm screen** says the same in its own words. Check that its text matches what package 48 actually does (the old home's folder stays and is listed as a leftover). If it doesn't, the text follows the code; don't change the behaviour.
-5. **The Terminal's logo looks like the Terminal.**
+   - **The confirm screen** says the same in its own words. Package 48 saves and keeps the current home, then stages, checks and opens a fresh one (`HomeSwitch`, `HomeSwap`). The text follows the code; don't change the behaviour.
+5. **The Terminal looks like the Terminal.**
    - **What he saw:** "the minecraft terminal app build is brown, terminal is black. also doesnt need white edges."
-   - **Find the cause first** and write it in the report: the Terminal's icon file, how `GatePicture` and `LogoPixels` turn it into blocks, and why its dark parts become brown and its border white.
-   - **Afterwards:** the Terminal's logo is black or near-black with its light symbol, and without a white border.
+   - **Which one he means isn't certain.** It's most likely the Terminal's hotbar item: `LinuxAppCatalogue` falls back to a command block, which is brown with light edges. It may also be the Terminal's gate in the town. Check both with the resolved icon pixels (`terminal.json` → `foot.desktop`'s icon → the helper's cached PNG → `GatePicture`/`GatePalette`), and write in the report what each looked like and why.
+   - **Afterwards:** both the hotbar item and the gate read as the Terminal: black or near-black, with its light symbol on the gate, and without white edges. For the hotbar, pick a vanilla item that looks like that and show it in a picture.
+   - **A mod-owned Terminal picture is allowed** (under `mod/`) if the source icon itself causes the colours. Never change `os/` for it.
    - **If the cause is general** (the colour matching or border handling would do the same to other dark icons), fix it in general, and show before-and-after pictures of every starter app's logo, so a change to another logo is seen, not found later. If it's specific to the Terminal's icon, fix it there.
    - **Logos already built** in his world: say in the report whether they rebuild by themselves after the update, and if not, what he does to rebuild one.
 
@@ -48,7 +52,8 @@ Board brief 327. These are five of the owner's findings from his first try-out o
 - **Pictures**, saved as test-game screenshots under `reviews/327-tryout-fixes-1/screenshots/`:
   - the AresOS menu with Build mode and "Start a new home…", and the New home confirm screen;
   - the Terminal's logo before and after, and, if the logo fix is general, every starter logo before and after.
-- **The builds:** `mod/dev/build.sh` twice and `mod/dev/client-test.sh` once. Put other packages' pictures back as before.
+- **The builds:** two full passes of build and client tests through the dev scripts, as `AGENTS.md` requires. Add the new client test at the end of the list so the screenshot numbering stays. Put other packages' pictures back as before.
+- **Note:** `Tutorial.setStep(NONE)` writes the instance's `options.txt`. The AresOS Prism instance serves only the home, so that's fine; in the dev client it's the dev profile's, which is fine too.
 
 ## Rules
 
