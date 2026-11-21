@@ -72,9 +72,9 @@ entry there is the record of how it was.
 - **A labwc without the second patch would still capture, with its bindings live.** The gate is in labwc alone
   (`os/labwc/0002-no-bindings-for-the-capture-layer.patch`): it knows the capture surface by its layer namespace,
   and the backend asks for nothing and so cannot tell whether the gate is there. What stands in for that: the labwc
-  stage refuses a binary that is not the lock's two pins; the image check names both patches and finds the second
-  patch's two strings in `/usr/bin/labwc`; the harness refuses a labwc that is not the lock's and runs the gate on
-  it (test10); and a unit test holds the namespace in the patch and the one in `src/wayland/state.rs` together
+  stage, the image check and every harness run compare both binaries' loaded-image and normalized SHA-256 pins
+  with the lock; the harness runs the gate on those binaries (test10); and a unit test holds the namespace in the
+  patch and the one in `src/wayland/state.rs` together
   (`os/tests/test_labwc_stage.py`). The other mechanism (keyboard-shortcuts-inhibit, with `Activated` only after
   labwc's `active`) would refuse to capture instead; why it was not picked is in `PROGRESS.md`, step 1c.
 - **Any program that may use layer-shell can claim the namespace.** An overlay surface named `aresos-input-barrier`
@@ -82,7 +82,17 @@ entry there is the record of how it was.
   surface already gets every key that is not a binding; what it gains is that Alt+F4, Alt+Tab and the media keys
   come to it too. Super+Shift+Escape, Super+Ctrl+Escape (the recovery terminal) and the VT switch still work, and
   a sandboxed program gets no layer-shell from labwc at all. The same would hold for the inhibitor mechanism (any
-  exclusive layer surface could ask). Low harm; not fixed.
+  exclusive layer surface could ask). Checking the peer's executable is a possible later hardening.
+- **A session lock taken during a capture.** The image has no screen locker. Revisit when one is added.
+- **A window with `ToggleKeybinds` on could veto the two marked chords.** Nothing in the image binds
+  `ToggleKeybinds`.
+- **A crossing already sent when the switcher or a menu opens.** There is a window of milliseconds between
+  the pointer's enter and the backend's commit, and the result is a raised laptop window or a menu row. No new
+  crossing starts in those modes.
+- **A pointer-only capture forwards no keys.** Laptop shortcuts acting on the laptop is right there. Deskflow's
+  sessions ask for the keyboard, and those end on keyboard leave (316).
+- **An input-method grab.** No input-method program runs in the session. Modifier state reaching unfocused
+  clients leaks which modifiers are held. Revisit if an input method is ever started.
 - **Touch and tablet-pen taps still run labwc's mouse bindings during a capture** (focus and raise for the window
   tapped; the keyboard stays with the capture surface). The patch gates keyboard and mouse bindings, which is what
   the backend forwards. The laptop has no touchscreen and no pen, and a tap on the laptop's own screen is not
