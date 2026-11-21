@@ -6,6 +6,13 @@ the additional limits accepted while building 28a: what happens, its harm, and w
 accepted under decision 24. Browser coverage and unfinished acceptance remain in
 [PROGRESS.md](PROGRESS.md).
 
+## Fix round 2 (2026-11-21)
+
+- A list whose native label or value would read a protected option subtree is unread. An otherwise
+  usable option in the same list can no longer be read or selected through Control, and the owner
+  handles a submission that depends on the unread list. Refusing keeps the credential out and
+  prevents approval from describing a choice with a partial label.
+
 ## Step 4 (2026-11-20)
 
 Each line: what it is, the harm, and why it is accepted under decision 24. Run numbers are

@@ -246,3 +246,15 @@ rather than additional dispatched cases.
 - **Loss, navigation and ownership.** Wire stand-ins include `owner_work_present`. The background
   test puts owner work outside the cap and exercises the real release/close routes. `test_doing`'s
   replacement-frame, fixed-clock and late-queue probes leave the existing timing and call pins alone.
+
+## Fix round 2
+
+- `outline-dom.mjs` models descendant text in native option labels and implicit values, with
+  native ASCII whitespace handling. Its DOM selector double handles simple control selectors
+  for the loss report, and its guard double can identify the nested button by the reader's ID.
+  `outline.test.mjs` checks the choice, form and acting facts and the enclosing editor's value and
+  rich identity. `background.test.mjs` feeds fresh reader facts into the final comparison and
+  drives popup admission, release and close with a readerless frame or an unavailable inventory.
+- `test_doing.py` queues activation uncertainty after one free click with a surviving frame,
+  a removed child frame, and a replacement top document. Each case compares the batch with
+  public operation status for the dispatched ID and checks that no second input ran.

@@ -10,6 +10,42 @@ Every claim is marked **run** (a workflow run and its log line or artifact), **r
 branch's head unless another ref is named) or **assumed**. "44705819383" etc. are Control Chrome runs unless
 another workflow is named. Line numbers are those of step 4's code commit.
 
+## Fix round 2 — 2026-11-21
+
+- Close requires the ordinary discard decision when a Claude-opened tab has an uninspected frame
+  or no frame inventory, including a released blank popup with a draft.
+- A list with a protected native option text fallback is unread in the outline, option detail,
+  fingerprint and acting facts. The unread-field guard keeps its enclosing form from being
+  submitted. An unwatched editor also withholds a nested editable native button's text from its
+  value and rich identity. The button retains its role and conservative asking behavior.
+- Late page activation uncertainty is recorded on the dispatched free operation and reported under
+  its ID in the batch and operation status, including after the originating frame disappears.
+  The next step stays withheld. The replacement-page check only reads queued uncertainty.
+- The final look on `4e54ca1e` returned **CHANGES-NEEDED**. The regression tests and mutation
+  results for its findings are in [PROGRESS.md](PROGRESS.md#fix-round-2--2026-11-21).
+- Local verification passed 651 Node tests, 709 Python tests and ten scratch mutations that
+  failed as expected. The storage fault sweep is left to CI.
+- The generated ask rules match `origin/main` byte for byte. Catalogue sizes match fix round
+  1b, with 8,759 combined characters and 6,729 for names and input schemas. The conservative
+  F4 fixture measured 12,666 bytes, within its 14,000-byte pin and the 16,384-byte service
+  ceiling. Browser latency still needs the hosted runs.
+- **JUDGMENT-CALL** Refuse a list whose native fallback is protected. A blank or partial label
+  leaves what the owner saw outside the approval comparison. Allowing such lists later needs a
+  way to display and bind the full choice securely. See [KNOWN-LIMITS.md](KNOWN-LIMITS.md).
+- **Lead decision, `linux-tools`, 2026-11-21** The final look identified conservative classification
+  for a withheld button name as a deviation from a literal reading of the six exceptions.
+  The lead approved it because it can add a question and preserves every existing question.
+  Fix round 2 carries that decision forward without a classifier edit.
+- **PLAN-GAP** A blank URL does not establish an empty document, and a queued activation can
+  outlive its document. Close and outcome reporting now account for both.
+
+## Fix round 1b hosted verification
+
+The lead supplied both green passes. Pass 1 on `65c515e2` covered Chrome `44890929446`,
+qualification `44890932299`, base `44890939225`, Mail `44890941455`, privacy `44890943678`
+and boundary `44890946245`. Pass 2 on `4e54ca1e` covered Chrome `44897514055` and
+qualification `44897516771`. The review verdict and probes are in [FINAL-LOOK-1.md](FINAL-LOOK-1.md).
+
 ## Fix round 1 — 2026-11-21
 
 - **Done:** Projected the prepared confirmation's address and removed element fingerprints from public replies,
@@ -36,8 +72,8 @@ another workflow is named. Line numbers are those of step 4's code commit.
 - **PLAN-GAP:** The inherited discard check cannot establish loss in canvas work, earlier completed wizard
   steps, or a form in flight; see [KNOWN-LIMITS.md](KNOWN-LIMITS.md). The hosted gate has not yet measured the new
   quiet wait after a `chrome_do` navigation; sample counts, ceilings and references did not change.
-- **Not verified / open:** The lead's hosted pass (including group 16 and the latency gate) and final package and
-  security look. See the fix-round dispatch IDs in [PROGRESS.md](PROGRESS.md).
+- Fix round 1's first hosted run found the native option fixture issue. Fix round 1b's two green
+  passes and the final look are recorded above.
 
 ## Done
 
@@ -448,7 +484,7 @@ The brief claims nothing about this binding; the runs show the cases above.
 | Bullet | Evidence |
 |---|---|
 | The nineteen tools exist with the inputs and results above; brief 20's replaced tools, the internal action and the test-only switch are gone. | **Read** `control/generated/chrome-tools.json` (19 entries). **Run** locally: `test_instruction_rules` (catalogue absence, the removed-name scan over descriptions, instructions, `adapter.py` and `background.js`), `test_outline_action`'s absence checks (step 3b). **Run** 44705819383: every fixture shard green. |
-| Groups 14, 15 and 16 pass, and groups 1 to 13 pass twice through the new tools. | **Run** 44705819383 (`c2a20dcb`): 22 `ACT BRIEF28A` cases `PASS` in both recheck2 shards; group 16's efficiency step `success` with no miss (`latency (plain)` 136185162311, step 5); every fixture shard and both aggregates green. For step 4's two hosted passes, see “Pass 2 and the reviews”; fix-round rerun pending. |
+| Groups 14, 15 and 16 pass, and groups 1 to 13 pass twice through the new tools. | **Run** 44705819383 (`c2a20dcb`): 22 `ACT BRIEF28A` cases `PASS` in both recheck2 shards. Group 16's efficiency step was green (`latency (plain)` 136185162311, step 5), as were all fixture shards and both aggregates. Fix round 1b's two green passes are recorded above. Fix round 2's hosted verification is pending. |
 | Every budget holds against the committed baseline. | **Run** 44705819383: group 16's read, act and size rows have no miss. PR #27's gate failed there only for `navigate`; with step 4's ceiling and reference it passes on the same artifacts (**run** locally, replay above). See fix round 1 for the new local size counts. |
 | The generated Chrome ask rules are byte-identical to `main`'s. | **Run** locally: `cmp <(git show origin/main:control/settings/ask-rules.json) control/settings/ask-rules.json` (identical); `test_instruction_rules` compares them with `fixtures/28a-instructions/main-ask-rules.json`. |
 | `HARNESS-MAP.md` accounts for every changed helper and every rewritten staleness test. | **Read** [HARNESS-MAP.md](HARNESS-MAP.md), above. |
@@ -496,7 +532,7 @@ Local, step 4 (no browser ran locally):
 
 - Real Chrome on the owner's laptop, his profile and real sites: never in this package (brief, "Out of scope").
   The latency numbers are GitHub-hosted runners'; how `chrome_go`'s third of a second feels is for his live test.
-- The fix-round hosted pass and final package and security look are pending.
+- Fix round 2's two hosted passes and the second final look are pending with the lead.
 - Section 6's known limits weren't re-verified line by line in step 4 ([KNOWN-LIMITS.md](KNOWN-LIMITS.md)).
 
 ## JUDGMENT-CALLs

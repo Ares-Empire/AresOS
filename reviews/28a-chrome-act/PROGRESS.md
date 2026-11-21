@@ -1,5 +1,60 @@
 # Package 28a: Chrome acting progress
 
+## Fix round 2 — 2026-11-21
+
+Draft PR #116 started at `4e54ca1e` with code from `375f4f4b`. The first final look returned
+**CHANGES-NEEDED** and is preserved byte for byte in [FINAL-LOOK-1.md](FINAL-LOOK-1.md).
+Fixes are in `2acba439` and regression tests are in `d4ae0928`.
+
+| Finding | Fix and regression test | Scratch mutation that fails |
+|---|---|---|
+| New 1 / package 4 | `background.test.mjs` creates and releases a blank popup with a synthetic draft. Close refuses a readerless top frame and an empty or missing inventory. Confirmed discard then closes it. The earlier tests still cover ownership and excluded sites. | Apply the blank exception to readerless close, or apply it to an empty inventory. Each mutation closes the popup at the first affected call. |
+| New 2 | `outline.test.mjs` uses a rich option with a one-time-code editor. The whole list is unread in the outline, option detail, fingerprint and acting facts, and the enclosing form is marked for the unread-field guard. It also covers the value fallback. `background.test.mjs` adds the protected child during arming while keeping the visible text and explicit value identical. | Skip the descendant check. The code reaches the outline and the arming case reaches selection. Drop the unread-field flag and the enclosing form loses that guard. |
+| New 3 / package 6 | `outline.test.mjs` checks the outer editor's value, rich identity and fingerprint while the button still supplies the same conservative classifier facts. The existing `test_operation_projection` checks the conservative question. | Restore either traversal on its own. One puts the button's text into the outer value, the other into rich identity. |
+| New 4 / package 3 | `test_doing` checks late queued uncertainty with the frame alive, a child removed and the top document replaced. The batch and public status both name the dispatched operation as unknown and only the click ran. | Restore dropped reporting on a missing child, skip queue inspection when the top document changes, or omit the operation update. The last mutation leaves status `done` for all three cases even though each batch says `unknown`. |
+| Package 8 | [REPORT.md](REPORT.md) records both green fix round 1b passes, the first final look and the new pending verification. | Documentation only. |
+
+### Verified locally
+
+- `.work/pkg28a-0a/node-v22.15.0-linux-x64/bin/node --test --test-concurrency=2 control/chrome_tests/*.test.mjs`
+  reported 651 passed, 0 failed, 0 skipped (19.2 s). All ten scratch mutations above failed
+  the targeted regressions. The scratch runs applied and restored each production mutation separately.
+- `PYTHONPATH=control:control/chrome_tests python3 -B -m unittest -v` ran the 40 modules selected
+  with `rg --files control/chrome_tests -g 'test_*.py' -g '!test_fault_surface.py' -g '!test_state_*.py' -g '!test_storage.py'`.
+  It reported 709 tests in 180.429 s, `OK`. The exclusions leave the durability sweeps to CI.
+  An initial broader run was stopped at the sweep inside `test_storage`; the completed run
+  supplies the Python result above. The `EFFICIENCY MISS` lines are deliberate negative fixtures.
+- `PYTHONPATH=control python3 control/generate.py --check` printed
+  `Generated artifacts match definitions`. `cmp` matched the generated ask rules to `origin/main`
+  byte for byte. The protected adapter functions and classifier caller matched `375f4f4b`;
+  `git diff --check` was clean. No file in `.work/` exceeded 500 MB.
+- Sizes match fix round 1b. 19 tools, 2,796 instruction characters, 5,963 description characters,
+  8,759 combined and 6,729 for names and input schemas. Conservative F4 was 12,666 bytes
+  against its 14,000-byte test pin and 16,384-byte service ceiling. The other F4 fixture
+  measured 7,365 bytes and a 163-character question. Both match the fix round 1 focused run.
+  No local browser timing. Hosted latency sample counts, ceilings and references are unchanged.
+
+### The lead's decision (`linux-tools`, 2026-11-21)
+
+The conservative classifier caller for a withheld button name is an approved deviation from a
+literal reading of the six exceptions. It can add a question where input would otherwise be free
+and preserves existing questions. This round carries the decision forward without a classifier edit.
+
+### JUDGMENT-CALL
+
+Refuse the whole list when its native fallback is protected, including submissions through the
+existing unread-field guard. Blanking the label would leave part of the visible choice outside
+the approval. A later relaxation needs a safe way to show and bind the full choice.
+
+### PLAN-GAP
+
+The close report's fresh-tab assumption did not cover a populated popup at the same blank URL.
+The late-activation handoff also needs to cover an operation whose document is already gone.
+
+### Left
+
+The lead owns two hosted passes and the second final look.
+
 ## Fix round 1b — 2026-11-21
 
 Draft PR #116 started at `b4cb60ed`. The fixture fix is `375f4f4b`.
