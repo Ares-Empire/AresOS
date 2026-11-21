@@ -148,6 +148,35 @@ grants a lock only to the focused window). It would also change: GLFW's focus wo
 position (`glfwGetWindowPos` is unsupported, which package 56's test coordinates use); EGL instead of GLX for the
 NVIDIA offload; Minecraft 26.2 itself asks GLFW for X11, so it needs a launch option or a mixin, untested here.
 
+## Known limits (328a)
+
+- **When an app takes the focus while the world steers,** the pointer reappears at the centre of the world's window:
+  labwc ends the lock at its last hint, which GLFW's re-centring keeps at the centre. It is visible and over the app that
+  now has the focus, so nothing leaks; it is just not where the hand left it.
+- **The safe fallback changes one thing in classic mode:** when the world gets the focus without a click (Alt+Tab,
+  Super, an app closing, the first join) while the pointer rests on an app or the other output, the world no longer
+  takes the mouse; keys still walk, and the next click on the world takes it. Today it captured at once (and leaked).
+- **Without `libXfixes`, or with GLFW on Wayland,** the hidden-first capture is skipped (logged once) and the capture is
+  Minecraft's own; the safe fallback still applies.
+- **The release's own FocusOut** reaches only the game's GLFW (sent to its window); labwc and other clients never see
+  it.
+- **Not tried:** the owner's real mouse, Chrome itself, the real monitor, Prism's game and the installed helper. The rig
+  used the native development client, the checkout's helper, an inert Wayland test app and virtual input on a
+  headless labwc.
+
+## Notes for 328b to 328d
+
+- **Every capture goes through `MouseHandler.grabMouse`, so through `WorldCapture.grab` and the safe fallback**; look mode
+  should start captures there too, never with its own GLFW calls. A refused capture leaves `mouseGrabbed` false.
+- **The pointer already reappears where the capture began** (`WorldCapture.release` warps back to `startX/startY`). For a
+  key start, 328b can set that point to the centre of the world's output before capturing.
+- **`client-test.sh --session` has two outputs side by side** (`HEADLESS-1` at 0,0 with the game, `HEADLESS-2` at 1280,0,
+  1280x720 each; `ARESOS_POINTER_LAYOUT=2560x720`). `WorldKeepsPointerClientGameTest.Rig` shows how a client test gets
+  real capture (`WorldCapture.forTests(null, true)`), native mouse callbacks, the probe and the virtual pointer.
+- **Under Xwayland, GLFW's focus is not the compositor's:** X focus is PointerRoot while a Wayland app has the focus, so
+  the game gets pointer focus-ins whenever the pointer crosses the world (package 40's "GLFW says focused behind an
+  app"). The helper's focus is the one to trust.
+
 ## The rig (reviews/328-look-around/rig)
 
 Everything is headless and private: never the owner's `wayland-0` or `:0`, never his session's helper or D-Bus.

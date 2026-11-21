@@ -1,6 +1,7 @@
 package dev.aresos.test;
 
 import dev.aresos.AresOs;
+import dev.aresos.client.AresOsMenuScreen;
 import dev.aresos.client.HomeScreen;
 import dev.aresos.client.ShellFocusClient;
 import dev.aresos.client.WorldCapture;
@@ -54,6 +55,8 @@ public final class WorldKeepsPointerClientGameTest implements FabricClientGameTe
                     if (rig.enabled) nativeCapture(context, helper, rig);
                     else AresOs.LOGGER.info("328a: no --session, so the native capture checks did not run");
                 }
+                // Its listeners reach Minecraft, which only the client thread may do.
+                context.runOnClient(client -> shell.close());
             }
             AresOs.LOGGER.info("328a world-keeps-pointer checks passed");
         } catch (IOException error) { throw new UncheckedIOException(error); }
@@ -192,19 +195,30 @@ public final class WorldKeepsPointerClientGameTest implements FabricClientGameTe
         check(rig.count("enter") == enters && !rig.probe().contains("\"pointer_inside\": true"),
                 "The free pointer jumped back onto the probe: " + rig.probe());
         check(context.computeOnClient(WorldCapture::pointerOverWorld), "The free pointer is not on the world");
-        // A click on the world takes the mouse, and letting go gives a normal pointer that reaches the probe again.
+        // A click on the world takes the mouse, and Esc (the AresOS menu) lets go: a normal pointer that reaches the probe.
         rig.input("click left");
         context.waitFor(client -> client.mouseHandler.isMouseGrabbed()
                 && GLFW.glfwGetInputMode(client.getWindow().handle(), GLFW.GLFW_CURSOR) == GLFW.GLFW_CURSOR_DISABLED);
         check(rig.count("button_press") == presses + 1, "The click on the world reached the probe: " + rig.probe());
-        context.runOnClient(client -> client.mouseHandler.releaseMouse());
         context.waitTicks(3);
+        context.runOnClient(client -> client.pauseGame(false));
+        context.waitTicks(3);
+        check(context.computeOnClient(client -> client.gui.screen() instanceof AresOsMenuScreen),
+                "Esc did not open the AresOS menu");
         check(context.computeOnClient(client -> GLFW.glfwGetInputMode(client.getWindow().handle(), GLFW.GLFW_CURSOR))
                 == GLFW.GLFW_CURSOR_NORMAL, "The released pointer is not a normal pointer");
         rig.input("abs " + cx + " " + cy);
         rig.input("abs " + (cx + 10) + " " + (cy + 10));
         context.waitTicks(3);
-        check(rig.probe().contains("\"pointer_inside\": true"), "The released pointer does not reach the probe: " + rig.probe());
+        check(rig.probe().contains("\"pointer_inside\": true"), "The released pointer does not reach the probe: "
+                + rig.probe() + " grabbed=" + context.computeOnClient(client -> client.mouseHandler.isMouseGrabbed())
+                + " mode=" + Integer.toHexString(context.computeOnClient(client ->
+                        GLFW.glfwGetInputMode(client.getWindow().handle(), GLFW.GLFW_CURSOR))));
+        // Closing the menu with the pointer on the probe: the safe fallback keeps the pointer free.
+        context.runOnClient(client -> client.gui.setScreen(null));
+        context.waitTicks(3);
+        check(!context.computeOnClient(client -> client.mouseHandler.isMouseGrabbed()),
+                "Closing the menu took the mouse with the pointer on the probe");
     }
 
     private static void focus(FakeHelper helper, boolean world) {

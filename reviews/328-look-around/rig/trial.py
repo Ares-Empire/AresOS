@@ -8,6 +8,9 @@ Every scenario first brings the probe (the test app) to the front with a click o
   alttab    the world activated (Alt+Tab's result) while the pointer rests on the probe
   super     Super (the helper's SIGUSR1) while the pointer rests on the probe, then Esc closes the search
   menu      a click on the world, Esc for the menu, the pointer onto the probe, Esc again to close the menu
+  testseq   WorldKeepsPointerClientGameTest's order: capture, the probe takes the focus, the world activated with the
+            pointer on the probe, the pointer onto the world, a click captures, Esc lets go; then the pointer must
+            reach the probe
 Then: 40 small relative moves (MOVES=<n> changes the number) that would carry the hidden pointer across the probe, a left click and a scroll.
 The trace lines come from Xwayland's WAYLAND_DEBUG in the rig's labwc.log (rig.sh with TRACE=1)."""
 import json
@@ -117,6 +120,38 @@ show_trace('probe click')
 if scenario in ('click', 'menu'):
     vin('abs', 100, 100)
     vin('click', 'left')
+elif scenario == 'testseq':
+    vin('abs', 60, 60)
+    vin('click', 'left')
+    vin('sleep', 0.5)
+    for _ in range(10):
+        vin('rel', 12, 8)
+    tool('activate', 'aresos.pkg328.probe')
+    vin('sleep', 0.8)
+    show_trace('the probe took the focus while the world steered')
+    vin('abs', 640, 360)
+    tool('activate', 'aresos-desktop')
+    vin('sleep', 0.8)
+    show_trace('the world activated with the pointer on the probe')
+    entered = probe()['enter']
+    vin('abs', 60, 60)
+    for _ in range(12):
+        vin('rel', 5, 3)
+    vin('sleep', 0.3)
+    say(f'free pointer onto the world: probe enter {entered}->{probe()["enter"]} inside={probe()["pointer_inside"]}')
+    show_trace('free pointer onto the world')
+    vin('click', 'left')
+    vin('sleep', 0.5)
+    show_trace('a click on the world')
+    vin('key', 'esc')
+    vin('sleep', 0.8)
+    show_trace('Esc')
+    vin('abs', 640, 360)
+    vin('abs', 650, 370)
+    vin('sleep', 0.3)
+    say(f'RESULT: after letting go the pointer {"reaches" if probe()["pointer_inside"] else "does NOT reach"} the probe')
+    vin('key', 'esc')
+    sys.exit(0)
 elif scenario == 'alttab':
     # What labwc's Alt+Tab does in the end (the virtual keyboard's Alt+Tab went through its window switcher late).
     tool('activate', 'aresos-desktop')
