@@ -69,3 +69,13 @@ guardian VM save and timeout receipts, and the R29 rehearsal remain open. The po
 hardware check follows the owner's update. The explicit step 2 stop keeps an incomplete labwc
 comparison from passing even if both fixture inventories lack the affected paths. There are no
 downloads over 500 MB in `.work/`.
+
+## Paused 2026-11-21 evening (the lead)
+
+- **Why:** mac-capacity asked all leads to slow Codex down until Monday. R29's cut waits for Deskflow (c) anyway, about 28 Nov.
+- **Step 1's review:** REVIEW-1 (fresh Codex `gpt-6.2-sol` high, at `1767cf17`) is CHANGES-NEEDED.
+  - Must-fix 1: the guardian audit row is compared as raw JSON bytes, in a different key order than the audit writer emits. Compare canonical JSON, keep fields, types and row order exact, and add a fixture from the audit writer.
+  - Should-fix 2: the source guard skips Git-ignored files that the build copies from `os/config`.
+  - Fix both in a fresh turn before step 2, then run a targeted recheck.
+- **Step 2:** stopped partway, with nothing committed. The partial diff is kept outside the repo at `~/AresOS-331-step2-partial.patch` (764 lines); a fresh step 2 turn may read it or start over.
+- **Next, in order:** step 1's fixes and recheck; step 2; steps 3 to 5.
