@@ -5,15 +5,18 @@ import json
 import os
 from pathlib import Path
 import runpy
+import shutil
+import subprocess
+import sys
 from types import SimpleNamespace
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 
 ROOT = Path(__file__).resolve().parents[2]
 CONFIG = ROOT / 'os/config/usr'
 PACK = CONFIG / 'share/aresos/look'
 FONT = CONFIG / 'share/fonts/aresos/Jersey10-Regular.ttf'
-indicator = SimpleNamespace(**runpy.run_path(str(CONFIG / 'libexec/aresos-indicator')))
+indicator = SimpleNamespace(**runpy.run_path(str(CONFIG / 'libexec/aresos-indicator'), run_name='aresos_indicator'))
 SETTINGS = runpy.run_path(str(CONFIG / 'libexec/aresos-settings'))
 
 
@@ -262,6 +265,61 @@ class RequestsTest(unittest.TestCase):
         with (patch.dict(os.environ, {'DBUS_SESSION_BUS_ADDRESS': 'fixture', 'LD_PRELOAD': 'fixture'}, clear=True),
               patch.dict(indicator.main.__globals__, {'load_gui': lambda: self.state.gui, 'run': run})):
             self.assertEqual(indicator.main(['5', 'mic-mute', 'on']), 0)
+
+
+class StartupTest(unittest.TestCase):
+    def test_show_is_callable_before_the_startup_handler(self):
+        try:
+            from gi.repository import Gio, GLib
+        except ImportError as error:
+            self.skipTest(f'private startup bus needs PyGObject Gio ({error})')
+        if not all(shutil.which(tool) for tool in ('dbus-run-session', 'dbus-daemon')):
+            self.skipTest('private startup bus needs dbus-run-session and dbus-daemon')
+        # Keep the real GApplication and Gio's cached bus connection in a private process and session.
+        result = subprocess.run(['dbus-run-session', '--', sys.executable, __file__,
+                                 'StartupTest.check_show_during_startup'], timeout=10, capture_output=True, text=True,
+                                env=dict(os.environ, GSETTINGS_BACKEND='memory'))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def check_show_during_startup(self):
+        from gi.repository import Gio, GLib
+
+        replies = []
+        first, second = (1, 'mic-mute', 'on'), (2, 'mic-mute', 'off')
+
+        class ProbeApplication(Gio.Application):
+            def do_startup(self):
+                Gio.Application.do_startup(self)
+                # The name is owned here, before the production startup handler runs.
+                loop = GLib.MainLoop()
+
+                def finished(connection, result):
+                    try:
+                        replies.append(connection.call_finish(result).unpack())
+                    except GLib.Error as error:
+                        replies.append(error.message)
+                    finally:
+                        loop.quit()
+
+                client.call(indicator.NAME, indicator.OBJECT, 'aresos.Indicator', 'Show',
+                            GLib.Variant('(tss)', second), None, Gio.DBusCallFlags.NO_AUTO_START, 1000, None, finished)
+                loop.run()
+                GLib.idle_add(self.release)
+
+        gui = SimpleNamespace(Gio=SimpleNamespace(Application=ProbeApplication, DBusNodeInfo=Gio.DBusNodeInfo),
+                              GLib=GLib, Gtk=Mock(), layer=Mock(),
+                              Gdk=SimpleNamespace(Display=SimpleNamespace(get_default=object)),
+                              GdkWayland=SimpleNamespace(WaylandDisplay=object))
+        gui.layer.get_protocol_version.return_value = 1
+        flags = Gio.DBusConnectionFlags.AUTHENTICATION_CLIENT | Gio.DBusConnectionFlags.MESSAGE_BUS_CONNECTION
+        address = os.environ['DBUS_SESSION_BUS_ADDRESS']
+        client = Gio.DBusConnection.new_for_address_sync(address, flags, None, None)
+        self.addCleanup(client.close_sync, None)
+        with (patch.dict(indicator.run.__globals__, {'SETTINGS': str(CONFIG / 'libexec/aresos-settings')}),
+              patch.object(indicator.Indicator, 'show') as show):
+            self.assertEqual(indicator.run(gui, first), 0)
+            self.assertEqual(replies, [()])
+            self.assertEqual(show.call_args_list, [call(*second), call(*first)])
 
 
 class PainterTest(unittest.TestCase):
