@@ -10,9 +10,8 @@ key from changing its level, take the keyboard or the pointer, or touch the owne
    the other setting. Reason: the owner changes one setting at a time from one screen (later the mod's
    `set_setting`, one request at a time); a lost update shows at once and is fixed by setting it again. The brief
    lists it for the code review.
-2. **A read-back that hangs past 2 s shows no plate for that press.** The change has happened; only the plate is
-   skipped. Reason: a hung `wpctl` or `brightnessctl` read means PipeWire or logind is stuck, and the next press tries
-   again.
+2. **A timed-out read can show an unavailable-device plate because it becomes `none`.** The device change has
+   already happened.
 3. **When the change lock stays busy for 1 s, the presses in that time change without it.** Two of them can then take
    the same sequence number, and the plate may drop one of the two. Reason: the lock is only busy that long when a
    device command hangs (each is cut at 3 s); the levels still change, and the next normal press puts the right level
