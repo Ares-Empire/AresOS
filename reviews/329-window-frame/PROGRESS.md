@@ -1,6 +1,6 @@
 # 329: progress
 
-Step 1 of 2, 2026-11-21. Branch `pkg/329-window-frame` started at `f91aad16`, the merge base with `origin/main` at the start of this step.
+Step 1 of 2, 2026-11-21. Branch `pkg/329-window-frame` started at `f91aad16`, the merge base with `origin/main` at the start of this step. [Draft PR #143](https://github.com/Ares-Empire/AresOS/pull/143)
 
 ## Done
 
@@ -24,7 +24,7 @@ The six modules below were run one at a time with `python3 -m unittest discover 
 
 The total was 238 tests, with 237 passing and one skipped. `test_everyday_account.py` printed Python 3.14's `load_module()` deprecation warning. `test_aresos_desktop.py` printed the stand-in's “lost the supervisor” messages and skipped the case that needs a reachable user systemd manager. `bash -n os/ci/image-checks.sh` and `git diff --check` passed. The package 320 and 329 Python image checks passed when run against `os/config/usr/share` in the checkout. `release_diff.crown_pin()` found the one Crown pin and `crown_digest()` matched it. The pack's former indicator PNGs, the indicator program, Crown assets, `release_diff.py` and `test_release28.py` match the base.
 
-The full image build runs in GitHub Actions. The compositor and on-panel checks remain open. There are no `__pycache__` directories under `os/config` and no files over 500 MB in `.work/`.
+Dispatched `gh workflow run os-image.yml --ref pkg/329-window-frame -f check_build=build` once. GitHub reports source commit `4d8ae1e42c9b03f5ce7c5ec19393e50a320615aa`. This progress-only update records the run after dispatch. Its result and the compositor and on-panel checks remain open. There are no `__pycache__` directories under `os/config` and no files over 500 MB in `.work/`. [OS image run 44940099225](https://github.com/Ares-Empire/AresOS/actions/runs/44940099225)
 
 ## Left, in order
 
@@ -52,3 +52,5 @@ The R29 release profile belongs to `linux-aresos`. The image adds 37 theme files
 ## The public and private check
 
 Before the first push, checked the SHA-256 of 86 committed file versions across all five outgoing commits, including this log. Zero matches. All 72 PNG paths were verified against the public Look A study, as native 24 × 20 cells or their exact 48 × 40 enlargements. The lead-provided hashes stayed in ignored scratch and were compared in memory.
+
+Before pushing the run record, rechecked the branch's full outgoing history, including both versions of this log. The one new committed file version brought the total to 87. Zero matches, and the 72 PNGs again matched their public sources.
