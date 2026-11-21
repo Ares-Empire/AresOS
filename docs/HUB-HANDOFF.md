@@ -72,6 +72,26 @@ His guideline: "hub wise the main next step is make it a functional, usable home
 - the flying speed after he tries 56: one number, `LiveMode.DESKTOP_FLYING_SPEED`, now `0.075f` (1.5×);
 - the permanent DNS change, which needs his password.
 
+## The owner's first try-out of R28 (Sat 2026-11-21 ~18:30)
+
+His findings, in his order, with who takes each. Nothing is built yet.
+
+1. **Monitor plugged in after the start:** the home didn't change, and the monitor stayed black. `wlr-randr`: eDP-1 at 0,0 and HDMI-A-1 at 1920,0, both on. The world is only on eDP-1 and nothing draws on HDMI. He can't cross to the monitor without Esc, because the world holds the mouse. "For a homescreen that's bad. It should be seamless." **Needs his decision** (what each screen shows, how the mouse crosses). Hub and `linux-desktop`, with T373's per-output covering.
+2. **The Esc menu:** he likes it after all, but doesn't know what **New home** does. Hub: clearer label and an explanation line.
+3. **Apps open part-screen, and the world behind is black.** Only a maximized window covers the world (`HomeScreen.covered`). The black is the camera standing against the app's gate plate after walking in (his words: "that's where the character is"). Hub: a good view behind an app (step the camera back from the gate, or open maximized by default). He asked whether part-screen is normal. On Windows and macOS an app opens at its last size, often maximized.
+4. **Clicks reach Chrome while the world has the mouse:** after he clicks the world, the cursor is hidden and he moves the character, but a left click lands in Chrome when the hidden pointer sits over it. A real input bug. Hub (mod pointer capture) with `linux-desktop` (labwc pointer focus).
+5. **A click on the world beside a part-screen window hides the window** (the world window is raised over it). He reads it as minimizing, "like on any OS". `linux-desktop`: on Windows and macOS the desktop stays below the windows, so decide whether the world should too.
+6. **Minecraft's tutorial toasts** ("punch a tree") don't fit. Hub: off (`tutorialStep:none`, and the other vanilla onboarding toasts). His idea: use toasts for AresOS updates and features later.
+7. **Taskbar (the hotbar):** an open app that isn't in front isn't shown, and nothing marks which apps are open or active. Hub: open apps in the bar, a mark for open and one for active.
+8. **The hotbar Terminal block is brown, the Terminal itself black, and it doesn't need white edges.** Hub: the logo picture.
+9. **No brightness or volume pop-ups, and no status icons (Wi-Fi, battery, sound, clock).** He wants design options. `linux-desktop` (with B312's components).
+10. **Reopening an app starts a new instance:** Chrome minimized with "-" (one tab open), then `/chrome` or a right-click on its bar icon opened a new Chrome window without the tab. His proposal: **left click opens or brings back the app, right click opens its options** (new window and so on, like Windows). Hub (launch focuses the existing window) with `linux-desktop` (window list and raise).
+11. **No Files app and no System Settings app.** Minor while it's a dev project, needed later. `linux-aresos`/`linux-desktop` roadmap.
+12. **The hub's own blocks can be broken.** He'd protect them by default, editable only in a build mode. Hub.
+13. **Full-screen apps hide the taskbar, which he likes, but moving the cursor down should bring it up, as macOS does** (added after). This needs a bar outside the game, because the world isn't drawn under a maximized app: a layer-shell bar in the Minecraft look, which auto-hides over full-screen windows. Hub (bar content, the same as the hotbar's) with `linux-desktop` (the layer-shell surface, B312's look).
+
+He didn't test memory. Ask him when the memory work needs his apps open.
+
 ## Who owns what next door
 
 - **`linux-aresos`** owns `os/` and releases. It gets:
