@@ -1,0 +1,17 @@
+# Reviewer: Codex gpt-6.2-sol high, read-only, at cc158e65, 2026-11-21
+
+BLOCKED
+
+- `briefs/329-window-frame.md:22,26` — The generator must get every colour from the pack, but the four named `LookA` methods supply no shadow colours and return the outline colours as tuples. Name the new manifest keys, add the active and inactive shadow colours to the pack, and specify how ordered colour lists become comma-separated `themerc` values.
+
+- `briefs/329-window-frame.md:53` — A CI test that expects the 329 delta against live `main` fails once 329 merges and that delta disappears. Give the unit test a fixed pre-329 XML fixture and use the actual merge base for the headless comparison. The same line tells builders to run untouched modules on the laptop, which `AGENTS.md` reserves for touched modules. Run the untouched modules in hosted CI and the compositor checks in the private harness.
+
+- `briefs/329-window-frame.md:54–60` — The proposed fixture options leave two checks open to false results. `wl-harness window` requests fullscreen and ignores `xdg_toplevel.close`. Keep that fullscreen default for existing calls, make `--size` opt into a floating client, and have the test client record and honour close. Start the `aresos-desktop` stand-in without requesting fullscreen or maximization, so the test proves that the real rule maximizes it. Assert that it has no frame and stays below an overlapping app after the world takes focus, then compare lock events and relative motion after cancel and away/back against the baseline.
+
+- `briefs/329-window-frame.md:55–57,70` — The shipped layout can exercise only 20 of the 36 PNGs, including restore. `docs/design/COMPONENTS.md` 4.2 requires each image to display 1:1. Add a private test layout with `shade` and `desk` and exercise both toggles in active, inactive and hover states. Mark the live reconfigure and foreign-toplevel activation checks as deferred to their owning packages so step 2 has a clear finish line.
+
+- `briefs/329-window-frame.md:59` — An up-scroll on an already focused, unshaded window can appear to do nothing even with the default `Unshade` and `Focus` actions still installed. Test down from an unshaded window and up from a deliberately shaded window, with branch before/after assertions. Add side-edge snapping and Super+right-drag resize to the baseline table so it covers the move and resize paths the brief promises to preserve.
+
+- `briefs/329-window-frame.md:67–76` — Step 1 dispatches `check_build=build`, but step 2 pushes a new head and the merge gate requires a green build on that head. Assign the final dispatch and wait explicitly. At line 72, check staged blobs before each commit or check all outgoing committed blobs before each push. A staged-only check after committing can pass on an empty index. Have the lead provision the hash-only list before both fresh runs.
+
+- `briefs/329-window-frame.md:76–83` — The handoff leaves `os/ci/release_diff.py` ownership implicit. State that 329 uses `rc_xml_changes()` unchanged and that `linux-aresos` owns the R29 profile and its separate, listed commit for the AresOS pin and image differences. Also correct the B321 overlap: it adds `W-S-Escape` and prepends a release action to `W-C-Escape` as well as marking both. Require B321’s recovery assertions to be green before using that configuration as 329’s baseline, and preserve the full chords and action order.
