@@ -35,3 +35,17 @@ key from changing its level, take the keyboard or the pointer, or touch the owne
    is touched.
 8. **Volume up at a level above 100 % that a program set brings it down to 100 %.** This is `wpctl --limit 1.0`, as
    the key did before package 320. Reason: the brief keeps today's commands and limits.
+
+## Step 2 (the indicator)
+
+1. **Unrecognised or slow PipeWire routes show “Volume”.** The graph lookup lasts at most 300 ms and repeated
+   requests can share an in-flight snapshot. A route that changes during that lookup can leave the previous label
+   on one showing. The device action and the level sent by the key stay independent of that label.
+2. **A muted fraction has no dim grey half-step.** A muted 62 % lights 12 grey steps, matching the study. The full,
+   partial, and mute sprites keep their original appearance.
+3. **An up request that first reaches 100 % flashes too.** The indicator receives the new reading, so the first hit
+   and a press at the limit look the same. The last step returns to lit after 150 ms, and each repeat restarts that
+   interval.
+4. **The hide interval starts when the indicator receives the request.** The request carries a sequence and a
+   reading. A cold start or a slow read-back can shift the plate's appearance and disappearance later than the
+   physical press. Step 3 measures the normal lag and repeat behaviour.
