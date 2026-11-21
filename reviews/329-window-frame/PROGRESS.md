@@ -54,3 +54,19 @@ The R29 release profile belongs to `linux-aresos`. The image adds 37 theme files
 Before the first push, checked the SHA-256 of 86 committed file versions across all five outgoing commits, including this log. Zero matches. All 72 PNG paths were verified against the public Look A study, as native 24 × 20 cells or their exact 48 × 40 enlargements. The lead-provided hashes stayed in ignored scratch and were compared in memory.
 
 Before pushing the run record, rechecked the branch's full outgoing history, including both versions of this log. The one new committed file version brought the total to 87. Zero matches, and the 72 PNGs again matched their public sources.
+
+## Step 2 proof
+
+- Pulled `pkg/329-window-frame` first. The initial merge was already current. While the proof was running, package 330 landed and `3b298169` merged it into the package branch. The recorded final baseline is `a7fb7cfe0e8ae7797adc2ab5cd3baf88aa09ec56`. Its labwc lock and XML match the first baseline. B321 had not landed.
+- `63d2b498` extends the Wayland client and generates xdg-decoration bindings. `b2918a11` adds frame mode, shared isolation and lock checks, measured comparisons, and the contact sheets. `fbe4d276` fixes the shared test fixture's JSON race, which dropped one of the two quick volume key actions in the first indicator rerun.
+- Two final frame runs passed 35 checks and generated eight sheets. They verified all 36 48 × 40 cells at 1:1. Both indicator reruns passed all nine scenarios and 52 checks with the expanded pack. The final labwc matched the lock, and no theme errors were logged. [Frame results](evidence/results.txt) · [Indicator results](evidence/indicator-results.txt) · [Report](REPORT.md)
+- The baseline reverses the brief's wheel direction names. The headless proof covers all four combinations of direction and starting shade state. Cancelled Alt+Tab preserved the world lock, and a completed switch away and back unlocked and relocked identically in both configs. The built-in root menu includes Terminal, Reconfigure and Exit. [Known limits](KNOWN-LIMITS.md)
+- Local scratch contains no file over 500 MB. The remaining merge gates are the final-head build, the fresh review and the release owner read. The real panel, B/C reconfigure and overview checks belong to their listed follow-ups.
+
+### Step 2 private-hash check
+
+Before push, compared the SHA-256 of every committed blob version in the outgoing package history, including intermediate versions, merge results, evidence images and this progress entry, against the ignored lead-provided list. Checked 320 file versions across 12 commits, with zero matches. Verified the binary origins against the public Look A study or the isolated Look A capture run. The private list stayed in ignored scratch and was read only for comparison.
+
+### Final-head hosted runs
+
+The final-head image-build and hosted regression results are pending.

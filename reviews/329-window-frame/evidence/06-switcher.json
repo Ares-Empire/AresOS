@@ -1,0 +1,139 @@
+{
+  "merge_base": "a7fb7cfe0e8ae7797adc2ab5cd3baf88aa09ec56",
+  "baseline": {
+    "world_configures": [
+      "CONFIGURED 720 500 states=",
+      "CONFIGURED 1920 1080 states=maximized,activated"
+    ],
+    "before": [
+      "REL 10.00 5.00"
+    ],
+    "cancel_events": [
+      "KBD_LEAVE",
+      "LEAVE"
+    ],
+    "after_cancel": [
+      "REL 10.00 5.00"
+    ],
+    "away_events": [
+      "LEAVE",
+      "UNLOCKED"
+    ],
+    "while_away": [
+      "REL 10.00 5.00",
+      "MOTION 970.0 545.0"
+    ],
+    "back_events": [
+      "LEAVE",
+      "KBD_ENTER",
+      "LOCKED"
+    ],
+    "after_back": [
+      "REL 10.00 5.00"
+    ]
+  },
+  "branch": {
+    "world_configures": [
+      "CONFIGURED 720 500 states=",
+      "CONFIGURED 1920 1080 states=maximized,activated"
+    ],
+    "before": [
+      "REL 10.00 5.00"
+    ],
+    "panel": {
+      "selected": [
+        540,
+        436,
+        820,
+        644
+      ],
+      "label_ink": [
+        53,
+        24,
+        209,
+        44
+      ],
+      "outline_top": [
+        [
+          13,
+          13,
+          16
+        ],
+        [
+          13,
+          13,
+          16
+        ],
+        [
+          237,
+          202,
+          119
+        ],
+        [
+          237,
+          202,
+          119
+        ],
+        [
+          13,
+          13,
+          16
+        ],
+        [
+          13,
+          13,
+          16
+        ]
+      ]
+    },
+    "cancel_events": [
+      "KBD_LEAVE",
+      "LEAVE"
+    ],
+    "after_cancel": [
+      "REL 10.00 5.00"
+    ],
+    "away_events": [
+      "LEAVE",
+      "UNLOCKED"
+    ],
+    "while_away": [
+      "REL 10.00 5.00",
+      "MOTION 970.0 545.0"
+    ],
+    "back_events": [
+      "LEAVE",
+      "KBD_ENTER",
+      "LOCKED"
+    ],
+    "after_back": [
+      "REL 10.00 5.00"
+    ],
+    "minimized_tile": {
+      "box": [
+        1380,
+        436,
+        1660,
+        644
+      ],
+      "thumbnail_client_colour_box": [
+        2,
+        13,
+        262,
+        128
+      ],
+      "label_ink": [
+        34,
+        18,
+        228,
+        44
+      ]
+    },
+    "panel_click": {
+      "tile": 3,
+      "focus_before_releasing_alt": [
+        "overlap"
+      ]
+    }
+  }
+}
