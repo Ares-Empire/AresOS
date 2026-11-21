@@ -79,3 +79,6 @@ downloads over 500 MB in `.work/`.
   - Fix both in a fresh turn before step 2, then run a targeted recheck.
 - **Step 2:** stopped partway, with nothing committed. The partial diff is kept outside the repo at `~/AresOS-331-step2-partial.patch` (764 lines); a fresh step 2 turn may read it or start over.
 - **Next, in order:** step 1's fixes and recheck; step 2; steps 3 to 5.
+- **Late-package notes (2026-11-21):**
+  - B329 (PR143): the lead's os/ read is clean. Its image-difference list is in its PROGRESS.md under "For linux-aresos". R29's guest walk expects the AresOS theme.
+  - For R29's Known limits: after Alt+Tab then Escape, the world keeps its pointer lock but gets no keys until you switch away and back. Main's rc.xml does the same; the frame isn't the cause (linux-desktop).
