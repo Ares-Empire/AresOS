@@ -101,7 +101,9 @@ public final class WorldCapture {
     public static void release(Window window, double x, double y, CursorMode minecraft) {
         // Fabric's client tests switch the capture off, so only a real one has X state to let go of.
         boolean captured = GLFW.glfwGetInputMode(window.handle(), GLFW.GLFW_CURSOR) == GLFW.GLFW_CURSOR_DISABLED;
-        boolean x11 = HomeScreen.session() && Xlib.ready();
+        // Whatever the session says now, a hide of ours must get its show: X keeps an unmatched one for good, and
+        // Xwayland then keeps its pointer lock (seen when client tests switch the session off while capturing).
+        boolean x11 = (HomeScreen.session() || hiddenInX) && Xlib.ready();
         long display = x11 ? GLFWNativeX11.glfwGetX11Display() : 0;
         long xwindow = x11 ? GLFWNativeX11.glfwGetX11Window(window.handle()) : 0;
         if (x11 && captured && !Xlib.focused(display, xwindow)) {
