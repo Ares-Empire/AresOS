@@ -33,7 +33,7 @@ spec = importlib.util.spec_from_file_location('labwc_loaded_image', ROOT / 'labw
 loaded_image = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(loaded_image)
 
-RESULT = 'labwc-0.9.6-1.fc44.aresos1.x86_64'
+RESULT = 'labwc-0.9.6-1.fc44.aresos2.x86_64'
 FEDORA = 'labwc-0.9.6-1.fc44.x86_64'
 WLROOTS = 'wlroots0.19-0.19.3-1.fc44.x86_64'
 WLROOTS_DEVEL = 'wlroots0.19-devel-0.19.3-1.fc44.x86_64'
@@ -95,6 +95,8 @@ elif tool == 'rpmbuild':
     else:
         folder = top / 'RPMS/x86_64'
         folder.mkdir(parents=True)
+        state['built_spec'] = pathlib.Path(args[-1]).read_text()
+        state['built_sources'] = sorted(path.name for path in (top / 'SOURCES').iterdir())
         (folder / (state['built'] + '.rpm')).write_bytes(b'built rpm')
         (top / 'RPMS/noarch').mkdir()
         (top / 'RPMS/noarch/labwc-session.rpm').write_bytes(b'not ours to output')
@@ -242,8 +244,10 @@ class StageCase(unittest.TestCase):
 
         self.lock_dir = self.tmp / 'labwc'
         self.lock_dir.mkdir()
-        self.patch_bytes = b'the patch\n'
-        (self.lock_dir / 'fix.patch').write_bytes(self.patch_bytes)
+        # Two patches, as the reviewed lock has: the order in the lock is the order in the spec.
+        self.patches = {'0001-fix.patch': b'the patch\n', '0002-gate.patch': b'the second patch\n'}
+        for name, data in self.patches.items():
+            (self.lock_dir / name).write_bytes(data)
         self.source_url = stage.KOJI + 'labwc/0.9.6/1.fc44/src/labwc-0.9.6-1.fc44.src.rpm'
         self.source_bytes = b'source package'
         self.dependencies = {'aaa-devel-1.0-1.fc44.x86_64': b'first', 'bbb-2.0-3.fc44.noarch': b'second',
@@ -251,7 +255,7 @@ class StageCase(unittest.TestCase):
         self.lock = dict(
             base=dict(reference=FEDORA_BASE, packages=BUILD_BASE),
             source=dict(url=self.source_url, sha256=digest(self.source_bytes)),
-            patch=dict(file='fix.patch', sha256=digest(self.patch_bytes)),
+            patches=[dict(file=name, sha256=digest(data)) for name, data in self.patches.items()],
             result=dict(nevra=RESULT, replaces=FEDORA,
                         normalized_sha256={'/usr/bin/labnag': normalized(LABNAG_ELF),
                                            '/usr/bin/labwc': normalized(LABWC_ELF)},
@@ -341,13 +345,21 @@ class FetchTest(StageCase):
         self.assert_refused(self.fetch(), 'the source package has SHA-256')
 
     def test_refuses_a_wrong_patch_hash(self):
-        (self.lock_dir / 'fix.patch').write_bytes(b'another patch\n')
-        self.assert_refused(self.fetch(), 'the patch has SHA-256')
-        self.assertFalse(self.called('curl'))
+        for name in self.patches:
+            with self.subTest(name):
+                (self.lock_dir / name).write_bytes(b'another patch\n')
+                self.assert_refused(self.fetch(), f'the patch {name} has SHA-256')
+                self.assertFalse(self.called('curl'))
+                (self.lock_dir / name).write_bytes(self.patches[name])
 
     def test_refuses_a_missing_patch(self):
-        (self.lock_dir / 'fix.patch').unlink()
-        self.assert_refused(self.fetch(), 'the patch fix.patch is missing')
+        (self.lock_dir / '0002-gate.patch').unlink()
+        self.assert_refused(self.fetch(), 'the patch 0002-gate.patch is missing')
+
+    def test_refuses_a_patch_file_the_lock_does_not_name(self):
+        (self.lock_dir / '0003-stray.patch').write_bytes(b'not locked\n')
+        self.assert_refused(self.fetch(), r"the patches \['0003-stray\.patch'\] are not in the lock")
+        self.assertFalse(self.called('curl'))
 
     def test_refuses_a_dependency_with_other_bytes(self):
         nevra = 'bbb-2.0-3.fc44.noarch'
@@ -461,13 +473,20 @@ class BuildTest(StageCase):
         self.assertFalse(self.called('curl'))
         self.assertFalse(self.called('dnf5'))
 
-    def test_the_spec_edit_is_the_release_suffix_and_one_patch_line(self):
+    def test_the_spec_edit_is_the_release_suffix_and_one_patch_line_each_in_order(self):
         spec_file = self.tmp / 'edited.spec'
         spec_file.write_text(SPEC)
-        stage.edit_spec(spec_file, 'fix.patch')
-        expected = SPEC.replace('Release:    %autorelease\n', 'Release:    %{autorelease}.aresos1\n').replace(
-            'Source:     %{forgesource}\n', 'Source:     %{forgesource}\nPatch0:     fix.patch\n')
+        stage.edit_spec(spec_file, ['0001-fix.patch', '0002-gate.patch'])
+        expected = SPEC.replace('Release:    %autorelease\n', 'Release:    %{autorelease}.aresos2\n').replace(
+            'Source:     %{forgesource}\n',
+            'Source:     %{forgesource}\nPatch0:     0001-fix.patch\nPatch1:     0002-gate.patch\n')
         self.assertEqual(spec_file.read_text(), expected)
+
+    def test_the_build_gives_rpmbuild_every_locked_patch(self):
+        self.assertEqual(self.build(), 0, self.stderr)
+        self.assertEqual(self.state['built_spec'].count('Patch'), 2, self.state['built_spec'])
+        self.assertIn('Patch0:     0001-fix.patch\nPatch1:     0002-gate.patch\n', self.state['built_spec'])
+        self.assertEqual(self.state['built_sources'], sorted(self.patches))
 
     def test_refuses_a_wrong_source_hash(self):
         (self.inputs / stage.SOURCE_FILE).write_bytes(b'other source')
@@ -479,8 +498,8 @@ class BuildTest(StageCase):
         self.assert_refused(self.build(), 'the source package is missing')
 
     def test_refuses_a_wrong_patch_hash(self):
-        (self.lock_dir / 'fix.patch').write_bytes(b'another patch\n')
-        self.assert_refused(self.build(), 'the patch has SHA-256')
+        (self.lock_dir / '0002-gate.patch').write_bytes(b'another patch\n')
+        self.assert_refused(self.build(), 'the patch 0002-gate.patch has SHA-256')
         self.assertFalse(self.called('rpmbuild'))
 
     def test_refuses_a_dependency_with_other_bytes(self):
@@ -1202,8 +1221,15 @@ class LockShapeTest(StageCase):
             'source key': (lambda lock: lock['source'].update(name='x'), 'source needs exactly'),
             'source host': (lambda lock: lock['source'].update(url='https://example.com/a.src.rpm'), 'source.url'),
             'source hash': (lambda lock: lock['source'].update(sha256='abc'), 'source.sha256'),
-            'patch path': (lambda lock: lock['patch'].update(file='../fix.patch'), 'patch.file'),
-            'patch hash': (lambda lock: lock['patch'].update(sha256='ABC'), 'patch.sha256'),
+            'patch path': (lambda lock: lock['patches'][1].update(file='../fix.patch'), 'patch.file'),
+            'patch hash': (lambda lock: lock['patches'][1].update(sha256='ABC'), 'patch.sha256'),
+            'patch key': (lambda lock: lock['patches'][0].update(name='x'), 'each patch needs exactly'),
+            'no patches': (lambda lock: lock.update(patches=[]), 'patches must list every patch'),
+            'one patch object, as before 321': (lambda lock: lock.update(patches=lock['patches'][0]),
+                                                 'patches must list every patch'),
+            'patch order': (lambda lock: lock['patches'].reverse(), 'in the order of their file names'),
+            'a patch twice': (lambda lock: lock['patches'].append(dict(lock['patches'][1])),
+                              'in the order of their file names'),
             'result': (lambda lock: lock['result'].update(nevra='labwc-0.9.6-1.fc44.x86_64'), 'result.nevra'),
             'replaces': (lambda lock: lock['result'].update(replaces='labwc-0.9.5-1.fc44.x86_64'), 'result.replaces'),
             'no pins': (lambda lock: lock['result'].pop('normalized_sha256'), 'result needs exactly'),
@@ -1260,13 +1286,35 @@ class ReviewedLockTest(unittest.TestCase):
         self.assertEqual(sorted(self.lock['result']['normalized_sha256']), ['/usr/bin/labnag', '/usr/bin/labwc'])
         self.assertEqual(sorted(self.lock['result']['loaded_sha256']), ['/usr/bin/labnag', '/usr/bin/labwc'])
 
-    def test_the_patch_is_its_pin(self):
-        patch = self.folder / self.lock['patch']['file']
-        self.assertEqual(hashlib.sha256(patch.read_bytes()).hexdigest(), self.lock['patch']['sha256'])
+    def test_it_names_both_patches_in_order_and_no_other_lies_beside_them(self):
+        names = [patch['file'] for patch in self.lock['patches']]
+        self.assertEqual(names, ['0001-allow-constraints-for-layer-surfaces.patch',
+                                 '0002-no-bindings-for-the-capture-layer.patch'])
+        self.assertEqual(sorted(path.name for path in self.folder.glob('*.patch')), names)
 
-    def test_the_patch_names_the_upstream_commit(self):
-        text = (self.folder / self.lock['patch']['file']).read_text()
+    def test_each_patch_is_its_pin(self):
+        for entry in self.lock['patches']:
+            patch = self.folder / entry['file']
+            self.assertEqual(hashlib.sha256(patch.read_bytes()).hexdigest(), entry['sha256'], entry['file'])
+
+    def test_the_first_patch_names_the_upstream_commit(self):
+        text = (self.folder / self.lock['patches'][0]['file']).read_text()
         self.assertIn('b7820667a24787fdf88a79a006f716d78d7f4ccc', text.split('\n---\n')[0])
+
+    def test_the_second_patch_gates_on_the_namespace_the_backend_gives_its_surface(self):
+        # The backend cannot see this patch (321, step 1c): the two strings must stay the same string.
+        patch = (self.folder / self.lock['patches'][1]['file']).read_text()
+        defined = re.findall(r'^\+#define LAB_INHIBITING_LAYER_NAMESPACE "([^"]+)"$', patch, re.M)
+        backend = (ROOT / 'input-portal/src/wayland/state.rs').read_text()
+        used = re.findall(r'Layer::Overlay,\s*Some\("([^"]+)"\)', backend)
+        self.assertEqual((defined, used), (['aresos-input-barrier'], ['aresos-input-barrier']))
+
+    def test_the_second_patch_changes_code_only(self):
+        # Every other file of the RPM stays Fedora's, byte for byte (R29's rule): no man page, no example file.
+        patch = (self.folder / self.lock['patches'][1]['file']).read_text()
+        touched = re.findall(r'^diff --git a/(\S+) ', patch, re.M)
+        self.assertTrue(touched)
+        self.assertEqual([path for path in touched if not path.startswith(('src/', 'include/'))], [])
 
     def test_every_dependency_is_a_signed_copy_on_koji(self):
         for entry in self.lock['build_dependencies']:

@@ -154,20 +154,26 @@
     "url": "https://kojipkgs.fedoraproject.org/packages/labwc/0.9.6/1.fc44/src/labwc-0.9.6-1.fc44.src.rpm",
     "sha256": "75626824211cda457d292b914f1e80a79c300dc3bf234317edb1c302022058de"
   },
-  "patch": {
-    "file": "0001-allow-constraints-for-layer-surfaces.patch",
-    "sha256": "00e68821de6d35b6bf8748b5742f7ce6a20fda2f1614695723c5e968a586d6a9"
-  },
+  "patches": [
+    {
+      "file": "0001-allow-constraints-for-layer-surfaces.patch",
+      "sha256": "00e68821de6d35b6bf8748b5742f7ce6a20fda2f1614695723c5e968a586d6a9"
+    },
+    {
+      "file": "0002-no-bindings-for-the-capture-layer.patch",
+      "sha256": "2b99e2b5ddde1cb6456d9f3aea4c9dba7e9f94165de3c917e8d4a8f34b21f4d6"
+    }
+  ],
   "result": {
-    "nevra": "labwc-0.9.6-1.fc44.aresos1.x86_64",
+    "nevra": "labwc-0.9.6-1.fc44.aresos2.x86_64",
     "replaces": "labwc-0.9.6-1.fc44.x86_64",
     "normalized_sha256": {
-      "/usr/bin/labnag": "7c6896e938198e7922105e01b52118e2bfd75d16c431ea9c9a615127b7cc1f6d",
-      "/usr/bin/labwc": "89cd0e901a5cc9f6a7df0d6337d38d817a753318cbdca8b8e620a7cfc0dd71c4"
+      "/usr/bin/labnag": "b8958beab24f41e21cbdf2e052d45c93cf95454a2c06c11bd03578c12c049505",
+      "/usr/bin/labwc": "93d6d36f91442438131843ddbfca4d050052038256509c129f88ce1756a9e0cb"
     },
     "loaded_sha256": {
-      "/usr/bin/labnag": "789da84fb23e482434c84e300d1a95c90f5cec5ffc1b9a156d2f6b5cdcff47d2",
-      "/usr/bin/labwc": "92b42d5f5174a91adab883a3f6196500483ac08e37adff7928568284d70422f2"
+      "/usr/bin/labnag": "5538d4c5a6989c2c4ec826c76c1e7901ea0b4fc8f4bcc5e7e76472480d7bff49",
+      "/usr/bin/labwc": "52cd76e644e8cec4922959648e4096e5fbcc4643b0d8db8d8fa335cee709a402"
     }
   },
   "build_dependencies": [
