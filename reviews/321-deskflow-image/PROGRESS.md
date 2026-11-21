@@ -243,8 +243,8 @@ first agent's, unchanged. What was checked in labwc's source:
   until the next press, so without the patch's drop any release during a capture could run a stale on-release
   action; with it none can. Pressed during, released after: the press matched nothing, so nothing is pending.
   A repeat timer started before finds no match and runs nothing.
-- **No capture starts in menu, switcher or move mode:** `cursor_update_common` gives no surface the pointer then,
-  so the barrier sees no crossing (read, not run, as below).
+- **No new crossing starts in menu, switcher or move mode:** `cursor_update_common` gives no surface the pointer
+  then. An enter already sent can still start a capture (review finding 4).
 
 Changed by the second agent: two comments in the backend that still listed the removed chord among the ways a
 capture is lost (`src/wayland/state.rs`, `src/portal.rs`). Added: the control run on `aresos1` and the comparison of
@@ -352,9 +352,9 @@ During a capture Ctrl+Alt+Escape is forwarded like every key; the way out is lab
 - **The VT switch during a capture is read, not run.** labwc checks it before the gate, in code the patch does not
   touch; the harness's labwc is headless and has no VT. Step 2's VM runs switch a VT; step 4's table should press
   Ctrl+Alt+F3 during a real capture.
-- **No capture starts while a menu, the window switcher or a window move is active**, so the gate's "no menu or
-  switcher keys" is a second line: in those modes labwc gives no surface pointer focus (`cursor_update_common`), so
-  the barrier sees no crossing. Read, not run.
+- **No new crossing starts while a menu, the window switcher or a window move is active.** In those modes labwc
+  gives no surface pointer focus (`cursor_update_common`). A crossing already sent can still activate after a
+  mode change (review finding 4, in `KNOWN-LIMITS.md`).
 - **Media keys go to the Mac** (the owner's answer T459): `rc.xml` gets no mark for them, and test10 shows volume,
   mute and brightness at the client with nothing run on the laptop.
 - **The marks are only in the harness's `rc.xml`.** The image's `rc.xml` gets its two bindings' marks in step 3
@@ -368,6 +368,35 @@ During a capture Ctrl+Alt+Escape is forwarded like every key; the way out is lab
 - **The patch is not offered upstream yet.** As it stands it names AresOS's namespace; an upstream version would
   take the namespace from `rc.xml` or be the inhibitor protocol. For the lead to decide after the final review.
 
+## Step 1c review fixes
+
+| Finding | Fix or triage | Commit | Test |
+|---|---|---|---|
+| 1. A program can claim the capture namespace | Recorded checking the Wayland peer's executable as possible later hardening. | `2afd7585` | Test10 still shows that a different namespace keeps its bindings and the capture namespace gates them. |
+| 2. Session lock during capture | Recorded the limit and when to revisit it. The image has no screen locker. | `2afd7585` | Lead's triage, documentation only. |
+| 3. Previous window can veto the marked chords | Recorded the `ToggleKeybinds` limit. The image has no binding for that action. | `2afd7585` | Lead's triage, documentation only. |
+| 4. Already-sent crossing can activate in the switcher or menu | Recorded the gap between pointer enter and capture commit. | `2afd7585` | Lead's triage, documentation only. |
+| 5. Pointer-only capture can outlive the gate | Recorded that it forwards no keys and Deskflow asks for the keyboard. | `2afd7585` | Lead's triage, documentation only. |
+| 6. Input-method grab and modifier state | Recorded the limit and when to revisit it. The session starts no input-method program. | `2afd7585` | Lead's triage, documentation only. |
+| 7. Recovery chord needs a working terminal | One `sh -c` waits for release to return and then opens a new Wayland probe window. Labwc 0.9.6's `Execute` calls `spawn_async_no_shell`, which uses `g_shell_parse_argv` and `execvp`. The image's XML is under “For step 3” below. | `e2236fa5` | Test10 saw the new window receive the next key press and release during both runs. A separate rootless shell control printed `release exited 17` followed by `recovery launched`. |
+| 8. Harness and image need to prove binary identity | Both check the installed `/usr/bin/labwc` and `/usr/bin/labnag` against the loaded-image and normalized pins with `stage.py check-installed`. The harness sends the checkout lock on each run. CI sends the checker and reads the manifest lock, whose equality with the checkout lock is still checked. | `5b6c14da` | All four hashes matched in both harness runs and the stage image check. A scratch lock with a zeroed loaded-image pin for `/usr/bin/labwc` gave `LABWC_REFUSED` and exit 1 before any harness test started. |
+
+- `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s os/tests -p test_labwc_stage.py` reported
+  `Ran 131 tests` and `OK`. The same discovery command with `test_shell_assertions.py` reported `Ran 9 tests`
+  and `OK`. No `__pycache__` remained under `os/config`.
+- `bash -n` exited 0 for each of `os/input-portal/harness/run.sh`, `os/input-portal/harness/in-container.sh`,
+  `os/ci/check-image.sh` and `os/ci/image-checks.sh`.
+- `os/input-portal/harness/run.sh run .work/backend-1c <evidence-dir>` on the existing
+  `localhost/aresos-input-portal-harness:321c` printed `SUMMARY 129 passed, 0 failed, exit 0` twice with
+  identical PASS lines. Each run included 26 test10 checks and also passed the 20 outer isolation checks.
+- The new image-check command printed two `LABWC_NORMALIZED` and two `LABWC_LOADED` lines and exited 0
+  against the RPM from `localhost/aresos-labwc:321c`. The bare build stage lacks `xdg-desktop-portal-wlr`,
+  so its `rpm -V labwc` reports that missing dependency. The full labwc block emitted its new PASS line in
+  the harness image, which has that dependency and the same RPM (SHA-256
+  `ee6257dbbeff0bf07e9205cf02a2cb4e1da9568e8d6c6f16c1c15e57c243055c`).
+- The local logs are under `.work/step1c-review-fixes/`. There are no files over 500 MB in `.work`.
+  The finished-image run and the actual recovery terminal remain for the image and VM steps.
+
 ## Left, in order
 
 Step 2 (build stage and output check), step 3 (the image: Deskflow, its ID and scope name, the allow-list,
@@ -375,10 +404,22 @@ routing, the release key, the switch's helper, polkit actions, window and deskto
 checks 2 to 9), as the brief's "Steps" says. For step 3, from this step: the helper writes the switch as
 `on\n` (the backend accepts `on` with or without one line end) in one rename, mode 0644, root's, in
 `/etc/aresos/input-portal` (0755, root's), and the switch's program runs `aresos-input-portal --revoke` after `off`.
-For step 3, from step 1c: the image's `rc.xml` marks `W-S-Escape` and `W-C-Escape` with `allowWhenInhibited="yes"`
-and no other binding (the harness's `rc.xml` shows the form), and the image check requires exactly those two marks.
 For step 2: the harness and any check build now need `localhost/aresos-labwc:321c` (or CI's own stage build); the
 old `311e` image is `aresos1` and the harness refuses it.
+
+### For step 3
+
+Mark exactly `W-S-Escape` and `W-C-Escape` with `allowWhenInhibited="yes"` in the image's `rc.xml` and require
+exactly those two marks in the image check. Use one `Execute` for release and terminal launch, and keep the
+separate hide-cover action. labwc executes each action asynchronously. Inside `sh -c`, `;` waits for release to
+return and then opens the terminal regardless of the release status.
+
+```xml
+<keybind key="W-C-Escape" allowWhenInhibited="yes">
+  <action name="Execute" command="sh -c '/usr/libexec/aresos-input-portal --release; exec /usr/bin/aresos-terminal --recovery'" />
+  <action name="Execute" command="/usr/libexec/aresos-desktop hide-cover" />
+</keybind>
+```
 
 ## For linux-aresos
 
@@ -393,6 +434,8 @@ The lead sends this list when step 3 ends and at the final head.
 | `os/labwc/stage.py` | `fc81fccf` | Reads the list of patches (order by file name, one `Patch<n>:` line each), refuses a `.patch` file the lock does not name, release suffix `.aresos2`, the reviewed NEVRA. Nothing else changed: fetch, the environment check, the pins and the install are as 311 left them. |
 | `os/tests/test_labwc_stage.py` | `fc81fccf` | The stage's tests for the above (131, 126 before), and two for the lock: the patch's namespace equals the backend's, and the second patch touches code only. |
 | `os/ci/image-checks.sh` | `0ae53900` | The labwc check: NEVRA `aresos2`, the manifest lock names exactly the two patches in order, and `/usr/bin/labwc` holds the second patch's two strings (`allowWhenInhibited`, `aresos-input-barrier`). |
+| `os/labwc/stage.py` | `5b6c14da` | Reuses the stage's hash check for installed binaries through `check-installed`. |
+| `os/ci/check-image.sh`, `os/ci/image-checks.sh` | `5b6c14da` | Sends the pin checker into the CI container and verifies both binaries against the manifest lock before reporting PASS. |
 
 Not touched in step 1c: `os/Containerfile` (the stage copies the whole `labwc/` folder, so the second patch needs no
 new line; its comment above the stage still says "one upstream fix" and should name both patches when the file is
