@@ -9,6 +9,7 @@ import io
 import json
 import os
 from pathlib import Path
+import re
 import select
 import subprocess
 import sys
@@ -169,14 +170,14 @@ class Session:
         self.children.append(proc)
         return proc
 
-    def start(self, *, lock=False, delay=0, idle=16000):
+    def start(self, *, lock=False, delay=0, idle=16000, config=CONFIG / 'labwc'):
         self.phase += 1
         env = dict(self.env, WLR_BACKENDS='headless', WLR_RENDERER='pixman', WLR_HEADLESS_OUTPUTS='2',
                    WLR_LIBINPUT_NO_DEVICES='1', LABWC_UPDATE_ACTIVATION_ENV='0',
                    ARESOS_INDICATOR_TEST_EDP=RIGHT, ARESOS_INDICATOR_TEST_IDLE_MS=str(idle),
                    ARESOS_INDICATOR_TEST_START_DELAY_MS=str(delay))
         env.pop('WAYLAND_DISPLAY')
-        labwc = self.spawn(['/usr/bin/labwc', '-C', str(CONFIG / 'labwc')], env=env, log=self.log_path)
+        labwc = self.spawn(['/usr/bin/labwc', '-C', str(config)], env=env, log=self.log_path)
         until(lambda: (RUNTIME / WAYLAND).is_socket(), 'private labwc', timeout=8)
         assert labwc.poll() is None, 'private labwc exited'
         self.outputs = {LEFT: 0, RIGHT: W}
@@ -680,6 +681,23 @@ def cold(app, repeat_mode):
               f'first visible frame within {latency * 1000:.0f} ms of the first press, final {final}%')
 
 
+def check_reap_order(app, trace, launch_lock, child):
+    # Match the notifier that opened the launch file and the descriptor flock actually locked.
+    # Other processes close inherited copies of the same descriptor.
+    lines = trace.read_text()
+    lock_fd = rf'\d+<{re.escape(str(launch_lock))}>'
+    notifier = re.search(rf'(?m)^(\d+) +\S+ openat\(.* = {lock_fd}$', lines)
+    acquired = re.search(rf'(?m)\bflock\(({lock_fd}), LOCK_EX\) += 0$', lines)
+    assert notifier and acquired, f'missing launch lock acquisition in {trace.name}'
+    fd = re.escape(acquired[1])
+    prefix = rf'^{notifier[1]} +\S+ '
+    reap = re.search(rf'(?m){prefix}wait4\(.* = {child}$', lines)
+    release = re.search(rf'(?m)(?:{prefix}close\({fd}\)|\bflock\({lock_fd}, LOCK_UN\)) += 0$', lines)
+    assert reap and release, f'missing reap of PID {child} or launch lock release in {trace.name}'
+    app.check(reap.start() < release.start(),
+              f'PID {child} must be reaped before the launch lock is released in {trace.name}')
+
+
 def test9(app):
     app.start(idle=2350)
     cold(app, False)
@@ -694,7 +712,14 @@ def test9(app):
     app.check(rendered_level(crop) == 65, 'newer 65% survived the older 25% Show delivered afterwards')
     app.stop()
 
-    app.start(delay=6500)
+    trace = EV / '09-launch.strace'
+    config = RUNTIME / 'traced-labwc'
+    config.mkdir()
+    binding = f'{LEVEL} volume-down'
+    rc = (CONFIG / 'labwc/rc.xml').read_text()
+    (config / 'rc.xml').write_text(rc.replace(binding, f'/usr/bin/strace -f -ttt -y -z '
+                                              f'-e trace=openat,flock,close,wait4 -o {trace} {binding}', 1))
+    app.start(delay=6500, config=config)
     reset_devices(sink=dict(volume=1.0, mute=False))
     mark = len(app.log())
     launches = app.launches()
@@ -710,13 +735,13 @@ def test9(app):
         fd = handle.fileno()
         subprocess.run(['/usr/bin/flock', '-w', '7', str(fd)], pass_fds=(fd,), check=True, timeout=8)
         elapsed = time.monotonic() - start
-        assert not Path(f'/proc/{first}').exists(), 'delayed program survived (or was a zombie) at lock handoff'
         assert 5.0 <= elapsed < 5.5, f'launch lock handed off after {elapsed:.3f} s, expected 5.0–5.5 s'
     idle_keys()
     timed = app.log()[mark:].count('did not take its bus name within 5 s and was ended')
     app.check(app.launches() - launches == timed == 1 and not has_owner() and not processes(INDICATOR)
               and not app.frame(LEFT)[1],
-              f'one termination, lock handed off after {elapsed:.3f} s with PID reaped and no survivor, owner or plate')
+              f'one termination, lock handed off after {elapsed:.3f} s with no survivor, owner or plate')
+    check_reap_order(app, trace, launch_lock, first)
 
 
 def main():
