@@ -1,0 +1,85 @@
+{
+ "run": "stop-2-b",
+ "source_revision": "456f696985affcc34e04bec2a5e914298b7a1eef",
+ "started": "2026-11-19T04:43:52+01:00",
+ "game": "Minecraft 26.2 development client (Loom runClient) with the worktree's AresOS mod, headless in the rig's own labwc",
+ "mode": "stop",
+ "shown": true,
+ "environment": {
+  "runtime_folder_is_the_runs_own": true,
+  "gate": true,
+  "gate_expected": true,
+  "checked": "before the supervisor started and before any save"
+ },
+ "reopened": [
+  {
+   "block": 9,
+   "in_the_reopened_game": true,
+   "on_the_disk": true
+  },
+  {
+   "block": 10,
+   "in_the_reopened_game": true,
+   "on_the_disk": true
+  }
+ ],
+ "path": {
+  "adopted": true,
+  "hello_accepted": true,
+  "state": "IN_WORLD",
+  "watches_its_stand_in_labwc": true,
+  "blocks": {
+   "first": 11,
+   "before_save": 12,
+   "before_stop": 13
+  },
+  "save_block_on_disk_before_save": false,
+  "save": {
+   "exit": 0,
+   "says": "Saved: AresHub is on the disk.",
+   "seconds": 0.22
+  },
+  "save_block_on_disk_after_saved": true,
+  "stop_block_on_disk_before_stop": false,
+  "stop": {
+   "exit": 0,
+   "says": "Stopped: the home was saved first; Minecraft closed.",
+   "seconds": 1.03
+  },
+  "ms_from_the_stop_blocks_answer_to_stop": 1,
+  "stop_record": {
+   "open": false,
+   "kind": "stop",
+   "phase": "ended",
+   "save": "saved",
+   "sigterm": true,
+   "close": "exited",
+   "status": 143
+  },
+  "java_exited": true,
+  "exit_status": 143,
+  "blocks_on_disk_after_exit": [
+   true,
+   true,
+   true
+  ],
+  "written_after_stop_began": {
+   "level.dat": true,
+   "player data": true
+  },
+  "server_stop_lines": [
+   "[04:44:47] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage (world): All chunks are saved",
+   "[04:44:47] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage (DIM-1): All chunks are saved",
+   "[04:44:47] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage (DIM1): All chunks are saved",
+   "[04:44:47] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage: All dimensions are saved"
+  ],
+  "stop_phases": [
+   "stop (stop) +0.01 s: begins for launch <id>",
+   "stop (stop) +0.11 s: the save is confirmed (saved): Saved: AresHub is on the disk.",
+   "stop (stop) +0.12 s: SIGTERM sent to Java",
+   "stop (stop) ended after 0.89 s: confirmed, close exited"
+  ],
+  "prism_started": false
+ },
+ "gradle_saw_exit_value": 143
+}

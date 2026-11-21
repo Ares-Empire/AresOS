@@ -1056,6 +1056,23 @@ class WindowTest(Base):
         self.assertEqual(self.helper_.foreground_app, 'terminal')
         self.assertEqual(self.helper_.journal.entries[shell.DESKTOP, 'o-2']['state'], 'closed')
 
+    def test_the_handoff_starts_when_the_next_window_is_activated_after_a_gap(self):
+        self.open('terminal', 'o-1')
+        self.window(2, 'aresos.terminal')
+        self.open('notepad', 'o-2')
+        self.window(3, 'org.kde.kwrite', activated=True)
+        self.windows.state(3, False)
+        self.windows.done(3)
+        self.helper_.windows_changed()
+        self.now[0] += shell.HANDOFF + 0.1
+
+        self.focus(2)
+        self.close(3)
+        self.assertEqual(self.activations, [1])
+        self.assertEqual(self.focus_events()[-1], ('foreground', 'app_closed', 'notepad'))
+        self.assertIsNone(self.helper_.foreground_app)
+        self.assertEqual(self.helper_.journal.entries[shell.DESKTOP, 'o-2']['state'], 'closed')
+
     def test_dialogs_count_as_their_apps_windows(self):
         self.open('notepad', 'o-1')
         self.window(2, 'org.kde.kwrite', activated=True)

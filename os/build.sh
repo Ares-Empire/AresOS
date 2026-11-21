@@ -534,6 +534,8 @@ done
 rm -f /etc/systemd/system/display-manager.service
 systemctl enable greetd.service getty@tty3.service
 systemctl enable aresos-console-keymap.service
+# Package 25: the shutdown guard, whose stop saves the Minecraft home before the session is torn down.
+systemctl enable aresos-guardian.service
 systemctl set-default graphical.target
 rm -f /usr/share/wayland-sessions/*.desktop /usr/share/xsessions/*.desktop
 

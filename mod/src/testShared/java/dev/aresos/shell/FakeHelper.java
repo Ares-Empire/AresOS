@@ -197,6 +197,8 @@ public final class FakeHelper implements AutoCloseable {
                     offered.add("views");
                     if (offerHome) offered.add("home_state");
                     offered.add("apps_running");
+                    // It plays a helper with window tracking: shell_focus and windows are offered too.
+                    offered.add("shell_search");
                 }
                 reply.add("capabilities", offered);
             }

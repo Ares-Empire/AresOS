@@ -1,0 +1,34 @@
+cargo-audit 0.23.0 (sha256 4f01c74ed84b2dffd0b1d37012a62cdf2a92c96e25bdf8eec7fcc0d4d3eb7811) in docker.io/library/rust@sha256:f6c4a35d21dbb3c89d7a8d056c193e94fc09037f2b58dd858b09c39a47dd02d7, no network
+advisory database https://github.com/RustSec/advisory-db at 7133866a6b44d6d3e1994ae6a48a296553c3c3da (2026-11-19T08:55:47Z)
+Cargo.lock sha256 b9dd0373d45eb01a6362c9e35cbc7a5a343d18ce992548d85ea1bcda363a61b0
+not checked: yanked crates (that needs the live crates.io index, which no pin can hold still)
+      Loaded 1550 security advisories (from advisory-db)
+    Scanning Cargo.lock for vulnerabilities (128 crate dependencies)
+Crate:     zbus_names
+Version:   4.3.4
+Warning:   unmaintained
+Title:     `zbus_names` is unmaintained
+Date:      2026-10-16
+ID:        RUSTSEC-2026-0371
+URL:       https://rustsec.org/advisories/RUSTSEC-2026-0371
+Solution:  No fixed upgrade is available!
+
+Crate:     zvariant
+Version:   5.13.1
+Warning:   unmaintained
+Title:     `zvariant` is unmaintained
+Date:      2026-10-16
+ID:        RUSTSEC-2026-0370
+URL:       https://rustsec.org/advisories/RUSTSEC-2026-0370
+Solution:  No fixed upgrade is available!
+
+Crate:     zvariant_derive
+Version:   5.13.1
+Warning:   unmaintained
+Title:     `zvariant_derive` is unmaintained
+Date:      2026-10-16
+ID:        RUSTSEC-2026-0372
+URL:       https://rustsec.org/advisories/RUSTSEC-2026-0372
+Solution:  No fixed upgrade is available!
+
+warning: 3 allowed warnings found

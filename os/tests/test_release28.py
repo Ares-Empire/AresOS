@@ -626,7 +626,9 @@ class ThemeAndRcXmlTest(unittest.TestCase):
 
     def test_the_rc_xml_changes_since_release_27_are_23s_23bs_31s_and_40s(self):
         old = subprocess.check_output(['git', '-C', str(ROOT), 'show', rd.PREVIOUS_SOURCE_28 + ':os/config/' + rd.RC_XML])
-        changes = rd.rc_xml_changes(old, (ROOT / 'os/config' / rd.RC_XML).read_bytes())
+        # Release 28's own rc.xml (its published source): main's later window rules ride the next release.
+        new = subprocess.check_output(['git', '-C', str(ROOT), 'show', PUBLISHED_SOURCE + ':os/config/' + rd.RC_XML])
+        changes = rd.rc_xml_changes(old, new)
         self.assertEqual([row.split(':')[0] for row in changes['removed']], ['keyboard', 'theme'])
         self.assertIn('<name>Default</name>', changes['removed'][1])
         added = changes['added']

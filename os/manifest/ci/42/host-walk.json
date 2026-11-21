@@ -213,11 +213,11 @@
       "path": "os/ci/verify_release.py"
     },
     {
-      "sha256": "8e13aa279047545915e430afa53ec8abde59e92db74b0b3451ef3cd3075ed148",
+      "sha256": "b9af8f7a4fe4a43db15f2d27b181ed442a9f86a90b47c0577a6183efb48117c4",
       "path": "os/ci/vm.py"
     },
     {
-      "sha256": "d3e764db23a1f60d7184718153f208f92d7e2173c75bacc863994fa1b291fe43",
+      "sha256": "d44e4d93daf623bd90b480b9a7a46b1bda9e3779a931a430afb6cb4cb3bee213",
       "path": "os/config/usr/libexec/aresos-desktop"
     },
     {

@@ -15,12 +15,21 @@ the hub is ready, or a message window has to be seen), or by itself after
 LIMIT seconds, so a cover nobody stopped can never outlive its purpose.
 
 A missing font never stops it: Pango falls back to the default sans.
+
+--black (package 25, board #379) is the black screen while a shutdown, logout
+or restart saves the home: plain black, no text and no pointer, one fullscreen
+window on every output (app-id aresos.black). Each window asks for its own
+output; labwc's rule for aresos.black only keeps it on top. It is a surface,
+never outputs switched off: labwc, the game and the save run on behind it. It
+ends as the cover does, on SIGTERM or by its limit (the supervisor gives it the
+stop's deadline and half a minute).
 """
 import argparse
 import signal
 import sys
 
 APP_ID = 'aresos.cover'
+BLACK_APP_ID = 'aresos.black'
 TITLE = 'AresOS'
 # The longest a cover stays up by itself (10 minutes).
 LIMIT = 600.0
@@ -39,6 +48,8 @@ AGAIN = 'Starting again…'
 def parse(argv=None):
     parser = argparse.ArgumentParser(prog='aresos-cover', description='AresOS startup cover (package 23b)')
     parser.add_argument('--again', action='store_true', help='say "Starting again…" (after the owner\'s retry)')
+    parser.add_argument('--black', action='store_true',
+                        help='plain black on every screen, no text (while a shutdown, logout or restart saves)')
     # Only for tests: a shorter limit. A limit outside (0, LIMIT] falls back to LIMIT.
     parser.add_argument('--limit', type=float, default=LIMIT, help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
@@ -105,6 +116,45 @@ def draw(cr, width, height, text, Pango, PangoCairo, cairo):
     PangoCairo.show_layout(cr, under)
 
 
+def quiet_window(Gtk, paint):
+    """One borderless window that only draws: no input, and no key or click closes it."""
+    window = Gtk.Window(title=TITLE, decorated=False)
+    area = Gtk.DrawingArea(can_focus=False, focusable=False)
+    area.set_draw_func(paint)
+    window.set_child(area)
+    # A key or click never closes it (Alt+F4 sends a close request): only SIGTERM or the limit end it.
+    window.connect('close-request', lambda _window: True)
+    return window
+
+
+def paint_black(_area, cr, _width, _height):
+    cr.set_source_rgb(0, 0, 0)
+    cr.paint()
+
+
+def black_out(Gtk, display):
+    """--black: one plain black fullscreen window on every output, also on one plugged in while it is up. Each
+    window asks for its own output itself: a rule's ToggleFullscreen would put them all on one. Returns the
+    windows by monitor."""
+    windows = {}
+    monitors = display.get_monitors()
+
+    def cover_outputs(*_):
+        present = [monitors.get_item(index) for index in range(monitors.get_n_items())]
+        for monitor in present:
+            if monitor not in windows:
+                window = windows[monitor] = quiet_window(Gtk, paint_black)
+                window.set_cursor_from_name('none')  # no pointer on a black screen
+                window.fullscreen_on_monitor(monitor)
+                window.present()
+        for monitor in [monitor for monitor in windows if monitor not in present]:
+            windows.pop(monitor).destroy()
+
+    monitors.connect('items-changed', cover_outputs)
+    cover_outputs()
+    return windows
+
+
 def main(argv=None):
     args = parse(argv)
     try:
@@ -114,7 +164,7 @@ def main(argv=None):
         print(f'aresos-cover: GTK 4 is not available ({error})', file=sys.stderr)
         return 1
     # Without a GApplication, GTK names the Wayland app-id after the program name.
-    GLib.set_prgname(APP_ID)
+    GLib.set_prgname(BLACK_APP_ID if args.black else APP_ID)
     GLib.set_application_name(TITLE)
     gi.require_version('Gdk', '4.0')
     from gi.repository import Gdk
@@ -135,18 +185,20 @@ def main(argv=None):
     except (ImportError, ValueError, AttributeError):
         GLib.unix_signal_add(GLib.PRIORITY_HIGH, signal.SIGTERM, stop)
     GLib.timeout_add(int(args.limit * 1000), stop)
-    text = line(args.again)
-    window = Gtk.Window(title=TITLE, decorated=False)
-    area = Gtk.DrawingArea(can_focus=False, focusable=False)
-    area.set_draw_func(lambda _area, cr, width, height: draw(cr, width, height, text, Pango, PangoCairo, cairo))
-    window.set_child(area)
-    # A key or click never closes it (Alt+F4 sends a close request): only SIGTERM or the limit end it.
-    window.connect('close-request', lambda _window: True)
-    # Fullscreen and always on top come from labwc's window rule for this app-id (rc.xml), one place for both: a
-    # fullscreen request of its own would be toggled off again by the rule's ToggleFullscreen on the first map.
-    window.present()
+    if args.black:
+        windows = black_out(Gtk, Gdk.Display.get_default())
+    else:
+        text = line(args.again)
+        window = quiet_window(Gtk, lambda _area, cr, width, height: draw(cr, width, height, text, Pango, PangoCairo,
+                                                                         cairo))
+        # Fullscreen and always on top come from labwc's window rule for this app-id (rc.xml), one place for both:
+        # a fullscreen request of its own would be toggled off again by the rule's ToggleFullscreen on the first
+        # map.
+        window.present()
+        windows = {None: window}
     loop.run()
-    window.destroy()
+    for window in windows.values():
+        window.destroy()
     return 0
 
 

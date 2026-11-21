@@ -1,0 +1,6 @@
+renderDistance:8
+simulationDistance:5
+fullscreen:false
+onboardAccessibility:false
+tutorialStep:none
+maxFps:120

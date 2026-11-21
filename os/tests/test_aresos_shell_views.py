@@ -1,11 +1,13 @@
 """Package 53a: authenticated views, home snapshots and two-screen window behavior."""
+from itertools import product
 import json
 import os
 import pathlib
 import unittest
 from unittest import mock
 
-from test_aresos_shell import ALL, Base, Conn, INSTANCE, NONCE, REGISTRY, ROOT, shell
+from test_aresos_shell import (ALL, Base, Conn, FakeCompositor, INSTANCE, NONCE, REGISTRY, ROOT, shell,
+                               wire_state, wire_toplevel)
 
 EXAMPLES = ROOT / 'mod/src/test/resources/shell-1.2'
 TOKEN = 'A' * 43
@@ -84,6 +86,25 @@ class ViewBase(Base):
 
 
 class AuthenticationTest(ViewBase):
+    def test_view_focus_requires_an_authenticated_view_and_a_boolean(self):
+        helper = self.start()
+        desktop, view = self.desktop(helper), self.view(helper)
+        self.assertEqual(self.call(helper, desktop, 'view_focus', focused=True)['error'], 'invalid_state')
+        for fields in ({}, {'focused': 1}, {'focused': 'true'}, {'focused': None}):
+            with self.subTest(fields=fields):
+                self.assertEqual(self.call(helper, view, 'view_focus', **fields)['error'], 'malformed')
+        self.assertFalse(view.focused)
+
+    def test_only_desktop_launches_cancel_a_pending_return(self):
+        helper = self.start(tracked=True)
+        desktop, view = self.desktop(helper), self.view(helper)
+        pending = (self.clock() + shell.HANDOFF, True, 7)
+        helper.discovered_closing[WEB.id] = pending
+        self.assertTrue(self.call(helper, view, 'open_app', app_id='notepad')['ok'])
+        self.assertEqual(helper.discovered_closing[WEB.id], pending)
+        self.assertTrue(self.call(helper, desktop, 'open_app', app_id='notepad')['ok'])
+        self.assertEqual(helper.discovered_closing[WEB.id], (pending[0], False, pending[2]))
+
     def test_view_leaves_desktop_connection_readiness_window_rules_and_returns_alone(self):
         status = mock.Mock()
         helper = self.start(tracked=True, status=status)
@@ -101,14 +122,17 @@ class AuthenticationTest(ViewBase):
         self.assertEqual(helper.window_minor, 1)
         self.assertFalse(helper.windows_pending)
         self.assertEqual(helper.discovered_closing, {WEB.id: (self.clock() + shell.HANDOFF, True, 7)})
-        status.assert_called_once_with(event='desktop_connected')
+        # The helper's own `windows` report at its start (package 25) and the desktop's connection: the view
+        # added no line.
+        self.assertEqual(status.call_args_list, [mock.call(event='windows', count=0, names=[]),
+                                                 mock.call(event='desktop_connected')])
         for op in ('world_ready', 'heartbeat', 'publish_home', 'request_power', 'future_op'):
             reply = self.call(helper, view, op, instance=INSTANCE, nonce=NONCE, ready=True,
                               world={'desktop': True, 'id': 'world'})
             self.assertEqual(reply['error'], 'invalid_state')
         self.assertIsNone(helper.world)
         self.assertIsNone(helper.last_heartbeat)
-        status.assert_called_once()
+        self.assertEqual(status.call_count, 2)
         replacement = self.desktop(helper, minor=2)
         self.assertFalse(view.closing)
         self.assertTrue(desktop.closing)
@@ -593,6 +617,178 @@ class WindowViewsTest(ViewBase):
                         self.assertEqual(desktop.events('shell_focus')[-1]['reason'], 'desktop_activated')
                         self.assertEqual(self.activations, [])
 
+    def test_laptop_home_does_not_cover_or_interfere_with_return(self):
+        helper = self.start(tracked=True)
+        self.desktop(helper)
+        self.view(helper)
+        windows = helper.windows
+        self.show(windows, 1, GAME, active=True, outputs=(1,))
+        helper.windows_changed()
+        self.show(windows, 2, 'aresos.laptop-home', maximized=True)  # compositor has not named the output yet
+        self.assertEqual(windows.covering(), [])
+        windows.output(2, 1, True)
+        windows.done(2)
+        self.assertEqual(windows.covering(known_screen=True), [])
+
+        windows.state(1, False)
+        windows.done(1)
+        self.show(windows, 3, NOTEPAD, active=True, outputs=(1,))
+        helper.windows_changed()
+        windows.gone(3)
+        windows.state(2, True, fullscreen=True)
+        windows.done(2)
+        helper.windows_changed()
+        self.assertEqual(self.activations, [1])
+        self.assertIsNone(windows.active())
+
+    def test_close_uses_reported_view_focus_even_when_deactivation_and_close_arrive_separately(self):
+        for app_id in (NOTEPAD, WEB.app_ids[0]):
+            for view_transition, delay, returns in (
+                    ('none', 0, True), ('none', 2, True),
+                    ('focused', 0, False), ('focused', 0.1, False), ('focused', 60, False),
+                    ('blurred', 2, True), ('disconnected', 2, True),
+                    ('replaced', 2, True), ('other toplevel', 0.1, True),
+                    ('other toplevel', 2, False), ('other toplevel in same batch', 0.1, True)):
+                for fallback in (False, True) if view_transition != 'none' else (False,):
+                    with self.subTest(app_id=app_id, transition=view_transition, delay=delay, fallback=fallback):
+                        self.activations.clear()
+                        helper = self.start(tracked=True)
+                        desktop, view = self.desktop(helper), self.view(helper)
+                        windows = helper.windows
+                        self.show(windows, 1, GAME, outputs=(1,))
+                        self.show(windows, 2, app_id, active=True, outputs=(1,))
+                        helper.windows_changed()
+
+                        if fallback or view_transition == 'none':
+                            windows.state(2, False)
+                            windows.done(2)
+                        if fallback:
+                            self.show(windows, 3, shell.LAPTOP_HOME_APP_ID, active=True, outputs=(2,))
+                        # labwc can leave a foreign toplevel activated when a layer takes keyboard focus.
+                        helper.windows_changed()
+                        if view_transition != 'none':
+                            self.assertTrue(self.call(helper, view, 'view_focus', focused=True)['ok'])
+                            self.assertEqual(helper.foreground_app, windows.toplevels[2].owner)
+                            if view_transition == 'blurred' or view_transition.startswith('other toplevel'):
+                                self.assertTrue(self.call(helper, view, 'view_focus', focused=False)['ok'])
+                            if view_transition == 'disconnected':
+                                helper.disconnected(view)
+                            if view_transition == 'replaced':
+                                self.view(helper)
+                                helper.disconnected(view)
+                            if view_transition.startswith('other toplevel'):
+                                windows.state(2, False)
+                                windows.done(2)
+                                self.show(windows, 4, TERMINAL, active=True, outputs=(1,))
+                                if view_transition == 'other toplevel':
+                                    helper.windows_changed()
+
+                        self.now[0] += delay
+                        windows.gone(2)
+                        helper.windows_changed()
+                        self.now[0] += shell.HANDOFF + 0.01
+                        helper.tick()
+                        if view_transition == 'focused':
+                            self.assertIsNone(helper.foreground_app)
+                            self.assertIsNone(helper.handoff)
+                            self.assertTrue(self.call(helper, view, 'view_focus', focused=False)['ok'])
+                            helper.tick()
+                        self.assertEqual(self.activations, [1] if returns else [])
+                        reasons = [event['reason'] for event in desktop.events('shell_focus')]
+                        self.assertEqual(reasons, ['app_activated', 'app_closed'] if returns else ['app_activated'])
+
+    def test_close_and_next_activation_across_reads_use_the_latest_view_focus(self):
+        world, editor, terminal = 0xff000001, 0xff000002, 0xff000003
+        deactivate = wire_state(editor, False)
+        activate = wire_state(terminal, True)
+        close = FakeCompositor.message(editor, 6)
+        reads = ((deactivate + activate + close,),
+                 (deactivate, activate + close),
+                 (deactivate + activate, close),
+                 (deactivate, activate, close))
+        # 1.0 tracks only registry apps. Later desktops also return from discovered apps after their grace.
+        cases = ((0, NOTEPAD), (1, NOTEPAD), (2, NOTEPAD), (1, WEB.app_ids[0]), (2, WEB.app_ids[0]))
+        view_states = ('absent', 'blurred', 'disconnected', 'focused')
+        for (minor, app_id), view_state, chunks in product(cases, view_states, reads):
+            with self.subTest(minor=minor, app=app_id, view=view_state, reads=tuple(map(len, chunks))):
+                self.activations.clear()
+                helper = self.start(tracked=True)
+                desktop = self.desktop(helper, minor)
+                # A stand-in socket that takes every request whole: 53d's queued writes read send()'s byte count.
+                sock = mock.Mock()
+                sock.send.side_effect = len
+                wayland = shell.ForeignToplevels(sock, helper.windows)
+                wayland.kinds[50] = 'manager'
+                wayland.feed(wire_toplevel(world, GAME, False) + wire_toplevel(terminal, TERMINAL, False)
+                             + wire_toplevel(editor, app_id, True))
+                helper.windows_changed()
+                if view_state != 'absent':
+                    view = self.view(helper)
+                    self.assertTrue(self.call(helper, view, 'view_focus', focused=True)['ok'])
+                    if view_state == 'blurred':
+                        self.assertTrue(self.call(helper, view, 'view_focus', focused=False)['ok'])
+                    elif view_state == 'disconnected':
+                        helper.disconnected(view)
+
+                for chunk in chunks:
+                    self.now[0] += 0.01
+                    wayland.feed(chunk)
+                    helper.windows_changed()
+                self.now[0] += shell.HANDOFF + 0.01
+                helper.tick()
+                returns = view_state != 'focused'
+                self.assertEqual(self.activations, [world] if returns else [])
+                app = 'notepad' if app_id == NOTEPAD else WEB.id
+                events = [(e['focus'], e['reason'], e['app_id']) for e in desktop.events('shell_focus')]
+                expected = [('background', 'app_activated', app)]
+                if returns:
+                    expected.append(('foreground', 'app_closed', app))
+                self.assertEqual(events, expected)
+
+    def test_discovered_close_checks_all_views_when_the_handoff_ends(self):
+        for keep_focus in (False, True):
+            with self.subTest(keep_focus=keep_focus):
+                self.activations.clear()
+                helper = self.start(tracked=True)
+                desktop = self.desktop(helper)
+                home, other = self.view(helper), self.view(helper, 'other')
+                self.show(helper.windows, 1, GAME)
+                self.show(helper.windows, 2, WEB.app_ids[0], active=True)
+                helper.windows_changed()
+                helper.windows.gone(2)
+                helper.windows_changed()
+                self.assertTrue(helper.discovered_closing[WEB.id][1])
+
+                for view in (home, other):
+                    self.assertTrue(self.call(helper, view, 'view_focus', focused=True)['ok'])
+                self.assertTrue(self.call(helper, home, 'view_focus', focused=False)['ok'])
+                if not keep_focus:
+                    helper.disconnected(other)
+                self.now[0] += shell.HANDOFF + 0.01
+                with mock.patch.object(shell.LOG, 'debug') as debug:
+                    helper.tick()
+                    if keep_focus:
+                        self.assertTrue(self.call(helper, other, 'view_focus', focused=False)['ok'])
+                    helper.tick()
+                    if keep_focus:
+                        debug.assert_called_once()
+                        self.assertIn(WEB.id, debug.call_args.args)
+                    else:
+                        debug.assert_not_called()
+                self.assertFalse(helper.discovered_closing)
+                self.assertIsNone(helper.foreground_app)
+                self.assertIsNone(helper.handoff)
+                self.assertEqual(self.activations, [] if keep_focus else [1])
+                reasons = [e['reason'] for e in desktop.events('shell_focus')]
+                self.assertEqual(reasons, ['app_activated'] if keep_focus else ['app_activated', 'app_closed'])
+
+    def test_laptop_home_is_not_an_unknown_app(self):
+        helper = self.start(tracked=True)
+        self.show(helper.windows, 1, 'aresos.laptop-home')
+        self.show(helper.windows, 2, 'aresos.cover')
+        self.show(helper.windows, 3, 'unknown-app')
+        self.assertEqual([t.handle for t in helper.unowned_windows()], [2, 3])
+
     def test_focus_uses_last_window_closed_in_a_batch(self):
         helper = self.start(tracked=True)
         desktop = self.desktop(helper)
@@ -628,6 +824,8 @@ class ContractExamplesTest(ViewBase):
         helper.connected(view)
         request(view, 'view-hello')
         self.assertEqual(view.events(), [fixture('apps-running-empty-event')])
+        request(view, 'view-focus-in')
+        request(view, 'view-focus-out')
         for refusal in ('wrong-token', 'wrong-instance', 'both-secrets', 'no-role', 'bad-name'):
             peer = Conn()
             helper.connected(peer)
@@ -657,6 +855,21 @@ class ContractExamplesTest(ViewBase):
         helper.windows_changed()
         helper.tick()
         self.assertEqual(view.events('apps_running')[-1], fixture('apps-running-event'))
+
+        # Package 53d: Super's search over the world and open_app's screen hint.
+        helper = self.start(tracked=True)
+        desktop = Conn()
+        helper.connected(desktop)
+        request(desktop, 'desktop-hello')
+        self.show(helper.windows, 1, GAME, active=True, outputs=(1,))
+        helper.windows_changed()
+        self.assertTrue(self.call(helper, desktop, 'world_ready', instance=INSTANCE, nonce=NONCE,
+                                  world={'desktop': True, 'id': 'world'})['ok'])
+        helper.search()
+        self.assertEqual(desktop.events(), [fixture('shell-search-event')])
+        with mock.patch.object(shell.secrets, 'token_hex', return_value='0123456789abcdef'):
+            request(desktop, 'open-app-world')
+        request(desktop, 'open-app-bad-screen')
         self.assertEqual(read, {path.name for path in EXAMPLES.glob('*.json')})
 
 

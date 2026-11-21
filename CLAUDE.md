@@ -82,6 +82,8 @@ I only build things myself when writing the brief would cost more than doing it 
 
 Plain language, outcome first. Explain technical things through what they'll see in the game. Bring decisions with a recommendation, not a menu.
 
+**In anything committed, write `the owner`, never his name** (handoffs, briefs, reviews, commit messages): the repo is public (owner, board T433, 2026-11-20). His machine username is already covered by `AGENTS.md` rule 6.
+
 ## Codex models
 
 Pick the model for each job by what does that job best, never by habit or a fixed default. This is the owner's rule for all projects ("Codex models: pick per task" in the global `~/.claude/CLAUDE.md`, 2026-11-07). Names change, so check the list before the first launch of a session:

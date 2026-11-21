@@ -1,0 +1,492 @@
+# Package 316, step 1: the unchanged upstream tree builds in the pinned container (2026-11-19).
+# Source: the tree of commit 009b840c (upstream 49f82a63ca53b0137ad4eea08f4cd9d72642a22b, nothing changed).
+# Command, run in the worktree:
+#   git archive 009b840c:os/input-portal | podman run --rm -i --cgroups=disabled --timeout 3000 -e CARGO_BUILD_JOBS=4 \
+#     docker.io/library/rust@sha256:f6c4a35d21dbb3c89d7a8d056c193e94fc09037f2b58dd858b09c39a47dd02d7 bash -c "$(cat inner.sh)"
+# inner.sh (the same steps as os/input-portal/build.sh at 1db141b3, with upstream's binary name):
+#   set -euo pipefail
+#   mkdir /src
+#   tar -xf - -C /src --no-same-owner
+#   rustc -vV | sed -n 's/^\(release\|commit-hash\): /rustc \1 /p'
+#   d=$(mktemp -d)
+#   cat > "$d/snapshot.sources" <<EOS
+#   Types: deb
+#   URIs: https://snapshot.debian.org/archive/debian/20261104T212339Z
+#   Suites: trixie
+#   Components: main
+#   Signed-By: /usr/share/keyrings/debian-archive-keyring.pgp
+#   Check-Valid-Until: no
+#   EOS
+#   apt_options=(-o Dir::Etc::sourcelist=/dev/null -o "Dir::Etc::sourceparts=$d" -o APT::Install-Recommends=false -o Acquire::Retries=3 -q)
+#   export DEBIAN_FRONTEND=noninteractive
+#   apt-get "${apt_options[@]}" update
+#   apt-get "${apt_options[@]}" install -y libxkbcommon-dev=1.7.0-2 pkgconf=1.8.1-4
+#   export CARGO_TARGET_DIR=/tmp/target
+#   echo "== cargo fetch --locked"
+#   cargo fetch --locked --manifest-path /src/Cargo.toml
+#   echo "== cargo build --release --locked --offline"
+#   cargo build --release --locked --offline --manifest-path /src/Cargo.toml
+#   echo "== cargo test --locked --offline"
+#   cargo test --locked --offline --manifest-path /src/Cargo.toml
+#   echo "== built"
+#   sha256sum /tmp/target/release/niri-input-portal
+#   readelf -d /tmp/target/release/niri-input-portal | sed -n 's/.*(NEEDED).*\[\(.*\)\]/needs \1/p'
+#   (cd /src && find . -type f -newer /src/Cargo.toml -print | head -5; echo "source dir files: $(find . -type f | wc -l)")
+# Output (exit 0):
+rustc commit-hash 58cf8f9c35b355199727627d07ae34a4e2846d67
+rustc release 1.99.1
+Get:1 https://snapshot.debian.org/archive/debian/20261104T212339Z trixie InRelease [140 kB]
+Get:2 https://snapshot.debian.org/archive/debian/20261104T212339Z trixie/main amd64 Packages [9678 kB]
+Fetched 9819 kB in 2s (4932 kB/s)
+Reading package lists...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+The following additional packages will be installed:
+  libpkgconf3 libxkbcommon0 pkgconf-bin xkb-data
+The following NEW packages will be installed:
+  libpkgconf3 libxkbcommon-dev libxkbcommon0 pkgconf pkgconf-bin xkb-data
+0 upgraded, 6 newly installed, 0 to remove and 0 not upgraded.
+Need to get 1049 kB of archives.
+After this operation, 8022 kB of additional disk space will be used.
+Get:1 https://snapshot.debian.org/archive/debian/20261104T212339Z trixie/main amd64 libpkgconf3 amd64 1.8.1-4 [36.4 kB]
+Get:2 https://snapshot.debian.org/archive/debian/20261104T212339Z trixie/main amd64 xkb-data all 2.42-1 [790 kB]
+Get:3 https://snapshot.debian.org/archive/debian/20261104T212339Z trixie/main amd64 libxkbcommon0 amd64 1.7.0-2 [113 kB]
+Get:4 https://snapshot.debian.org/archive/debian/20261104T212339Z trixie/main amd64 libxkbcommon-dev amd64 1.7.0-2 [53.6 kB]
+Get:5 https://snapshot.debian.org/archive/debian/20261104T212339Z trixie/main amd64 pkgconf-bin amd64 1.8.1-4 [30.2 kB]
+Get:6 https://snapshot.debian.org/archive/debian/20261104T212339Z trixie/main amd64 pkgconf amd64 1.8.1-4 [26.2 kB]
+Fetched 1049 kB in 0s (3182 kB/s)
+Selecting previously unselected package libpkgconf3:amd64.
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 9609 files and directories currently installed.)
+Preparing to unpack .../0-libpkgconf3_1.8.1-4_amd64.deb ...
+Unpacking libpkgconf3:amd64 (1.8.1-4) ...
+Selecting previously unselected package xkb-data.
+Preparing to unpack .../1-xkb-data_2.42-1_all.deb ...
+Unpacking xkb-data (2.42-1) ...
+Selecting previously unselected package libxkbcommon0:amd64.
+Preparing to unpack .../2-libxkbcommon0_1.7.0-2_amd64.deb ...
+Unpacking libxkbcommon0:amd64 (1.7.0-2) ...
+Selecting previously unselected package libxkbcommon-dev:amd64.
+Preparing to unpack .../3-libxkbcommon-dev_1.7.0-2_amd64.deb ...
+Unpacking libxkbcommon-dev:amd64 (1.7.0-2) ...
+Selecting previously unselected package pkgconf-bin.
+Preparing to unpack .../4-pkgconf-bin_1.8.1-4_amd64.deb ...
+Unpacking pkgconf-bin (1.8.1-4) ...
+Selecting previously unselected package pkgconf:amd64.
+Preparing to unpack .../5-pkgconf_1.8.1-4_amd64.deb ...
+Unpacking pkgconf:amd64 (1.8.1-4) ...
+Setting up xkb-data (2.42-1) ...
+Setting up libpkgconf3:amd64 (1.8.1-4) ...
+Setting up pkgconf-bin (1.8.1-4) ...
+Setting up libxkbcommon0:amd64 (1.7.0-2) ...
+Setting up libxkbcommon-dev:amd64 (1.7.0-2) ...
+Setting up pkgconf:amd64 (1.8.1-4) ...
+Processing triggers for libc-bin (2.41-12+deb13u4) ...
+== cargo fetch --locked
+    Updating crates.io index
+ Downloading crates ...
+  Downloaded nu-ansi-term v0.50.3
+  Downloaded parking v2.2.1
+  Downloaded wasm-bindgen-shared v0.2.126
+  Downloaded enumflags2_derive v0.7.12
+  Downloaded futures-io v0.3.33
+  Downloaded zvariant_derive v5.13.1
+  Downloaded downcast-rs v1.2.1
+  Downloaded signal-hook-registry v1.4.8
+  Downloaded wayland-protocols v0.32.13
+  Downloaded wayland-csd-frame v0.3.0
+  Downloaded cursor-icon v1.2.0
+  Downloaded wayland-cursor v0.31.14
+  Downloaded calloop-wayland-source v0.4.1
+  Downloaded fastrand v2.5.0
+  Downloaded once_cell v1.21.4
+  Downloaded serde_repr v0.1.21
+  Downloaded memoffset v0.9.1
+  Downloaded matchers v0.2.0
+  Downloaded xcursor v0.3.10
+  Downloaded wayland-protocols-misc v0.3.12
+  Downloaded itoa v1.0.18
+  Downloaded pin-project-lite v0.2.17
+  Downloaded shlex v2.0.1
+  Downloaded thiserror-impl v2.0.19
+  Downloaded hermit-abi v0.5.2
+  Downloaded proc-macro-crate v3.5.0
+  Downloaded zmij v1.0.23
+  Downloaded wayland-protocols-experimental v20251230.0.3
+  Downloaded tokio-macros v2.7.1
+  Downloaded windows-link v0.2.1
+  Downloaded wayland-sys v0.31.11
+  Downloaded wayland-protocols-wlr v0.3.12
+  Downloaded thiserror v2.0.19
+  Downloaded hex v0.4.3
+  Downloaded memmap2 v0.9.11
+  Downloaded zvariant v5.13.1
+  Downloaded bytemuck_derive v1.11.0
+  Downloaded anyhow v1.0.104
+  Downloaded endi v1.1.1
+  Downloaded bytemuck v1.25.2
+  Downloaded xkbcommon v0.8.0
+  Downloaded errno v0.3.14
+  Downloaded valuable v0.1.1
+  Downloaded polling v3.11.0
+  Downloaded crossbeam-utils v0.8.22
+  Downloaded calloop v0.14.4
+  Downloaded thread_local v1.1.10
+  Downloaded lazy_static v1.5.0
+  Downloaded xkeysym v0.2.1
+  Downloaded reis v0.7.0
+  Downloaded cfg-if v1.0.4
+  Downloaded futures-task v0.3.33
+  Downloaded futures-macro v0.3.33
+  Downloaded event-listener-strategy v0.5.4
+  Downloaded smithay-client-toolkit v0.21.1
+  Downloaded futures-core v0.3.33
+  Downloaded serde_json v1.0.151
+  Downloaded async-recursion v1.1.1
+  Downloaded equivalent v1.0.2
+  Downloaded wasm-bindgen-macro v0.2.126
+  Downloaded getrandom v0.4.3
+  Downloaded quote v1.0.47
+  Downloaded autocfg v1.5.1
+  Downloaded zvariant_utils v3.5.0
+  Downloaded ordered-stream v0.2.0
+  Downloaded wasi v0.11.1+wasi-snapshot-preview1
+  Downloaded concurrent-queue v2.5.0
+  Downloaded slab v0.4.12
+  Downloaded toml_datetime v1.1.1+spec-1.1.0
+  Downloaded async-broadcast v0.7.2
+  Downloaded uds_windows v1.2.1
+  Downloaded zbus_names v4.3.4
+  Downloaded enumflags2 v0.7.12
+  Downloaded bytes v1.12.1
+  Downloaded futures-lite v2.6.1
+  Downloaded pkg-config v0.3.33
+  Downloaded log v0.4.33
+  Downloaded serde_core v1.0.229
+  Downloaded bitflags v2.13.1
+  Downloaded tracing-core v0.1.36
+  Downloaded proc-macro2 v1.0.107
+  Downloaded wayland-scanner v0.31.11
+  Downloaded tempfile v3.27.0
+  Downloaded rustversion v1.0.23
+  Downloaded find-msvc-tools v0.1.9
+  Downloaded async-trait v0.1.91
+  Downloaded tracing-log v0.2.0
+  Downloaded event-listener v5.4.1
+  Downloaded smallvec v1.15.2
+  Downloaded toml_parser v1.1.2+spec-1.1.0
+  Downloaded socket2 v0.6.5
+  Downloaded tracing-attributes v0.1.31
+  Downloaded zbus_macros v5.18.0
+  Downloaded uuid v1.24.0
+  Downloaded bumpalo v3.20.3
+  Downloaded unicode-ident v1.0.24
+  Downloaded serde_derive v1.0.229
+  Downloaded wayland-client v0.31.15
+  Downloaded toml_edit v0.25.13+spec-1.1.0
+  Downloaded sharded-slab v0.1.7
+  Downloaded wayland-backend v0.3.16
+  Downloaded wasm-bindgen v0.2.126
+  Downloaded serde v1.0.229
+  Downloaded wasm-bindgen-macro-support v0.2.126
+  Downloaded r-efi v6.0.0
+  Downloaded cc v1.4.0
+  Downloaded memchr v2.8.3
+  Downloaded indexmap v2.14.0
+  Downloaded mio v1.2.2
+  Downloaded js-sys v0.3.103
+  Downloaded hashbrown v0.17.1
+  Downloaded winnow v1.0.4
+  Downloaded zbus v5.18.0
+  Downloaded aho-corasick v1.1.4
+  Downloaded futures-util v0.3.33
+  Downloaded tracing-subscriber v0.3.23
+  Downloaded syn v2.0.119
+  Downloaded quick-xml v0.41.0
+  Downloaded syn v3.0.3
+  Downloaded regex-syntax v0.8.11
+  Downloaded rustix v1.1.4
+  Downloaded tracing v0.1.44
+  Downloaded regex-automata v0.4.16
+  Downloaded libc v0.2.189
+  Downloaded tokio v1.53.1
+  Downloaded windows-sys v0.61.2
+  Downloaded linux-raw-sys v0.12.1
+== cargo build --release --locked --offline
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.24
+   Compiling serde_core v1.0.229
+   Compiling serde v1.0.229
+   Compiling rustix v1.1.4
+   Compiling pkg-config v0.3.33
+   Compiling linux-raw-sys v0.12.1
+   Compiling bitflags v2.13.1
+   Compiling pin-project-lite v0.2.17
+   Compiling find-msvc-tools v0.1.9
+   Compiling shlex v2.0.1
+   Compiling syn v2.0.119
+   Compiling syn v3.0.3
+   Compiling cc v1.4.0
+   Compiling wayland-sys v0.31.11
+   Compiling libc v0.2.189
+   Compiling wayland-backend v0.3.16
+   Compiling winnow v1.0.4
+   Compiling smallvec v1.15.2
+   Compiling serde_derive v1.0.229
+   Compiling memchr v2.8.3
+   Compiling hashbrown v0.17.1
+   Compiling equivalent v1.0.2
+   Compiling downcast-rs v1.2.1
+   Compiling indexmap v2.14.0
+   Compiling quick-xml v0.41.0
+   Compiling enumflags2_derive v0.7.12
+   Compiling toml_parser v1.1.2+spec-1.1.0
+   Compiling toml_datetime v1.1.1+spec-1.1.0
+   Compiling wayland-client v0.31.15
+   Compiling wayland-scanner v0.31.11
+   Compiling toml_edit v0.25.13+spec-1.1.0
+   Compiling log v0.4.33
+   Compiling once_cell v1.21.4
+   Compiling tracing-core v0.1.36
+   Compiling proc-macro-crate v3.5.0
+   Compiling zvariant_utils v3.5.0
+   Compiling crossbeam-utils v0.8.22
+   Compiling zvariant_derive v5.13.1
+   Compiling tracing-attributes v0.1.31
+   Compiling futures-core v0.3.33
+   Compiling cfg-if v1.0.4
+   Compiling tracing v0.1.44
+   Compiling slab v0.4.12
+   Compiling parking v2.2.1
+   Compiling concurrent-queue v2.5.0
+   Compiling wayland-protocols v0.32.13
+   Compiling enumflags2 v0.7.12
+   Compiling errno v0.3.14
+   Compiling bytemuck_derive v1.11.0
+   Compiling endi v1.1.1
+   Compiling zvariant v5.13.1
+   Compiling bytemuck v1.25.2
+   Compiling signal-hook-registry v1.4.8
+   Compiling event-listener v5.4.1
+   Compiling polling v3.11.0
+   Compiling mio v1.2.2
+   Compiling socket2 v0.6.5
+   Compiling tokio-macros v2.7.1
+   Compiling regex-syntax v0.8.11
+   Compiling bytes v1.12.1
+   Compiling thiserror v2.0.19
+   Compiling zmij v1.0.23
+   Compiling regex-automata v0.4.16
+   Compiling tokio v1.53.1
+   Compiling calloop v0.14.4
+   Compiling event-listener-strategy v0.5.4
+   Compiling xkeysym v0.2.1
+   Compiling zbus_names v4.3.4
+   Compiling memmap2 v0.9.11
+   Compiling futures-macro v0.3.33
+   Compiling thiserror-impl v2.0.19
+   Compiling smithay-client-toolkit v0.21.1
+   Compiling fastrand v2.5.0
+   Compiling cursor-icon v1.2.0
+   Compiling serde_json v1.0.151
+   Compiling xcursor v0.3.10
+   Compiling futures-task v0.3.33
+   Compiling futures-io v0.3.33
+   Compiling lazy_static v1.5.0
+   Compiling anyhow v1.0.104
+   Compiling sharded-slab v0.1.7
+   Compiling futures-lite v2.6.1
+   Compiling futures-util v0.3.33
+   Compiling wayland-cursor v0.31.14
+   Compiling wayland-csd-frame v0.3.0
+   Compiling xkbcommon v0.8.0
+   Compiling zbus_macros v5.18.0
+   Compiling async-broadcast v0.7.2
+   Compiling calloop-wayland-source v0.4.1
+   Compiling matchers v0.2.0
+   Compiling wayland-protocols-experimental v20251230.0.3
+   Compiling wayland-protocols-wlr v0.3.12
+   Compiling wayland-protocols-misc v0.3.12
+   Compiling thread_local v1.1.10
+   Compiling ordered-stream v0.2.0
+   Compiling tracing-log v0.2.0
+   Compiling uuid v1.24.0
+   Compiling async-recursion v1.1.1
+   Compiling serde_repr v0.1.21
+   Compiling async-trait v0.1.91
+   Compiling itoa v1.0.18
+   Compiling nu-ansi-term v0.50.3
+   Compiling hex v0.4.3
+   Compiling zbus v5.18.0
+   Compiling tracing-subscriber v0.3.23
+   Compiling reis v0.7.0
+   Compiling niri-input-portal v0.1.0 (/src)
+warning: field `app_id` is never read
+   --> src/portal.rs:111:9
+    |
+109 | pub struct Session {
+    |            ------- field in this struct
+110 |     pub handle: OwnedObjectPath,
+111 |     pub app_id: String,
+    |         ^^^^^^
+    |
+    = note: `Session` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `niri-input-portal` (bin "niri-input-portal") generated 1 warning
+    Finished `release` profile [optimized] target(s) in 43.85s
+== cargo test --locked --offline
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.24
+   Compiling rustix v1.1.4
+   Compiling serde_core v1.0.229
+   Compiling bitflags v2.13.1
+   Compiling pkg-config v0.3.33
+   Compiling linux-raw-sys v0.12.1
+   Compiling syn v2.0.119
+   Compiling syn v3.0.3
+   Compiling pin-project-lite v0.2.17
+   Compiling serde v1.0.229
+   Compiling find-msvc-tools v0.1.9
+   Compiling shlex v2.0.1
+   Compiling cc v1.4.0
+   Compiling wayland-sys v0.31.11
+   Compiling libc v0.2.189
+   Compiling winnow v1.0.4
+   Compiling serde_derive v1.0.229
+   Compiling wayland-backend v0.3.16
+   Compiling smallvec v1.15.2
+   Compiling memchr v2.8.3
+   Compiling downcast-rs v1.2.1
+   Compiling hashbrown v0.17.1
+   Compiling equivalent v1.0.2
+   Compiling indexmap v2.14.0
+   Compiling quick-xml v0.41.0
+   Compiling toml_parser v1.1.2+spec-1.1.0
+   Compiling toml_datetime v1.1.1+spec-1.1.0
+   Compiling wayland-client v0.31.15
+   Compiling toml_edit v0.25.13+spec-1.1.0
+   Compiling wayland-scanner v0.31.11
+   Compiling enumflags2_derive v0.7.12
+   Compiling once_cell v1.21.4
+   Compiling log v0.4.33
+   Compiling enumflags2 v0.7.12
+   Compiling proc-macro-crate v3.5.0
+   Compiling tracing-core v0.1.36
+   Compiling zvariant_utils v3.5.0
+   Compiling crossbeam-utils v0.8.22
+   Compiling tracing-attributes v0.1.31
+   Compiling endi v1.1.1
+   Compiling futures-core v0.3.33
+   Compiling cfg-if v1.0.4
+   Compiling zvariant_derive v5.13.1
+   Compiling slab v0.4.12
+   Compiling parking v2.2.1
+   Compiling concurrent-queue v2.5.0
+   Compiling errno v0.3.14
+   Compiling bytemuck_derive v1.11.0
+   Compiling tracing v0.1.44
+   Compiling zvariant v5.13.1
+   Compiling wayland-protocols v0.32.13
+   Compiling bytemuck v1.25.2
+   Compiling signal-hook-registry v1.4.8
+   Compiling event-listener v5.4.1
+   Compiling polling v3.11.0
+   Compiling mio v1.2.2
+   Compiling socket2 v0.6.5
+   Compiling tokio-macros v2.7.1
+   Compiling regex-syntax v0.8.11
+   Compiling bytes v1.12.1
+   Compiling zmij v1.0.23
+   Compiling thiserror v2.0.19
+   Compiling regex-automata v0.4.16
+   Compiling tokio v1.53.1
+   Compiling zbus_names v4.3.4
+   Compiling calloop v0.14.4
+   Compiling event-listener-strategy v0.5.4
+   Compiling xkeysym v0.2.1
+   Compiling memmap2 v0.9.11
+   Compiling futures-macro v0.3.33
+   Compiling thiserror-impl v2.0.19
+   Compiling smithay-client-toolkit v0.21.1
+   Compiling cursor-icon v1.2.0
+   Compiling futures-io v0.3.33
+   Compiling xcursor v0.3.10
+   Compiling anyhow v1.0.104
+   Compiling fastrand v2.5.0
+   Compiling serde_json v1.0.151
+   Compiling futures-task v0.3.33
+   Compiling lazy_static v1.5.0
+   Compiling sharded-slab v0.1.7
+   Compiling futures-util v0.3.33
+   Compiling futures-lite v2.6.1
+   Compiling wayland-cursor v0.31.14
+   Compiling wayland-csd-frame v0.3.0
+   Compiling xkbcommon v0.8.0
+   Compiling zbus_macros v5.18.0
+   Compiling calloop-wayland-source v0.4.1
+   Compiling async-broadcast v0.7.2
+   Compiling matchers v0.2.0
+   Compiling wayland-protocols-misc v0.3.12
+   Compiling wayland-protocols-experimental v20251230.0.3
+   Compiling wayland-protocols-wlr v0.3.12
+   Compiling thread_local v1.1.10
+   Compiling ordered-stream v0.2.0
+   Compiling tracing-log v0.2.0
+   Compiling async-recursion v1.1.1
+   Compiling serde_repr v0.1.21
+   Compiling async-trait v0.1.91
+   Compiling uuid v1.24.0
+   Compiling hex v0.4.3
+   Compiling itoa v1.0.18
+   Compiling nu-ansi-term v0.50.3
+   Compiling tracing-subscriber v0.3.23
+   Compiling zbus v5.18.0
+   Compiling reis v0.7.0
+   Compiling niri-input-portal v0.1.0 (/src)
+warning: field `app_id` is never read
+   --> src/portal.rs:111:9
+    |
+109 | pub struct Session {
+    |            ------- field in this struct
+110 |     pub handle: OwnedObjectPath,
+111 |     pub app_id: String,
+    |         ^^^^^^
+    |
+    = note: `Session` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `niri-input-portal` (bin "niri-input-portal" test) generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 21.59s
+     Running unittests src/main.rs (tmp/target/debug/deps/niri_input_portal-64bfd80abfa6f750)
+
+running 16 tests
+test portal::region_tests::empty_degenerate_and_overflow ... ok
+test portal::region_tests::recomputation_after_hotplug ... ok
+test portal::tests::parked_transfers_are_capped ... ok
+test portal::region_tests::mixed_resolution_scale_and_portrait_logical_sizes ... ok
+test portal::region_tests::negative_horizontal_and_vertical ... ok
+test portal::tests::taking_a_transfer_removes_it_once ... ok
+test portal::region_tests::translation_overlap_and_gaps ... ok
+test portal::tests::serials_never_reuse_zero ... ok
+test portal::tests::the_oldest_transfer_is_the_one_dropped ... ok
+test wayland::tests::clips_a_barrier_that_overhangs_the_output ... ok
+test wayland::tests::input_strip_hugs_the_outer_edge_only ... ok
+test wayland::tests::places_a_full_height_right_edge_barrier ... ok
+test wayland::tests::places_a_left_edge_barrier_on_the_offset_output ... ok
+test wayland::tests::rejects_a_barrier_that_is_not_on_any_edge ... ok
+test wayland::tests::release_hint_is_clamped_to_the_surface ... ok
+test wayland::tests::release_hint_lands_inside_the_screen_clear_of_the_strip ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+== built
+1b4692b3690447d387d60355e36329af795ef05177b06e151ea1789fdbcb7a4a  /tmp/target/release/niri-input-portal
+needs libxkbcommon.so.0
+needs libgcc_s.so.1
+needs libm.so.6
+needs libc.so.6
+needs ld-linux-x86-64.so.2
+source dir files: 17

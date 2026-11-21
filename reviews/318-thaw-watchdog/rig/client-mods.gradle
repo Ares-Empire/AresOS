@@ -1,0 +1,9 @@
+// Development aid only: exercise the complete product suite with the pinned optional mod.
+gradle.allprojects { project ->
+    project.tasks.withType(JavaExec).configureEach { task ->
+        if (task.name == 'runClientGameTest') {
+            def mods = System.getenv('PKG49_TEST_MODS')
+            if (mods) task.jvmArgs('-Dfabric.addMods=' + mods)
+        }
+    }
+}

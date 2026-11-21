@@ -1,0 +1,19 @@
+{
+ "monotonic_ns": 470302624080825,
+ "pid": 3765045,
+ "frozen": true,
+ "results": [
+  {
+   "tid": 3765343,
+   "command": "/usr/bin/chrt --reset-on-fork --other --pid 0 3765343",
+   "exit": 0,
+   "stderr": "",
+   "before": "SCHED_RR",
+   "before_reset_on_fork": true,
+   "after": "SCHED_OTHER",
+   "after_reset_on_fork": true
+  }
+ ],
+ "end_monotonic_ns": 470302625112767,
+ "realtime_after": []
+}

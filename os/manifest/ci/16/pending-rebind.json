@@ -3,10 +3,20 @@
   "walk": "os/manifest/ci/42/source-bindings.json",
   "decision": "Integrator, 2026-11-13 (briefs/27b-pending-rebind.md): bound files may change again after package 27's rehearsal; each records its new checkout bytes here until the next VM rehearsal rebinds it. Since package 22d's steps 1 and 2 (integrator, 2026-11-15) tool, guide and workflow files wait here too, besides test files: 22d's own VM rehearsal (brief 22d, step 6) rebinds them; no image file waits. Package 22c's review 8, finding 3 (22d's step 7b): while a row of docs/INSTALL-STATUS.md says VM REHEARSAL PASSED; NOT ON THE LAPTOP, nothing under os/owner-tools/, os/release/ or docs/ may wait: what the laptop gets (the tools, the release scripts, the guides). A harness, workflow or test file changes how a rehearsal runs, not what the laptop gets, and may wait for the next rehearsal (integrator, 2026-11-15, after step 7b: commit 7ef03022). test_checkout_sources refuses a waiting file under those three folders, and refuses tools other than the newest rehearsal's.",
   "changes": [
-    "42 record: rehearsal 8 (44836654799) qualified a61a393c; INSTALL-STATUS's signed-update row"
+    "42 record: rehearsal 8 (44836654799) qualified a61a393c; INSTALL-STATUS's signed-update row",
+    "42 merge retains main's newer VM and desktop supervisor"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
-  "files": [],
+  "files": [
+    {
+      "sha256": "b9af8f7a4fe4a43db15f2d27b181ed442a9f86a90b47c0577a6183efb48117c4",
+      "path": "os/ci/vm.py"
+    },
+    {
+      "sha256": "d44e4d93daf623bd90b480b9a7a46b1bda9e3779a931a430afb6cb4cb3bee213",
+      "path": "os/config/usr/libexec/aresos-desktop"
+    }
+  ],
   "unwalked_commands": [],
   "unwalked_rule": "Commands added by package 22 are typed by the local walk of package 27's update rehearsal (os/tests/test_owner_walk.py, route update). Package 22c's forward (briefs/22c-forward-command.md) is typed by the local walk of package 22c's rehearsal (route ways-back: from plain Bazzite, after previous, and on the newer AresOS taken in the boot menu) and left this list in stage 2. Package 22d's generated lines (Claude's folder line, the tools-only routine line and the routine export line) are typed by no one: 22d's rehearsal (run 43737933979) ran them through its caller in the desktop session without a terminal, each taken by name from the announced commit's commands.json, and they left this list in 22d's step 7b. test_owner_equality counts a command as walked when a rehearsal's walk types it or, on 22d's route, its caller runs it, and refuses a listed command once it is walked.",
   "rebound": [

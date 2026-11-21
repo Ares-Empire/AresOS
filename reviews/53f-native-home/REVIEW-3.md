@@ -1,0 +1,10 @@
+Rechecked AresOS PR #120 at `414215cd70b6fa8c898ff73a62870d69686c94d0`, limited to `fcca608d..HEAD` and the code it touches. All 17 focused finder, hit-testing, and icon-worker tests passed. I changed no files, ran no build, and did not check CI.
+
+1. **Finder sorting — done and correct.** Casefold expansions are weighed character by character, and long digit runs sort without integer conversion. The requested Unicode cases and BMP property test passed. No regression found.
+2. **House clicks — done and correct.** Painting and hit testing share the logo geometry. Transparent corners reject clicks, and the frame accepts clicks on its painted ring. The day and night tests passed. No regression found.
+3. **Stale icons — partially done, nonblocking.** Old-generation failures no longer suppress retries, and the first draw after clearing drops pending results. A callback delivered between Escape and that draw can still cache one icon and request an extra redraw. I reproduced that ordering. It affects the icon cache only. [Icon delivery](/var/home/ares/AresOS-53f-native-home/os/config/usr/libexec/aresos-laptop-home:2505)
+4. **Idle heap trim — done and correct.** Clock and star redraws neither arm a trim nor postpone one already scheduled by activity. A read-only probe confirmed both paths. I inspected the 13-second day and night tests without rerunning the window suite. No regression found.
+5. **Opt-in memory diagnostics — partially done, nonblocking.** With layer-shell absent, both tests fail with a clear message. With the library present but its typelib missing from the configured directory, preflight still passes and setup raises `FileNotFoundError`. This affects only the opt-in test harness. [Layer-shell check](/var/home/ares/AresOS-53f-native-home/os/tests/laptop_home_headless.py:109)
+6. **Lead’s `casefold()` change — done and correct.** `strasse` and `straße` both find `Strasse` and `Straße`, and `massband` finds `Maßband`. No regression found in the touched finder paths.
+
+SAFE

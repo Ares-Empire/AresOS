@@ -1,0 +1,7 @@
+Rechecked PR #121 at `50774afe2eef70e15e91885e7670fb05dd294ffe`. Ten focused helper tests passed with an in-memory journal. I ran no build, changed no files, and did not check CI.
+
+**Blocking draft loss.** Type a recipe-book query, hide the book, then press Super. Minecraft retains the query when the book is hidden, but the guard skips it and Super closes the inventory, discarding the query. An empty Apps screen opened from that inventory also bypasses the parent’s draft check. New Home, a nonempty anvil name, typed Apps searches, and book signing are protected. [Draft guard](/var/home/ares/AresOS-53d-world-search/mod/src/client/java/dev/aresos/client/WorldSearchScreen.java:156) · [Container close](/var/home/ares/AresOS-53d-world-search/mod/src/client/java/dev/aresos/client/WorldSearchScreen.java:104)
+
+Split updates wait, and a world already reported as the sole active toplevel opens immediately. Cancellation suppresses both the minimize and `shell_search` while the five-second activation mark holds. I reproduced a late activation after the mark expired minimizing a terminal still reported active, with no search event. The best hit pins only with four or more slots. [Activation mark](/var/home/ares/AresOS-53d-world-search/os/config/usr/libexec/aresos-shell:4167) · [Pinning rule](/var/home/ares/AresOS-53d-world-search/mod/src/client/java/dev/aresos/client/SearchLines.java:19)
+
+CHANGES-NEEDED
