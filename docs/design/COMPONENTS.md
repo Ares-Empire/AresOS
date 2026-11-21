@@ -1449,7 +1449,7 @@ drawing shows otherwise.
 The password windows' insides use A (section 4.6), and their frames follow the look. The mod's own screens keep the
 game's look.
 
-**Where they live.** One small file in his home, `~/.config/aresos/desktop.json`, and one program that owns it,
+**Where they live.** One small file in his home, `~/.config/aresos/settings.json` (package 320; not `desktop.json`, the supervisor's state file's name), and one program that owns it,
 `/usr/libexec/aresos-settings` (`get`, and `set <name> <value>`). It checks the value, writes the whole file at once (a
 new file renamed into place) and applies the change. No file means the defaults; a broken file means the defaults and a
 line in the journal. The defaults live in that program and nowhere else.
