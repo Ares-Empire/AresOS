@@ -400,7 +400,10 @@ export async function outlineReadMatrix({check:report,call,rpc,nav,target,getTab
         const detail=(await pages('hostile '+kind+' '+index,{tab,ref,max:40000})).text;hostileGrammar(detail);
         if(kind==='form'){
           assert.ok(detail.includes(' = '+quoted(hostile.replace(/\r\n?/g,'\n'))),'value '+index);
-          assert.ok(detail.includes('option '+safe),'option '+index);assert.ok(detail.includes('error: '+safe),'error '+index);assert.ok(detail.includes('hidden: '+quoted(hostile)),'hidden '+index);
+          // This option has only text content. Native option text collapses and strips ASCII whitespace.
+          const optionLabel=hostile.replace(/[ \t\n\f\r]+/g,' ').replace(/^ | $/g,'');
+          assert.ok(detail.includes('option '+quoted(optionLabel)),'option '+index);
+          assert.ok(detail.includes('error: '+safe),'error '+index);assert.ok(detail.includes('hidden: '+quoted(hostile)),'hidden '+index);
         }else if(kind==='table'){assert.ok(detail.includes('columns: '+safe+' | "Plain header"'));assert.ok(detail.includes('"Plain cell" | '+safe));}
         else if(kind==='list')assert.ok(detail.includes('listitem '+safe));
         else assert.ok(detail.includes('title: '+safe));
