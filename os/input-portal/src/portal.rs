@@ -1650,9 +1650,9 @@ impl State {
         self.conclude(to, out, sharing).await;
     }
 
-    /// The grab of `crossing` is already gone (the watchdog, the escape chord,
-    /// or the compositor took the lock, the surface, the pointer or the
-    /// keyboard focus away); tell the session that owned it so the client stops
+    /// The grab of `crossing` is already gone (the watchdog, or the compositor
+    /// took the lock, the surface, the pointer or the keyboard focus away);
+    /// tell the session that owned it so the client stops
     /// expecting events, and put the barriers back.
     async fn capture_lost(&self, crossing: u64) {
         let mut out = Vec::new();

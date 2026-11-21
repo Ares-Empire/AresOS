@@ -55,18 +55,46 @@ export XDG_CONFIG_HOME=$HOME/.config XDG_DATA_HOME=$HOME/.local/share XDG_CACHE_
     XDG_STATE_HOME=$HOME/.local/state
 mkdir -p "$XDG_CONFIG_HOME/labwc" "$XDG_DATA_HOME" "$XDG_CACHE_HOME" "$XDG_STATE_HOME"
 
-# The exact chord package (c) will bind, and nothing else.
+# labwc's bindings (brief 321, "What to build" 6). The two marked allowWhenInhibited are the only ones that may run
+# while the backend's capture surface holds the keyboard: the way out, and the recovery terminal with the way out as
+# its first action (/harness/binding stands in for the terminal). The others are the image's own unmarked kinds
+# (close, the window switcher, media keys, a lone Super that acts on release) and two mouse bindings that apply in
+# every context, so also over the capture surface. Step 3 gives the image's rc.xml the same two marks.
 cat > "$XDG_CONFIG_HOME/labwc/rc.xml" <<'XML'
 <?xml version="1.0"?>
 <labwc_config>
   <keyboard>
-    <keybind key="W-S-Escape">
+    <keybind key="W-S-Escape" allowWhenInhibited="yes">
       <action name="Execute" command="/usr/libexec/aresos-input-portal --release" />
     </keybind>
+    <keybind key="W-C-Escape" allowWhenInhibited="yes">
+      <action name="Execute" command="/usr/libexec/aresos-input-portal --release" />
+      <action name="Execute" command="/harness/binding recovery-terminal" />
+    </keybind>
+    <keybind key="A-F4"><action name="Close" /></keybind>
+    <keybind key="A-Tab"><action name="NextWindow" /></keybind>
+    <keybind key="XF86AudioRaiseVolume"><action name="Execute" command="/harness/binding volume-up" /></keybind>
+    <keybind key="XF86AudioMute"><action name="Execute" command="/harness/binding mute" /></keybind>
+    <keybind key="XF86MonBrightnessUp"><action name="Execute" command="/harness/binding brightness-up" /></keybind>
+    <keybind key="Super_L" onRelease="yes"><action name="Execute" command="/harness/binding lone-super" /></keybind>
   </keyboard>
+  <mouse>
+    <default />
+    <context name="All">
+      <mousebind button="A-Middle" action="Press"><action name="Execute" command="/harness/binding mouse-press" /></mousebind>
+      <mousebind direction="A-Down" action="Scroll"><action name="Execute" command="/harness/binding mouse-scroll" /></mousebind>
+    </context>
+  </mouse>
 </labwc_config>
 XML
 cp "$XDG_CONFIG_HOME/labwc/rc.xml" "$EV/labwc-rc.xml"
+# What the test bindings run: one line per run, so the driver sees which binding acted and how often.
+cat > /harness/binding <<'SH'
+#!/usr/bin/bash
+echo "$1" >> /evidence/bindings.log
+SH
+chmod 0755 /harness/binding
+: > "$EV/bindings.log"
 
 # The backend and its allow-list, where the image will have them: in this container's own /usr.
 install -D -m 0755 /harness/backend/aresos-input-portal /usr/libexec/aresos-input-portal

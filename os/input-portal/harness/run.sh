@@ -13,9 +13,11 @@
 # touches the session of whoever runs it: no sudo, no install outside the container, no portal configuration.
 # The container has a time limit, and cleanup removes only that one container.
 #
-# The image is built from LABWC_IMAGE (default localhost/aresos-labwc:311e): the `labwc` stage of
-# os/Containerfile, whose /out holds package 311's RPM. Build it with
-#   podman --cgroup-manager=cgroupfs build --target labwc --format=oci --tag localhost/aresos-labwc:311e --file os/Containerfile os
+# The image is built from LABWC_IMAGE (default localhost/aresos-labwc:321c): the `labwc` stage of
+# os/Containerfile, whose /out holds the RPM with both patches (311's and 321's). Build it with
+#   podman --cgroup-manager=cgroupfs build --target labwc --format=oci --tag localhost/aresos-labwc:321c --file os/Containerfile os
+# HARNESS_IMAGE (default localhost/aresos-input-portal-harness:321c) names the harness image, for a run on another
+# labwc: the image's build refuses a labwc that is not the lock's, so that also needs that labwc's own lock.
 set -euo pipefail
 
 die() {
@@ -30,8 +32,8 @@ usage() {
 
 here=$(realpath -e -- "$(dirname -- "$0")")
 repo=$(realpath -e -- "$here/../../..")
-labwc_image=${LABWC_IMAGE:-localhost/aresos-labwc:311e}
-image=localhost/aresos-input-portal-harness:316
+labwc_image=${LABWC_IMAGE:-localhost/aresos-labwc:321c}
+image=${HARNESS_IMAGE:-localhost/aresos-input-portal-harness:321c}
 
 work=$(mktemp -d)
 name=aresos-input-portal-harness-$$

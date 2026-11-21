@@ -156,7 +156,6 @@ struct AppState {
     relative_pointer: Option<zwp_relative_pointer_v1::ZwpRelativePointerV1>,
     keyboard: Option<wl_keyboard::WlKeyboard>,
     keymap: SharedKeymap,
-    modifiers: Modifiers,
     last_enter_serial: u32,
     /// The compositor's heads, and the snapshot of the screens built from them.
     heads: HeadsState,
@@ -511,7 +510,7 @@ impl AppState {
     /// End a capture that nobody asked to end, and tell the portal if it knew
     /// of it. Every loss takes this one path: the compositor dropping the lock,
     /// closing the surface, taking the pointer or the keyboard focus away, the
-    /// watchdog, the escape chord, and a grab that never came.
+    /// watchdog, and a grab that never came.
     fn lose_capture(&mut self, why: &str) {
         let Some(ended) = self.end_capture(None) else {
             return;
@@ -650,16 +649,6 @@ impl AppState {
 
     fn forward_frame(&mut self) {
         self.forward(EisCommand::Frame);
-    }
-
-    /// Best-effort keyboard escape.
-    ///
-    /// Do not rely on this: niri handles compositor bindings before clients see
-    /// them, so a combination it claims never arrives here. It is a convenience
-    /// for the cases it does work in, not a safety mechanism — the watchdog and
-    /// the `ForceRelease` D-Bus method are the ones that always work.
-    fn is_panic_key(&self, event: &KeyEvent) -> bool {
-        self.modifiers.ctrl && self.modifiers.alt && event.keysym == Keysym::Escape
     }
 
     /// Force-release a capture that has gone quiet.
@@ -1091,11 +1080,9 @@ impl KeyboardHandler for AppState {
         if self.capture.is_none() {
             return;
         }
-        if self.is_panic_key(&event) {
-            // Not named here: no key name belongs in the log, this one included.
-            self.lose_capture("the built-in escape chord was pressed");
-            return;
-        }
+        // No key ends the capture here: every key goes to the other machine,
+        // Ctrl+Alt+Escape (upstream's built-in chord) included. The way out is
+        // the compositor's own binding, which runs `--release` (brief 321).
         self.forward(EisCommand::Key {
             keycode: event.raw_code,
             press: true,
@@ -1140,11 +1127,12 @@ impl KeyboardHandler for AppState {
         _: &QueueHandle<Self>,
         _: &wl_keyboard::WlKeyboard,
         _: u32,
-        modifiers: Modifiers,
+        _: Modifiers,
         _: RawModifiers,
         _: u32,
     ) {
-        self.modifiers = modifiers;
+        // Nothing here reads the modifier state: the keys themselves are
+        // forwarded, and the other machine keeps its own.
     }
 
     fn update_keymap(
@@ -1275,7 +1263,6 @@ pub fn run(
         relative_pointer: None,
         keyboard: None,
         keymap,
-        modifiers: Modifiers::default(),
         last_enter_serial: 0,
         heads,
         screens,

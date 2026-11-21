@@ -1,6 +1,7 @@
 #!/usr/bin/python3 -I
 """Package 316's harness, inside its container: the tests of briefs/316-input-portal.md, "Tests", and the
-switch and way-out checks of briefs/321-deskflow-image.md, "What to build" 1 (test8, test9).
+switch and way-out checks of briefs/321-deskflow-image.md, "What to build" 1 (test8, test9), and the shortcuts
+gate of its "What to build" 6 (test10).
 
 in-container.sh starts this once the container has proved it is cut off from the host. It starts a private
 session bus and a private headless labwc with two outputs, a full-screen probe window, a virtual pointer and
@@ -1305,6 +1306,195 @@ def test9_way_out(fe, admin):
     stop(second, signal.SIGINT)
 
 
+# ---- labwc's bindings during a capture (brief 321, "What to build" 6) ---------------------------------------------
+
+BINDINGS = f"{EV}/bindings.log"
+# evdev codes of the keys the gate is tried with.
+ESC, TAB, KEY_A, CTRL, SHIFT, ALT, F4, DOWN, MUTE, VOLUME_UP, SUPER, BRIGHTNESS_UP = 1, 15, 30, 29, 42, 56, 62, 108, 113, 115, 125, 225
+MIDDLE = 274
+
+
+def ran():
+    """The test bindings that ran so far, one name per run (in-container.sh's /harness/binding)."""
+    with open(BINDINGS) as handle:
+        return handle.read().split()
+
+
+def keys(*codes):
+    """Press the keys in order and release them in reverse, as a chord is typed."""
+    for code in codes:
+        vkbd.cmd(f"key {code} 1")
+    for code in reversed(codes):
+        vkbd.cmd(f"key {code} 0")
+
+
+def typed(*codes):
+    """What a client that gets every one of those key events sees."""
+    return [f"KEY {code} 1" for code in codes] + [f"KEY {code} 0" for code in reversed(codes)]
+
+
+def in_order(lines, wanted):
+    """The wanted lines appear in this order (others may lie between); a wanted line ending in * is a prefix."""
+    rest = iter(lines)
+    return all(any(line.startswith(want[:-1]) if want.endswith("*") else line == want for line in rest) for want in wanted)
+
+
+def quiet(action, settle=0.4):
+    """Run the action. True when no test binding ran and the probe window was not asked to close."""
+    before, seen = len(ran()), len(window())
+    action()
+    pump(settle)
+    return len(ran()) == before and "CLOSE" not in window()[seen:]
+
+
+def test10_shortcuts(fe, admin):
+    T = "test10"
+    backend = start_backend(admin)
+    session = Session(fe, "shortcuts").open()
+
+    def runs(action, name):
+        before = len(ran())
+        action()
+        return bool(wait_for(lambda: name in ran()[before:], 2))
+
+    def alt_middle():
+        vkbd.cmd(f"key {ALT} 1")
+        vptr.cmd(f"btn {MIDDLE} 1")
+        vptr.cmd(f"btn {MIDDLE} 0")
+        vkbd.cmd(f"key {ALT} 0")
+
+    def alt_scroll():
+        vkbd.cmd(f"key {ALT} 1")
+        vptr.cmd("axis 1")
+        vkbd.cmd(f"key {ALT} 0")
+
+    def bindings_act(where):
+        """Every unmarked binding acts: the control for each probe the gate is then tried with."""
+        media = all(runs(lambda code=code: keys(code), name) for code, name in ((VOLUME_UP, "volume-up"), (MUTE, "mute"), (BRIGHTNESS_UP, "brightness-up")))
+        check(T, f"{where} the media keys and a lone Super run their commands", media and runs(lambda: keys(SUPER), "lone-super"), f"{ran()[-6:]}")
+        check(T, f"{where} the mouse bindings (Alt+Middle, Alt+scroll in every context) run their commands",
+              runs(alt_middle, "mouse-press") and runs(alt_scroll, "mouse-scroll"), f"{ran()[-6:]}")
+        check(T, f"{where} Alt+F4 asks the window to close", window_gets(lambda: keys(ALT, F4), "CLOSE"), f"{window()[-4:]}")
+
+    # Outside a capture every binding works as before.
+    bindings_act("outside a capture")
+    seen = len(window())
+    vkbd.cmd(f"key {ALT} 1")
+    vkbd.cmd(f"key {TAB} 1")
+    vkbd.cmd(f"key {TAB} 0")
+    switcher = wait_for(lambda: "KBD_LEAVE" in window()[seen:], 2)
+    vkbd.cmd(f"key {ALT} 0")
+    check(T, "outside a capture Alt+Tab starts the window switcher (the window loses the keyboard until Alt is released)",
+          switcher and wait_for(lambda: in_order(window()[seen:], ["KBD_LEAVE", "KBD_ENTER"]), 2), f"{window()[seen:]}")
+    check(T, "outside a capture Super+Ctrl+Escape runs the recovery terminal's stand-in", runs(lambda: keys(SUPER, CTRL, ESC), "recovery-terminal") and local_key())
+
+    # During a capture: nothing on the compositor's side, and every key and button reaches the client.
+    activated = capture(session)
+    if not check(T, "the capture for the gate starts", activated, log_of(backend)[-800:]):
+        session.shut()
+        stop(backend, signal.SIGINT)
+        return
+    mark, seen_window = len(fe.signals), len(window())
+
+    def reaches(action, wanted):
+        seen = len(session.eis())
+        silent = quiet(action)
+        arrived = wait_for(lambda: in_order(session.eis()[seen:], wanted), 2)
+        return silent and bool(arrived), f"nothing ran {silent}; the client got {[line for line in session.eis()[seen:] if not line.startswith('MOD')]}"
+
+    def tried(what, action, wanted):
+        ok, detail = reaches(lambda: (action(), keys(KEY_A)), wanted + typed(KEY_A))
+        check(T, f"during a capture {what}, and the next key reaches the client too", ok, detail)
+
+    tried("Alt+F4 closes nothing and reaches the client", lambda: keys(ALT, F4), typed(ALT, F4))
+    # Down is a window-switcher key: a switcher that had started would take it.
+    tried("Alt+Tab starts no window switcher: Tab and then Down reach the client",
+          lambda: (vkbd.cmd(f"key {ALT} 1"), keys(TAB), keys(DOWN), vkbd.cmd(f"key {ALT} 0")),
+          [f"KEY {ALT} 1", *typed(TAB), *typed(DOWN), f"KEY {ALT} 0"])
+    tried("a lone Super runs nothing and reaches the client", lambda: keys(SUPER), typed(SUPER))
+    tried("the volume, mute and brightness keys run nothing and reach the client",
+          lambda: (keys(VOLUME_UP), keys(MUTE), keys(BRIGHTNESS_UP)), typed(VOLUME_UP) + typed(MUTE) + typed(BRIGHTNESS_UP))
+    tried("Ctrl+Alt+Escape (the backend's former chord) reaches the client", lambda: keys(CTRL, ALT, ESC), typed(CTRL, ALT, ESC))
+    tried("the mouse bindings run nothing: Alt+Middle and Alt+scroll reach the client",
+          lambda: (alt_middle(), alt_scroll()), [f"KEY {ALT} 1", f"BUTTON {MIDDLE} 1", f"BUTTON {MIDDLE} 0", f"KEY {ALT} 0", f"KEY {ALT} 1", "SCROLL*", f"KEY {ALT} 0"])
+    pump(0.3)
+    leaked = [line for line in window()[seen_window:] if line.split()[0] in ("ENTER", "MOTION", "BUTTON", "AXIS", "KEY", "KBD_ENTER", "CLOSE")]
+    check(T, "the capture held through all of them: no Deactivated, and the local window got nothing",
+          not fe.sig("Deactivated", session.path, mark) and not leaked, f"{leaked}")
+
+    # The second marked chord (the first, Super+Shift+Escape, is test3's and test9's): out, and the terminal.
+    before = len(ran())
+    keys(SUPER, CTRL, ESC)
+    ended = wait_for(lambda: fe.sig("Deactivated", session.path, mark), 3)
+    check(T, "during a capture Super+Ctrl+Escape releases it and runs the recovery terminal's stand-in",
+          ended and wait_for(lambda: "recovery-terminal" in ran()[before:], 2), f"Deactivated {bool(ended)}, ran {ran()[before:]}")
+    check(T, "and the pointer and the keyboard are local again", local_motion() and local_key())
+
+    # A binding held as the capture starts: its release action and its repeats are dropped.
+    shove = approach("left")
+    before = len(ran())
+    vkbd.cmd(f"key {SUPER} 1")
+    activated = capture(session, shove=shove)
+    seen = len(session.eis())
+    vkbd.cmd(f"key {SUPER} 0")
+    keys(KEY_A)
+    arrived = wait_for(lambda: in_order(session.eis()[seen:], typed(KEY_A)), 2)
+    pump(0.4)
+    check(T, "a lone Super held as the capture starts runs no release action, and the next key reaches the client",
+          activated and arrived and ran()[before:] == [], f"activated {bool(activated)}, ran {ran()[before:]}, the client got {session.eis()[seen:]}")
+    session.release()
+    local = local_key()
+    before = len(ran())
+    vkbd.cmd(f"key {VOLUME_UP} 1")
+    pump(1.5)
+    vkbd.cmd(f"key {VOLUME_UP} 0")
+    pump(0.3)
+    repeats = ran()[before:].count("volume-up")
+    check(T, "outside a capture a held volume key repeats its command (the control for the next check)", local and repeats >= 4, f"{repeats} runs in 1.5 s")
+    shove = approach("left")
+    vkbd.cmd(f"key {VOLUME_UP} 1")
+    activated = capture(session, shove=shove)
+    pump(0.3)  # a command started just before the capture has written its line by now
+    before = len(ran())
+    pump(1.5)
+    during = ran()[before:]
+    vkbd.cmd(f"key {VOLUME_UP} 0")
+    seen = len(session.eis())
+    keys(KEY_A)
+    check(T, "a volume key held as the capture starts repeats nothing during it, and the next key reaches the client",
+          activated and during == [] and wait_for(lambda: in_order(session.eis()[seen:], typed(KEY_A)), 2), f"activated {bool(activated)}, ran {during} in 1.5 s")
+    session.release()
+    check(T, "after these captures the pointer and the keyboard are local again", local_motion() and local_key())
+    session.shut()
+    stop(backend, signal.SIGINT)
+
+    # What the gate relies on: it knows the capture surface by its layer namespace. Any other layer surface that
+    # holds the keyboard exclusively keeps labwc's bindings, which is also what a labwc without the patch does
+    # for the capture surface: the same probes, the same focus, and Alt+F4 closes a window.
+    def layer(namespace, name):
+        spawn(name, [WLH, "layer", namespace], CLIENT_ENV)
+        return bool(wait_for(lambda: "KBD_ENTER" in lines_of(name), 5))
+
+    focused = layer("harness-other-layer", "layer-other")
+    seen = len(lines_of("layer-other"))
+    keys(KEY_A)
+    check(T, "a layer surface with another namespace gets the keyboard exclusively",
+          focused and wait_for(lambda: in_order(lines_of("layer-other")[seen:], typed(KEY_A)), 2), f"{lines_of('layer-other')[-6:]}")
+    bindings_act("under a layer surface with another namespace")
+    stop("layer-other")
+
+    focused = layer("aresos-input-barrier", "layer-barrier")
+    seen = len(lines_of("layer-barrier"))
+    silent = quiet(lambda: (keys(ALT, F4), keys(VOLUME_UP), keys(SUPER), alt_middle(), alt_scroll()))
+    got = wait_for(lambda: in_order(lines_of("layer-barrier")[seen:], typed(ALT, F4) + typed(VOLUME_UP) + typed(SUPER)), 2)
+    check(T, "under a layer surface with the capture surface's namespace the same keys and buttons run nothing, and the keys reach that surface",
+          focused and silent and got, f"focused {focused}, nothing ran {silent}, it got {lines_of('layer-barrier')[seen:]}")
+    check(T, "and Super+Ctrl+Escape still runs there", runs(lambda: keys(SUPER, CTRL, ESC), "recovery-terminal"), f"{ran()[-3:]}")
+    stop("layer-barrier")
+    pump(0.3)
+    check(T, "with the layer surfaces gone the window has the keyboard again and the bindings act", local_key() and runs(lambda: keys(VOLUME_UP), "volume-up"))
+
+
 # ---- the run -------------------------------------------------------------------------------------------------------
 
 
@@ -1401,6 +1591,7 @@ def main():
         run("test1", test1_output_off, fe, stranger)
         run("test8", test8_switch, fe, stranger)
         run("test9", test9_way_out, fe, stranger)
+        run("test10", test10_shortcuts, fe, stranger)
         run("review1-finding2", review2_bus_loss, fe, stranger)
         run("review1-finding4", review4_signals)
         code = 1 if any(line.startswith("FAIL") for line in results) else 0
