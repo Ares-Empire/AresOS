@@ -1,4 +1,4 @@
-"""Releases 27 and 28: compare the full rebuild with the release before it; explain every difference.
+"""Releases 27–29: compare the full rebuild with the release before it; explain every difference.
 
 Release 27 (package 27): release 13 is release 6's image plus two keyboard
 files. Release 27 rebuilds the reviewed Containerfile on the same pinned base.
@@ -744,13 +744,13 @@ def blob(commit, path):
         return None
 
 
-def source_changes(base, head='HEAD'):
+def source_changes(base, head='HEAD', *, sources=IMAGE_SOURCES, exceptions=BRANCH_SOURCE_CHANGES):
     """({path: reason}, [path]): the image sources that differ between main's `base` and `head`. A change
-    BRANCH_SOURCE_CHANGES names and allows is listed with its reason; every other one differs."""
-    names = git('diff', '-z', '--name-only', '--no-renames', base, head, '--', *IMAGE_SOURCES, text=True).split('\0')
+    allowed by the profile's exceptions is listed with its reason."""
+    names = git('diff', '-z', '--name-only', '--no-renames', base, head, '--', *sources, text=True).split('\0')
     allowed, differing = {}, []
     for path in sorted(name for name in names if name):
-        reason, allows = BRANCH_SOURCE_CHANGES.get(path, (None, None))
+        reason, allows = exceptions.get(path, (None, None))
         # Equal JSON bytes cannot explain changing a regular file into a link or making it executable.
         old_entry = git('ls-tree', base, '--', path, text=True).split()[:2]
         new_entry = git('ls-tree', head, '--', path, text=True).split()[:2]
@@ -1419,7 +1419,7 @@ class Classifier28:
             return ('build', "package 23: path of Prism's pinned bundle, including its type, mode, target and bytes")
         return None
 
-    def alternatives(self):
+    def alternatives(self, *, existing=False):
         """{group: (public links, selected targets)} matching the independent reviewed mapping.
 
         Check both links of every chain, including paths absent from both image inventories.
@@ -1431,12 +1431,12 @@ class Classifier28:
             for path in sorted(folder.iterdir()) if folder.is_dir() else ():
                 rel = ALTERNATIVES_ADMIN + path.name
                 record = entry(self.new_root, rel)
-                if entry(self.old_root, rel) is not None or not record or record['kind'] != stat.S_IFREG \
+                if (not existing and entry(self.old_root, rel) is not None) or not record or record['kind'] != stat.S_IFREG \
                         or not root_owned(record, 0o644) or record['xattrs']:
                     continue
                 parsed = alternatives_admin(path.read_bytes())
                 if not parsed or path.name in parsed['links'].values() or any(
-                        target not in self.owned['new'] for choice in parsed['choices']
+                        not self.alternative_payload(target, existing) for choice in parsed['choices']
                         for target in choice['targets'].values() if target):
                     continue
                 links = {public: name or path.name for public, name in parsed['links'].items()}
@@ -1457,6 +1457,13 @@ class Classifier28:
                         self.groups[path.name] = (links, targets)
                         break
         return self.groups
+
+    def alternative_payload(self, target, existing):
+        if not existing:
+            return target in self.owned['new']
+        # R29's Java is already installed. The locked scriptlets name the same payload targets.
+        row = entry(self.new_root, target[1:])
+        return row is not None and row['kind'] in (stat.S_IFREG, stat.S_IFDIR, stat.S_IFLNK)
 
     def alternative_target(self, name, target):
         return self.alternative_link(ALTERNATIVES + name, target)
@@ -1534,10 +1541,11 @@ class Classifier28:
             self.schema_rebuild = rebuild_schemas(self.policy['new_image'])
         return self.schema_rebuild
 
-    def image_folder(self, rel):
-        """True when rel and each folder above it are folders (not links) in the new image."""
+    def image_folder(self, rel, *, root=None):
+        """True when rel and every parent are directories in the selected image."""
+        root = self.new_root if root is None else root
         parts = rel.split('/')
-        return all((place := entry(self.new_root, '/'.join(parts[:depth]))) is not None and place['kind'] == stat.S_IFDIR
+        return all((place := entry(root, '/'.join(parts[:depth]))) is not None and place['kind'] == stat.S_IFDIR
                    for depth in range(1, len(parts) + 1))
 
     def font_folder(self, folder):
@@ -1690,6 +1698,424 @@ class Classifier28:
                     rc_xml=rc_xml_changes(old_rc, new_rc) if old_rc and new_rc else None), problems
 
 
+PREVIOUS_29 = 'os/manifest/releases/28.json'
+PREVIOUS_SOURCE_29 = '7d5fbbf2c7f7c5b4d41dd707a9407e6401a4d062'
+IMAGE_SOURCES_29 = IMAGE_SOURCES + ('os/labwc',)
+# The build.sh fix was shipped in R28 and is on main. Only the jar pin can change on this branch.
+BRANCH_SOURCE_CHANGES_29 = {'os/minecraft/desktop.lock.json': BRANCH_SOURCE_CHANGES['os/minecraft/desktop.lock.json']}
+CHMOD_0755_29 = CHMOD_0755_28  # The same configure chmod line. New scripts use their Git mode.
+GTK_LAYER_29 = 'gtk4-layer-shell-1.3.0-1.fc44.x86_64'
+LABWC_FEDORA_29 = 'labwc-0.9.6-1.fc44.x86_64'
+LABWC_BUILD_29 = 'labwc-0.9.6-1.fc44.aresos1.x86_64'
+PACKAGE_REASONS_29 = {
+    'gtk4-layer-shell': 'B323 (#135): GTK 4 layer shells and the Gtk4LayerShell typelib for the indicator and laptop home',
+    'labwc': '311 (#119) and B323 (#135): pinned pointer-lock backport replaces Fedora labwc in the packages layer',
+}
+MANIFEST = 'usr/share/aresos/manifest/'
+LABWC_RECORD = MANIFEST + 'labwc.lock.json'
+UPDATERS = MANIFEST + 'updaters.json'
+MOD_RECORD = MANIFEST + 'aresos-mod.json'
+MOD_JAR = MINECRAFT + '/mods/aresos.jar'
+DESKTOP_LOCK = MINECRAFT + '/desktop.lock.json'
+GUARDIAN_UNIT = 'usr/lib/systemd/system/aresos-guardian.service'
+GUARDIAN_DROPIN = 'usr/lib/systemd/system/session-.scope.d/50-aresos-guardian.conf'
+GUARDIAN_LINK = ('etc/systemd/system/graphical.target.wants/aresos-guardian.service', '/' + GUARDIAN_UNIT)
+GUARDIAN_AUDIT = dict(scope='system', name='aresos-guardian.service', state='enabled', suspicious=False,
+                      commands=['ExecStart=/usr/bin/true', 'ExecStop=/usr/libexec/aresos-desktop stop --reason shutdown'],
+                      sources=['/' + GUARDIAN_UNIT], active_state=None, load_state=None, sub_state=None)
+GENERATED_29 = {
+    **{path: 'dnf5 transaction history (locked RPM install and same-layer labwc swap)'
+       for path, _ in GENERATED_28 if path.startswith('usr/lib/sysimage/libdnf5/')},
+    **{path: reason for path, reason in GENERATED_28 if path.endswith('/countme')},
+    'var/log/dnf5.log': 'dnf5 log for the locked RPM install and same-layer labwc swap',
+    'etc/ld.so.cache': 'ldconfig adds the gtk4-layer-shell library to its linker cache',
+    'var/cache/ldconfig/aux-cache': 'ldconfig refreshes its auxiliary cache of library metadata after the RPM transaction',
+    RPM_DATABASE: 'rpm database for the gtk4-layer-shell install and labwc replacement, with the full package list compared separately',
+}
+LOOK_FILES_29 = {'usr/share/aresos/look/look.json'} | {
+    f'usr/share/aresos/look/sprites/{name}.png' for name in (
+        'microphone-off-unavailable', 'microphone-off', 'microphone-unavailable', 'microphone', 'plate', 'slot',
+        'speaker-muted-unavailable', 'speaker-muted', 'speaker-unavailable', 'speaker', 'step-limit',
+        'step-lit', 'step-muted', 'step-part', 'step-unlit', 'sun-unavailable', 'sun')}
+FONT_REASONS_29 = {
+    'Jersey10-Regular.ttf': 'B320 (#131): Jersey 10 indicator font',
+    'OFL-Jersey10.txt': 'B320 (#131): licence for the Jersey 10 font',
+    'JetBrainsMono-Variable.ttf': 'B323 (#135): JetBrains Mono font for the laptop home',
+    'OFL-JetBrainsMono.txt': 'B323 (#135): licence for the JetBrains Mono font',
+}
+CONFIG_REASONS_29 = {
+    GUARDIAN_UNIT: '25 (#125): graphical-target guardian asks the supervisor to save the world on planned stops, within its deadline',
+    GUARDIAN_DROPIN: '25 (#125): all login scopes stop after the guardian, giving it time to finish the save',
+    'usr/libexec/aresos-desktop': '25 (#125): supervise planned-stop saves, close deadlines, and restart of the Minecraft home',
+    'usr/libexec/aresos-desktop-java': '25 (#125): forward only the supervisor-supplied lifecycle channel to the mod',
+    'usr/libexec/aresos-cover': '25 (#125): black cover on every output while the guardian saves the world',
+    'usr/libexec/aresos-shell': '25, 56, 53c, 53d and #134: planned-stop and view IPC, focus and search, stale cursor invalidation and bounded view launch checks',
+    'usr/libexec/aresos-laptop-home': '53c and 53f (#114 and #120): native GTK 4 and Cairo laptop-home executable, awaiting 23c launch wiring',
+    'usr/share/aresos/desktop-view.bashrc': '25 (#125): offer the supervisor restart command in the desktop message window',
+    RC_XML: 'B320 (#131): six media and brightness bindings use aresos-level. 25 (#125): borderless always-on-top black save cover',
+    'usr/libexec/aresos-level': 'B320 (#131): volume up also unmutes and brightness down stops at 1% of the backlight maximum',
+    'usr/libexec/aresos-indicator': 'B320 (#131): displays brightness, volume and microphone state using a non-focusing layer shell',
+    'usr/libexec/aresos-settings': 'B320 (#131): reads the indicator settings and look pack',
+    **dict.fromkeys(LOOK_FILES_29, 'B320 (#131): indicator look pack (layout, colours and sprites)'),
+    **{'usr/share/fonts/aresos/' + name: reason for name, reason in FONT_REASONS_29.items()},
+}
+CONFIG_DIRECTORIES_29 = {
+    'usr/share/aresos/look': 'B320 (#131): parent directory of the indicator look pack',
+    'usr/share/aresos/look/sprites': 'B320 (#131): directory of indicator sprites',
+    'usr/lib/systemd/system/session-.scope.d': '25 (#125): parent directory for the login-scope ordering drop-in',
+}
+JAR_REASON_29 = '56 (#117) and 53d (#121): rebuilt mod with free-pointer and hotbar behaviour, faster flight and world search IPC'
+NEW_EXECUTABLES_29 = {'usr/libexec/' + name for name in ('aresos-level', 'aresos-indicator', 'aresos-settings', 'aresos-laptop-home')}
+
+
+def verify_source29(previous, main_base):
+    """Bind R28's historical inputs and R29's checkout to the source commits used by the two builds."""
+    allowed, differing = source_changes(main_base, sources=IMAGE_SOURCES_29, exceptions=BRANCH_SOURCE_CHANGES_29)
+    main = dict(merge_base=main_base, branch_changes=allowed, differing=differing)
+    problems = []
+    if differing:
+        problems.append(f"image sources differ from main at the merge base {main_base}: " + ', '.join(differing))
+    try:
+        old_trees = {row['path']: row['tree'] for row in previous['source_trees']}
+        assert previous['source_commit'] == PREVIOUS_SOURCE_29
+        assert previous['control']['source_revision'] == PREVIOUS_SOURCE_29
+        assert len(old_trees) == len(previous['source_trees']) and old_trees.keys() == set(IMAGE_SOURCES)
+        assert all(git('rev-parse', f'{PREVIOUS_SOURCE_29}:{path}', text=True, stderr=subprocess.PIPE).strip() == oid
+                   for path, oid in old_trees.items())
+    except (AssertionError, KeyError, subprocess.CalledProcessError):
+        problems.append('release 28 source is missing or does not match its recorded image inputs')
+    paths = set(git('ls-tree', '--name-only', 'HEAD', *IMAGE_SOURCES_29, text=True).splitlines())
+    missing = sorted(set(IMAGE_SOURCES_29) - paths)
+    if missing:
+        problems.append('image sources missing from HEAD: ' + ', '.join(missing))
+    dirty = git('diff', '--name-only', 'HEAD', '--', *IMAGE_SOURCES_29, text=True).splitlines()
+    dirty += git('ls-files', '--others', '--exclude-standard', '--', *IMAGE_SOURCES_29, text=True).splitlines()
+    if dirty:
+        problems.append('image sources differ from HEAD in the checkout: ' + ', '.join(sorted(set(dirty))))
+    if os.environ.get('GITHUB_SHA') != git('rev-parse', 'HEAD', text=True).strip():
+        problems.append('the run source revision is not this checkout')
+    return main, problems
+
+
+def package_diff29(old, new, old_lock, new_lock, labwc):
+    """Apply the local RPM swap to the effective lock without changing the Fedora download lock."""
+    assert (labwc['replaces'], labwc['nevra']) == (LABWC_FEDORA_29, LABWC_BUILD_29), 'STOP: unexpected labwc lock'
+    for lock in (old_lock, new_lock):
+        assert LABWC_FEDORA_29 in lock, 'STOP: Fedora labwc missing from download lock'
+    effective = [nevra for nevra in new_lock if nevra != LABWC_FEDORA_29] + [LABWC_BUILD_29]
+    assert set(new_lock) - set(old_lock) == {GTK_LAYER_29} and not set(old_lock) - set(new_lock), \
+        'STOP: unexpected R29 download lock delta'
+    rows, added, removed = package_diff(old, new, old_lock, effective, PACKAGE_REASONS_29)
+    assert removed == [LABWC_FEDORA_29], 'STOP: R29 must remove exactly Fedora labwc'
+    assert {nevra for nevra, name in old.items() if name == 'labwc'} == {LABWC_FEDORA_29} and \
+        {nevra for nevra, name in new.items() if name == 'labwc'} == {LABWC_BUILD_29}, 'STOP: unexpected labwc inventory'
+    assert new.get(GTK_LAYER_29) == 'gtk4-layer-shell', 'STOP: unexpected GTK layer-shell RPM name'
+    return rows, added, removed
+
+
+def config_tree(commit):
+    lines = git('ls-tree', '-rz', commit, '--', 'os/config', text=True).split('\0')
+    result = {}
+    for line in filter(None, lines):
+        info, path = line.split('\t', 1)
+        result[path.removeprefix('os/config/')] = info.split()
+    return result
+
+
+def plain_file(value, mode):
+    return value is not None and value['kind'] == stat.S_IFREG and root_owned(value, mode) and not value['xattrs']
+
+
+def exact_link(value, target):
+    return value is not None and value['kind'] == stat.S_IFLNK and root_owned(value, 0o777) \
+        and not value['xattrs'] and value['target'] == target
+
+
+class Classifier29(Classifier28):
+    """R28 is the baseline. Reuse its validators without reusing its reasons for changing the image."""
+
+    def __init__(self, roots, packages, owned, policy):
+        self.old_root, self.new_root, self.base_root = map(pathlib.Path, roots)
+        self.packages, self.owned, self.policy = packages, owned, policy
+        self.revisions = dict(old=PREVIOUS_SOURCE_29, new=os.environ['GITHUB_SHA'])
+        self.config_trees = {side: config_tree(commit) for side, commit in self.revisions.items()}
+        old, new = self.config_trees['old'], self.config_trees['new']
+        self.config = {rel for rel in old.keys() | new.keys() if old.get(rel) != new.get(rel)}
+        self.config_hashes = {
+            side: {rel: hashlib.sha256(git_bytes(self.revisions[side], 'os/config/' + rel)).hexdigest()
+                   for rel in self.config & tree.keys() if tree[rel][0] in ('100644', '100755')}
+            for side, tree in self.config_trees.items()
+        }
+        self.locks = {side: git_bytes(revision, 'os/minecraft/desktop.lock.json')
+                      for side, revision in self.revisions.items()}
+        self.mod_pins = {side: next(mod['sha256'] for mod in json.loads(raw)['mods']
+                                   if mod['file'] == 'aresos.jar' and 'url' not in mod)
+                         for side, raw in self.locks.items()}
+        self.prism_pin = json.loads(self.locks['new'])['prism']['sha256']
+        self.prism = self.groups = self.schema_rebuild = self.control = self.control_error = None
+        self.font_caches = []
+        alternatives = json.loads(git_bytes(PREVIOUS_SOURCE_29, ALTERNATIVES_MANIFEST_28))
+        self.expected_alternatives = alternatives['groups']
+        assert alternatives['package'] in json.loads(git_bytes(PREVIOUS_SOURCE_29, 'os/packages.lock.json'))['packages'] \
+            and all(alternatives['package']['nevra'] in installed for installed in packages.values()), \
+            'STOP: existing Java package differs from the R28 alternatives pin'
+
+    def classify(self, rel, before, after):
+        for rule in (self.config_rule, self.manifest_rule, self.build_rule, self.package_rule, self.generated_rule):
+            found = rule(rel, before, after)
+            if found:
+                return found
+        return None
+
+    def matching_config(self, side, rel, value):
+        git_entry = self.config_trees[side].get(rel)
+        if git_entry is None:
+            return value is None
+        if side == 'new' and rel in NEW_EXECUTABLES_29 and git_entry[0] != '100755':
+            return False
+        forced = CHMOD_0755_28 if side == 'old' else self.policy['executables']
+        mode = CONFIG_MODES.get(rel, 0o755 if git_entry[0] == '100755' or rel in forced else 0o644)
+        return plain_file(value, mode) and value['sha256'] == self.config_hashes[side].get(rel)
+
+    def config_rule(self, rel, before, after):
+        if rel in self.config:
+            reason = CONFIG_REASONS_29.get(rel)
+            if reason and after is not None and self.matching_config('old', rel, before) \
+                    and self.matching_config('new', rel, after):
+                return 'config', reason
+        elif before is None and rel in CONFIG_DIRECTORIES_29 and after is not None \
+                and after['kind'] == stat.S_IFDIR and root_owned(after, 0o755) and not after['xattrs']:
+            return 'config', CONFIG_DIRECTORIES_29[rel]
+        return None
+
+    def alternatives(self):
+        return super().alternatives(existing=True)
+
+    def control_entries(self):
+        if self.control is None:
+            try:
+                # Both images carry the exact same Part A install recipe and inputs on this cut.
+                for path in ('control', 'os/config/usr/lib/sysusers.d/aresos.conf'):
+                    assert not git('diff', '--name-only', PREVIOUS_SOURCE_29, self.revisions['new'], '--', path), path
+                control_step = lambda raw: raw.split(b'if [[ $1 == control ||', 1)[1].split(b'if [[ $1 == packages ]]', 1)[0]
+                assert control_step(git_bytes(PREVIOUS_SOURCE_29, 'os/build.sh')) == control_step(git_bytes(
+                    self.revisions['new'], 'os/build.sh')), 'Control build recipe differs from R28'
+                before = control_inventory(self.old_root, self.revisions['old'])
+                after = control_inventory(self.new_root, self.revisions['new'])
+                assert before.keys() == after.keys() and without(before, CONTROL_RECORD) == without(after, CONTROL_RECORD), \
+                    'Control install or vendor differs from R28'
+                old, new = (self.read(side, CONTROL_RECORD) for side in ('old', 'new'))
+                assert old.count(self.revisions['old'].encode()) == 1 and \
+                    old.replace(self.revisions['old'].encode(), self.revisions['new'].encode()) == new, \
+                    'Control record differs beyond its source revision'
+                self.control = after
+            except (AssertionError, ValueError, KeyError, TypeError, OSError, IndexError, subprocess.SubprocessError) as error:
+                self.control, self.control_error = {}, str(error)
+        return self.control
+
+    def audit_rows(self):
+        old, new = (self.read(side, UPDATERS) for side in ('old', 'new'))
+        # The image audit enumerates unit-specific drop-ins. The session-.scope prefix is a systemd
+        # ordering rule, but its path does not appear in the offline audit's source rows.
+        rows = audit_changes(old, new, lambda *_: False, GUARDIAN_AUDIT)
+        if rows:
+            before = json.loads(old)
+            expected = sorted([*before, GUARDIAN_AUDIT], key=lambda row: (row['scope'], row['name']))
+            prior_rows = {json.dumps(row, sort_keys=True) for row in before}
+            if all(json.dumps(row, sort_keys=True) in prior_rows for row in (CONTROL_AUDIT, CONSOLE_KEYMAP_AUDIT)) \
+                    and new == (json.dumps(expected, indent=2) + '\n').encode():
+                return [dict(rows[0], reason=CONFIG_REASONS_29[GUARDIAN_UNIT])]
+        return None
+
+    def manifest_matches(self, side, rel, value):
+        if rel == LABWC_RECORD and side == 'old':
+            return value is None
+        if not plain_file(value, 0o644):
+            return False
+        if rel == MOD_JAR:
+            return value['sha256'] == self.mod_pins[side]
+        try:
+            raw = self.read(side, rel)
+            revision = self.revisions[side]
+            if rel == MANIFEST + 'packages.lock.json':
+                expected = json.loads(git_bytes(revision, 'os/packages.lock.json'))
+                return raw == (json.dumps(expected, indent=2) + '\n').encode()
+            if rel == MANIFEST + 'packages.txt':
+                return raw == ('\n'.join(sorted(self.packages[side])) + '\n').encode()
+            if rel == LABWC_RECORD:
+                return raw == git_bytes(revision, 'os/labwc/labwc.lock.json')
+            if rel == DESKTOP_LOCK:
+                return raw == self.locks[side]
+            if rel == MOD_RECORD:
+                pin = self.mod_pins[side]
+                expected = dict(sha256=pin, source_revision=revision, pinned_sha256=pin)
+                return raw == (json.dumps(expected, indent=2) + '\n').encode()
+        except (TypeError, ValueError):
+            return False
+        return False
+
+    MANIFEST_REASONS = {
+        MANIFEST + 'packages.lock.json': 'B323 (#135): the download lock adds gtk4-layer-shell and still pins Fedora labwc as the swap input',
+        MANIFEST + 'packages.txt': 'B323 (#135) and 311 (#119): records gtk4-layer-shell and the final labwc NEVRA after the swap',
+        LABWC_RECORD: '311 (#119) and B323 (#135): installed labwc stage lock, exactly the build input',
+        MOD_RECORD: JAR_REASON_29 + '. The mod record binds the jar pin to the build revision',
+        MOD_JAR: JAR_REASON_29,
+        DESKTOP_LOCK: 'Package 23: desktop inputs stay pinned. The release cut renews the AresOS mod SHA-256',
+    }
+
+    def manifest_rule(self, rel, before, after):
+        if rel in self.MANIFEST_REASONS and self.manifest_matches('old', rel, before) \
+                and self.manifest_matches('new', rel, after):
+            return 'build' if rel == MOD_JAR else 'manifest', self.MANIFEST_REASONS[rel]
+        if rel == CONTROL_RECORD and self.control_entries():
+            return 'control', 'Existing Control Part A: the record changes only its build source revision'
+        if rel == UPDATERS and all(plain_file(value, 0o644) for value in (before, after)) and self.audit_rows():
+            return 'manifest', '25 (#125): updater audit adds the enabled guardian with its exact start and save commands'
+        return None
+
+    def build_rule(self, rel, before, after):
+        if rel == GUARDIAN_LINK[0] and before is None and exact_link(after, GUARDIAN_LINK[1]) \
+                and self.matching_config('new', GUARDIAN_UNIT, self.policy['inventory'].get(GUARDIAN_UNIT)):
+            return 'build', '25 (#125): systemctl enable links graphical.target to the planned-stop guardian'
+        if rel.startswith(FONT_CACHES):
+            return self.font_cache_rule(rel, before, after)
+        if rel in ('etc/shadow', 'etc/shadow-') and self.shadow_change(rel, before, after):
+            return 'build', 'Existing account creation dates refreshed by systemd-sysusers, including the existing Control account'
+        return None
+
+    def shadow_change(self, rel, before, after):
+        # The only changing field is the numeric creation day. Keep locked passwords and all other fields.
+        if not (before and after and before['mode'] in (0o000, 0o600, 0o640)
+                and all(plain_file(value, before['mode']) for value in (before, after))):
+            return False
+        try:
+            old, new = ([line.split(':') for line in self.read(side, rel).decode().splitlines(keepends=True)]
+                        for side in ('old', 'new'))
+        except (AttributeError, UnicodeDecodeError):
+            return False
+        return len(old) == len(new) and all(a == b or (
+            len(a) == len(b) == 9 and a[2].isdigit() and b[2].isdigit() and a[:2] + a[3:] == b[:2] + b[3:])
+            for a, b in zip(old, new))
+
+    def font_pair(self, root, rel, folder=None):
+        match = re.fullmatch(r'([0-9a-f]{32})-(le64|le32d4)\.cache-([0-9]+)', rel.removeprefix(FONT_CACHES))
+        if not match:
+            return None
+        digest, _, version = match.groups()
+        for layout in FONT_CACHE_LAYOUTS:
+            path = f'{FONT_CACHES}{digest}-{layout}.cache-{version}'
+            if not plain_file(entry(root, path), 0o644):
+                return None
+            try:
+                actual_version, actual_folder = font_cache((root / path).read_bytes(), layout)
+            except (ValueError, OSError):
+                return None
+            if str(actual_version) != version or (folder is not None and actual_folder != folder):
+                return None
+            folder = actual_folder
+        if hashlib.md5(folder.encode(), usedforsecurity=False).hexdigest() != digest:
+            return None
+        return folder
+
+    def font_cache_rule(self, rel, before, after):
+        if not plain_file(before, 0o644) or not plain_file(after, 0o644):
+            return None
+        folder = self.font_pair(self.new_root, rel)
+        kind = self.font_folder(folder) if folder else None
+        if not kind or self.font_pair(self.old_root, rel, folder) != folder:
+            return None
+        old_folder = folder[1:]
+        if kind == 'link':
+            target = entry(self.old_root, old_folder)['target']
+            old_folder = posixpath.normpath(posixpath.join(posixpath.dirname(folder), target))[1:]
+        if not self.image_folder(old_folder, root=self.old_root):
+            return None
+        self.font_caches.append(dict(path=rel, folder=folder, folder_kind=kind, change='rebuilt',
+                                     format=rel.rsplit('-', 2)[-2].split('.')[0]))
+        return 'build', 'B320 and B323: fc-cache --system-only --really-force regenerated both cache formats after adding Jersey 10 and JetBrains Mono'
+
+    def package_rule(self, rel, before, after):
+        # Only the new GTK RPM is eligible here. Step 2 compares labwc's old and new payloads independently.
+        if before is None and self.package_file(rel, after):
+            return 'package', PACKAGE_REASONS_29['gtk4-layer-shell'] + '. File matches the RPM record'
+        return None
+
+    def generated_rule(self, rel, before, after):
+        mode = 0o600 if rel == 'var/cache/ldconfig/aux-cache' else 0o644
+        if rel in GENERATED_29 and all(plain_file(value, mode) for value in (before, after)):
+            return 'generated', GENERATED_29[rel]
+        return None
+
+    def extra(self):
+        old, new = self.policy['old_inventory'], self.policy['inventory']
+        # Even an identical or missing path can violate an independently required install.
+        problems = ['311 labwc payload comparison is pending step 2']
+        for rel in sorted(self.config | CONFIG_REASONS_29.keys()):
+            if rel not in self.config or rel not in CONFIG_REASONS_29 or not all(
+                    self.matching_config(side, rel, inv.get(rel)) for side, inv in (('old', old), ('new', new))):
+                problems.append('missing, retained or different os/config input: ' + rel)
+        for rel in self.MANIFEST_REASONS:
+            if not all(self.manifest_matches(side, rel, inv.get(rel)) for side, inv in (('old', old), ('new', new))):
+                problems.append('pinned input or image record missing or different: ' + rel)
+        if old.get(GUARDIAN_LINK[0]) is not None or not exact_link(new.get(GUARDIAN_LINK[0]), GUARDIAN_LINK[1]):
+            problems.append('guardian enable link missing or different')
+        for rel, target in (CONSOLE_KEYMAP_LINK, DESKTOP_COMMAND, PRISM_COMMAND):
+            if not exact_link(new.get(rel), target):
+                problems.append('existing image link missing or different: ' + rel)
+        rows = self.audit_rows()
+        if rows is None or not all(plain_file(inv.get(UPDATERS), 0o644) for inv in (old, new)):
+            problems.append('guardian updater audit row missing or different, or existing rows changed')
+        rpm = self.policy['records']
+        payload = {rel for rel, records in rpm.items() if any(not record['flags'] & RPMFILE_GHOST for record in records)}
+        invalid = sorted(rel for rel in payload if not self.package_file(rel, new.get(rel)))
+        if invalid or not payload or set(rpm) != {path[1:] for path in self.owned['gtk']}:
+            problems.append('GTK layer-shell RPM inventory missing or different: ' + ', '.join(invalid))
+        try:
+            prism_ok = plain_file(new.get(PRISM_FILES), 0o644) and self.prism_files()
+        except (UnicodeDecodeError, OSError):
+            prism_ok = False
+        if not prism_ok:
+            problems.append('Prism bundle differs from the complete typed inventory or independently pinned file list')
+        if not plain_file(new.get(SCHEMAS), 0o644) or not self.rebuilt_schemas()['matches']:
+            problems.append('compiled schemas differ from deterministic rebuild with the image compiler and schema directory')
+        missing = sorted(self.expected_alternatives.keys() - self.alternatives().keys())
+        if missing:
+            problems.append('alternatives groups missing or different from the reviewed mapping: ' + ', '.join(missing))
+        try:
+            crown = crown_digest(self.new_root / CROWN) if self.image_folder(CROWN) else None
+        except OSError:
+            crown = None
+        pin = crown_pin()
+        if crown != pin:
+            problems.append('the Ares-Crown theme differs from its image-checks.sh pin')
+        font_dir = '/usr/share/fonts/aresos'
+        digest = hashlib.md5(font_dir.encode(), usedforsecurity=False).hexdigest()
+        if any(not self.image_folder(font_dir[1:], root=root)
+               or self.font_pair(root, f'{FONT_CACHES}{digest}-le64.cache-9', font_dir) != font_dir
+               for root in (self.old_root, self.new_root)):
+            problems.append('AresOS system font caches missing or different in either format')
+        if not self.control_entries():
+            problems.append('Control install differs from R28 or its validated install record: ' + str(self.control_error))
+        for rel in (path for path in CONTROL_ACCOUNTS if not path.endswith('-')):
+            for side in ('old', 'new'):
+                try:
+                    raw = self.read(side, rel)
+                    if raw is not None and control_account_row(rel, raw) and control_accounts(rel, raw, raw):
+                        continue
+                except (UnicodeDecodeError, IndexError):
+                    pass
+                problems.append(f'Control UID/GID 250 account record missing or different in {side}: {rel}')
+        old_rc, new_rc = self.read('old', RC_XML), self.read('new', RC_XML)
+        rc = rc_xml_changes(old_rc, new_rc) if all(self.matching_config(side, RC_XML, inv.get(RC_XML))
+            for side, inv in (('old', old), ('new', new))) else None
+        return dict(control=dict(previous_revision=self.revisions['old'], source_revision=self.revisions['new'],
+                                 error=self.control_error),
+                    schema_rebuild=self.rebuilt_schemas(),
+                    font_caches=sorted(self.font_caches, key=lambda row: row['path']), updaters=rows,
+                    alternatives={name: dict(sorted(targets.items())) for name, (_, targets) in sorted(self.alternatives().items())},
+                    theme=dict(image=crown, image_checks=pin, equal=crown == pin), rc_xml=rc), problems
+
+
 RELEASES = {
     '27': dict(previous=PREVIOUS, previous_release='13', previous_source=PREVIOUS_SOURCE, reasons=PACKAGE_REASONS,
                classifier=Classifier, executables=CHMOD_0755, previous_chrome=False, main_sources=False, package_files=False,
@@ -1698,6 +2124,9 @@ RELEASES = {
                classifier=Classifier28, executables=CHMOD_0755_28, previous_chrome=True, unmasked=set(),
                # Release 28 (review 1 of package 42): its sources are main's (S2); its added packages' files are
                # checked against their rpm database (S5).
+               main_sources=True, package_files=True),
+    '29': dict(previous=PREVIOUS_29, previous_release='28', previous_source=PREVIOUS_SOURCE_29, reasons=PACKAGE_REASONS_29,
+               classifier=Classifier29, executables=CHMOD_0755_29, previous_chrome=True, unmasked=set(),
                main_sources=True, package_files=True),
 }
 
@@ -1738,7 +2167,7 @@ def rpm_verify(image, nevras):
 
 
 def main(tools, run=None, release='27', evidence='evidence/image-diff'):
-    """Compare the release before `release` (13 for 27, 27 for 28) with localhost/aresos:ci; write evidence/image-diff."""
+    """Compare a rebuild with its recorded predecessor and write the image diff evidence."""
     profile = RELEASES[release]
     before_release, source = profile['previous_release'], profile['previous_source']
     from build_tools import validate
@@ -1749,6 +2178,13 @@ def main(tools, run=None, release='27', evidence='evidence/image-diff'):
     main_base = main_merge_base() if profile['main_sources'] else None
     previous = json.loads(pathlib.Path(profile['previous']).read_text())
     base_reference = json.loads(pathlib.Path('os/manifest/base.json').read_text())['reference']
+    if release == '29':
+        main_sources, problems = verify_source29(previous, main_base)
+        if problems:
+            stopped = dict(status='stopped', release=release, previous=previous['reference'], previous_source=source,
+                           main=main_sources, problems=problems)
+            (evidence / 'result.json').write_text(json.dumps(stopped, indent=2) + '\n')
+            raise AssertionError('STOP: ' + '; '.join(problems))
     assert previous['base'] == base_reference, f'STOP: release {before_release} was built on another base'
     images = dict(old=previous['reference'], new=NEW, base=base_reference)
     mounts, roots, packages, names = [], {}, {}, {}
@@ -1761,6 +2197,8 @@ def main(tools, run=None, release='27', evidence='evidence/image-diff'):
                 rows = command('podman', 'run', '--pull=never', '--network=none', '--read-only', '--rm',
                                '--entrypoint=/usr/bin/rpm', image, '-qa', '--qf', '%{NEVRA}\t%{NAME}\n').splitlines()
                 names[name] = dict(row.split('\t') for row in rows)
+                if release == '29':
+                    assert len(names[name]) == len(rows), 'STOP: duplicate installed RPM NEVRA'
                 packages[name] = sorted(names[name])
         old_lock = [p['nevra'] for p in json.loads(git_bytes(source, 'os/packages.lock.json'))['packages']]
         new_lock = [p['nevra'] for p in json.loads(pathlib.Path('os/packages.lock.json').read_text())['packages']]
@@ -1770,7 +2208,11 @@ def main(tools, run=None, release='27', evidence='evidence/image-diff'):
         if profile['previous_chrome']:
             # Release 27 already carries Chrome from its pin: only a renewed pin would add or remove it.
             old_lock.append(json.loads(git_bytes(source, 'os/google-chrome.lock.json'))['nevra'])
-        package_rows, added, removed = package_diff(names['old'], names['new'], old_lock, new_lock, profile['reasons'])
+        if release == '29':
+            labwc = json.loads(pathlib.Path('os/labwc/labwc.lock.json').read_text())['result']
+            package_rows, added, removed = package_diff29(names['old'], names['new'], old_lock, new_lock, labwc)
+        else:
+            package_rows, added, removed = package_diff(names['old'], names['new'], old_lock, new_lock, profile['reasons'])
         (evidence / 'packages.json').write_text(json.dumps(dict(old=packages['old'], new=packages['new'], changes=package_rows), indent=2) + '\n')
 
         def owned(image, nevras):
@@ -1782,8 +2224,12 @@ def main(tools, run=None, release='27', evidence='evidence/image-diff'):
         ownership = dict(old=owned(images['old'], removed), new=owned(images['new'], added))
         records = {}
         if profile['package_files'] and added:
+            checked = added
+            if release == '29':
+                checked = [GTK_LAYER_29]
+                ownership['gtk'] = owned(images['new'], checked)
             records = rpm_files(command('podman', 'run', '--pull=never', '--network=none', '--read-only', '--rm',
-                                        '--entrypoint=/usr/bin/rpm', images['new'], '-q', '--qf', RPM_FILE_FORMAT, *added))
+                                        '--entrypoint=/usr/bin/rpm', images['new'], '-q', '--qf', RPM_FILE_FORMAT, *checked))
 
         inventories = {}
         for name in ('old', 'new'):
@@ -1798,14 +2244,17 @@ def main(tools, run=None, release='27', evidence='evidence/image-diff'):
             return {line.strip() for name in ('masked-system-units.txt', 'masked-user-units.txt')
                     for line in (root / 'usr/share/aresos/policy' / name).read_text().splitlines() if line.strip()}
         unmasked = masked(roots['old']) - masked(roots['new'])
-        assert unmasked <= profile['unmasked'], \
-            'STOP: unreviewed unit unmasked: ' + repr(sorted(unmasked))
+        if release != '29':
+            assert unmasked <= profile['unmasked'], \
+                'STOP: unreviewed unit unmasked: ' + repr(sorted(unmasked))
         children = lambda rel: any(p.startswith(rel + '/') for p in old)
         policy = dict(unmasked=unmasked, executables=profile['executables'], old_has_children=children, inventory=new,
                       main_base=main_base, records=records)
-        if release == '28':
+        if release in ('28', '29'):
             policy.update(new_image=images['new'], prism_inventory=prism_inventory(
                 json.loads(pathlib.Path('os/minecraft/desktop.lock.json').read_text())['prism']))
+        if release == '29':
+            policy['old_inventory'] = old
         classifier = profile['classifier']((roots['old'], roots['new'], roots['base']), packages, ownership, policy)
         details, unexplained = {}, []
         for rel in changed:
@@ -1821,6 +2270,8 @@ def main(tools, run=None, release='27', evidence='evidence/image-diff'):
         units = {rel: dict(rule=row['rule'], reason=row.get('reason')) for rel, row in details.items()
                  if re.search(r'(^|/)systemd/', rel)}
         problems = []
+        if release == '29' and unmasked:
+            problems.append('unreviewed unit unmasked: ' + repr(sorted(unmasked)))
         if any(row['rule'] == 'generated' for row in units.values()):
             problems.append('a unit changed only as a generated file')
         counts = {}
@@ -1833,7 +2284,9 @@ def main(tools, run=None, release='27', evidence='evidence/image-diff'):
             extra, found = classifier.extra()
             extra = dict(release=release, **extra)
             problems.extend(found)
-        if profile['main_sources']:
+        if release == '29':
+            extra['main'] = main_sources
+        elif profile['main_sources']:
             # Everything that rides is main's (brief 42): the image's sources on this commit equal main's at the
             # merge base, except what BRANCH_SOURCE_CHANGES allows this branch.
             allowed, differing = source_changes(main_base)
@@ -1854,6 +2307,9 @@ def main(tools, run=None, release='27', evidence='evidence/image-diff'):
             problems.append(f'release {release} base ancestry differs')
         old_config, new_config = (dict(c['config']) for c in configs)
         old_labels, new_labels = old_config.pop('Labels'), new_config.pop('Labels')
+        if release == '29' and (old_labels.get('org.opencontainers.image.revision') != source
+                                or old_labels.get('org.opencontainers.image.source') != 'https://github.com/Ares-Empire/AresOS'):
+            problems.append(f'release {before_release} source labels differ from its record')
         runtime = {k: dict(before=old_config.get(k), after=new_config.get(k)) for k in sorted(old_config.keys() | new_config.keys())
                    if old_config.get(k) != new_config.get(k)}
         if runtime:

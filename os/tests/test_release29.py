@@ -1,0 +1,406 @@
+"""Package 331 step 1. All mounts, RPM queries and image commands use fixtures."""
+import ast
+import gzip
+import hashlib
+import json
+import os
+import pathlib
+import re
+import shlex
+import stat
+import sys
+import tempfile
+import unittest
+from unittest.mock import patch
+
+import test_release28 as r28
+from audit import PATTERN
+from test_release27 import lock_nevras, name_of, released
+
+import build_tools
+import image_diff
+import release_diff as rd
+
+ROOT = r28.ROOT
+R28 = json.loads((ROOT / rd.PREVIOUS_29).read_text())
+MAIN = 'a9863055b2987127cd1cd684182deed9ece24ce0'
+HEAD = r28.git('rev-parse', 'HEAD').strip()
+FONT_64 = rd.FONT_CACHES + '50471fd4bd417ff5c0731b6a17aa3708-le64.cache-9'
+FONT_32 = FONT_64.replace('le64', 'le32d4')
+GTK = 'usr/lib64/libgtk4-layer-shell.so.0.0.0'
+TYPELIB = 'usr/lib64/girepository-1.0/Gtk4LayerShell-1.0.typelib'
+GHOST = 'usr/lib64/gtk-layer-ghost'
+BLANK = b''
+LABWC = 'usr/bin/labwc'
+
+
+def lock29():
+    return rd.git_bytes(MAIN, 'os/packages.lock.json')
+
+
+def package_inputs():
+    chrome = json.loads(released('28', 'os/google-chrome.lock.json'))['nevra']
+    old_lock = lock_nevras(released('28', 'os/packages.lock.json')) + [chrome]
+    new_lock = lock_nevras(lock29()) + [chrome]
+    old = {nevra: name_of(nevra) for nevra in old_lock}
+    new = {nevra: name_of(nevra) for nevra in new_lock if nevra != rd.LABWC_FEDORA_29}
+    new[rd.LABWC_BUILD_29] = 'labwc'
+    return old, new, old_lock, new_lock
+
+
+class CurrentMainTest(unittest.TestCase):
+    def test_source_stops_keep_the_historical_source_lists(self):
+        self.assertEqual(rd.RELEASES['29']['previous_source'], R28['source_commit'])
+        self.assertEqual(rd.IMAGE_SOURCES_29, rd.IMAGE_SOURCES + ('os/labwc',))
+        self.assertEqual(set(rd.BRANCH_SOURCE_CHANGES_29), {'os/minecraft/desktop.lock.json'})
+        self.assertIn('os/build.sh', rd.BRANCH_SOURCE_CHANGES)
+        self.assertEqual(rd.source_changes(MAIN, HEAD, sources=rd.IMAGE_SOURCES_29,
+                                           exceptions=rd.BRANCH_SOURCE_CHANGES_29), ({}, []))
+        with patch.dict(os.environ, GITHUB_SHA=HEAD):
+            self.assertEqual(rd.verify_source29(R28, MAIN)[1], [])
+            damaged = dict(R28, source_trees=R28['source_trees'][1:])
+            self.assertIn('does not match', rd.verify_source29(damaged, MAIN)[1][0])
+
+    def test_build_source_list_covers_actual_inputs(self):
+        container = rd.git_bytes(MAIN, 'os/Containerfile').decode()
+        build = rd.git_bytes(MAIN, 'os/build.sh').decode()
+        # Explicit context COPYs, local script inputs and the staged Git tar paths.
+        copies = set(re.findall(r'^COPY (?!-)([\w./-]+) ', container, re.M)) - {'.'}
+        self.assertEqual(copies, {'build.sh', 'labwc/', 'packages.lock.json', 'Containerfile'})
+        paths = {'os/' + path.rstrip('/') for path in copies}
+        for content in (container, build):
+            paths.update('os/' + path for path in re.findall(r'/tmp/aresos/([\w.-]+(?:/audit\.py)?)', content))
+        paths -= {'os/ci', 'os/control'}  # explicitly refused, and copied from source respectively
+        paths.update(('os/.containerignore', 'os/manifest/base.json'))
+        paths.update(('control', 'mod'))
+        self.assertIn('/tmp/aresos-mod/build.sh source', container)
+        tar, = [shlex.split(line) for line in build.splitlines() if line.strip().startswith('tar -xzf')]
+        self.assertEqual(tar[-2:], ['*/mod/*', 'AresOS-$revision/control'])
+        self.assertEqual(paths, set(rd.IMAGE_SOURCES_29))
+
+    def test_git_diff_uses_modes_and_labwc_and_disallows_the_old_build_exception(self):
+        path = 'os/minecraft/desktop.lock.json'
+        cases = {
+            path: ('100755 blob newid', [path]),
+            'os/build.sh': ('100644 blob newid', ['os/build.sh']),
+            'os/labwc/stage.py': ('100644 blob newid', ['os/labwc/stage.py']),
+        }
+        for changed, (new_entry, unexpected) in cases.items():
+            def git(*args, **kwargs):
+                if args[0] == 'diff':
+                    self.assertIn('os/labwc', args)
+                    return changed + '\0'
+                self.assertEqual(args[0], 'ls-tree')
+                return '100644 blob oldid' if args[1] == 'main' else new_entry
+            with self.subTest(path=changed), patch.object(rd, 'git', side_effect=git):
+                self.assertEqual(rd.source_changes('main', 'merge', sources=rd.IMAGE_SOURCES_29,
+                                                   exceptions=rd.BRANCH_SOURCE_CHANGES_29), ({}, unexpected))
+
+    def test_all_current_main_config_changes_and_modes_have_reasons(self):
+        before, after = rd.config_tree(R28['source_commit']), rd.config_tree(MAIN)
+        changed = {rel for rel in before.keys() | after.keys() if before.get(rel) != after.get(rel)}
+        self.assertEqual(changed, set(rd.CONFIG_REASONS_29))
+        self.assertFalse(set(before) - set(after))
+        for name in ('aresos-level', 'aresos-indicator', 'aresos-settings', 'aresos-laptop-home'):
+            path = 'usr/libexec/' + name
+            self.assertEqual(after[path][0], '100755')
+            self.assertNotIn(path, rd.CHMOD_0755_29)
+        configure = rd.git_bytes(MAIN, 'os/build.sh').decode().replace('\\\n', ' ')
+        line, = [line for line in configure.splitlines() if line.startswith('chmod 0755 /usr/bin/aresos-session ')]
+        self.assertEqual({part[1:] for part in line.split()[2:]}, rd.CHMOD_0755_29)
+
+    def test_rc_xml_rows_and_guardian_audit_come_from_the_reviewed_sources(self):
+        path = 'os/config/' + rd.RC_XML
+        old = rd.git_bytes(R28['source_commit'], path)
+        self.assertEqual(rd.config_tree(R28['source_commit'])[rd.RC_XML][2],
+                         r28.git('rev-parse', f"{R28['source_commit']}:{path}").strip())
+        rows = rd.rc_xml_changes(old, rd.git_bytes(MAIN, path))
+        expected = {'XF86MonBrightnessUp': 'brightness-up', 'XF86MonBrightnessDown': 'brightness-down',
+                    'XF86AudioRaiseVolume': 'volume-up', 'XF86AudioLowerVolume': 'volume-down',
+                    'XF86AudioMute': 'mute', 'XF86AudioMicMute': 'mic-mute'}
+        self.assertEqual(set(re.findall(r'key="(\w+)"', '\n'.join(rows['removed']))), set(expected))
+        self.assertEqual(len(rows['removed']), 6)
+        self.assertEqual(len(rows['added']), 7)
+        for key, action in expected.items():
+            row, = [row for row in rows['added'] if f'key="{key}"' in row]
+            self.assertIn(f'command="/usr/libexec/aresos-level {action}"', row)
+        black, = [row for row in rows['added'] if 'aresos.black' in row]
+        self.assertIn('serverDecoration="no"', black)
+        self.assertIn('ToggleAlwaysOnTop', black)
+        unit = rd.git_bytes(MAIN, 'os/config/' + rd.GUARDIAN_UNIT).decode()
+        self.assertEqual(rd.GUARDIAN_AUDIT['commands'], [line for line in unit.splitlines() if line.startswith('Exec')])
+        self.assertFalse(PATTERN.search(unit))
+        self.assertIn('WantedBy=graphical.target', unit)
+
+    def test_control_build_python_and_nonprivileged_help_have_the_reviewed_flags(self):
+        build = rd.git_bytes(MAIN, 'os/build.sh').decode()
+        block = build.split('if [[ $1 == control ||', 1)[1].split('if [[ $1 == packages ]]', 1)[0]
+        python = [line for line in block.splitlines() if 'python3' in line and not line.lstrip().startswith('#')]
+        self.assertEqual(len(python), 5)
+        self.assertTrue(all(' -B ' in line for line in python))
+        child = next(node for node in ast.walk(ast.parse(block.split("<<'PY'\n", 1)[1].split('\nPY\n', 1)[0]))
+                     if isinstance(node, ast.Call) and ast.unparse(node.func) == 'subprocess.run')
+        self.assertEqual(ast.literal_eval(ast.List(elts=child.args[0].elts[1:3], ctx=ast.Load())), ['-I', '-B'])
+        self.assertIn('setpriv --reuid=nobody --regid=nobody --clear-groups -- /usr/bin/aresos --help', block)
+        self.assertIn('--invalidation-mode checked-hash "$vendor"', block)
+
+    def test_installed_rpm_delta_is_exact(self):
+        old, new, old_lock, new_lock = package_inputs()
+        labwc = json.loads(rd.git_bytes(MAIN, 'os/labwc/labwc.lock.json'))['result']
+        rows, added, removed = rd.package_diff29(old, new, old_lock, new_lock, labwc)
+        self.assertEqual({row['reason'] for row in rows}, set(rd.PACKAGE_REASONS_29.values()))
+        self.assertEqual(added, [rd.GTK_LAYER_29, rd.LABWC_BUILD_29])
+        self.assertEqual(removed, [rd.LABWC_FEDORA_29])
+        with self.assertRaisesRegex(AssertionError, 'exactly Fedora labwc'):
+            rd.package_diff29(old, dict(new, **{rd.LABWC_FEDORA_29: 'labwc'}), old_lock, new_lock, labwc)
+        with self.assertRaisesRegex(AssertionError, 'unexpected labwc lock'):
+            rd.package_diff29(old, new, old_lock, new_lock, dict(labwc, nevra=rd.LABWC_BUILD_29.replace('aresos1', 'aresos2')))
+        with self.assertRaisesRegex(AssertionError, 'unexpected R29 download lock delta'):
+            rd.package_diff29(old, new, old_lock, new_lock + ['unreviewed-1-1.x86_64'], labwc)
+
+
+class ImageDiffTest(unittest.TestCase):
+    maxDiff = None
+
+    def setUp(self):
+        self.work = pathlib.Path(self.enterContext(tempfile.TemporaryDirectory(dir=ROOT / 'os/tests')))
+        self.roots = {name: self.work / name for name in ('old', 'new', 'base')}
+        self.rpms = dict(zip(('old', 'new'), package_inputs()[:2]))
+        self.mounts = {R28['reference']: 'old', rd.NEW: 'new', R28['base']: 'base'}
+        self.versions = dict(old=R28['source_commit'], new=HEAD)
+        mask = {'usr/share/aresos/policy/' + name: rd.git_bytes(R28['source_commit'], 'os/policy/' + name)
+                for name in ('masked-system-units.txt', 'masked-user-units.txt')}
+        self.jar = {}
+        java = json.loads(rd.git_bytes(R28['source_commit'], rd.ALTERNATIVES_MANIFEST_28))['groups']
+        for side, version in self.versions.items():
+            self.roots[side].mkdir()
+            for path, raw in mask.items():
+                self.write(side, path, raw)
+            self.write(side, rd.MANIFEST + 'packages.txt', '\n'.join(sorted(self.rpms[side])) + '\n')
+            raw = released('28', 'os/packages.lock.json') if side == 'old' else lock29()
+            self.write(side, rd.MANIFEST + 'packages.lock.json', json.dumps(json.loads(raw), indent=2) + '\n')
+            raw = rd.git_bytes(version, 'os/minecraft/desktop.lock.json')
+            self.write(side, rd.DESKTOP_LOCK, raw)
+            self.jar[side] = next(mod['sha256'] for mod in json.loads(raw)['mods'] if mod['file'] == 'aresos.jar')
+            self.write(side, rd.MOD_JAR, b'jar fixture')
+            self.write(side, rd.MOD_RECORD, json.dumps(dict(sha256=self.jar[side], source_revision=version,
+                                                           pinned_sha256=self.jar[side]), indent=2) + '\n')
+            tree = rd.config_tree(version)
+            paths = rd.CONFIG_REASONS_29.keys() | {rel for rel in tree if rel.startswith(rd.CROWN + '/')}
+            for rel in paths & tree.keys():
+                mode = 0o755 if tree[rel][0] == '100755' or rel in rd.CHMOD_0755_29 else 0o644
+                self.write(side, rel, rd.git_bytes(version, 'os/config/' + rel), mode)
+            self.write(side, 'usr/share/fonts/aresos/SpaceGrotesk-Variable.ttf',
+                       rd.git_bytes(R28['source_commit'], 'os/config/usr/share/fonts/aresos/SpaceGrotesk-Variable.ttf'))
+            for rel in FONT_32, FONT_64:
+                raw = rd.git_bytes(R28['source_commit'], str((r28.FontCacheTest.FIXTURES / pathlib.Path(rel).name).relative_to(ROOT)))
+                self.write(side, rel, raw if side == 'old' else raw[:-1] + bytes([raw[-1] ^ 1]))
+            self.write(side, rd.SCHEMAS, rd.git_bytes(R28['source_commit'], 'os/tests/fixtures/release28-schemas/after.compiled'))
+            self.write(side, rd.PRISM + '/bin/prismlauncher', b'prism', 0o755)
+            self.link(side, (rd.PRISM + '/launcher', 'bin/prismlauncher'))
+            self.write(side, rd.PRISM_FILES, f"{hashlib.sha256(b'prism').hexdigest()}  /{rd.PRISM}/bin/prismlauncher\n")
+            for link in (rd.CONSOLE_KEYMAP_LINK, rd.DESKTOP_COMMAND, rd.PRISM_COMMAND):
+                self.link(side, link)
+            self.install_alternatives(side, java)
+            r28.install_control_fixture(self.roots[side])
+            record = self.roots[side] / rd.CONTROL_RECORD
+            record.write_text(record.read_text().replace('a' * 40, version))
+            for name, raw in {
+                'passwd': 'aresos-tools:x:250:250:AresOS tool service:/var/lib/aresos-tools:/usr/sbin/nologin\n',
+                'group': 'aresos-tools:x:250:\n', 'gshadow': 'aresos-tools:!::\n',
+                'shadow': f'aresos-tools:!*:{20111 if side == "old" else 20112}::::::\n',
+            }.items():
+                self.write(side, 'etc/' + name, raw, 0o600 if name == 'shadow' else 0o644)
+            rows = [rd.CONSOLE_KEYMAP_AUDIT, rd.CONTROL_AUDIT]
+            if side == 'new':
+                rows.insert(1, rd.GUARDIAN_AUDIT)
+            self.write(side, rd.UPDATERS, json.dumps(rows, indent=2) + '\n')
+            self.write(side, rd.RPM_DATABASE, side)
+            self.write(side, LABWC, side, 0o755)
+            (self.roots[side] / pathlib.PurePosixPath(TYPELIB).parent).mkdir(parents=True)
+        self.link('new', rd.GUARDIAN_LINK)
+        self.write('new', rd.LABWC_RECORD, rd.git_bytes(MAIN, 'os/labwc/labwc.lock.json'))
+        self.write('new', GTK, b'library')
+        self.write('new', TYPELIB, b'typelib')
+        self.verify = ''
+        self.rebuilt = True
+        self.xattrs = {}
+        old_inventory, old_entry = image_diff.inventory, rd.entry
+        def typed(side, rel, value):
+            if value is None:
+                return None
+            row = dict(value, uid=0, gid=0, xattrs=self.xattrs.get((side, rel), {}))
+            if rel == rd.MOD_JAR:
+                row['sha256'] = self.jar[side]
+            return row
+        self.enterContext(patch.object(image_diff, 'inventory', side_effect=lambda root: {
+            rel: typed(root.name, rel, val) for rel, val in old_inventory(root).items()}))
+        self.enterContext(patch.object(rd, 'entry', side_effect=lambda root, rel: typed(root.name, rel, old_entry(root, rel))))
+        inventory = image_diff.inventory(self.roots['new'])
+        self.enterContext(patch.object(rd, 'prism_inventory', return_value={
+            rel: row for rel, row in inventory.items() if rel == rd.PRISM or rel.startswith(rd.PRISM + '/')}))
+        prism_pin = json.loads(rd.git_bytes(R28['source_commit'], 'os/minecraft/desktop.lock.json'))['prism']['sha256']
+        self.enterContext(patch.dict(rd.PRISM_FILE_LISTS, {prism_pin: inventory[rd.PRISM_FILES]['sha256']}))
+        self.enterContext(patch.dict(os.environ, GITHUB_SHA=HEAD))
+        self.enterContext(patch.object(rd, 'main_merge_base', return_value=MAIN))
+        self.commands = self.enterContext(patch.object(image_diff, 'command', side_effect=self.command))
+
+    def install_alternatives(self, side, groups):
+        for group, data in groups.items():
+            links = {name: public for public, name in data['links'].items()}
+            choice, = data['choices']
+            slaves = sorted(links.keys() - {group})
+            public = [item for name in slaves for item in (name, links[name])]
+            targets = choice['targets']
+            raw = ['auto', links[group], *public, '', targets[group], str(choice['priority']),
+                   *(targets[name] for name in slaves), '']
+            self.write(side, rd.ALTERNATIVES_ADMIN + group, '\n'.join(raw))
+            for name, path in links.items():
+                if targets[name]:
+                    self.link(side, (rd.ALTERNATIVES + name, targets[name]))
+                    self.link(side, (path[1:], '/' + rd.ALTERNATIVES + name))
+            for target in targets.values():
+                if target.endswith('/java-25-openjdk'):
+                    (self.roots[side] / target[1:]).mkdir(parents=True, exist_ok=True)
+                elif target:
+                    self.write(side, target[1:], b'pinned Java fixture')
+
+    def write(self, side, rel, raw, mode=0o644):
+        path = self.roots[side] / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(raw.encode() if isinstance(raw, str) else raw)
+        path.chmod(mode)
+        return path
+
+    def link(self, side, pair):
+        path = self.roots[side] / pair[0]
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.symlink_to(pair[1])
+
+    def command(self, tool, action, *args):
+        if tool == 'skopeo':
+            side = self.mounts[args[-1].removeprefix('containers-storage:')]
+            base = dict(rootfs=dict(diff_ids=['base']))
+            if side == 'base':
+                return json.dumps(base)
+            labels = {'org.opencontainers.image.source': 'https://github.com/Ares-Empire/AresOS',
+                      'org.opencontainers.image.revision': self.versions[side]}
+            return json.dumps(dict(rootfs=dict(diff_ids=['base', side]), config=dict(Labels=labels)))
+        self.assertEqual(tool, 'podman')
+        if action == 'create':
+            return args[-1]
+        if action == 'mount':
+            return str(self.roots[self.mounts[args[-1]]])
+        if action in ('unmount', 'rm'):
+            return ''
+        self.assertEqual(action, 'run')
+        if 'SCHEMA_REBUILD_MATCHED' in args[-1]:
+            return 'SCHEMA_REBUILD_MATCHED' if self.rebuilt else 'schema byte mismatch'
+        image, op, *params = args[args.index('--entrypoint=/usr/bin/rpm') + 1:]
+        side = self.mounts[image]
+        if op == '-qa':
+            return '\n'.join(f'{nevra}\t{name}' for nevra, name in self.rpms[side].items())
+        if op == '-V':
+            self.assertEqual(params, [rd.GTK_LAYER_29, rd.LABWC_BUILD_29])
+            return self.verify
+        if op == '-ql':
+            return '\n'.join('/' + path for path in ((GTK, TYPELIB, GHOST) if params == [rd.GTK_LAYER_29] else (LABWC,)))
+        self.assertEqual((side, op, params), ('new', '-q', ['--qf', rd.RPM_FILE_FORMAT, rd.GTK_LAYER_29]))
+        return '\n'.join('\t'.join(('/' + path, 'root', 'root', str(flags), str(len(raw)), '8',
+                                    hashlib.sha256(raw).hexdigest(), '', '', str(stat.S_IFREG | 0o644)))
+                         for path, raw, flags in ((GTK, b'library', 0), (TYPELIB, b'typelib', 0),
+                                                  (GHOST, BLANK, rd.RPMFILE_GHOST)))
+
+    def diff(self, name='evidence'):
+        evidence = self.work / name
+        with self.assertRaisesRegex(AssertionError, '^STOP:'):
+            rd.main({name: sys.executable for name in build_tools.NAMES}, release='29', evidence=evidence)
+        result = json.loads((evidence / 'result.json').read_text())
+        self.assertEqual(result['status'], 'stopped')
+        return evidence, result
+
+    def test_full_diff_explains_the_current_main_paths_except_labwc_payload(self):
+        evidence, result = self.diff()
+        self.assertEqual(result['problems'], ['311 labwc payload comparison is pending step 2'])
+        self.assertEqual(result['unexplained'], [LABWC])
+        self.assertEqual(result['packages'][0]['nevra'], rd.GTK_LAYER_29)
+        self.assertEqual(set(result['units']), {rd.GUARDIAN_UNIT, rd.GUARDIAN_LINK[0], rd.GUARDIAN_DROPIN,
+                                              str(pathlib.PurePosixPath(rd.GUARDIAN_DROPIN).parent)})
+        self.assertEqual(result['updaters'][0]['unit'], 'aresos-guardian.service')
+        self.assertEqual(len(result['rc_xml']['added']), 7)
+        self.assertEqual({row['format'] for row in result['font_caches']}, {'le64', 'le32d4'})
+        with gzip.open(evidence / 'classified-files.json.gz', 'rt') as stream:
+            files = json.load(stream)
+        self.assertEqual(files[rd.CONTROL_RECORD]['rule'], 'control')
+        self.assertEqual(files[GTK]['rule'], 'package')
+        self.assertEqual(files[rd.LABWC_RECORD]['rule'], 'manifest')
+
+    def test_missing_paths_and_near_misses_stop_even_without_a_diff(self):
+        for side in ('old', 'new'):
+            for rel in (rd.GUARDIAN_LINK[0], rd.GUARDIAN_DROPIN, rd.PRISM + '/launcher', rd.UPDATERS,
+                        '/usr/bin/java', rd.ALTERNATIVES_ADMIN + 'jre_25_openjdk', rd.CONTROL_UNIT, FONT_32):
+                path = self.roots[side] / rel.lstrip('/')
+                path.unlink(missing_ok=True)
+        (self.roots['new'] / TYPELIB).unlink()
+        (self.roots['new'] / rd.RC_XML).chmod(0o755)
+        (self.roots['old'] / 'usr/libexec/aresos-shell').chmod(0o644)
+        self.rebuilt = False
+        self.verify = 'missing     /' + TYPELIB
+        _, result = self.diff()
+        for reason in (rd.GUARDIAN_DROPIN, 'guardian enable link', 'updater audit', TYPELIB, 'complete typed inventory',
+                       'deterministic rebuild', 'alternatives groups', 'font caches missing', 'Control install',
+                       rd.RC_XML, 'usr/libexec/aresos-shell', 'rpm verification'):
+            self.assertTrue(any(reason in problem for problem in result['problems']), reason)
+
+    def test_renewed_mod_pin_binds_jar_lock_and_record_in_both_images(self):
+        lock_path = 'os/minecraft/desktop.lock.json'
+        real_git_bytes = rd.git_bytes
+        lock = json.loads(real_git_bytes(HEAD, lock_path))
+        jar = next(mod for mod in lock['mods'] if mod['file'] == 'aresos.jar')
+        jar['sha256'] = self.jar['new'] = 'c' * 64
+        raw = (json.dumps(lock, indent=2) + '\n').encode()
+        self.write('new', rd.DESKTOP_LOCK, raw)
+        self.write('new', rd.MOD_RECORD, json.dumps(dict(sha256=jar['sha256'], source_revision=HEAD,
+                                                        pinned_sha256=jar['sha256']), indent=2) + '\n')
+        def git_bytes(revision, path):
+            return raw if (revision, path) == (HEAD, lock_path) else real_git_bytes(revision, path)
+        with patch.object(rd, 'git_bytes', side_effect=git_bytes):
+            evidence, result = self.diff()
+            self.assertEqual(result['unexplained'], [LABWC])
+            with gzip.open(evidence / 'classified-files.json.gz', 'rt') as stream:
+                self.assertEqual(json.load(stream)[rd.MOD_JAR]['reason'], rd.JAR_REASON_29)
+            self.jar['old'] = 'd' * 64
+            _, result = self.diff('bad-old-jar')
+            self.assertIn(rd.MOD_JAR, result['unexplained'])
+
+    def test_mode_attribute_and_unreviewed_generated_changes_stay_unexplained(self):
+        self.write('new', 'usr/lib/sysimage/libdnf5/unreviewed.toml', 'update')
+        self.write('new', rd.RPM_DATABASE, 'changed', 0o600)
+        self.write('new', rd.LABWC_RECORD, '{}')
+        self.xattrs['old', 'usr/libexec/aresos-cover'] = {'user.unexpected': '31'}
+        self.write('new', 'usr/share/aresos/policy/masked-system-units.txt', '')
+        _, result = self.diff()
+        self.assertIn(rd.RPM_DATABASE, result['unexplained'])
+        self.assertIn(rd.LABWC_RECORD, result['unexplained'])
+        self.assertIn('usr/libexec/aresos-cover', result['unexplained'])
+        self.assertIn('usr/lib/sysimage/libdnf5/unreviewed.toml', result['unexplained'])
+        self.assertTrue(any('unreviewed unit unmasked' in problem for problem in result['problems']))
+
+    def test_missing_input_and_wrong_cut_merge_write_stopped_result_before_mounting(self):
+        real_git = rd.git
+        cases = [
+            (('ls-tree', '--name-only', 'HEAD', *rd.IMAGE_SOURCES_29), 'os/labwc', 'missing from HEAD'),
+            (('diff', '-z', '--name-only', '--no-renames', MAIN, 'HEAD', '--', *rd.IMAGE_SOURCES_29),
+             'os/labwc/stage.py\0', 'differ from main'),
+        ]
+        for index, (intercept, path, expected) in enumerate(cases):
+            def git(*args, **kwargs):
+                if args == intercept:
+                    if args[0] == 'ls-tree':
+                        return real_git(*args, **kwargs).replace(path + '\n', '')
+                    return path
+                return real_git(*args, **kwargs)
+            with self.subTest(expected=expected), patch.object(rd, 'git', side_effect=git):
+                _, result = self.diff(f'evidence-{index}')
+                self.assertIn(expected, result['problems'][0])
+                self.commands.assert_not_called()
