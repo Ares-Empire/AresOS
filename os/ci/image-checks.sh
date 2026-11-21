@@ -328,11 +328,32 @@ grep -qx 'repo_add_once="false"' /etc/default/google-chrome
 pass 'no Google repository, cron job or trusted key in the image'
 test -f /usr/share/applications/google-chrome.desktop
 grep -q '^Exec=/usr/bin/google-chrome-stable' /usr/share/applications/google-chrome.desktop
-handler=$(runuser -u ares -- env HOME=/var/home/ares XDG_CURRENT_DESKTOP=AresOS xdg-mime query default x-scheme-handler/https)
-test "$handler" = google-chrome.desktop
-handler=$(runuser -u ares -- env HOME=/var/home/ares XDG_CURRENT_DESKTOP=AresOS xdg-mime query default x-scheme-handler/http)
-test "$handler" = google-chrome.desktop
-pass 'xdg-open sends http and https links to Chrome in the AresOS session'
+session_mime=(runuser -u ares -- env XDG_CURRENT_DESKTOP=AresOS LC_ALL=C)
+for mime in x-scheme-handler/http x-scheme-handler/https text/html application/xhtml+xml; do
+    handler=$("${session_mime[@]}" xdg-mime query default "$mime")
+    test "$handler" = google-chrome.desktop
+done
+pass 'Chrome is the default for http, https, HTML and XHTML in the AresOS session'
+
+prism_entry=/usr/share/applications/org.prismlauncher.PrismLauncher.desktop
+test -f "$prism_entry"
+validation=$(desktop-file-validate "$prism_entry" 2>&1)
+test -z "$validation"
+grep -Fxq 'Type=Application' "$prism_entry"
+grep -Fxq 'Name=Prism Launcher' "$prism_entry"
+grep -Fxq 'NoDisplay=true' "$prism_entry"
+grep -Fxq 'Exec=/usr/bin/prismlauncher %U' "$prism_entry"
+grep -Fxq 'MimeType=x-scheme-handler/prismlauncher;' "$prism_entry"
+pass 'the hidden Prism Launcher sign-in desktop entry passes validation'
+handler=$("${session_mime[@]}" xdg-mime query default x-scheme-handler/prismlauncher)
+test "$handler" = org.prismlauncher.PrismLauncher.desktop
+pass 'xdg-mime resolves the Prism Launcher sign-in handler in the AresOS session'
+if command -v gio >/dev/null; then
+    handler=$("${session_mime[@]}" gio mime x-scheme-handler/prismlauncher)
+    grep -Eq '^Default application for .*: org\.prismlauncher\.PrismLauncher\.desktop$' <<< "$handler"
+    pass 'gio resolves the Prism Launcher sign-in handler in the AresOS session'
+fi
+
 test ! -e /etc/opt/chrome || test -d /etc/opt/chrome
 mkdir -p /etc/opt/chrome/policies/managed
 rmdir /etc/opt/chrome/policies/managed /etc/opt/chrome/policies
