@@ -167,6 +167,74 @@ test('asking list is rechecked after values are read',async()=>{
   await assert.rejects(f.run('dispatch(command)'),/stale_approval: typed-field list or document changed/);assert.equal(f.run('valueReads'),1);
 });
 
+// Brief 28a, item 3b: fields that read alike. The service names them apart;
+// here the extension's part: the approved list, unchanged, is read once, and
+// a swap, a replacement or a new order while the approval waits reads
+// nothing. Identity and order decide, never labels: every case below keeps
+// the words of the question the same or alike.
+function alikeFixture(lists){
+  const f=fixture();
+  f.set('lists',lists);f.set('structuredClone',structuredClone);
+  f.run(`globalThis.frameOrder=Object.keys(lists).map(Number);
+    chrome.webNavigation={getAllFrames:async()=>frameOrder.map(id=>({frameId:id,parentFrameId:id?0:-1,documentId:'native-'+id,url:'https://fixture.test/'+(id?'notes':'')}))};
+    content=async(tab,frame,name,message)=>{
+      const list=lists[frame];
+      if(name==='typed_fields')return {document:list.document,reader:list.reader,fields:structuredClone(list.fields),origin:'https://fixture.test',url:'https://fixture.test/',title:'Notes'};
+      if(name==='read_typed_fields'){valueReads++;globalThis.readFields=(globalThis.readFields||[]).concat(list.fields.map(field=>[frame,field.element]));
+        return {document:list.document,reader:list.reader,fields:list.fields.map(field=>({...field,value:'value of '+field.element}))};}
+      throw Error('Unexpected reader command');
+    };
+    globalThis.command={name:'read_typed_fields',tab:7,approved:true,operation:'op'};`);
+  return f;
+}
+const note=(element,label='Note',extra={})=>({element,label,type:'text',...extra});
+const plain=value=>JSON.parse(JSON.stringify(value));
+// Each list, and what changes while its approval waits. Swapped and reordered
+// lists keep the same words; a replacement keeps the label.
+const top=(fields,changes)=>({lists:{0:{document:'doc',reader:'reader',fields}},changes:{
+  swap:'const fields=lists[0].fields;[fields[0],fields[2]]=[fields[2],fields[0]]',replace:"lists[0].fields[2].element='e9'",
+  reorder:'const fields=lists[0].fields;fields.splice(1,0,fields.pop())',...changes}});
+const alikeLists={
+  'two equal labels':top([note('e1'),note('e3','Other'),note('e2')]),
+  'unnamed fields':top([note('e1','single-line field 1',{unnamed:true}),note('e3','Other'),note('e2','single-line field 3',{unnamed:true})]),
+  'labels that repair alike':top([note('e1','Note \ud800'),note('e3','Other'),note('e2','Note \udc00')]),
+  'two identically titled frames':{lists:{0:{document:'doc',reader:'reader',fields:[]},3:{document:'left',reader:'reader-3',fields:[note('e1')]},4:{document:'right',reader:'reader-4',fields:[note('e1')]}},
+    changes:{swap:'frameOrder=[0,4,3]',replace:"lists[4].fields[0].element='e9'"}},
+};
+for(const [name,{lists,changes}] of Object.entries(alikeLists)){
+  test(`28a 3b ${name}: the unchanged approved list is read once, exactly those fields`,async()=>{
+    const f=alikeFixture(structuredClone(lists));f.set('prepared',await f.run('typedFacts(7)'));f.set('serviceBinding',f.sent('prepared'));
+    const fields=plain(f.run('serviceBinding').frames.flatMap(frame=>frame.fields.map(field=>[frame.frame,field.element])));
+    f.run('command.binding=serviceBinding');
+    const result=await f.run('dispatch(command)');
+    assert.deepEqual(plain(result.frames.flatMap(frame=>frame.fields.map(field=>[frame.frame,field.element]))),fields);
+    assert.deepEqual(plain(f.run('readFields')),fields);
+    await assert.rejects(f.run('dispatch(command)'),/fresh one-call approval/);assert.deepEqual(plain(f.run('readFields')),fields,'once');
+  });
+  for(const [change,code] of Object.entries(changes))test(`28a 3b ${name}: ${change} while the approval waits reads nothing`,async()=>{
+    const f=alikeFixture(structuredClone(lists));f.set('prepared',await f.run('typedFacts(7)'));f.set('serviceBinding',f.sent('prepared'));
+    f.run('command.binding=serviceBinding');f.run(`{${code}}`);
+    await assert.rejects(f.run('dispatch(command)'),/stale_approval: typed-field list or document changed/);assert.equal(f.run('valueReads'),0);
+  });
+}
+// A send: two form fields with the same label and the same value. Only their
+// identities tell them apart, and only identity and order catch the change.
+for(const [change,apply] of Object.entries({swap:'fields.reverse()',replace:"fields[1]={...fields[1],element:'e9'}",
+  reorder:"fields.push(fields.shift())"}))for(const boundary of [1,2])test(`28a 3b send with two equal fields: ${change} before input ${boundary} dispatches nothing`,async()=>{
+  const f=inputFixture();
+  f.run("snapshot.frames[0].form.fields=[{element:'e3',label:'Note',value:'Same'},{element:'e4',label:'Note',value:'Same'},{element:'e5',label:'Other',value:'Same'}]");
+  f.set('serviceBinding',f.sent('binding(snapshot,reference,command.kind,command.adapter)'));f.run('command.binding=serviceBinding');
+  f.run(`changeAt=${boundary};change=()=>{const fields=snapshot.frames[0].form.fields;${apply}}`);
+  await assert.rejects(f.run('dispatch(command)'),boundary===1?/stale_approval: page changed;/:/stale_approval: page changed during frame setup/);
+  assert.equal(f.run('inputs'),0);
+});
+test('28a 3b send with two equal fields: unchanged, the approved input runs',async()=>{
+  const f=inputFixture();
+  f.run("snapshot.frames[0].form.fields=[{element:'e3',label:'Note',value:'Same'},{element:'e4',label:'Note',value:'Same'},{element:'e5',label:'Other',value:'Same'}]");
+  f.set('serviceBinding',f.sent('binding(snapshot,reference,command.kind,command.adapter)'));f.run('command.binding=serviceBinding');
+  assert.equal((await f.run('dispatch(command)')).dispatched,true);
+});
+
 for(const path of ['pageTitle','dialog.text'])test(`repaired dialog answer: ${path}; visible changes still refuse`,async()=>{
   for(const changed of [false,true]){
     const f=fixture();f.run(`globalThis.dialog={frame:0,frame_url:'https://fixture.test/',kind:'confirm',text:'Question \\ud800',id:'dialog'};

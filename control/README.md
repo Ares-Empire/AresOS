@@ -1,7 +1,8 @@
-# Control service and Mail
+# Control service, Mail and Chrome
 
 This is brief 18's shared Python service, caller-side MCP/CLI and fake adapter,
-plus brief 19's IMAP/SMTP Mail adapter. Mail tests use isolated synthetic servers.
+plus brief 19's IMAP/SMTP Mail adapter and the Chrome extension and adapter.
+Mail tests use isolated synthetic servers.
 Brief 18d implements decision 24: run `claude` normally, as the owner, with his own
 settings, login, projects, MCP servers, plugins and skills. Nothing here confines
 Claude. Managed ask rules protect calls through Claude Code's permission prompt;
@@ -464,7 +465,7 @@ INSTALL
 ```
 
 Existing unrelated MCP entries are retained; a user-scope entry of his own under
-one of our server names (`control`, `mail`, later `chrome`) would be replaced. A
+one of our server names (`control`, `mail`, `chrome`) would be replaced. A
 local or project entry of the same name is left alone, and takes precedence over
 ours in its folder. Server names must stay stable: `mcp__mail__send` names the
 `send` tool on the installed `mail` server.
@@ -483,7 +484,7 @@ check. This is an installation precondition, not proof a prompt was answered.
 residuals. Broad owner auto-approval hooks must exclude our asking tools. The
 native harness records print-mode behavior; interactive hooks remain an 18c gate.
 
-### Adding Chrome or another app
+### Adding an app
 
 Add definitions to `ACTIONS` and register its adapter; `installed_apps()`,
 `user_mcp()`, `asking_rules()` and `managed_settings()` discover it automatically.
@@ -494,10 +495,10 @@ A trusted send must implement `adapter.require_trusted_send(verb, operation)`:
 return exactly `True` only when a current matching owner-only entry authorizes the
 entire payload, and recheck on every submission. Missing, false or empty decisions refuse. No existing Mail action is a trusted send on this
 branch. The base refuses a marked send without an installed checker. Do not mark
-a preparation, read, change, delete or owner-only action trusted. Chrome's future
-trusted submit must also preserve its own exact-state binding at execution.
+a preparation, read, change, delete or owner-only action trusted. Chrome's trusted
+submit preserves its exact-state binding at execution.
 
-## Adding Mail or Chrome
+## Adapter contract
 
 1. Add action definitions in `definitions.py`: one effect, closed input schema,
    result contract, exact references, and a description explaining use, output and
@@ -538,6 +539,27 @@ trusted submit must also preserve its own exact-state binding at execution.
    Do not treat this package's socket/import tests as the later sandbox or real-image
    qualification. Phone display, real accounts and final managed policy remain owner
    gates for later packages.
+
+
+## Chrome
+
+- `chrome_tabs` lists tab numbers and their ownership. Use its `seen` value when
+  taking an owner's tab or opening the address it showed. `chrome_show` brings a
+  tab and its window to the front for the owner.
+- `chrome_open` and `chrome_go` navigate and return an outline. `chrome_read` reads
+  by tab or short reference, searches page text, waits for text, or reads up to
+  five tabs in one call. `chrome_library` lists downloads, bookmarks and history.
+- `chrome_do` uses the outline's references for up to 20 steps and reports what
+  changed. At a step requiring approval it stops and returns a preparation for
+  `chrome_submit`. `chrome_upload` prepares a caller-side file snapshot for
+  approval. Reading withheld typed fields requires
+  `chrome_prepare_read_typed_fields` and `chrome_read_typed_fields`.
+- `chrome_close` closes tabs Claude opened. `chrome_release` ends control of a
+  taken tab and drops its prepared work.
+
+See the [generated tool reference](../docs/control/TOOLS.md) for inputs and results.
+Browser tests use disposable GitHub Linux containers and synthetic fixture pages.
+The Python and Node suites can run without launching Chrome.
 
 
 ## Mail

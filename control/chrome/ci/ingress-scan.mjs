@@ -1,3 +1,18 @@
+import fs from 'node:fs';
+
+const BOUNDARY='/out/browser-boundary.jsonl';
+export const boundaryLog={
+  size:()=>fs.statSync(BOUNDARY).size,
+  since(offset){
+    const descriptor=fs.openSync(BOUNDARY,'r');
+    try{
+      const length=Math.max(0,fs.fstatSync(descriptor).size-offset),buffer=Buffer.alloc(length);
+      const read=fs.readSync(descriptor,buffer,0,length,offset);
+      return buffer.toString('utf8',0,read);
+    }finally{fs.closeSync(descriptor);}
+  },
+};
+
 // Audit fragments are consecutive, offset-bound parts of one browser reply.
 export function completeIngress(text){
   const result=[];let pending=null;
@@ -16,3 +31,9 @@ export function completeIngress(text){
 // Protocol commands legitimately return null; retain those rows for the value
 // scan while selecting event records independently.
 export function protocolEvents(rows){return rows.filter(row=>row?.protocol_event).map(row=>row.protocol_event);}
+
+export function auditRows(offset,keys,log=boundaryLog){
+  const prefixes=[keys].flat().map(key=>'{"'+key+'":');
+  return log.since(offset).split('\n').slice(0,-1)
+    .filter(line=>prefixes.some(prefix=>line.startsWith(prefix))).map(line=>JSON.parse(line));
+}

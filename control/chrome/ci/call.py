@@ -27,6 +27,7 @@ while arguments and arguments[0].startswith('--'):
     elif flag=='--timed':timed=True
     else:raise SystemExit('Unknown flag '+flag)
 verb,text=arguments
+verb=verb.removeprefix('chrome_')
 start=time.monotonic()
 if command:
     printed=io.StringIO()

@@ -7,7 +7,7 @@ export async function lateBindingMatrix({check,call,rpc,read,target,fixture,even
     for(const variant of ['replacement','relabel','frame','credential']){
       const id='post18df-binding-'+variant;await take('late-binding',id,'&variant='+variant);
       await eventually(()=>fixture.compatibility.find(row=>row.id===id&&row.phase==='late-frame-ready'&&row.version==='first'),'owner frame loaded before take');await call('take_tab',{tab:getTab()});
-      const prepared=await call('prepare_read_typed_fields',{tab:getTab()});assert.ok(prepared.approval);assert.match(prepared.approval.question,/single-line field 3/);
+      const prepared=await call('prepare_read_typed_fields',{tab:getTab()});assert.ok(prepared.approval);assert.match(prepared.approval.question,/"Value" \(1 of 2\), "Value" \(2 of 2\), unnamed single-line field[;?]/);
       const manifest=prepared.approval.description.untrusted_content.fields;
       assert(manifest.frames.every(frame=>frame.reader&&frame.document&&frame.browser_document));
       const top=manifest.frames.find(frame=>frame.frame===0);assert.equal(top.fields.filter(field=>field.label==='Value').length,2);assert.equal(new Set(top.fields.map(field=>field.element)).size,3);
@@ -26,7 +26,7 @@ export async function lateBindingMatrix({check,call,rpc,read,target,fixture,even
   await check('GROUP 3 POST18DF late shadow forms refuse withheld content after approved reads and value changes',async()=>{
     const id='post18df-withheld-form';await take('late-withheld-form',id);await eventually(()=>fixture.compatibility.find(row=>row.id===id&&row.phase==='late-form-ready'),'owner closed shadow form ready');await call('take_tab',{tab:getTab()});
     assert.doesNotMatch(JSON.stringify(await read()),/PRIVATE_LATE_FORM/);
-    const submit=async()=>{const result=await rpc('click',await target('Send'));assert.equal(result.ok,false);assert.match(result.error.message,/send it yourself, or reload the tab first with chrome_navigate direction=reload/);assert.equal(fixture.arrivals.filter(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')===id).length,0);return result;};
+    const submit=async()=>{const result=await rpc('click',await target('Send'));assert.equal(result.ok,false);assert.match(result.error.message,/send it yourself, or reload the tab first using chrome_go with to: reload/);assert.equal(fixture.arrivals.filter(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')===id).length,0);return result;};
     const refused=await submit(),prepared=await call('prepare_read_typed_fields',{tab:getTab()});assert.match(prepared.approval.question,/Draft/);await fixture.mutate(id,'review-change');
     const approved=await call('read_typed_fields',prepared.approval);assert.match(JSON.stringify(approved.untrusted_content),/PRIVATE_LATE_FORM_B_20/);
     const afterRead=await submit();assert.doesNotMatch(JSON.stringify(await read()),/PRIVATE_LATE_FORM/);const repeat=await call('read_typed_fields',prepared.approval);assert.ok(!repeat.untrusted_content);

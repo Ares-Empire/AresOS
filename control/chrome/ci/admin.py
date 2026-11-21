@@ -7,6 +7,12 @@ import sys
 if sys.platform!='linux' or os.getuid()!=0 or os.environ.get('GITHUB_ACTIONS')!='true' or not Path('/.dockerenv').exists():
     raise SystemExit('Synthetic owner admin runs only as root in GitHub Linux containers')
 request=json.loads(sys.argv[1])
+if request.get('observe') in {'tabs','page','audit'}:
+    with socket.socket(socket.AF_UNIX) as connection:
+        connection.connect('/run/aresos-tools/admin.sock')
+        connection.sendall((json.dumps({'v':1,'method':'fixture_observe',**request})+'\n').encode())
+        print(connection.makefile().readline(),end='')
+    raise SystemExit(0)
 if request.get('fixture'):
     import signal
     import subprocess
@@ -36,8 +42,8 @@ if request.get('fixture'):
     elif command=='start_service':
         Path('/run/aresos-tools/fixture-cut.json').unlink(missing_ok=True)
         log=open('/out/service.txt','a')
-        # Started again as run.sh starts it, with brief 28's test-only switch, so chrome_outline outlives a restart.
-        subprocess.Popen(['runuser','-u','aresos-tools','--','env','PYTHONPATH=/workspace/control','PYTHONDONTWRITEBYTECODE=1','GITHUB_ACTIONS=true','ARESOS_TEST_CHROME_OUTLINE=1','python3','control/chrome/ci/service.py'],stdout=log,stderr=log,start_new_session=True)
+        # Match the service launch in run.sh so the browser can reconnect.
+        subprocess.Popen(['runuser','-u','aresos-tools','--','env','PYTHONPATH=/workspace/control','PYTHONDONTWRITEBYTECODE=1','GITHUB_ACTIONS=true','python3','control/chrome/ci/service.py'],stdout=log,stderr=log,start_new_session=True)
     else:raise SystemExit('Unknown fixture lifecycle command')
     print(json.dumps({'ok':True,'data':{'fixture':command}}));raise SystemExit(0)
 with socket.socket(socket.AF_UNIX) as connection:

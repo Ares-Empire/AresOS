@@ -12,7 +12,7 @@ from .adapters import NothingLeft, Uncertain
 from .blobs import Blobs
 from .boundary import Boundary
 from .requests import envelope, changing, UPLOAD_CHUNK, DOWNLOAD_CHUNK
-from .common import CHUNK_SIZE, FILE_LIMIT, RESULT_LIMIT, Refused, approval_input, approval_order, canonical, cleanup, digest, require_question, validate, visible, storage_refusal
+from .common import CHUNK_SIZE, FILE_LIMIT, RESULT_LIMIT, Refused, approval_input, approval_order, canonical, cleanup, digest, require_question, validate, visible, storage_refusal, untrusted
 from .definitions import APPS, BY_NAME, tools_for
 from .storage import Store
 from .results import Observations
@@ -748,7 +748,7 @@ class Engine:
         previous_request = getattr(self.store, 'in_request', False)
         self.store.in_request = True
         try:
-            # Brief 28, item 4: chrome_outline has one deadline, from before the
+            # Brief 28, item 4: chrome_read has one deadline, from before the
             # first look at pending to the response; no other request has one.
             with self.adapters['chrome'].call_time(request):
                 self.store.observations = Observations()
@@ -793,7 +793,7 @@ class Engine:
             return self._request(request, admin)
         except Refused as exc:
             self.store.observations.storage(exc)
-            return {'ok': False, 'error': {'code': exc.code, 'message': str(exc)}, 'pending': self.pending(resolve_checks=False)}
+            return {'ok': False, 'error': {'code': exc.code, 'message': str(exc), **untrusted(exc)}, 'pending': self.pending(resolve_checks=False)}
         except Exception as exc:
             self.store.observations.storage(exc)
             storage = storage_refusal(exc)
@@ -892,6 +892,7 @@ class Engine:
             message = str(exc) if isinstance(exc, Refused) else "Invalid input or unsupported server data; inspect the tool schema and operation status."
             if app == "mail":
                 message = self.adapters["mail"].transport.scrub(message)
-            return {"ok": False, "error": {"code": getattr(exc, "code", "invalid_input"), "message": message}, "pending": self.pending(app, resolve_checks=False)}
+            return {"ok": False, "error": {"code": getattr(exc, "code", "invalid_input"), "message": message, **untrusted(exc)},
+                    "pending": self.pending(app, resolve_checks=False)}
         except Exception:
             return {"ok": False, "error": {"code": "internal_error", "message": "Request failed unexpectedly; inspect operation status before repeating changes."}, "pending": self.pending(app, resolve_checks=False)}

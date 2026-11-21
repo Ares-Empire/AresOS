@@ -9,7 +9,7 @@ import stat
 import struct
 import time
 
-from .common import FILE_LIMIT, Refused, cleanup, strict_json_loads, storage_refusal
+from .common import FILE_LIMIT, Refused, cleanup, strict_json_loads, storage_refusal, untrusted
 from .engine import Engine
 from .protocol import receive, send
 from .chrome.bridge import LIMIT as CHROME_MESSAGE_LIMIT
@@ -279,7 +279,8 @@ class Daemon:
                 pending = {**self.engine._last_pending.get(None, pending),
                            "unavailable": "Live pending read failed; inspect this snapshot and service state before further changes."}
         result = {"ok": False, "error": {"code": getattr(exc, "code", "internal_error"),
-            "message": str(exc) if isinstance(exc, Refused) else "Request failed unexpectedly; inspect operation status before repeating changes."},
+            "message": str(exc) if isinstance(exc, Refused) else "Request failed unexpectedly; inspect operation status before repeating changes.",
+            **(untrusted(exc) if isinstance(exc, Refused) else {})},
             "pending": pending}
         return bound_result(result, self.engine.store)
 

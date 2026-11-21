@@ -29,9 +29,8 @@ CHILD=r'''
 import json,os,sys
 from pathlib import Path
 from unittest.mock import patch
-from test_engine import Browser
+from test_engine import Browser, fixture_target
 from aresos_control.engine import Engine
-from aresos_control.chrome.adapter import view_identity
 from chrome_oracle import history
 root=Path(sys.argv[1]);boundary=sys.argv[2];phase=sys.argv[3]
 receiver=root/'receiver.jsonl'
@@ -50,9 +49,8 @@ with patch('aresos_control.engine.Boundary'):
             os.fsync(fd);os.close(fd)
         return original(name,**args)
     browser.call=call;engine.store.checkpoint=checkpoint
-    frame=browser.facts['frames'][0]
-    reference={'session':browser.session,'tab':1,'frame':0,'document':frame['document'],'view':view_identity(browser.facts),'element':'e1'}
-    result=engine.request({'v':1,'method':'call','action':'chrome_click','arguments':{'reference':reference,'expected':dict(target)}})
+    selection=fixture_target(chrome,browser)
+    result=engine.request({'v':1,'method':'call','action':'chrome_do','arguments':{'tab':1,'steps':[{'do':'click','ref':selection['ref']}]}})
     print(result)
     engine.close()
 '''

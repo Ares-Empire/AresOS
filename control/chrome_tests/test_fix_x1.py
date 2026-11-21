@@ -3,8 +3,6 @@ import re
 import time
 import unittest
 from unittest.mock import patch
-from aresos_control.definitions import Action
-from aresos_control.chrome.definitions import OUTLINE
 
 from aresos_control.chrome.address import public_address
 from aresos_control.chrome import view
@@ -77,8 +75,7 @@ class Adapter(unittest.TestCase):
                             raise Refused('transport_error', 'Synthetic measure failure')
                         self.chrome.outline_measure = broken
                     try:
-                        with patch.dict('aresos_control.engine.BY_NAME', {'chrome_outline': Action('chrome','outline','read',OUTLINE,'X1 internal regression')}):
-                            result = self.engine.request({'v':1,'method':'call','action':'chrome_outline','arguments':args})
+                        result = self.engine.request({'v':1,'method':'call','action':'chrome_read','arguments':args})
                         if failure == 'cursor':
                             self.assertTrue(result['ok'], result)
                             self.assertEqual(result['data']['reads'][0]['error']['code'], 'stale_reference')

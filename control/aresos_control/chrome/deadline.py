@@ -1,4 +1,4 @@
-"""Brief 28, item 4: one deadline for a whole chrome_outline call.
+"""Brief 28, item 4: one deadline for a whole chrome_read call.
 
 The base's client gives up on a read after 10 seconds (`protocol.READ_TIMEOUT`)
 and then can't know what ran, while the service would go on. So the call answers

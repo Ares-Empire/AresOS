@@ -23,7 +23,7 @@ def run(data):
                 browser.tokens[1] = canonical(item.get('state', {}))
 
             def call(**args):
-                return engine.request({'v': 1, 'method': 'call', 'action': 'chrome_outline',
+                return engine.request({'v': 1, 'method': 'call', 'action': 'chrome_read',
                                        'arguments': {'tab': 1, **args}})
 
             if data['mode'] == 'reads':
