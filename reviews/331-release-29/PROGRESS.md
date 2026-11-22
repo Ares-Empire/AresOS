@@ -143,9 +143,8 @@ removed. [Fedora release RPM](https://dl.fedoraproject.org/pub/fedora/linux/rele
 ## Left in order
 
 1. Lead recheck of the source guard and step 2's labwc exception at the draft PR head.
-2. Step 3's next slice adds candidate equality and the R29 update, recovery and boot walk
-   from the confirmed R28 guest.
-3. Step 4 adds the guest probes, Control and Chrome checks and the local host receipt.
+2. Review step 3 slice B on the pushed head.
+3. Step 4 adds the remaining guest probes, Control and Chrome checks and the local host receipt.
 4. Step 5 wires the hosted gates, runner allowlists and receipt with closed caps. The lead
    dispatches hosted checks and the read-only historical baseline preflight.
 5. Step 6 takes the named main cut and the reviewed handoffs for 18c-b, B330, B329
@@ -258,9 +257,9 @@ This slice started at `a48c7e91`. The baseline implementation and fixtures are a
 `503282d9870c18922b994e7c9db9bce6469bf117`. Verification used local fixtures for the
 registry, ISO and guest route. Real job-token access, Cosign, ISO availability, boot and disk audits still need
 the hosted preflight. The checkout uses the R28-qualified ISO pin `bd043223…`. A changed
-download or installer asset stops the preflight until the inputs are requalified. R29
-candidate equality, the update and recovery walk, and its new guest checks remain for
-steps 3 and 4. Hosted workflow and ledger changes remain for step 5. Ledger use is zero
+download or installer asset stops the preflight until the inputs are requalified. The
+historical preflight ends at confirmed R28. See slice B below for the candidate route.
+Hosted workflow and ledger changes remain for step 5. Ledger use is zero
 dispatches and uploads, with both R29 publish caps at zero. There are no files over
 500 MB in `.work/`.
 
@@ -289,3 +288,94 @@ The modules ran one at a time from the repo root with `TMPDIR` inside the worktr
 The step 4 host-walk receipt and hosted registry and VM proof remain pending. Ledger
 use is zero dispatches and uploads, with both R29 publish caps at zero. There are no
 files over 500 MB in `.work/`.
+
+## Done · step 3 slice B · 2026-11-22
+
+Started at `a813c78adbb1db122b09035d110fb4e52a630d9a`. The implementation and
+fixtures are at `57206d9b6a460ff4a1706c310add74155461483c`.
+
+- The `release-29` driver with `RELEASE29_PHASE=qualify` checks candidate equality before VM setup. The
+  stand-in extends the pinned R28/v5 origin, and the generator produces both release
+  and history copies, the bundle manifests, commands and the guide fingerprint. The
+  cut must supply a committed R29 record and a matching tools tree, active release
+  blob and owner-tools guide. Only a local preparation check of exact v5 bytes can
+  defer comparison. The baseline-only route still writes the historical receipt.
+- Starting on confirmed R28, the routine runs the folder and password-window lines
+  from the stand-in commit. The model checks the guide and dialog fingerprint, the
+  three PASS lines, the install receipt and the missing cached sudo ticket. The same
+  bundle is a no-op, and a different bundle at the same version and the v5 downgrade
+  both STOP. Each replay preserves the installed tools and journal.
+- The console stages the exact digest, titles and exports with the stick absent,
+  then reboots. The VM's audited one-time BootNext represents F12 → Bazzite. The
+  staging and boot snapshots require exact identities, the pinned corrected stock,
+  and agreement between the bootc slots and deployment rows. R27 alone retires.
+  Update, previous to R28 and forward to R29 each require their own confirmation
+  and fresh title. A refused update rechecks the original shape. If R28 boots after
+  staging, the card allows one retry after the save gate only when the update is in
+  place and the title proves that R28 was a non-default start. A not-applied result
+  sends the route to Help and leaves the previous selection alone.
+- The model checks the save gate immediately before the initial update restart,
+  forward restart and failed-update recovery restart out of R28. It exercises the
+  submitted status/close-message reader, home snapshot and Terminal launch scripts
+  under the existing fixture interfaces. It compares the planted schema-4 apps and
+  both synthetic save files through all boots with the existing Prism allowance and
+  image targets required on both releases. Terminal opens before the successful
+  check on each of the four boots. The first R29 check also proves the no-foot STOP.
+- The route carries forward the stock rewind, exact ISO and served Web UI checks,
+  offline stock boot and disk and firmware audits. A failed shutdown retains its
+  redacted transcript, and the harness still audits if guest cleanup fails. A live
+  login stall retains its transcript for the lead. Requalify a changed ISO or
+  installer asset before rerunning.
+
+### Verified locally · slice B
+
+The tests ran one module at a time from the repo root with `TMPDIR` inside the worktree.
+
+| Command | Result |
+| --- | --- |
+| `python3 -m unittest discover -s os/tests -p test_owner_walk.py` | `Ran 40 tests in 615.645s`, `OK`, and `PASS historical R29 baseline through confirmed R28 with tools v5` |
+| `python3 -m unittest discover -s os/tests -p test_release29_rehearsal.py` | `Ran 15 tests in 8.858s`, `OK` |
+| `python3 -m unittest discover -s os/tests -p test_two_disk_vm.py` | `Ran 30 tests in 0.172s`, `OK` |
+| `python3 -m unittest discover -s os/tests -p test_checkout_sources.py` | `Ran 10 tests in 0.999s`, `OK` |
+| `python3 -m unittest discover -s os/tests -p test_release28_rehearsal.py` | `Ran 44 tests in 34.292s`, `OK` |
+| `python3 -m unittest discover -s os/tests -p test_tools_local_wiring.py` | `Ran 42 tests in 57.636s`, `OK`. The disposable Git fixture printed its default-branch and empty-remote-HEAD notices. |
+| `git diff --check` and `git diff --cached --check` | Exit 0 with no output |
+
+The first R29 run printed `Ran 15 tests in 2.874s` and `FAILED (errors=17)` because the
+fixture unpacked three fields from the historical model's four-field factory. The
+fixture now takes the factory's snapshot function. Two R28 runs each reported
+`FAILED (failures=1)` in the job-gate scan. The first exposed the shared CLI argument
+change, which moved to a package 331 environment selector. The second isolated a
+pre-existing REVIEW-4 regression at `a813c78a`. The static scan could not see the
+legacy registry check through the constructor's conditional expression. The explicit
+package 331 branch preserves guest login without a legacy auth share and makes the
+historical registry check visible to that scan again. Rebinding refreshed three existing hashes
+in the 12 pending rows, with zero removals.
+
+### Next and lead dispatches
+
+1. Review this deployment walk. Step 4 builds the remaining session, home and game
+   probes, the eleven Control checks and Chrome first-use and rollback checks. Bind
+   the checker and settings in `os/manifest/ci/331/host-walk.json`. Carry the labwc
+   fixture follow-ups from REVIEW-3 into that slice.
+2. Step 5 adds authorization, budgets and receipt wiring for the separate read-only
+   baseline and qualifying routes, with both publish caps closed. The lead dispatches
+   same-head `checks_only=true` and the full model, then the read-only baseline. Retain
+   its run ID, attempt and SHA and recheck the baseline receipt before private upload.
+3. The lead settles the late-package cut and dispatches resolve and dry run on the
+   reviewed cut. After permission and review the lead dispatches the one private
+   publish, closes the caps and hands over the signed record. Step 10 prepares the
+   real tools and guides. After same-head checks the lead dispatches the qualifying
+   rehearsal, then reviews the receipts before the final pin.
+
+### Limits
+
+The local candidate uses a synthetic record and v5's executable bytes with an
+explicit fixture version. Step 10 chooses the next free version and incorporates
+package 43's reviewed tools and route if it rides. Local model evidence covers route
+ordering, stop conditions and fixture persistence. The actual Alt+F4 close, message
+and world save on R28 still require a manual check. Terminal with the world open and
+the physical F12 menu also need live evidence. The signed R29 image, registry access,
+hosted VM and physical disk proofs remain pending. Step 4 still owns the session probes,
+end-of-walk game scope and Control checks. Both publish caps remain zero and ledger
+use is zero dispatches and uploads. `.work/` contains no files over 500 MB.
