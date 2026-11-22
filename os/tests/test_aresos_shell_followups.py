@@ -85,7 +85,7 @@ class RestartFocusTest(ViewBase):
         self.focus(helper, 3)
         self.assertEqual([(e['launch_id'], e['state']) for e in view.events('app_state')],
                          [(new['launch_id'], 'focused')])
-        self.assertEqual(helper.handles['view:laptop-home', 'old'], {2})
+        self.assertEqual(self.launch_for(helper, 'view:laptop-home', 'old').handles, {2})
         self.assertEqual(self.call(helper, view, 'open_app', 'old', app_id='notepad')['launch_id'], old['launch_id'])
 
     def test_one_adopted_launch_and_one_window_still_report_focus(self):
@@ -228,13 +228,13 @@ class CheckReserveTest(ViewBase):
         # A full pool still accepts joins from either role, in either direction.
         self.assertIsNone(self.open_app(views[-1], -1, 'join-desktop'))
         self.assertIsNone(self.open_app(self.desktop_conn, 0, 'join-view'))
-        self.assertIs(self.helper.checking[views[-1].client, 'join-desktop']['check'],
-                      self.helper.checking[self.desktop_conn.client, self.programs[-1]]['check'])
-        self.assertIs(self.helper.checking[self.desktop_conn.client, 'join-view']['check'],
-                      self.helper.checking[views[0].client, self.programs[0]]['check'])
+        self.assertIs(dict(self.helper.pending_checks())[views[-1].client, 'join-desktop']['check'],
+                      dict(self.helper.pending_checks())[self.desktop_conn.client, self.programs[-1]]['check'])
+        self.assertIs(dict(self.helper.pending_checks())[self.desktop_conn.client, 'join-view']['check'],
+                      dict(self.helper.pending_checks())[views[0].client, self.programs[0]]['check'])
         self.assertEqual(len(self.helper.checks.running), shell.MAX_CHECKS)
 
-        desktop_check = self.helper.checking[self.desktop_conn.client, self.programs[-1]]['check']
+        desktop_check = dict(self.helper.pending_checks())[self.desktop_conn.client, self.programs[-1]]['check']
         self.releases[self.programs[-1]].set()
         self.assertTrue(desktop_check.done.wait(5))
         self.helper.tick()

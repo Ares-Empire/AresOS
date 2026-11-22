@@ -298,6 +298,84 @@ class OpenAppsTest(ViewBase):
                          ('restore', 'starting', deliberate['launch_id']))
         self.assertEqual(self.popen.call_count, 1)
 
+    def test_fallback_recheck_joins_a_deliberate_open_after_its_view_history_is_evicted(self):
+        helper = self.start(tracked=True)
+        desktop, _ = self.hello13(helper)
+        laptop = self.view(helper)
+        check = shell.LaunchCheck()
+        with mock.patch.object(shell, 'CHECK_WAIT', 0), mock.patch.object(helper.checks, 'start', return_value=check):
+            self.assertIsNone(self.ask(helper, desktop, 'restore'))
+            check.result = (['/usr/bin/unused'], '~', None)
+            check.done.set()
+            deliberate = self.call(helper, laptop, 'open_app', 'new-window', app_id='browser')
+        self.assertEqual(deliberate['state'], 'starting')
+        helper.disconnected(laptop)
+        self.protect_view_histories(helper, 3)
+        self.assertEqual(len(helper.journal.view_clients), 4)
+        new_view = self.view(helper, 'new-view')
+        self.assertEqual(self.call(helper, new_view, 'open_app', 'unknown', app_id='fixture-unknown')['error'],
+                         'unknown_app')
+        self.assertNotIn((laptop.client, 'new-window'), helper.journal.entries)
+        self.assertIsNone(helper.activation_target('browser'))
+
+        helper.tick()
+        reply = next(m for m in desktop.sent if m['id'] == 'restore')
+        self.assertEqual((reply['request_id'], reply['state'], reply['launch_id']),
+                         ('restore', 'starting', deliberate['launch_id']))
+        self.assertEqual(self.popen.call_count, 1)
+        self.show(helper.windows, 30, BROWSER, active=True)
+        helper.windows_changed()
+        event = desktop.events('app_state')[-1]
+        self.assertEqual((event['request_id'], event['state'], event['launch_id']),
+                         ('restore', 'focused', deliberate['launch_id']))
+
+    def protect_view_histories(self, helper, count):
+        self.show(helper.windows, 20, NOTEPAD)
+        helper.windows_changed()
+        replies = []
+        with mock.patch.object(helper, 'activate_window', return_value=False):
+            for number in range(count):
+                name = f'protected-{number}'
+                view, _ = self.hello13(helper, view=name)
+                reply = self.ask(helper, view, 'refused', app='notepad')
+                self.assertEqual(reply['error'], 'activation_refused')
+                replies.append((name, reply))
+                helper.disconnected(view)
+        helper.windows.gone(20)
+        helper.windows_changed()
+        return replies
+
+    def test_laptop_can_open_with_four_protected_histories_and_refusals_still_replay(self):
+        helper = self.start(tracked=True)
+        replies = self.protect_view_histories(helper, 4)
+        laptop = self.view(helper)
+        # A full protected-reply reserve still leaves room for an ordinary open from a new view.
+        with mock.patch.object(shell, 'VIEW_REPLAY_LIMIT', len(replies)):
+            self.assertEqual(self.call(helper, laptop, 'open_app', 'new-window', app_id='browser')['state'], 'starting')
+        self.assertEqual(len(helper.journal.view_clients), 4)
+        self.assertNotIn('view:protected-0', helper.journal.view_clients)
+        for current in (helper, self.start(tracked=True)):
+            for name, original in replies:
+                view, _ = self.hello13(current, view=name)
+                self.assertEqual(self.ask(current, view, 'refused', app='notepad'), original)
+                current.disconnected(view)
+        self.assertEqual(self.popen.call_count, 1)
+
+    def test_a_live_process_without_a_window_still_counts_after_the_start_timeout(self):
+        helper = self.start(tracked=True)
+        desktop, _ = self.hello13(helper)
+        laptop = self.view(helper)
+        opened = self.call(helper, laptop, 'open_app', 'slow-window', app_id='terminal')
+        self.now[0] += shell.WINDOW_TIMEOUT + 1
+        helper.tick()
+        joined = self.ask(helper, desktop, 'restore', app='terminal')
+        self.assertEqual((joined['launch_id'], joined['error']), (opened['launch_id'], 'no_window'))
+        self.assertEqual(self.popen.call_count, 1)
+        self.launch_for(helper, laptop.client, 'slow-window').process.code = 0
+        helper.tick()
+        self.assertEqual(self.ask(helper, desktop, 'after-exit', app='terminal')['state'], 'starting')
+        self.assertEqual(self.popen.call_count, 2)
+
     def churn_view_history(self, helper):
         for number in range(shell.MAX_VIEWS):
             view = self.view(helper, f'temporary-{number}')

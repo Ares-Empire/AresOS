@@ -242,7 +242,7 @@ class LaunchIsolationTest(ViewBase):
             self.assertIsNone(self.call(helper, view, 'open_app', 'same', app_id='notepad'))
             self.assertEqual(self.call(helper, view, 'open_app', 'same', app_id='terminal')['error'],
                              'request_id_reused')
-        self.assertEqual(set(helper.checking), {(shell.DESKTOP, 'same'), ('view:laptop-home', 'same')})
+        self.assertEqual(set(dict(helper.pending_checks())), {(shell.DESKTOP, 'same'), ('view:laptop-home', 'same')})
         for check, argv in ((game_check, ('/usr/bin/foot',)), (view_check, ('/usr/bin/kwrite',))):
             check.result = (argv, '~', None)
             check.done.set()
@@ -271,25 +271,32 @@ class LaunchIsolationTest(ViewBase):
             conn = self.view(helper, name)
             self.assertTrue(self.call(helper, conn, 'open_app', 'same', app_id='terminal')['ok'])
             helper.disconnected(conn)
-        old_process = helper.processes['view:b', 'same']
+        old_launch = self.launch_for(helper, 'view:b', 'same')
+        old_process = old_launch.process
+        old_state = dict(old_launch.entry)
         again = self.view(helper, 'a')
         original_a = helper.journal.entries['view:a', 'same']['launch_id']
         self.assertEqual(self.call(helper, again, 'open_app', 'same', app_id='terminal')['launch_id'], original_a)
         newest = self.view(helper, 'e')
         self.assertTrue(self.call(helper, newest, 'open_app', 'same', app_id='terminal')['ok'])
         self.assertNotIn(('view:b', 'same'), helper.journal.entries)
-        self.assertNotIn(('view:b', 'same'), helper.processes)
+        launch_id = old_state['launch_id']
+        self.assertIs(helper.app_launches['terminal'].running[launch_id], old_launch)
+        self.assertIs(old_launch.process, old_process)
+        self.assertEqual(old_launch.entry, old_state)
         with pathlib.Path(self.journal).open() as handle:
             saved = json.load(handle)
         self.assertEqual(list(saved['view_launches']), ['c', 'd', 'a', 'e'])
         self.assertIn('same', saved['launches'])
-        self.active_units = {entry['unit'] for entry in helper.journal.entries.values()}
+        self.active_units = {launch.entry['unit'] for launch in helper.launch_entries()}
         restarted = self.start()
         self.assertEqual(set(restarted.journal.entries), set(helper.journal.entries))
+        self.assertEqual(restarted.app_launches['terminal'].running[launch_id].entry['state'], 'starting')
         b_again = self.view(helper, 'b')
         new_b = self.call(helper, b_again, 'open_app', 'same', app_id='notepad')
         old_process.code = 2
         helper.tick()
+        self.assertNotIn(launch_id, helper.app_launches['terminal'].running)
         self.assertEqual(self.call(helper, b_again, 'open_app', 'same', app_id='notepad'), new_b)
         self.assertEqual(b_again.events('app_state'), [])
 
@@ -343,7 +350,7 @@ class LaunchIsolationTest(ViewBase):
         catalogue.finished = ({**catalogue.apps, WEB.id: WEB}, 'complete', catalogue.legacy)
         restarted.tick()
         self.assertEqual(view.events('apps_running')[-1]['apps'], [WEB.id])
-        self.assertEqual(restarted.handles['view:laptop-home', 'web'], {3})
+        self.assertEqual(self.launch_for(restarted, 'view:laptop-home', 'web').handles, {3})
         restarted.windows.gone(3)
         restarted.windows_changed()
         self.now[0] += shell.HANDOFF + 0.01

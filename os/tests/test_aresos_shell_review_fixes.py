@@ -354,7 +354,7 @@ class HintedOwnershipTest(OwnershipBase):
         self.helper_.windows_changed()
         self.later(shell.HANDOFF * 4)
         self.assertEqual((self.activations, self.state('o-l')), ([], 'focused'))
-        self.assertEqual(self.helper_.handles[shell.DESKTOP, 'o-l'], {4})
+        self.assertEqual(self.launch_for(self.helper_, shell.DESKTOP, 'o-l').handles, {4})
         self.game_closes_and_the_hub_returns([1])
 
     def test_launcher_closed_after_the_game_appears(self):
@@ -384,7 +384,7 @@ class HintedOwnershipTest(OwnershipBase):
         self.assertEqual(self.focus_events()[-1], ('background', 'other_window', None))
         # A second click hands over to the resident Discord; the unrelated window must not confirm it.
         self.open('discord', 'o-d2')
-        self.helper_.processes[shell.DESKTOP, 'o-d2'].code = 0
+        self.launch_for(self.helper_, shell.DESKTOP, 'o-d2').process.code = 0
         self.later(shell.WINDOW_TIMEOUT + 1)
         self.scope_pass(self.helper_)
         self.assertEqual(self.state('o-d2'), 'starting')

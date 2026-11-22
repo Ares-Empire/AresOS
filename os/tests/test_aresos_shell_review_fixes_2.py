@@ -143,7 +143,7 @@ class StalledMountTest(HardeningBase, Base):
         for n, name in enumerate(names[:shell.MAX_CHECKS]):
             self.request(helper, conn, 'open_app', f'o-{n}', app_id=name)
         self.assertEqual(len(helper.checks.running), shell.MAX_CHECKS)
-        self.assertEqual(len(helper.checking), shell.MAX_CHECKS)
+        self.assertEqual(len(dict(helper.pending_checks())), shell.MAX_CHECKS)
         # No further thread: the next launches fail at once, whatever they open, and say why.
         for request_id, name in (('o-busy', names[-1]), ('o-other', 'other')):
             start = time.monotonic()

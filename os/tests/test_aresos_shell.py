@@ -68,6 +68,10 @@ class Base(unittest.TestCase):
     def clock(self):
         return self.now[0]
 
+    def launch_for(self, helper, client, request_id):
+        reply = helper.journal.entries[client, request_id]
+        return helper.app_launches[reply['app_id']].running[reply['launch_id']]
+
     def systemctl(self, argv, **options):
         """The batched scope listing: the units in active_units run; scope_answer overrides with a failure."""
         self.systemctl_calls.append(list(argv))
@@ -549,7 +553,7 @@ class LaunchTest(Base):
         restarted = self.helper(missing=())
         conn = self.connect(restarted)
         self.assertEqual(len(restarted.watched_units()), shell.JOURNAL_LIMIT)
-        self.assertEqual(restarted.processes, {})
+        self.assertTrue(all(launch.process is None for launch in restarted.launch_entries()))
         # One batched listing at start-up, not one call per launch.
         self.assertEqual(self.systemctl_calls, [shell.LIST_SCOPES])
         self.assertEqual(self.request(restarted, conn, 'open_app', 'n-1', app_id='notepad')['error'], 'journal_full')
@@ -641,7 +645,7 @@ class LaunchTest(Base):
         good = self.request(helper, conn, 'open_app', 'o-2', app_id='notepad')
         self.request(helper, conn, 'open_app', 'o-3', app_id='browser')
         for request_id, code in (('o-1', 1), ('o-2', 0), ('o-3', 0)):
-            helper.processes[shell.DESKTOP, request_id].code = code
+            self.launch_for(helper, shell.DESKTOP, request_id).process.code = code
         helper.tick()
         states = [(e['request_id'], e['launch_id'], e['state'], e.get('error')) for e in conn.events('app_state')]
         # A one-process app that exits cleanly has closed; Chrome handed over to its running instance.
@@ -954,7 +958,7 @@ class WindowTest(Base):
         self.window(3, 'org.kde.kwrite', activated=True)
         states = [(e['request_id'], e['state']) for e in self.conn.events('app_state')]
         self.assertEqual(states, [('o-1', 'focused')])
-        self.assertEqual(self.helper_.handles[shell.DESKTOP, 'o-1'], {3})
+        self.assertEqual(self.launch_for(self.helper_, shell.DESKTOP, 'o-1').handles, {3})
         self.assertEqual(self.focus_events(), [('background', 'app_activated', 'notepad')])
         again = self.open('notepad', 'o-1')
         self.assertEqual((again['state'], again['launch_id']), ('focused', launch['launch_id']))
@@ -976,7 +980,8 @@ class WindowTest(Base):
         self.open('notepad', 'o-2')
         windows.done(2)
         self.helper_.windows_changed()
-        self.assertEqual(self.helper_.handles, {(shell.DESKTOP, 'o-1'): {2}})
+        self.assertEqual({launch.origin: launch.handles for launch in self.helper_.launch_entries() if launch.handles},
+                         {(shell.DESKTOP, 'o-1'): {2}})
         self.assertEqual(self.helper_.journal.entries[shell.DESKTOP, 'o-2']['state'], 'starting')
         self.assertEqual(launch['state'], 'starting')
 
@@ -993,8 +998,8 @@ class WindowTest(Base):
     def test_early_exit_fails_multi_instance_apps_but_single_instance_apps_wait(self):
         self.open('notepad', 'o-1')
         self.open('browser', 'o-2')
-        self.helper_.processes[shell.DESKTOP, 'o-1'].code = 0
-        self.helper_.processes[shell.DESKTOP, 'o-2'].code = 0
+        self.launch_for(self.helper_, shell.DESKTOP, 'o-1').process.code = 0
+        self.launch_for(self.helper_, shell.DESKTOP, 'o-2').process.code = 0
         self.helper_.tick()
         self.assertEqual(self.helper_.journal.entries[shell.DESKTOP, 'o-1']['error'], 'launch_failed')
         self.assertEqual(self.helper_.journal.entries[shell.DESKTOP, 'o-2']['state'], 'starting')
@@ -1419,7 +1424,8 @@ class StartupTest(Base):
         entries = helper.journal.entries
         self.assertIn('windows', helper.capabilities)
         self.assertEqual(helper.windows.toplevels[kwrite].owner, 'notepad')
-        self.assertEqual(helper.handles, {(shell.DESKTOP, 'o-1'): {kwrite}})
+        self.assertEqual({launch.origin: launch.handles for launch in helper.launch_entries() if launch.handles},
+                         {(shell.DESKTOP, 'o-1'): {kwrite}})
         self.assertEqual(entries[shell.DESKTOP, 'o-1']['state'], 'background')  # the desktop has the focus
         self.assertEqual(entries[shell.DESKTOP, 'o-2']['state'], 'closed')  # no terminal window is left
         self.assertEqual((entries[shell.DESKTOP, 'o-3']['state'], entries[shell.DESKTOP, 'o-3']['error']), ('failed', 'launch_uncertain'))
