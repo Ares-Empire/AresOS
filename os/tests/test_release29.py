@@ -163,6 +163,8 @@ class CurrentMainTest(unittest.TestCase):
         self.assertEqual(rd.rc_xml_changes(rd.git_bytes('a9863055', path), new_xml), reviewed)
         self.assertEqual([row.split(':', 1)[0] for row in reviewed['added']],
                          ['keyboard', 'mouse', 'mouse', 'mouse', 'theme', 'windowSwitcher'])
+        for rel, package in ((rd.RC_XML, 'b720da42'), (rd.MIME_DEFAULTS_29, 'a7fb7cfe'), (rd.PRISM_ENTRY_29, 'a7fb7cfe')):
+            self.assertEqual(rd.CONFIG_PINS_29[rel], hashlib.sha256(rd.git_bytes(package, 'os/config/' + rel)).hexdigest())
         unit = rd.git_bytes(MAIN, 'os/config/' + rd.GUARDIAN_UNIT).decode()
         self.assertEqual(rd.GUARDIAN_AUDIT['commands'], [line for line in unit.splitlines() if line.startswith('Exec')])
         self.assertFalse(audit.PATTERN.search(unit))
@@ -548,7 +550,12 @@ class ImageDiffTest(unittest.TestCase):
         rc = (self.roots['new'] / rd.RC_XML).read_text()
         rc = rc.replace('    <default />\n', '').replace('  </mouse>', '    <default />\n  </mouse>')
         self.write('new', rd.RC_XML, rc)
-        _, result = self.diff()
+        # A matching change in the candidate source cannot expand B329's reviewed XML exception.
+        git_bytes = rd.git_bytes
+        with patch.object(rd, 'git_bytes', side_effect=lambda commit, path:
+                          rc.encode() if (commit, path) == (PROFILE_HEAD, 'os/config/' + rd.RC_XML)
+                          else git_bytes(commit, path)):
+            _, result = self.diff()
         self.assertIn('missing, retained or different os/config input: ' + frame, result['problems'])
         self.assertIn(cells, result['unexplained'])
         self.assertIn(rd.RC_XML, result['unexplained'])
@@ -556,8 +563,7 @@ class ImageDiffTest(unittest.TestCase):
         self.assertFalse(result['theme']['look']['equal'])
 
     def test_prism_rejects_visible_entry_wrong_default_and_cache_change(self):
-        desktop = 'usr/share/applications/org.prismlauncher.PrismLauncher.desktop'
-        defaults = 'usr/share/applications/aresos-mimeapps.list'
+        desktop, defaults = rd.PRISM_ENTRY_29, rd.MIME_DEFAULTS_29
         for rel, before, after in (
             (desktop, 'NoDisplay=true', 'NoDisplay=false'),
             (defaults, 'x-scheme-handler/prismlauncher=', 'x-scheme-handler/prismlauncher-test='),

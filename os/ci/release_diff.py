@@ -1866,6 +1866,15 @@ FRAME_SPRITES_29 = LOOK_29 + '/sprites/frame'
 # B329 at b720da42 pins these complete file sets in os/ci/image-checks.sh.
 FRAME_THEME_PIN_29 = '1edd49859255bde9a1c8f4ba779d92010ad38bde0f591507a3b29bbee17d916e'
 LOOK_PIN_29 = 'f4c4a0f201d30e5cafddd278eb8f69d0f40d61e1efa12ede8a7bb7f5735baabd'
+PRISM_ENTRY_29 = 'usr/share/applications/org.prismlauncher.PrismLauncher.desktop'
+MIME_DEFAULTS_29 = 'usr/share/applications/aresos-mimeapps.list'
+# These files describe the reviewed B329 (b720da42) and B330 (a7fb7cfe) changes.
+# A later cut that changes the same paths needs to review the additional delta.
+CONFIG_PINS_29 = {
+    RC_XML: '71eb1f8b99e487b1cd966b0ccb0815a133a66c861895e065c4657c367c085029',
+    MIME_DEFAULTS_29: '87a333df18b94fd7e8219b4c0f3dbd32002dbe578dd31ec0fbe5bca44620becc',
+    PRISM_ENTRY_29: '1bd08f214ddac6223b32525a7473cdf0099976483d203a207001aa56f32fead6',
+}
 FONT_REASONS_29 = {
     'Jersey10-Regular.ttf': 'B320 (#131): Jersey 10 indicator font',
     'OFL-Jersey10.txt': 'B320 (#131): licence for the Jersey 10 font',
@@ -1874,10 +1883,8 @@ FONT_REASONS_29 = {
 }
 CONFIG_REASONS_29 = {
     GH_LICENCE_29: '18c-b (#76): GitHub CLI licence from os/config, with its SHA-256 in os/gh.lock.json',
-    'usr/share/applications/org.prismlauncher.PrismLauncher.desktop':
-        'B330 (#140): hidden upstream desktop ID passes browser callback URLs to Prism through %U',
-    'usr/share/applications/aresos-mimeapps.list':
-        'B330 (#140): set the AresOS session default for x-scheme-handler/prismlauncher',
+    PRISM_ENTRY_29: 'B330 (#140): hidden upstream desktop ID passes browser callback URLs to Prism through %U',
+    MIME_DEFAULTS_29: 'B330 (#140): set the AresOS session default for x-scheme-handler/prismlauncher',
     GUARDIAN_UNIT: '25 (#125): graphical-target guardian asks the supervisor to save the world on planned stops, within its deadline',
     GUARDIAN_DROPIN: '25 (#125): all login scopes stop after the guardian, giving it time to finish the save',
     'usr/libexec/aresos-desktop': '25 (#125): supervise planned-stop saves, close deadlines, and restart of the Minecraft home',
@@ -2188,7 +2195,10 @@ class Classifier29(Classifier28):
             return False
         forced = CHMOD_0755_28 if side == 'old' else self.policy['executables']
         mode = CONFIG_MODES.get(rel, 0o755 if git_entry[0] == '100755' or rel in forced else 0o644)
-        return plain_file(value, mode) and value['sha256'] == self.config_hashes[side].get(rel)
+        digest = self.config_hashes[side].get(rel)
+        if side == 'new' and digest != CONFIG_PINS_29.get(rel, digest):
+            return False
+        return plain_file(value, mode) and value['sha256'] == digest
 
     def config_rule(self, rel, before, after):
         if rel in self.config:
