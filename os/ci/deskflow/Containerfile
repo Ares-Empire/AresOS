@@ -20,10 +20,12 @@ FROM localhost/aresos:vm
 COPY --from=clients /wl-harness /usr/libexec/aresos-ci/wl-harness
 COPY os/ci/deskflow/actions.py /usr/libexec/aresos-ci/actions.d/deskflow.py
 COPY os/ci/deskflow/session /usr/libexec/aresos-ci/deskflow-session
+COPY os/ci/deskflow/session-agent /usr/libexec/aresos-ci/deskflow-session-agent
+COPY os/ci/deskflow/window-state.py /usr/libexec/aresos-ci/deskflow-window-state.py
 # Normal activation, as the image ships it: the polkit agent activates the frontend at login, which may start
 # the backend; with sharing off it holds no Wayland connection (actions.py checks that from the outside in every
 # boot). The backend state turns sharing on and starts the real frontend and Deskflow for its worker.
-RUN dnf5 -y -q --setopt=install_weak_deps=False install wlr-randr && dnf5 clean all && \
+RUN dnf5 -y -q --setopt=install_weak_deps=False install wlr-randr xorg-x11-server-Xvfb xev xdotool xclip wl-clipboard openssh-server openssh-clients && dnf5 clean all && \
     sed -i '/^\[initial_session\]/,+1 s|^command = "/usr/bin/aresos-session"$|command = "/usr/libexec/aresos-ci/deskflow-session"|' /etc/greetd/config.toml && \
     grep -qx 'command = "/usr/libexec/aresos-ci/deskflow-session"' /etc/greetd/config.toml && \
     bootc container lint

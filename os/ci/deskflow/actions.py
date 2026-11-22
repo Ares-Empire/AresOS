@@ -1,5 +1,6 @@
 """Guest actions for the DRM output gate. The virtio layer is the only caller."""
 import contextlib
+from configparser import ConfigParser
 import ctypes
 import errno
 import json
@@ -86,7 +87,8 @@ def connect_session():
     prefix = ['runuser', '-u', name, '--', 'env', '-i', 'PATH=/usr/bin:/usr/sbin', 'LANG=C.UTF-8',
               f'HOME={user.pw_dir}', f'XDG_RUNTIME_DIR={runtime}', f'DBUS_SESSION_BUS_ADDRESS={bus}',
               f'WAYLAND_DISPLAY={wayland}', 'XDG_CURRENT_DESKTOP=AresOS']
-    return dict(pid=pid, uid=user.pw_uid, prefix=prefix, runtime=runtime, bus=bus, wayland=wayland)
+    return dict(pid=pid, uid=user.pw_uid, name=name, home=pathlib.Path(user.pw_dir),
+                prefix=prefix, runtime=runtime, bus=bus, wayland=wayland)
 
 
 def session_log():
@@ -251,20 +253,28 @@ def start_deskflow():
     (layout / 'deskflow-server.conf').write_text('section: screens\n    fixture:\nend\n')
     session['identity_root'] = root
     frontend, monitor, core = root / 'frontend.log', root / 'monitor.log', root / 'core.log'
-    launch = f"""
+    launch = hub_launch(LAUNCH_ID, UNIT)
+    return observe_deskflow(launch, root, frontend, monitor, core)
+
+
+def hub_launch(launch_id, unit):
+    return f"""
 import runpy
 shell = runpy.run_path('/usr/libexec/aresos-shell')
 apps, _ = shell['load_catalogue'](shell['REGISTRY'])
 app = apps[{HUB_ID!r}]
 launcher = shell['ScopeLauncher']()
-assert launcher.unit(app, {LAUNCH_ID!r}) == {UNIT!r}
+assert launcher.unit(app, {launch_id!r}) == {unit!r}
 argv, work, reason = shell['resolve'](app)
 assert reason is None, reason
 import os
-cmd = launcher.command(app, argv, {LAUNCH_ID!r})
+cmd = launcher.command(app, argv, {launch_id!r})
 os.chdir(launcher.working_directory(work))
 os.execve(cmd[0], cmd, launcher.environment(app))
 """
+
+
+def observe_deskflow(launch, root, frontend, monitor, core):
     try:
         running.enter_context(logged_process(frontend, ['/usr/libexec/xdg-desktop-portal', '--verbose', '--replace']))
         wait_for(lambda: 'org.freedesktop.portal.Desktop acquired' in frontend.read_text(),
@@ -437,9 +447,822 @@ def identity(_request):
 
 
 def diagnostics(request):
+    if session is None or session.get('daily'):
+        return dict(returncode=0, daily=True)
     return dict(returncode=0, labwc_pid=labwc_pid(session['uid']), connectors=drm_connectors(),
                 session_log=session_log()[-20000:])
 
 
 ACTIONS = {'deskflow-ready': ready, 'deskflow-snapshot': snapshot, 'deskflow-change': change,
            'deskflow-vt': vt, 'deskflow-identity': identity, 'deskflow-diagnostics': diagnostics}
+
+# The daily-use checks have their own boot, outside the output-mode controls.
+SWITCH = pathlib.Path('/etc/aresos/input-portal/sharing')
+SWITCH_UI = '/usr/bin/aresos-input-sharing'
+FRONTEND = 'org.freedesktop.portal.Desktop'
+DBUS_SERVICE = 'org.freedesktop.DBus'
+DBUS_PATH = '/org/freedesktop/DBus'
+CORE = '/usr/bin/deskflow-core'
+GUARD = '/usr/libexec/aresos-deskflow'
+LOGIN_HOOK = '/usr/libexec/aresos-deskflow-login'
+PAIR_TITLE = 'Pair a Mac with Deskflow'
+SHARING_TITLE = 'Mouse and keyboard sharing'
+KEY_MARKER = 'aresosinput321'
+PASSWORD = 'fixture321'  # Disposable guest account only; identical on US and German keyboards.
+CLIENT_DISPLAY = ':92'
+WL_HARNESS = '/usr/libexec/aresos-ci/wl-harness'
+LOG_DATA = re.compile(
+    r'(?i)aresosinput321|aresosclip[0-9]+|\bon(?:Key|Mouse)\w+\s+(?:id=|[+-]?\d)|\b(?:switch|jump) from .* at -?\d+,-?\d+|\b(key(?:code|sym)|button(?:id|code)|cursor_position|delta_[xy])\s*[:=]'
+    r'|\b(key|button)(?:[ _-]*(?:down|up|press|release|code|id))\s*[(:= ]\s*(?:0x[0-9a-f]+|\d+)'
+    r'|\b(?:mouse move|pointer motion|cursor at|motion delta)\s*[(:= ]\s*[-\d]'
+)
+daily_state = {}
+
+
+def status():
+    return require(guest_command(PORTAL, '--status')).strip()
+
+
+def backend_session(armed=True, capture=None):
+    lines = status().splitlines()
+    if len(lines) != 1 or f'app="{DESKTOP_ID}"' not in lines[0]:
+        return None
+    line = lines[0]
+    if armed and ('enabled=true' not in line or 'barriers=0' in line):
+        return None
+    if capture is not None and f'capturing={str(capture).lower()}' not in line:
+        return None
+    return line.split(': app=', 1)[0]
+
+
+def current_owner(name):
+    if bus('call', DBUS_SERVICE, DBUS_PATH, DBUS_SERVICE, 'NameHasOwner', 's', name) == 'b true':
+        return json.loads(bus('call', DBUS_SERVICE, DBUS_PATH, DBUS_SERVICE,
+                              'GetNameOwner', 's', name).split(' ', 1)[1])
+    return None
+
+
+def stop_pid(pid, sig=signal.SIGTERM, timeout=6):
+    pinned = os.pidfd_open(pid)
+    try:
+        signal.pidfd_send_signal(pinned, sig)
+        assert select.select([pinned], [], [], timeout)[0], 'the selected process did not exit'
+    finally:
+        os.close(pinned)
+
+
+def trace_backend():
+    if backend_running():
+        stop_pid(backend_pid(backend_owner()))
+    require(guest_command('env', 'ARESOS_INPUT_PORTAL_LOG=trace', 'dbus-update-activation-environment',
+                          'ARESOS_INPUT_PORTAL_LOG', 'WAYLAND_DISPLAY', 'XDG_CURRENT_DESKTOP'))
+    assert status() == 'no sessions'
+    pid = backend_pid(backend_owner())
+    assert environ(pid)['ARESOS_INPUT_PORTAL_LOG'] == 'trace'
+
+
+def x_command(*argv, **kwargs):
+    return guest_command('env', f'DISPLAY={CLIENT_DISPLAY}', *argv, **kwargs)
+
+
+def windows():
+    return json.loads(require(guest_command('python3', '-B', '/usr/libexec/aresos-ci/deskflow-window-state.py')))
+
+
+def windows_with(title):
+    return [window for window in windows() if window[1] == title]
+
+
+def core_pids():
+    matches = []
+    for proc in PROC.iterdir():
+        if not proc.name.isdigit():
+            continue
+        try:
+            if proc.stat().st_uid == session['uid'] and os.readlink(proc / 'exe') == CORE:
+                cmdline = (proc / 'cmdline').read_bytes().split(b'\0')
+                if cmdline[1:2] == [b'server']:
+                    matches.append(int(proc.name))
+        except OSError:
+            continue
+    return matches
+
+
+def start_probe(name, argv, *, display=False, pipe=False):
+    target = daily_state['root'] / f'{name}.log'
+    command = session['prefix'] + ([f'DISPLAY={CLIENT_DISPLAY}'] if display else []) + argv
+    with target.open('w') as output:
+        process = subprocess.Popen(command, stdin=subprocess.PIPE if pipe else subprocess.DEVNULL,
+                                   stdout=subprocess.PIPE if pipe else output, stderr=output,
+                                   start_new_session=True, text=True)
+    daily_state['processes'][name] = process
+    return process
+
+
+def stop_probe(name):
+    process = daily_state['processes'].pop(name, None)
+    if process is not None and process.poll() is None:
+        os.killpg(process.pid, signal.SIGTERM)
+        process.wait(timeout=8)
+
+
+def fixture_file(path, body):
+    path.write_text(body)
+    os.chown(path, session['uid'], -1)
+
+
+def client_profile(label, laptop_fingerprint, *, tls=True):
+    root = daily_state['root'] / label
+    profile = root / 'Deskflow'
+    require(guest_command('mkdir', '-p', str(profile)))
+    require(guest_command('python3', '-B', '-c',
+                          'import runpy, sys; from pathlib import Path; '
+                          'runpy.run_path(sys.argv[1])["ensure_certificate"](Path(sys.argv[2]))',
+                          GUARD, str(profile)))
+    fixture_file(profile / 'tls/trusted-servers', f'v2:sha256:{laptop_fingerprint.lower()}\n')
+    fixture_file(profile / 'Deskflow.conf', '[core]\ncomputerName=fixture-mac\n'
+                 f'[client]\nremoteHost=127.0.0.1\n[security]\ntlsEnabled={str(tls).lower()}\n')
+    return root
+
+
+def fingerprint(cert):
+    value = require(guest_command('openssl', 'x509', '-in', str(cert), '-noout', '-fingerprint', '-sha256'))
+    return value.strip().split('=', 1)[1].replace(':', '').lower()
+
+
+def monitor_start():
+    stop_probe('portal-profile')
+    start_probe('portal-profile', ['dbus-monitor', '--session', '--profile',
+                "interface='org.freedesktop.portal.InputCapture'",
+                "interface='org.freedesktop.impl.portal.Clipboard'",
+                "interface='org.freedesktop.portal.Session',member='Closed'"])
+    wait_for(lambda: 'NameAcquired' in probe_log('portal-profile'), 'portal monitor ready')
+
+
+def probe_log(name):
+    path = daily_state['root'] / f'{name}.log'
+    return path.read_text(errors='replace') if path.exists() else ''
+
+
+def portal_events():
+    lines = probe_log('portal-profile').splitlines()
+    return {event: sum(line.endswith('\t' + event) or line.endswith(' ' + event) for line in lines)
+            for event in ('Activated', 'Deactivated', 'Closed', 'SelectionRead', 'SelectionWrite')}
+
+
+def start_tools():
+    start_probe('xvfb', ['Xvfb', CLIENT_DISPLAY, '-screen', '0', '800x600x24', '-nolisten', 'tcp'])
+    wait_for(lambda: x_command('xdotool', 'getdisplaygeometry').returncode == 0, 'private X11 display ready')
+    start_probe('x11-input', ['stdbuf', '-oL', 'xev', '-name', 'Deskflow CI receiver',
+                '-geometry', '800x600+0+0', '-event', 'keyboard', '-event', 'mouse'],
+                display=True)
+    window = wait_for(lambda: x_command('xdotool', 'search', '--name', '^Deskflow CI receiver$').stdout.strip(),
+                      'X11 input receiver mapped')
+    require(x_command('xdotool', 'windowfocus', window.splitlines()[0]))
+    monitor_start()
+
+
+def daily_prepare(request):
+    global session
+    mode = request['mode']
+    old = session['pid'] if session is not None else None
+    session = wait_for(lambda: info if (info := connect_session()) and info['pid'] != old else None,
+                       'daily-use labwc session', timeout=120)
+    session['daily'] = True
+    wait_for(active_primary, 'daily-use primary output')
+    if randr().get('Virtual-2', {}).get('enabled'):
+        require(guest_command('wlr-randr', '--output', 'Virtual-2', '--off'))
+    root = session['home'] / '.local/state/aresos/deskflow-ci-daily'
+    if mode != 'relogin':
+        daily_state.update(root=root, processes={}, helper_reports=[], clip_markers=[])
+        require(guest_command('mkdir', '-p', str(root)))
+        start_tools()
+    else:
+        # The frontend monitor follows the new bus, even if the headless peer survived the old login.
+        if x_command('xdotool', 'getdisplaygeometry').returncode == 0:
+            monitor_start()
+        else:
+            for probe in ('xvfb', 'x11-input'):
+                stop_probe(probe)
+            start_tools()
+    source = session['home'] / '.config/Deskflow'
+    daily_state['source'] = source
+    if mode == 'initial':
+        assert not SWITCH.exists() and not core_pids()
+        require(guest_command('mkdir', '-p', str(source)))
+        fixture_file(source / 'Deskflow.conf', '[core]\ncomputerName=fixture-host\ninterface=127.0.0.1\n')
+        fixture_file(source / 'deskflow-server.conf', 'section: screens\n    fixture-host:\n    fixture-mac:\nend\n'
+                     'section: links\n    fixture-host:\n        right = fixture-mac\n'
+                     '    fixture-mac:\n        left = fixture-host\nend\n')
+        require(subprocess.run(['chpasswd'], input=f'{session["name"]}:{PASSWORD}\n',
+                               capture_output=True, text=True, timeout=10))
+        trace_backend()
+    return dict(returncode=0, switch=require(guest_command(SWITCH_UI, 'status')).strip(),
+                backend_connections=backend_connections(), labwc_pid=session['pid'])
+
+
+def daily_server(request):
+    action = request['op']
+    if action in ('hub', 'hook') and 'server' in daily_state['processes']:
+        daily_state.setdefault('server_logs', []).append(probe_log('server'))
+        stop_probe('server')
+    if action == 'hub':
+        suffix = os.urandom(8).hex()
+        unit = f'app-aresos-{DESKTOP_ID}-{suffix}.scope'
+        start_probe('server', ['python3', '-B', '-c', hub_launch(suffix, unit)])
+    elif action == 'hook':
+        start_probe('server', [LOGIN_HOOK])
+    elif action == 'stop':
+        for pid in core_pids():
+            stop_pid(pid)
+        wait_for(lambda: not core_pids() and not list(session['runtime'].glob('aresos-deskflow-*/Deskflow')),
+                 'server and guarded profile stopped')
+        wait_for(lambda: status() == 'no sessions', 'portal session closed after server stop')
+    elif action == 'armed':
+        path = wait_for(backend_session, 'one armed Deskflow session')
+        pid, = core_pids()
+        scope = (PROC / str(pid) / 'cgroup').read_text().strip().split('/')[-1]
+        assert re.fullmatch(r'app-aresos-org\.deskflow\.deskflow-[0-9a-f]{16}\.scope', scope), scope
+        owner = backend_owner()
+        backend = backend_pid(owner)
+        env = environ(backend)
+        assert env['WAYLAND_DISPLAY'] == session['wayland'] and env['DBUS_SESSION_BUS_ADDRESS'] == session['bus']
+        assert wayland_connections(backend) == 1
+        daily_state.update(backend_pid=backend, core_pid=pid)
+        # The monitor header identifies the unique bus sender. The cgroup alone would also match a process that
+        # never made the call, so check the sender credentials against the running core.
+        calls = [line.split() for line in probe_log('portal-profile').splitlines() if line.endswith('CreateSession2')]
+        sender = calls[-1][3] if calls and calls[-1][0] == 'mc' else None
+        if request.get('monitor', True):
+            assert sender and sender.startswith(':') and backend_pid(sender) == pid, (
+                'D-Bus credentials did not identify the scoped core as the CreateSession2 caller')
+        return dict(returncode=0, session=path, scope=scope, pid=pid, backend=backend, owner=owner,
+                    sender=sender, worker_connections=1)
+    elif action == 'kill-backend':
+        stop_pid(backend_pid(backend_owner()), signal.SIGKILL)
+    elif action == 'kill-frontend':
+        previous = current_owner(FRONTEND)
+        assert previous, 'frontend was not running'
+        stop_pid(backend_pid(previous), signal.SIGKILL)
+        return dict(returncode=0, previous=previous)
+    elif action == 'frontend':
+        return dict(returncode=0, owner=current_owner(FRONTEND))
+    elif action == 'freeze':
+        pid = backend_pid(backend_owner())
+        daily_state['frozen'] = pid
+        os.kill(pid, signal.SIGSTOP)
+    elif action == 'frozen-exited':
+        pid = daily_state['frozen']
+        wait_for(lambda: not (PROC / str(pid) / 'exe').exists(), 'release killed the stopped backend', timeout=4)
+        assert not backend_running() or backend_pid(backend_owner()) != pid
+    elif action == 'off':
+        wait_for(lambda: status() == 'no sessions' and not core_pids(), 'sharing stopped, no server or sessions')
+        return dict(returncode=0, connections=backend_connections())
+    else:
+        raise ValueError(action)
+    return dict(returncode=0)
+
+
+def daily_switch(request):
+    op = request['op']
+    root = session['runtime']
+    answer = root / 'deskflow-ci-switch-answer'
+    if op == 'start':
+        answer.unlink(missing_ok=True)
+        path = root / 'deskflow-ci-switch-request'
+        temporary = path.with_suffix('.tmp')
+        fixture_file(temporary, json.dumps(dict(args=request['args'], display={
+            'DBUS_SESSION_BUS_ADDRESS': session['bus'], 'WAYLAND_DISPLAY': session['wayland'],
+            'QT_QPA_PLATFORM': 'wayland', 'XDG_CURRENT_DESKTOP': 'AresOS',
+        })))
+        temporary.replace(path)
+    elif op == 'read':
+        result = wait_for(lambda: json.loads(answer.read_text()) if answer.exists() else None,
+                          'pkexec result', timeout=15)
+        daily_state['helper_reports'].extend((result['stdout'], result['stderr']))
+        return dict(returncode=0, code=result['code'], switch=require(guest_command(SWITCH_UI, 'status')).strip())
+    elif op == 'auth-window':
+        target = wait_for(lambda: [window for window in windows()
+                                  if window[2] and ('authentication' in window[1].lower()
+                                                    or 'polkit' in window[0].lower())], 'polkit password window')
+        assert len(target) == 1
+    elif op == 'policy':
+        def decisions(subject):
+            return {verb: subprocess.run(['pkcheck', '--action-id', f'org.aresos.input-sharing.{verb}',
+                                         '--process', str(subject)], capture_output=True, text=True, timeout=10).returncode
+                    for verb in ('on', 'off')}
+
+        local = decisions(session['pid'])
+        active = request['active']
+        assert local == ({'on': 2, 'off': 0} if active else {'on': 1, 'off': 2}), local
+        with subprocess.Popen(session['prefix'] + ['sh', '-c', 'echo $$; exec sleep 20'],
+                              stdout=subprocess.PIPE, text=True) as subject:
+            uid_pid = int(subject.stdout.readline())
+            try:
+                remote = decisions(uid_pid)
+                assert remote == {'on': 1, 'off': 2}, remote
+            finally:
+                os.kill(uid_pid, signal.SIGTERM)
+        return dict(returncode=0, local=local, outside_seat=remote)
+    elif op == 'outside-seat':
+        return remote_switch_denied()
+    elif op == 'status':
+        return dict(returncode=0, switch=require(guest_command(SWITCH_UI, 'status')).strip())
+    elif op == 'bad-pkexec-args':
+        result = guest_command('pkexec', '--disable-internal-agent', HELPER, *request['args'])
+        daily_state['helper_reports'].extend((result.stdout, result.stderr))
+        assert result.returncode != 0 and not SWITCH.exists()
+    elif op == 'bad-root-args':
+        statuses = [subprocess.run([HELPER, *args], capture_output=True, text=True, timeout=5).returncode
+                    for args in ([], ['ON'], ['on', 'x'], ['/tmp/deskflow-ci-not-a-switch'])]
+        assert statuses == [2, 2, 2, 2] and not SWITCH.exists()
+    elif op == 'unsafe':
+        assert not SWITCH.exists()
+        SWITCH.parent.mkdir(parents=True, exist_ok=True)
+        other = SWITCH.with_name('ci-target')
+        other.write_text('on\n')
+        if request['kind'] == 'link':
+            SWITCH.symlink_to(other)
+        else:
+            SWITCH.parent.chmod(0o777)
+        try:
+            assert require(guest_command(SWITCH_UI, 'status')).strip() == 'off'
+            assert all(subprocess.run([HELPER, verb], capture_output=True, timeout=5).returncode != 0
+                       for verb in ('on', 'off'))
+            assert other.read_text() == 'on\n'
+            assert SWITCH.is_symlink() if request['kind'] == 'link' else not SWITCH.exists()
+            before = session_log().count('refused: sharing is off')
+            daily_server({'op': 'hub'})
+            wait_for(lambda: session_log().count('refused: sharing is off') > before,
+                     'backend refused a session with an unsafe sharing switch')
+            wait_for(lambda: not core_pids(), 'refused Deskflow core stopped')
+        finally:
+            SWITCH.parent.chmod(0o755)
+            SWITCH.unlink(missing_ok=True)
+            other.unlink()
+    elif op == 'remove':
+        assert SWITCH.read_text() == 'on\n'
+        SWITCH.unlink()
+    elif op == 'seed-on':
+        require(subprocess.run([HELPER, 'on'], capture_output=True, text=True, timeout=5))
+    else:
+        raise ValueError(op)
+    return dict(returncode=0)
+
+
+def daily_dialog(request):
+    title = {'sharing': SHARING_TITLE, 'pair': PAIR_TITLE, 'recovery': 'AresOS',
+             'invalid-profile': 'Deskflow'}[request['name']]
+    if request.get('absent'):
+        assert not windows_with(title), f'{request["name"]} unexpectedly mapped'
+    else:
+        seen = wait_for(lambda: windows_with(title), f'{request["name"]} mapped')
+        if request.get('new'):
+            before = [window for window in daily_state['window_mark'] if window[1] == title]
+            wait_for(lambda: len(windows_with(title)) == len(before) + 1, 'new recovery terminal')
+        else:
+            assert len(seen) == 1, f'{request["name"]} opened more than one window'
+        if request.get('focused', True):
+            wait_for(lambda: any(window[2] for window in windows_with(title)),
+                     f'{request["name"]} has the keyboard')
+    return dict(returncode=0)
+
+
+def trust_file():
+    return daily_state['source'] / 'tls/trusted-clients'
+
+
+def trusted_line(peer):
+    cert = daily_state['root'] / peer / 'Deskflow/tls/deskflow.pem'
+    return 'v2:sha256:' + fingerprint(cert) + '\n'
+
+
+def server_listening():
+    try:
+        socket.create_connection(('127.0.0.1', 24800), timeout=0.2).close()
+    except OSError:
+        return False
+    return True
+
+
+def daily_peer(request):
+    op = request['op']
+    label = request.get('peer')
+    if op == 'prepare':
+        cert = daily_state['source'] / 'tls/deskflow.pem'
+        wait_for(cert.is_file, 'guard generated its TLS certificate')
+        laptop = fingerprint(cert)
+        for peer in ('enter', 'approved', 'stranger', 'plain'):
+            client_profile(peer, laptop, tls=peer != 'plain')
+        assert len({trusted_line(peer) for peer in ('enter', 'approved', 'stranger', 'plain')}) == 4
+    elif op == 'start':
+        wait_for(server_listening, 'guarded server listening')
+        stop_probe('peer')
+        profile = daily_state['root'] / label
+        # Keep client logs separate so a later connection cannot obscure an earlier refusal.
+        start_probe('peer', ['env', '-u', 'WAYLAND_DISPLAY', 'QT_QPA_PLATFORM=xcb', 'XDG_SESSION_TYPE=x11',
+                   f'XDG_CONFIG_HOME={profile}', f'TMPDIR={profile}', CORE, 'client'], display=True)
+        daily_state['peer'] = label
+        if request.get('connected'):
+            wait_for(lambda: 'accepted secure socket' in probe_log('server') + session_log() and
+                     'connected to secure socket' in probe_log('peer'), 'Deskflow peers completed TLS')
+            time.sleep(0.5)  # The next crossing proves the Deskflow protocol handshake as well.
+    elif op == 'stop':
+        # Save only logs that will participate in the privacy scan; never export them.
+        if 'peer' in daily_state['processes']:
+            stop_probe('peer')
+            daily_state.setdefault('peer_logs', []).append(probe_log('peer'))
+    elif op == 'trusted':
+        path = trust_file()
+        if label is None:
+            assert not path.exists()
+        else:
+            wait_for(lambda: path.is_file() and path.read_text() == trusted_line(label), 'one verified fingerprint')
+            runtime = [entry / 'tls/trusted-clients' for entry
+                       in session['runtime'].glob('aresos-deskflow-*/Deskflow')]
+            assert len(runtime) == 1 and runtime[0].read_text() == path.read_text()
+            assert path.stat().st_mode & 0o777 == 0o600
+    elif op == 'refused':
+        wait_for(lambda: re.search(r'(?im)refused|connection failed|disconnected|timed out|error|closed',
+                                   probe_log('peer')), 'untrusted peer got a refusal')
+        assert not re.search(r'(?im)\bconnected to server\b', probe_log('peer'))
+    elif op == 'settings':
+        settings = daily_state['source'] / 'Deskflow.conf'
+        text = settings.read_text()
+        if '[security]' not in text:
+            fixture_file(settings, text + '[security]\ntlsEnabled=false\ncheckPeerFingerprints=false\n')
+        if request.get('stale'):
+            fixture_file(trust_file(), trusted_line('approved') + trusted_line('stranger'))
+        else:
+            fixture_file(trust_file(), trusted_line('approved'))
+    elif op == 'protected':
+        pid, = core_pids()
+        env = environ(pid)
+        profile = pathlib.Path(env['XDG_CONFIG_HOME']) / 'Deskflow/Deskflow.conf'
+        text = profile.read_text()
+        assert re.search(r'(?im)^tlsEnabled=true$', text) and re.search(r'(?im)^checkPeerFingerprints=true$', text)
+        assert env['QT_QPA_PLATFORM'] == 'wayland' and 'DISPLAY' not in env
+        assert (PROC / str(pid) / 'cmdline').read_bytes().split(b'\0') == [CORE.encode(), b'server', b'']
+    else:
+        raise ValueError(op)
+    return dict(returncode=0)
+
+
+def send_virtual(device, commands):
+    process = daily_state['processes'][device]
+    for command in commands:
+        process.stdin.write(command + '\n')
+        process.stdin.flush()
+        assert select.select([process.stdout], [], [], 5)[0] and process.stdout.readline() == 'OK\n', device
+
+
+def input_mark():
+    return {name: (daily_state['root'] / f'{name}.log').stat().st_size for name in ('local-input', 'x11-input')}
+
+
+def input_since(mark, name):
+    with (daily_state['root'] / f'{name}.log').open() as stream:
+        stream.seek(mark[name])
+        return stream.read()
+
+
+def wait_received(mark, pattern, description, timeout=5):
+    return wait_for(lambda: re.search(pattern, input_since(mark, 'x11-input'), re.M),
+                    description, timeout=timeout)
+
+
+def captured():
+    return backend_session(capture=True)
+
+
+def width_height():
+    mode = active_mode(randr()['Virtual-1'])
+    return mode['width'], mode['height']
+
+
+def position_pointer(x, y):
+    width, height = width_height()
+    send_virtual('pointer', [f'abs {x} {y} {width} {height}'])
+
+
+def attempt_crossing():
+    width, height = width_height()
+    position_pointer(width // 2, height // 2)
+    position_pointer(width - 3, height // 2)
+    send_virtual('pointer', ['rel 100 0'])
+
+
+def x_key(code):
+    # A real keyboard-path check also follows every binding, using the X11 event and its modifiers.
+    return rf'(?m)state 0x[0-9a-f]+, keycode \d+ \(keysym 0x[0-9a-f]+, {re.escape(code)}\)'
+
+
+def local_focus():
+    width, height = width_height()
+    position_pointer(width // 2, height // 2)
+    send_virtual('pointer', ['btn 272 1', 'btn 272 0'])
+    wait_for(lambda: any(w[0] == 'org.aresos.deskflow-ci' and w[2] for w in windows()),
+             'the local input probe has focus')
+
+
+def daily_input(request):
+    op = request['op']
+    if op == 'prepare':
+        for old in ('local-input', 'pointer', 'keyboard'):
+            stop_probe(old)
+        start_probe('local-input', [WL_HARNESS, 'window', '--keep-open', '--app-id', 'org.aresos.deskflow-ci',
+                                    '--title', 'Deskflow CI laptop', '--size', '600x450'])
+        for device in ('pointer', 'keyboard'):
+            process = start_probe(device, [WL_HARNESS, 'input', device], pipe=True)
+            assert select.select([process.stdout], [], [], 8)[0] and process.stdout.readline() == 'READY\n'
+        wait_for(lambda: bool(windows_with('Deskflow CI laptop')), 'local Wayland input probe')
+        local_focus()
+    elif op == 'focus':
+        local_focus()
+    elif op == 'untrusted-cross':
+        attempt_crossing()
+        time.sleep(0.2)
+        send_virtual('pointer', ['rel 24 0'])
+        wait_for(lambda: backend_session(capture=False), 'the pointer was released without a connected client')
+        local_focus()
+    elif op == 'cross':
+        assert backend_session(capture=False), 'no armed session before crossing'
+        before = portal_events()
+        attempt_crossing()
+        wait_for(captured, 'crossing started a capture')
+        wait_for(lambda: portal_events()['Activated'] > before['Activated'], 'real frontend forwarded Activated')
+    elif op == 'off-cross':
+        assert status() == 'no sessions'
+        attempt_crossing()
+        assert status() == 'no sessions' and not backend_connections()
+    elif op == 'mark':
+        daily_state.update(input_mark=input_mark(), event_mark=portal_events(), window_mark=windows())
+    elif op == 'inward':
+        send_virtual('pointer', ['rel 51 23', 'btn 272 1', 'btn 272 0', 'axis -2'])
+    elif op == 'forwarded':
+        mark = daily_state['input_mark']
+        for pattern in (r'^MotionNotify', r'^ButtonPress', r'button 1, same_screen', r'button [45], same_screen', x_key('a')):
+            wait_received(mark, pattern, 'remote client got motion, buttons, scroll and keys')
+        assert not re.search(r'(?m)^(KEY|MOTION|BUTTON|AXIS) ', input_since(mark, 'local-input'))
+    elif op == 'typed-marker':
+        def typed():
+            events = re.findall(r'(?ms)^KeyPress event,.*?(?=\n\n|\Z)', input_since(daily_state['input_mark'], 'x11-input'))
+            symbols = [match[1] for event in events
+                       if (match := re.search(r'keysym 0x[0-9a-f]+, ([a-z0-9])\)', event))]
+            return KEY_MARKER in ''.join(symbols)
+        wait_for(typed, 'the complete keyboard marker reached the private X11 recorder')
+    elif op == 'binding':
+        mark = daily_state['input_mark']
+        wait_received(mark, x_key('b'), 'the next key went to Deskflow client')
+        expected = request.get('key')
+        if expected:
+            wait_received(mark, x_key(expected), 'the unmarked binding itself reached the client')
+        if button := request.get('mouse'):
+            assert button in ('1', '2', '3', '4', '5')
+            wait_received(mark, rf'button {button}, same_screen', 'the mouse binding itself reached the client')
+        assert captured() and portal_events()['Deactivated'] == daily_state['event_mark']['Deactivated']
+        assert windows() == daily_state['window_mark'], 'an unmarked binding changed local windows or focus'
+        assert not re.search(r'(?m)^(KEY|MOTION|BUTTON|AXIS|CLOSE)', input_since(mark, 'local-input'))
+        return dict(returncode=0, laptop='unchanged', capture='held', next_key='client')
+    elif op == 'virtual-key':
+        code = request['code']
+        send_virtual('keyboard', [f'key {code} 1', f'key {code} 0'])
+    elif op == 'virtual-mouse':
+        send_virtual('pointer', request['commands'])
+    elif op == 'released':
+        wait_for(lambda: not captured(), 'capture ended')
+        wait_for(lambda: portal_events()['Deactivated'] > daily_state['event_mark']['Deactivated'],
+                 'real frontend forwarded Deactivated')
+        if request.get('modifiers'):
+            text = input_since(daily_state['input_mark'], 'x11-input')
+            for name in ('Super_L', 'Shift_L'):
+                press, release = (sum(re.search(x_key(name), event) is not None for event in
+                                      re.findall(rf'(?ms)^{kind} event,.*?(?=\n\n|\Z)', text))
+                                  for kind in ('KeyPress', 'KeyRelease'))
+                assert press == release, f'{name} was left held in the client'
+        if request.get('focus'):
+            local_focus()
+        return dict(returncode=0, deactivated=True)
+    elif op == 'local-key':
+        wait_for(lambda: re.search(r'(?m)^KEY \d+ 1$', input_since(daily_state['input_mark'], 'local-input')),
+                 'the next key was local')
+        assert not re.search(x_key('b'), input_since(daily_state['input_mark'], 'x11-input'))
+    elif op == 'still':
+        assert captured()
+        wait_received(daily_state['input_mark'], x_key('b'), 'key after idle reached client')
+    elif op == 'closed':
+        wait_for(lambda: portal_events()['Closed'] > daily_state['event_mark']['Closed'],
+                 'real frontend forwarded Closed', timeout=3)
+    else:
+        raise ValueError(op)
+    return dict(returncode=0)
+
+
+def paste_matches(command, mark, display=False):
+    read = x_command if display else guest_command
+    try:
+        result = read('timeout', '1', *command)
+    except subprocess.TimeoutExpired:
+        return False
+    return result.returncode == 0 and result.stdout == mark
+
+
+def put_clipboard(name, marker, command, display=False):
+    stop_probe(name)
+    process = start_probe(name, command, display=display, pipe=True)
+    process.stdin.write(marker)
+    process.stdin.close()
+
+
+def daily_clip(request):
+    op = request['op']
+    if op == 'baseline':
+        time.sleep(0.5)
+        pid = backend_pid(current_owner(FRONTEND))
+        daily_state['clip_frontend'] = pid
+        daily_state['clip_fds'] = len(os.listdir(PROC / str(pid) / 'fd'))
+        daily_state['clip_before'] = portal_events()
+    elif op in ('host', 'client'):
+        index = len(daily_state['clip_markers'])
+        marker = f'aresosclip{index:04d}'
+        daily_state['clip_markers'].append(marker)
+        daily_state['clip_marker'] = marker
+        if op == 'host':
+            put_clipboard('wl-copy', marker, ['wl-copy', '--foreground', '--type', 'text/plain;charset=utf-8'])
+        else:
+            put_clipboard('x-copy', marker, ['xclip', '-quiet', '-selection', 'clipboard'], display=True)
+    elif op == 'read-client':
+        wait_for(lambda: paste_matches(['xclip', '-o', '-selection', 'clipboard'], daily_state['clip_marker'], True),
+                 'clipboard arrived at the client through Deskflow', timeout=6)
+    elif op == 'read-host':
+        wait_for(lambda: paste_matches(['wl-paste', '--no-newline'], daily_state['clip_marker']),
+                 'clipboard arrived at the laptop through Deskflow', timeout=6)
+    elif op == 'release':
+        require(guest_command(PORTAL, '--release'))
+        wait_for(lambda: backend_session(capture=False), 'clipboard round returned to the laptop')
+    elif op == 'counts':
+        pid = daily_state['clip_frontend']
+        assert pid == backend_pid(current_owner(FRONTEND))
+        before = daily_state['clip_before']
+        counts = {member: portal_events()[member] - before[member] for member in ('SelectionRead', 'SelectionWrite')}
+        after = len(os.listdir(PROC / str(pid) / 'fd'))
+        assert all(value >= 20 for value in counts.values()) and after <= daily_state['clip_fds'], (
+            counts, daily_state['clip_fds'], after)
+        return dict(returncode=0, portal_calls=counts, frontend_fds=[daily_state['clip_fds'], after])
+    elif op == 'no-read':
+        # Each attempted copy remained on its origin after shutdown.
+        side = request['side']
+        marker = daily_state['clip_marker']
+        commands = {'client': (['xclip', '-o', '-selection', 'clipboard'], True),
+                    'host': (['wl-paste', '--no-newline'], False)}
+        origin = 'host' if side == 'client' else 'client'
+        origin_command, origin_display = commands[origin]
+        wait_for(lambda: paste_matches(origin_command, marker, origin_display), 'the local copy succeeded')
+        destination, destination_display = commands[side]
+        assert not paste_matches(destination, marker, destination_display)
+        before = daily_state['event_mark']
+        after = portal_events()
+        assert all(after[member] == before[member] for member in ('SelectionRead', 'SelectionWrite'))
+    else:
+        raise ValueError(op)
+    return dict(returncode=0)
+
+
+def daily_proof(request):
+    op = request['op']
+    if op == 'off-launch':
+        before = session_log().count('refused: sharing is off')
+        daily_server({'op': 'hub'})
+        wait_for(lambda: session_log().count('refused: sharing is off') > before,
+                 'real portal declined the scoped Deskflow server while Off')
+        wait_for(lambda: not core_pids(), 'refused core exited')
+    elif op == 'off-time':
+        pid = backend_pid(backend_owner())
+        pidfd = os.pidfd_open(pid)
+        try:
+            before = time.monotonic()
+            daily_switch({'op': 'remove'})
+            assert select.select([pidfd], [], [], 2)[0], 'original backend stayed alive past the Off deadline'
+            elapsed = time.monotonic() - before
+        finally:
+            os.close(pidfd)
+        assert elapsed <= 2
+        return dict(returncode=0, seconds=round(elapsed, 3))
+    elif op == 'flatpak':
+        app_id = 'org.aresos.UnlistedFixture'
+        declaration = daily_state['root'] / 'flatpak-info'
+        fixture_file(declaration, f'[Application]\nname={app_id}\nruntime=org.fedoraproject.Platform\n')
+        before = session_log().count(app_id)
+        command = ['bwrap', '--ro-bind', '/', '/', '--ro-bind', str(declaration), '/.flatpak-info',
+                   '--', 'gdbus', 'call', '--session', '--dest', FRONTEND, '--object-path',
+                   '/org/freedesktop/portal/desktop', '--method',
+                   'org.freedesktop.portal.InputCapture.CreateSession', '',
+                   "{'capabilities': <uint32 7>, 'session_handle_token': <'unlisted'>}"]
+        guest_command(*command)
+        wait_for(lambda: session_log().count(app_id) > before and
+                 any(app_id in line and 'not on the allow-list' in line for line in session_log().splitlines()),
+                 'frontend supplied the sandbox ID and the backend refused it')
+    elif op == 'log':
+        assert daily_state['clip_markers'] and portal_events()['Activated'] and portal_events()['Deactivated']
+        pid = backend_pid(backend_owner())
+        assert environ(pid)['ARESOS_INPUT_PORTAL_LOG'] == 'trace'
+        pid, = core_pids()
+        profile = pathlib.Path(environ(pid)['XDG_CONFIG_HOME']) / 'Deskflow/Deskflow.conf'
+        settings = ConfigParser()
+        settings.read(profile)
+        level = settings.get('log', 'level', fallback='INFO')
+        assert level.lower() == 'info' and not settings.getboolean('log', 'toFile', fallback=False), level
+        journal = subprocess.run(['journalctl', '-b', '--no-pager', '-o', 'cat'], check=True,
+                                 capture_output=True, text=True, timeout=30).stdout
+        helper = '\n'.join(daily_state['helper_reports'])
+        session_output = session_log()
+        server_runs = '\n'.join(daily_state.get('server_logs', [])) + probe_log('server')
+        client_runs = '\n'.join(daily_state.get('peer_logs', [])) + probe_log('peer')
+        file_logs = {}
+        for base in (session['home'], session['runtime'], pathlib.Path('/tmp')):
+            for path in base.rglob('*.log'):
+                if 'deskflow' in str(path).casefold() and path.name not in {
+                    'deskflow-ci-session.log', 'local-input.log', 'x11-input.log', 'portal-profile.log',
+                }:
+                    file_logs[str(path)] = path.read_text(errors='replace')
+        sources = {'journal': journal, 'session': session_output, 'server': server_runs,
+                   'client': client_runs, 'helper': helper, **file_logs}
+        assert 'detected wayland platform' in server_runs and 'started client' in client_runs
+        assert any('DEBUG' in line and 'aresos_input_portal' in line for line in session_output.splitlines())
+        for name, body in sources.items():
+            assert not LOG_DATA.search(body), f'sensitive input in {name}'
+        return dict(returncode=0, backend_level='trace', deskflow_level=level,
+                    lines={name: len(body.splitlines()) for name, body in sources.items()})
+    elif op == 'recovery-key':
+        path = session['home'] / 'deskflowrecovered'
+        wait_for(path.exists, 'keyboard input reached the new recovery terminal')
+        path.unlink()
+    elif op == 'login-off':
+        assert require(guest_command(SWITCH_UI, 'status')).strip() == 'off'
+        assert not core_pids() and not backend_connections()
+    elif op == 'restart-login':
+        name = session['name']
+        require(subprocess.run(['systemctl', 'stop', 'greetd.service'], capture_output=True, text=True, timeout=45))
+        require(subprocess.run(['loginctl', 'terminate-user', name], capture_output=True, text=True, timeout=20))
+        wait_for(lambda: not session['runtime'].exists() and labwc_pid(session['uid']) is None and not core_pids(),
+                 'the old login and its Deskflow scope ended', timeout=45)
+        # greetd runs initial_session once per boot unless the runfile is removed in this disposable guest.
+        pathlib.Path('/run/greetd.run').unlink(missing_ok=True)
+        require(subprocess.run(['systemctl', 'start', '--no-block', 'greetd.service'],
+                               capture_output=True, text=True, timeout=10))
+    elif op == 'poweroff':
+        # Leave time for the response to reach the host before systemd stops the CI channel.
+        subprocess.Popen(['sh', '-c', 'sleep 1; exec systemctl poweroff'], start_new_session=True,
+                         stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    else:
+        raise ValueError(op)
+    return dict(returncode=0)
+
+
+ACTIONS.update({'deskflow-daily-prepare': daily_prepare, 'deskflow-daily-switch': daily_switch,
+                'deskflow-daily-server': daily_server, 'deskflow-daily-dialog': daily_dialog,
+                'deskflow-daily-peer': daily_peer, 'deskflow-daily-input': daily_input,
+                'deskflow-daily-clip': daily_clip, 'deskflow-daily-proof': daily_proof})
+
+
+def remote_switch_denied():
+    """Ask from a real PAM SSH login on guest loopback, with only throwaway keys."""
+    import tempfile
+    with tempfile.TemporaryDirectory(prefix='deskflow-ssh-') as directory:
+        root = pathlib.Path(directory)
+        os.chmod(root, 0o755)
+        key = root / 'id'
+        require(subprocess.run(['ssh-keygen', '-q', '-t', 'ed25519', '-N', '', '-f', str(key)],
+                               capture_output=True, text=True, timeout=10))
+        config = root / 'sshd.conf'
+        config.write_text(f'ListenAddress 127.0.0.1\nPort 22\nHostKey {key}\nUsePAM yes\n'
+                          f'AuthorizedKeysFile {key}.pub\nStrictModes no\nPasswordAuthentication no\n'
+                          'PermitRootLogin no\nUseDNS no\n')
+        with (root / 'sshd.log').open('w') as log:
+            process = subprocess.Popen(['/usr/sbin/sshd', '-D', '-e', '-f', str(config)], stdout=log, stderr=log)
+            try:
+                def listening():
+                    assert process.poll() is None, 'the isolated sshd exited before starting'
+                    try:
+                        socket.create_connection(('127.0.0.1', 22), timeout=0.2).close()
+                        return True
+                    except OSError:
+                        return False
+
+                wait_for(listening, 'isolated loopback sshd')
+                script = ('test "$(loginctl show-session "$XDG_SESSION_ID" -p Remote --value)" = yes || exit 31; '
+                          'echo remote; '
+                          'pkexec --disable-internal-agent /usr/libexec/aresos-input-sharing-set on; echo "code=$?"')
+                result = subprocess.run(['ssh', '-F', '/dev/null', '-o', 'BatchMode=yes',
+                                         '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null',
+                                         '-i', str(key), f'{session["name"]}@127.0.0.1', script],
+                                        capture_output=True, text=True, timeout=12)
+                daily_state['helper_reports'].extend((result.stdout, result.stderr))
+                assert result.returncode == 0 and result.stdout.splitlines() in (
+                    ['remote', 'code=126'], ['remote', 'code=127'])
+                assert not SWITCH.exists()
+                return dict(returncode=0, remote=True, refused=True)
+            finally:
+                if process.poll() is None:
+                    process.terminate()
+                    process.wait(timeout=5)
