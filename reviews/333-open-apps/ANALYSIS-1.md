@@ -865,7 +865,7 @@ For REPORT.md, beside the ones that stay (layouts, unattributed windows, the res
 - I read the first 330 lines of `test_aresos_shell_windows.py` and the first 140 of `test_aresos_shell_review_fixes.py`. I didn't read the helper's search, home, hardening, launch-hints, discovery or icon tests, `check_aresos_shell_headless.py`, or `reviews/333-open-apps/headless.py`. Hence the search before step A.
 - I didn't read `docs/design/HUB.md`. If its shell protocol section describes four view histories, that sentence needs the new rule.
 
-## The lead's rulings (2026-11-22, by `date` 20:55)
+## The lead's rulings (2026-11-22, by `date` 20:53)
 
 All five decisions above are accepted as written:
 1. Package 53a's five-names eviction goes, and its test is rewritten. `linux-laptop-home` is told.
