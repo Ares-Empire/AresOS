@@ -58,7 +58,8 @@ env:
   REHEARSAL_PACKAGE: ${{ github.ref_name == 'pkg/42-release-28' && '42' || github.ref_name == 'pkg/22d-tools-without-stick' && '22d' || github.ref_name == 'pkg/22c-ways-back-after-update' && '22c' || github.ref_name == 'pkg/27-first-update-release' && '27' || github.ref_name == 'pkg/16-staged-release' && '16' || github.ref_name == 'pkg/14-owner-tools' && '14' || github.ref_name == 'pkg/13-keyboard-layout' && '13' || '11c' }}
 
 concurrency:
-  group: os-image-${{ github.ref }}
+  # Bench jobs build on disposable runners. Keep each commit's batch independent.
+  group: ${{ inputs.check_build == 'bench' && format('os-bench-{0}-{1}', github.ref, github.sha) || format('os-image-{0}', github.ref) }}
   cancel-in-progress: false
 
 jobs:
