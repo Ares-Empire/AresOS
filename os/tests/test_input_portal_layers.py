@@ -39,15 +39,17 @@ class InputPortalLayersTest(unittest.TestCase):
             for leak in ('tmp/aresos/input-portal', 'usr/local/bin/rustc', 'opt/crates/Cargo.lock',
                          'usr/share/aresos/input-portal/main.rs', 'opt/project/Cargo.toml',
                          'opt/build/libportal.rlib', 'opt/build/libportal.rmeta', 'opt/build/portal.d',
-                         'opt/project/target/portal'):
+                         'opt/project/target/portal', 'opt/relocated/libserde_derive-43ae5d4e1341043d.so',
+                         'opt/relocated/build-script-build', 'opt/relocated/build_script_build-43ae5d4e1341043d',
+                         'opt/relocated/portal-43ae5d4e1341043d', 'opt/relocated/invoked.timestamp'):
                 with self.subTest(leak=leak):
                     path = intermediate / leak
                     path.parent.mkdir(parents=True, exist_ok=True)
                     path.touch()
-                    if path.name == 'main.rs':
-                        # The final overlay's opaque directory hides the relocated source.
+                    if path.name == 'main.rs' or path.parent.name == 'relocated':
+                        # The final overlay's opaque directory hides relocated build material.
                         hidden = final / path.parent.relative_to(intermediate)
-                        hidden.mkdir(parents=True)
+                        hidden.mkdir(parents=True, exist_ok=True)
                         (hidden / '.wh..wh..opq').touch()
                     scan([final])
                     rejected = 'opt/project/target' if 'target' in path.parts else leak
