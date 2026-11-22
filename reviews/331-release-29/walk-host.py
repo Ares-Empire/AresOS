@@ -23,13 +23,18 @@ def save(path, value):
     path.write_text(json.dumps(value, indent=2) + '\n')
 
 
+def guest_paths(model, value):
+    # Mapped paths, including those in error messages, should name the guest files.
+    return json.loads(json.dumps(value).replace(str(model.session.root), ''))
+
+
 def diagnostics():
     CandidateRouteTest.setUpClass()
     try:
         test = CandidateRouteTest()
         with test.model('masked-ordering') as model:
             model.run_route()
-            successful = {name: value for name, value in model.saved.items() if name.endswith((
+            successful = {name: guest_paths(model, value) for name, value in model.saved.items() if name.endswith((
                 '-control', '-control-login', '-session', '-terminal', '-terminal-path', '-package21-rules',
                 '-polkit-sweep', '-sites-stage', '-sites-placeholder', '-sites-hash', '-game-scope',
                 '-chrome-first-use', '-deployment-walk'))}
@@ -49,12 +54,10 @@ def diagnostics():
                     assert re.search(message, str(error)), (fault, str(error))
                 else:
                     raise AssertionError('The fixture accepted ' + fault)
-                # The mapped FileNotFoundError can name the host's temporary
-                # fixture root. Keep the guest path in the public diagnostic.
-                negative[fault] = json.loads(json.dumps(model.saved[name]).replace(str(model.session.root), ''))
+                negative[fault] = guest_paths(model, model.saved[name])
         with test.model('late-monitor') as model:
             model.run_route()
-            successful['late-monitor-terminal'] = model.saved['release-28-terminal']
+            successful['late-monitor-terminal'] = guest_paths(model, model.saved['release-28-terminal'])
     finally:
         CandidateRouteTest.doClassCleanups()
     return candidate, dict(evidence='synthetic guest fixture', passed=successful, refused=negative)

@@ -416,3 +416,108 @@ The lead's review of this fix round comes before step 4. Real VM boots, firmware
 and disk comparisons, and the owner's live save and close are still pending.
 Both R29 publish caps are zero, with zero dispatches and uploads used. There
 are no files over 500 MB in `.work/`.
+
+## Done · step 4 · 2026-11-22
+
+Started at `028cc315` on draft PR144. Merged `origin/main` at
+`d37ea134f036a770f5d60ab76d3c6f06ec7a0e3e` in `a5dbff3f`. Resolved the
+pending-rebind conflict by keeping both sides' notes and recomputing the files
+with `rebind.py pending`. After the probe changes it reported 14 pending rows
+and zero removals. The active package 42 binding tables stay historical.
+
+- **Carried item 2** · `cd393cfd`. The labwc and labnag fixtures now have
+  distinct normalized and loaded-image payloads. The swap regression keeps
+  each expected build ID and refreshes the RPM records so it reaches the
+  per-executable hash check. Extra paths, duplicate records and a well-formed
+  stale installed lock each have a direct refusal case. The step 1 and 2 fixture
+  comparison uses the reviewed pre-merge head until the late rules are added.
+- **Guest and Control probes** · `9d6455e1`. The four confirming boots check
+  the running labwc theme, fontconfig, runtime privilege, polkit and the PATH
+  read inside the reopened Terminal. R28 expects Ares-Crown and Space Grotesk.
+  R29 expects B329's AresOS theme and also checks Jersey 10 and JetBrains Mono.
+  The exact Terminal app starts from the supervisor's Wayland environment in
+  the daily user's home on tty1. Each try records the PID and log. Only the
+  missing-monitor message permits another try, with five attempts available.
+  The first R29 confirmation still exercises the no-foot STOP. The home and
+  save checks continue on all four boots. The last R29 boot measures the paused
+  JVM in its game scope with `memory.high=2684354560`.
+- The bound 18c-b stdin checker receives the five service checks on R28 and all
+  eleven checks on R29. The harness saves its output before querying the login
+  graph. The service account and private state use UID/GID 250. A masked
+  non-root unit can appear as an ordering reference and is still traversed.
+  Required masked units and any dependency on Control stop the walk.
+- Starting R28 stages the synthetic format-1 list in a separate root-owned file
+  under `/var/lib`, checks that the live path is absent and records an independent
+  root `sha256sum` of the staged bytes. On the first R29 boot the C1 check requires
+  the exact format-0 placeholder and root:aresos-tools 0640. C6 waits for the
+  policy-installed native host in a disposable normal Chrome profile, observes
+  settings refusal for tabs, read, open and take_tab, and checks zero requests
+  against a loopback server with a positive counter check. Root then feeds the
+  staged bytes to `tee`, and tabs succeeds. Both R29 boots compare the checker
+  line `CONTROL_CHROME_SITES_SHA256` and the live metadata to the pre-update hash
+  and package contract. After `previous`, R28 runs the five service checks and
+  independently reads the live hash as root. Only synthetic values enter evidence.
+
+### Handoff to the late-package profile slice
+
+| Main merge | Exact deltas to classify at the cut |
+| --- | --- |
+| 18c-b · `d37ea134` | Inventory the new Control tree and locked vendor results against R28's install. Bind `chrome_build`, `chrome_extension`, `gh`, the expanded `links` and installed file records in `control.json`. Validate the signed per-build bundle `extension.crx`, `native-host.json`, `policy.json` and `update.xml` under `/usr/share/aresos/chrome/` with matching IDs. Cover the managed policy and native-host links under `/etc/opt/chrome/` and their image copies, `/usr/libexec/aresos-control/chrome/{host,native_host.py}` and the qualification and build records, the Chrome polkit action and tmpfiles rule. The live sites file is guest state. Bind `os/gh.lock.json` and `os/keys/github-cli-rpm.pub` to the source. Classify `/usr/bin/gh`, its licence and installed `gh.lock.json`. The signature-checked RPM has 240 paths and contributes only the binary outside the installed RPM set. Keep `-B` in the Python child calls and the help check as nobody. The check-build overlay's static hostname and its Control fixture pieces belong to the harness. [18c-b handoff](../18c-b-chrome-image/PROGRESS.md#for-linux-aresoss-release-brief) |
+| B329 · `b720da42` | Add 37 AresOS labwc theme files, 36 look pack frame cells and the changed `look.json`. Compare the exact theme, switcher, Shift+Alt+Tab, title-bar scrolling and root press rows of `rc.xml`. Keep the Crown pin. The guest now expects AresOS on R29. If B321 rides, check the merged bindings together. [B329 handoff](../329-window-frame/PROGRESS.md#for-linux-aresos) |
+| B330 · `a7fb7cfe` | Add the hidden `org.prismlauncher.PrismLauncher.desktop` entry and change `aresos-mimeapps.list` to register the callback. Keep existing cache generation. Live Microsoft sign-in is still open. [B330 report](../330-prism-handler/REPORT.md#expected-r29-image-changes) |
+| 327 and 328a · `4dd5288b`, `92cf365a` | The mod tree now includes the home try-out and Terminal look changes plus the pointer capture work. Renew the jar pin from two clean hosted builds of the final source. |
+
+### Verified locally
+
+Ran these modules one at a time from the repository root, with `TMPDIR` in
+`.work/`.
+
+| Command | Result |
+| --- | --- |
+| `python3 -m unittest discover -s os/tests -p test_release29.py` | `Ran 29 tests in 30.729s`, `OK`. The positive fixture diffs printed `IMAGE_DIFF_PASSED` for 60, 60, 57 and 62 paths. |
+| `python3 -m unittest discover -s os/tests -p test_release28.py` | `Ran 94 tests in 58.132s`, `OK` |
+| `python3 -m unittest discover -s os/tests -p test_release27.py` | `Ran 41 tests in 6.646s`, `OK` |
+| `python3 -m unittest discover -s os/tests -p test_two_disk_vm.py` | `Ran 31 tests in 0.173s`, `OK` |
+| `python3 -m unittest discover -s os/tests -p test_release28_rehearsal.py` | `Ran 44 tests in 34.708s`, `OK` |
+| `python3 -m unittest discover -s os/tests -p test_checkout_sources.py` | `Ran 10 tests in 0.962s`, `OK` |
+| `python3 -m unittest discover -s os/tests -p test_owner_walk.py` | `Ran 40 tests in 623.113s`, `OK`, and `PASS historical R29 baseline through confirmed R28 with tools v5` |
+| `python3 -m unittest discover -s os/tests -p test_release29_rehearsal.py` | `Ran 22 tests in 26.362s`, `OK`, and the C1, C6 first-use and C6 reboot PASS markers |
+| `python3 -m py_compile os/ci/*.py os/ci/overlay/*.py os/owner-tools/*.py reviews/331-release-29/walk-host.py` | Exit 0 with no output |
+| `python3 reviews/331-release-29/walk-host.py` | `PASS package 331 synthetic baseline and candidate host walk with 314 sources` |
+| `git diff --check` and `git diff --cached --check` | Exit 0 with no output |
+
+The post-merge image fixture first reached the main-source stop because its Git
+queries still read the merged head. It now tests the pre-late-package profile
+against its reviewed source. The historical R27 scans also exposed the step 3
+mode-list change and a package lookup hidden behind a local alias. The reviewed
+route exception names R29 and the legacy lookup is again visible to the scan.
+The first rehearsal fixture runs exposed missing VT and process details. In the
+PID replacement case the fake now changes the PID after the submitted code has
+observed the launch.
+
+The local receipt binds the checker, probe sources and settings. Its 314 source
+hashes match both the raw checkout bytes and the checkout replay. The diagnostics
+retain 36 passing observations and 12 refusals, including missing display, wrong cwd and wrong VT, PID replacement,
+monitor exhaustion, a rewritten, missing or reset sites list, a missing Control
+check, a page hit during the closed gate and login dependency refusals. Mapped
+fixture paths are recorded as guest paths. [Host receipt](../../os/manifest/ci/331/host-walk.json) ·
+[Probe diagnostics](diagnostics/step4-probes.json)
+
+### Limits and next
+
+The Chrome profile, root reads, session checks and JVM are exercised locally
+through submitted guest code with stand-in services and fixture state. The
+fixture uses a real signed synthetic CRX with OpenSSL verification and a real
+loopback counter. Hosted evidence must exercise the shipped browser and signed
+candidate, the real service, desktop and scope, and the disk and firmware audits.
+The owner's live save and close, Terminal with the world open and physical menu
+checks are still open. C8 and 28b's combined profile proof retain their separate
+live gates. The hosted baseline must be fresh because the harness and its receipt
+are bound inputs.
+
+Step 5 owns hosted selectors, permissions and the ledger and rehearsal receipts.
+Step 6 owns the late image rules and final cut. B321's final contract, the
+`aresos2` fixture binding and the build-context guard follow-up from REVIEW-3
+remain for their applicable slices. Both effective R29 publish caps are zero.
+Dispatches and uploads used by this slice are zero. There are no files over
+500 MB in `.work/`.
