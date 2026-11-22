@@ -28,6 +28,7 @@ import struct
 import subprocess
 import tarfile
 import tempfile
+import types
 import urllib.request
 import xml.etree.ElementTree as ET
 
@@ -666,6 +667,25 @@ def rpm_files(output):
             record[key] = int(record[key])
         files.setdefault(record.pop('path')[1:], []).append(record)
     return files
+
+
+def rpm_file_matches(records, after):
+    """Verify non-ghost RPM records against the mounted image inventory."""
+    if not records or after is None or after['uid'] or after['gid'] or after['xattrs'] \
+            or after['kind'] not in (stat.S_IFREG, stat.S_IFDIR, stat.S_IFLNK):
+        return False
+    if after['kind'] != stat.S_IFLNK and after['mode'] & 0o7022:
+        return False
+    for record in records:
+        if record['flags'] & RPMFILE_GHOST or (record['user'], record['group']) != ('root', 'root') \
+                or record['caps'] not in ('', '(none)') or record['mode'] != after['kind'] | after['mode']:
+            return False
+        if after['kind'] == stat.S_IFREG and (record['algorithm'], record['digest'], record['size']) \
+                != (RPM_SHA256, after['sha256'], after['bytes']):
+            return False
+        if after['kind'] == stat.S_IFLNK and record['target'] != after['target']:
+            return False
+    return True
 
 
 def jar_pin_only(before, after):
@@ -1597,21 +1617,7 @@ class Classifier28:
         no %ghost, root's, its kind and mode, its link target, its size and SHA-256, no file capability; and no
         extended attribute, nothing setuid, setgid, sticky or group- or world-writable."""
         records = [record for record in self.policy['records'].get(rel, []) if not record['flags'] & RPMFILE_GHOST]
-        if not records or after is None or after['uid'] or after['gid'] or after['xattrs'] \
-                or after['kind'] not in (stat.S_IFREG, stat.S_IFDIR, stat.S_IFLNK):
-            return False
-        if after['kind'] != stat.S_IFLNK and after['mode'] & 0o7022:
-            return False
-        for record in records:
-            if record['flags'] & RPMFILE_GHOST or (record['user'], record['group']) != ('root', 'root') \
-                    or record['caps'] not in ('', '(none)') or record['mode'] != after['kind'] | after['mode']:
-                return False
-            if after['kind'] == stat.S_IFREG and (record['algorithm'], record['digest'], record['size']) \
-                    != (RPM_SHA256, after['sha256'], after['bytes']):
-                return False
-            if after['kind'] == stat.S_IFLNK and record['target'] != after['target']:
-                return False
-        return True
+        return rpm_file_matches(records, after)
 
     def package_rule(self, rel, before, after):
         if after is not None and self.package_file(rel, after):
@@ -1706,7 +1712,81 @@ BRANCH_SOURCE_CHANGES_29 = {'os/minecraft/desktop.lock.json': BRANCH_SOURCE_CHAN
 CHMOD_0755_29 = CHMOD_0755_28  # The same configure chmod line. New scripts use their Git mode.
 GTK_LAYER_29 = 'gtk4-layer-shell-1.3.0-1.fc44.x86_64'
 LABWC_FEDORA_29 = 'labwc-0.9.6-1.fc44.x86_64'
-LABWC_BUILD_29 = 'labwc-0.9.6-1.fc44.aresos1.x86_64'
+LABWC_LOCK_29 = 'os/labwc/labwc.lock.json'
+LABWC_STAGE_29 = 'os/labwc/stage.py'
+LABWC_ELF_29 = 'os/labwc/loaded_image.py'
+LABWC_INPUT_MODES_29 = {LABWC_LOCK_29: '100644', LABWC_STAGE_29: '100644', LABWC_ELF_29: '100755'}
+LABWC_BINS_29 = ('/usr/bin/labnag', '/usr/bin/labwc')
+LABWC_ID_DIR = 'usr/lib/.build-id'
+LABWC_VARYING_SECTIONS_29 = ('.note.gnu.build-id', '.gnu_debuglink', '.gnu_debugdata')
+LABWC_FEDORA_IDS_29 = {
+    '/usr/bin/labnag': 'ecbdf3ff0423bb879b79912f84b3e5f06f8786fd',
+    '/usr/bin/labwc': '6e61cec6435d39a5126a1ec7b1bd109152327f8b',
+}
+# The 60 fixed paths from 311's comparison with Fedora. Fedora's two build-ID
+# links and their two parent directories complete the stock RPM's 64-path list.
+LABWC_FIXED_PATHS_29 = frozenset("""
+usr/bin/lab-sensible-terminal
+usr/bin/labnag
+usr/bin/labwc
+usr/lib/.build-id
+usr/share/doc/labwc
+usr/share/doc/labwc/NEWS.md
+usr/share/doc/labwc/README
+usr/share/doc/labwc/autostart
+usr/share/doc/labwc/environment
+usr/share/doc/labwc/menu.xml
+usr/share/doc/labwc/rc.xml
+usr/share/doc/labwc/rc.xml.all
+usr/share/doc/labwc/shutdown
+usr/share/doc/labwc/themerc
+usr/share/licenses/labwc
+usr/share/licenses/labwc/LICENSE
+usr/share/locale/ar/LC_MESSAGES/labwc.mo
+usr/share/locale/ca/LC_MESSAGES/labwc.mo
+usr/share/locale/cs/LC_MESSAGES/labwc.mo
+usr/share/locale/da/LC_MESSAGES/labwc.mo
+usr/share/locale/de/LC_MESSAGES/labwc.mo
+usr/share/locale/el/LC_MESSAGES/labwc.mo
+usr/share/locale/es/LC_MESSAGES/labwc.mo
+usr/share/locale/et/LC_MESSAGES/labwc.mo
+usr/share/locale/eu/LC_MESSAGES/labwc.mo
+usr/share/locale/fa/LC_MESSAGES/labwc.mo
+usr/share/locale/fi/LC_MESSAGES/labwc.mo
+usr/share/locale/fr/LC_MESSAGES/labwc.mo
+usr/share/locale/gl/LC_MESSAGES/labwc.mo
+usr/share/locale/he/LC_MESSAGES/labwc.mo
+usr/share/locale/hr/LC_MESSAGES/labwc.mo
+usr/share/locale/hu/LC_MESSAGES/labwc.mo
+usr/share/locale/id/LC_MESSAGES/labwc.mo
+usr/share/locale/it/LC_MESSAGES/labwc.mo
+usr/share/locale/ja/LC_MESSAGES/labwc.mo
+usr/share/locale/ka/LC_MESSAGES/labwc.mo
+usr/share/locale/kk/LC_MESSAGES/labwc.mo
+usr/share/locale/ko/LC_MESSAGES/labwc.mo
+usr/share/locale/lt/LC_MESSAGES/labwc.mo
+usr/share/locale/ms/LC_MESSAGES/labwc.mo
+usr/share/locale/nl/LC_MESSAGES/labwc.mo
+usr/share/locale/pa/LC_MESSAGES/labwc.mo
+usr/share/locale/pl/LC_MESSAGES/labwc.mo
+usr/share/locale/pt/LC_MESSAGES/labwc.mo
+usr/share/locale/pt_BR/LC_MESSAGES/labwc.mo
+usr/share/locale/ru/LC_MESSAGES/labwc.mo
+usr/share/locale/sk/LC_MESSAGES/labwc.mo
+usr/share/locale/sv/LC_MESSAGES/labwc.mo
+usr/share/locale/tr/LC_MESSAGES/labwc.mo
+usr/share/locale/uk/LC_MESSAGES/labwc.mo
+usr/share/locale/vi/LC_MESSAGES/labwc.mo
+usr/share/locale/zh_CN/LC_MESSAGES/labwc.mo
+usr/share/locale/zh_TW/LC_MESSAGES/labwc.mo
+usr/share/man/man1/labnag.1.gz
+usr/share/man/man1/labwc.1.gz
+usr/share/man/man5/labwc-actions.5.gz
+usr/share/man/man5/labwc-config.5.gz
+usr/share/man/man5/labwc-menu.5.gz
+usr/share/man/man5/labwc-theme.5.gz
+usr/share/xdg-desktop-portal/labwc-portals.conf
+""".split())
 PACKAGE_REASONS_29 = {
     'gtk4-layer-shell': 'B323 (#135): GTK 4 layer shells and the Gtk4LayerShell typelib for the indicator and laptop home',
     'labwc': '311 (#119) and B323 (#135): pinned pointer-lock backport replaces Fedora labwc in the packages layer',
@@ -1810,6 +1890,16 @@ def verify_source29(previous, main_base):
     missing = sorted(set(IMAGE_SOURCES_29) - paths)
     if missing:
         problems.append('image sources missing from HEAD: ' + ', '.join(missing))
+    labwc_inputs = {}
+    for line in git('ls-tree', 'HEAD', '--', *LABWC_INPUT_MODES_29, text=True).splitlines():
+        info, path = line.split('\t')
+        mode, kind, oid = info.split()
+        if kind == 'blob' and mode == LABWC_INPUT_MODES_29[path]:
+            labwc_inputs[path] = dict(mode=mode, blob=oid)
+    main['labwc_inputs'] = labwc_inputs
+    bad_inputs = LABWC_INPUT_MODES_29.keys() - labwc_inputs.keys()
+    if bad_inputs:
+        problems.append('labwc inputs missing or of the wrong Git type or mode: ' + ', '.join(sorted(bad_inputs)))
     dirty = git('diff', '--name-only', 'HEAD', '--', *IMAGE_SOURCES_29, text=True).splitlines()
     dirty += git('ls-files', '--others', '--exclude-standard', '--', *IMAGE_SOURCES_29, text=True).splitlines()
     if dirty:
@@ -1826,16 +1916,17 @@ def verify_source29(previous, main_base):
 
 def package_diff29(old, new, old_lock, new_lock, labwc):
     """Apply the local RPM swap to the effective lock without changing the Fedora download lock."""
-    assert (labwc['replaces'], labwc['nevra']) == (LABWC_FEDORA_29, LABWC_BUILD_29), 'STOP: unexpected labwc lock'
+    replacement = labwc['nevra']  # Already validated by the bound labwc stage.
+    assert labwc['replaces'] == LABWC_FEDORA_29 and replacement not in new_lock, 'STOP: unexpected labwc lock'
     for lock in (old_lock, new_lock):
-        assert LABWC_FEDORA_29 in lock, 'STOP: Fedora labwc missing from download lock'
-    effective = [nevra for nevra in new_lock if nevra != LABWC_FEDORA_29] + [LABWC_BUILD_29]
-    assert set(new_lock) - set(old_lock) == {GTK_LAYER_29} and not set(old_lock) - set(new_lock), \
+        assert lock.count(LABWC_FEDORA_29) == 1, 'STOP: expected one Fedora labwc in the download lock'
+    effective = [nevra for nevra in new_lock if nevra != LABWC_FEDORA_29] + [replacement]
+    assert new_lock.count(GTK_LAYER_29) == 1 and [nevra for nevra in new_lock if nevra != GTK_LAYER_29] == old_lock, \
         'STOP: unexpected R29 download lock delta'
     rows, added, removed = package_diff(old, new, old_lock, effective, PACKAGE_REASONS_29)
     assert removed == [LABWC_FEDORA_29], 'STOP: R29 must remove exactly Fedora labwc'
     assert {nevra for nevra, name in old.items() if name == 'labwc'} == {LABWC_FEDORA_29} and \
-        {nevra for nevra, name in new.items() if name == 'labwc'} == {LABWC_BUILD_29}, 'STOP: unexpected labwc inventory'
+        {nevra for nevra, name in new.items() if name == 'labwc'} == {replacement}, 'STOP: unexpected labwc inventory'
     assert new.get(GTK_LAYER_29) == 'gtk4-layer-shell', 'STOP: unexpected GTK layer-shell RPM name'
     return rows, added, removed
 
@@ -1856,6 +1947,102 @@ def plain_file(value, mode):
 def exact_link(value, target):
     return value is not None and value['kind'] == stat.S_IFLNK and root_owned(value, 0o777) \
         and not value['xattrs'] and value['target'] == target
+
+
+def labwc_module(revision, path):
+    # The checked Git blob is the input even if a local bytecode cache exists.
+    source = git_bytes(revision, path)
+    module = types.ModuleType(pathlib.PurePosixPath(path).stem)
+    exec(compile(source, path, 'exec'), module.__dict__)
+    return module, source
+
+
+LABWC_NORMALIZE_29 = """import json, sys
+stage = {'__name__': 'labwc_stage'}
+exec(compile(sys.argv[1], 'os/labwc/stage.py', 'exec'), stage)
+print(json.dumps({path: stage['normalized_sha256'](path) for path in sys.argv[2:]}))
+"""
+
+
+def labwc_payload29(image, root, inventory, nevra, elf, *, stock):
+    """Read the installed RPM and bind its two build-ID links to the actual ELF notes."""
+    binaries = {}
+    for path in LABWC_BINS_29:
+        rel = path[1:]
+        assert plain_file(inventory.get(rel), 0o755), 'missing or different executable metadata: ' + path
+        data = (root / rel).read_bytes()
+        headers, _ = elf.program_headers(data)
+        notes = [note for kind, offset, size, alignment in headers if kind == elf.PT_NOTE
+                 for note in elf.build_id_descriptors(data, offset, size, alignment)]
+        assert len(notes) == 1 and notes[0][1] == 20, 'expected one 20-byte GNU build ID: ' + path
+        offset, size = notes[0]
+        build_id = data[offset:offset + size].hex()
+        if stock:
+            assert build_id == LABWC_FEDORA_IDS_29[path], 'build ID differs from Fedora labwc: ' + path
+        link = f'{LABWC_ID_DIR}/{build_id[:2]}/{build_id[2:]}'
+        assert exact_link(inventory.get(link), '../../../../' + rel), 'missing or different build-ID link: /' + link
+        binaries[path] = dict(build_id=build_id, link='/' + link, sha256=inventory[rel]['sha256'])
+
+    links = {row['link'][1:] for row in binaries.values()}
+    # Two distinct links can share the same two-digit prefix directory.
+    folders = {posixpath.dirname(path) for path in links}
+    expected = LABWC_FIXED_PATHS_29 | links | folders
+    rpm = ('podman', 'run', '--pull=never', '--network=none', '--read-only', '--rm',
+           '--entrypoint=/usr/bin/rpm', image)
+    paths = image_diff.command(*rpm, '-ql', nevra).splitlines()
+    records = rpm_files(image_diff.command(*rpm, '-q', '--qf', RPM_FILE_FORMAT, nevra))
+    assert len(paths) == len(expected) and {'/' + rel for rel in expected} == set(paths) and expected == records.keys(), \
+        'RPM file list differs from the reviewed labwc inventory'
+    for rel, rows in sorted(records.items()):
+        assert len(rows) == 1 and rpm_file_matches(rows, inventory.get(rel)), \
+            'missing or different non-ghost RPM file: /' + rel
+    for rel in folders | {LABWC_ID_DIR}:
+        value = inventory[rel]
+        assert value['kind'] == stat.S_IFDIR and root_owned(value, 0o755), 'different build-ID directory: /' + rel
+    return dict(paths=sorted(paths), binaries=binaries), records, links, folders
+
+
+def compare_labwc29(images, roots, inventories, revision, labwc, stage_source):
+    """Validate both installed payloads before allowing any path changes for the swap."""
+    evidence = dict(replaces=labwc['replaces'], nevra=labwc['nevra'], varying_sections=list(LABWC_VARYING_SECTIONS_29))
+    allowed = {}
+    elf, _ = labwc_module(revision, LABWC_ELF_29)
+    side = 'old'
+    try:
+        records, links, folders = {}, {}, {}
+        for side, nevra in (('old', labwc['replaces']), ('new', labwc['nevra'])):
+            verify = evidence[side + '_rpm_verify'] = rpm_verify(images[side], [nevra])
+            assert not verify['exit_code'] and not verify['line_count'], 'rpm verification failed or produced unexpected output'
+            evidence[side], records[side], links[side], folders[side] = labwc_payload29(
+                images[side], roots[side], inventories[side], nevra, elf, stock=side == 'old')
+
+        side = 'comparison'
+        old, new = inventories['old'], inventories['new']
+        differing = sorted(rel for rel in LABWC_FIXED_PATHS_29.difference(path[1:] for path in LABWC_BINS_29)
+                           if old[rel] != new[rel] or records['old'][rel] != records['new'][rel])
+        assert not differing, 'changed bytes or metadata outside the two binaries: ' + ', '.join(differing)
+        assert not (links['old'] & new.keys() or links['new'] & old.keys()), \
+            'build-ID link occurs in both images'
+
+        side = 'new'
+        # Run the same normalizer as the build with the image's Fedora objcopy.
+        # Only objcopy's temporary copy is writable.
+        normalized = json.loads(image_diff.command(
+            'podman', 'run', '--pull=never', '--network=none', '--read-only', '--tmpfs', '/tmp', '--rm',
+            '--env=PATH=/usr/bin:/bin', '--entrypoint=/usr/bin/python3', images['new'],
+            '-I', '-c', LABWC_NORMALIZE_29, stage_source.decode(), *LABWC_BINS_29))
+        loaded = {path: elf.loaded_sha256(roots['new'] / path[1:]) for path in LABWC_BINS_29}
+        evidence['normalized_sha256'], evidence['loaded_sha256'] = normalized, loaded
+        for kind, values in (('normalized_sha256', normalized), ('loaded_sha256', loaded)):
+            assert values == labwc[kind], f'{kind} differs from the lock: {values!r}'
+
+        allowed.update({path[1:]: 'Installed binary matches the normalized and loaded-image pins' for path in LABWC_BINS_29})
+        for side, other in (('old', 'new'), ('new', 'old')):
+            allowed.update(dict.fromkeys(links[side], 'Link name and target match the installed binary GNU build ID'))
+            allowed.update(dict.fromkeys(folders[side] - inventories[other].keys(), 'Parent of an exact RPM build-ID link'))
+    except (AssertionError, elf.LoadedImageRefused, OSError, ValueError, subprocess.CalledProcessError) as error:
+        evidence['error'] = f'labwc {side}: {error}'
+    return allowed, evidence
 
 
 class Classifier29(Classifier28):
@@ -1979,7 +2166,7 @@ class Classifier29(Classifier28):
             if rel == MANIFEST + 'packages.txt':
                 return raw == ('\n'.join(sorted(self.packages[side])) + '\n').encode()
             if rel == LABWC_RECORD:
-                return raw == git_bytes(revision, 'os/labwc/labwc.lock.json')
+                return raw == git_bytes(revision, LABWC_LOCK_29)
             if rel == DESKTOP_LOCK:
                 return raw == self.locks[side]
             if rel == MOD_RECORD:
@@ -2071,7 +2258,9 @@ class Classifier29(Classifier28):
         return 'build', 'B320 and B323: fc-cache --system-only --really-force regenerated both cache formats after adding Jersey 10 and JetBrains Mono'
 
     def package_rule(self, rel, before, after):
-        # Only the new GTK RPM is eligible here. Step 2 compares labwc's old and new payloads independently.
+        labwc = self.policy['labwc_paths'].get(rel)
+        if labwc:
+            return 'package', PACKAGE_REASONS_29['labwc'] + '. ' + labwc
         if before is None and self.package_file(rel, after):
             return 'package', PACKAGE_REASONS_29['gtk4-layer-shell'] + '. File matches the RPM record'
         return None
@@ -2085,7 +2274,8 @@ class Classifier29(Classifier28):
     def extra(self):
         old, new = self.policy['old_inventory'], self.policy['inventory']
         # Even an identical or missing path can violate an independently required install.
-        problems = ['311 labwc payload comparison is pending step 2']
+        labwc = self.policy['labwc_evidence']
+        problems = [labwc['error']] if 'error' in labwc else []
         for rel in sorted(self.config | CONFIG_REASONS_29.keys()):
             if rel not in self.config or rel not in CONFIG_REASONS_29 or not all(
                     self.matching_config(side, rel, inv.get(rel)) for side, inv in (('old', old), ('new', new))):
@@ -2149,7 +2339,7 @@ class Classifier29(Classifier28):
                     schema_rebuild=self.rebuilt_schemas(),
                     font_caches=sorted(self.font_caches, key=lambda row: row['path']), updaters=rows,
                     alternatives={name: dict(sorted(targets.items())) for name, (_, targets) in sorted(self.alternatives().items())},
-                    theme=dict(image=crown, image_checks=pin, equal=crown == pin), rc_xml=rc), problems
+                    theme=dict(image=crown, image_checks=pin, equal=crown == pin), rc_xml=rc, labwc=labwc), problems
 
 
 RELEASES = {
@@ -2236,17 +2426,36 @@ def main(tools, run=None, release='27', evidence='evidence/image-diff'):
                 if release == '29':
                     assert len(names[name]) == len(rows), 'STOP: duplicate installed RPM NEVRA'
                 packages[name] = sorted(names[name])
-        old_lock = [p['nevra'] for p in json.loads(git_bytes(source, 'os/packages.lock.json'))['packages']]
-        new_lock = [p['nevra'] for p in json.loads(pathlib.Path('os/packages.lock.json').read_text())['packages']]
-        new_lock.append(json.loads(pathlib.Path('os/google-chrome.lock.json').read_text())['nevra'])
+        old_entries = json.loads(git_bytes(source, 'os/packages.lock.json'))['packages']
+        if release == '29':
+            revision = os.environ['GITHUB_SHA']
+            new_entries = json.loads(git_bytes(revision, 'os/packages.lock.json'))['packages']
+            chrome = git_bytes(revision, 'os/google-chrome.lock.json')
+        else:
+            new_entries = json.loads(pathlib.Path('os/packages.lock.json').read_text())['packages']
+            chrome = pathlib.Path('os/google-chrome.lock.json').read_bytes()
+        old_lock = [p['nevra'] for p in old_entries]
+        new_lock = [p['nevra'] for p in new_entries] + [json.loads(chrome)['nevra']]
         image_lock = json.loads((roots['old'] / 'usr/share/aresos/manifest/packages.lock.json').read_text())
         assert [p['nevra'] for p in image_lock['packages']] == old_lock, f'STOP: release {before_release} lock differs from its source'
         if profile['previous_chrome']:
             # Release 27 already carries Chrome from its pin: only a renewed pin would add or remove it.
             old_lock.append(json.loads(git_bytes(source, 'os/google-chrome.lock.json'))['nevra'])
         if release == '29':
-            labwc = json.loads(pathlib.Path('os/labwc/labwc.lock.json').read_text())['result']
-            package_rows, added, removed = package_diff29(names['old'], names['new'], old_lock, new_lock, labwc)
+            stage, stage_source = labwc_module(revision, LABWC_STAGE_29)
+            try:
+                labwc = stage.validate_lock(json.loads(git_bytes(revision, LABWC_LOCK_29)))['result']
+                assert stage.VARYING_SECTIONS == LABWC_VARYING_SECTIONS_29 and stage.PINNED_BINARIES == LABWC_BINS_29, \
+                    'labwc stage differs from the reviewed sections or binaries'
+                assert [row for row in new_entries if row['nevra'] != GTK_LAYER_29] == old_entries, \
+                    'R29 download lock changes existing RPM pins'
+                package_rows, added, removed = package_diff29(names['old'], names['new'], old_lock, new_lock, labwc)
+            except (AssertionError, KeyError, TypeError, ValueError, stage.Refusal) as error:
+                problem = str(error).removeprefix('STOP: ')
+                stopped = dict(status='stopped', release=release, previous=images['old'], previous_source=source,
+                               main=main_sources, problems=[problem])
+                (evidence / 'result.json').write_text(json.dumps(stopped, indent=2) + '\n')
+                raise AssertionError('STOP: ' + problem) from error
         else:
             package_rows, added, removed = package_diff(names['old'], names['new'], old_lock, new_lock, profile['reasons'])
         (evidence / 'packages.json').write_text(json.dumps(dict(old=packages['old'], new=packages['new'], changes=package_rows), indent=2) + '\n')
@@ -2257,7 +2466,7 @@ def main(tools, run=None, release='27', evidence='evidence/image-diff'):
             output = command('podman', 'run', '--pull=never', '--network=none', '--read-only', '--rm',
                              '--entrypoint=/usr/bin/rpm', image, '-ql', *nevras)
             return {line for line in output.splitlines() if line.startswith('/')}
-        ownership = dict(old=owned(images['old'], removed), new=owned(images['new'], added))
+        ownership = {} if release == '29' else dict(old=owned(images['old'], removed), new=owned(images['new'], added))
         records = {}
         if profile['package_files'] and added:
             checked = added
@@ -2291,6 +2500,8 @@ def main(tools, run=None, release='27', evidence='evidence/image-diff'):
                 json.loads(pathlib.Path('os/minecraft/desktop.lock.json').read_text())['prism']))
         if release == '29':
             policy['old_inventory'] = old
+            policy['labwc_paths'], policy['labwc_evidence'] = compare_labwc29(
+                images, roots, inventories, revision, labwc, stage_source)
         classifier = profile['classifier']((roots['old'], roots['new'], roots['base']), packages, ownership, policy)
         details, unexplained = {}, []
         for rel in changed:
@@ -2330,7 +2541,7 @@ def main(tools, run=None, release='27', evidence='evidence/image-diff'):
             if differing:
                 problems.append(f'image sources differ from main at the merge base {main_base}: ' + ', '.join(differing))
         if profile['package_files']:
-            extra['rpm_verify'] = rpm_verify(images['new'], added)
+            extra['rpm_verify'] = rpm_verify(images['new'], [GTK_LAYER_29] if release == '29' else added)
             if extra['rpm_verify'] and (extra['rpm_verify']['exit_code'] != 0 or extra['rpm_verify']['line_count']):
                 problems.append('rpm verification of the added packages failed or produced unexpected output')
 
