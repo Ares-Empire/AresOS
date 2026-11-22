@@ -205,6 +205,7 @@ impl AppState {
             "the screens changed: {} now",
             snapshot.screens.len()
         );
+        debug!(zone_set = snapshot.zone_set, screens = ?snapshot.screens, "screen geometry");
         self.end_capture(None);
         self.disarm();
         let _ = self.event_tx.send(WaylandEvent::OutputsChanged);

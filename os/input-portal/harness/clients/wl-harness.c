@@ -547,8 +547,32 @@ static int run_input(bool is_keyboard)
 
 // It sends nothing after the bind and releases nothing: libwayland makes the head and mode objects as they
 // are announced and drops their events.
-static void outputs_head(void *d, struct zwlr_output_manager_v1 *m, struct zwlr_output_head_v1 *head) {}
-static void outputs_done(void *d, struct zwlr_output_manager_v1 *m, uint32_t serial) {}
+static bool first_output_list = true;
+
+static int output_head_event(const void *data, void *head, uint32_t opcode,
+	const struct wl_message *message, union wl_argument *args)
+{
+	if (first_output_list && !strcmp(message->name, "name")) {
+		printf("OUTPUT %s\n", args[0].s);
+	}
+	return 0;
+}
+
+static void outputs_head(void *d, struct zwlr_output_manager_v1 *m, struct zwlr_output_head_v1 *head)
+{
+	if (wl_proxy_add_dispatcher((struct wl_proxy *)head, output_head_event, NULL, NULL) < 0) {
+		die("cannot listen for the first output list");
+	}
+}
+
+static void outputs_done(void *d, struct zwlr_output_manager_v1 *m, uint32_t serial)
+{
+	if (first_output_list) {
+		printf("OUTPUTS_READY %u\n", serial);
+		fflush(stdout);
+		first_output_list = false;
+	}
+}
 static void outputs_finished(void *d, struct zwlr_output_manager_v1 *m) {}
 
 static const struct zwlr_output_manager_v1_listener outputs_listener = {
