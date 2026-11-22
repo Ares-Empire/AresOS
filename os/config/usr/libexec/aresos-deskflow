@@ -7,9 +7,11 @@
 TLS and the peer check are on whatever the user's settings say, and the server trusts at most one fingerprint:
 the one the owner accepted after comparing it with what the Mac's Deskflow shows (brief 321, laptop test 3).
 """
+import fcntl
 import os
 from pathlib import Path
 import re
+import runpy
 import select
 import shutil
 import signal
@@ -17,14 +19,16 @@ import socket
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 
-from PySide6.QtCore import QSettings, Qt
+from PySide6.QtCore import QSettings, Qt, QTimer
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 CORE = '/usr/bin/deskflow-core'
 KDIALOG = '/usr/bin/kdialog'
 OPENSSL = '/usr/bin/openssl'
+SHARING_HELPER = '/usr/libexec/aresos-input-sharing-set'
 FINGERPRINT = re.compile(r'v2:sha256:[0-9a-fA-F]{64}')
 # What the core reports for each peer that completes the TLS handshake, before it checks the trust list:
 # the SHA-256 of the peer's certificate, in upper-case hex (Deskflow 1.27, SecureSocket::verifyCertFingerprint).
@@ -135,7 +139,7 @@ def prepare_profile(source, target, enroll=False):
         raise OSError('Could not write the protected Deskflow settings.')
 
 
-def ask(peer, own):
+def ask(peer, own, server_alive=lambda: True):
     """Whether the owner confirms that `peer` is the fingerprint the Mac's Deskflow shows."""
     text = ('A computer is asking to use this laptop\'s mouse, keyboard and clipboard through Deskflow.\n\n'
             f'Its fingerprint:\n\n{columns(peer)}\n\n'
@@ -156,8 +160,11 @@ def ask(peer, own):
     accept.setAutoDefault(False)
     box.setDefaultButton(reject)
     box.setEscapeButton(reject)
+    timer = QTimer(box)
+    timer.timeout.connect(lambda: None if server_alive() else box.reject())
+    timer.start(250)
     box.exec()
-    return box.clickedButton() == accept
+    return box.clickedButton() == accept and server_alive()
 
 
 class CoreIpc:
@@ -229,16 +236,54 @@ def enroll(ipc, source, runtime_profile, prompt, own):
     return None
 
 
-def main(argv=None, core=CORE, prompt=ask, openssl=OPENSSL, pairing_within=10.0):
+def watch_sharing(process, finished, sharing_on, started_on):
+    """Normally the portal's Closed signal ends the core. Bound the wait when that signal can't arrive."""
+    while not finished.wait(0.25):
+        if sharing_on():
+            started_on = True
+            continue
+        if finished.wait(0.75 if started_on else 5):
+            return
+        if started_on or not sharing_on():
+            stop_core(process)
+            return
+
+
+def stop_core(process):
+    process.terminate()
+    try:
+        process.wait(timeout=2)
+    except subprocess.TimeoutExpired:
+        process.kill()
+
+
+def main(argv=None, core=CORE, prompt=None, openssl=OPENSSL, pairing_within=10.0, sharing_on=None):
     argv = sys.argv[1:] if argv is None else argv
     if argv not in ([], ['--enroll']):
         raise ValueError('Usage: aresos-deskflow [--enroll]')
+    if sharing_on is None:
+        sharing_on = runpy.run_path(SHARING_HELPER)['sharing_on']
+    runtime_dir = Path(os.environ['XDG_RUNTIME_DIR'])
+    # Hub launches and login may overlap, and trust enrollment is a single-writer operation.
+    fd = os.open(runtime_dir / 'aresos-deskflow.lock', os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, 'rb') as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            if argv:
+                raise ValueError('Deskflow is already running. Turn sharing off, then on, before pairing again.')
+            return 0
+        return serve(argv, core, prompt, openssl, pairing_within, sharing_on, runtime_dir)
+
+
+def serve(argv, core, prompt, openssl, pairing_within, sharing_on, runtime_dir):
     config = Path(os.environ.get('XDG_CONFIG_HOME') or Path.home() / '.config')
     source = config / 'Deskflow'
     pairing = argv == ['--enroll'] or not saved_trust(source)
-    if pairing:
+    on = sharing_on()
+    if pairing and on:
         ensure_certificate(source, openssl)
-    with tempfile.TemporaryDirectory(prefix='aresos-deskflow-', dir=os.environ['XDG_RUNTIME_DIR']) as runtime:
+    with tempfile.TemporaryDirectory(prefix='aresos-deskflow-', dir=runtime_dir) as runtime:
         profile = Path(runtime) / 'Deskflow'
         prepare_profile(source, profile, enroll=pairing)
         # Do not let an XWayland fallback bypass the input portal. TMPDIR keeps the core's IPC socket, which
@@ -248,18 +293,31 @@ def main(argv=None, core=CORE, prompt=ask, openssl=OPENSSL, pairing_within=10.0)
         env.pop('DISPLAY', None)
         with subprocess.Popen([core, 'server'], env=env) as process:
             signal.signal(signal.SIGTERM, lambda *_: process.terminate())
-            if pairing:
-                try:
+            finished = threading.Event()
+            watcher = threading.Thread(target=watch_sharing, args=(process, finished, sharing_on, on))
+            watcher.start()
+            try:
+                # A manual launch while Off can ask the portal and show the sharing switch.
+                if pairing and on:
+                    def alive():
+                        return process.poll() is None and sharing_on()
+
                     ipc = CoreIpc(Path(runtime) / IPC_NAME, process, pairing_within)
                     try:
-                        enroll(ipc, source, profile, prompt, own_fingerprint(profile / 'tls/deskflow.pem', openssl))
+                        question = prompt or (lambda peer, own: ask(peer, own, alive))
+                        enroll(ipc, source, profile, question,
+                               own_fingerprint(profile / 'tls/deskflow.pem', openssl))
                     finally:
                         ipc.close()
-                except BaseException:
-                    # No pairing channel: a server that can trust nobody is no use; don't leave it running.
-                    process.terminate()
-                    raise
-            return process.wait()
+                return process.wait()
+            except BaseException:
+                stop_core(process)
+                if on and not sharing_on():
+                    return 0
+                raise
+            finally:
+                finished.set()
+                watcher.join()
 
 
 if __name__ == '__main__':

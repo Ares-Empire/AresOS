@@ -6,6 +6,7 @@ the real core does for every TLS peer, and writes down what the running server t
 offscreen pairing prompt. The real openssl makes the certificate.
 """
 import json
+import fcntl
 import os
 from pathlib import Path
 import runpy
@@ -117,7 +118,7 @@ class PairingTest(unittest.TestCase):
             QTimer.singleShot(0, answer)
             return self.launcher['ask'](peer, own)
 
-        code = self.launcher['main'](list(argv), core=str(self.core), prompt=prompt)
+        code = self.launcher['main'](list(argv), core=str(self.core), prompt=prompt, sharing_on=lambda: True)
         self.assertEqual(code, 0)
         return json.loads(self.report.read_text())
 
@@ -202,10 +203,28 @@ class PairingTest(unittest.TestCase):
         self.core.write_text('#!/usr/bin/python3 -I\nimport os, time\n'
                              f'open({str(pid_file)!r}, "w").write(str(os.getpid()))\ntime.sleep(60)\n')
         with self.assertRaisesRegex(OSError, 'pairing channel'):
-            self.launcher['main']([], core=str(self.core), pairing_within=1.0)
+            self.launcher['main']([], core=str(self.core), pairing_within=1.0, sharing_on=lambda: True)
         with self.assertRaises(ProcessLookupError):
             os.kill(int(pid_file.read_text()), 0)
         self.assertIsNone(self.saved())
+
+    def test_off_stops_a_core_even_if_the_portal_cannot_close_it(self):
+        (self.source / 'tls').mkdir()
+        (self.source / 'tls/trusted-clients').write_text(OLD + '\n')
+        ready = self.root / 'started'
+        self.core.write_text('#!/usr/bin/python3 -I\nimport os, time\n'
+                             f'open({str(ready)!r}, "w").write(str(os.getpid()))\ntime.sleep(10)\n')
+        self.launcher['main']([], core=str(self.core), sharing_on=lambda: not ready.exists())
+        with self.assertRaises(ProcessLookupError):
+            os.kill(int(ready.read_text()), 0)
+
+    def test_a_second_guarded_launch_does_not_replace_the_running_profile(self):
+        with (self.runtime / 'aresos-deskflow.lock').open('w') as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            self.assertEqual(self.launcher['main']([], core=str(self.core), sharing_on=lambda: True), 0)
+            with self.assertRaisesRegex(ValueError, 'already running'):
+                self.launcher['main'](['--enroll'], core=str(self.core), sharing_on=lambda: True)
+        self.assertFalse(self.report.exists())
 
 if __name__ == '__main__':
     unittest.main()

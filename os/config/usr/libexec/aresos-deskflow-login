@@ -1,0 +1,30 @@
+#!/usr/bin/python3 -I
+"""Start the guarded native Deskflow server from the labwc session."""
+import os
+import runpy
+import secrets
+
+HELPER = '/usr/libexec/aresos-input-sharing-set'
+SHELL = '/usr/libexec/aresos-shell'
+APP_ID = 'org-deskflow-deskflow'
+GUARDED = ('/usr/libexec/aresos-deskflow',)
+
+
+def main():
+    if not runpy.run_path(HELPER)['sharing_on']():
+        return
+    shell = runpy.run_path(SHELL)
+    apps, _ = shell['load_catalogue'](shell['REGISTRY'])
+    app = apps[APP_ID]
+    argv, directory, reason = shell['resolve'](app)
+    if app.source != 'image' or app.argv != GUARDED or tuple(argv or ()) != GUARDED or reason is not None:
+        raise RuntimeError('The image Deskflow launch could not be resolved.')
+
+    launcher = shell['ScopeLauncher']()
+    command = launcher.command(app, argv, secrets.token_hex(8))
+    os.chdir(launcher.working_directory(directory))
+    os.execve(command[0], command, launcher.environment(app))
+
+
+if __name__ == '__main__':
+    main()
