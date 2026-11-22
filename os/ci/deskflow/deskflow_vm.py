@@ -283,10 +283,12 @@ def regular(guest, ready):
     guest.keys('f1')
     guest.request('vt', expected='tty1')
     assert guest.request('snapshot', geometry=False)['outputs'][PRIMARY]['enabled']
-    result = dict(status='passed', **hotplug(guest))
+    result = dict(status='passed', first_boot_backend=ready.get('first_boot_backend'), **hotplug(guest))
     if ready['state'] == 'backend':
+        result['worker_connections'] = ready['worker_connections']
         proof = guest.request('identity')
         result['identity'] = {key: proof[key] for key in ('app_id', 'hub_id', 'sender', 'pid', 'exe', 'scope', 'terminal')}
+        result['off'] = proof['off']
     return result
 
 

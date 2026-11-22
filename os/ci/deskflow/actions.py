@@ -1,12 +1,13 @@
 """Guest actions for the DRM output gate. The virtio layer is the only caller."""
 import contextlib
+import ctypes
 import json
 import os
 import pathlib
 import pwd
 import re
-import shutil
 import signal
+import socket
 import subprocess
 import time
 
@@ -16,8 +17,16 @@ PORTAL = '/usr/libexec/aresos-input-portal'
 BUS_NAME = 'org.freedesktop.impl.portal.desktop.aresos-input'
 GEOMETRY = re.compile(r'Screen \{ name: "([^"]+)", zone: Zone \{ width: (\d+), height: (\d+), '
                       r'x: (-?\d+), y: (-?\d+) \}')
+HELPER = '/usr/libexec/aresos-input-sharing-set'
+DESKTOP_ID = 'org.deskflow.deskflow'
+HUB_ID = 'org-deskflow-deskflow'
+LAUNCH_ID = '3213213213213213'
+UNIT = f'app-aresos-{DESKTOP_ID}-{LAUNCH_ID}.scope'
+SYS_PIDFD_GETFD = 438
 session = None
 listener = None
+# The real frontend, its monitor and Deskflow, kept from the backend state's readiness to the end of the boot.
+running = contextlib.ExitStack()
 
 
 def labwc_pid(uid):
@@ -94,8 +103,12 @@ def check_compositor():
         assert listener.poll() is None, 'listen-only Wayland connection ended'
     if 'backend_owner' in session:
         assert backend_owner() == session['backend_owner'], 'original backend lost its bus name'
+        if session.get('worker'):
+            assert backend_connections() == 1, 'the backend Wayland worker stopped during the run'
     elif session.get('state') in ('none', 'listener'):
-        assert not backend_running(), 'input portal started during a DRM control case'
+        # Normal activation: the frontend may start the backend, but with sharing off it holds no Wayland
+        # connection, so nobody but the listener is on the output manager.
+        assert not backend_connections(), 'input portal held a Wayland connection during a DRM control case'
 
 
 def bus(*args):
@@ -114,6 +127,45 @@ def backend_owner():
                       'GetNameOwner', 's', BUS_NAME).split()
     assert kind == 's' and owner.startswith('":') and owner.endswith('"'), (kind, owner)
     return owner[1:-1]
+
+
+def wayland_connections(pid):
+    """How many of `pid`'s sockets are connected to the session's Wayland socket: each socket descriptor is
+    copied here with pidfd_getfd(2) (root) and asked for its peer, so the backend's own word isn't needed."""
+    display = str(session['runtime'] / session['wayland'])
+    libc = ctypes.CDLL(None, use_errno=True)
+    count = 0
+    pidfd = os.pidfd_open(pid)
+    try:
+        for name in os.listdir(PROC / str(pid) / 'fd'):
+            try:
+                if not os.readlink(PROC / str(pid) / 'fd' / name).startswith('socket:'):
+                    continue
+            except OSError:
+                continue
+            fd = libc.syscall(SYS_PIDFD_GETFD, pidfd, int(name), 0)
+            if fd < 0:
+                continue
+            try:
+                sock = socket.socket(fileno=fd)
+            except OSError:
+                os.close(fd)
+                continue
+            with sock:
+                try:
+                    count += sock.family == socket.AF_UNIX and sock.getpeername() == display
+                except OSError:
+                    pass
+    finally:
+        os.close(pidfd)
+    return count
+
+
+def backend_connections():
+    """None when no backend runs, else its number of Wayland connections."""
+    if not backend_running():
+        return None
+    return wayland_connections(backend_pid(backend_owner()))
 
 
 def backend_pid(owner):
@@ -141,25 +193,105 @@ def ready(request):
         proof['first_list'] = wait_for(
             lambda: (report if 'OUTPUT Virtual-1\n' in (report := path.read_text())
                      and 'OUTPUTS_READY ' in report else None), 'listen-only output list')
+    # First boot, sharing off, normal activation: the frontend may have started the backend already.
+    assert not pathlib.Path('/etc/aresos/input-portal/sharing').exists()
+    proof['first_boot_backend'] = backend_connections()
+    assert not proof['first_boot_backend'], 'the backend held a Wayland connection with sharing off'
     if state == 'backend':
-        assert not backend_running(), 'backend was already running'
-        assert not pathlib.Path('/etc/aresos/input-portal/sharing').exists()
-        # Set the log level for this activation alone. Use the socket of the real session.
-        require(guest_command('env', 'ARESOS_INPUT_PORTAL_LOG=debug', 'dbus-update-activation-environment',
-                              'ARESOS_INPUT_PORTAL_LOG', 'WAYLAND_DISPLAY', 'XDG_CURRENT_DESKTOP'))
-        assert require(guest_command(PORTAL, '--status')).strip() == 'no sessions'
-        owner = backend_owner()
-        pid = backend_pid(owner)
-        env = environ(pid)
-        assert env['DBUS_SESSION_BUS_ADDRESS'] == session['bus']
-        assert env['WAYLAND_DISPLAY'] == session['wayland']
-        assert env['XDG_CURRENT_DESKTOP'] == 'AresOS'
-        assert os.readlink(PROC / str(pid) / 'exe') == PORTAL
-        assert (PROC / str(pid)).stat().st_uid == session['uid']
-        session['backend_owner'] = owner
-        proof.update(backend_owner=owner, backend_pid=pid)
+        ready_backend(proof)
     check_compositor()
     return dict(returncode=0, **proof)
+
+
+def ready_backend(proof):
+    """The backend with its Wayland worker running: sharing on, and the real Deskflow's session through the real
+    frontend, both kept for the boot. The worker starts only for that session."""
+    if backend_running():
+        # Started by the frontend at login, at the default log level: the zone checks need debug.
+        pid = backend_pid(backend_owner())
+        os.kill(pid, signal.SIGTERM)
+        wait_for(lambda: not backend_running(), 'the login-activated backend stopped', timeout=10)
+    # Set the log level for this activation alone. Use the socket of the real session.
+    require(guest_command('env', 'ARESOS_INPUT_PORTAL_LOG=debug', 'dbus-update-activation-environment',
+                          'ARESOS_INPUT_PORTAL_LOG', 'WAYLAND_DISPLAY', 'XDG_CURRENT_DESKTOP'))
+    require(subprocess.run([HELPER, 'on'], capture_output=True, text=True, timeout=10))
+    assert require(guest_command(PORTAL, '--status')).strip() == 'no sessions'
+    owner = backend_owner()
+    pid = backend_pid(owner)
+    env = environ(pid)
+    assert env['DBUS_SESSION_BUS_ADDRESS'] == session['bus']
+    assert env['WAYLAND_DISPLAY'] == session['wayland']
+    assert env['XDG_CURRENT_DESKTOP'] == 'AresOS'
+    assert os.readlink(PROC / str(pid) / 'exe') == PORTAL
+    assert (PROC / str(pid)).stat().st_uid == session['uid']
+    assert wayland_connections(pid) == 0, 'sharing on and no session: nothing needs the Wayland worker'
+    session['backend_owner'] = owner
+    proof.update(backend_owner=owner, backend_pid=pid, on_without_session=0)
+    session['identity'] = start_deskflow()
+    assert wayland_connections(pid) == 1, 'the session did not start the Wayland worker'
+    session['worker'] = True
+    proof['worker_connections'] = 1
+
+
+def start_deskflow():
+    """The real frontend, a monitor of CreateSession2 and Deskflow launched as the hub launches it, in a fixture
+    profile; returns the caller's identity once the backend has its session."""
+    root = session['runtime'] / 'deskflow-ci-identity'
+    layout = root / 'Deskflow'
+    require(guest_command('mkdir', '-p', str(layout)))
+    (layout / 'Deskflow.conf').write_text('[core]\ncomputerName=fixture\ninterface=127.0.0.1\n')
+    (layout / 'deskflow-server.conf').write_text('section: screens\n    fixture:\nend\n')
+    session['identity_root'] = root
+    frontend, monitor, core = root / 'frontend.log', root / 'monitor.log', root / 'core.log'
+    launch = f"""
+import runpy
+shell = runpy.run_path('/usr/libexec/aresos-shell')
+apps, _ = shell['load_catalogue'](shell['REGISTRY'])
+app = apps[{HUB_ID!r}]
+launcher = shell['ScopeLauncher']()
+assert launcher.unit(app, {LAUNCH_ID!r}) == {UNIT!r}
+argv, work, reason = shell['resolve'](app)
+assert reason is None, reason
+import os
+cmd = launcher.command(app, argv, {LAUNCH_ID!r})
+os.chdir(launcher.working_directory(work))
+os.execve(cmd[0], cmd, launcher.environment(app))
+"""
+    try:
+        running.enter_context(logged_process(frontend, ['/usr/libexec/xdg-desktop-portal', '--verbose', '--replace']))
+        wait_for(lambda: 'org.freedesktop.portal.Desktop acquired' in frontend.read_text(),
+                 'real frontend acquired its name')
+        routes = frontend.read_text()
+        assert "Using portal configuration file '/usr/share/xdg-desktop-portal/aresos-portals.conf'" in routes, routes
+        assert all(f'Using aresos-input.portal for org.freedesktop.impl.portal.{name}' in routes
+                   for name in ('InputCapture', 'Clipboard')), routes
+        running.enter_context(logged_process(monitor, [
+            '/usr/bin/dbus-monitor', '--session',
+            "type='method_call',interface='org.freedesktop.portal.InputCapture',member='CreateSession2'",
+        ]))
+        wait_for(lambda: 'member=NameAcquired' in monitor.read_text(), 'input capture monitor ready')
+        count = session_log().count('session created')
+        running.enter_context(logged_process(core, ['env', f'XDG_CONFIG_HOME={root}', 'python3', '-B', '-c', launch]))
+
+        def observe():
+            match = re.search(r'method call .*?sender=(:[\d.]+).*?member=CreateSession2', monitor.read_text())
+            return match[1] if match else None
+
+        sender = wait_for(observe, 'Deskflow CreateSession2')
+        pid = backend_pid(sender)
+        executable = os.readlink(PROC / str(pid) / 'exe')
+        assert executable == '/usr/bin/deskflow-core', executable
+        assert UNIT in (PROC / str(pid) / 'cgroup').read_text().strip().split('/'), UNIT
+        line = wait_for(lambda: next((line for line in session_log().splitlines()
+                                     if 'session created' in line and f'app_id="{DESKTOP_ID}"' in line), None),
+                        'the backend received the native Deskflow ID')
+        assert session_log().count('session created') == count + 1
+        wait_for(lambda: 'Wayland worker started' in session_log(), 'the backend started its Wayland worker')
+        return dict(sender=sender, pid=pid, exe=executable, scope=UNIT, backend=line,
+                    frontend_routes=routes.splitlines())
+    except (OSError, AssertionError, TimeoutError) as error:
+        logs = {path.name: path.read_text()[-2500:] for path in (frontend, monitor, core) if path.exists()}
+        raise AssertionError((str(error), logs)) from error
 
 
 def randr():
@@ -259,86 +391,34 @@ def logged_process(log, argv):
 
 
 def identity(_request):
-    """Trace one real Deskflow caller through the real portal on the session bus."""
-    root = session['runtime'] / 'deskflow-ci-identity'
-    layout = root / 'Deskflow'
-    require(guest_command('mkdir', '-p', str(layout)))
-    (layout / 'Deskflow.conf').write_text('[core]\ncomputerName=fixture\ninterface=127.0.0.1\n')
-    (layout / 'deskflow-server.conf').write_text('section: screens\n    fixture:\nend\n')
-    helper = '/usr/libexec/aresos-input-sharing-set'
-    frontend = root / 'frontend.log'
-    monitor = root / 'monitor.log'
-    core = root / 'core.log'
-    desktop_id = 'org.deskflow.deskflow'
-    slug = 'org-deskflow-deskflow'
-    launch_id = '3213213213213213'
-    unit = f'app-aresos-{desktop_id}-{launch_id}.scope'
-    launch = f"""
-import runpy
-shell = runpy.run_path('/usr/libexec/aresos-shell')
-apps, _ = shell['load_catalogue'](shell['REGISTRY'])
-app = apps[{slug!r}]
-launcher = shell['ScopeLauncher']()
-assert launcher.unit(app, {launch_id!r}) == {unit!r}
-argv, work, reason = shell['resolve'](app)
-assert reason is None, reason
-import os
-cmd = launcher.command(app, argv, {launch_id!r})
-os.chdir(launcher.working_directory(work))
-os.execve(cmd[0], cmd, launcher.environment(app))
-"""
-    require(subprocess.run([helper, 'on'], capture_output=True, text=True, timeout=10))
-    try:
-        with logged_process(frontend, ['/usr/libexec/xdg-desktop-portal', '--verbose', '--replace']):
-            wait_for(lambda: 'org.freedesktop.portal.Desktop acquired' in frontend.read_text(),
-                     'real frontend acquired its name')
-            routes = frontend.read_text()
-            assert "Using portal configuration file '/usr/share/xdg-desktop-portal/aresos-portals.conf'" in routes, routes
-            assert all(f'Using aresos-input.portal for org.freedesktop.impl.portal.{name}' in routes
-                       for name in ('InputCapture', 'Clipboard')), routes
-            with logged_process(monitor, [
-                '/usr/bin/dbus-monitor', '--session',
-                "type='method_call',interface='org.freedesktop.portal.InputCapture',member='CreateSession2'",
-            ]):
-                wait_for(lambda: 'member=NameAcquired' in monitor.read_text(), 'input capture monitor ready')
-                count = session_log().count('session created')
-                with logged_process(core, ['env', f'XDG_CONFIG_HOME={root}', 'python3', '-B', '-c', launch]):
-                    try:
-                        def observe():
-                            match = re.search(r'method call .*?sender=(:[\d.]+).*?member=CreateSession2',
-                                              monitor.read_text())
-                            return match[1] if match else None
-
-                        sender = wait_for(observe, 'Deskflow CreateSession2')
-                        pid = backend_pid(sender)
-                        executable = os.readlink(PROC / str(pid) / 'exe')
-                        assert executable == '/usr/bin/deskflow-core', executable
-                        assert unit in (PROC / str(pid) / 'cgroup').read_text().strip().split('/'), unit
-                        line = wait_for(lambda: next((line for line in session_log().splitlines()
-                                                     if 'session created' in line and f'app_id="{desktop_id}"' in line),
-                                                    None), 'the backend received the native Deskflow ID')
-                        first = require(guest_command(PORTAL, '--status')).splitlines()
-                        assert len(first) == 1 and desktop_id in first[0], first
-                        time.sleep(1)
-                        kept = require(guest_command(PORTAL, '--status')).splitlines()
-                        assert len(kept) == 1 and kept[0].split(': app=', 1)[0] == first[0].split(': app=', 1)[0], kept
-                        assert session_log().count('session created') == count + 1
-                    finally:
-                        guest_command('systemctl', '--user', 'stop', unit)
-            # The same guarded executable, started from outside the hub scope.
-            start_log = session_log().count('refused: the application has no ID')
-            with logged_process(core, ['env', f'XDG_CONFIG_HOME={root}', '/usr/libexec/aresos-deskflow']):
-                wait_for(lambda: session_log().count('refused: the application has no ID') > start_log,
-                         'terminal launch refused with no app ID')
-            check_compositor()
-            return dict(returncode=0, app_id=desktop_id, hub_id=slug, sender=sender, pid=pid, exe=executable,
-                        scope=unit, backend=line, terminal='empty ID refused', frontend_routes=routes.splitlines())
-    except (OSError, AssertionError) as error:
-        logs = {path.name: path.read_text()[-2500:] for path in (frontend, monitor, core) if path.exists()}
-        raise AssertionError((str(error), logs)) from error
-    finally:
-        require(subprocess.run([helper, 'off'], capture_output=True, text=True, timeout=10))
-        shutil.rmtree(root)
+    """The real Deskflow caller traced through the real portal (started at readiness), then sharing back off."""
+    proof = session['identity']
+    first = require(guest_command(PORTAL, '--status')).splitlines()
+    assert len(first) == 1 and DESKTOP_ID in first[0], first
+    time.sleep(1)
+    kept = require(guest_command(PORTAL, '--status')).splitlines()
+    assert len(kept) == 1 and kept[0].split(': app=', 1)[0] == first[0].split(': app=', 1)[0], kept
+    assert wayland_connections(backend_pid(session['backend_owner'])) == 1
+    # Back to Off while Deskflow still holds its session: the session closes, the worker stops and the
+    # backend, still running on its bus name, holds no Wayland connection.
+    session['worker'] = False
+    require(subprocess.run([HELPER, 'off'], capture_output=True, text=True, timeout=10))
+    revoked = require(guest_command(PORTAL, '--revoke')).strip()
+    assert revoked.startswith('sharing is off'), revoked
+    off = wait_for(lambda: wayland_connections(backend_pid(session['backend_owner'])) == 0 or None,
+                   'the Wayland worker stopped after Off', timeout=3)
+    assert require(guest_command(PORTAL, '--status')).strip() == 'no sessions'
+    assert backend_owner() == session['backend_owner']
+    guest_command('systemctl', '--user', 'stop', UNIT)
+    # The same guarded executable, started from outside the hub scope.
+    root = session['identity_root']
+    start_log = session_log().count('refused: the application has no ID')
+    with logged_process(root / 'core-terminal.log', ['env', f'XDG_CONFIG_HOME={root}', '/usr/libexec/aresos-deskflow']):
+        wait_for(lambda: session_log().count('refused: the application has no ID') > start_log,
+                 'terminal launch refused with no app ID')
+    check_compositor()
+    return dict(returncode=0, app_id=DESKTOP_ID, hub_id=HUB_ID, terminal='empty ID refused',
+                off=dict(revoke=revoked, worker_connections=0, stopped=bool(off)), **proof)
 
 
 def diagnostics(request):

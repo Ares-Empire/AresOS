@@ -81,19 +81,61 @@ class DeskflowVMTest(unittest.TestCase):
                     with self.assertRaisesRegex(AssertionError, 'listen-only Wayland connection ended'):
                         actions.vt({'expected': vt})
 
-    def test_drm_control_never_accepts_an_activated_backend(self):
+    def test_drm_control_never_accepts_a_backend_on_wayland(self):
         for state in ('none', 'listener'):
-            with (
-                self.subTest(state=state),
+            base = (
                 patch.object(actions, 'session', {'uid': 1000, 'pid': 1, 'state': state}),
                 patch.object(actions, 'labwc_pid', return_value=1),
                 patch.object(actions, 'session_log', return_value=''),
                 patch.object(actions, 'listener', None),
                 patch.object(actions.subprocess, 'run', return_value=Mock(stdout='')),
-                patch.object(actions, 'bus', return_value='b true'),
-            ):
-                with self.assertRaisesRegex(AssertionError, 'input portal started during a DRM control case'):
+            )
+            with self.subTest(state=state), contextlib.ExitStack() as stack:
+                for context in base:
+                    stack.enter_context(context)
+                # Activated by the frontend with sharing off: running, and no Wayland connection, is fine.
+                for connections in (None, 0):
+                    with patch.object(actions, 'backend_connections', return_value=connections):
+                        actions.check_compositor()
+                with patch.object(actions, 'backend_connections', return_value=1):
+                    with self.assertRaisesRegex(AssertionError, 'input portal held a Wayland connection during a DRM control case'):
+                        actions.check_compositor()
+
+    def test_the_backend_state_needs_its_worker_until_sharing_goes_off(self):
+        session = {'uid': 1000, 'pid': 1, 'state': 'backend', 'backend_owner': ':1.2', 'worker': True}
+        with (
+            patch.object(actions, 'session', session),
+            patch.object(actions, 'labwc_pid', return_value=1),
+            patch.object(actions, 'session_log', return_value=''),
+            patch.object(actions, 'listener', None),
+            patch.object(actions.subprocess, 'run', return_value=Mock(stdout='')),
+            patch.object(actions, 'backend_owner', return_value=':1.2'),
+        ):
+            with patch.object(actions, 'backend_connections', return_value=1):
+                actions.check_compositor()
+            with patch.object(actions, 'backend_connections', return_value=0):
+                with self.assertRaisesRegex(AssertionError, 'Wayland worker stopped during the run'):
                     actions.check_compositor()
+                session['worker'] = False
+                actions.check_compositor()
+
+    def test_wayland_connections_are_read_from_the_outside(self):
+        import socket
+        import os
+        with tempfile.TemporaryDirectory() as folder:
+            path = pathlib.Path(folder) / 'wayland-1'
+            server = socket.socket(socket.AF_UNIX)
+            server.bind(str(path))
+            server.listen(2)
+            with patch.object(actions, 'session', {'runtime': pathlib.Path(folder), 'wayland': 'wayland-1'}):
+                before = actions.wayland_connections(os.getpid())
+                client = socket.socket(socket.AF_UNIX)
+                client.connect(str(path))
+                during = actions.wayland_connections(os.getpid())
+                client.close()
+                after = actions.wayland_connections(os.getpid())
+            server.close()
+        self.assertEqual((before, during, after), (0, 1, 0))
 
     def test_custom_verifies_each_transition(self):
         on = {'outputs': {vm.PRIMARY: {'enabled': True, 'modes': [CUSTOM]}}}
