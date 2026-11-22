@@ -3,6 +3,46 @@
 Brief: [briefs/328-look-around.md](../../briefs/328-look-around.md). One fresh agent per step; this file carries what the
 code doesn't show. The last step turns it into the report text.
 
+## 328a second review fix stopped at step 1
+
+**Status remains NOT SAFE.** The step 1 source check in [Analysis 1](ANALYSIS-1.md#26-order-of-work-for-the-builder)
+failed on F2. The release path still has the risk described in [Recheck 1](RECHECK-1.md).
+
+- Minecraft 26.2's Loom metadata names `org.lwjgl:lwjgl-glfw:3.4.1:natives-linux`. `sha1sum` of the cached JAR
+  matched the metadata (`23cdf7655ce9f3b27ad90f08e73345e0d5b46362`). `unzip -p` extracted the x64 `libglfw.so` and
+  its source revision (`9352d8fe93cd443be18157abe81f16500549aec03`). A display-free Python `ctypes` probe printed
+  `glfwGetVersion: 3.5.0` and `glfwGetVersionString: 3.5.0 Wayland X11 GLX Null EGL OSMesa monotonic shared`.
+- **F2 fails as written in both the bundled revision and the 3.5.1 tag.** `glfwSetInputMode` does return early for
+  an unchanged mode. On a changed mode it queries cursor position before calling `_glfwSetCursorModeX11`. The
+  backend gates grabs, raw motion and changes to `disabledCursorWindow` on X focus. It always calls
+  `updateCursorImage` and `XFlush` after that check. Switching to NORMAL with `disabledCursorWindow` already
+  cleared still sends `XDefineCursor` or `XUndefineCursor`, even when unfocused. The narrower claim about capture
+  bookkeeping holds in the source.
+  [Bundled `glfwSetInputMode`](https://github.com/glfw/glfw/blob/9352d8fe93cd443be18157abe81f16500549aec03/src/input.c#L589-L621),
+  [bundled cursor-mode setter](https://github.com/glfw/glfw/blob/9352d8fe93cd443be18157abe81f16500549aec03/src/x11_window.c#L2888-L2925),
+  [bundled cursor-image update](https://github.com/glfw/glfw/blob/9352d8fe93cd443be18157abe81f16500549aec03/src/x11_window.c#L455-L475),
+  [3.5.1 cursor-mode setter](https://github.com/glfw/glfw/blob/3.5.1/src/x11_window.c#L2888-L2925).
+- **F1, F3, F4 and F5 match by inspection.** A normal FocusOut in DISABLED calls `enableCursor`, which disables raw
+  motion when enabled, clears the disabled-cursor window, and ungrabs. FocusIn in NORMAL restores the input context
+  and calls the callback. The event pump drains the Xlib queue in order and only re-centres while the disabled-cursor
+  window is set. FocusOut iconification requires a GLFW monitor and auto-iconify. The session starts windowed, blocks
+  F11 and disables auto-iconify.
+  [Focus events](https://github.com/glfw/glfw/blob/9352d8fe93cd443be18157abe81f16500549aec03/src/x11_window.c#L1743-L1787),
+  [cursor enable](https://github.com/glfw/glfw/blob/9352d8fe93cd443be18157abe81f16500549aec03/src/x11_window.c#L541-L554),
+  [event pump](https://github.com/glfw/glfw/blob/9352d8fe93cd443be18157abe81f16500549aec03/src/x11_window.c#L2808-L2840).
+
+Design A would queue every covered release as `letGo`, put a FocusOut at the head of Xlib's queue at the next
+`RenderSystem.pollEvents`, and let GLFW clear its capture. The mod would then set NORMAL, show its XFixes-hidden
+cursor and cancel `Window.onFocus`. If Minecraft still recorded focus, a queued FocusIn would restore GLFW's input
+context and would also be cancelled before reaching Minecraft. The lead chose to include vanilla captures within
+`HomeScreen.session()` and omit deferred recapture.
+
+The stop rule ended the work before the call-site check, both GLFW control runs, the lever trials, the 75 in-game
+race cycles and the release-cause checks. Neither full headless pass ran. There were no generated screenshots and
+no files over 500 MB in `.work/`. Section 2.8's one-poll delay, same-frame refusal, held-key and Escape behavior,
+pointer placement, stalled-helper behavior, vanilla fallbacks and 64-bit Linux event layout remain design notes.
+Dead-key restoration also remains unverified. No mod or rig files changed in this round.
+
 ## Done
 
 ### 328a: the world keeps the pointer (step 1 of 4)
