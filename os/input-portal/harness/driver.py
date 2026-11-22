@@ -187,10 +187,11 @@ class Bus:
         # t: when the harness saw it, so a deadline is measured from the far side.
         self.signals.append({"sender": sender, "path": path, "iface": iface, "member": member, "args": params.unpack(), "t": time.monotonic()})
 
-    def call(self, path, iface, method, params=None, dest=NAME, timeout=5000):
+    def call(self, path, iface, method, params=None, dest=NAME, timeout=5000, activate=False):
+        flags = Gio.DBusCallFlags.NONE if activate else Gio.DBusCallFlags.NO_AUTO_START
         try:
             value, fds = self.conn.call_with_unix_fd_list_sync(
-                dest, path, iface, method, params, None, Gio.DBusCallFlags.NO_AUTO_START, timeout, None, None
+                dest, path, iface, method, params, None, flags, timeout, None, None
             )
             return Reply(value, fds)
         except GLib.Error as error:
@@ -218,6 +219,11 @@ class Bus:
     def has_owner(self, name):
         reply = self.call("/org/freedesktop/DBus", "org.freedesktop.DBus", "NameHasOwner", V("(s)", (name,)), dest="org.freedesktop.DBus")
         return reply.ok and reply.value[0]
+
+    def backend_pid(self):
+        reply = self.call("/org/freedesktop/DBus", "org.freedesktop.DBus", "GetConnectionUnixProcessID",
+                          V("(s)", (NAME,)), dest="org.freedesktop.DBus")
+        return reply.value[0] if reply.ok else None
 
     def sig(self, member, session=None, start=0, predicate=None):
         """Portal signals since `start`, for one session path when given."""
@@ -521,6 +527,14 @@ def start_backend(admin, extra=None):
     return name
 
 
+def closed_backend(name):
+    """Check that the backend exited on its own after its last session."""
+    code = procs[name].wait(timeout=3)
+    if code != 0:
+        raise RuntimeError(f"{name} did not exit cleanly: {code}, {log_of(name)[-600:]}")
+    return stop(name)
+
+
 def read_fd(fd, timeout=3):
     data = b""
     end = time.monotonic() + timeout
@@ -787,7 +801,7 @@ def test3_kill_and_watchdog(fe, admin, backend):
     stop(backend, signal.SIGINT)
 
 
-def test4_teardown(fe, backend):
+def test4_teardown(fe, admin, backend):
     T = "test4"
     session = Session(fe, "closed").open()
     mark = len(fe.signals)
@@ -795,13 +809,17 @@ def test4_teardown(fe, backend):
     check(T, "Close: the session is closed and its EIS receiver disconnected",
           wait_for(lambda: fe.sig("Closed", session.path, mark), 3) and wait_for(lambda: "DISCONNECT" in session.eis(), 3), f"{session.eis()[-3:]}")
     check(T, "after Close a crossing stays local", stays_local(fe, backend))
+    closed_backend(backend)
 
+    backend = start_backend(admin)
     session = Session(fe, "eis-dies-first").open()
     mark = len(fe.signals)
     session.kill_receiver()
     check(T, "the EIS connection dies before a crossing: the session is closed", wait_for(lambda: fe.sig("Closed", session.path, mark), 3))
     check(T, "and a crossing stays local", stays_local(fe, backend))
+    closed_backend(backend)
 
+    backend = start_backend(admin)
     session = Session(fe, "eis-dies-capturing").open()
     activated = capture(session)
     mark = len(fe.signals)
@@ -809,12 +827,14 @@ def test4_teardown(fe, backend):
     ended = wait_for(lambda: fe.sig("Deactivated", session.path, mark) and fe.sig("Closed", session.path, mark), 3)
     check(T, "the EIS connection dies during a capture: Deactivated, the session is closed, input is local again", activated and ended and local_motion() and local_key())
     check(T, "and a new crossing stays local", stays_local(fe, backend))
+    closed_backend(backend)
 
+    backend = start_backend(admin)
     session = Session(fe, "frontend-drops").open()
     fe.close()
     gone = wait_for(lambda: "DISCONNECT" in session.eis(), 3)
-    status = tool([BACKEND, "--status"]).stdout.strip()
-    check(T, "the frontend connection drops: its session is closed and its EIS receiver disconnected", gone and status == "no sessions", f"--status says {status!r}")
+    code = closed_backend(backend)
+    check(T, "the frontend connection drops: its session is closed and its EIS receiver disconnected", gone and code == 0, f"backend exit {code}")
     stop(session.receiver)
     fe = Bus("frontend-2")
     fe.own_frontend()
@@ -822,7 +842,7 @@ def test4_teardown(fe, backend):
     return fe
 
 
-def test5_clipboard(fe):
+def test5_clipboard(fe, _backend):
     T = "test5"
     session = Session(fe, "clipboard").open()
     text = "aresos-316 copied on this machine 6f1d"
@@ -907,8 +927,10 @@ def test6_refusals(fe, stranger, backend):
           f"transfers {transfers}, the thief got {stolen and (stolen.error, stolen.nfds)}, wl-paste {pasted!r}")
     first.shut()
     second.shut()
+    closed_backend(backend)
 
     # A session that was granted the pointer only; its receiver binds everything.
+    backend = start_backend(stranger)
     pointer_only = Session(fe, "pointer-only", caps=2).open()
     seats = [line for line in pointer_only.eis() if line.startswith("SEAT ")]
     devices = [line for line in pointer_only.eis() if line.startswith("DEVICE_ADDED")]
@@ -924,6 +946,7 @@ def test6_refusals(fe, stranger, backend):
           f"granted {pointer_only.granted}, seat {seats}, devices {devices}, got {got}")
     pointer_only.release()
     pointer_only.shut()
+    closed_backend(backend)
 
 
 def review5_pointer_device(fe, backend):
@@ -981,7 +1004,7 @@ def test7_logs(fe, stranger, admin):
     status = tool([BACKEND, "--status"])
     released = tool([BACKEND, "--release"])
     session.shut()
-    code = stop(backend, signal.SIGINT)
+    code = closed_backend(backend)
     check(T, "the marked run really happened: clipboard read and written, a capture with keys, motion, a button and scroll over EIS",
           copied == f"{marker} copied".encode() and pasted == f"{marker} written" and activated and delivered and activated_again and code == 0,
           f"copied {copied!r}, pasted {pasted!r}, activated {bool(activated)}, delivered {bool(delivered)}, exit {code}")
@@ -1190,43 +1213,53 @@ def test8_switch(fe, admin):
         check(T, "the switch file removed while input flows, nobody calls --revoke: within 2 s the capture has ended (Deactivated) and the session is closed",
               activated and flowing and closed and ended and closed_after <= 2.0 and ended_after <= 2.0, f"activated {bool(activated)}, flowing {bool(flowing)}, Deactivated {ended_after}, Closed {closed_after}")
         check(T, "from the 2 s deadline on no event reaches the client, though keys and motion kept coming", at_deadline is not None and not late, f"{late[:5]}")
-        check(T, "its EIS receiver is disconnected and --status says no sessions", "DISCONNECT" in session.eis() and status_of() == "no sessions", f"{session.eis()[-2:]}")
+        check(T, "its EIS receiver is disconnected and the backend's bus name is free", "DISCONNECT" in session.eis() and not admin.has_owner(NAME), f"{session.eis()[-2:]}")
         check(T, "the pointer and the keyboard are local again, and the next crossing stays local", local_motion() and local_key() and stays_local(fe, backend))
-        check(T, "the compositor confirmed the end of the capture: the backend is still running", procs[backend].poll() is None)
-        stopped = wait_for(lambda: wayland_connections(pid) == 0, 1.0)
-        check(T, "an authorized session while On starts the Wayland worker (one connection); the switch removed, the worker stops: "
-                 "the backend holds no Wayland connection", on_connections == 1 and stopped, f"{on_connections} while On, then {wayland_connections(pid)}")
+        check(T, "the compositor confirmed the end of the capture: the backend exited cleanly", procs[backend].poll() == 0)
+        check(T, "an authorized session while On starts one Wayland connection, which closes with the process after Off",
+              on_connections == 1 and not os.path.exists(f"/proc/{pid}"), f"{on_connections} while On")
+        stop(backend)
         stop(session.receiver)
+
+        # A frontend discovery call while Off activates a fresh, bus-only
+        # instance. Use it for the next authorized request while On.
+        discovered = fe.call(PORTAL, "org.freedesktop.DBus.Properties", "Get",
+                             V("(ss)", (IC, "version")), activate=True)
+        fresh_pid = admin.backend_pid()
+        check(T, "D-Bus activates a fresh backend for discovery while Off, without a Wayland connection",
+              discovered.ok and fresh_pid and fresh_pid != pid and wayland_connections(fresh_pid) == 0,
+              f"{discovered.value}, previous pid {pid}, fresh pid {fresh_pid}")
 
         # The same with a clipboard read in flight: the read is on its way to a backend that is stopped for the
         # moment, and the switch goes off before it gets there.
         set_switch("on\n")
         session = Session(fe, "off-while-reading").open(armed=False)
-        again_connections = wayland_connections(pid)
+        again_connections = wayland_connections(fresh_pid)
         mark = len(fe.signals)
         copy("aresos-321 a clipboard read in flight 3d7e")
         offered = wait_for(lambda: fe.sig("SelectionOwnerChanged", session.path, mark), 3)
-        os.kill(procs[backend].pid, signal.SIGSTOP)
+        os.kill(fresh_pid, signal.SIGSTOP)
         try:
             pending = fe.call_async(PORTAL, CLIP, "SelectionRead", V("(os)", (session.path, "text/plain;charset=utf-8")))
             pump(0.2)
             mark = len(fe.signals)
             set_switch(None)
         finally:
-            os.kill(procs[backend].pid, signal.SIGCONT)
+            os.kill(fresh_pid, signal.SIGCONT)
         got = wait_for(lambda: pending.get("reply"), 3)
         if got and got.ok and got.nfds:
             os.close(got.fd())
         closed = wait_for(lambda: fe.sig("Closed", session.path, mark), 3)
         check(T, "the same with a clipboard read in flight: no file descriptor comes back, and the session is closed",
               offered and got and not got.ok and got.nfds == 0 and closed, f"offered {bool(offered)}, reply {got and (got.ok, got.error, got.nfds)}, Closed {bool(closed)}")
-        stopped = wait_for(lambda: wayland_connections(pid) == 0, 1.0)
-        check(T, "On again: the next session starts a new worker (one connection), and Off stops it again (none)",
-              again_connections == 1 and stopped, f"{again_connections} while On, then {wayland_connections(pid)}")
+        stopped = wait_for(lambda: not admin.has_owner(NAME), 1.0)
+        check(T, "On again: the activated backend starts one connection, and Off ends that process too",
+              again_connections == 1 and stopped, f"{again_connections} while On")
         stop(session.receiver)
 
         # After Off no new clipboard transfer starts, either way.
         set_switch("on\n")
+        backend = start_backend(admin)
         session = Session(fe, "off-clipboard").open(armed=False)
         mark = len(fe.signals)
         session.must(CLIP, "SetSelection", V("(oa{sv})", (session.path, {"mime_types": V("as", ["text/plain;charset=utf-8", "text/plain"])})))
@@ -1252,7 +1285,9 @@ def test8_switch(fe, admin):
         stop(session.receiver)
 
         # --revoke only makes it immediate.
+        closed_backend(backend)
         set_switch("on\n")
+        backend = start_backend(admin)
         session = Session(fe, "revoked").open()
         activated = capture(session)
         mark = len(fe.signals)
@@ -1260,15 +1295,16 @@ def test8_switch(fe, admin):
         kept = not fe.sig("Closed", session.path, mark) and "capturing=true" in status_of()
         set_switch(None)
         said = tool([BACKEND, "--revoke"]).stdout.strip()
-        right_after = status_of()
         closed = wait_for(lambda: fe.sig("Closed", session.path, mark), 1)
+        code = closed_backend(backend)
         check(T, "--revoke with the switch on changes nothing: the capture holds", "sharing is on" in said_on and kept, f"{said_on!r}")
         check(T, "--revoke right after the switch is removed: by its answer the session is closed and the capture over",
-              activated and said.startswith("sharing is off") and right_after == "no sessions" and closed and local_motion() and local_key(), f"{said!r}, then --status {right_after!r}")
+              activated and said.startswith(("sharing is off", "no backend is running")) and code == 0 and closed and local_motion() and local_key(), f"{said!r}, exit {code}")
         stop(session.receiver)
 
         # labwc can't confirm the end of the capture: the backend exits, and labwc drops the grab with it.
         set_switch("on\n")
+        backend = start_backend(admin)
         session = Session(fe, "off-labwc-stopped").open()
         activated = capture(session)
         os.kill(procs["labwc"].pid, signal.SIGSTOP)
@@ -1621,6 +1657,9 @@ def setup():
     global vptr, vkbd, ZONES
     start_bus()
     start_labwc()
+    update = tool(["dbus-update-activation-environment", "WAYLAND_DISPLAY"])
+    if update.returncode:
+        raise RuntimeError(update.stderr)
     offered = tool(["wayland-info"]).stdout
     needed = ["zwlr_layer_shell_v1", "zwp_pointer_constraints_v1", "zwp_relative_pointer_manager_v1", "ext_data_control_manager_v1",
               "zwlr_output_manager_v1", "zwlr_virtual_pointer_manager_v1", "zwp_virtual_keyboard_manager_v1"]
@@ -1671,14 +1710,21 @@ def main():
         if any(line.startswith("FAIL") for line in results):
             raise RuntimeError("the setup is not usable")
 
-        run("test1", test1_zones, fe, backend)
-        run("test2", test2_crossing, fe, backend)
-        run("test3", test3_ways_out, fe, backend)
-        run("test5", test5_clipboard, fe)
+        for name, case, args in (
+            ("test1", test1_zones, (fe,)),
+            ("test2", test2_crossing, (fe,)),
+            ("test3", test3_ways_out, (fe,)),
+            ("test5", test5_clipboard, (fe,)),
+        ):
+            run(name, case, *args, backend)
+            closed_backend(backend)
+            backend = start_backend(stranger)
         run("test6", test6_refusals, fe, stranger, backend)
+        backend = start_backend(stranger)
         run("review1-finding5", review5_pointer_device, fe, backend)
-        fe = run("test4", test4_teardown, fe, backend) or fe
-        run("test3", test3_kill_and_watchdog, fe, stranger, backend)
+        closed_backend(backend)
+        fe = run("test4", test4_teardown, fe, stranger, start_backend(stranger)) or fe
+        run("test3", test3_kill_and_watchdog, fe, stranger, start_backend(stranger))
         run("test7", test7_logs, fe, stranger, stranger)
         run("test1", test1_output_off, fe, stranger)
         run("test8", test8_switch, fe, stranger)

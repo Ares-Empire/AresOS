@@ -101,6 +101,7 @@ chmod 0755 /harness/binding
 
 # The backend and its allow-list, where the image will have them: in this container's own /usr.
 install -D -m 0755 /harness/backend/aresos-input-portal /usr/libexec/aresos-input-portal
+install -D -m 0644 -t "$XDG_DATA_HOME/dbus-1/services" /harness/backend/*.service
 install -d -m 0755 /usr/share/aresos/input-portal
 printf '# the harness\norg.aresos.harness\n' > /usr/share/aresos/input-portal/allowed-apps
 chmod 0644 /usr/share/aresos/input-portal/allowed-apps

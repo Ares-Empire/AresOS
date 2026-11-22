@@ -24,7 +24,7 @@ use crate::{
     screens::{SharedScreens, Zone},
     sharing::{Gate, Switch},
     trust::{self, AllowList},
-    wayland::{self, WaylandCmd, WaylandEvent, WaylandHandle},
+    wayland::{self, StartingWorker, WaylandCmd, WaylandEvent, WaylandHandle},
 };
 use std::{
     collections::{HashMap, VecDeque},
@@ -37,7 +37,9 @@ use std::{
     },
     time::Duration,
 };
-use tokio::sync::{mpsc, Mutex};
+use tokio::sync::{mpsc, watch, Mutex};
+#[cfg(test)]
+use tokio::sync::oneshot;
 use tracing::{debug, error, info, warn};
 use zbus::{fdo, interface, message::Header, object_server::SignalEmitter, zvariant};
 use zvariant::{ObjectPath, OwnedObjectPath, OwnedValue, Type, Value};
@@ -79,44 +81,22 @@ pub const CONFIRM_TIMEOUT: Duration = Duration::from_secs(1);
 
 /// How long a Wayland worker may take to bind what it needs and describe the
 /// screens (the worker itself waits up to 5 seconds for the screens). The
-/// session that asked fails after it; nothing else waits on it.
+/// process exits if startup times out, closing even a stuck socket.
 const WORKER_START_TIMEOUT: Duration = Duration::from_secs(8);
 
-/// What a read of the switch under the state's lock found.
-enum Sharing {
-    On,
-    Off,
-    /// Off, and this read closed what was live: the sessions there were, and
-    /// the Wayland worker, taken out of the state here. [`State::conclude`]
-    /// sends the signals, has the end of the capture confirmed on that worker,
-    /// and then lets it go, which ends its connection.
-    TurnedOff(Option<Worker>),
-}
+/// A release or revoke arriving during shutdown waits on this same
+/// compositor confirmation, even though every session has already closed.
+type Teardown = watch::Receiver<Option<bool>>;
 
-impl Sharing {
-    fn is_on(&self) -> bool {
-        matches!(self, Self::On)
-    }
-}
-
-/// The Wayland worker of this process: its own thread and its own connection to
-/// the compositor (`wayland::start`). It binds output management, the layer
-/// shell, pointer constraints and clipboard data control, so it runs only while
-/// sharing is on and a session needs it: it starts for a session the portal has
-/// authorized ([`State::create_session`]) and stops when sharing goes off or the
-/// last session ends. While it is stopped the backend holds no Wayland
-/// connection; the bus side keeps answering the frontend and refusing sessions.
-struct Worker {
-    handle: Arc<WaylandHandle>,
-    /// Which worker this is: events of a worker that has been stopped are dropped.
-    generation: u64,
+async fn teardown_confirmed(mut teardown: Teardown) -> bool {
+    teardown.wait_for(Option::is_some).await.is_ok_and(|done| *done == Some(true))
 }
 
 /// How a worker is started: the real thread, or in tests a recorded handle.
 enum Spawner {
     Wayland { idle_timeout: Duration },
     #[cfg(test)]
-    Recording(Arc<std::sync::Mutex<Vec<RecordedWorker>>>),
+    Recording(Arc<std::sync::Mutex<Vec<RecordedWorker>>>, Arc<std::sync::atomic::AtomicBool>),
 }
 
 /// A worker the tests started: what was sent to it, and the sending end of its
@@ -125,6 +105,7 @@ enum Spawner {
 struct RecordedWorker {
     cmds: calloop::channel::Channel<WaylandCmd>,
     events: Option<mpsc::UnboundedSender<WaylandEvent>>,
+    ready: Option<oneshot::Sender<anyhow::Result<()>>>,
 }
 
 /// One zone as the portal wire format wants it: width, height, x, y.
@@ -413,10 +394,8 @@ struct Trust {
 #[derive(Default)]
 struct Inner {
     sessions: HashMap<OwnedObjectPath, Session>,
-    /// `CreateSession` calls between their start of the worker and the storing
-    /// of their session: while there are any, a worker with no session is not
-    /// idle ([`State::stop_worker_if_idle`]).
-    starting: usize,
+    /// Once teardown starts this process never admits a new session.
+    teardown: Option<Teardown>,
     /// The unique bus name of the frontend that made every session in
     /// `sessions`: the one place their signals are sent to.
     frontend: Option<String>,
@@ -428,21 +407,17 @@ pub struct State {
     inner: Arc<Mutex<Inner>>,
     next_activation: Arc<AtomicU32>,
     next_arming: Arc<std::sync::atomic::AtomicU64>,
-    /// Signalled when the bus or the Wayland connection has ended and the
-    /// process must stop; `stop_reason` says which.
+    /// Signalled when the process must stop, with the reason for the exit.
     stop: Arc<tokio::sync::Notify>,
-    stop_reason: Arc<OnceLock<&'static str>>,
+    stop_reason: Arc<OnceLock<Result<&'static str, &'static str>>>,
     /// Held while a Session object is exported or removed, so a removal can't
     /// take the object of a new session at the same path (`remove_session_object`).
     objects: Arc<Mutex<()>>,
-    /// The running Wayland worker, if any. Read without the state's lock (a
-    /// command goes to whichever worker runs), but put in and taken out only
-    /// with it held, so its start and stop are ordered with the sessions.
-    worker: Arc<std::sync::Mutex<Option<Worker>>>,
-    /// Held while a worker is started, so two sessions can't start two.
+    /// One worker per process. Keep its handle from launch through exit so
+    /// Off and the release key can see it even during startup or teardown.
+    worker: Arc<OnceLock<WaylandHandle>>,
+    /// Serialize requests through worker readiness.
     worker_start: Arc<Mutex<()>>,
-    next_generation: Arc<AtomicU64>,
-    /// The crossings' numbers, over every worker of the process.
     crossings: Arc<AtomicU64>,
     spawner: Arc<Spawner>,
     screens: SharedScreens,
@@ -507,9 +482,8 @@ impl State {
             stop: Arc::new(tokio::sync::Notify::new()),
             stop_reason: Arc::new(OnceLock::new()),
             objects: Arc::new(Mutex::new(())),
-            worker: Arc::new(std::sync::Mutex::new(None)),
+            worker: Arc::new(OnceLock::new()),
             worker_start: Arc::new(Mutex::new(())),
-            next_generation: Arc::new(AtomicU64::new(1)),
             crossings: Arc::new(AtomicU64::new(1)),
             spawner: Arc::new(spawner),
             screens,
@@ -532,23 +506,12 @@ impl State {
 
     // ---- the Wayland worker ---------------------------------------------------
 
-    fn worker_slot(&self) -> std::sync::MutexGuard<'_, Option<Worker>> {
-        // Nothing panics while holding it; a poisoned slot still holds a worker.
-        self.worker.lock().unwrap_or_else(std::sync::PoisonError::into_inner)
+    fn wayland(&self) -> Option<&WaylandHandle> {
+        self.worker.get()
     }
 
-    /// The running worker's handle, if one runs.
-    fn wayland(&self) -> Option<Arc<WaylandHandle>> {
-        self.worker_slot().as_ref().map(|worker| worker.handle.clone())
-    }
-
-    /// Whether a Wayland worker runs, so the backend holds a Wayland connection.
     pub fn worker_running(&self) -> bool {
-        self.worker_slot().is_some()
-    }
-
-    fn is_current_worker(&self, generation: u64) -> bool {
-        self.worker_slot().as_ref().is_some_and(|worker| worker.generation == generation)
+        self.wayland().is_some()
     }
 
     /// Send a command to the running worker. With none running there is no
@@ -561,108 +524,116 @@ impl State {
         }
     }
 
-    async fn spawn_worker(&self) -> anyhow::Result<(WaylandHandle, mpsc::UnboundedReceiver<WaylandEvent>)> {
+    fn spawn_worker(&self) -> anyhow::Result<StartingWorker> {
         match &*self.spawner {
-            Spawner::Wayland { idle_timeout } => {
-                let started = wayland::start(
-                    self.keymap.clone(),
-                    *idle_timeout,
-                    self.screens.clone(),
-                    self.gate.clone(),
-                    self.crossings.clone(),
-                    WORKER_START_TIMEOUT,
-                )
-                .await?;
-                for screen in &self.screens.current().screens {
-                    info!(
-                        "screen {}: {}x{} at ({}, {}) scale {} {:?}",
-                        screen.name,
-                        screen.zone.width,
-                        screen.zone.height,
-                        screen.zone.x,
-                        screen.zone.y,
-                        screen.scale,
-                        screen.transform
-                    );
-                }
-                Ok(started)
-            }
+            Spawner::Wayland { idle_timeout } => wayland::start(
+                self.keymap.clone(),
+                *idle_timeout,
+                self.screens.clone(),
+                self.gate.clone(),
+                self.trust.switch.clone(),
+                self.crossings.clone(),
+            ),
             #[cfg(test)]
-            Spawner::Recording(workers) => {
+            Spawner::Recording(workers, hold_ready) => {
                 let (handle, cmds) = WaylandHandle::recording();
-                let (events, events_rx) = mpsc::unbounded_channel();
+                let (events, event_rx) = mpsc::unbounded_channel();
+                let (ready_tx, ready) = oneshot::channel();
+                let ready_tx = if hold_ready.load(Ordering::Relaxed) {
+                    Some(ready_tx)
+                } else {
+                    let _ = ready_tx.send(Ok(()));
+                    None
+                };
                 workers.lock().expect("recorded workers").push(RecordedWorker {
                     cmds,
                     events: Some(events),
+                    ready: ready_tx,
                 });
-                Ok((handle, events_rx))
+                Ok(StartingWorker { handle, events: event_rx, ready })
             }
         }
     }
 
-    /// Have a worker running for a request that has passed the frontend and the
-    /// allow-list checks: the switch is read first, and with sharing off nothing
-    /// is started. The caller has counted itself in `Inner::starting`, so the
-    /// worker isn't stopped as idle before its session is stored.
+    /// Launch only for an authorized On request. Publish the handle before
+    /// waiting for readiness, so the switch watcher can end a blocked startup.
     async fn ensure_worker(&self) -> fdo::Result<()> {
         let _one_start = self.worker_start.lock().await;
         let mut out = Vec::new();
-        let (to, sharing) = {
+        let (to, start) = {
             let mut inner = self.inner.lock().await;
-            let sharing = self.switch_locked(&mut inner, &mut out);
-            (inner.frontend.clone(), sharing)
+            let start = if !self.switch_locked(&mut inner, &mut out) {
+                Err(sharing_off())
+            } else if self.worker_running() {
+                Ok(None)
+            } else {
+                self.spawn_worker().map(|StartingWorker { handle, events, ready }| {
+                    let _ = self.worker.set(handle);
+                    Some((events, ready))
+                }).map_err(|err| {
+                    error!("could not start the Wayland worker: {err:#}");
+                    fdo::Error::Failed("the backend could not reach the compositor".into())
+                })
+            };
+            (inner.frontend.clone(), start)
         };
-        let on = sharing.is_on();
-        self.conclude(to, out, sharing).await;
-        if !on {
-            return Err(sharing_off());
-        }
-        if self.worker_running() {
-            return Ok(());
-        }
+        self.emit_all(to, out).await;
+        let Some((events, ready)) = start? else { return Ok(()) };
+        let ready = tokio::time::timeout(WORKER_START_TIMEOUT, ready).await;
 
-        let generation = self.next_generation.fetch_add(1, Ordering::Relaxed);
-        let (handle, events) = self.spawn_worker().await.map_err(|err| {
-            error!("could not start the Wayland worker: {err:#}");
-            fdo::Error::Failed("the backend could not reach the compositor".into())
-        })?;
-        let handle = Arc::new(handle);
-
-        // Sharing may have gone off while the worker started: read it again
-        // under the lock that puts the worker in place.
-        let mut out = Vec::new();
-        let (to, sharing) = {
-            let mut inner = self.inner.lock().await;
-            let sharing = self.switch_locked(&mut inner, &mut out);
-            if sharing.is_on() {
-                *self.worker_slot() = Some(Worker {
-                    handle: handle.clone(),
-                    generation,
-                });
+        // The worker checks immediately after opening the socket. Check here
+        // too, since the registry and initial outputs can take time to arrive.
+        self.with_sharing("CreateSession", |_, _| {
+            if !matches!(ready, Ok(Ok(Ok(())))) {
+                error!("could not start the Wayland worker: {ready:?}");
+                self.request_stop(Err("the Wayland worker did not start"));
+                return Err(fdo::Error::Failed("the backend could not reach the compositor".into()));
             }
-            (inner.frontend.clone(), sharing)
-        };
-        let on = sharing.is_on();
-        self.conclude(to, out, sharing).await;
-        if !on {
-            // Dropped here, unused: its connection ends.
-            return Err(sharing_off());
+            Ok(())
+        }).await?;
+
+        for screen in &self.screens.current().screens {
+            info!(
+                "screen {}: {}x{} at ({}, {}) scale {} {:?}",
+                screen.name, screen.zone.width, screen.zone.height,
+                screen.zone.x, screen.zone.y,
+                screen.scale, screen.transform
+            );
         }
-        info!(generation, "Wayland worker started");
-        tokio::spawn(pump_wayland_events(self.clone(), events, generation));
+        info!("Wayland worker started");
+        tokio::spawn(pump_wayland_events(self.clone(), events));
         Ok(())
     }
 
-    /// Stop the worker when nothing needs it: no session, and no `CreateSession`
-    /// about to store one. With the lock held. The commands already sent go
-    /// first; then the worker ends its connection, and every binding with it.
-    fn stop_worker_if_idle(&self, inner: &Inner) {
-        if !inner.sessions.is_empty() || inner.starting > 0 {
+    /// The last session is gone. End any crossing still on its way to the
+    /// portal before asking the compositor to confirm the teardown.
+    fn stop_worker_if_idle(&self, inner: &mut Inner) {
+        if inner.sessions.is_empty() {
+            self.begin_teardown(inner, "the last session ended");
+        }
+    }
+
+    fn begin_teardown(&self, inner: &mut Inner, why: &'static str) {
+        if !self.worker_running() || inner.teardown.is_some() || self.stop_reason.get().is_some() {
             return;
         }
-        if let Some(worker) = self.worker_slot().take() {
-            info!(generation = worker.generation, "no session needs the Wayland worker: stopping it");
-        }
+        self.gate.close();
+        self.release_everything();
+        let (result, teardown) = watch::channel(None);
+        inner.teardown = Some(teardown);
+        let deadline = tokio::time::Instant::now() + CONFIRM_TIMEOUT;
+        let state = self.clone();
+        tokio::spawn(async move {
+            let confirmed = state.wayland().expect("worker kept until exit")
+                .confirm(deadline.saturating_duration_since(tokio::time::Instant::now())).await;
+            result.send_replace(Some(confirmed));
+            if confirmed {
+                state.request_stop(Ok(why));
+            } else {
+                error!("{why}: the compositor did not confirm the end of the capture within a second");
+                state.request_stop(Err("the compositor did not confirm the end of the capture"));
+            }
+        });
     }
 
     async fn offer_sharing_window(&self) {
@@ -757,7 +728,9 @@ impl State {
                 self.remove_session(&mut inner, old, &mut orphaned);
             }
             inner.frontend = sender.map(str::to_owned);
-            self.stop_worker_if_idle(&inner);
+            if !stale.is_empty() {
+                self.stop_worker_if_idle(&mut inner);
+            }
         }
         self.emit_all(None, orphaned).await;
     }
@@ -770,13 +743,16 @@ impl State {
     /// (their signals into `out`), and so nothing more leaves. Under the lock no
     /// session can be made or used between the read and the teardown, and the
     /// gate can't open again while a session from before the Off is left.
-    fn switch_locked(&self, inner: &mut Inner, out: &mut Vec<Signal>) -> Sharing {
+    fn switch_locked(&self, inner: &mut Inner, out: &mut Vec<Signal>) -> bool {
+        if inner.teardown.is_some() || self.stop_reason.get().is_some() {
+            return false;
+        }
         let off = match self.trust.switch.read() {
             Ok(()) => {
                 if !self.gate.open() {
                     info!("sharing is on");
                 }
-                return Sharing::On;
+                return true;
             }
             Err(off) => off,
         };
@@ -788,9 +764,6 @@ impl State {
         } else {
             debug!("sharing is off: {off}");
         }
-        if inner.sessions.is_empty() && !self.worker_running() {
-            return Sharing::Off;
-        }
         let handles: Vec<OwnedObjectPath> = inner.sessions.keys().cloned().collect();
         if !handles.is_empty() {
             warn!("sharing was turned off: closing {} session(s)", handles.len());
@@ -798,15 +771,8 @@ impl State {
         for handle in &handles {
             self.remove_session(inner, handle, out);
         }
-        // Whatever is captured ends, also a crossing the portal hasn't heard of.
-        self.release_everything();
-        // Then the worker goes, after the commands above: once the compositor
-        // has confirmed them, its connection ends.
-        let worker = self.worker_slot().take();
-        if worker.is_some() {
-            info!("sharing is off: stopping the Wayland worker");
-        }
-        Sharing::TurnedOff(worker)
+        self.begin_teardown(inner, "sharing was turned off");
+        false
     }
 
     /// Run `f` with the lock held, after a read of the switch under the same
@@ -817,92 +783,57 @@ impl State {
         f: impl FnOnce(&mut Inner, &mut Vec<Signal>) -> fdo::Result<T>,
     ) -> fdo::Result<T> {
         let mut out = Vec::new();
-        let (to, sharing, result) = {
+        let (to, result) = {
             let mut inner = self.inner.lock().await;
-            let sharing = self.switch_locked(&mut inner, &mut out);
-            let result = if sharing.is_on() {
+            let result = if self.switch_locked(&mut inner, &mut out) {
                 f(&mut inner, &mut out)
             } else {
                 warn!(method, "refused: sharing is off");
                 Err(sharing_off())
             };
-            (inner.frontend.clone(), sharing, result)
+            (inner.frontend.clone(), result)
         };
-        self.conclude(to, out, sharing).await;
+        self.emit_all(to, out).await;
         result
     }
 
-    /// Send the signals a call produced. When its read of the switch closed the
-    /// sessions, the compositor's confirmation that the capture is over is
-    /// awaited on a task of its own, so the call isn't held up by it.
-    async fn conclude(&self, to: Option<String>, out: Vec<Signal>, sharing: Sharing) {
-        self.emit_all(to, out).await;
-        if let Sharing::TurnedOff(worker) = sharing {
-            let state = self.clone();
-            tokio::spawn(async move { state.confirm_off(worker).await });
-        }
-    }
-
-    /// After Off closed the sessions and took the worker out: unless the
-    /// compositor confirms within [`CONFIRM_TIMEOUT`] that it has handled the
-    /// end of the capture, the backend stops, and labwc drops the grab with its
-    /// connection. Confirmed, the worker is let go here, and its connection
-    /// ends. Returns whether it confirmed.
-    async fn confirm_off(&self, worker: Option<Worker>) -> bool {
-        // No worker ran: no connection, so nothing can be held.
-        let Some(worker) = worker else { return true };
-        if worker.handle.confirm(CONFIRM_TIMEOUT).await {
-            debug!("the compositor confirmed the end of the capture after Off");
-            return true;
-        }
-        error!("the compositor did not confirm the end of the capture within a second of Off: stopping");
-        self.stop_serving("the compositor did not confirm the end of the capture after sharing was turned off")
-            .await;
-        false
-    }
-
-    /// The timer's read of the switch ([`watch_switch`]), while any session
-    /// exists or the worker runs.
+    /// Poll while a worker exists, including while it is still connecting.
     pub async fn reread_switch(&self) {
         let mut out = Vec::new();
-        let (to, sharing) = {
+        let to = {
             let mut inner = self.inner.lock().await;
-            if inner.sessions.is_empty() && !self.worker_running() {
+            if !self.worker_running() {
                 return;
             }
-            let sharing = self.switch_locked(&mut inner, &mut out);
-            (inner.frontend.clone(), sharing)
+            self.switch_locked(&mut inner, &mut out);
+            inner.frontend.clone()
         };
-        self.conclude(to, out, sharing).await;
+        self.emit_all(to, out).await;
     }
 
-    /// `--revoke`: read the switch now rather than at the next tick, and answer
-    /// once the compositor has confirmed the end of the capture. It can only end
-    /// sharing, never start it, so the bus may let anyone ask.
+    /// `--revoke`: read the switch now and wait for any teardown it triggered
+    /// or the switch watcher already started.
     async fn revoke(&self) -> String {
         let mut out = Vec::new();
-        let (to, sharing) = {
+        let (to, teardown) = {
             let mut inner = self.inner.lock().await;
-            let sharing = self.switch_locked(&mut inner, &mut out);
-            (inner.frontend.clone(), sharing)
+            if self.switch_locked(&mut inner, &mut out) {
+                return "sharing is on: nothing changed".to_owned();
+            }
+            (inner.frontend.clone(), inner.teardown.clone())
         };
         let closed = out
             .iter()
             .filter(|signal| matches!(signal, Signal::SessionClosed { .. }))
             .count();
         self.emit_all(to, out).await;
-        match sharing {
-            Sharing::On => "sharing is on: nothing changed".to_owned(),
-            Sharing::Off => "sharing is off: there was nothing to close".to_owned(),
-            Sharing::TurnedOff(worker) => {
-                if self.confirm_off(worker).await {
-                    format!("sharing is off: closed {closed} session(s)")
-                } else {
-                    format!(
-                        "sharing is off: closed {closed} session(s); the compositor did not confirm, so the backend stops"
-                    )
-                }
-            }
+        let Some(teardown) = teardown else {
+            return "sharing is off: there was nothing to close".to_owned();
+        };
+        if teardown_confirmed(teardown).await {
+            format!("sharing is off: closed {closed} session(s)")
+        } else {
+            format!("sharing is off: closed {closed} session(s); the compositor did not confirm, so the backend stops")
         }
     }
 
@@ -1140,17 +1071,7 @@ impl State {
         }
         let started = v1_capabilities.is_some();
 
-        // An authorized request from a listed application, so the Wayland
-        // worker may start, if the switch says on (`ensure_worker`). Counted in
-        // `starting` until its session is stored or refused.
-        self.inner.lock().await.starting += 1;
         let result = self.create_session_locked(handle, app_id, granted, started).await;
-        {
-            let mut inner = self.inner.lock().await;
-            inner.starting -= 1;
-            // A refused session leaves no worker behind that nothing needs.
-            self.stop_worker_if_idle(&inner);
-        }
         if app_id == DESKFLOW_ID && matches!(&result, Err(fdo::Error::AccessDenied(_))) {
             debug!(app_id, "Deskflow requested a session while sharing is off");
             self.offer_sharing_window().await;
@@ -1161,7 +1082,7 @@ impl State {
         if let Err(err) = self.export_session_object(handle).await {
             let mut inner = self.inner.lock().await;
             inner.sessions.remove(handle);
-            self.stop_worker_if_idle(&inner);
+            self.stop_worker_if_idle(&mut inner);
             return Err(err);
         }
 
@@ -1602,17 +1523,11 @@ impl State {
             to = inner.frontend.clone();
             if self.remove_session(&mut inner, handle, &mut out) {
                 info!(session = %handle.as_str(), "session closed by the portal");
+                self.stop_worker_if_idle(&mut inner);
             }
-            self.stop_worker_if_idle(&inner);
         }
         self.emit_all(to, out).await;
         Ok(())
-    }
-
-    /// The frontend left the bus (or was replaced): nobody is left who could
-    /// close its sessions, and a new frontend knows nothing about them.
-    pub async fn close_all_sessions(&self, why: &str) {
-        self.close_sessions(None, why).await;
     }
 
     /// The watch on the frontend's name saw `old_owner` give it up. Only the
@@ -1642,7 +1557,7 @@ impl State {
             for handle in handles {
                 self.remove_session(&mut inner, &handle, &mut out);
             }
-            self.stop_worker_if_idle(&inner);
+            self.stop_worker_if_idle(&mut inner);
         }
         self.emit_all(to, out).await;
     }
@@ -1667,18 +1582,28 @@ impl State {
     }
 
     async fn stop_serving(&self, why: &'static str) {
-        // Released first: closing the last session stops the worker.
-        self.release_everything();
-        self.close_all_sessions(why).await;
-        let _ = self.stop_reason.set(why);
+        {
+            let _inner = self.inner.lock().await;
+            if self.stop_reason.set(Err(why)).is_err() {
+                return;
+            }
+            self.gate.close();
+            self.release_everything();
+        }
+        self.close_sessions(None, why).await;
         self.stop.notify_one();
     }
 
-    /// Resolves once the bus or the Wayland connection has ended and the
-    /// sessions are closed, with which of the two it was.
-    pub async fn wait_for_stop(&self) -> &'static str {
+    fn request_stop(&self, reason: Result<&'static str, &'static str>) {
+        if self.stop_reason.set(reason).is_ok() {
+            self.stop.notify_one();
+        }
+    }
+
+    /// Resolves once a teardown completed or a connection was lost.
+    pub async fn wait_for_stop(&self) -> Result<&'static str, &'static str> {
         self.stop.notified().await;
-        self.stop_reason.get().copied().unwrap_or("stopped")
+        *self.stop_reason.get().expect("stop reason set before notification")
     }
 
     /// An EIS connection ended. If a session still depends on it, the session is
@@ -1700,8 +1625,8 @@ impl State {
                 .is_some_and(|eis| eis.id() == eis_id);
             if is_current && self.remove_session(&mut inner, &handle, &mut out) {
                 warn!(session = %label, "its EIS connection ended: the session is closed");
+                self.stop_worker_if_idle(&mut inner);
             }
-            self.stop_worker_if_idle(&inner);
         }
         self.emit_all(to, out).await;
     }
@@ -1728,6 +1653,14 @@ impl State {
         let to;
         let (released, wayland) = {
             let mut inner = self.inner.lock().await;
+            if let Some(teardown) = inner.teardown.clone() {
+                drop(inner);
+                return if teardown_confirmed(teardown).await {
+                    Ok(0)
+                } else {
+                    Err(fdo::Error::Failed("the compositor did not confirm the release in time".into()))
+                };
+            }
             to = inner.frontend.clone();
             let mut released = 0;
             for session in inner.sessions.values_mut() {
@@ -1838,13 +1771,12 @@ impl State {
     async fn activated(&self, label: &str, arming: u64, crossing: u64, barrier_id: u32, position: (f64, f64)) {
         let mut out = Vec::new();
         let to;
-        let sharing;
         {
             let mut inner = self.inner.lock().await;
             to = inner.frontend.clone();
             // Before `Activated`: with sharing off every session is gone by the
             // lookup below, and the crossing stays local.
-            sharing = self.switch_locked(&mut inner, &mut out);
+            self.switch_locked(&mut inner, &mut out);
             let handle = OwnedObjectPath::try_from(label).ok();
             let session = handle
                 .as_ref()
@@ -1912,7 +1844,7 @@ impl State {
                 }
             }
         }
-        self.conclude(to, out, sharing).await;
+        self.emit_all(to, out).await;
     }
 
     /// The grab of `crossing` is already gone (the watchdog, or the compositor
@@ -2000,28 +1932,28 @@ impl State {
 
     async fn selection_changed(&self, mime_types: Vec<String>, is_ours: bool) {
         let mut out = Vec::new();
-        let (to, sharing) = {
+        let to = {
             let mut inner = self.inner.lock().await;
             inner.clipboard.mime_types = mime_types;
             inner.clipboard.owned_by_session = is_ours;
             // With sharing off no session is left to be told.
-            let sharing = self.switch_locked(&mut inner, &mut out);
+            self.switch_locked(&mut inner, &mut out);
             // Every session with clipboard access needs to know, so it can offer
             // the new content to the machine on the other end.
             out.extend(Self::announce_selection(&inner));
-            (inner.frontend.clone(), sharing)
+            inner.frontend.clone()
         };
-        self.conclude(to, out, sharing).await;
+        self.emit_all(to, out).await;
     }
 
     /// Somebody local is pasting from the selection claim `claim_id` made.
     async fn selection_requested(&self, claim_id: u32, mime_type: String, fd: OwnedFd) {
         let mut out = Vec::new();
-        let (to, sharing) = {
+        let to = {
             let mut inner = self.inner.lock().await;
             // No new transfer starts with sharing off: every session, and so the
             // claim's owner, is gone by the lookup below.
-            let sharing = self.switch_locked(&mut inner, &mut out);
+            self.switch_locked(&mut inner, &mut out);
             let owner = inner
                 .clipboard
                 .owner_session
@@ -2040,15 +1972,15 @@ impl State {
                 // Dropping `fd` here is what the paster reads as "no data".
                 None => debug!("a paste arrived for a claim with no session behind it"),
             }
-            (inner.frontend.clone(), sharing)
+            inner.frontend.clone()
         };
-        self.conclude(to, out, sharing).await;
+        self.emit_all(to, out).await;
     }
 
     /// Another client took the selection from claim `claim_id`.
     async fn claim_cancelled(&self, claim_id: u32) {
         let mut out = Vec::new();
-        let (to, sharing) = {
+        let to = {
             let mut inner = self.inner.lock().await;
             if claim_id != inner.clipboard.claim_id {
                 return;
@@ -2059,11 +1991,11 @@ impl State {
             clipboard.claim_id = clipboard.claim_id.wrapping_add(1);
             // Nobody is going to answer these now.
             clipboard.clear_transfers();
-            let sharing = self.switch_locked(&mut inner, &mut out);
+            self.switch_locked(&mut inner, &mut out);
             out.extend(Self::announce_selection(&inner));
-            (inner.frontend.clone(), sharing)
+            inner.frontend.clone()
         };
-        self.conclude(to, out, sharing).await;
+        self.emit_all(to, out).await;
     }
 }
 
@@ -2540,7 +2472,7 @@ impl Control {
 }
 
 /// Read the sharing switch every [`SWITCH_INTERVAL`] while any session exists
-/// or the Wayland worker runs, so Off takes effect, and the worker stops, with
+/// or the Wayland worker starts, so Off takes effect and the backend exits with
 /// no second process (`--revoke` only makes it immediate).
 pub async fn watch_switch(state: State) {
     let mut tick = tokio::time::interval(SWITCH_INTERVAL);
@@ -2558,24 +2490,11 @@ pub async fn handle_eis_closed(state: State, mut closed: mpsc::UnboundedReceiver
     }
 }
 
-/// Drive portal signals from what worker `generation` observes.
-pub async fn pump_wayland_events(state: State, mut events: mpsc::UnboundedReceiver<WaylandEvent>, generation: u64) {
+/// Drive portal signals from what the Wayland worker observes.
+async fn pump_wayland_events(state: State, mut events: mpsc::UnboundedReceiver<WaylandEvent>) {
     while let Some(event) = events.recv().await {
-        // A worker taken out (Off, or no session left) has nobody to report
-        // to: every session it served is gone, and a later worker's sessions
-        // are not its business.
-        if !state.is_current_worker(generation) {
-            debug!(generation, event = ?event, "an event of a stopped Wayland worker: dropped");
-            continue;
-        }
         state.handle_event(event).await;
     }
-    if !state.is_current_worker(generation) {
-        debug!(generation, "a stopped Wayland worker has ended");
-        return;
-    }
-    // The running worker holds the sending end until it stops, and it stops on
-    // its own only when its connection to the compositor fails.
     warn!("the Wayland connection ended: closing every session and stopping");
     state.wayland_lost().await;
 }
@@ -2652,8 +2571,7 @@ mod tests {
         state: State,
         /// Every worker the state started, in order.
         workers: Arc<std::sync::Mutex<Vec<RecordedWorker>>>,
-        /// How many workers were told to stop (their last handle dropped).
-        shutdowns: std::sync::atomic::AtomicUsize,
+        hold_ready: Arc<std::sync::atomic::AtomicBool>,
         /// Commands taken from the channel and not yet returned by `cmds`.
         stash: std::sync::Mutex<Vec<WaylandCmd>>,
         /// The Wayland thread's confirmations nobody has answered yet: kept, so
@@ -2677,6 +2595,7 @@ mod tests {
         fn with(allow_list: Option<&str>, frontend: Option<&str>) -> Self {
             let list = TempList::new(allow_list);
             let workers = Arc::new(std::sync::Mutex::new(Vec::new()));
+            let hold_ready = Arc::new(std::sync::atomic::AtomicBool::new(false));
             let signals = Arc::new(std::sync::Mutex::new(Vec::new()));
             let objects = Arc::new(std::sync::Mutex::new(std::collections::HashSet::new()));
             let screens = SharedScreens::new();
@@ -2684,7 +2603,7 @@ mod tests {
             screens.commit(vec![screen("A", 0, 0, 1920, 1080), screen("B", 1920, 0, 1920, 1080)]);
             let switch = TempSwitch::new(Some("on\n"));
             let (state, eis_closed) = State::with_trust(
-                Spawner::Recording(workers.clone()),
+                Spawner::Recording(workers.clone(), hold_ready.clone()),
                 screens.clone(),
                 eis_server::SharedKeymap::default(),
                 Gate::default(),
@@ -2702,7 +2621,7 @@ mod tests {
             Self {
                 state,
                 workers,
-                shutdowns: std::sync::atomic::AtomicUsize::new(0),
+                hold_ready,
                 stash: std::sync::Mutex::new(Vec::new()),
                 syncs: std::sync::Mutex::new(Vec::new()),
                 switch,
@@ -2717,15 +2636,11 @@ mod tests {
 
         /// Move what was sent to the Wayland thread out of the channel: the
         /// confirmations it was asked for aside, the rest into the stash.
-        /// A worker's `Shutdown` is counted (`shutdowns`) and not returned.
         fn drain(&self) {
             for worker in self.workers.lock().unwrap().iter() {
                 while let Ok(cmd) = worker.cmds.try_recv() {
                     match cmd {
                         WaylandCmd::Sync { done } => self.syncs.lock().unwrap().push(done),
-                        WaylandCmd::Shutdown => {
-                            self.shutdowns.fetch_add(1, Ordering::Relaxed);
-                        }
                         cmd => self.stash.lock().unwrap().push(cmd),
                     }
                 }
@@ -2735,12 +2650,6 @@ mod tests {
         /// How many workers the state has started.
         fn started(&self) -> usize {
             self.workers.lock().unwrap().len()
-        }
-
-        /// How many workers have been told to stop.
-        fn stopped(&self) -> usize {
-            self.drain();
-            self.shutdowns.load(Ordering::Relaxed)
         }
 
         /// The newest worker's connection ends, as if the compositor had gone.
@@ -3416,21 +3325,11 @@ mod tests {
             assert!(inner.clipboard.transfers.is_empty());
         }
 
-        // The dead session can never take the pointer again: a crossing that was
-        // already on its way stays local, and it can't be enabled. While other
-        // sessions keep the worker, the crossing is ended on it; when this was
-        // the last session the worker is stopped, its connection and any grab
-        // gone with it, and there is nothing left to send to.
-        let worker_left = rig.state.worker_running();
-        assert_eq!(worker_left, rig.session_count().await > 0, "the worker runs exactly while a session needs it");
+        // A late crossing still stays local, including while the backend is
+        // waiting for the compositor to confirm the last session's teardown.
         cross(&rig.state, handle, 7).await;
         assert!(rig.signals().is_empty());
-        let cmds = rig.cmds();
-        if worker_left {
-            assert!(matches!(&cmds[..], [WaylandCmd::EndCapture { .. }, WaylandCmd::Disarm]));
-        } else {
-            assert!(cmds.is_empty(), "{cmds:?}");
-        }
+        assert!(matches!(&rig.cmds()[..], [WaylandCmd::EndCapture { .. }, WaylandCmd::Disarm]));
         assert!(rig.state.enable(Some(FRONTEND), handle).await.is_err());
         assert!(rig.state.selection_write(Some(FRONTEND), handle, 1).await.is_err());
         assert!(rig.cmds().is_empty());
@@ -3449,7 +3348,7 @@ mod tests {
         let mut rig = Rig::new();
         let idle = rig.session("idle").await;
         let (handle, activation_id) = busy_session(&mut rig, "a").await;
-        rig.state.close_all_sessions("test").await;
+        rig.state.frontend_left(FRONTEND).await;
         assert_eq!(rig.session_count().await, 0);
         let mut signals = rig.signals();
         signals.retain(|signal| *signal != Signal::SessionClosed { session: idle.clone() });
@@ -3480,15 +3379,12 @@ mod tests {
         rig.cmds();
         let eis_id = rig.state.inner.lock().await.sessions[&handle].eis.as_ref().unwrap().id();
         rig.state.eis_closed(handle.as_str(), eis_id).await;
-        assert!(matches!(&rig.cmds()[..], [WaylandCmd::Disarm]));
+        assert!(matches!(&rig.cmds()[..], [WaylandCmd::Disarm, WaylandCmd::EndCapture { .. }, WaylandCmd::Disarm]));
         assert_eq!(rig.signals(), [Signal::SessionClosed { session: handle.clone() }]);
-        // It was the only session: the worker is stopped, and with it every
-        // barrier surface, so a crossing on its way finds nothing to capture.
-        assert!(!rig.state.worker_running());
-        assert_eq!(rig.stopped(), 1);
         cross(&rig.state, &handle, 7).await;
         assert!(rig.signals().is_empty(), "the next crossing stays local");
-        assert!(rig.cmds().is_empty());
+        assert!(!rig.cmds().iter().any(|cmd| matches!(cmd, WaylandCmd::Arm { .. })));
+        assert_eq!(rig.confirmed(rig.state.wait_for_stop()).await, Ok("the last session ended"));
     }
 
     #[tokio::test]
@@ -3733,6 +3629,7 @@ mod tests {
     async fn a_crossing_queued_for_a_closed_session_never_reaches_a_new_session_with_its_path() {
         let mut rig = Rig::new();
         let old = rig.session("same").await;
+        rig.session("idle").await;
         rig.state.enable(Some(FRONTEND), &old).await.unwrap();
         // The pointer crosses, and the notice is on its way to the portal.
         let queued = crossing_event(&rig.state, &old, 7).await;
@@ -3882,7 +3779,6 @@ mod tests {
             "whatever is captured is released first"
         );
         assert!(cmds.iter().any(|c| matches!(c, WaylandCmd::Disarm)), "the barriers go");
-        assert_eq!(rig.stopped(), 1, "then the worker stops, and no surface outlives its connection");
 
         // A crossing after that stays local.
         cross(&rig.state, &busy, 7).await;
@@ -3893,7 +3789,7 @@ mod tests {
         let why = tokio::time::timeout(std::time::Duration::from_secs(1), rig.state.wait_for_stop())
             .await
             .expect("the backend is told to stop");
-        assert_eq!(why, "the session bus connection ended");
+        assert_eq!(why, Err("the session bus connection ended"));
     }
 
     // ---- 316's follow-ups, brief 321 "What to build" 1 ----
@@ -3929,11 +3825,10 @@ mod tests {
         let cmds = rig.cmds();
         assert!(matches!(cmds.first(), Some(WaylandCmd::EndCapture { crossing: None, .. })));
         assert!(cmds.iter().any(|c| matches!(c, WaylandCmd::Disarm)));
-        assert!(!rig.state.worker_running());
         let why = tokio::time::timeout(std::time::Duration::from_secs(1), rig.state.wait_for_stop())
             .await
             .expect("the backend is told to stop");
-        assert_eq!(why, "the Wayland connection ended");
+        assert_eq!(why, Err("the Wayland connection ended"));
     }
 
     #[tokio::test]
@@ -3967,15 +3862,19 @@ mod tests {
         assert!(sent.iter().any(|(_, signal)| *signal == Signal::SessionClosed { session: old.clone() }));
         assert!(sent.iter().all(|(to, _)| to.is_none()), "{sent:?}");
 
-        // The new owner's own session.
+        // After activation of a fresh backend, a late notice that the old
+        // owner left cannot close a session of the new owner.
+        assert_eq!(rig.confirmed(s.wait_for_stop()).await, Ok("the last session ended"));
+        let fresh = Rig::with(Some(APP), Some(NEW));
+        let s = &fresh.state;
         let new = path("new");
         s.create_session(Some(NEW), &new, APP, None).await.unwrap();
-        // A late notice that the old owner left closes nothing of the new one's.
         s.frontend_left(FRONTEND).await;
-        assert_eq!(rig.session_count().await, 1);
+        assert_eq!(fresh.session_count().await, 1);
         // The notice for the new owner does.
         s.frontend_left(NEW).await;
-        assert_eq!(rig.session_count().await, 0);
+        assert_eq!(fresh.session_count().await, 0);
+        assert_eq!(fresh.confirmed(s.wait_for_stop()).await, Ok("the last session ended"));
     }
 
     #[tokio::test]
@@ -4096,10 +3995,9 @@ mod tests {
             assert!(inner.clipboard.owner_session.is_none() && inner.clipboard.transfers.is_empty());
         }
 
-        // The compositor confirms the end of the capture: the backend goes on.
+        // Confirmation ends the process and takes its connection with it.
         assert_eq!(rig.answer_syncs(), 1);
-        rig.settle().await;
-        assert!(rig.state.stop_reason.get().is_none());
+        assert_eq!(rig.state.wait_for_stop().await, Ok("sharing was turned off"));
         timer.abort();
     }
 
@@ -4116,7 +4014,7 @@ mod tests {
         // Armed with sharing on, then off before the crossing reaches the portal
         // (the Wayland thread already holds the grab): no Activated, and the
         // crossing goes back to the local screen.
-        rig.set_sharing(true);
+        let mut rig = Rig::new();
         let b = rig.session("b").await;
         rig.state.enable(Some(FRONTEND), &b).await.unwrap();
         let crossing = crossing_event(&rig.state, &b, 7).await;
@@ -4127,8 +4025,8 @@ mod tests {
         let signals = rig.signals();
         assert!(!signals.iter().any(|s| matches!(s, Signal::Activated { .. })), "{signals:?}");
         assert!(signals.contains(&Signal::SessionClosed { session: b.clone() }));
-        // Ended on the worker before it was taken out: the crossing the portal
-        // hasn't let through, with whatever else is captured.
+        // The crossing the portal hasn't let through ends, with whatever
+        // else is captured.
         assert!(rig.cmds().iter().any(|c| matches!(c, WaylandCmd::EndCapture { crossing: None, .. })));
         assert!(!rig.state.gate.is_open());
         rig.settle().await;
@@ -4244,8 +4142,8 @@ mod tests {
         assert!(!rig.state.gate.is_open());
         assert_eq!(rig.answer_syncs(), 1);
         assert_eq!(revoke.await.unwrap(), "sharing is off: closed 1 session(s)");
-        assert!(rig.state.stop_reason.get().is_none());
-        assert_eq!(rig.state.revoke().await, "sharing is off: there was nothing to close");
+        assert_eq!(rig.state.wait_for_stop().await, Ok("sharing was turned off"));
+        assert_eq!(rig.state.revoke().await, "sharing is off: closed 0 session(s)");
     }
 
     #[tokio::test]
@@ -4260,7 +4158,7 @@ mod tests {
         assert!(said.ends_with("the compositor did not confirm, so the backend stops"), "{said}");
         let took = began.elapsed();
         assert!(took >= CONFIRM_TIMEOUT && took < CONFIRM_TIMEOUT + Duration::from_millis(500), "{took:?}");
-        assert!(rig.state.stop_reason.get().is_some_and(|why| why.contains("did not confirm")));
+        assert_eq!(rig.state.wait_for_stop().await, Err("the compositor did not confirm the end of the capture"));
 
         // From the timer's read, the confirmation runs on its own task; a
         // Wayland thread that is gone never confirms either.
@@ -4271,7 +4169,7 @@ mod tests {
         rig.settle().await;
         assert_eq!(rig.refuse_syncs(), 1);
         rig.settle().await;
-        assert!(rig.state.stop_reason.get().is_some_and(|why| why.contains("did not confirm")));
+        assert_eq!(rig.state.wait_for_stop().await, Err("the compositor did not confirm the end of the capture"));
     }
 
     #[tokio::test]
@@ -4327,98 +4225,88 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn off_on_off_stops_the_worker_starts_a_new_one_and_stops_that() {
-        let mut rig = Rig::new();
-        let timer = tokio::spawn(watch_switch(rig.state.clone()));
-        busy_session(&mut rig, "a").await;
-        assert_eq!((rig.started(), rig.stopped()), (1, 0));
+    async fn off_during_startup_exits_with_or_without_worker_readiness() {
+        for becomes_ready in [true, false] {
+            let rig = Rig::new();
+            rig.hold_ready.store(true, Ordering::Relaxed);
+            let state = rig.state.clone();
+            let create = tokio::spawn(async move {
+                state.create_session(Some(FRONTEND), &path("starting"), APP, None).await
+            });
+            rig.settle().await;
+            assert_eq!(rig.started(), 1);
+            assert!(!create.is_finished());
+            rig.set_sharing(false);
 
-        // Off, read by the timer: the worker is taken out at once, and stopped
-        // once the compositor has confirmed the end of the capture.
-        rig.set_sharing(false);
-        tokio::time::sleep(SWITCH_INTERVAL * 2).await;
-        assert_eq!(rig.session_count().await, 0);
-        assert!(!rig.state.worker_running());
-        assert_eq!(rig.stopped(), 0, "kept until the compositor confirms");
-        assert_eq!(rig.answer_syncs(), 1);
-        rig.settle().await;
-        assert_eq!(rig.stopped(), 1, "then its connection ends");
-        assert!(rig.state.stop_reason.get().is_none(), "the backend goes on, without a worker");
-
-        // Off stays off: nothing is started; a refused session starts nothing.
-        tokio::time::sleep(SWITCH_INTERVAL * 2).await;
-        assert!(sharing_was_off(rig.state.create_session(Some(FRONTEND), &path("x"), APP, None).await));
-        assert_eq!((rig.started(), rig.stopped()), (1, 1));
-
-        // On: the next authorized session starts a new worker.
-        rig.set_sharing(true);
-        let b = rig.session("b").await;
-        assert_eq!((rig.started(), rig.stopped()), (2, 1));
-        assert!(rig.state.worker_running());
-
-        // Off again, by --revoke this time.
-        rig.set_sharing(false);
-        let said = rig.confirmed(rig.state.revoke()).await;
-        assert_eq!(said, "sharing is off: closed 1 session(s)");
-        rig.settle().await;
-        assert_eq!((rig.started(), rig.stopped()), (2, 2));
-        assert!(!rig.state.worker_running() && !rig.has_object(&b));
-        timer.abort();
+            if becomes_ready {
+                // The startup path itself notices Off without the watcher.
+                rig.workers.lock().unwrap()[0].ready.take().unwrap().send(Ok(())).unwrap();
+                assert!(sharing_was_off(create.await.unwrap()));
+                rig.settle().await;
+                assert_eq!(rig.answer_syncs(), 1);
+                assert_eq!(rig.state.wait_for_stop().await, Ok("sharing was turned off"));
+            } else {
+                // A round trip stuck at startup cannot keep the socket open
+                // until the much later startup timeout.
+                let timer = tokio::spawn(watch_switch(rig.state.clone()));
+                let reason = tokio::time::timeout(SWITCH_INTERVAL + CONFIRM_TIMEOUT + Duration::from_millis(300),
+                                                  rig.state.wait_for_stop()).await.unwrap();
+                assert_eq!(reason, Err("the compositor did not confirm the end of the capture"));
+                assert!(!create.is_finished());
+                create.abort();
+                timer.abort();
+            }
+            assert!(!rig.state.gate.is_open());
+            assert_eq!(rig.session_count().await, 0);
+        }
     }
 
     #[tokio::test]
-    async fn the_worker_stops_when_no_session_needs_it() {
+    async fn release_during_off_teardown_waits_for_the_same_confirmation() {
+        for confirmed in [true, false] {
+            let mut rig = Rig::new();
+            let (a, _) = busy_session(&mut rig, "a").await;
+            rig.set_sharing(false);
+            rig.state.reread_switch().await;
+            assert!(!rig.has_object(&a));
+            assert!(!rig.state.gate.is_open());
+            let state = rig.state.clone();
+            let release = tokio::spawn(async move { state.force_release(false).await });
+            rig.settle().await;
+            assert!(!release.is_finished(), "closed sessions do not mean labwc gave back the grab");
+
+            // Turning it back on cannot reopen the gate in the process that
+            // holds the old connection.
+            rig.set_sharing(true);
+            assert!(rig.state.create_session(Some(FRONTEND), &path("late"), APP, None).await.is_err());
+            assert!(!rig.state.gate.is_open());
+            if confirmed {
+                assert_eq!(rig.answer_syncs(), 1);
+                assert_eq!(release.await.unwrap().unwrap(), 0);
+                assert_eq!(rig.state.wait_for_stop().await, Ok("sharing was turned off"));
+            } else {
+                assert_eq!(rig.refuse_syncs(), 1);
+                assert!(release.await.unwrap().is_err(), "the pidfd fallback must run");
+                assert_eq!(rig.state.wait_for_stop().await, Err("the compositor did not confirm the end of the capture"));
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn the_last_session_ends_the_backend_after_confirmation() {
         let mut rig = Rig::new();
         let a = rig.session("a").await;
         let b = rig.session("b").await;
         rig.state.enable(Some(FRONTEND), &b).await.unwrap();
         rig.state.close_session(Some(FRONTEND), &a).await.unwrap();
-        assert!(rig.state.worker_running(), "b still needs it");
+        assert!(rig.state.gate.is_open(), "b still needs it");
+        assert_eq!(rig.answer_syncs(), 0);
         rig.cmds();
         rig.state.close_session(Some(FRONTEND), &b).await.unwrap();
-        assert!(!rig.state.worker_running());
-        // The teardown reaches the worker before it is told to stop.
-        let sent: Vec<String> = std::iter::from_fn(|| rig.workers.lock().unwrap()[0].cmds.try_recv().ok())
-            .map(|cmd| format!("{cmd:?}"))
-            .collect();
-        assert_eq!(sent, ["Disarm", "Shutdown"]);
-
-        // The frontend leaving ends it the same way, and so does a new owner
-        // of the frontend's name (the old owner's sessions go).
-        // (The first worker's `Shutdown` was read above, so it isn't counted.)
-        rig.session("c").await;
-        rig.state.frontend_left(FRONTEND).await;
-        assert_eq!((rig.started(), rig.stopped()), (2, 1));
-        assert!(!rig.state.worker_running());
-        rig.session("d").await;
-        rig.set_frontend(Some(":1.6"));
-        // Its first call: the old owner's session goes, and so does the worker.
-        rig.state.close_session(Some(":1.6"), &path("none")).await.unwrap();
-        assert_eq!((rig.started(), rig.stopped()), (3, 2));
-        assert!(!rig.state.worker_running());
-        assert_eq!(rig.session_count().await, 0);
-    }
-
-    #[tokio::test]
-    async fn a_stopped_worker_s_events_reach_no_later_session() {
-        let mut rig = Rig::new();
-        let a = rig.session("a").await;
-        let old = rig.workers.lock().unwrap()[0].events.clone().unwrap();
-        rig.state.close_session(Some(FRONTEND), &a).await.unwrap();
-        let b = rig.session("b").await;
-        rig.state.enable(Some(FRONTEND), &b).await.unwrap();
-        assert_eq!(rig.started(), 2);
-        rig.signals();
-        old.send(crossing_event(&rig.state, &b, 7).await).unwrap();
-        old.send(WaylandEvent::OutputsChanged).unwrap();
-        rig.settle().await;
-        assert!(rig.signals().is_empty(), "no Activated, no ZonesChanged from the stopped worker");
-        assert!(!rig.cmds().iter().any(|c| matches!(c, WaylandCmd::AttachEis { .. })));
-        // The same crossing from the running worker is a capture.
-        let current = rig.workers.lock().unwrap()[1].events.clone().unwrap();
-        current.send(crossing_event(&rig.state, &b, 7).await).unwrap();
-        rig.settle().await;
-        assert!(rig.signals().iter().any(|s| matches!(s, Signal::Activated { .. })));
+        assert!(rig.state.stop_reason.get().is_none(), "wait for labwc");
+        assert!(matches!(&rig.cmds()[..], [WaylandCmd::Disarm, WaylandCmd::EndCapture { .. }, WaylandCmd::Disarm]));
+        assert_eq!(rig.confirmed(rig.state.wait_for_stop()).await, Ok("the last session ended"));
+        assert!(!rig.state.gate.is_open());
     }
 
     #[test]

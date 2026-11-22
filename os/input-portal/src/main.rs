@@ -93,13 +93,7 @@ async fn run() -> Result<()> {
         Some("--disarm") => call_control("Disarm", BUS_NAME).await,
         // The sharing switch runs this after turning sharing off. Only a
         // backend that is running has anything to end: none is started for it.
-        Some("--revoke") => match running_backend().await? {
-            Some(owner) => call_control("Revoke", &owner).await,
-            None => {
-                println!("no backend is running: nothing to revoke");
-                Ok(())
-            }
-        },
+        Some("--revoke") => revoke().await,
         Some("--status") => call_control("Status", BUS_NAME).await,
         Some(other) => anyhow::bail!(
             "unknown argument {other:?}; expected --release, --disarm, --revoke or --status"
@@ -121,6 +115,20 @@ async fn running_backend() -> Result<Option<String>> {
         Err(zbus::fdo::Error::NameHasNoOwner(_)) => Ok(None),
         Err(err) => Err(err).context("failed to ask the bus who owns the backend's name"),
     }
+}
+
+async fn revoke() -> Result<()> {
+    if let Some(owner) = running_backend().await? {
+        match call_control("Revoke", &owner).await {
+            Ok(()) => return Ok(()),
+            // The watcher may have finished teardown while this call was
+            // getting to the pinned bus name.
+            Err(err) if running_backend().await?.as_deref() == Some(owner.as_str()) => return Err(err),
+            Err(_) => {}
+        }
+    }
+    println!("no backend is running: nothing to revoke");
+    Ok(())
 }
 
 /// Invoke a method on a running instance and print what it says.
@@ -149,8 +157,8 @@ async fn serve() -> Result<()> {
     let gate = sharing::Gate::default();
 
     // No Wayland connection yet: the worker starts for the first session the
-    // portal authorizes while sharing is on, and stops when sharing goes off or
-    // no session needs it (`portal.rs`, `Worker`). Until then the bus side only
+    // portal authorizes while sharing is on. The process exits when sharing goes
+    // off or the last session ends. Until startup the bus side only
     // answers the frontend and refuses sessions.
     let (state, eis_closed) = portal::State::new(idle_timeout, screens, keymap, gate);
     let conn = zbus::connection::Builder::session()
@@ -202,7 +210,7 @@ async fn serve() -> Result<()> {
         );
     }
 
-    let lost = tokio::select! {
+    let stopped = tokio::select! {
         result = tokio::signal::ctrl_c() => {
             result.context("failed to wait for shutdown signal")?;
             None
@@ -218,8 +226,10 @@ async fn serve() -> Result<()> {
     // Without its bus the backend can serve nobody and nobody can stop a
     // capture; without its Wayland connection it can place no barrier. Either
     // way it ends, and the next call from a frontend starts a fresh one.
-    if let Some(why) = lost {
-        anyhow::bail!("{why}");
+    match stopped {
+        Some(Err(why)) => anyhow::bail!("{why}"),
+        Some(Ok(why)) => info!("{why}"),
+        None => {}
     }
     Ok(())
 }

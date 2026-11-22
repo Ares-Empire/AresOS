@@ -64,6 +64,7 @@ run_tests() {
     mkdir -p "$work/stage/backend" "$work/stage/labwc"
     cp -- "$here/in-container.sh" "$here/driver.py" "$work/stage/"
     cp -- "$backend/aresos-input-portal" "$work/stage/backend/"
+    cp -- "$backend"/data/*.service "$work/stage/backend/"
     cp -- "$repo/os/labwc/"{stage.py,loaded_image.py,labwc.lock.json} "$work/stage/labwc/"
 
     # --network=none: no route out, and a network namespace of its own, which is also what keeps the host's

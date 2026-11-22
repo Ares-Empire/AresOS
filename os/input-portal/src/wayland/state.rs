@@ -1231,10 +1231,14 @@ pub fn run(
     idle_timeout: std::time::Duration,
     screens: SharedScreens,
     gate: Gate,
+    switch: crate::sharing::Switch,
     crossings: Arc<AtomicU64>,
-    ready: &std::sync::mpsc::Sender<Result<()>>,
+    ready: &mut Option<tokio::sync::oneshot::Sender<Result<()>>>,
 ) -> Result<()> {
     let conn = Connection::connect_to_env().context("failed to connect to the Wayland display")?;
+    if let Err(off) = switch.read() {
+        anyhow::bail!("sharing turned off while connecting to Wayland: {off}");
+    }
     let (globals, event_queue) =
         registry_queue_init(&conn).context("failed to initialise the Wayland registry")?;
     let qh: QueueHandle<AppState> = event_queue.handle();
@@ -1391,7 +1395,9 @@ pub fn run(
         "Wayland barrier thread ready, {} screen(s) in the snapshot",
         state.screens.current().screens.len()
     );
-    let _ = ready.send(Ok(()));
+    if let Some(ready) = ready.take() {
+        let _ = ready.send(Ok(()));
+    }
 
     while !state.exit {
         // The dispatch timeout doubles as the tick for the watchdog and for a
