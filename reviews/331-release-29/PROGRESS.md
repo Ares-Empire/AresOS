@@ -143,10 +143,11 @@ removed. [Fedora release RPM](https://dl.fedoraproject.org/pub/fedora/linux/rele
 ## Left in order
 
 1. Lead recheck of the source guard and step 2's labwc exception at the draft PR head.
-2. Step 3 adds the historical baseline through confirmed R28 with tools v5, then the
-   candidate equality and R29 update, recovery and boot walk.
+2. Step 3's next slice adds candidate equality and the R29 update, recovery and boot walk
+   from the confirmed R28 guest.
 3. Step 4 adds the guest probes, Control and Chrome checks and the local host receipt.
-4. Step 5 wires the hosted gates with closed caps, then the lead runs checks and baseline preflight.
+4. Step 5 wires the hosted gates, runner allowlists and receipt with closed caps. The lead
+   dispatches hosted checks and the read-only historical baseline preflight.
 5. Step 6 takes the named main cut and the reviewed handoffs for 18c-b, B330, B329
    and B321 as applicable. The lead settles package 43 under the brief.
 6. Steps 7–12 handle resolve and dry run, publish approval, release record,
@@ -182,3 +183,83 @@ check follows the owner's update. There are no downloads over 500 MB in `.work/`
   - B330, the Prism handler (PR140, `a7fb7cfe`).
   - 327 and 328a, mod/ only (`4dd5288b`, `92cf365a`): the jar pin renews at the cut.
   - The late-package slice merges main and classifies these.
+
+## Done · step 3 historical baseline · 2026-11-22
+
+- `release29_walk.py` and the `owner_vm.py` route for `release-29` reuse the offline
+  stock install and correction, the R13 switch with tools v1, the R27 update with tools v2,
+  and the tools-local folder and password-window legs for v4 and v5. The R28 helper stages
+  the exact signed R28 image and confirms its first boot through `check` and `title`. The
+  final snapshot requires R28 running, the same R27 deployment retained, the corrected
+  stock deployment pinned and R13 removed. Both bootc slots and the deployment identities
+  must agree. The guest reads every installed v5 payload file and checks that the tools
+  journal is settled and the deployment transaction and outcome journal are idle. Both
+  protected-disk and firmware paths run their existing audits.
+- The route checks immutable record hashes for R13, R27 and R28 and the recorded image
+  source objects. R13's image inputs match its reviewed squash. The R27 and R28 image inputs
+  match their recorded source tree rows. The tools trees, both release-record copies and
+  fingerprints come from v1 `17fe261c`, v2 `41b06513`, v4 `634e1237` and v5
+  `6ae4da41`. The reconstructed v5 stand-in must equal the published tools tree and
+  release blob and match the guide's two fingerprint lines. Its full fingerprint is
+  `df89ac336e13db84934505551ba28163cbd60fa5b3b9fb0ec97b9585945896c6`.
+- `registry_auth.py baseline <cosign>` checks the exact package 331 branch ref and mode
+  and uses the job token to inspect the three private digests. It verifies each record's
+  exact Cosign identity and issuer, records the signature hashes and removes the temporary
+  auth before the guest starts. `owner_vm.py` checks the same-run registry proof and
+  pinned ISO download before starting the route. The offline installer checks the served
+  Web UI bundle and source map before installation. The passing baseline receipt records
+  those hashes, the confirmed deployment shape and the baseline input hashes. Run
+  `release29_walk.py check-receipt <receipt>` against the current checkout. A changed
+  baseline input requires a fresh preflight. The active release pointer and candidate
+  payload can advance independently of these historical pins.
+- Refreshed 12 pending source rows with zero removals. Package 42's receipt and source
+  binding tables remain historical.
+
+### Verified locally
+
+These modules ran one at a time from the repo root, with `TMPDIR` inside the worktree.
+
+| Command | Result |
+| --- | --- |
+| `python3 -m unittest discover -s os/tests -p test_owner_walk.py` | `Ran 40 tests in 634.537s`, `OK`, and `PASS historical R29 baseline through confirmed R28 with tools v5` |
+| `python3 -m unittest discover -s os/tests -p test_release29_rehearsal.py` | `Ran 7 tests in 0.834s`, `OK` |
+| `python3 -m unittest discover -s os/tests -p test_release28_rehearsal.py` | `Ran 44 tests in 35.970s`, `OK` |
+| `python3 -m unittest discover -s os/tests -p test_rehearsal_auth.py` | `Ran 9 tests in 0.079s`, `OK` |
+| `python3 -m unittest discover -s os/tests -p test_installer_webui.py` | `Ran 9 tests in 0.003s`, `OK` |
+| `python3 -m unittest discover -s os/tests -p test_owner_media.py` | `Ran 6 tests in 0.203s`, `OK` |
+| `python3 -m unittest discover -s os/tests -p test_checkout_sources.py` | `Ran 10 tests in 0.937s`, `OK` |
+| `python3 -m unittest discover -s os/tests -p test_ci_api_permissions.py` | `Ran 4 tests in 3.396s`, `OK` |
+| `python3 -m unittest discover -s os/tests -p test_tools_local_wiring.py` | `Ran 42 tests in 51.372s`, `OK`. The disposable Git fixture printed its default-branch and empty-remote-HEAD notices. |
+| `git diff --check` and `git diff --cached --check` | Exit 0 with no output |
+
+The first R28 regression run printed `Ran 44 tests in 35.862s` and `FAILED (failures=1)` because the shared
+host-receipt lookup changed the historical branch decision trace. The package 331
+lookup moved to its own route and the same module passed. The local failure cases
+include wrong branch refs and signatures, changed installer bytes and stale receipts,
+lost stock pin, retained R13, changed R27 identity, an active transaction or outcome,
+and mismatched installed tools.
+
+### Lead dispatch and receipt
+
+After steps 4 and 5, run `checks_only=true` with the same-head full model, then dispatch
+the read-only baseline on the reviewed branch head. The baseline job runs its own native
+authorization and uses a job token with package read access. Fetch the recorded image sources and the historical
+R13 probe source if the runner checkout lacks those Git objects. Run the registry check
+and the existing exact ISO inspection before entering the disposable VM route. Save
+`evidence/release-29-baseline.json` from the successful hosted run and retain its
+registry, installer and two-disk evidence for review. The publish gate must obtain the
+receipt from that successful run and validate the current inputs before private upload.
+Record its run ID, attempt and commit. Keep both publish caps at zero during baseline
+work.
+
+### Limits
+
+This slice started at `a48c7e91`. The baseline implementation and fixtures are at
+`503282d9870c18922b994e7c9db9bce6469bf117`. Verification used local fixtures for the
+registry, ISO and guest route. Real job-token access, Cosign, ISO availability, boot and disk audits still need
+the hosted preflight. The checkout uses the R28-qualified ISO pin `bd043223…`. A changed
+download or installer asset stops the preflight until the inputs are requalified. R29
+candidate equality, the update and recovery walk, and its new guest checks remain for
+steps 3 and 4. Hosted workflow and ledger changes remain for step 5. Ledger use is zero
+dispatches and uploads, with both R29 publish caps at zero. There are no files over
+500 MB in `.work/`.
