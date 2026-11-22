@@ -1,6 +1,7 @@
 """Fixture checks for the historical preflight and R29 route, with no live guest."""
 import contextlib
 import copy
+import errno
 import json
 import os
 import pathlib
@@ -467,7 +468,9 @@ class RouteModel:
         if stage != 'release-28':
             self.assert_route(self.guests[-1].process.poll() == 0)
         self.running = self.order[0]
-        if stage == 'release-29' and self.fault in ('recovery', 'open-on-recovery', 'not-applied'):
+        if stage == 'release-29' and self.fault in ('recovery', 'open-on-recovery', 'not-applied', 'retry-still-r28'):
+            self.running = 28
+        if stage == 'release-29-retry' and self.fault == 'retry-still-r28':
             self.running = 28
         self.session.foot, self.session.vt = 1, 'tty1'
         guest = Mock(stage=stage, stopped_events_verified=False, failed_command=False)
@@ -610,13 +613,19 @@ class CandidateRouteTest(unittest.TestCase):
         with self.model('normal-close') as model:
             model.run_route()
             result = model.saved['release-29-deployment-walk']
+            self.assertEqual(result['status'], 'passed')
             self.assertEqual(result['retired'], model.route['new_digest'])
-            self.assertEqual(result['staged'], result['booted'])
+            self.assertEqual(result['first_booted'], result['staged'])
+            self.assertEqual(result['first_booted'], result['booted'])
             self.assertEqual(result['confirmations'], ['Update to ' + model.r29 + ' confirmed after the restart',
                 'Return to ' + model.r28 + ' confirmed after the restart', 'Forward to ' + model.r29 + ' confirmed after the restart'])
             self.assertEqual([stage for stage, event in model.events if event == 'audit'],
                              ['release-28', 'release-29', 'previous-28', 'final-29'])
             self.assertEqual(model.session.launches, 4)
+            homes = [model.saved[stage + '-home'] for stage in ('r29-starting-28', 'release-29', 'previous-28', 'final-29')]
+            self.assertTrue(all(home['accessible']['saves_writable'] is True for home in homes))
+            saves = model.session.Path(walk.r28.INSTANCE_LINKS['minecraft/saves'])
+            self.assertFalse((saves / walk.r28.WORLD / '.aresos-rehearsal-write-probe').exists())
             self.assertEqual(len(model.local.installs), 1)
             self.assertEqual(set(model.local.ran), {'r29-tools', 'r29-tools-identical', 'r29-tools-mismatch', 'r29-tools-v5'})
             ordered = [('r29-update', 'update'), ('r29-update-title', 'title'), ('r29-update-export', 'export'),
@@ -626,7 +635,12 @@ class CandidateRouteTest(unittest.TestCase):
 
     def test_failed_start_may_retry_once_after_the_r28_save_gate(self):
         with self.model('recovery') as model:
-            model.run_route()
+            with self.assertRaisesRegex(AssertionError, 'did not boot on the first unattended start'):
+                model.run_route()
+            result = model.saved['release-29-deployment-walk']
+            self.assertEqual(result['status'], 'not-qualifying')
+            self.assertEqual(result['first_booted'], model.r28.split('@')[1])
+            self.assertEqual(result['booted'], model.r29.split('@')[1])
             stages = [stage for stage, event in model.events if event in ('reboot', 'audit', 'F12 Bazzite')]
             self.assertIn('release-29-recovery-reboot', stages)
             self.assertEqual(stages[stages.index('release-29-recovery-reboot') + 1:][:2], ['release-29', 'release-29-retry'])
@@ -637,6 +651,38 @@ class CandidateRouteTest(unittest.TestCase):
                 self.assertNotIn(('r29-previous', 'previous'), model.events)
                 self.assertNotIn(('release-29-recovery-reboot', 'reboot'), model.events)
                 self.assertIn(('release-29', 'audit'), model.events)
+                self.assertEqual(model.saved['release-29-deployment-walk']['status'], 'not-qualifying')
+
+    def test_second_r28_start_audits_and_stops_without_retrying_again(self):
+        with self.model('retry-still-r28') as model:
+            with self.assertRaisesRegex(AssertionError, 'did not start after the recovery restart'):
+                model.run_route()
+            self.assertEqual(model.saved['release-29-deployment-walk']['status'], 'not-qualifying')
+            self.assertEqual([stage for stage, event in model.events if event == 'reboot'],
+                             ['r29-update-reboot', 'release-29-recovery-reboot'])
+            self.assertEqual(model.events[-1], ('release-29-retry', 'audit'))
+
+    def test_read_only_saves_fail_on_either_release(self):
+        for stage in ('release-28', 'release-29'):
+            with self.subTest(stage=stage), self.model() as model:
+                saves = model.session.Path(walk.r28.INSTANCE_LINKS['minecraft/saves'])
+                world = saves / walk.r28.WORLD
+                path_open = model.session.Path.open
+                writes = []
+
+                def open_file(path, mode='r', *args, **kwargs):
+                    if path.is_relative_to(saves) and mode == 'xb' and model.guests[-1].stage == stage:
+                        writes.append(path)
+                        raise OSError(errno.EROFS, os.strerror(errno.EROFS))
+                    return path_open(path, mode, *args, **kwargs)
+
+                with patch.object(model.session.Path, 'open', open_file), \
+                        self.assertRaisesRegex(AssertionError, 'Read-only file system'):
+                    model.run_route()
+                self.assertEqual(writes, [world / '.aresos-rehearsal-write-probe'])
+                self.assertEqual((world / 'level.dat').read_bytes(), bytes.fromhex(walk.r28.WORLD_FILES['level.dat']))
+                self.assertEqual(model.events[-1], (stage, 'audit'))
+                self.assertNotIn('release-29-deployment-walk', model.saved)
 
     def test_route_stops_and_audits_on_each_failure(self):
         cases = [('cached-ticket', 'kept a ticket', 'release-28'), ('tools-drift', 'changed installed tools', 'release-28'),
@@ -653,7 +699,10 @@ class CandidateRouteTest(unittest.TestCase):
                     model.run_route()
                 finally:
                     self.assertEqual(model.events[-1], (stage, 'audit'))
-                    self.assertNotIn('release-29-deployment-walk', model.saved)
+                    if fault == 'open-on-recovery':
+                        self.assertEqual(model.saved['release-29-deployment-walk']['status'], 'not-qualifying')
+                    else:
+                        self.assertNotIn('release-29-deployment-walk', model.saved)
                     model.guests[-1].poweroff.assert_not_called()
 
     def test_console_returns_a_recorded_stop_only_when_the_route_accepts_it(self):

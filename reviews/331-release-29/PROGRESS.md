@@ -379,3 +379,40 @@ the physical F12 menu also need live evidence. The signed R29 image, registry ac
 hosted VM and physical disk proofs remain pending. Step 4 still owns the session probes,
 end-of-walk game scope and Control checks. Both publish caps remain zero and ledger
 use is zero dispatches and uploads. `.work/` contains no files over 500 MB.
+
+## Done · step 3 REVIEW-5 fixes · 2026-11-22
+
+Started at `696aa59f`.
+
+- The R29 deployment receipt records the first unattended boot digest after the
+  update restart and one-time Bazzite selection. Only a first boot into R29 can
+  qualify. If R28 starts, the documented recovery still allows one retry after
+  the save gate. Even if the retry reaches R29 and the rest of the walk completes,
+  the receipt remains `not-qualifying` and the run stops with a failure. The model
+  covers a successful recovery, a second R28 start and a clean first boot.
+- The Windows marker attempts the offline protected-disk and firmware audit in
+  nested cleanup after closing the guest. The fixture verifies that order after
+  a shutdown timeout, a marker assertion failure and a close error.
+- On both R28 and R29, the daily user exclusively creates a disposable file
+  beside the planted `level.dat`, reads its bytes back and removes it. The
+  model verifies the write on each normal boot and rejects read-only saves on
+  either release. Package 331 opts in to the write probe.
+- Refreshed the two affected pending source hashes. The historical baseline
+  receipt binds the changed harness inputs, so a fresh preflight is required.
+
+### Verified locally
+
+The modules ran one at a time from the repo root with `TMPDIR` in `.work/`.
+
+| Command | Result |
+| --- | --- |
+| `python3 -m unittest discover -s os/tests -p test_release29_rehearsal.py` | `Ran 17 tests in 9.955s`, `OK` |
+| `python3 -m unittest discover -s os/tests -p test_two_disk_vm.py` | `Ran 31 tests in 0.181s`, `OK` |
+| `python3 -m unittest discover -s os/tests -p test_release28_rehearsal.py` | `Ran 44 tests in 33.597s`, `OK` |
+| `python3 -m unittest discover -s os/tests -p test_checkout_sources.py` | `Ran 10 tests in 1.200s`, `OK` |
+| `git diff --check` and `git diff --cached --check` | Exit 0 with no output |
+
+The lead's review of this fix round comes before step 4. Real VM boots, firmware
+and disk comparisons, and the owner's live save and close are still pending.
+Both R29 publish caps are zero, with zero dispatches and uploads used. There
+are no files over 500 MB in `.work/`.

@@ -460,7 +460,7 @@ required=@REQUIRED@
 reader=''' + repr('''import hashlib,json,os,pathlib,stat,sys
 ''' + HOME_SNAPSHOT + '''
 root=pathlib.Path(sys.argv[1])
-required,links,image_targets=json.loads(sys.argv[2])
+required,links,image_targets,world,write_saves=json.loads(sys.argv[2])
 for name,target in links.items():
     p=root/name
     assert p.is_symlink() and os.readlink(p)==target, 'Incorrect instance link: '+name
@@ -473,10 +473,25 @@ for name in required:
     else: p.read_bytes()
 apps=root/'minecraft/config/aresos/apps.json'
 assert os.access(apps,os.R_OK|os.W_OK), 'apps.json is not readable/writable as ares'
-worlds=snapshot((root/'minecraft/saves').resolve(strict=True),check_access=True)
-print(json.dumps(dict(uid=os.getuid(),apps=hashlib.sha256(apps.read_bytes()).hexdigest(),worlds=worlds)))
+saves=(root/'minecraft/saves').resolve(strict=True)
+worlds=snapshot(saves,check_access=True)
+result=dict(uid=os.getuid(),apps=hashlib.sha256(apps.read_bytes()).hexdigest(),worlds=worlds)
+if write_saves:
+    probe=saves/world/'.aresos-rehearsal-write-probe'
+    payload=b'AresOS rehearsal save write'
+    # Exclusive creation ensures cleanup only removes a file this probe created.
+    stream=probe.open('xb')
+    try:
+        with stream:
+            stream.write(payload)
+        assert probe.read_bytes()==payload, 'Saved-world write probe readback differs'
+    finally:
+        probe.unlink()
+    result['saves_writable']=True
+print(json.dumps(result))
 ''') + r'''
-read=subprocess.run(@AS_ARES@+['python3','-c',reader,str(instance),json.dumps([required,links,@IMAGE_TARGETS@])],capture_output=True,text=True)
+read=subprocess.run(@AS_ARES@+['python3','-c',reader,str(instance),json.dumps([required,links,@IMAGE_TARGETS@,@WORLD@,@WRITE_SAVES@])],
+    capture_output=True,text=True)
 accessible=json.loads(read.stdout) if read.returncode==0 else dict(error=read.stderr[-600:])
 print(json.dumps(dict(instance=instance.is_dir(),files=len(rows),tree=hashlib.sha256(json.dumps(rows).encode()).hexdigest(),
     entries=rows,stable=stable,mutable=mutable,accessible=accessible,worlds=worlds,
@@ -637,11 +652,12 @@ def session(guest, stage, vm):
     return value
 
 
-def home(guest, stage, vm, plant=False, *, image_targets=True):
+def home(guest, stage, vm, plant=False, *, image_targets=True, write_saves=False):
     value = guest.capture_json(stage + '-home', vm.sw.framed('python3 -c ' + shlex.quote(
         program(HOME, instance=INSTANCE, apps=APPS, plant=plant, config=APPS_CONFIG, as_ares=AS_ARES,
                 mutable_dirs=MUTABLE_DIRS, mutable_keys=MUTABLE_INI_KEYS, required=REQUIRED_INSTANCE,
-                links=INSTANCE_LINKS, image_targets=image_targets, world=WORLD, world_files=WORLD_FILES))))
+                links=INSTANCE_LINKS, image_targets=image_targets, world=WORLD, world_files=WORLD_FILES,
+                write_saves=write_saves))))
     vm.td.save(stage + '-home', value)
     assert value['instance'] and value['apps'], "STOP: the home screen's instance or apps.json is missing at " + stage
     assert value['apps_config'] == APPS_CONFIG, 'STOP: apps.json is not the representative schema-4 configuration'
@@ -653,6 +669,8 @@ def home(guest, stage, vm, plant=False, *, image_targets=True):
         'STOP: saved-world ownership changed from ares'
     assert value['accessible'].get('worlds') == value['worlds'], \
         'STOP: saved-world data is inaccessible as ares: ' + str(value['accessible'])
+    if write_saves:
+        assert value['accessible'].get('saves_writable') is True, 'STOP: saved-world write was not verified at ' + stage
     return value
 
 

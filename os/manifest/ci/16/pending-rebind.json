@@ -10,7 +10,8 @@
     "T475 REVIEW-1: R28 published 2026-11-19; tools version 4 on the laptop 2026-11-17 to 2026-11-21, version 5 since",
     "331 step 3 historical walk through confirmed R28 with the released v5 tools and read-only baseline input checks.",
     "331 REVIEW-4: the package 331 owner guest skips the legacy host auth lookup.",
-    "331 step 3 slice B: bind the R29 candidate update and recovery driver and shutdown evidence."
+    "331 step 3 slice B: bind the R29 candidate update and recovery driver and shutdown evidence.",
+    "331 REVIEW-5 records first-boot qualification, audits failed Windows markers and checks writes to planted saves."
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -31,7 +32,7 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "e594053d3432aa9f65ea8b7efd972abd41e438f2baeac567c82a0777421ce4c3",
+      "sha256": "03702acb7b1f302f405b7167bc035adf09abf49b5fb0dc4c1a192710ab678448",
       "path": "os/ci/release28_walk.py"
     },
     {
@@ -39,7 +40,7 @@
       "path": "os/ci/tools_local.py"
     },
     {
-      "sha256": "c5a91d201f0214fb7bbfecca489ed3000babdfef2f0e96aa4fa14159ef5c7a4d",
+      "sha256": "4991b1d75be71af51e45de386ba5db4102b6bbb5fed8bbc6167084d186633000",
       "path": "os/ci/two_disk_vm.py"
     },
     {

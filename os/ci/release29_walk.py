@@ -413,7 +413,7 @@ def stage_candidate(vm, guest, console, route, release, confirmed, daily_passwor
     assert route['stock_digest'] == stock_image.base()['digest']
     d28, d29 = (reference.split('@')[1] for reference in (release, candidate['reference']))
     d27, stock_digest, stock = route['new_digest'], route['stock_digest'], route['stock']
-    kept = r28.home(guest, 'r29-starting-28', vm, plant=True)
+    kept = r28.home(guest, 'r29-starting-28', vm, plant=True, write_saves=True)
     assert kept['planted'], 'STOP: starting R28 did not plant the apps fixture'
     walk = CandidateWalk(vm, guest, daily_password, candidate, bootstrap=SimpleNamespace(**r28.bootstrap_of()))
     receipt = walk.install()
@@ -476,7 +476,7 @@ def recover_update(vm, guest, password, stage, snapshot, stock, r28_order, r29_o
     shape(vm, guest, stage + '-recovery', stock, order, running, retained, queued=applied, snapshot=snapshot)
     console, lines = boot_console(vm, guest, password, stage + '-recovery', candidate['commands'])
     title(vm, console, stage + '-recovery', order)
-    r28.home_unchanged(update['home'], r28.home(guest, stage + '-recovery', vm), prism_started=True)
+    r28.home_unchanged(update['home'], r28.home(guest, stage + '-recovery', vm, write_saves=True), prism_started=True)
     change = 'Update to ' + candidate['reference']
     if not applied:
         assert change + ' was not applied: the deployments are as before it, and nothing is waiting' in lines, \
@@ -496,20 +496,26 @@ def complete_candidate(vm, audit, password, hashed, route, release, qualifying, 
     first, back = [d29, d28, stock_digest], [d28, d29, stock_digest]
     retained = {digest: update['staged'][digest] for digest in first}
     r28_order = [d28, route['new_digest'], stock_digest]
+    receipt = dict(status='not-qualifying', equality=qualifying.equality, tools=candidate['fingerprint'], staged=d29)
     assert audit.windows_default is True, 'STOP: Windows must remain the firmware default'
     # Each start_installed is the VM's audited one-time F12 -> Bazzite selection.
     for stage in ('release-29', 'release-29-retry'):
         guest = td.start_installed(password, hashed, stage)
         try:
             snapshot = vm.kb.deployment_snapshot(guest, stage)
-            if vm.sw.booted_digest(snapshot['bootc']) == d28:
+            booted = vm.sw.booted_digest(snapshot['bootc'])
+            if stage == 'release-29':
+                receipt['first_booted'] = booted
+                if booted != d29:
+                    td.save('release-29-deployment-walk', receipt)
+            if booted == d28:
                 recover_update(vm, guest, password, stage, snapshot, stock, r28_order, first, update, candidate,
                                retry=stage == 'release-29')
                 continue
             shape(vm, guest, stage, stock, first, d29, retained, snapshot=snapshot)
             console, lines = boot_console(vm, guest, password, stage, candidate['commands'], no_foot=True)
             updated = confirm(vm, guest, console, stage, lines, 'Update', candidate['reference'], first, candidate)
-            r28.home_unchanged(update['home'], r28.home(guest, stage, vm), prism_started=True)
+            r28.home_unchanged(update['home'], r28.home(guest, stage, vm, write_saves=True), prism_started=True)
             previous = console.run('previous', 'r29-previous')
             assert 'Previous AresOS queued for the next start ' + release in vm.result_lines(previous)
             shape(vm, guest, 'r29-previous-queued', stock, back, d29, retained, queued=True)
@@ -525,7 +531,7 @@ def complete_candidate(vm, audit, password, hashed, route, release, qualifying, 
         shape(vm, guest, stage, stock, back, d28, retained)
         console, lines = boot_console(vm, guest, password, stage, candidate['commands'])
         returned = confirm(vm, guest, console, stage, lines, 'Return', release, back, candidate)
-        r28.home_unchanged(update['home'], r28.home(guest, stage, vm), prism_started=True)
+        r28.home_unchanged(update['home'], r28.home(guest, stage, vm, write_saves=True), prism_started=True)
         forward = console.run('forward', 'r29-forward')
         assert 'Newest installed AresOS starts next ' + candidate['reference'] in vm.result_lines(forward)
         shape(vm, guest, 'r29-forward-queued', stock, first, d28, retained, queued=True)
@@ -541,15 +547,17 @@ def complete_candidate(vm, audit, password, hashed, route, release, qualifying, 
         shape(vm, guest, stage, stock, first, d29, retained)
         console, lines = boot_console(vm, guest, password, stage, candidate['commands'])
         forwarded = confirm(vm, guest, console, stage, lines, 'Forward', candidate['reference'], first, candidate)
-        r28.home_unchanged(update['home'], r28.home(guest, stage, vm), prism_started=True)
+        r28.home_unchanged(update['home'], r28.home(guest, stage, vm, write_saves=True), prism_started=True)
         console.logout(stage + '-logout')
     finally:
         vm.finish(guest, audit, stage)
     td.marker(audit, 'final-unattended-windows')
     td.marker(audit, 'final-detached-windows', detached=True)
-    td.save('release-29-deployment-walk', dict(status='passed', equality=qualifying.equality, tools=candidate['fingerprint'],
-        staged=d29, booted=d29, retired=route['new_digest'], identities=retained, home_preserved=True,
+    first_start_passed = receipt['first_booted'] == d29
+    td.save('release-29-deployment-walk', dict(receipt, status='passed' if first_start_passed else 'not-qualifying',
+        booted=d29, retired=route['new_digest'], identities=retained, home_preserved=True,
         confirmations=[updated, returned, forwarded], protected_disk_audits=True))
+    assert first_start_passed, 'STOP: R29 did not boot on the first unattended start'
 
 
 def rehearsal(vm, audit, media, password, hashed, daily_password, version_2, prepared, *, qualifying=None):

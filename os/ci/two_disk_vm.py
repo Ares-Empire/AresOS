@@ -788,8 +788,10 @@ def marker(audit, stage, baseline=False, detached=False):
         guest.screenshot(stage + '-windows-marker')
         guest.finish_shutdown(stage, 'guest-shutdown', timeout=30)
     finally:
-        guest.close(stage)
-    audit.check(stage, guest, establish_nvram=baseline)
+        try:
+            guest.close(stage)
+        finally:
+            audit.check(stage, guest, establish_nvram=baseline)
 
 
 def stock_inventory(guest, stage):
