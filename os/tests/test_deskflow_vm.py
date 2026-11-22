@@ -19,6 +19,14 @@ CUSTOM = {'width': 1022, 'height': 766, 'current': True}
 
 
 class DeskflowVMTest(unittest.TestCase):
+    def test_off_refusal_records_the_allowed_deskflow_app_id_at_create_session(self):
+        log = ('DEBUG aresos_input_portal::portal: Deskflow requested a session while sharing is off'
+               ' app_id="org.deskflow.deskflow"\n'
+               'WARN aresos_input_portal::portal: refused: sharing is off method="Enable"\n'
+               'DEBUG aresos_input_portal::portal: Deskflow requested a session while sharing is off'
+               ' app_id="org.aresos.other"\n')
+        self.assertEqual(actions.off_refusals(log), 1)
+
     def test_hotplug_fails_if_drm_moves_without_labwc(self):
         for connected in (True, False):
             for original in (None, {'card1-Virtual-1'}):

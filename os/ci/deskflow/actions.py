@@ -469,6 +469,7 @@ PAIR_TITLE = 'Pair a Mac with Deskflow'
 SHARING_TITLE = 'Mouse and keyboard sharing'
 KEY_MARKER = 'aresosinput321'
 PASSWORD = 'fixture321'  # Disposable guest account only; identical on US and German keyboards.
+OFF_REFUSAL = 'Deskflow requested a session while sharing is off'
 CLIENT_DISPLAY = ':92'
 WL_HARNESS = '/usr/libexec/aresos-ci/wl-harness'
 LOG_DATA = re.compile(
@@ -546,6 +547,24 @@ def core_pids():
         except OSError:
             continue
     return matches
+
+
+def off_refusals(log):
+    return sum(OFF_REFUSAL in line and f'app_id="{DESKTOP_ID}"' in line for line in log.splitlines())
+
+
+def startup_diagnostics():
+    log = session_log()
+    core = log + probe_log('server')
+    return dict(
+        core_pids=core_pids(), source_profile=(daily_state['source'] / 'Deskflow.conf').is_file(),
+        backend_connections=backend_connections(), created=log.count('session created'),
+        off_refusals=off_refusals(log), worker_started='Wayland worker started' in log,
+        worker_failed='could not start the Wayland worker' in log,
+        core_selected_wayland='detected wayland platform' in core,
+        scope_error='Failed to start transient scope unit' in core,
+        configuration_error='failed to load config' in core,
+    )
 
 
 def start_probe(name, argv, *, display=False, pipe=False):
@@ -679,7 +698,10 @@ def daily_server(request):
                  'server and guarded profile stopped')
         wait_for(lambda: status() == 'no sessions', 'portal session closed after server stop')
     elif action == 'armed':
-        path = wait_for(backend_session, 'one armed Deskflow session')
+        try:
+            path = wait_for(backend_session, 'one armed Deskflow session')
+        except TimeoutError as error:
+            raise TimeoutError(f'{error}. Startup evidence: {startup_diagnostics()}') from None
         pid, = core_pids()
         scope = (PROC / str(pid) / 'cgroup').read_text().strip().split('/')[-1]
         assert re.fullmatch(r'app-aresos-org\.deskflow\.deskflow-[0-9a-f]{16}\.scope', scope), scope
@@ -791,9 +813,9 @@ def daily_switch(request):
                        for verb in ('on', 'off'))
             assert other.read_text() == 'on\n'
             assert SWITCH.is_symlink() if request['kind'] == 'link' else not SWITCH.exists()
-            before = session_log().count('refused: sharing is off')
+            before = off_refusals(session_log())
             daily_server({'op': 'hub'})
-            wait_for(lambda: session_log().count('refused: sharing is off') > before,
+            wait_for(lambda: off_refusals(session_log()) > before,
                      'backend refused a session with an unsafe sharing switch')
             wait_for(lambda: not core_pids(), 'refused Deskflow core stopped')
         finally:
@@ -1137,11 +1159,15 @@ def daily_clip(request):
 def daily_proof(request):
     op = request['op']
     if op == 'off-launch':
-        before = session_log().count('refused: sharing is off')
+        before = off_refusals(session_log())
         daily_server({'op': 'hub'})
-        wait_for(lambda: session_log().count('refused: sharing is off') > before,
-                 'real portal declined the scoped Deskflow server while Off')
+        try:
+            wait_for(lambda: off_refusals(session_log()) > before,
+                     'real portal declined the scoped Deskflow server while Off')
+        except TimeoutError as error:
+            raise TimeoutError(f'{error}. Startup evidence: {startup_diagnostics()}') from None
         wait_for(lambda: not core_pids(), 'refused core exited')
+        assert status() == 'no sessions' and not backend_connections()
     elif op == 'off-time':
         pid = backend_pid(backend_owner())
         pidfd = os.pidfd_open(pid)
