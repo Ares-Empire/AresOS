@@ -223,7 +223,7 @@ public final class TownArrivalClientGameTest implements FabricClientGameTest {
     private static void newHome(ClientGameTestContext context) {
         context.getInput().pressKey(InputConstants.KEY_ESCAPE);
         context.waitForScreen(AresOsMenuScreen.class);
-        context.clickScreenButton("New home…");
+        context.clickScreenButton("Start a new home…");
         context.waitForScreen(HomeCreateScreen.class);
         context.clickScreenButton("aresos.home.create");
         context.waitForScreen(ConfirmScreen.class);

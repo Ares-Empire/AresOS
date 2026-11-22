@@ -80,7 +80,7 @@ class ShellClientTest {
             assertTrue(app.command().isEmpty(), "The mod never holds a Linux command");
             assertFalse(app.pinned());
         }
-        assertEquals(List.of("minecraft:command_block", "minecraft:writable_book", "minecraft:compass"),
+        assertEquals(List.of("minecraft:black_concrete", "minecraft:writable_book", "minecraft:compass"),
                 definitions.stream().map(AppDefinition::look).toList());
     }
 

@@ -38,22 +38,23 @@ LINK = re.compile(r'(?<!!)\[[^\]\n]+\]\(([^\s)]+)\)')
 # means the clause ends the line.
 STEP8_RECORD = (
     ('This is the **single current gate/status table**', 'table**, ',
-     "as of **2026-11-17**, based on the retained reports, the owner decision in brief 16, the maintainer's checks "
+     "as of **2026-11-21**, based on the retained reports, the owner decision in brief 16, the maintainer's checks "
      "of Stage A's and Stage B's records, the step 4 result supplied in brief 15g, the step 5–7 records the "
      "maintainer checked on 2026-11-08/09 and the step 8 update records the maintainer checked on 2026-11-13 "
-     "(brief 27b), plus the laptop tools session supplied by the lead on 2026-11-17.",
+     "(brief 27b), plus the laptop tools session supplied by the lead on 2026-11-17 and the laptop's update to "
+     "R28, which the lead ran with the owner on 2026-11-21.",
      ' Historical results'),
-    ('- **R13 (previous):**', '13.json)). ',
-     "Installed on the laptop at step 6 and ran there until the owner's step 8 update on 2026-11-13; since then "
-     "it is the laptop's rollback.",
+    ('- **R13 (earlier):**', '13.json)). ',
+     "Installed on the laptop at step 6 and ran there until the owner's step 8 update on 2026-11-13; it was the "
+     "laptop's rollback until the update to R28 on 2026-11-21, which removed it from the laptop.",
      ' Its VM evidence'),
-    ('- **R27 (on the laptop):**', 'REPORT.md)). ',
-     "The laptop runs it since 2026-11-13, reached through the step 8 "
-     "update route, with R13 as its rollback and the corrected stock still pinned.",
+    ('- **R27 (previous):**', 'REPORT.md)). ',
+     "The laptop ran it from 2026-11-13 to 2026-11-21, reached through the step 8 update route; since the update "
+     "to R28 it is the laptop's rollback, with the corrected stock still pinned.",
      ''),
     ('| **Physical installation** |', '| ',
      '**R13 installed; steps 4–7 passed 2026-11-08/09, step 7 with two items OPEN; step 8 update to R27 passed '
-     '2026-11-13**',
+     '2026-11-13, to R28 2026-11-21**',
      ' |'),
     ('| Stage C —', 'stay OPEN under Early hardware. ',
      "**Step 8 PASSED 2026-11-13** (board #189, [brief 27b](../briefs/27b-laptop-update-record.md)), the first "
@@ -64,7 +65,7 @@ STEP8_RECORD = (
      " Send each step's record"),
     ('| Update route (packages 22 and 27) |', '| Update route (packages 22 and 27) | ',
      '**R27 PUBLISHED; VM REHEARSAL PASSED; USED ONCE ON THE LAPTOP 2026-11-13** | '
-     '**R27 on the laptop since 2026-11-13, R13 its rollback; R27 published privately**',
+     '**R27 on the laptop 2026-11-13 to 2026-11-21, R13 its rollback; R27 published privately**',
      ' | '),
     ('| Update route (packages 22 and 27) |', 'REPORT.md)). ',
      "On the laptop step 8 is the owner's own step; the owner ran it once on 2026-11-13, guided (Stage C row): "
@@ -653,8 +654,8 @@ class OwnerPathTest(unittest.TestCase):
             self.assertIn(value, update)
         for value in ('NOT USED', 'R13 on the laptop', 'not installed', 'still to come'):
             self.assertNotIn(value, update)
-        previous = next(line for line in status.splitlines() if line.startswith('- **R13 (previous):**'))
-        self.assertNotIn('running there until', previous)
+        earlier = next(line for line in status.splitlines() if line.startswith('- **R13 (earlier):**'))
+        self.assertNotIn('running there until', earlier)
         tools =next(line for line in status.splitlines() if line.startswith('| Post-release tools change |'))
         for value in ('PR #22', '3ef85c4a', 'unit-tested and reviewed', 'without a new VM rehearsal',
                       'pending-rebind.json', 'no new image or stage'):
@@ -910,14 +911,15 @@ class OwnerPathTest(unittest.TestCase):
         historical = json.loads((ROOT/'os/manifest/ci/11n/b-1/release.json').read_text())['reference']
         self.assertNotEqual(current, historical)
         self.assertIn('**R06 (historical):** `' + historical + '`', text)
-        previous = json.loads((ROOT/'os/manifest/releases/13.json').read_text())['reference']
-        laptop = json.loads((ROOT/'os/manifest/releases/27.json').read_text())['reference']
-        self.assertIn('**R27 (on the laptop):** `' + laptop + '`', text)
-        self.assertIn('**R28 (published):** `' + current + '`', text)
+        earlier = json.loads((ROOT/'os/manifest/releases/13.json').read_text())['reference']
+        previous = json.loads((ROOT/'os/manifest/releases/27.json').read_text())['reference']
+        self.assertIn('**R27 (previous):** `' + previous + '`', text)
+        self.assertIn('**R28 (on the laptop):** `' + current + '`', text)
         announced, = [line for line in text.splitlines() if line.startswith('- **R28 ')]
-        self.assertTrue(announced.endswith('Published privately and rehearsed in the VM on 2026-11-21 (signed-update row below). '
-                                           'The laptop update is pending.'))
-        self.assertIn('**R13 (previous):** `' + previous + '`', text)
+        self.assertTrue(announced.endswith('Published privately on 2026-11-19 and rehearsed in the VM on 2026-11-21 (signed-update row below). '
+                                           'The laptop runs it since 2026-11-21, reached through the step 8 update route, '
+                                           'with R27 as its rollback and the corrected stock still pinned.'))
+        self.assertIn('**R13 (earlier):** `' + earlier + '`', text)
         rows = [[v.strip() for v in line.strip('|').split('|')]
                 for line in section(text, 'current-gates').splitlines() if line.startswith('| ')]
         for row in rows[2:]:
@@ -1826,7 +1828,7 @@ class OwnerPathTest(unittest.TestCase):
         bindings = json.loads((ROOT/'os/manifest/ci/22c/source-bindings.json').read_text())
         # 22d carried 22c's ways back onto the laptop; version 3's fingerprint stays historical.
         for value in ('**BUILT AND REVIEWED; VM REHEARSAL PASSED; ON THE LAPTOP 2026-11-17 (IN VERSION 4); CALM TEST OPEN**',
-                      'Ways back on the laptop in tools version 4 since 2026-11-17',
+                      'Ways back on the laptop since 2026-11-17: in tools version 4 (same R27 release history), in version 5 since 2026-11-21',
                       'Tools fingerprint `2084c786…`', 'version 3 itself never went on the laptop',
                       "package 22d's version 4 (next row) brought these ways back over version 2 on 2026-11-17",
                       '(../reviews/22c-ways-back-after-update/REPORT.md)', '**VM rehearsal passed**',
@@ -1848,7 +1850,7 @@ class OwnerPathTest(unittest.TestCase):
         # 22d's rehearsal passed and its record step rebound the sources: the row links the run the bindings name.
         rebound = json.loads((ROOT/'os/manifest/ci/22d/source-bindings.json').read_text())
         for value in ('**BUILT AND REVIEWED; VM REHEARSAL PASSED; ON THE LAPTOP 2026-11-17**',
-                      'on the laptop since 2026-11-17 over version 2 `851eb742…`',
+                      'on the laptop from 2026-11-17 over version 2 `851eb742…` until version 5 replaced it on 2026-11-21',
                       'Tools fingerprint `' + release28_walk.TOOLS_V4 + '`',
                       'https://github.com/Ares-Empire/AresOS/blob/' + release28_walk.V4_COMMIT + '/docs/OWNER-TOOLS.md',
                       '**Enter SSH Credentials**',
@@ -1877,7 +1879,8 @@ class OwnerPathTest(unittest.TestCase):
         self.assertEqual(status.splitlines().index(row) - 1,
                          next(i for i, line in enumerate(status.splitlines()) if line.startswith('| Ways back after an update (package 22c) |')))
         update = next(line for line in status.splitlines() if line.startswith('| Update route (packages 22 and 27) |'))
-        self.assertIn("the laptop's tools are version 4 (`dcbc375f…`) since 2026-11-17", update)
+        self.assertIn("the laptop's tools were version 4 (`dcbc375f…`) from 2026-11-17 (package 22d, two rows below) "
+                      "and are version 5 since 2026-11-21 (signed-update row above).", update)
         self.assertNotIn(fingerprint, update)
         menu = next(line for line in status.splitlines() if line.startswith('| LOQ shortcuts and recovery menu |'))
         self.assertIn('**OPEN**', menu)

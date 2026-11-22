@@ -67,6 +67,15 @@ class GatePaletteTest {
         expected.forEach((rgb, block) -> assertEquals(block, GatePalette.nearest(rgb), String.format("0x%06x", rgb)));
     }
 
+    @Test void charcoalStaysNeutralAndWarmShadesKeepTheirHue() {
+        for (int charcoal : new int[]{0x282828, 0x27282a, 0x292725}) {
+            assertEquals("gray_concrete", GatePalette.nearest(charcoal));
+            assertEquals("gray_concrete", GatePalette.nearestFirst(charcoal).getFirst());
+        }
+        assertEquals("black_wool", GatePalette.nearest(0x222222));
+        assertEquals("gray_terracotta", GatePalette.nearest(0x3a2a24));
+    }
+
     @Test void theNextNearestBlocksFollowInOrderWithoutThePatternedOnes() {
         for (int rgb : new int[]{0xff0000, 0xffffff, 0x1db954, 0x808080, 0x5865f2}) {
             var order = GatePalette.nearestFirst(rgb);

@@ -427,14 +427,16 @@ class DesktopDefaultsTest(unittest.TestCase):
         self.assertEqual(dict(foot['key-bindings']), {'clipboard-paste': 'Control+v Control+Shift+v XF86Paste'})
 
     def test_brightness_volume_and_mic_keys_use_tools_in_the_image(self):
+        # Package 320: the keys run aresos-level, which runs their former commands (test_aresos_level.COMMANDS).
         rc = ET.parse(CONFIG / 'usr/share/aresos/labwc/rc.xml').getroot()
         binds = {b.get('key'): b.find('action').get('command') for b in rc.iter('keybind')}
-        self.assertEqual(binds['XF86MonBrightnessUp'], '/usr/bin/brightnessctl --quiet set 5%+')
-        self.assertEqual(binds['XF86MonBrightnessDown'], '/usr/bin/brightnessctl --quiet --min-value=1 set 5%-')
-        self.assertEqual(binds['XF86AudioRaiseVolume'], '/usr/bin/wpctl set-volume --limit 1.0 @DEFAULT_AUDIO_SINK@ 5%+')
-        self.assertEqual(binds['XF86AudioLowerVolume'], '/usr/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-')
-        self.assertEqual(binds['XF86AudioMute'], '/usr/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle')
-        self.assertEqual(binds['XF86AudioMicMute'], '/usr/bin/wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle')
+        self.assertEqual(binds['XF86MonBrightnessUp'], '/usr/libexec/aresos-level brightness-up')
+        self.assertEqual(binds['XF86MonBrightnessDown'], '/usr/libexec/aresos-level brightness-down')
+        self.assertEqual(binds['XF86AudioRaiseVolume'], '/usr/libexec/aresos-level volume-up')
+        self.assertEqual(binds['XF86AudioLowerVolume'], '/usr/libexec/aresos-level volume-down')
+        self.assertEqual(binds['XF86AudioMute'], '/usr/libexec/aresos-level mute')
+        self.assertEqual(binds['XF86AudioMicMute'], '/usr/libexec/aresos-level mic-mute')
+        self.assertTrue(os.access(CONFIG / 'usr/libexec/aresos-level', os.X_OK))
 
     def test_polkit_agent_starts_before_the_desktop(self):
         lines = [l for l in (CONFIG / 'usr/share/aresos/labwc/autostart').read_text().splitlines()
@@ -448,6 +450,38 @@ class DesktopDefaultsTest(unittest.TestCase):
         defaults.read(CONFIG / 'usr/share/applications/aresos-mimeapps.list')
         for mime in ('x-scheme-handler/http', 'x-scheme-handler/https', 'text/html', 'application/xhtml+xml'):
             self.assertEqual(defaults['Default Applications'][mime], 'google-chrome.desktop')
+        self.assertEqual(defaults['Default Applications']['x-scheme-handler/prismlauncher'],
+                         'org.prismlauncher.PrismLauncher.desktop')
+
+    def test_prism_sign_in_entry_is_hidden_and_accepts_urls(self):
+        entry = CONFIG / 'usr/share/applications/org.prismlauncher.PrismLauncher.desktop'
+        self.assertEqual(entry.read_text(), '[Desktop Entry]\nType=Application\nName=Prism Launcher\n'
+                         'NoDisplay=true\nExec=/usr/bin/prismlauncher %U\nMimeType=x-scheme-handler/prismlauncher;\n')
+
+    def test_image_checks_validate_prism_handler_and_keep_chrome_defaults(self):
+        checks = {line.strip() for line in (ROOT / 'ci/image-checks.sh').read_text().splitlines()}
+        session = (CONFIG / 'usr/bin/aresos-session').read_text().splitlines()
+        self.assertIn('export XDG_CURRENT_DESKTOP=AresOS', session)
+        for line in (
+                'session_mime=(runuser -u ares -- env XDG_CURRENT_DESKTOP=AresOS LC_ALL=C)',
+                'for mime in x-scheme-handler/http x-scheme-handler/https text/html application/xhtml+xml; do',
+                'handler=$("${session_mime[@]}" xdg-mime query default "$mime")',
+                'test "$handler" = google-chrome.desktop',
+                'prism_entry=/usr/share/applications/org.prismlauncher.PrismLauncher.desktop',
+                'test -f "$prism_entry"',
+                'validation=$(desktop-file-validate "$prism_entry" 2>&1)',
+                'test -z "$validation"',
+                "grep -Fxq 'Type=Application' \"$prism_entry\"",
+                "grep -Fxq 'Name=Prism Launcher' \"$prism_entry\"",
+                "grep -Fxq 'NoDisplay=true' \"$prism_entry\"",
+                "grep -Fxq 'Exec=/usr/bin/prismlauncher %U' \"$prism_entry\"",
+                "grep -Fxq 'MimeType=x-scheme-handler/prismlauncher;' \"$prism_entry\"",
+                'handler=$("${session_mime[@]}" xdg-mime query default x-scheme-handler/prismlauncher)',
+                'test "$handler" = org.prismlauncher.PrismLauncher.desktop',
+                'if command -v gio >/dev/null; then',
+                'handler=$("${session_mime[@]}" gio mime x-scheme-handler/prismlauncher)',
+                "grep -Eq '^Default application for .*: org\\.prismlauncher\\.PrismLauncher\\.desktop$' <<< \"$handler\""):
+            self.assertIn(line, checks)
 
 
 class GoogleChromePinTest(unittest.TestCase):

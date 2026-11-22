@@ -328,11 +328,32 @@ grep -qx 'repo_add_once="false"' /etc/default/google-chrome
 pass 'no Google repository, cron job or trusted key in the image'
 test -f /usr/share/applications/google-chrome.desktop
 grep -q '^Exec=/usr/bin/google-chrome-stable' /usr/share/applications/google-chrome.desktop
-handler=$(runuser -u ares -- env HOME=/var/home/ares XDG_CURRENT_DESKTOP=AresOS xdg-mime query default x-scheme-handler/https)
-test "$handler" = google-chrome.desktop
-handler=$(runuser -u ares -- env HOME=/var/home/ares XDG_CURRENT_DESKTOP=AresOS xdg-mime query default x-scheme-handler/http)
-test "$handler" = google-chrome.desktop
-pass 'xdg-open sends http and https links to Chrome in the AresOS session'
+session_mime=(runuser -u ares -- env XDG_CURRENT_DESKTOP=AresOS LC_ALL=C)
+for mime in x-scheme-handler/http x-scheme-handler/https text/html application/xhtml+xml; do
+    handler=$("${session_mime[@]}" xdg-mime query default "$mime")
+    test "$handler" = google-chrome.desktop
+done
+pass 'Chrome is the default for http, https, HTML and XHTML in the AresOS session'
+
+prism_entry=/usr/share/applications/org.prismlauncher.PrismLauncher.desktop
+test -f "$prism_entry"
+validation=$(desktop-file-validate "$prism_entry" 2>&1)
+test -z "$validation"
+grep -Fxq 'Type=Application' "$prism_entry"
+grep -Fxq 'Name=Prism Launcher' "$prism_entry"
+grep -Fxq 'NoDisplay=true' "$prism_entry"
+grep -Fxq 'Exec=/usr/bin/prismlauncher %U' "$prism_entry"
+grep -Fxq 'MimeType=x-scheme-handler/prismlauncher;' "$prism_entry"
+pass 'the hidden Prism Launcher sign-in desktop entry passes validation'
+handler=$("${session_mime[@]}" xdg-mime query default x-scheme-handler/prismlauncher)
+test "$handler" = org.prismlauncher.PrismLauncher.desktop
+pass 'xdg-mime resolves the Prism Launcher sign-in handler in the AresOS session'
+if command -v gio >/dev/null; then
+    handler=$("${session_mime[@]}" gio mime x-scheme-handler/prismlauncher)
+    grep -Eq '^Default application for .*: org\.prismlauncher\.PrismLauncher\.desktop$' <<< "$handler"
+    pass 'gio resolves the Prism Launcher sign-in handler in the AresOS session'
+fi
+
 test ! -e /etc/opt/chrome || test -d /etc/opt/chrome
 mkdir -p /etc/opt/chrome/policies/managed
 rmdir /etc/opt/chrome/policies/managed /etc/opt/chrome/policies
@@ -420,11 +441,12 @@ startup_commands=$( (grep -ohE '/usr/(local/)?(s?bin|libexec)/[A-Za-z0-9/._-]+' 
     /usr/bin/aresos-session /usr/bin/aresos-terminal /usr/share/aresos/bashrc /etc/profile.d/aresos.sh \
     /usr/share/aresos/labwc/autostart /usr/share/aresos/labwc/rc.xml /usr/libexec/aresos-keyboard \
     /usr/libexec/aresos-subids /usr/bin/brew /usr/libexec/aresos-shell /usr/share/aresos/apps/*.json \
-    /usr/libexec/aresos-desktop /usr/libexec/aresos-desktop-java /usr/share/aresos/desktop-view.bashrc) | sort -u)
+    /usr/libexec/aresos-desktop /usr/libexec/aresos-desktop-java /usr/share/aresos/desktop-view.bashrc \
+    /usr/libexec/aresos-level) | sort -u)
 for command in /usr/bin/dbus-run-session /usr/bin/dbus-daemon /usr/bin/labwc /usr/bin/busctl /usr/bin/foot \
     /usr/libexec/aresos-shell /usr/bin/systemd-run /usr/bin/systemctl /usr/bin/kwrite /usr/bin/google-chrome \
     /usr/libexec/aresos-desktop /usr/libexec/aresos-desktop-java /usr/libexec/aresos-cover /usr/bin/prismlauncher \
-    /usr/bin/python3 /usr/bin/cat; do
+    /usr/bin/python3 /usr/bin/cat /usr/libexec/aresos-indicator; do
     grep -qx "$command" <<< "$startup_commands"
 done
 for command in $startup_commands; do
@@ -566,16 +588,26 @@ import os, xml.etree.ElementTree as ET
 root = ET.parse('/usr/share/aresos/labwc/rc.xml').getroot()
 binds = {b.get('key'): b.find('action').get('command') for b in root.iter('keybind')}
 library = open(next(p for p in ('/usr/lib64/libxkbcommon.so.0',) if os.path.exists(p)), 'rb').read()
-for key in ('XF86MonBrightnessUp', 'XF86MonBrightnessDown', 'XF86AudioRaiseVolume', 'XF86AudioLowerVolume',
-            'XF86AudioMute', 'XF86AudioMicMute'):
-    command = binds[key].split()
-    assert os.access(command[0], os.X_OK), (key, command)
+# Package 320: each key runs aresos-level with its action; the script makes the change, then tells the indicator.
+actions = {'XF86MonBrightnessUp': 'brightness-up', 'XF86MonBrightnessDown': 'brightness-down',
+           'XF86AudioRaiseVolume': 'volume-up', 'XF86AudioLowerVolume': 'volume-down',
+           'XF86AudioMute': 'mute', 'XF86AudioMicMute': 'mic-mute'}
+for key, action in actions.items():
+    assert binds[key] == f'/usr/libexec/aresos-level {action}', (key, binds[key])
     assert b'\0' + key.encode() + b'\0' in library, f'{key} is not a keysym name libxkbcommon knows'
-    print(key, '->', ' '.join(command))
+    print(key, '->', binds[key])
+assert os.access('/usr/libexec/aresos-level', os.X_OK)
 assert binds['W-C-Escape'] == '/usr/bin/aresos-terminal --recovery'
 PY
-pass 'brightness, volume, mute and mic-mute keys are bound to brightnessctl and wpctl; recovery terminal kept'
-for command in script qrencode brightnessctl wpctl; do
+for program in /usr/libexec/aresos-level /usr/libexec/aresos-settings /usr/libexec/aresos-indicator; do
+    test "$(stat -c '%U:%G %a' "$program")" = 'root:root 755'
+done
+bash -n /usr/libexec/aresos-level
+# With no settings file, aresos-settings gives the defaults (package 320) and writes nothing.
+settings=$(runuser -u ares -- env -i HOME=/nonexistent PATH=/usr/bin /usr/libexec/aresos-settings get)
+test "$settings" = '{"indicator-place": "top", "indicator-size": "medium", "look": "B"}'
+pass "brightness, volume, mute and mic-mute keys run aresos-level (package 320); aresos-settings gives the defaults ($settings); recovery terminal kept"
+for command in script qrencode brightnessctl wpctl gdbus flock timeout setsid; do
     command -v "$command"
 done
 script --version
@@ -740,6 +772,56 @@ PY
 font=$(runuser -u ares -- env -i HOME=/tmp PATH=/usr/bin /usr/bin/fc-match --format '%{file}' 'Space Grotesk:bold')
 test "$font" = /usr/share/fonts/aresos/SpaceGrotesk-Variable.ttf
 pass "the startup cover is installed and loads GTK 4 as ares; fontconfig finds Space Grotesk ($font); its labwc rule is set"
+# Package 320: the indicator pack and its font, followed by the program's real loader without a display.
+python3 - <<'PY'
+import hashlib
+from pathlib import Path
+
+share = Path('/usr/share')
+font = share / 'fonts/aresos/Jersey10-Regular.ttf'
+assert font.stat().st_size == 77732
+assert hashlib.sha256(font.read_bytes()).hexdigest() == 'db9cbd091617048a145d249daa2b815fe7083be6ab66ac26626e21a4e01c3e82'
+licence = font.with_name('OFL-Jersey10.txt').read_text()
+assert 'Copyright 2023 The Soft Type Project Authors' in licence
+assert 'SIL OPEN FONT LICENSE Version 1.1' in licence
+
+pack = share / 'aresos/look'
+icons = ('sun', 'speaker', 'speaker-muted', 'microphone', 'microphone-off')
+names = {'plate', 'slot', *icons, *(f'{icon}-unavailable' for icon in icons),
+         *(f'step-{kind}' for kind in ('lit', 'unlit', 'muted', 'part', 'limit'))}
+buttons = ('menu', 'iconify', 'max', 'max_toggled', 'close', 'shade', 'shade_toggled', 'desk', 'desk_toggled')
+frame = {f'sprites/frame/{button}{hover}-{state}.png' for button in buttons
+         for hover in ('', '_hover') for state in ('active', 'inactive')}
+directories = {'sprites', 'sprites/frame'}
+expected = {'look.json', *directories, *(f'sprites/{name}.png' for name in names), *frame}
+paths = {path.relative_to(pack).as_posix() for path in pack.rglob('*')}
+assert paths == expected, f'look A file list differs: {paths ^ expected}'
+files = sorted(paths - directories)
+tree = '\n'.join(f'{hashlib.sha256((pack / name).read_bytes()).hexdigest()}  {name}' for name in files)
+digest = hashlib.sha256(tree.encode()).hexdigest()
+assert digest == 'f4c4a0f201d30e5cafddd278eb8f69d0f40d61e1efa12ede8a7bb7f5735baabd', f'look A differs: {digest}'
+PY
+font=$(runuser -u ares -- env -i HOME=/nonexistent PATH=/usr/bin /usr/bin/fc-match --format '%{file}' 'Jersey 10')
+test "$font" = /usr/share/fonts/aresos/Jersey10-Regular.ttf
+test -x /usr/bin/pw-dump
+pass "Jersey 10 and its licence are installed ($font); the look A pack matches its pin"
+layer=/usr/lib64/libgtk4-layer-shell.so.0
+if [[ ! -r $layer ]]; then
+    echo 'The indicator requires gtk4-layer-shell from the R29 image package' >&2
+    exit 1
+fi
+runuser -u ares -- env -i HOME=/nonexistent PATH=/usr/bin LD_PRELOAD="$layer" /usr/bin/python3 - <<'PY'
+import os
+import runpy
+
+gui = runpy.run_path('/usr/libexec/aresos-indicator')['load_gui']()
+assert gui.Gtk.get_major_version() == 4
+assert gui.layer.get_major_version() >= 1
+assert (os.environ['GDK_DISABLE'], os.environ['GSK_RENDERER']) == ('gl,vulkan', 'cairo')
+print('INDICATOR_GTK', gui.Gtk.get_major_version(), gui.Gtk.get_minor_version(), 'cairo', gui.cairo.version,
+      'gtk4-layer-shell', gui.layer.get_major_version(), gui.layer.get_minor_version(), gui.layer.get_micro_version())
+PY
+pass 'the indicator loads GTK 4, Pango, Cairo and Gtk4LayerShell as the everyday account'
 # Package 53f: the laptop home draws natively. Load the program's own load_gui() without a display, as the cover's
 # check does: GTK 4, Pango and Cairo as ares, with the Cairo renderer and no GPU device asked for.
 test -x /usr/libexec/aresos-laptop-home
@@ -998,7 +1080,6 @@ license = (font.parent / 'OFL-SpaceGrotesk.txt').read_text()
 assert 'Copyright 2020 The Space Grotesk Project Authors' in license
 assert 'SIL OPEN FONT LICENSE Version 1.1' in license
 rc = ET.parse(share / 'aresos/labwc/rc.xml').getroot()
-assert rc.findtext('theme/name') == 'Ares-Crown'
 assert rc.findtext('theme/titlebar/layout') == 'menu:iconify,max,close'
 assert rc.find('windowSwitcher/osd').get('style') == 'thumbnail'
 override = share / 'glib-2.0/schemas/zz-aresos.gschema.override'
@@ -1014,7 +1095,67 @@ layout=$(runuser -u ares -- env -i HOME=/tmp/pkg31-home PATH=/usr/bin:/usr/sbin 
 rm -rf /tmp/pkg31-home
 printf '%s\n' "$layout"
 test "$layout" = "'appmenu:minimize,maximize,close'"
-pass 'Ares-Crown files installed; compiled AresOS default gives apps all three buttons'
+pass 'Ares-Crown files kept unused; compiled AresOS default gives apps all three buttons'
+
+# --- Package 329: look A's window frame.
+python3 - <<'PY'
+import hashlib
+from pathlib import Path
+import struct
+import xml.etree.ElementTree as ET
+
+share = Path('/usr/share')
+theme = share / 'themes/AresOS/labwc'
+buttons = ('menu', 'iconify', 'max', 'max_toggled', 'close', 'shade', 'shade_toggled', 'desk', 'desk_toggled')
+names = {f'{button}{hover}-{state}.png' for button in buttons
+         for hover in ('', '_hover') for state in ('active', 'inactive')}
+files = sorted(theme.iterdir(), key=lambda path: path.name)
+expected = {'themerc', *names}
+actual = {path.name for path in files}
+assert actual == expected, f'AresOS theme file list differs: {actual ^ expected}'
+tree = []
+for path in files:
+    data = path.read_bytes()
+    if path.name in names:
+        assert data[:16] == b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR', path
+        assert struct.unpack('>IIBB', data[16:26]) == (48, 40, 8, 6), path
+    tree.append(f'{hashlib.sha256(data).hexdigest()}  {path.name}')
+aresos_theme = hashlib.sha256('\n'.join(tree).encode()).hexdigest()
+assert aresos_theme == '1edd49859255bde9a1c8f4ba779d92010ad38bde0f591507a3b29bbee17d916e', f'AresOS theme differs: {aresos_theme}'
+
+labwc = share / 'aresos/labwc'
+assert 'themerc-override' not in {path.name for path in labwc.iterdir()}
+rc = ET.parse(labwc / 'rc.xml').getroot()
+
+def expect(path, xml):
+    elements = rc.findall(path)
+    assert len(elements) == 1, path
+    assert ET.canonicalize(ET.tostring(elements[0]), strip_text=True) == ET.canonicalize(xml, strip_text=True), path
+
+expect('theme/name', '<name>AresOS</name>')
+expect('theme/cornerRadius', '<cornerRadius>0</cornerRadius>')
+places = ('ActiveWindow', 'InactiveWindow', 'MenuHeader', 'MenuItem', 'OnScreenDisplay')
+assert len(rc.findall('theme/font')) == len(places)
+for place in places:
+    expect(f'theme/font[@place="{place}"]', f'<font place="{place}"><name>Jersey 10</name><size>28</size></font>')
+expect('windowSwitcher', '''<windowSwitcher preview="yes" outlines="yes" order="focus">
+    <osd show="yes" style="thumbnail" output="focused" thumbnailLabelFormat="%T" />
+    </windowSwitcher>''')
+expect('keyboard/keybind[@key="A-S-Tab"]', '<keybind key="A-S-Tab"><action name="PreviousWindow" /></keybind>')
+expect('mouse', '''<mouse>
+    <default />
+    <context name="TitleBar">
+      <mousebind direction="Up" action="Scroll"><action name="None" /></mousebind>
+      <mousebind direction="Down" action="Scroll"><action name="None" /></mousebind>
+    </context>
+    <context name="Root">
+      <mousebind button="Left" action="Press"><action name="None" /></mousebind>
+      <mousebind button="Right" action="Press"><action name="None" /></mousebind>
+      <mousebind button="Middle" action="Press"><action name="None" /></mousebind>
+    </context>
+    </mouse>''')
+PY
+pass 'the pinned AresOS theme has 36 RGBA buttons, and labwc selects it with the frame, switcher and mouse settings'
 
 # --- Package 18c: the Control tools (the tool service, its commands, Claude
 # Code's managed files). Every path the image records in control.json is here

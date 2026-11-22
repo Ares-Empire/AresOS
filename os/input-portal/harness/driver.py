@@ -1573,7 +1573,7 @@ def setup():
     vptr = VInput("pointer")
     vkbd = VInput("keyboard")
     goto(300, 300)
-    spawn("window", [WLH, "window"], CLIENT_ENV)
+    spawn("window", [WLH, "window", "--keep-open"], CLIENT_ENV)
     if not wait_for(lambda: any(line.startswith("CONFIGURED") for line in window()), 5):
         raise RuntimeError("the probe window did not map")
     pump(0.3)

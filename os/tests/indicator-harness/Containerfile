@@ -1,0 +1,7 @@
+# The unmodified package 316 build recipe supplies the rebuilt clients and checks labwc's lock.
+ARG CLIENTS_IMAGE
+FROM ${CLIENTS_IMAGE}
+RUN dnf5 -y -q --setopt=install_weak_deps=False install gtk4 python3-gobject python3-cairo \
+        pango gobject-introspection grim python3-pillow gtk4-layer-shell-1.3.0-1.fc44.x86_64 \
+        google-noto-sans-fonts fontconfig util-linux strace && \
+    dnf5 clean all

@@ -12,8 +12,8 @@ import net.minecraft.world.entity.player.Abilities;
 import net.minecraft.world.level.GameType;
 
 /**
- * Live mode is the game's survival mode in a desktop world: the hotbar is his taskbar, logos and the town's blocks
- * cannot be broken, and nothing can hurt or starve him.
+ * Live mode is the game's survival mode in a desktop world: the hotbar is his taskbar, mining is disabled,
+ * and nothing can hurt or starve him.
  *
  * <p>Package 40 (the owner: "put the user into creative and give him speed to travel faster"): Live stays survival,
  * so the creative inventory never reaches the taskbar and left-click never breaks a logo at once, but it gets
@@ -43,8 +43,11 @@ public final class LiveMode {
     private LiveMode() { }
 
     public static boolean isLive(ServerPlayer player) {
-        return DesktopWorld.isEnabled(player.level().getServer())
-                && player.gameMode.getGameModeForPlayer() == GameType.SURVIVAL;
+        return isLive(DesktopWorld.isEnabled(player.level().getServer()), player.gameMode.getGameModeForPlayer());
+    }
+
+    public static boolean isLive(boolean desktopWorld, GameType mode) {
+        return desktopWorld && mode == GameType.SURVIVAL;
     }
 
     public static void register() {
