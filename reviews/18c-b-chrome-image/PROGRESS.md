@@ -3,6 +3,26 @@
 Brief: `briefs/18c-b-chrome-image.md` (on `main` since PR #73).
 Branch `pkg/18c-b-chrome`, one builder at a time. Each step is a fresh agent; this file is the handoff.
 
+## The Chrome start timeout's cause (2026-11-22, the lead, `linux-tools`)
+
+The diagnostics found it in control run 45000490818 on `afba3c71` (**run**, artifact
+`control/chrome/failures/chrome-package-fault/`). Start `chrome-c4-a` (PID 2722) began while the guest was
+still called `bazzite` (systemd's fallback: the image sets no hostname) and exited 0 after NetworkManager had
+set the network's name. Chrome removes its profile lock only when the lock names the current host, so 2722's
+lock stayed, and every later start refused it: "The profile appears to be in use by another Google Chrome
+process (2722) on another computer (bazzite)" (eight starts, `chrome-c5-fresh-changed.txt` and the rest), with
+no probe host started. The timing of the name change explains why it came and went
+(44621559332 attempt 1, 44936830501 both attempts).
+
+**Fix (CI only):** `os/ci/overlay/Containerfile` writes `/etc/hostname` (`aresos-ci`), so the guest's name
+never changes under Chrome, as on the laptop, which has a static hostname. Test:
+`ChromePassTest.test_the_ci_guest_has_a_static_hostname` (`os/tests/test_control_vm.py`); removing the line
+fails it. `test_control_vm` (103), `test_console_keymap`, `test_everyday_account`, `test_guardian_vm` and
+`test_checkout_sources` pass. For the release side: an AresOS install without a static hostname could meet the
+same lock if its name changes while Chrome runs (told linux-aresos).
+
+Left: two green control runs on this head, then PR #76 merges.
+
 ## Chrome start diagnostics
 
 Diagnosis `705ce259` preserves the [read-only diagnosis](DIAG-CHROME-START.md) byte for byte.
