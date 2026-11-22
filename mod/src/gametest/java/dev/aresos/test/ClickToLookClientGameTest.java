@@ -34,7 +34,6 @@ import java.time.Duration;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import static dev.aresos.test.WorldKeepsPointerClientGameTest.captured;
 import static dev.aresos.test.WorldKeepsPointerClientGameTest.mouse;
 import static dev.aresos.test.WorldKeepsPointerClientGameTest.released;
 

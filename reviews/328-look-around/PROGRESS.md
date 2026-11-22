@@ -45,6 +45,65 @@ no files over 500 MB in `.work/`. Section 2.8's one-poll delay, same-frame refus
 pointer placement, stalled-helper behavior, vanilla fallbacks and 64-bit Linux event layout remain design notes.
 Dead-key restoration also remains unverified. No mod or rig files changed in this round.
 
+## 328b: prototype A, "click to look"
+
+**Done** (branch `pkg/328b-click-to-look`). The product keeps classic as the default.
+
+- **The setting:** `mod/src/main/java/dev/aresos/config/LookMode.java` reads one line in `config/aresos/settings.properties`
+  in the game's config folder: `look = click`. No file, no line or an empty value means `classic`. An unknown value
+  (also `edge`, until 328c adds it) logs a warning and stays classic. The game reads the file once at start. 328d
+  documents the line in `mod/README.md`; for `hub-try` the folder is the try checkout's `mod/run/config/aresos/`.
+- **The rules without the game:** `mod/src/main/java/dev/aresos/focus/ClickLook.java` holds the stillness timer, the short
+  grace for a click that arrives before GLFW's focus, when the pointer is free, and which key starts look mode.
+- **The glue:** `mod/src/client/java/dev/aresos/client/ClickToLook.java`, with small hooks in `HomeScreen`
+  (`freePointer`, `frame`), `HomePointer.enterWorld`, `WorldCapture.returnToCentre`, `MouseAppInputMixin` (motion,
+  buttons and the wheel count as activity) and `KeyboardAppInputMixin` (movement-key start).
+- **Tests:** `ClickLookTest` and `LookModeTest` (unit), and `ClickToLookClientGameTest`, last in the client suite.
+
+**The tunables**, each one named constant in `ClickLook`:
+
+| Constant | Value | What it does |
+| --- | --- | --- |
+| `LOOK_RELEASE_MS` | 800 | Look mode ends after the mouse and every movement key have been still this long. |
+| `START_GRACE_MS` | 250 | A click on the world that reaches the game before GLFW's focus still starts look mode if the focus follows within this time. |
+
+**What the code doesn't show:**
+
+- **Look mode is the capture itself.** In the click setting, "looking" means `MouseHandler.mouseGrabbed`. No second
+  state can drift from it. A capture that slips in anyway (vanilla's grab at world join, before the helper connects)
+  also ends after the stillness.
+- **One gate refuses every other grab.** Outside look mode `HomeScreen.freePointer` is true, as it is behind an app in
+  package 56. The existing head of `grabMouse` then refuses vanilla's grab when a screen closes, the helper's regrab,
+  GLFW's focus regrab and `AresOsClient.regainedFocus`. Only `ClickToLook.start` gets through: it clears the free state
+  for its own call, and 328a's `WorldCapture.allowed` (the safe fallback) still decides. Capture and release stay 328a's.
+  The mod adds no GLFW cursor call and no second release path. `returnToCentre` only changes the point that
+  `WorldCapture.finish` restores.
+- **Package 56 decides the press.** Because the pointer is free, `HomePointer.button` handles a press first: a primary
+  click on an app slot opens the app. Anything else (open world, an empty slot, a right click) starts look mode. The
+  press and its release are swallowed, so the starting click never attacks, uses or breaks.
+- **Activations without a click don't start look mode.** Alt+Tab, Super, an app closing or the helper's
+  `desktop_activated` set the world in front and leave the cursor free. Only a press (`enterWorld(client, true)`) or a
+  movement key starts it.
+- **Held mouse buttons count as activity,** as do motion and the wheel. Holding attack to break a block doesn't end look
+  mode halfway. The brief says "the mouse ... still"; this reads a held button as a mouse in use. It's a judgment call
+  for the report.
+- **A key start** happens at the first press of walk, jump or fly up, or sneak or fly down (not repeats). The key still
+  walks. The capture keeps 328a's rule: with the pointer on another output or an app, keys walk but nothing captures.
+- **Not tried:** the owner's real mouse and monitor, Chrome and the installed helper. The feel of 800 ms is his to
+  judge in `hub-try`.
+
+**Known limits (328b):**
+
+- With toggle sneak on, a toggled sneak counts as held and look mode lasts until Esc or an app takes the focus.
+- Without libXfixes, or off X11, the release is vanilla's: the cursor reappears at the window's centre, not at the click.
+- A click start that the safe fallback refuses (the pointer is not over the world's visible part) does nothing, and
+  the next click tries again.
+- While the free pointer rests on the world, Minecraft still selects hotbar slots with the wheel (vanilla's scroll
+  needs no capture). That is the same as behind an app in package 56.
+
+**Left:** 328c (prototype B, edge turning; add `EDGE` to `LookMode`), then 328d (the README line, `run-hub.sh --outputs 2`,
+the report and the PR).
+
 ## Done
 
 ### 328a design A after the lead ruling
@@ -162,9 +221,10 @@ and live session remain unverified.
 
 ## Left, in order
 
-1. **328b:** prototype A, "click to look".
-2. **328c:** prototype B, "edge turning".
-3. **328d:** the `look` setting, `run-hub.sh --outputs 2`, the README line, the report and the PR.
+1. **328c:** prototype B, "edge turning" (`look = edge`).
+2. **328d:** the README line for the `look` setting, `run-hub.sh --outputs 2`, the report and the PR.
+
+328b is done (above).
 
 ## The proven cause of the click leak (owner's finding 4)
 
