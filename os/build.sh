@@ -361,8 +361,18 @@ PY
     printf '# AresOS: Chrome updates arrive with AresOS releases, not from a repository.\nrepo_add_once="false"\nrepo_reenable_on_distupgrade="false"\n' \
         > /etc/default/google-chrome
     mkdir -p /var/opt
+    # Fedora's Deskflow entry opens the stock window and its own core (Exec=deskflow), past the guarded
+    # launcher. RPM leaves that one file out for this install (it records it as net shared, so rpm -V stays
+    # clean), and the image's entry with the same desktop ID takes its place from config/ (brief 321).
+    deskflow_entry=/usr/share/applications/org.deskflow.deskflow.desktop
+    test -z "$(rpm --eval '%{?_netsharedpath}')"
+    printf '%%_netsharedpath %s\n' "$deskflow_entry" > /etc/rpm/macros.aresos-deskflow-entry
     dnf5 --disable-repo='*' --setopt=install_weak_deps=False --setopt=localpkg_gpgcheck=True install -y \
         /tmp/ares-rpms/*.rpm /tmp/ares-chrome/google-chrome.rpm
+    rm /etc/rpm/macros.aresos-deskflow-entry
+    test ! -e "$deskflow_entry"
+    test "$(rpm -q --qf '[%{FILESTATES:fstate}|%{FILENAMES}\n]' deskflow | grep -c '^net shared|')" = 1
+    rpm -q --qf '[%{FILESTATES:fstate}|%{FILENAMES}\n]' deskflow | grep -Fxq "net shared|$deskflow_entry"
     # The key was needed only to verify this RPM; the image trusts no new key.
     rpmkeys --delete "$chrome_key"
     # /opt is /var/opt on bootc and is not replaced by an image update. Keep
