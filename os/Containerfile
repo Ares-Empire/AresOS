@@ -36,11 +36,12 @@ COPY --from=source /source/os/input-portal/ /src/
 RUN bash /src/build.sh /src /out
 
 FROM ghcr.io/ublue-os/bazzite-nvidia-open@sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151 AS packages
+ARG ARESOS_BUILD_KIND=release
 COPY . /tmp/aresos/
 COPY --from=labwc /out/ /tmp/aresos-labwc-rpm/
 # Keep Fedora's labwc and its replacement in one RUN. A metadata-only layer diff can
 # miss the swap when both binaries have the same size, mode and reproducible mtime.
-RUN test ! -e /tmp/aresos/ci && bash /tmp/aresos/build.sh packages && \
+RUN test ! -e /tmp/aresos/ci && bash /tmp/aresos/build.sh packages "$ARESOS_BUILD_KIND" && \
     test ! -e /tmp/aresos/input-portal && \
     python3 -I /tmp/aresos/labwc/stage.py install /tmp/aresos-labwc-rpm /tmp/aresos/labwc && \
     rm -rf /tmp/aresos-labwc-rpm
@@ -54,6 +55,8 @@ LABEL org.opencontainers.image.source="https://github.com/Ares-Empire/AresOS" \
 COPY --from=mod /out/aresos.jar /tmp/aresos/minecraft/aresos.jar
 COPY --from=input-portal /out/aresos-input-portal /usr/libexec/aresos-input-portal
 COPY --from=input-portal /out/data/org.freedesktop.impl.portal.desktop.aresos-input.service /usr/share/dbus-1/services/
+COPY --from=input-portal /out/data/aresos-input.portal /usr/share/xdg-desktop-portal/portals/
+COPY --from=input-portal /out/data/allowed-apps /usr/share/aresos/input-portal/
 COPY --from=input-portal /out/LICENSE /usr/share/licenses/aresos-input-portal/LICENSE
 # Package 18c: the Control tools from the same commit (the source stage keeps control/).
 COPY --from=source /source/control /tmp/aresos/control
