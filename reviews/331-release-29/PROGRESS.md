@@ -521,3 +521,76 @@ Step 6 owns the late image rules and final cut. B321's final contract, the
 remain for their applicable slices. Both effective R29 publish caps are zero.
 Dispatches and uploads used by this slice are zero. There are no files over
 500 MB in `.work/`.
+
+## Done · step 5 first slice · 2026-11-22
+
+Started at `e6ee98fe` on draft PR144. The REVIEW-7 fixes are at
+`a08cf01b95bd9d66d87ca4c6b52f2d9a11439277`. The workflow and ledger changes
+are at `851804260011aee0ab87510687f0a2b87e055500`.
+
+- The login graph queries and traverses `Wants=` edges. The guest fixture adds
+  `Wants=aresos-toold.service` to `greetd.service` and the walk stops.
+  The existing hard-requirement checks still apply to their own edge types.
+- The host receipt generator and validator share the complete expected source
+  list, including `release29_walk.py`, the checker, probes, settings inputs
+  and inherited rows. The test removes each of the 314 rows in turn and
+  requires a refusal. Refreshed the existing local receipt's source hashes
+  and the pending rebind record. The pending record has 19 changed files and
+  zero removals.
+- The exact `refs/heads/pkg/331-release-29` ref selects three jobs for
+  `dry_run_29=true`, `release_29=true` and `rehearsal=release-29`.
+  Colliding inputs and a same-named tag select no R29 route. The existing
+  checks and resolve jobs call the guard on the same branch. Only the R29
+  publish job receives package write and OIDC permissions. The dry run and
+  rehearsal have read access.
+- The package 331 guard counts dispatches from the first one, including
+  failures and cancellations before any job starts. A collision with
+  `release_29=true` keeps the publish title so the attempt spends that
+  dispatch. Closing both publish caps preserves the historical dispatch and
+  upload in the ledger. Fixtures give checks and rehearsal their own
+  allowances while both publish caps are zero and prove that another
+  release dispatch is refused. Both publish caps must open for a first
+  publish and a prior upload attempt prevents another.
+
+### Verified locally
+
+Ran the following from the repository root, one module at a time, with
+`TMPDIR` in `.work/`. The test command was
+`python3 -m unittest discover -s os/tests -p <module>.py`.
+
+| Module | Final result |
+| --- | --- |
+| `test_release29_workflow` | `Ran 8 tests in 0.062s`, `OK` |
+| `test_build_tools` | `Ran 4 tests in 0.114s`, `OK` |
+| `test_release29_rehearsal` | `Ran 22 tests in 30.459s`, `OK`. Printed `CONTROL_CHROME_FILES_PASS`, `CONTROL_CHROME_SITES_FIRST_USE_PASS` and `CONTROL_CHROME_SITES_REBOOT_PASS`. |
+| `test_release28` | `Ran 94 tests in 55.099s`, `OK` |
+| `test_release27` | `Ran 41 tests in 7.018s`, `OK` |
+| `test_release28_rehearsal` | `Ran 44 tests in 34.817s`, `OK` |
+| `test_rehearsal_budget` | `Ran 6 tests in 0.077s`, `OK` |
+| `test_owner_staged_release` | `Ran 7 tests in 0.056s`, `OK` |
+| `test_ci_api_permissions` | `Ran 4 tests in 4.256s`, `OK` |
+| `test_ci_step_environment` | `Ran 4 tests in 21.504s`, `OK` |
+| `test_checkout_sources` | `Ran 10 tests in 1.097s`, `OK` |
+| `test_ways_back_model` with `-k test_hosted_checks_explore_the_slice_and_a_parallel_job_the_full_model_when_selected` | `Ran 1 test in 0.038s`, `OK` |
+
+`python3 -m py_compile` on the changed CI and walk Python modules and the
+new workflow test, plus `git diff --check` and `git diff --cached --check`,
+exited 0 with no output. The source replay and raw byte comparison reported
+`Validated 314 host receipt source rows`. The first test run exposed two
+older assertions that pinned the pre-R29 mode table and title expression.
+The final assertions check the extended table and R28's rendered title.
+The permission audit caught the model guard's transitive package-read
+requirement. The source replay passed after the final hashes were refreshed.
+
+### Limits and next
+
+The three new R29 jobs stop after their dispatch guard pending the next slice.
+That slice owns registry targets, runner allowlists, hosted receipts and the
+budget values. The lead then runs the same-head hosted checks and read-only
+historical baseline preflight. Real signed-image VM evidence and the owner's
+live checks remain open.
+
+Hosted dispatches and uploads used by this slice are zero. No hosted run ID or
+SHA was issued. `dispatch_caps.publish-29`, `publish_cap` and the qualifying
+`dispatch_caps.release-29` are all zero. There are no files over 500 MB in
+`.work/`.
