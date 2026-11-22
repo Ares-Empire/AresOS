@@ -28,7 +28,8 @@
     "331 REVIEW-8: bind the split publish authorization, combined checks reservation, rejected titles and opt-in Wants traversal.",
     "331 step 5 second slice: bind the reviewed hosted R29 runner, registry and ledger sources.",
     "331 REVIEW-10: bind qualification to the named publish artifact and require the exact R29 runner for both walk modes.",
-    "331: refresh bindings for the fresh evidence directory fix and reset regression."
+    "331: refresh bindings for the fresh evidence directory fix and reset regression.",
+    "Package 331 merges main through package 328 and refreshes the late-package review bindings."
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [

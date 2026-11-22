@@ -4,6 +4,8 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.platform.Window;
 import dev.aresos.client.AppInput;
+import dev.aresos.client.ClickToLook;
+import dev.aresos.client.EdgeLook;
 import dev.aresos.client.ModeSwitchClient;
 import dev.aresos.client.HomePointer;
 import dev.aresos.client.HomeScreen;
@@ -23,10 +25,14 @@ import org.lwjgl.glfw.GLFW;
 @Mixin(MouseHandler.class)
 public abstract class MouseAppInputMixin {
     @Shadow private boolean mouseGrabbed;
+    @Shadow private double xpos;
+    @Shadow private double ypos;
+    @Shadow private boolean ignoreFirstMove;
 
     @Inject(method = "onButton", at = @At("HEAD"), cancellable = true)
     private void aresos$useInput(long handle, MouseButtonInfo button, int action, CallbackInfo ci) {
         var client = Minecraft.getInstance();
+        if (handle == client.getWindow().handle()) ClickToLook.input(client);
         boolean pending = ModeSwitchClient.pending();
         if (handle == client.getWindow().handle() && (!pending || action == GLFW.GLFW_RELEASE)
                 && HomePointer.button(client, button.button(), action)) {
@@ -41,7 +47,18 @@ public abstract class MouseAppInputMixin {
 
     @Inject(method = "onScroll", at = @At("HEAD"), cancellable = true)
     private void aresos$blockScroll(long handle, double horizontal, double vertical, CallbackInfo ci) {
+        if (handle == Minecraft.getInstance().getWindow().handle()) ClickToLook.input(Minecraft.getInstance());
         if (ModeSwitchClient.pending()) ci.cancel();
+    }
+
+    // Package 328b: real motion keeps look mode on (not the capture's own first move, not an unchanged position).
+    // Package 328c: edge turning trusts the cursor position once one has arrived.
+    @Inject(method = "onMove", at = @At("HEAD"))
+    private void aresos$lookMoved(long handle, double x, double y, CallbackInfo ci) {
+        var client = Minecraft.getInstance();
+        if (handle != client.getWindow().handle()) return;
+        EdgeLook.moved();
+        if (!ignoreFirstMove && (x != xpos || y != ypos)) ClickToLook.input(client);
     }
 
     @Inject(method = "grabMouse", at = @At("HEAD"), cancellable = true)
