@@ -378,12 +378,20 @@ def main():
                     ready = guest.request('ready', state=state)
                     phase = 'operations'
                     results[name] = scenario(guest, ready)
+                    results[name]['first_boot_backend'] = ready['first_boot_backend']
+                    if state == 'backend':
+                        results[name]['worker_connections'] = ready['worker_connections']
             except Exception as error:
                 results[name] = dict(status='failed', phase=phase, detail=str(error)[-4000:])
             print(f'DESKFLOW_VM {name} {json.dumps(results[name])}', flush=True)
     output_passed = all(results[f'regular-{state}']['status'] == 'passed' for state in STATES)
-    incomplete = {name: result for name, result in results.items()
-                  if name.startswith('custom-') and result['status'] not in ('passed', 'compositor-assertion')}
+    incomplete = {
+        name: result for name, result in results.items()
+        if name.startswith('custom-')
+        and result['status'] not in (
+            ('passed',) if name == 'custom-none' else ('passed', 'compositor-assertion')
+        )
+    }
     if incomplete:
         print(f'DESKFLOW_CUSTOM_EVIDENCE_INCOMPLETE {json.dumps(incomplete)}', flush=True)
     try:
