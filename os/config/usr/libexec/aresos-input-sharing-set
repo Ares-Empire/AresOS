@@ -1,0 +1,110 @@
+#!/usr/bin/python3 -I
+"""The pkexec entry point and the UI's read-only view of the sharing switch."""
+import fcntl
+import os
+import secrets
+import stat
+import sys
+import syslog
+from contextlib import contextmanager
+
+PARTS = ('etc', 'aresos', 'input-portal')
+SWITCH = 'sharing'
+DIR_FLAGS = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+
+
+def trusted(metadata):
+    return metadata.st_uid == 0 and metadata.st_mode & 0o022 == 0
+
+
+@contextmanager
+def switch_directory(create=False):
+    fd = os.open('/', DIR_FLAGS)
+    try:
+        for part in PARTS:
+            if not trusted(os.fstat(fd)):
+                raise PermissionError('unsafe sharing switch directory')
+            try:
+                child = os.open(part, DIR_FLAGS, dir_fd=fd)
+            except FileNotFoundError:
+                # /etc is provided by the OS. Only the two AresOS directories are ours.
+                if not create or part == 'etc':
+                    raise
+                try:
+                    os.mkdir(part, 0o755, dir_fd=fd)
+                except FileExistsError:
+                    pass
+                child = os.open(part, DIR_FLAGS, dir_fd=fd)
+            os.close(fd)
+            fd = child
+        if not trusted(os.fstat(fd)):
+            raise PermissionError('unsafe sharing switch directory')
+        yield fd
+    finally:
+        os.close(fd)
+
+
+def check_switch(metadata):
+    if not stat.S_ISREG(metadata.st_mode) or not trusted(metadata):
+        raise PermissionError('unsafe sharing switch file')
+
+
+def sharing_on():
+    try:
+        with switch_directory() as directory:
+            with os.fdopen(os.open(SWITCH, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK,
+                                   dir_fd=directory), 'rb') as switch:
+                check_switch(os.fstat(switch.fileno()))
+                return switch.read(4) in (b'on', b'on\n')
+    except OSError:
+        return False
+
+
+def set_switch(verb):
+    try:
+        with switch_directory(create=verb == 'on') as directory:
+            fcntl.flock(directory, fcntl.LOCK_EX)
+            try:
+                check_switch(os.stat(SWITCH, dir_fd=directory, follow_symlinks=False))
+            except FileNotFoundError:
+                if verb == 'off':
+                    return
+            if verb == 'off':
+                os.unlink(SWITCH, dir_fd=directory)
+            else:
+                temporary = '.sharing-' + secrets.token_hex(8)
+                fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o644, dir_fd=directory)
+                try:
+                    with os.fdopen(fd, 'wb') as switch:
+                        switch.write(b'on\n')
+                        switch.flush()
+                        os.fsync(switch.fileno())
+                    os.replace(temporary, SWITCH, src_dir_fd=directory, dst_dir_fd=directory)
+                finally:
+                    try:
+                        os.unlink(temporary, dir_fd=directory)
+                    except FileNotFoundError:
+                        pass
+            os.fsync(directory)
+    except FileNotFoundError:
+        if verb == 'on':
+            raise
+
+
+def main(argv):
+    if len(argv) != 1 or argv[0] not in ('on', 'off') or os.geteuid() != 0:
+        print('Usage as root: aresos-input-sharing-set on|off', file=sys.stderr)
+        return 2
+    os.umask(0o022)
+    try:
+        set_switch(argv[0])
+    except OSError as error:
+        print(f'Could not change sharing: {error}', file=sys.stderr)
+        return 1
+    syslog.openlog('aresos-input-sharing')
+    syslog.syslog(syslog.LOG_NOTICE, f'Sharing is {argv[0]}')
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv[1:]))
