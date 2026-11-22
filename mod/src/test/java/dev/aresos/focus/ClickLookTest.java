@@ -12,6 +12,7 @@ class ClickLookTest {
         look.frame(false, 0);
         assertFalse(look.looking());
         assertFalse(look.due(10_000), "no look mode, nothing to end");
+        look.began();
         look.frame(true, 1_000);
         assertTrue(look.looking());
         assertFalse(look.due(1_000 + LOOK_RELEASE_MS - 1));
@@ -23,6 +24,7 @@ class ClickLookTest {
 
     @Test void anyMotionStartsTheStillnessAgain() {
         var look = new ClickLook();
+        look.began();
         look.frame(true, 0);
         look.moved(700);
         assertFalse(look.due(LOOK_RELEASE_MS), "the mouse moved 100 ms before");
@@ -33,21 +35,37 @@ class ClickLookTest {
     @Test void motionOutsideLookModeCountsForNothing() {
         var look = new ClickLook();
         look.moved(5_000);
+        look.began();
         look.frame(true, 6_000);
         assertTrue(look.due(6_000 + LOOK_RELEASE_MS));
     }
 
     @Test void anyReleaseEndsLookModeAndTheNextCaptureCountsFresh() {
         var look = new ClickLook();
+        look.began();
         look.frame(true, 0);
         look.frame(false, 300);  // Esc, an app taking the focus, or the stillness release itself
         assertFalse(look.looking());
         assertFalse(look.due(5_000));
+        look.began();
         look.frame(true, 5_000);
         assertFalse(look.due(5_000 + LOOK_RELEASE_MS - 1));
         assertTrue(look.due(5_000 + LOOK_RELEASE_MS));
         look.reset();
         assertFalse(look.looking() || look.due(99_000));
+    }
+
+    @Test void aCaptureLookModeDidNotStartEndsAtOnce() {
+        var look = new ClickLook();
+        look.frame(true, 0);  // vanilla's grab at world join, before the desktop world was active
+        assertTrue(look.due(0));
+        look.frame(false, 10);
+        look.began();
+        look.frame(true, 20);
+        assertFalse(look.due(20), "a look start is look mode's own");
+        look.frame(false, 30);  // its release makes the next capture a stranger again
+        look.frame(true, 40);
+        assertTrue(look.due(40));
     }
 
     @Test void aClickBeforeTheFocusWaitsOnlyForTheGrace() {

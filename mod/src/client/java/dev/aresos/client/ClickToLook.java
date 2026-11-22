@@ -86,6 +86,7 @@ public final class ClickToLook {
         } finally {
             starting = false;
         }
+        if (client.mouseHandler.isMouseGrabbed()) LOOK.began();
         // After a key start the pointer reappears at the centre of the world's output, not where it happened to rest.
         if (key && client.mouseHandler.isMouseGrabbed()) WorldCapture.returnToCentre(client.getWindow());
     }
@@ -106,6 +107,7 @@ public final class ClickToLook {
         LOOK.frame(mouse.isMouseGrabbed(), now);
         if (LOOK.looking()) {
             if (held(client)) LOOK.moved(now);
+            // Stillness, or a capture look mode did not start (vanilla's at world join, before the helper connected).
             if (LOOK.due(now)) mouse.releaseMouse();
         } else if (LOOK.clickWaiting(now) && client.isWindowActive() && client.gui.screen() == null
                 && !HomeScreen.appInFront()) {

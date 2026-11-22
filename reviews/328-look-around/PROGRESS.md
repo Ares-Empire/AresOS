@@ -70,8 +70,9 @@ Dead-key restoration also remains unverified. No mod or rig files changed in thi
 **What the code doesn't show:**
 
 - **Look mode is the capture itself.** In the click setting, "looking" means `MouseHandler.mouseGrabbed`. No second
-  state can drift from it. A capture that slips in anyway (vanilla's grab at world join, before the helper connects)
-  also ends after the stillness.
+  state can drift from it. A capture that look mode did not start is let go at the next frame. That is vanilla's grab
+  when the loading screen closes, before the desktop world is active (the first client run caught it), and it goes
+  through 328a's release like any other.
 - **One gate refuses every other grab.** Outside look mode `HomeScreen.freePointer` is true, as it is behind an app in
   package 56. The existing head of `grabMouse` then refuses vanilla's grab when a screen closes, the helper's regrab,
   GLFW's focus regrab and `AresOsClient.regainedFocus`. Only `ClickToLook.start` gets through: it clears the free state

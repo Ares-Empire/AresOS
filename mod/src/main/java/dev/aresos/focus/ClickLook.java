@@ -16,14 +16,20 @@ public final class ClickLook {
      */
     public static final long START_GRACE_MS = 250;
 
-    private boolean looking;
+    private boolean looking, own;
     private long stillSince;
     private long clickWaitsUntil = -1;
 
-    /** Once a frame: whether the world holds the mouse in look mode now. A new capture starts the stillness count. */
+    /** Once a frame: whether the world holds the mouse now. A new capture starts the stillness count. */
     public void frame(boolean captured, long now) {
         if (captured && !looking) stillSince = now;
         looking = captured;
+        if (!captured) own = false;
+    }
+
+    /** A click or a movement key took the mouse: this capture is look mode's own. */
+    public void began() {
+        own = true;
     }
 
     /** The mouse moved, a button or the wheel was used, or a movement key is held. */
@@ -35,9 +41,13 @@ public final class ClickLook {
         return looking;
     }
 
-    /** Look mode has been still long enough to end. */
+    /**
+     * The capture ends now: look mode has been still long enough, or look mode never started it. The second is a capture
+     * from before the desktop world was active (vanilla's grab when the loading screen closes): the cursor is free by
+     * default, so it is let go at once.
+     */
     public boolean due(long now) {
-        return looking && now - stillSince >= LOOK_RELEASE_MS;
+        return looking && (!own || now - stillSince >= LOOK_RELEASE_MS);
     }
 
     /** A click on the world found the window without GLFW's focus: it may start look mode until the grace ends. */
@@ -57,6 +67,7 @@ public final class ClickLook {
 
     public void reset() {
         looking = false;
+        own = false;
         clickWaitsUntil = -1;
     }
 
