@@ -880,3 +880,11 @@ Source replay and raw-byte checks verified all 314 host receipt rows.
 `git diff --check` passed. There are no files over 500 MB in `.work/`.
 Verification covered local fixtures. The hosted rerun and live VM remain
 unverified.
+
+## Hosted proof after step 5 (the lead, 2026-11-22/23)
+
+- **Checks 1:** run 45065464450 at `f4a33f85` FAILED. `test_owner_reset` raised FileNotFoundError writing `evidence/two-disk/…-shutdown-console.txt` on a fresh runner. It was fixed in `492fdf82` (evidence folders are created before writing).
+- **Checks 2:** run 45070065335 at `1ac63562` PASSED: the regressions (2642 tests) and the full ways-back model.
+- **Historical baseline preflight:** run 45073317069 at `1ac63562`, attempt 1, PASSED in about 2 h. Its artifacts are `release-29-baseline-receipt` and `release-29-baseline-evidence` (about 22 MB). The receipt must be checked with `release29_walk.py check-receipt` before the private upload, and redone if a bound baseline input changes.
+- **Ledger:** checks 2 of 2 and release-29-baseline 1 of 1 are spent, within the minute cap of 545. The publish caps stay 0.
+- **Next:** late-package slices for what is already on main (18c-b, B329, B330, the mod changes 327, 328a and 328), then the cut once B321 meets its conditions.
