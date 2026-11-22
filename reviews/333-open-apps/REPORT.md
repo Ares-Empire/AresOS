@@ -16,8 +16,24 @@
 - Step D starts a tray-resident app again after its last window closes. A second bring-back joins the new start while it waits for a window.
 - The live caps count a launch's own process or scope. A handoff with an ended process and a gone scope can still follow the shared window for its saved replies. Once it has no replies to update, the helper drops that tracker from memory and the saved journal.
 - When a view's quota blocks a launch at check completion, a joined desktop request reuses the check under the desktop's quota. The view receives `journal_full`. The desktop keeps its own request ID and screen hint and can still restore a window that appeared during the check.
+- Recheck 4 closes the gap between the launcher exiting and the scope watcher taking over. The slot stays occupied through `ACTIVE` and `UNKNOWN` and is released when the watcher reports `GONE`, even if a window or saved reply is still tracked.
 
 ## Verified
+
+### Fifth fix (RECHECK-4)
+
+Each command used `python3 reviews/333-open-apps/headless.py <filename>` with a private home, runtime, state directory, headless labwc compositor and D-Bus session.
+
+| Filename | Output |
+|---|---|
+| `test_aresos_shell_views.py` | `Ran 34 tests in 1.370s`, `OK` |
+| `test_aresos_shell_open_apps.py` | `Ran 23 tests in 3.067s`, `OK` |
+| `test_aresos_shell.py` | `Ran 76 tests in 20.673s`, `OK` |
+
+- The new test simulates a reviewed launcher's child mapping a window in the launcher's scope. With 31 other view launches, a second view with replay room gets `journal_full` and the existing `too many launches in the last few minutes; try again shortly` message while the scope is `ACTIVE` or its status is `UNKNOWN`. The same request starts once the watcher reports `GONE`. Before the fix, the view module printed `Ran 34 tests in 1.336s` and `FAILED (failures=3)`. The 33rd launch succeeded and the watcher never registered the child's scope.
+- The fourth fix's handoff test passed. Existing exit tests drive a scope poll before asserting that an ended launch has freed capacity. `test_aresos_shell.py` printed its existing unclosed-socket `ResourceWarning` messages. `git diff --check` passed. The worktree's `.work/` had zero files over 500 MB.
+
+`gh workflow run 'OS image' --ref pkg/333-open-apps -f checks_only=true` dispatched the hosted checks on `49afa5c6`. `gh run watch 45071622587 --exit-status --interval 60` exited 0. Both the new quota regression and the fourth fix's handoff test passed. The regression job printed `Ran 2518 tests in 2799.776s` and `OK (skipped=24)`. The system manager check reported 437 unit files and 478 unit names. The ways-back job passed its source-change check and skipped the full model. [Hosted OS checks](https://github.com/Ares-Empire/AresOS/actions/runs/45071622587)
 
 ### Fourth fix (RECHECK-3)
 
@@ -148,6 +164,7 @@ After both passes, `git checkout -- reviews/` restored 66 tracked screenshots an
 
 ## Not verified
 
+- The fifth-fix regression feeds simulated window events and `systemctl list-units` output to the helper in the private session. The scenario was not exercised with a real launcher and child in a user scope.
 - Bringing back the owner's real Chrome window with its tabs and trying the marks in the owner's live home. The headless restore check uses two stand-in windows and the actual helper and compositor.
 - Whether the installed Chrome turns a fresh invocation into a new window with its current settings.
 
