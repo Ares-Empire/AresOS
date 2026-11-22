@@ -15,8 +15,13 @@
     <font place="OnScreenDisplay"><name>Jersey 10</name><size>28</size></font>
   </theme>
   <keyboard>
-    <!-- The recovery terminal, and the startup cover (package 23b) ends so that it can be seen. -->
-    <keybind key="W-C-Escape"><action name="Execute" command="/usr/bin/aresos-terminal --recovery" /><action name="Execute" command="/usr/libexec/aresos-desktop hide-cover" /></keybind>
+    <keybind key="W-S-Escape" allowWhenInhibited="yes">
+      <action name="Execute" command="/usr/libexec/aresos-input-portal --release" />
+    </keybind>
+    <keybind key="W-C-Escape" allowWhenInhibited="yes">
+      <action name="Execute" command="/usr/bin/sh -c '/usr/libexec/aresos-input-portal --release; exec /usr/bin/aresos-terminal --recovery'" />
+      <action name="Execute" command="/usr/libexec/aresos-desktop hide-cover" />
+    </keybind>
     <keybind key="A-F4"><action name="Close" /></keybind>
     <keybind key="A-Tab"><action name="NextWindow" /></keybind>
     <keybind key="A-S-Tab"><action name="PreviousWindow" /></keybind>
