@@ -39,6 +39,10 @@ report = {'argv': sys.argv[1:], 'tmpdir': os.environ['TMPDIR'], 'config': os.env
           'settings': (profile / 'Deskflow.conf').read_text(),
           'certificate': (profile / 'tls/deskflow.pem').exists(),
           'trust_at_start': trusted.read_text() if trusted.exists() else None, 'client': False}
+record = Path(os.environ['XDG_RUNTIME_DIR']) / 'aresos-deskflow.pid'
+report['processes'] = [int(line.split()[0]) for line in record.read_text().splitlines()]
+report['actual_processes'] = [os.getppid(), os.getpid()]
+report['record_mode'] = record.stat().st_mode & 0o777
 server = socket.socket(socket.AF_UNIX)
 server.bind(os.path.join(os.environ['TMPDIR'], 'deskflow-core'))
 server.listen(1)
@@ -195,6 +199,14 @@ class PairingTest(unittest.TestCase):
         self.assertEqual(report['trust_at_start'], OLD + '\n')
         self.assertEqual(self.asked, [])
         self.assertEqual(self.saved(), OLD + '\n')
+
+    def test_core_starts_only_after_the_private_process_record_is_ready(self):
+        (self.source / 'tls').mkdir()
+        (self.source / 'tls/trusted-clients').write_text(OLD + '\n')
+        report = self.launch(peers=[], accept_within=0.1)
+        self.assertEqual(report['processes'], report['actual_processes'])
+        self.assertEqual(report['record_mode'], 0o600)
+        self.assertFalse((self.runtime / 'aresos-deskflow.pid').exists())
 
     def test_a_trust_list_with_two_entries_is_refused_and_points_to_enroll(self):
         (self.source / 'tls').mkdir()

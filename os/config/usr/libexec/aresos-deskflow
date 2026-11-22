@@ -7,6 +7,7 @@
 TLS and the peer check are on whatever the user's settings say, and the server trusts at most one fingerprint:
 the one the owner accepted after comparing it with what the Mac's Deskflow shows (brief 321, laptop test 3).
 """
+from contextlib import contextmanager
 import fcntl
 import os
 from pathlib import Path
@@ -275,6 +276,27 @@ def relay_core_output(stream, output):
             continue
 
 
+def process_identity(pid):
+    # Linux stat field 22, after the parenthesized comm (which can contain spaces and parentheses).
+    fields = Path(f'/proc/{pid}/stat').read_text().rpartition(') ')[2].split()
+    return f'{pid} {fields[19]}\n'
+
+
+@contextmanager
+def core_start(core, env, record, launcher):
+    # The core can ask D-Bus for a session as soon as it execs. Publish its identity first.
+    # If the launcher dies before registration, the pipe closes and the child cannot exec it.
+    read_fd, write_fd = os.pipe()
+    with os.fdopen(read_fd, 'rb') as reader, os.fdopen(write_fd, 'wb') as gate:
+        command = ['/usr/bin/sh', '-c', 'read -r ready && exec "$1" server </dev/null', 'deskflow-start', core]
+        with subprocess.Popen(command, env=env, stdin=reader, stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT) as process:
+            with gate:
+                write_private(record, launcher + process_identity(process.pid))
+                gate.write(b'start\n')
+            yield process
+
+
 def main(argv=None, core=CORE, prompt=None, openssl=OPENSSL, pairing_within=10.0, sharing_on=None):
     argv = sys.argv[1:] if argv is None else argv
     if argv not in ([], ['--enroll']):
@@ -291,10 +313,16 @@ def main(argv=None, core=CORE, prompt=None, openssl=OPENSSL, pairing_within=10.0
             if argv:
                 raise ValueError('Deskflow is already running. Turn sharing off, then on, before pairing again.')
             return 0
-        return serve(argv, core, prompt, openssl, pairing_within, sharing_on, runtime_dir)
+        record = runtime_dir / 'aresos-deskflow.pid'
+        launcher = process_identity(os.getpid())
+        write_private(record, launcher)
+        try:
+            return serve(argv, core, prompt, openssl, pairing_within, sharing_on, runtime_dir, record, launcher)
+        finally:
+            record.unlink(missing_ok=True)
 
 
-def serve(argv, core, prompt, openssl, pairing_within, sharing_on, runtime_dir):
+def serve(argv, core, prompt, openssl, pairing_within, sharing_on, runtime_dir, record, launcher):
     config = Path(os.environ.get('XDG_CONFIG_HOME') or Path.home() / '.config')
     source = config / 'Deskflow'
     pairing = argv == ['--enroll'] or not saved_trust(source)
@@ -309,8 +337,7 @@ def serve(argv, core, prompt, openssl, pairing_within, sharing_on, runtime_dir):
         env = dict(os.environ, XDG_CONFIG_HOME=runtime, QT_QPA_PLATFORM='wayland', XDG_SESSION_TYPE='wayland',
                    TMPDIR=runtime)
         env.pop('DISPLAY', None)
-        with subprocess.Popen([core, 'server'], env=env, stdout=subprocess.PIPE,
-                              stderr=subprocess.STDOUT) as process:
+        with core_start(core, env, record, launcher) as process:
             signal.signal(signal.SIGTERM, lambda *_: process.terminate())
             finished = threading.Event()
             watcher = threading.Thread(target=watch_sharing, args=(process, finished, sharing_on, on))
