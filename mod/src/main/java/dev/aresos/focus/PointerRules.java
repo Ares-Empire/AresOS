@@ -21,4 +21,14 @@ public final class PointerRules {
         if (!free) return Click.VANILLA;
         return primary && appSlot ? Click.OPEN_APP : Click.ENTER_WORLD;
     }
+
+    /**
+     * Package 328a, the safe fallback: in a session's connected desktop world the world takes the mouse only while the
+     * compositor has given it the focus and the pointer is over its window. Otherwise labwc either never grants the pointer
+     * lock (another window has the keyboard) or Xwayland only confines the pointer (it rests on another window), and the
+     * hidden pointer then reaches the windows above the world. Outside such a world capture stays Minecraft's own.
+     */
+    public static boolean mayCapture(boolean desktop, boolean worldFocused, boolean pointerOverWorld) {
+        return !desktop || worldFocused && pointerOverWorld;
+    }
 }
