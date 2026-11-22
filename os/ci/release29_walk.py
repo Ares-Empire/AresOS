@@ -1,9 +1,10 @@
-"""Package 331's historical rehearsal through the first confirmed R28 boot."""
+"""Package 331's historical preflight and R29 deployment rehearsal."""
 import hashlib
 import json
 import pathlib
 import re
 import shlex
+import subprocess
 import sys
 from types import SimpleNamespace
 
@@ -12,6 +13,7 @@ import installer_webui
 import registry_auth
 import release28_walk as r28
 import stock_image
+import tools_local
 
 TOOLS_V5_COMMIT = '6ae4da41934821e5bcfda855ce057bc355900161'
 TOOLS_V5 = 'df89ac336e13db84934505551ba28163cbd60fa5b3b9fb0ec97b9585945896c6'
@@ -22,6 +24,8 @@ R13_IMAGE_PATHS = ('os/Containerfile.keyboard', 'os/.containerignore', 'os/packa
 BASELINE_RECEIPT = pathlib.Path('evidence/release-29-baseline.json')
 HOST_WALK_RECEIPT = 'os/manifest/ci/331/host-walk.json'
 PAYLOAD = 'os/owner-tools/payload'
+RECORD = 'os/manifest/releases/29.json'
+IDENTITY = 'https://github.com/Ares-Empire/AresOS/.github/workflows/os-image.yml@refs/heads/pkg/331-release-29'
 # This tracks the historical route's checkout inputs. Image sources, released tools and
 # old release records are checked at their pinned Git objects or against their record hashes.
 BASELINE_PATHS = (
@@ -118,10 +122,11 @@ def ui_hashes():
     return dict(bundle_sha256=installer_webui.UI_BUNDLE_SHA256, source_map_sha256=installer_webui.UI_SOURCE_MAP_SHA256)
 
 
-def prepare(vm):
+def prepare(vm, *, qualifying=False):
     """Resolve historical inputs and check same-run registry and ISO evidence before starting the guest."""
     registry_auth.require_baseline_dispatch()
-    BASELINE_RECEIPT.unlink(missing_ok=True)
+    if not qualifying:
+        BASELINE_RECEIPT.unlink(missing_ok=True)
     records = registry_auth.historical_records()
     registry = registry_auth.check_baseline_registry(read_json(registry_auth.BASELINE_REGISTRY),
                                                     records, registry_auth.baseline_run())
@@ -131,6 +136,108 @@ def prepare(vm):
     iso = installer_download(vm.td.LIVE)
     return SimpleNamespace(records=records, registry=registry, tools=tools, commands=commands,
                            inputs=baseline_inputs(), iso=iso)
+
+
+def announced(record, version, source='.', *, guide=None):
+    """Generate both release copies, history, manifests, commands and guide from the v5 line."""
+    release = json.loads(record)
+    reference = release['reference']
+    assert re.fullmatch(r'ghcr\.io/ares-empire/aresos@sha256:[0-9a-f]{64}', reference), 'STOP: R29 requires an exact org digest'
+    assert release['signature'] == dict(method='cosign keyless', identity=IDENTITY,
+                                       issuer='https://token.actions.githubusercontent.com'), 'STOP: wrong R29 signature policy'
+    assert release['daily_wheel'] is True and release['visibility'] == 'private' and record.endswith(b'\n')
+    show = lambda path: r28.git('show', TOOLS_V5_COMMIT + ':' + path, source=source)
+    assert r28.git('rev-parse', TOOLS_V5_COMMIT + ':os/owner-tools', source=source).decode().strip() == TOOLS_V5_TREE
+    assert sha256(show(PAYLOAD + '/SHA256SUMS')) == TOOLS_V5
+    history = json.loads(show('os/owner-tools/history.json'))
+    assert history['tools_version'] == 5 and type(version) is int and version > 5
+    assert reference not in {row['reference'] for row in history['releases']}, 'STOP: R29 reuses a historical digest'
+    history['tools_version'] = version
+    history['releases'].append(dict(reference=reference, identity=IDENTITY, daily_wheel=True))
+    raw_history = (json.dumps(history, indent=2) + '\n').encode()
+    payload = {'history.json': raw_history, 'release.json': record}
+    rows = [dict(sha256=sha256(payload[name] if name in payload else show(PAYLOAD + '/' + name)), path=name)
+            for name in (row['path'] for row in json.loads(show(PAYLOAD + '/SHA256.json')))]
+    manifest = (json.dumps(rows, indent=2) + '\n').encode()
+    sums = (''.join(row['sha256'] + '  ' + row['path'] + '\n' for row in rows)
+            + sha256(manifest) + '  SHA256.json\n').encode()
+    fingerprint = sha256(sums)
+    bootstrap = r28.bootstrap_of(source)
+    assert show('os/owner-tools/bootstrap.py') == r28.git('show', r28.V4_COMMIT + ':os/owner-tools/bootstrap.py', source=source)
+    commands = json.loads(show('os/owner-tools/commands.json'))
+    commands['install'] = bootstrap['command'](fingerprint)
+    commands.update(bootstrap['lines'](fingerprint))
+    header = r28.guide_line(fingerprint, version)
+    if guide is None:
+        lines = show(r28.GUIDE).decode().split('\n')
+        assert (lines[0], lines[2]) == (r28.guide_line(TOOLS_V5, 5), TOOLS_V5)
+        lines[0], lines[2] = header, fingerprint
+        guide = '\n'.join(lines).encode()
+    else:
+        lines = guide.decode().splitlines()
+        assert len(lines) >= 3 and (lines[0], lines[2]) == (header, fingerprint), 'STOP: the candidate guide fingerprint differs'
+    files = {'os/owner-tools/history.json': raw_history,
+             'os/owner-tools/commands.json': (json.dumps(commands, indent=2) + '\n').encode(),
+             'os/manifest/release.json': record, r28.GUIDE: guide}
+    files.update({PAYLOAD + '/' + name: raw for name, raw in
+                  dict(payload, **{'SHA256.json': manifest, 'SHA256SUMS': sums}).items()})
+    return dict(files=files, fingerprint=fingerprint, version=version, reference=reference, commands=commands)
+
+
+def candidate_origin(destination, historical, record, version, source='.', *, guide=None):
+    candidate = announced(record, version, source, guide=guide)
+    # The alternate bundle changes its fingerprint without changing the target or version.
+    mismatch = dict(json.loads(record), owner_review='Equal-version rehearsal fixture')
+    alternate = announced((json.dumps(mismatch, indent=2) + '\n').encode(), version, source)
+    assert alternate['fingerprint'] != candidate['fingerprint']
+    destination.mkdir(parents=True, exist_ok=False)
+    repo = destination / 'stand-in.git'
+    subprocess.run(['git', 'clone', '--quiet', '--bare', str(historical['repository']), str(repo)], check=True)
+    base = historical['commits']['announced']
+    commits, hashes = {'v5': base}, {'v5': historical['hashes']['announced']}
+    parent = base
+    for key, made in (('mismatch', alternate), ('announced', candidate)):
+        tree, hashes[key] = r28.tree_with(repo, base, made['files'])
+        parent = commits[key] = r28.git('commit-tree', tree, '-p', parent, '-m', 'R29 rehearsal ' + key,
+                                        env=tools_local.STANDIN_ENV, source=repo).decode().strip()
+    r28.git('update-ref', 'refs/heads/main', commits['announced'], source=repo)
+    bundle = destination / 'stand-in.bundle'
+    r28.git('bundle', 'create', str(bundle.resolve()), 'main', source=repo)
+    return dict(candidate, bundle=bundle, repository=repo, commits=commits, hashes=hashes,
+                trees={key: rows['os/owner-tools'] for key, rows in hashes.items()},
+                variants={'v5': (TOOLS_V5, 5), 'mismatch': (alternate['fingerprint'], version),
+                          'announced': (candidate['fingerprint'], version)})
+
+
+def candidate_equality(head, standin, source='.', *, allow_deferred=False):
+    """Compare full published trees and guide, including modes, before the update route."""
+    head = r28.git('rev-parse', '--verify', head + '^{commit}', source=source).decode().strip()
+    paths = (*r28.BOUND, r28.GUIDE)
+    current = {path: r28.git('ls-tree', head, '--', path, source=source).decode().split() for path in paths}
+
+    def differences(key):
+        return [path for path, (mode, kind) in zip(paths, (('040000', 'tree'), ('100644', 'blob'), ('100644', 'blob')))
+                if current[path] != [mode, kind, standin['hashes'][key][path], path]]
+
+    if not differences('v5'):
+        assert allow_deferred, 'STOP: final qualification requires candidate equality before the walk'
+        return dict(head=head, equal=False, deferred=True)
+    differ = differences('announced')
+    assert not differ, 'STOP: candidate differs from the rehearsed bundle or guide in ' + ', '.join(differ)
+    return dict(head=head, equal=True, bound=standin['hashes']['announced'], fingerprint=standin['fingerprint'])
+
+
+def prepare_candidate(vm, prepared, head):
+    """Resolve the real candidate against the committed record before starting any guest."""
+    record = r28.git('show', head + ':' + RECORD)
+    assert pathlib.Path(RECORD).read_bytes() == record, 'STOP: candidate record differs from its commit'
+    assert json.loads(record)['base'] == stock_image.base()['reference'], 'STOP: candidate base differs from R28'
+    version = json.loads(r28.git('show', head + ':os/owner-tools/history.json'))['tools_version']
+    historical = r28.standin_origin(vm.td.WORK / 'stand-in-28', prepared.records['28'])
+    candidate = candidate_origin(vm.td.WORK / 'stand-in-29', historical, record, version,
+                                 guide=r28.git('show', head + ':' + r28.GUIDE))
+    equality = candidate_equality(head, candidate)
+    return SimpleNamespace(historical=historical, candidate=candidate, equality=equality)
 
 
 # Submitted to the serial root shell in the disposable guest. Read the installed files themselves
@@ -155,22 +262,302 @@ print(json.dumps(dict(files=files, entry=entry,
 
 
 def installed_v5(vm, guest):
-    source = INSTALLED.replace('@DIRECTORY@', repr('tools-' + TOOLS_V5))
-    observed = guest.capture_json('release-28-baseline-tools', vm.sw.framed('python3 -c ' + shlex.quote(source)))
-    paths = r28.git('ls-tree', '-r', '--name-only', TOOLS_V5_COMMIT, PAYLOAD).decode().splitlines()
-    expected = {path.removeprefix(PAYLOAD + '/'): sha256(vm.git_blob(TOOLS_V5_COMMIT, path)) for path in paths}
-    assert observed['entry'] == 'tools-' + TOOLS_V5 + '/at' and observed['files'] == expected, \
-        'STOP: installed tools differ from released v5'
+    return installed_tools(vm, guest, 'release-28-baseline-tools', TOOLS_V5, TOOLS_V5_COMMIT)
+
+
+def installed_tools(vm, guest, stage, fingerprint, commit, repo='.'):
+    source = INSTALLED.replace('@DIRECTORY@', repr('tools-' + fingerprint))
+    observed = guest.capture_json(stage, vm.sw.framed('python3 -c ' + shlex.quote(source)))
+    paths = r28.git('ls-tree', '-r', '--name-only', commit, PAYLOAD, source=repo).decode().splitlines()
+    expected = {path.removeprefix(PAYLOAD + '/'): sha256(r28.git('show', commit + ':' + path, source=repo)) for path in paths}
+    assert observed['entry'] == 'tools-' + fingerprint + '/at' and observed['files'] == expected, \
+        'STOP: installed tools differ from ' + ('released v5' if fingerprint == TOOLS_V5 else 'the R29 candidate')
     assert observed['phase'] in (None, 'complete') and observed['pending'] is False, \
         'STOP: baseline tools or deployment change remains open'
     return observed
 
 
-def rehearsal(vm, audit, media, password, hashed, daily_password, version_2, prepared):
+class CandidateWalk(r28.Walk):
+    """Use the existing guest origin and the published folder and password-window lines."""
+
+    def setup(self, stage):
+        self.upload_bundle(stage)
+        self.guest.command(stage + '-fetch', 'set -e\n' + tools_local.AS_ARES + 'git -C ' + tools_local.GUEST_ORIGIN
+                           + ' fetch --quiet /run/aresos-standin.bundle refs/heads/main:refs/heads/rehearsal-29')
+        self.advance_origin(stage)
+        self.keyrings = self.capture(stage + '-keyrings', tools_local.KEYRINGS)
+
+    def routine(self, stage, key):
+        fingerprint, version = self.standin['variants'][key]
+        commit = self.standin['commits'][key]
+        action = self.bootstrap.ACTIONS['tools-routine']
+        guide = r28.git('show', commit + ':' + r28.GUIDE, source=self.standin['repository']).decode().splitlines()
+        assert (guide[0], guide[2]) == (r28.guide_line(fingerprint, version), fingerprint), 'STOP: guide and window differ'
+        self.compared.append(dict(stage=stage, commit=commit, line_1=guide[0], label_8=fingerprint[:8]))
+        self.vm.td.save(stage + '-owner-tools-line-1', self.compared[-1])
+        out = self.caller(stage, ('folder', 'routine', 'no-ticket'), commit,
+                          entries=dict(folder='tools-folder', routine='tools-routine'))
+        self.window(stage, out, fingerprint, action, 'password')
+        done = self.result(stage, out)
+        self.lines_are(done, dict(folder=self.bootstrap.tools_folder(fingerprint), routine=self.bootstrap.tools_routine(fingerprint)))
+        assert done['folder']['status'] == 0, 'STOP: the candidate folder route failed'
+        response = done['routine']
+        messages = response['stdout'].splitlines()
+        passes = [line for line in messages if line.startswith('PASS ')]
+        if key == 'announced':
+            assert response['status'] == 0 and passes == ['PASS install', 'PASS check', 'PASS title'] \
+                and 'manifest SHA256 ' + fingerprint in messages, 'STOP: the candidate routine did not install, check and title'
+            assert done['no_ticket']['status'] != 0, 'STOP: sudo kept a ticket after the window'
+        else:
+            assert response['status'] != 0 and not passes and any(
+                line.startswith('STOP: Installed tools are version ' + str(self.standin['version'])
+                                + '; refusing version ' + str(version) + ' (downgrade or same version)')
+                for line in messages), 'STOP: the version refusal did not happen at install'
+        return messages
+
+    def install(self):
+        self.setup('r29-setup')
+        initial = self.state('r29-before-tools')
+        assert initial['entry'] == 'tools-' + TOOLS_V5 + '/at'
+        fingerprint, version = self.standin['fingerprint'], self.standin['version']
+        messages = self.routine('r29-tools', 'announced')
+        assert 'Tools updated from version 5 to ' + str(version) in messages, 'STOP: the candidate did not replace v5'
+        receipt = self.capture('r29-tools-receipt', self.vm.diagnostic_reader(initial['records'], 'tools-update'))
+        self.vm.td.save('r29-tools-receipt', receipt)
+        assert (receipt['status'], receipt['previous_version'], receipt['tools_version']) == ('passed', 5, version)
+        assert (receipt['previous_manifest'], receipt['manifest']) == (TOOLS_V5, fingerprint)
+        assert receipt['source'] == receipt['finished_from'] == 'folder' and receipt['caller'] == dict(login_uid=1001, terminal=False)
+        installed = self.state('r29-after-tools')
+        assert installed['entry'] == 'tools-' + fingerprint + '/at' and installed['journal']['phase'] == 'complete'
+        command = tools_local.AS_ARES + 'git -C ' + self.bootstrap.CHECKOUT + ' checkout --quiet '
+        for key, suffix in (('announced', 'identical'), ('mismatch', 'mismatch'), ('v5', 'v5')):
+            stage = 'r29-tools-' + suffix
+            if key != 'announced':
+                self.guest.command(stage + '-checkout', command + '--detach ' + self.standin['commits'][key])
+            messages = self.routine(stage, key)
+            if key == 'announced':
+                assert 'Tools already installed; nothing changed' in messages, 'STOP: the identical bundle was not a no-op'
+            final = self.state(stage + '-rechecked')
+            # Each invocation can leave diagnostics and a private bootstrap copy.
+            for field in ('tools', 'entry', 'toolsets', 'journal'):
+                assert final[field] == installed[field], 'STOP: the routine replay changed installed tools at ' + field
+        self.guest.command('r29-tools-candidate-checkout', command + 'main')
+        return receipt
+
+
+def terminal(guest, stage, vm):
+    r28.end_foot(guest, stage, vm)
+    return r28.open_terminal(guest, stage, vm)
+
+
+SAVE_GATE = '''import json,subprocess
+command=@COMMAND@
+state=json.loads(subprocess.check_output(command+['status'],text=True))
+mode,reason=state.get('state'),state.get('reason')
+closed=state.get('ready') is False and 'jvm_pid' in state and state['jvm_pid'] is None
+if closed and (mode,reason)==('RECOVERY','quit'):
+    message=subprocess.check_output(command+['explain'],text=True).splitlines()
+    closed='Minecraft was closed. Nothing is wrong.' in message
+print(json.dumps(dict(state=mode,reason=reason,safe=closed and (mode=='SETUP' or (mode,reason)==('RECOVERY','quit')))))
+'''
+
+
+def save_gate(vm, guest, stage):
+    # The rehearsal stays in SETUP. An open or indeterminate world needs the
+    # guide's normal close and acknowledgement before the owner can continue.
+    source = r28.program(SAVE_GATE, command=[*r28.AS_ARES, '/usr/libexec/aresos-desktop'])
+    state = guest.capture_json(stage + '-save-gate', vm.sw.framed('python3 -c ' + shlex.quote(source)))
+    vm.td.save(stage + '-save-gate', state)
+    assert state['safe'] is True, 'STOP: get Help before restarting R28 without a confirmed normal Minecraft close'
+
+
+def shape(vm, guest, stage, stock, order, running, retained, *, staged=False, queued=False, snapshot=None):
+    snapshot = vm.kb.deployment_snapshot(guest, stage) if snapshot is None else snapshot
+    identities, booted = vm.deployment_shape(snapshot, stock, order, staged=staged, queued=queued)
+    assert booted == running, 'STOP: wrong booted release at ' + stage
+    assert len(set(identities.values())) == len(order), 'STOP: duplicate deployment identity at ' + stage
+    assert all(identities.get(digest) == identity for digest, identity in retained.items()), \
+        'STOP: retained deployment changed at ' + stage
+    rows = dict(zip(order, snapshot['rpm']['deployments']))
+    assert rows[order[-1]]['container-image-reference'] == stock['container-image-reference'], 'STOP: corrected stock origin changed'
+    slots = snapshot['bootc']['status']
+    other = next(digest for digest in order[int(staged):] if digest != booted)
+    expected = {'booted': booted, 'staged': order[0] if staged else None, 'rollback': other}
+    for name, digest in expected.items():
+        slot = slots.get(name)
+        assert bool(slot) == (digest is not None), 'STOP: unexpected bootc ' + name + ' slot'
+        if slot:
+            ostree = slot['ostree']
+            assert slot['image']['imageDigest'] == digest and \
+                (ostree['checksum'], ostree['deploySerial'], ostree['stateroot']) == identities[digest], \
+                'STOP: bootc disagrees with the ' + name + ' deployment at ' + stage
+            reference = rows[digest]['container-image-reference'].removeprefix('ostree-unverified-registry:').removeprefix(
+                'ostree-image-signed:docker://')
+            assert slot['image']['image']['image'] == reference and reference.endswith('@' + digest) and slot['pinned'] is rows[digest]['pinned'], \
+                'STOP: bootc reference or pin disagrees with ' + name + ' at ' + stage
+    return identities
+
+
+def title(vm, console, stage, order, *, staged=False):
+    lines = vm.result_lines(console.run('title', stage + '-title'))
+    assert 'pin yes; transaction idle' in lines and 'Previous title INVALID; use this record until the next reorder' in lines, \
+        'STOP: title did not refresh the pinned deployment state'
+    label = 'Boot menu after the update finishes at shutdown (expected):' if staged else 'Boot menu at the next start:'
+    menus = [line.removeprefix(label).strip().split('; ') for line in lines if line.startswith(label)]
+    assert len(menus) == 1 and len(menus[0]) == len(order) and all(
+        digest.split(':')[1][:12] in row for digest, row in zip(order, menus[0])), 'STOP: title shows the wrong boot order'
+    return lines
+
+
+def stage_candidate(vm, guest, console, route, release, confirmed, daily_password, candidate):
+    assert route['stock_digest'] == stock_image.base()['digest']
+    d28, d29 = (reference.split('@')[1] for reference in (release, candidate['reference']))
+    d27, stock_digest, stock = route['new_digest'], route['stock_digest'], route['stock']
+    kept = r28.home(guest, 'r29-starting-28', vm, plant=True)
+    assert kept['planted'], 'STOP: starting R28 did not plant the apps fixture'
+    walk = CandidateWalk(vm, guest, daily_password, candidate, bootstrap=SimpleNamespace(**r28.bootstrap_of()))
+    receipt = walk.install()
+    before = [d28, d27, stock_digest]
+    shape(vm, guest, 'r29-after-tools-shape', stock, before, d28, confirmed)
+    installed_tools(vm, guest, 'r29-candidate-tools', candidate['fingerprint'], candidate['commits']['announced'], candidate['repository'])
+
+    console.commands = candidate['commands']
+    update = console.run('update', 'r29-update', allow_stop=True)
+    if update['status'] == 'stopped':
+        shape(vm, guest, 'r29-update-refused', stock, before, d28, confirmed)
+        raise AssertionError('STOP: update was refused; keep the console result and get Help')
+    lines = vm.result_lines(update)
+    assert 'Signed exact release staged ' + candidate['reference'] in lines and 'Running release stays as rollback ' + release in lines, \
+        'STOP: update did not name the exact staged and retained releases'
+    retirement = [line for line in lines if line.endswith(' is removed when the update finishes at shutdown')]
+    assert retirement == ['Older AresOS ' + route['new'] + ' is removed when the update finishes at shutdown'], \
+        'STOP: update did not name R27 as the sole retirement'
+    assert 'pin yes; transaction idle' in lines, 'STOP: staging did not report pinned stock and an idle transaction'
+    staged = shape(vm, guest, 'r29-update-staged', stock, [d29, d28, d27, stock_digest], d28, confirmed, staged=True)
+    title(vm, console, 'r29-update', [d29, d28, stock_digest], staged=True)
+    guest.media_absent('r29-before-export')
+    export = console.run('export', 'r29-update-export')
+    assert 'Tools stick absent: records copied to /run/ares-records with SHA256 readback' in vm.result_lines(export), \
+        'STOP: no-stick export did not report SHA256 readback'
+    save_gate(vm, guest, 'r29-update-reboot')
+    console.run('reboot', 'r29-update-reboot')
+    vm.td.save('r29-tools-walk', dict(receipt=receipt, compared=walk.compared, dialogs=walk.dialogs))
+    return dict(home=kept, before=confirmed, staged=staged)
+
+
+def boot_console(vm, guest, password, stage, commands, *, no_foot=False):
+    vm.keyboard(guest, stage, 'de')
+    console = vm.Console(guest, commands=commands)
+    console.login(password, stage)
+    console.become_root(password, stage)
+    if no_foot:
+        r28.no_foot(console, guest, stage, vm)
+    else:
+        terminal(guest, stage, vm)
+    checked = console.run('check', stage + '-check')
+    return console, vm.result_lines(checked)
+
+
+def confirm(vm, guest, console, stage, lines, change, reference, order, candidate):
+    fresh = title(vm, console, stage, order)
+    expected = change + ' to ' + reference + ' confirmed after the restart'
+    assert expected in lines + fresh, 'STOP: the exact ' + change.lower() + ' was not confirmed'
+    installed_tools(vm, guest, stage + '-tools', candidate['fingerprint'], candidate['commits']['announced'], candidate['repository'])
+    return expected
+
+
+def recover_update(vm, guest, password, stage, snapshot, stock, r28_order, r29_order, update, candidate, *, retry):
+    """Follow the failed-update card when the running system is still R28."""
+    ds = [row['container-image-reference-digest'] for row in snapshot['rpm']['deployments']]
+    applied = ds == r29_order
+    order = r29_order if applied else r28_order
+    running = r29_order[1]
+    retained = {digest: update['staged'][digest] for digest in order} if applied else update['before']
+    shape(vm, guest, stage + '-recovery', stock, order, running, retained, queued=applied, snapshot=snapshot)
+    console, lines = boot_console(vm, guest, password, stage + '-recovery', candidate['commands'])
+    title(vm, console, stage + '-recovery', order)
+    r28.home_unchanged(update['home'], r28.home(guest, stage + '-recovery', vm), prism_started=True)
+    change = 'Update to ' + candidate['reference']
+    if not applied:
+        assert change + ' was not applied: the deployments are as before it, and nothing is waiting' in lines, \
+            'STOP: failed update has an unrecognized outcome; get Help'
+        raise AssertionError('STOP: R29 was not applied; keep the result and get Help')
+    assert change + ' is in place and has not started yet' in lines and any(line.endswith('this start was not the default') for line in lines), \
+        'STOP: could not confirm the staged update is in place; get Help'
+    assert retry, 'STOP: R29 still did not start after the recovery restart; get Help'
+    save_gate(vm, guest, stage + '-recovery-reboot')
+    console.run('reboot', stage + '-recovery-reboot')
+
+
+def complete_candidate(vm, audit, password, hashed, route, release, qualifying, update):
+    td, candidate = vm.td, qualifying.candidate
+    d28, d29 = (reference.split('@')[1] for reference in (release, candidate['reference']))
+    stock, stock_digest = route['stock'], route['stock_digest']
+    first, back = [d29, d28, stock_digest], [d28, d29, stock_digest]
+    retained = {digest: update['staged'][digest] for digest in first}
+    r28_order = [d28, route['new_digest'], stock_digest]
+    assert audit.windows_default is True, 'STOP: Windows must remain the firmware default'
+    # Each start_installed is the VM's audited one-time F12 -> Bazzite selection.
+    for stage in ('release-29', 'release-29-retry'):
+        guest = td.start_installed(password, hashed, stage)
+        try:
+            snapshot = vm.kb.deployment_snapshot(guest, stage)
+            if vm.sw.booted_digest(snapshot['bootc']) == d28:
+                recover_update(vm, guest, password, stage, snapshot, stock, r28_order, first, update, candidate,
+                               retry=stage == 'release-29')
+                continue
+            shape(vm, guest, stage, stock, first, d29, retained, snapshot=snapshot)
+            console, lines = boot_console(vm, guest, password, stage, candidate['commands'], no_foot=True)
+            updated = confirm(vm, guest, console, stage, lines, 'Update', candidate['reference'], first, candidate)
+            r28.home_unchanged(update['home'], r28.home(guest, stage, vm), prism_started=True)
+            previous = console.run('previous', 'r29-previous')
+            assert 'Previous AresOS queued for the next start ' + release in vm.result_lines(previous)
+            shape(vm, guest, 'r29-previous-queued', stock, back, d29, retained, queued=True)
+            title(vm, console, 'r29-previous', back)
+            console.run('reboot', 'r29-previous-reboot')
+            break
+        finally:
+            vm.finish(guest, audit, stage)
+
+    stage = 'previous-28'
+    guest = td.start_installed(password, hashed, stage)
+    try:
+        shape(vm, guest, stage, stock, back, d28, retained)
+        console, lines = boot_console(vm, guest, password, stage, candidate['commands'])
+        returned = confirm(vm, guest, console, stage, lines, 'Return', release, back, candidate)
+        r28.home_unchanged(update['home'], r28.home(guest, stage, vm), prism_started=True)
+        forward = console.run('forward', 'r29-forward')
+        assert 'Newest installed AresOS starts next ' + candidate['reference'] in vm.result_lines(forward)
+        shape(vm, guest, 'r29-forward-queued', stock, first, d28, retained, queued=True)
+        title(vm, console, 'r29-forward', first)
+        save_gate(vm, guest, 'r29-forward-reboot')
+        console.run('reboot', 'r29-forward-reboot')
+    finally:
+        vm.finish(guest, audit, stage)
+
+    stage = 'final-29'
+    guest = td.start_installed(password, hashed, stage)
+    try:
+        shape(vm, guest, stage, stock, first, d29, retained)
+        console, lines = boot_console(vm, guest, password, stage, candidate['commands'])
+        forwarded = confirm(vm, guest, console, stage, lines, 'Forward', candidate['reference'], first, candidate)
+        r28.home_unchanged(update['home'], r28.home(guest, stage, vm), prism_started=True)
+        console.logout(stage + '-logout')
+    finally:
+        vm.finish(guest, audit, stage)
+    td.marker(audit, 'final-unattended-windows')
+    td.marker(audit, 'final-detached-windows', detached=True)
+    td.save('release-29-deployment-walk', dict(status='passed', equality=qualifying.equality, tools=candidate['fingerprint'],
+        staged=d29, booted=d29, retired=route['new_digest'], identities=retained, home_preserved=True,
+        confirmations=[updated, returned, forwarded], protected_disk_audits=True))
+
+
+def rehearsal(vm, audit, media, password, hashed, daily_password, version_2, prepared, *, qualifying=None):
     """Reuse the R28 route through first confirmation and retain the baseline evidence."""
+    assert qualifying is None or qualifying.equality['equal'] is True, 'STOP: candidate equality is required before rehearsal'
     td = vm.td
     record = prepared.records['28']
-    standin = r28.standin_origin(td.WORK / 'stand-in-28', record)
+    standin = qualifying.historical if qualifying else r28.standin_origin(td.WORK / 'stand-in-28', record)
     assert standin['fingerprint'] == TOOLS_V5, 'STOP: stand-in differs from released v5'
     real = r28.real_commit(TOOLS_V5_COMMIT, standin)
     assert real['equal'] is True
@@ -184,7 +571,9 @@ def rehearsal(vm, audit, media, password, hashed, daily_password, version_2, pre
 
     guest = td.start_installed(password, hashed, 'release-28')
     try:
-        console, identities = r28.confirm_boot(vm, guest, password, route, release, commands=prepared.commands[5])
+        before_check = terminal if qualifying else None
+        console, identities = r28.confirm_boot(vm, guest, password, route, release,
+                                               commands=prepared.commands[5], before_check=before_check)
         digest = release.split('@')[1]
         expected = [digest, route['new_digest'], route['stock_digest']]
         snapshot = vm.kb.deployment_snapshot(guest, 'release-28-confirmed')
@@ -198,9 +587,17 @@ def rehearsal(vm, audit, media, password, hashed, daily_password, version_2, pre
                 (ostree['checksum'], ostree['deploySerial'], ostree['stateroot']) == confirmed[image_digest], \
                 'STOP: bootc disagrees with the confirmed ' + slot + ' deployment'
         installed = installed_v5(vm, guest)
-        console.logout('release-28-baseline-logout')
+        if qualifying:
+            assert served_webui(td.EVIDENCE) == ui_hashes()
+            update = stage_candidate(vm, guest, console, route, release, confirmed, daily_password, qualifying.candidate)
+        else:
+            console.logout('release-28-baseline-logout')
     finally:
         vm.finish(guest, audit, 'release-28')
+    if qualifying:
+        assert baseline_inputs() == prepared.inputs, 'STOP: baseline inputs changed during the rehearsal'
+        complete_candidate(vm, audit, password, hashed, route, release, qualifying, update)
+        return
     td.marker(audit, 'final-unattended-windows')
     td.marker(audit, 'final-detached-windows', detached=True)
 

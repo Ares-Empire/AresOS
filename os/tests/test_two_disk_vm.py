@@ -283,10 +283,27 @@ class TwoDiskHarnessTest(unittest.TestCase):
     def test_host_shutdown_cannot_be_accepted_as_orderly_guest_shutdown(self):
         guest = object.__new__(vm.Guest)
         guest.monitor = Mock(events=[dict(event='SHUTDOWN', data=dict(guest=False, reason='host-signal'))])
+        guest.transcript, guest.authentication_started, guest.secrets = '', True, []
         guest.writes = Mock()
-        with self.assertRaises(AssertionError):
+        with patch.object(vm, 'EVIDENCE', self.directory), self.assertRaises(AssertionError):
             guest.finish_shutdown('fixture', 'guest-shutdown')
         guest.writes.assert_not_called()
+
+    def test_shutdown_timeout_saves_redacted_console(self):
+        guest = object.__new__(vm.Guest)
+        guest.monitor = Mock(events=[])
+        guest.console = Mock()
+        guest.console.recv.return_value = b'shutting down fixture-secret\n'
+        guest.replies = Mock()
+        guest.replies.feed.return_value = b''
+        guest.transcript, guest.authentication_started, guest.secrets = '', True, ['fixture-secret']
+        with patch.object(vm, 'EVIDENCE', self.directory), patch.object(vm.time, 'monotonic', side_effect=[0, 1, 181]), \
+                self.assertRaisesRegex(AssertionError, 'did not shut down'):
+            guest.finish_shutdown('fixture-timeout', 'guest-shutdown')
+        output = (self.directory / 'fixture-timeout-shutdown-console.txt').read_text()
+        self.assertIn('shutting down', output)
+        self.assertNotIn('fixture-secret', output)
+        guest.monitor.command.assert_not_called()
 
     def failure_guest(self, query):
         guest = object.__new__(vm.Guest)

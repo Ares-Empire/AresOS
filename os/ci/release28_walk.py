@@ -276,19 +276,24 @@ class Walk(tools_local.Walk):
         super().__init__(vm, guest, ares_password, standin, 'announced', standin['fingerprint'], bootstrap=bootstrap)
         self.compared = []
 
-    def setup(self, stage):
+    def upload_bundle(self, stage):
         guest, data = self.guest, base64.b64encode(self.standin['bundle'].read_bytes()).decode()
         guest.command(stage + '-bundle-begin', 'set -e; rm -f /run/aresos-standin.b64; : > /run/aresos-standin.b64')
         size = 48000
         for index in range(0, len(data), size):
             guest.command(stage + '-bundle-' + str(index // size), 'set -e; printf %s ' + data[index:index + size] + ' >> /run/aresos-standin.b64')
         digest = hashlib.sha256(self.standin['bundle'].read_bytes()).hexdigest()
-        first, checkout, origin = self.standin['commits']['v4'], self.bootstrap.CHECKOUT, tools_local.GUEST_ORIGIN
-        ares = tools_local.AS_ARES
-        guest.command(stage + '-origin', '\n'.join([
+        guest.command(stage + '-bundle-verified', '\n'.join([
             'set -e', 'cd /var/home/ares', 'base64 -d /run/aresos-standin.b64 > /run/aresos-standin.bundle; rm /run/aresos-standin.b64',
             'test "$(sha256sum < /run/aresos-standin.bundle)" = ' + shlex.quote(digest + '  -'),
-            'chmod 0644 /run/aresos-standin.bundle',
+            'chmod 0644 /run/aresos-standin.bundle']))
+
+    def setup(self, stage):
+        self.upload_bundle(stage)
+        first, checkout, origin = self.standin['commits']['v4'], self.bootstrap.CHECKOUT, tools_local.GUEST_ORIGIN
+        ares = tools_local.AS_ARES
+        self.guest.command(stage + '-origin', '\n'.join([
+            'set -e', 'cd /var/home/ares',
             ares + 'git clone --quiet --bare /run/aresos-standin.bundle ' + origin,
             ares + 'git -C ' + origin + ' update-ref refs/heads/main ' + first,
             ares + 'git -C ' + origin + ' symbolic-ref HEAD refs/heads/main',
@@ -665,12 +670,21 @@ def home_unchanged(before, after, *, prism_started=False):
 
 def no_foot(console, guest, stage, vm):
     """The lead's note: `at check` with no foot of ares STOPs with FOOT_STOP; then the Terminal app's foot again."""
-    ended = guest.capture_json(stage + '-end-foot', vm.sw.framed('python3 -c ' + shlex.quote(END_FOOT)))
-    vm.td.save(stage + '-end-foot', ended)
-    assert ended['left'] == 0, 'STOP: a foot of ares is still running'
+    ended = end_foot(guest, stage, vm)
     stopped = console.run('check', stage + '-no-foot-check', expect_stop=True)
     assert FOOT_STOP in str(stopped['error']), 'STOP: check without foot did not stop with ' + FOOT_STOP + ': ' + str(stopped['error'])
     assert not any(row.get('mutation') for row in stopped['trace']), 'STOP: the stopped check changed something'
+    return dict(ended=ended['ended'], stop=str(stopped['error']), terminal=open_terminal(guest, stage, vm))
+
+
+def end_foot(guest, stage, vm):
+    ended = guest.capture_json(stage + '-end-foot', vm.sw.framed('python3 -c ' + shlex.quote(END_FOOT)))
+    vm.td.save(stage + '-end-foot', ended)
+    assert ended['left'] == 0, 'STOP: a foot of ares is still running'
+    return ended
+
+
+def open_terminal(guest, stage, vm):
     # His guide opens the Terminal app on his desktop: back to tty1 and his active session first.
     guest.keys(['ctrl', 'alt', 'f1'])
     guest.command(stage + '-terminal-desktop', 'set -e; for n in {1..60}; do if test "$(cat /sys/class/tty/tty0/active)" = tty1; then exit 0; fi; sleep 1; done; exit 1')
@@ -683,7 +697,7 @@ def no_foot(console, guest, stage, vm):
     assert opened['home'] is True, "STOP: the desktop supervisor's HOME is not his home"
     assert opened['foot'] >= 1, 'STOP: the Terminal app did not open a foot'
     assert opened['running'] >= 1, "STOP: the Terminal app's foot exited at once: " + opened['log'][-500:]
-    return dict(ended=ended['ended'], stop=str(stopped['error']), terminal=opened)
+    return opened
 
 
 def game_scope(guest, stage, vm):
@@ -791,7 +805,7 @@ def stage_update(vm, audit, media, password, hashed, ares_password, version_2, r
     return route, staged, walk, sites
 
 
-def confirm_boot(vm, guest, password, route, reference, *, commands=None):
+def confirm_boot(vm, guest, password, route, reference, *, commands=None, before_check=None):
     """Check the first R28 boot and confirm its exact update through the console."""
     digest = reference.split('@')[1]
     identities, booted = vm.deployment_shape(vm.kb.deployment_snapshot(guest, 'release-28'), route['stock'],
@@ -801,6 +815,8 @@ def confirm_boot(vm, guest, password, route, reference, *, commands=None):
     console = vm.Console(guest, commands=commands)
     console.login(password, 'release-28')
     console.become_root(password, 'release-28')
+    if before_check is not None:
+        before_check(guest, 'release-28', vm)
     checked = console.run('check', 'release-28-check')
     titled = console.run('title', 'release-28-title')
     assert 'Update to ' + reference + ' confirmed after the restart' in vm.result_lines(checked, titled), 'STOP: update not confirmed'

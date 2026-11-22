@@ -48,7 +48,12 @@ class Guest(sw.Guest):
 
     def __init__(self, disk, password, secrets, *, legacy_registry_auth=True):
         assert 'GHCR_READ_TOKEN' not in os.environ, 'Owner token must not enter the VM observer environment'
-        self.owner_auth_directory = auth_file().parent if legacy_registry_auth else None
+        if os.environ.get('REHEARSAL_PACKAGE') == '331':
+            assert not legacy_registry_auth, 'STOP: package 331 requires the owner guest login route'
+            self.owner_auth_directory = None
+        else:
+            assert legacy_registry_auth
+            self.owner_auth_directory = auth_file().parent
         Guest.boot_count += 1
         self.boot_number = Guest.boot_count
         token = os.environ.get('GH_TOKEN', '')
@@ -267,18 +272,26 @@ lsblk --json --bytes --list --output NAME,TYPE,SERIAL,PARTUUID,PARTTYPE,MOUNTPOI
         assert reason in ('guest-shutdown', 'guest-reset', 'host-qmp-system-reset'), reason
         deadline = time.monotonic() + timeout
         output = bytearray()
-        while not any(e.get('event') == 'SHUTDOWN' for e in self.monitor.events):
-            assert time.monotonic() < deadline, 'Guest did not shut down before its deadline'
-            self.console.settimeout(0.5)
-            try:
-                data = self.console.recv(65536)
-            except socket.timeout:
-                continue
-            assert data, 'Console closed before guest shutdown'
-            output.extend(data)
-            reply = self.replies.feed(data)
-            if reply:
-                self.console.sendall(reply)
+        try:
+            while not any(e.get('event') == 'SHUTDOWN' for e in self.monitor.events):
+                assert time.monotonic() < deadline, 'Guest did not shut down before its deadline'
+                self.console.settimeout(0.5)
+                try:
+                    data = self.console.recv(65536)
+                except socket.timeout:
+                    continue
+                assert data, 'Console closed before guest shutdown'
+                output.extend(data)
+                reply = self.replies.feed(data)
+                if reply:
+                    self.console.sendall(reply)
+        finally:
+            # Keep output even when the shutdown stalls or its event fails validation.
+            text = output.decode(errors='replace')
+            self.transcript += text
+            if not self.authentication_started:
+                self.boot_transcript += text
+            (EVIDENCE / (stage + '-shutdown-console.txt')).write_text(sw.redact(text, self.secrets))
         shutdowns = [e for e in self.monitor.events if e.get('event') == 'SHUTDOWN']
         assert len(shutdowns) == 1 and shutdowns[0]['data'] == dict(guest=reason != 'host-qmp-system-reset', reason=reason), shutdowns
         assert not any(e.get('event') == 'GUEST_PANICKED' for e in self.monitor.events)
@@ -298,11 +311,6 @@ lsblk --json --bytes --list --output NAME,TYPE,SERIAL,PARTUUID,PARTTYPE,MOUNTPOI
         assert len(closing) <= 1 and all(e['data'] == dict(guest=False, reason='host-qmp-quit') for e in closing), tail
         assert not any(e.get('event') in ('GUEST_PANICKED', 'RESET') for e in tail), tail
         self.stopped_events_verified = True
-        text = output.decode(errors='replace')
-        self.transcript += text
-        if not self.authentication_started:
-            self.boot_transcript += text
-        (EVIDENCE / (stage + '-shutdown-console.txt')).write_text(sw.redact(text, self.secrets))
         assert self.process.returncode == 0
         if stage == 'pre-login-reset' and self.audit is not None:
             self.audit.check(f'boot-{self.boot_number}-pre-login-reset', self)

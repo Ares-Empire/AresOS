@@ -1,13 +1,15 @@
-"""Fixture checks for the historical R29 preflight. No registry, VM or host tools."""
+"""Fixture checks for the historical preflight and R29 route, with no live guest."""
 import contextlib
 import copy
 import json
 import os
 import pathlib
+import shlex
 import subprocess
 import sys
 import tempfile
 import unittest
+from types import SimpleNamespace
 from unittest.mock import Mock, call, patch
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -17,6 +19,7 @@ import owner_media
 import owner_vm as vm
 import registry_auth as auth
 import release29_walk as walk
+from test_owner_walk import Release28Local, Release28Session, laptop_rows
 
 
 ENV = dict(GITHUB_ACTIONS='true', GITHUB_EVENT_NAME='workflow_dispatch', GITHUB_REPOSITORY='Ares-Empire/AresOS',
@@ -54,6 +57,21 @@ def prepare_fixture(root, stack):
 
 
 class RegistryTest(unittest.TestCase):
+    def test_installed_guest_audits_a_login_stall_after_closing(self):
+        guest = object.__new__(vm.Guest)
+        guest.mode = 'installed'
+        guest.webui_server = guest.webui_socket = None
+        guest.audit = Mock()
+        order = Mock()
+        order.attach_mock(guest.audit.check, 'audit')
+        with patch.dict(os.environ, REHEARSAL_PACKAGE='331'), patch.object(vm.td, 'save'), \
+                patch.object(vm.td.Guest, 'close', order.close):
+            try:
+                raise TimeoutError('fixture live console stall')
+            except TimeoutError:
+                guest.close('release-29')
+        self.assertEqual(order.mock_calls, [call.close('release-29'), call.audit('release-29', guest)])
+
     def test_owner_marker_guest_starts_after_preflight_removes_host_auth(self):
         firmware = ROOT / 'os/manifest/ci/11k/full-5/two-disk/protected-second/pre-firmware-vars.fd'
         with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as tmp, contextlib.ExitStack() as stack:
@@ -294,6 +312,365 @@ class InputTest(unittest.TestCase):
                 path.write_bytes(b'{"status":"passed","sources":[]}\n')
                 with self.assertRaisesRegex(AssertionError, 'rerun the historical'):
                     walk.check_receipt(vm, dict(status='passed', inputs=with_host))
+
+
+def candidate_fixture(root):
+    records = auth.historical_records()
+    row = json.loads(records['28'])
+    row.update(reference=auth.BASELINE_IMAGE + '@sha256:' + '29' * 32,
+               signature=dict(row['signature'], identity=walk.IDENTITY))
+    raw = (json.dumps(row, indent=2) + '\n').encode()
+    historical = walk.r28.standin_origin(root / 'stand-in-28', records['28'])
+    candidate = walk.candidate_origin(root / 'stand-in-29', historical, raw, 6)
+    repo = candidate['repository']
+    git = lambda *args, **kw: walk.r28.git(*args, source=repo, **kw).decode().strip()
+    tree = git('rev-parse', candidate['commits']['announced'] + '^{tree}')
+    head = git('commit-tree', tree, '-m', 'Real candidate fixture', env=walk.tools_local.STANDIN_ENV)
+    equality = walk.candidate_equality(head, candidate, repo)
+    return SimpleNamespace(candidate=candidate, historical=historical, equality=equality), records, git
+
+
+class CandidateEqualityTest(unittest.TestCase):
+    def test_exact_candidate_and_only_unchanged_v5_can_defer(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            qualified, records, git = candidate_fixture(pathlib.Path(tmp))
+            candidate = qualified.candidate
+            repo, head = candidate['repository'], qualified.equality['head']
+            self.assertTrue(qualified.equality['equal'])
+            self.assertNotEqual(head, candidate['commits']['announced'])
+            self.assertEqual(git('bundle', 'list-heads', str(candidate['bundle'])), candidate['commits']['announced'] + ' refs/heads/main')
+            self.assertTrue(walk.candidate_equality(walk.TOOLS_V5_COMMIT, candidate, allow_deferred=True)['deferred'])
+            with self.assertRaisesRegex(AssertionError, 'candidate equality before the walk'):
+                walk.candidate_equality(walk.TOOLS_V5_COMMIT, candidate)
+            for path in (*walk.r28.BOUND[1:], walk.r28.GUIDE, walk.PAYLOAD + '/SHA256SUMS', 'os/owner-tools/commands.json'):
+                with self.subTest(path=path):
+                    blob = git('show', head + ':' + path).encode() + b'\nchange\n'
+                    tree, _ = walk.r28.tree_with(repo, head, {path: blob})
+                    changed = git('commit-tree', tree, '-m', 'Candidate drift', env=walk.tools_local.STANDIN_ENV)
+                    with self.assertRaisesRegex(AssertionError, 'differs from the rehearsed bundle or guide'):
+                        walk.candidate_equality(changed, candidate, repo, allow_deferred=True)
+            raw = candidate['files']['os/manifest/release.json']
+            with self.assertRaisesRegex(AssertionError, 'guide fingerprint'):
+                walk.announced(raw, 6, guide=b'wrong\n\nwrong\n')
+            with self.assertRaisesRegex(AssertionError, 'historical digest'):
+                reused = dict(json.loads(records['28']), signature=json.loads(raw)['signature'])
+                walk.announced((json.dumps(reused) + '\n').encode(), 6)
+
+
+class RouteModel:
+    def __init__(self, prepared, qualified, session, fault=None):
+        self.session, self.fault, self.events, self.saved = session, fault, [], {}
+        self.q = qualified
+        self.r27, self.r28 = (json.loads(prepared.records[v])['reference'] for v in ('27', '28'))
+        self.r29 = qualified.candidate['reference']
+        base = walk.stock_image.base()
+        def row(reference, checksum, **flags):
+            return dict(checksum=checksum * 32, serial=0, osname='default', booted=False, pinned=False, staged=False,
+                        **{'container-image-reference': 'ostree-unverified-registry:' + reference,
+                           'container-image-reference-digest': reference.split('@')[1]}) | flags
+
+        stock = row(base['reference'], 'ba', pinned=True)
+        old = row(json.loads(prepared.records['13'])['reference'], '13', booted=True)
+        self.rows = {27: row(self.r27, '27'), 28: row(self.r28, '28'), 29: row(self.r29, '29'), 'stock': stock}
+        *_, self.machine = laptop_rows(dict(rpm=dict(transaction=None, deployments=[old, stock]), bootc={'status': {}}), self.r27)
+        self.order, self.running, self.staged, self.pending = [28, 27, 'stock'], 28, False, 'Update'
+        self.route = dict(old=old['container-image-reference'].split(':', 1)[1], new=self.r27,
+                          new_digest=self.r27.split('@')[1], stock=stock, stock_digest=base['digest'])
+        self.audit = SimpleNamespace(windows_default=True, check=self.audit_boot)
+        self.td = SimpleNamespace(start_installed=self.boot, marker=self.marker, save=self.save, EVIDENCE=session.root)
+        self.vm = SimpleNamespace(td=self.td, kb=SimpleNamespace(deployment_snapshot=self.snapshot), sw=vm.sw,
+                                  deployment_shape=vm.deployment_shape, keyboard=Mock(), Console=self.console, finish=vm.finish,
+                                  result_lines=vm.result_lines, ACTIVE_DESKTOP=vm.ACTIVE_DESKTOP, HUB_TERMINAL=vm.HUB_TERMINAL,
+                                  diagnostic_reader=Mock(), git_blob=vm.git_blob)
+        self.local = Release28Local([], None, 'fixture-password', session.root)
+        candidate = qualified.candidate
+        for fingerprint, version in candidate['variants'].values():
+            self.local.known(fingerprint, version)
+        self.local.machine = dict(tools=walk.TOOLS_V5, entry='tools-' + walk.TOOLS_V5 + '/at', journal=None,
+                                  records=[], folder=None, toolsets=[])
+        self.local.lines = self.folder_lines
+        self.guests = []
+        self.place_tools(walk.TOOLS_V5, walk.TOOLS_V5_COMMIT, ROOT)
+
+    def place_tools(self, fingerprint, commit, repo):
+        directory = '/var/lib/ares/tools-' + fingerprint
+        entry = self.session.Path('/var/lib/ares/at')
+        entry.unlink(missing_ok=True)
+        item = walk.r28.git('ls-tree', '-r', '--name-only', commit, walk.PAYLOAD, source=repo)
+        for path in item.decode().splitlines():
+            target = self.session.Path(directory) / path.removeprefix(walk.PAYLOAD + '/')
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(walk.r28.git('show', commit + ':' + path, source=repo))
+        entry.symlink_to('tools-' + fingerprint + '/at')
+
+    def folder_lines(self, stage):
+        commit = self.local.callers[stage]['commit']
+        raw = walk.r28.git('show', commit + ':os/owner-tools/commands.json', source=self.q.candidate['repository'])
+        commands = json.loads(raw)
+        return dict(folder=commands['tools-folder'], routine=commands['tools-routine'])
+
+    def caller(self, driver, stage, steps, commit, *, entries):
+        self.events.append((stage, 'caller'))
+        self.local.callers[stage] = dict(steps=steps, commit=commit, entries=entries)
+        self.local.windows[stage] = dict(typed=len(self.local.typed), helper='fixture')
+        return stage
+
+    def window(self, driver, stage, out, fingerprint, action, answer):
+        self.assert_route(out == stage and answer == 'password' and driver.bootstrap.label(fingerprint, action).startswith(
+            'AresOS owner tools ' + fingerprint[:8]))
+        self.local.typed.append((self.local.ares_password + '\n', 'de'))
+
+    def result(self, driver, stage, out):
+        before = self.local.machine['tools']
+        done = self.local.run(stage)
+        fingerprint = self.local.machine['tools']
+        if done['routine']['status'] == 0 and fingerprint != before:
+            done['routine']['stdout'] += 'manifest SHA256 ' + fingerprint + '\n'
+            self.place_tools(fingerprint, driver.standin['commits']['announced'], driver.standin['repository'])
+        if self.fault == 'cached-ticket' and stage == 'r29-tools':
+            done['no_ticket']['status'] = 0
+        return done
+
+    def capture(self, driver, name, source):
+        if name == 'r29-tools-receipt':
+            return dict(self.local.installs[-1], status='passed', source='folder', finished_from='folder',
+                        caller=dict(login_uid=1001, terminal=False))
+        if name.endswith('-keyrings'):
+            return []
+        value = copy.deepcopy(self.local.machine)
+        if name == 'r29-tools-mismatch-rechecked-state' and self.fault == 'tools-drift':
+            value['journal']['phase'] = 'publish'
+        return value
+
+    @staticmethod
+    def assert_route(condition):
+        assert condition, 'Model route was out of order'
+
+    def historical_stage(self, *_args, **_kwargs):
+        ids = {row['container-image-reference-digest']: vm.ke.key(row) for row in self.rows.values()}
+        return self.route, ids, None, None
+
+    def snapshot(self, guest, stage):
+        rows = [self.rows[key] | dict(booted=key == self.running, staged=self.staged and i == 0)
+                for i, key in enumerate(self.order)]
+        value = self.machine(*rows)
+        if self.fault == 'wrong-staged-slot' and stage == 'r29-update-staged':
+            value['bootc']['status']['staged']['ostree']['deploySerial'] = 1
+        if self.fault == 'unpinned-stock' and stage == 'previous-28':
+            value['rpm']['deployments'][-1]['pinned'] = False
+        if self.fault == 'update-stop-unpinned' and stage == 'r29-update-refused':
+            value['rpm']['deployments'][-1]['pinned'] = False
+        return value
+
+    def boot(self, password, hashed, stage):
+        self.events.append((stage, 'F12 Bazzite'))
+        if stage != 'release-28':
+            self.assert_route(self.guests[-1].process.poll() == 0)
+        self.running = self.order[0]
+        if stage == 'release-29' and self.fault in ('recovery', 'open-on-recovery', 'not-applied'):
+            self.running = 28
+        self.session.foot, self.session.vt = 1, 'tty1'
+        guest = Mock(stage=stage, stopped_events_verified=False, failed_command=False)
+        guest.process.poll.return_value = None
+        guest.capture_json.side_effect = lambda name, script: self.probe(guest, name, script)
+        guest.command.side_effect = lambda name, script: self.command(name, script)
+        guest.keys.side_effect = lambda keys: setattr(self.session, 'vt', 'tty1')
+        guest.poweroff.side_effect = lambda name: guest.process.poll.configure_mock(return_value=0)
+        self.guests.append(guest)
+        return guest
+
+    def command(self, name, script):
+        if name.endswith('-terminal-desktop'):
+            self.assert_route(self.session.vt == 'tty1' and '= tty1' in script)
+
+    def probe(self, guest, name, framed):
+        self.events.append((name, 'probe'))
+        if name.endswith('-home') and guest.stage == 'final-29':
+            if self.fault == 'corrupt-world':
+                self.session.Path(walk.r28.INSTANCE + '/minecraft/saves/' + walk.r28.WORLD + '/level.dat').write_bytes(b'corrupt')
+            if self.fault == 'missing-image-targets':
+                self.session.share.rename(self.session.absent_share)
+        words = shlex.split(framed)
+        script = words[words.index('python3') + 2]
+        state = dict(state='SETUP', reason='setup', ready=False, jvm_pid=None)
+        if name.endswith('-save-gate') and self.fault in ('open-on-update', 'open-on-recovery', 'open-on-forward',
+                                                           'missing-close-message', 'normal-close'):
+            wanted = {'open-on-update': 'r29-update', 'open-on-recovery': 'release-29-recovery',
+                      'open-on-forward': 'r29-forward', 'missing-close-message': 'r29-update', 'normal-close': 'r29-update'}[self.fault]
+            if name.startswith(wanted + '-reboot'):
+                if self.fault in ('missing-close-message', 'normal-close'):
+                    state.update(state='RECOVERY', reason='quit')
+                else:
+                    state.update(state='IN_WORLD', ready=True)
+
+        def run(argv, **kw):
+            if argv[:-1] == [*walk.r28.AS_ARES, '/usr/libexec/aresos-desktop']:
+                message = 'Minecraft was closed. Nothing is wrong.\n' if self.fault == 'normal-close' else 'Other message\n'
+                output = json.dumps(state) if argv[-1] == 'status' else message
+                return subprocess.CompletedProcess(argv, 0, output, '')
+            return process(argv, **kw)
+
+        process = self.session.run
+        with patch.object(self.session, 'run', side_effect=run):
+            return json.loads(self.session.execute(script))
+
+    def console(self, guest, *, commands):
+        console = Mock(commands=commands)
+        console.run.side_effect = lambda word, stage, **kw: self.run(guest, console, word, stage, **kw)
+        return console
+
+    def run(self, guest, console, word, stage, *, expect_stop=False, allow_stop=False):
+        self.events.append((stage, word))
+        self.assert_route(console.commands[word].endswith('/at ' + word))
+        result = []
+        if word == 'check':
+            if expect_stop:
+                self.assert_route(self.session.foot == 0)
+                return dict(status='stopped', error=walk.r28.FOOT_STOP, trace=[])
+            self.assert_route(self.session.foot > 0)
+            if self.running == 28 and self.pending == 'Update' and guest.stage != 'release-28':
+                outcome = ' is in place and has not started yet' if self.order[0] == 29 else \
+                    ' was not applied: the deployments are as before it, and nothing is waiting'
+                result = ['Update to ' + self.r29 + outcome, 'this start was not the default']
+            elif self.pending:
+                reference = self.r28 if self.running == 28 else self.r29
+                if self.fault != 'wrong-confirmation' or self.running != 29:
+                    result = [self.pending + ' to ' + reference + ' confirmed after the restart']
+                self.pending = None
+        if word == 'update':
+            if self.fault in ('update-stop', 'update-stop-unpinned'):
+                self.assert_route(allow_stop)
+                return dict(status='stopped', error='model update failed safely')
+            self.order.insert(0, 29)
+            self.staged, self.pending = True, 'Update'
+            result = ['Signed exact release staged ' + self.r29, 'Running release stays as rollback ' + self.r28,
+                      'Older AresOS ' + self.r27 + ' is removed when the update finishes at shutdown', 'pin yes; transaction idle']
+        if word == 'title':
+            order = [29, 28, 'stock'] if self.staged else self.order
+            label = 'Boot menu after the update finishes at shutdown (expected):' if self.staged else 'Boot menu at the next start:'
+            if self.fault == 'stale-title' and self.staged:
+                order = [28, 27, 'stock']
+            result = ['pin yes; transaction idle', 'Previous title INVALID; use this record until the next reorder',
+                      label + ' ' + '; '.join(self.rows[k]['container-image-reference-digest'].split(':')[1][:12] for k in order)]
+        if word == 'export' and self.fault != 'wrong-export':
+            result = ['Tools stick absent: records copied to /run/ares-records with SHA256 readback']
+        if word in ('previous', 'forward'):
+            self.order = [28, 29, 'stock'] if word == 'previous' else [29, 28, 'stock']
+            self.pending = 'Return' if word == 'previous' else 'Forward'
+            result = ['Previous AresOS queued for the next start ' + self.r28 if word == 'previous' else
+                      'Newest installed AresOS starts next ' + self.r29]
+        if word == 'reboot':
+            if self.running == 28:
+                self.assert_route(self.events[-2] == (stage + '-save-gate', 'probe'))
+            if self.staged:
+                self.staged = False
+                self.order = [28, 27, 'stock'] if self.fault == 'not-applied' else [29, 28, 'stock']
+            guest.stopped_events_verified = True
+            guest.process.poll.return_value = 0
+        return dict(status='passed', result=result)
+
+    def save(self, name, value):
+        self.saved[name] = value
+
+    def audit_boot(self, stage, guest):
+        guest.close.assert_called_once_with(stage)
+        self.events.append((guest.stage, 'audit'))
+
+    def marker(self, audit, stage, **_kw):
+        self.assert_route(audit.windows_default is True)
+        self.events.append((stage, 'Windows marker'))
+
+
+class CandidateRouteTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.folder = tempfile.TemporaryDirectory()
+        cls.addClassCleanup(cls.folder.cleanup)
+        cls.qualified, cls.records, _ = candidate_fixture(pathlib.Path(cls.folder.name))
+
+    @contextlib.contextmanager
+    def model(self, fault=None):
+        with contextlib.ExitStack() as stack:
+            session = Release28Session(False)
+            stack.callback(session.close)
+            prepared = SimpleNamespace(records=self.records, commands={5: json.loads(vm.git_blob(walk.TOOLS_V5_COMMIT, 'os/owner-tools/commands.json'))},
+                                       inputs=walk.baseline_inputs())
+            model = RouteModel(prepared, self.qualified, session, fault)
+            stack.enter_context(patch.object(vm.time, 'sleep'))
+            stack.enter_context(patch.object(walk.r28, 'stage_update', side_effect=model.historical_stage))
+            stack.enter_context(patch.object(walk, 'served_webui', return_value=walk.ui_hashes()))
+            stack.enter_context(patch.object(vm.owner_xhci, 'checkpoint'))
+            for name in ('caller', 'window', 'result', 'capture'):
+                stack.enter_context(patch.object(walk.CandidateWalk, name, autospec=True, side_effect=getattr(model, name)))
+            model.run_route = lambda: walk.rehearsal(model.vm, model.audit, None, 'recovery', 'hash', 'daily', None,
+                                                     prepared, qualifying=self.qualified)
+            yield model
+
+    def test_full_route_preserves_home_and_audits_every_start(self):
+        with self.model('normal-close') as model:
+            model.run_route()
+            result = model.saved['release-29-deployment-walk']
+            self.assertEqual(result['retired'], model.route['new_digest'])
+            self.assertEqual(result['staged'], result['booted'])
+            self.assertEqual(result['confirmations'], ['Update to ' + model.r29 + ' confirmed after the restart',
+                'Return to ' + model.r28 + ' confirmed after the restart', 'Forward to ' + model.r29 + ' confirmed after the restart'])
+            self.assertEqual([stage for stage, event in model.events if event == 'audit'],
+                             ['release-28', 'release-29', 'previous-28', 'final-29'])
+            self.assertEqual(model.session.launches, 4)
+            self.assertEqual(len(model.local.installs), 1)
+            self.assertEqual(set(model.local.ran), {'r29-tools', 'r29-tools-identical', 'r29-tools-mismatch', 'r29-tools-v5'})
+            ordered = [('r29-update', 'update'), ('r29-update-title', 'title'), ('r29-update-export', 'export'),
+                       ('r29-update-reboot-save-gate', 'probe'), ('r29-update-reboot', 'reboot'), ('release-29', 'F12 Bazzite'),
+                       ('release-29-no-foot-check', 'check'), ('release-29-terminal', 'probe'), ('release-29-check', 'check')]
+            self.assertEqual([event for event in model.events if event in ordered], ordered)
+
+    def test_failed_start_may_retry_once_after_the_r28_save_gate(self):
+        with self.model('recovery') as model:
+            model.run_route()
+            stages = [stage for stage, event in model.events if event in ('reboot', 'audit', 'F12 Bazzite')]
+            self.assertIn('release-29-recovery-reboot', stages)
+            self.assertEqual(stages[stages.index('release-29-recovery-reboot') + 1:][:2], ['release-29', 'release-29-retry'])
+        with self.model('not-applied') as model, self.assertRaisesRegex(AssertionError, 'was not applied'):
+            try:
+                model.run_route()
+            finally:
+                self.assertNotIn(('r29-previous', 'previous'), model.events)
+                self.assertNotIn(('release-29-recovery-reboot', 'reboot'), model.events)
+                self.assertIn(('release-29', 'audit'), model.events)
+
+    def test_route_stops_and_audits_on_each_failure(self):
+        cases = [('cached-ticket', 'kept a ticket', 'release-28'), ('tools-drift', 'changed installed tools', 'release-28'),
+                 ('update-stop', 'update was refused', 'release-28'), ('update-stop-unpinned', 'pin lost', 'release-28'),
+                 ('wrong-staged-slot', 'staged deployment', 'release-28'),
+                 ('stale-title', 'wrong boot order', 'release-28'), ('wrong-export', 'no-stick export', 'release-28'),
+                 ('open-on-update', 'Minecraft close', 'release-28'), ('missing-close-message', 'Minecraft close', 'release-28'),
+                 ('open-on-recovery', 'Minecraft close', 'release-29'), ('wrong-confirmation', 'was not confirmed', 'release-29'),
+                 ('unpinned-stock', 'pin lost', 'previous-28'), ('open-on-forward', 'Minecraft close', 'previous-28'),
+                 ('corrupt-world', 'world contents', 'final-29'), ('missing-image-targets', 'inaccessible', 'final-29')]
+        for fault, error, stage in cases:
+            with self.subTest(fault=fault), self.model(fault) as model, self.assertRaisesRegex(AssertionError, error):
+                try:
+                    model.run_route()
+                finally:
+                    self.assertEqual(model.events[-1], (stage, 'audit'))
+                    self.assertNotIn('release-29-deployment-walk', model.saved)
+                    model.guests[-1].poweroff.assert_not_called()
+
+    def test_console_returns_a_recorded_stop_only_when_the_route_accepts_it(self):
+        console = object.__new__(vm.Console)
+        console.guest = Mock(owner_layout='de')
+        stopped = dict(status='stopped', error='fixture refusal')
+        console.guest.capture_json.return_value = stopped
+        console.commands = {'update': 'sudo /var/lib/ares/at update'}
+        console.select = console.prompt = console.visible = Mock()
+        console.records = Mock(return_value=[])
+        with patch.object(vm.owner_xhci, 'checkpoint'), patch.object(vm.owner_xhci, 'context'), \
+                patch.object(vm.owner_xhci, 'guard', return_value='pass'), patch.object(vm.td, 'save') as evidence:
+            with self.assertRaisesRegex(AssertionError, 'Owner command failed'):
+                console.run('update', 'fixture')
+            self.assertEqual(console.run('update', 'fixture', allow_stop=True), stopped)
+        self.assertIn(call('fixture-owner-diagnostics', stopped), evidence.call_args_list)
+        console.guest.screenshot.assert_not_called()
 
 
 if __name__ == '__main__':

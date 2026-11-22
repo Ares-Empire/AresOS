@@ -198,6 +198,7 @@ class Guest(td.Guest):
         owner_xhci.checkpoint(self, 'boot-' + str(self.boot_number) + '-begin')
         if not self.network_up:
             self.assert_offline('stock-offline-login')
+        self.owner_login_complete = True
 
     def login_live(self):
         super().login_live()
@@ -298,7 +299,13 @@ PY'''))
                 self.webui_socket.close()
                 self.webui_socket = None
         finally:
-            super().close(stage)
+            try:
+                super().close(stage)
+            finally:
+                # start_guest owns cleanup if the installed guest never reaches the walk.
+                if os.environ.get('REHEARSAL_PACKAGE') == '331' and self.mode == 'installed' \
+                        and not getattr(self, 'owner_login_complete', False) and sys.exc_info()[0] and self.audit is not None:
+                    self.audit.check(stage, self)
 
 
 def vcpu_ticks(monitor, proc=pathlib.Path('/proc')):
@@ -822,7 +829,7 @@ class Console:
         td.save(stage + '-hidden-completed', dict(status='passed', completion_uses_echo=False,
             foreground_shell=True, input_epoch=epoch, token_recorded=False))
 
-    def run(self, name, stage, inputs=(), password=None, expect_stop=False, token_chunks=False, record=None):
+    def run(self, name, stage, inputs=(), password=None, expect_stop=False, token_chunks=False, record=None, allow_stop=False):
         owner_xhci.checkpoint(self.guest, stage + '-begin')
         self.select()
         self.prompt(stage + '-ready')
@@ -863,11 +870,12 @@ class Console:
         # Save before checking acceptance: an unexpected STOP is the evidence
         # needed to diagnose the failure, not an excuse to lose its record.
         td.save(stage + '-owner-diagnostics', result)
-        assert result['status'] == ('stopped' if expect_stop else 'passed'), 'Owner command failed: ' + stage
+        expected = ('passed', 'stopped') if allow_stop else ('stopped',) if expect_stop else ('passed',)
+        assert result['status'] in expected, 'Owner command failed: ' + stage
         owner_xhci.checkpoint(self.guest, stage + '-completed')
         self.prompt(stage + '-completed')
         self.guest.screenshot_safe = True
-        if not expect_stop:
+        if result['status'] == 'passed':
             self.guest.screenshot(stage + '-owner-pass')
         td.save(stage + '-command', dict(command=self.commands[name], physical=True, status=result['status'], profile=self.guest.owner_layout))
         if hidden_input and name=='login':
@@ -1044,8 +1052,10 @@ def finish(guest, audit, stage):
                 and not getattr(guest, 'stopped_events_verified', False):
             guest.poweroff(stage)
     finally:
-        guest.close(stage)
-        audit.check(stage, guest)
+        try:
+            guest.close(stage)
+        finally:
+            audit.check(stage, guest)
 
 
 def common_boot(guest, stage, profile, password, stock, release, ares=False):
@@ -2349,7 +2359,12 @@ def main():
         # Package 42's rehearsal rebinds package 22d's tables (its record step, after a pass).
         td.save('42-bound-sources', bound_sources(walk['sources'], '42', '22d'))
     if mode == 'release-29':
-        baseline = release29_walk.prepare(sys.modules[__name__])
+        phase = os.environ.get('RELEASE29_PHASE', 'baseline')
+        assert phase in ('baseline', 'qualify'), 'STOP: unknown R29 walk phase'
+        baseline = release29_walk.prepare(sys.modules[__name__], qualifying=phase == 'qualify')
+        candidate = None
+        if phase == 'qualify':
+            candidate = release29_walk.prepare_candidate(sys.modules[__name__], baseline, os.environ['GITHUB_SHA'])
     sw.WORK, sw.EVIDENCE = td.WORK, td.EVIDENCE
     td.Guest = sw.Guest = Guest
     Guest.order = 'protected-second'
@@ -2433,7 +2448,7 @@ def main():
             print(f'::add-mask::{daily_password}', flush=True)
             try:
                 release29_walk.rehearsal(sys.modules[__name__], audit, media, password, hashed, daily_password,
-                    laptop_payload(td.WORK / 'tools-version-2', TOOLS_V2_COMMIT, TOOLS_V2), baseline)
+                    laptop_payload(td.WORK / 'tools-version-2', TOOLS_V2_COMMIT, TOOLS_V2), baseline, qualifying=candidate)
             finally:
                 del daily_password
         else:

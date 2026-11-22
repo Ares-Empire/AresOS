@@ -9,7 +9,8 @@
     "T475: INSTALL-STATUS records the laptop on R28 (R13 earlier, R27 previous, R28 on the laptop); test_owner_path and test_owner_equality follow the new labels",
     "T475 REVIEW-1: R28 published 2026-11-19; tools version 4 on the laptop 2026-11-17 to 2026-11-21, version 5 since",
     "331 step 3 historical walk through confirmed R28 with the released v5 tools and read-only baseline input checks.",
-    "331 REVIEW-4: the package 331 owner guest skips the legacy host auth lookup."
+    "331 REVIEW-4: the package 331 owner guest skips the legacy host auth lookup.",
+    "331 step 3 slice B: bind the R29 candidate update and recovery driver and shutdown evidence."
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -22,7 +23,7 @@
       "path": "os/ci/owner_media.py"
     },
     {
-      "sha256": "63d7f80ca32a442085f3d6e77ded9efdfa4bfc7e861ba7e461f46868630b3b27",
+      "sha256": "663d5ba3d82ecf400aceb7cf10ed35e7dcc544c743a3f3213bfb2a4a6d89c5bc",
       "path": "os/ci/owner_vm.py"
     },
     {
@@ -30,7 +31,7 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "0655d9df0200c14b02d87d30a1cbda3c84f97f9fb624c36c79686a9ff09128af",
+      "sha256": "e594053d3432aa9f65ea8b7efd972abd41e438f2baeac567c82a0777421ce4c3",
       "path": "os/ci/release28_walk.py"
     },
     {
@@ -38,7 +39,7 @@
       "path": "os/ci/tools_local.py"
     },
     {
-      "sha256": "9eb7c387cbfc960dc27353b04c904e1b43e67facdc58b48b63f3622bba8c4a65",
+      "sha256": "c5a91d201f0214fb7bbfecca489ed3000babdfef2f0e96aa4fa14159ef5c7a4d",
       "path": "os/ci/two_disk_vm.py"
     },
     {
