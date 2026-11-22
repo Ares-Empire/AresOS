@@ -701,7 +701,7 @@ class IconCompatibilityTest(Base):
                        for key, app in apps.items()}
         response = self.request(helper, conn, 'list_apps')
         self.assertEqual(response['revision'], revision)
-        self.assertEqual({a['id'] for a in response['apps']}, {'browser', 'terminal', 'notepad'})
+        self.assertEqual({a['id'] for a in response['apps']}, {'browser', 'terminal', 'notepad', 'org-deskflow-deskflow'})
         for app in response['apps']:
             self.assertEqual(set(app), {'id', 'name', 'available', 'reason'})
         self.assertEqual(response['protocol'], 'aresos-shell/1.0')

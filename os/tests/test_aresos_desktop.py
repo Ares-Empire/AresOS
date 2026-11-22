@@ -3355,9 +3355,12 @@ class ModJarPinTest(unittest.TestCase):
     def test_a_release_is_the_default_and_only_the_job_that_cannot_publish_throws_away(self):
         import yaml
         containerfile = (ROOT / 'os/Containerfile').read_text()
-        final = containerfile.split('FROM packages AS aresos\n', 1)[1]
+        packages, final = containerfile.split('FROM packages AS aresos\n', 1)
+        packages = packages.rsplit(' AS packages\n', 1)[1]
+        self.assertIn('ARG ARESOS_BUILD_KIND=release\n', packages)
+        self.assertIn('build.sh packages "$ARESOS_BUILD_KIND"', packages)
         self.assertIn('\nARG ARESOS_BUILD_KIND=release\n', final)
-        self.assertEqual(containerfile.count('ARESOS_BUILD_KIND='), 1, 'declared once, in the stage that configures')
+        self.assertEqual(containerfile.count('ARESOS_BUILD_KIND='), 2, 'only the packages and final stages choose the kind')
         workflow = (ROOT / '.github/workflows/os-image.yml').read_text()
         jobs = yaml.load(workflow, Loader=yaml.BaseLoader)['jobs']
         # Read-only: no write permission and no id-token, so it cannot push or sign. actions and packages read are
@@ -3511,8 +3514,7 @@ class SessionFilesTest(unittest.TestCase):
 
     def test_recovery_terminal_shortcut_is_kept(self):
         rc = (CONFIG / 'usr/share/aresos/labwc/rc.xml').read_text()
-        self.assertIn('<keybind key="W-C-Escape"><action name="Execute" command="/usr/bin/aresos-terminal --recovery" />',
-                      rc)
+        self.assertIn('<keybind key="W-C-Escape" allowWhenInhibited="yes">', rc)
         self.assertIn('<windowRule identifier="aresos-desktop" serverDecoration="no"><action name="Maximize" />', rc)
         # Package 40: the desktop stays below every app window. Never skipTaskbar: the helper tracks the desktop by
         # its foreign-toplevel handle.
@@ -3521,14 +3523,13 @@ class SessionFilesTest(unittest.TestCase):
         self.assertNotIn('skipTaskbar', rc)
 
     def test_the_recovery_shortcut_also_ends_the_cover(self):
-        # Package 23b, PLAN-GAP 2: the terminal first (every check that reads the keybind's first action still
-        # finds it), then the supervisor's hide-cover, by absolute path like the session's other commands.
+        # Release finishes before the terminal starts. A separate action hides the cover.
         import xml.etree.ElementTree as ET
         root = ET.parse(CONFIG / 'usr/share/aresos/labwc/rc.xml').getroot()
         binds = [bind for bind in root.iter('keybind') if bind.get('key') == 'W-C-Escape']
         self.assertEqual(len(binds), 1)
         self.assertEqual([(action.get('name'), action.get('command')) for action in binds[0]],
-                         [('Execute', '/usr/bin/aresos-terminal --recovery'),
+                         [('Execute', "/usr/bin/sh -c '/usr/libexec/aresos-input-portal --release; exec /usr/bin/aresos-terminal --recovery'"),
                           ('Execute', '/usr/libexec/aresos-desktop hide-cover')])
         self.assertTrue(os.access(CONFIG / 'usr/libexec/aresos-desktop', os.X_OK))
 

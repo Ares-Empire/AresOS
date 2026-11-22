@@ -69,6 +69,8 @@ class Protocol11Test(Base):
 
     def test_example_pages_and_full_entry_are_produced_from_desktop_entries(self):
         expected = example('list-apps-reply-first-page')['apps'] + example('list-apps-reply-last-page')['apps']
+        expected.append(dict(id='org-deskflow-deskflow', name='Deskflow', available=True, reason=None, source='image'))
+        expected.sort(key=lambda row: row['id'])
         for row in expected:
             if 'desktop_id' not in row:
                 continue
@@ -145,7 +147,7 @@ class Protocol11Test(Base):
         self.now[0] += shell.CATALOGUE_CHECK
         self.current.tick()
         self.assertEqual(self.current.apps['browser'].generic_name, 'Second')
-        self.assertEqual(len(self.listing()['apps']), 3)
+        self.assertEqual(len(self.listing()['apps']), 4)
 
     def test_many_unicode_entries_page_with_real_wire_byte_limit_and_long_request_id(self):
         for n in range(253):
@@ -209,7 +211,8 @@ class Protocol11Test(Base):
             self.desktop('new.desktop')
             self.now[0] += 3
             self.current.tick()
-            self.assertEqual({row['id'] for row in self.listing()['apps']}, {'browser', 'notepad', 'terminal', 'new'})
+            self.assertEqual({row['id'] for row in self.listing()['apps']},
+                             {'browser', 'notepad', 'terminal', 'org-deskflow-deskflow', 'new'})
 
     def test_apps_changed_example_shape_after_list_change(self):
         self.start()
@@ -363,6 +366,7 @@ class Protocol11Test(Base):
                                           '--registry', str(self.registry), '--list'],
                                          env=dict(os.environ, HOME=str(self.root), XDG_DATA_HOME=str(self.root / '0')))
         listing = json.loads(output)
-        self.assertEqual({row['id'] for row in listing['apps']}, {'browser', 'terminal', 'notepad'})
+        self.assertEqual({row['id'] for row in listing['apps']},
+                         {'browser', 'terminal', 'notepad', 'org-deskflow-deskflow'})
         self.assertTrue(all(set(row) == {'id', 'name', 'available', 'reason'} for row in listing['apps']))
         self.assertEqual(listing['revision'], shell.load_registry(str(self.registry))[1])
