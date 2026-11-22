@@ -415,7 +415,10 @@ During a capture Ctrl+Alt+Escape is forwarded like every key; the way out is lab
   returned OK for signature, header and payload. `rpm -qp` gave `deskflow-0:1.27.0-1.fc44.x86_64`, SHA-256 was
   `21a404d8bd0488fdc7ec635ed26447d623b132dc4ae3d12e5f944991ab76484b`, and `readelf --dyn-syms --wide`
   showed both undefined imports `xdp_session_selection_read` and `xdp_session_selection_write`.
-- The **DRM output gate is pending** in the hosted Deskflow run below. Step 3 waits for its result.
+- The **DRM output gate is unverified**. The hosted Deskflow run stopped during the shared Cosign install.
+  Its bootstrap download of Cosign v2.5.2 timed out with curl exit 28 before the image-build step. The
+  queued standard build was cancelled under the stop rule for failures outside this package. Step 3 has
+  no DRM gate result to proceed on.
 
 ### Verified locally
 
@@ -432,6 +435,16 @@ During a capture Ctrl+Alt+Escape is forwarded like every key; the way out is lab
   custom-mode failure that the hosted DRM gate tests separately.
 - `python3 -m unittest discover -s os/tests -p test_input_portal_layers.py`: **3 passed**. The test confirms
   that a leaked source or toolchain file is found even when it is hidden by a later layer.
+- The same discovery command for `test_aresos_desktop.py`: **189 run, 1 skipped**. The initial run found the
+  old expected stage list. The updated assertion requires the pinned Rust stage. `test_labwc_stage.py`:
+  **131 passed**. `test_shell_assertions.py`: **9 passed** after making the dependency failure an explicit
+  exit. `test_ci_api_permissions.py` and `test_ci_step_environment.py`: **4 passed** each.
+- Shell syntax checks passed on the modified scripts. A Python fixture of the VM's mode check accepted
+  the requested 59.998 Hz mode and rejected a same-size 60 Hz mode. No Python cache directory was created
+  under `os/config/`.
+- `mod/dev/build.sh` reported **BUILD SUCCESSFUL** and **106 required server game tests passed**.
+  The first `mod/dev/client-test.sh … build` attempt waited for the shared client-test lock. It was stopped
+  before launching a client after the hosted failure. The two full client passes remain outstanding.
 
 ### What the code doesn't show
 
@@ -446,7 +459,9 @@ During a capture Ctrl+Alt+Escape is forwarded like every key; the way out is lab
 
 ## Left, in order
 
-1. Finish step 2's hosted `deskflow` and `build` modes and record their results and the DRM gate decision.
+1. Once the shared Cosign bootstrap is available, run the hosted `deskflow` and `build` modes at the
+   final step 2 head, record the regular, hotplug, VT and custom-mode outcomes, and record the DRM gate
+   decision. Confirm the installed backend hash in both hosted builds and verify the scan of the image layers.
 2. When the gate permits, step 3 installs Deskflow, proves its ID and changes its scope name, allow-list and
    routing, then adds the release key, switch, helper, polkit actions, window, desktop entry and image checks.
    The helper writes `on\n` atomically, root-owned and mode 0644, in root-owned `/etc/aresos/input-portal` (0755).
@@ -501,6 +516,8 @@ The lead sends this list when step 3 ends and at the final head.
 | `os/ci/check-build.sh` | `270aa6f8` | Build the Deskflow test disk and run its dedicated pass. |
 | `.github/workflows/os-image.yml` | `bd5082dd` | Add `check_build=deskflow` to the read-only throwaway build job. |
 | `os/tests/test_aresos_desktop.py` | `663009fb` | Require the locked Rust stage in the image wiring test. |
+| `os/ci/image-checks.sh` | `2b67a00c` | Fail explicitly if the runtime linker reports missing libraries. |
+| `os/ci/deskflow/deskflow_vm.py` | `e4668391` | Verify the mode's advertised refresh rate and restore the virtual connector before falling back to PCI. |
 
 Not touched in step 1c: `os/Containerfile` (the stage copies the whole `labwc/` folder, so the second patch needs no
 new line; its comment above the stage still says "one upstream fix" and should name both patches when the file is
@@ -550,7 +567,16 @@ None in steps 1 and 1b.
 |---|---|---|---|
 | 1 of 8 | 1c | `44935351683`, on `0b1f9339` (dispatched 2026-11-21 19:24) | `check_build=build` on the step's head: it builds the labwc stage (the pins must hold on the hosted runner too) and the image, and runs the image checks, the labwc one included. **Green** (the lead, 2026-11-21 20:22). |
 | 2 of 8 | 1c review fixes | `44937064135`, on `7d38fa7b` (dispatched by the lead 2026-11-21 19:44) | `check_build=build` after fix 8: image-checks.sh now runs `stage.py check-installed` against the manifest lock, piped in by check-image.sh. **Green** (2026-11-21 21:25). |
-| 3 of 8 | 2 | [45000469287](https://github.com/Ares-Empire/AresOS/actions/runs/45000469287), on `bd5082dd` (2026-11-22 08:56 CET) | `check_build=deskflow`. **Running**. |
+| 3 of 8 | 2 | [45000469287](https://github.com/Ares-Empire/AresOS/actions/runs/45000469287), on `bd5082dd` (2026-11-22 08:56 CET) | `check_build=deskflow`. **Failed before image build**. Pinned tools installed, then the common `sigstore/cosign-installer` timed out downloading its v2.5.2 bootstrap binary (curl exit 28). `gh run watch 45000469287 --exit-status --interval 60` returned 1. |
+| 4 of 8 | 2 | [45000755789](https://github.com/Ares-Empire/AresOS/actions/runs/45000755789), on `a04a693c` (2026-11-22 09:00 CET) | `check_build=build`. **Cancelled before any workflow steps** after run 3's external failure. `gh run watch 45000755789 --exit-status --interval 60` returned 1 and GitHub reports `cancelled`. |
+
+## Podman, after step 2
+
+Rootless throughout, with one container at a time. Kept the merged harness image
+`localhost/aresos-input-portal-harness:321-step2` (`f82ab04e39ea`). Removed the first step 2 harness image
+(`2db7970a522d`) and the locally verified Rust-stage image (`9163afe8d485`) by name or ID with
+`podman rmi --no-prune`. Reused the existing `localhost/aresos-labwc:321c` with both pinned binaries.
+No file under `.work/` is larger than 500 MB.
 
 ## Podman, after step 1c
 
