@@ -283,6 +283,47 @@ class LaunchIsolationTest(ViewBase):
         self.assertNotEqual(launched_game['launch_id'], launched_view['launch_id'])
         self.assertEqual(self.popen.call_count, 2)
 
+    def test_rotating_view_names_never_pass_the_launch_cap_or_grow_the_saved_state(self):
+        helper = self.start()
+        desktop = self.desktop(helper)
+        busy = started = 0
+        for number in range(shell.MAX_VIEW_NAMES + 2):
+            conn = Conn()
+            helper.connected(conn)
+            hello = self.send(helper, conn, dict(example('view-hello-request'), view=f'rotating-{number}'))
+            if not hello['ok']:
+                self.assertEqual(hello['error'], 'busy')
+                busy += 1
+                continue
+            for index in range(shell.VIEW_JOURNAL_LIMIT):
+                reply = self.call(helper, conn, 'open_app', f'o-{index}', app_id='terminal')
+                self.assertIn(reply.get('error'), (None, 'journal_full'))
+                started += reply['ok']
+            helper.disconnected(conn)
+        self.assertEqual(busy, 2)
+        self.assertEqual(started, shell.MAX_VIEW_LAUNCHES)
+        self.assertEqual(self.popen.call_count, shell.MAX_VIEW_LAUNCHES)
+        self.assertEqual(len(list(helper.launch_entries())), shell.MAX_VIEW_LAUNCHES)
+        with pathlib.Path(self.journal).open() as handle:
+            saved = json.load(handle)
+        self.assertEqual(len(saved['active_launches']), shell.MAX_VIEW_LAUNCHES)
+        self.assertEqual(list(saved['view_launches']), ['rotating-0'])
+        # The desktop's room is its own.
+        self.assertEqual(self.call(helper, desktop, 'open_app', 'own', app_id='terminal')['state'], 'starting')
+        # The cap is the launch table's: it holds across a restart, and gives room back when an app ends.
+        self.active_units = {launch.entry['unit'] for launch in helper.launch_entries()}
+        restarted = self.start()
+        late = self.view(restarted, 'rotating-1')
+        refusal = self.call(restarted, late, 'open_app', 'late', app_id='terminal')
+        self.assertEqual(refusal['protocol'], WIRE)
+        self.assertEqual((refusal['ok'], refusal['error'], refusal['message']),
+                         (False, 'journal_full', 'too many launches in the last few minutes; try again shortly'))
+        self.assertEqual(self.popen.call_count, shell.MAX_VIEW_LAUNCHES + 1)
+        next(launch for launch in helper.launch_entries() if launch.origin[0] != shell.DESKTOP).process.code = 0
+        helper.tick()
+        late = self.view(helper, 'rotating-1')
+        self.assertEqual(self.call(helper, late, 'open_app', 'late', app_id='terminal')['state'], 'starting')
+
     def test_view_cannot_fill_desktop_journal(self):
         helper = self.start()
         view, desktop = self.view(helper), self.desktop(helper)

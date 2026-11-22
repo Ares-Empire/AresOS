@@ -140,6 +140,8 @@ VIEW_JOURNAL_LIMIT = 32
 MAX_VIEW_NAMES = 2 * MAX_VIEWS
 # Answers to activate_app that started nothing: each client's own table, beside its launch records.
 RECEIPT_LIMIT = 64
+# Live launches that views started, under whatever names: the view token is one principal.
+MAX_VIEW_LAUNCHES = VIEW_JOURNAL_LIMIT
 DESKTOP = 'desktop'
 # Well beyond the mod's 45-second open timeout, the only window in which it resends a request ID.
 REPLAY_HORIZON = 600.0
@@ -2272,7 +2274,8 @@ class Journal:
                     self.load_client(client, records, now)
         launches = data.get('active_launches')
         if isinstance(launches, list):
-            for item in launches:
+            # No more than the launch table can hold (Helper.spawn_room).
+            for item in launches[:JOURNAL_LIMIT + MAX_VIEW_LAUNCHES]:
                 if not isinstance(item, list) or len(item) != 3:
                     continue
                 client, request_id, entry = item
@@ -3939,6 +3942,14 @@ class Helper:
                         for key in waiting['requests'] if key != origin)
         return self.journal.room(client, reserved)
 
+    def spawn_room(self, client):
+        """The launch table's own bound, whatever the replay records say: JOURNAL_LIMIT live launches that the
+        desktop started and MAX_VIEW_LAUNCHES that views started, under any names. Only launch() spawns."""
+        views = sum(launch.origin[0] != DESKTOP for launch in self.launch_entries())
+        if client != DESKTOP:
+            return views < MAX_VIEW_LAUNCHES
+        return sum(1 for _ in self.launch_entries()) - views < JOURNAL_LIMIT
+
     def activation_target(self, app_id):
         # Layout restoration can select a group here once layouts exist.
         return max(self.catalogue_windows.of(app_id), key=lambda w: (w.last_active, w.mapped), default=None)
@@ -4113,6 +4124,10 @@ class Helper:
             LOG.warning('%s not opened: %s', app_id, reason)
             return self.record(key, {'app_id': app_id, 'launch_id': None, 'state': 'failed',
                                      'error': 'unavailable', 'reason': reason, 'message': reason, **hint})
+        if not self.spawn_room(key[0]):
+            # Refused and not recorded, as a full journal is: the same ID may be sent again once an app has ended.
+            LOG.warning('%s not opened: too many apps that this role started are still running', app_id)
+            return self.journal_full_reply(key, app_id)
         launch_id = secrets.token_hex(8)
         unit = self.launcher.unit(app, launch_id)
         entry = {'app_id': app_id, 'launch_id': launch_id, 'state': 'launching', 'unit': unit, **hint}
