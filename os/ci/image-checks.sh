@@ -667,6 +667,24 @@ print(f'LABWC_RUNTIME_OK {len(names)} requirements')
 LABWC_RUNTIME
 pass 'labwc finds every library, and packages of this image provide everything it requires'
 
+# --- Package 321: only the binary, activator and upstream license ship in step 2.
+portal=/usr/libexec/aresos-input-portal
+portal_service=org.freedesktop.impl.portal.desktop.aresos-input.service
+portal_license=/usr/share/licenses/aresos-input-portal/LICENSE
+portal_source=$(dirname -- "$0")/../input-portal
+test "$(stat -c '%u:%g:%a:%F' "$portal")" = '0:0:755:regular file'
+for file in "/usr/share/dbus-1/services/$portal_service" "$portal_license"; do
+    test "$(stat -c '%u:%g:%a:%F' "$file")" = '0:0:644:regular file'
+done
+cmp "$portal_source/data/$portal_service" "/usr/share/dbus-1/services/$portal_service"
+grep -qx "Exec=$portal" "/usr/share/dbus-1/services/$portal_service"
+cmp "$portal_source/LICENSE" "$portal_license"
+test ! -e /etc/aresos/input-portal/sharing && test ! -L /etc/aresos/input-portal/sharing
+ldd "$portal" > /tmp/input-portal-ldd.txt
+! grep -q 'not found' /tmp/input-portal-ldd.txt
+sha256sum -c /usr/share/aresos/manifest/input-portal.sha256
+echo "INPUT_PORTAL_INSTALLED $(sha256sum "$portal" | cut -d' ' -f1)"
+
 # --- Package 23: Minecraft starts in AresOS.
 lock=/usr/share/aresos/minecraft/desktop.lock.json
 java=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["java"]["path"])' "$lock")
