@@ -3510,6 +3510,7 @@ class SessionFilesTest(unittest.TestCase):
         lines = [l for l in (CONFIG / 'usr/share/aresos/labwc/autostart').read_text().splitlines()
                  if l and not l.startswith('#')]
         self.assertEqual(lines, ['/usr/libexec/kf6/polkit-kde-authentication-agent-1 &',
+                                 '/usr/libexec/aresos-deskflow-login &',
                                  '/usr/libexec/aresos-desktop session &'])
 
     def test_recovery_terminal_shortcut_is_kept(self):

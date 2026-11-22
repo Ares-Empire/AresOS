@@ -1,5 +1,7 @@
 # Asks for the everyday account's password when an app needs admin rights.
 /usr/libexec/kf6/polkit-kde-authentication-agent-1 &
+# Sharing persists across logins. The hook checks the switch before starting Deskflow.
+/usr/libexec/aresos-deskflow-login &
 # The desktop: Minecraft in the AresHub world, or a terminal that says what to
 # do (first start, sign-in, recovery). Package 23.
 /usr/libexec/aresos-desktop session &
