@@ -3076,7 +3076,7 @@ class ImageBuildTest(unittest.TestCase):
             self.assertIn('curl: command not found', fetch.stderr)
 
     @unittest.skipUnless(LINUX, 'runs build.sh with a stand-in for the network')
-    def test_the_source_stage_fetches_the_named_commit_and_keeps_only_mod_and_control(self):
+    def test_the_source_stage_fetches_only_build_inputs_from_the_named_commit(self):
         with tempfile.TemporaryDirectory() as folder:
             root = pathlib.Path(folder)
             revision = 'ab' * 20
@@ -3086,6 +3086,12 @@ class ImageBuildTest(unittest.TestCase):
             (tree / 'mod/gradlew').chmod(0o755)
             (tree / 'os').mkdir()
             (tree / 'os/unrelated').write_text('not extracted')
+            portal = tree / 'os/input-portal'
+            for directory in ('data', 'src', 'dev', 'harness'):
+                (portal / directory).mkdir(parents=True)
+                (portal / directory / 'sample').touch()
+            for name in ('build.sh', 'toolchain.env', 'Cargo.toml', 'Cargo.lock', 'LICENSE', 'README.md'):
+                (portal / name).touch()
             # Package 18c: control/ comes from the same fetch; docs/control/ is not it.
             (tree / 'control/aresos_control').mkdir(parents=True)
             (tree / 'control/launch.py').write_text('launcher')
@@ -3108,7 +3114,12 @@ class ImageBuildTest(unittest.TestCase):
                              ['-fsSL', '--proto', '=https', '--tlsv1.2', '--retry', '3', '-o',
                               (root / 'curl-args').read_text().split()[7],
                               f'https://codeload.github.com/Ares-Empire/AresOS/tar.gz/{revision}'])
-            self.assertEqual(sorted(p.name for p in (root / 'out').iterdir()), ['control', 'mod'])
+            self.assertEqual(sorted(p.name for p in (root / 'out').iterdir()), ['control', 'mod', 'os'])
+            self.assertEqual(sorted(str(p.relative_to(root / 'out/os')) for p in (root / 'out/os').rglob('*')),
+                             ['input-portal', 'input-portal/Cargo.lock', 'input-portal/Cargo.toml',
+                              'input-portal/LICENSE', 'input-portal/build.sh', 'input-portal/data',
+                              'input-portal/data/sample', 'input-portal/src', 'input-portal/src/sample',
+                              'input-portal/toolchain.env'])
             self.assertEqual(sorted(str(p.relative_to(root / 'out/control')) for p in (root / 'out/control').rglob('*')),
                              ['aresos_control', 'aresos_control/cli.py', 'launch.py'])
             self.assertTrue(os.access(root / 'out/mod/gradlew', os.X_OK))

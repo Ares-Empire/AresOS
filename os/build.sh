@@ -5,7 +5,7 @@ set -euo pipefail
 # in two of the Containerfile's stages that every image build runs (and
 # os/ci/build-mod.sh, which sets or renews the pin, builds the same two):
 #   source  in the pinned base (it has curl): fetch that commit, keep only mod/
-#           (and control/ for package 18c's control mode below)
+#           (and the inputs for Control and the input portal)
 #   mod     in the digest-pinned JDK, which has no curl or wget: Gradle only
 # minecraft/builder-tools.txt lists what the JDK image has; the tests run the
 # mod mode with exactly those tools. The image's configure step accepts the
@@ -24,10 +24,14 @@ if [[ $1 == source ]]; then
     curl -fsSL --proto '=https' --tlsv1.2 --retry 3 -o "$work/source.tar.gz" \
         "https://codeload.github.com/Ares-Empire/AresOS/tar.gz/$revision"
     mkdir -p "$out"
-    # Package 18c: the same fetch keeps control/ too, named exactly (docs/control/ is not it).
-    tar -xzf "$work/source.tar.gz" -C "$out" --strip-components=1 --wildcards '*/mod/*' "AresOS-$revision/control"
+    # Neither the portal harness nor its development scripts are builder inputs.
+    root="AresOS-$revision"
+    tar -xzf "$work/source.tar.gz" -C "$out" --strip-components=1 --no-wildcards \
+        "$root/mod" "$root/control" \
+        "$root/os/input-portal/"{build.sh,toolchain.env,Cargo.toml,Cargo.lock,LICENSE,data,src}
     test -x "$out/mod/gradlew"
     test -f "$out/control/launch.py"
+    test -f "$out/os/input-portal/Cargo.lock"
     echo "MOD_SOURCE $revision $(sha256sum "$work/source.tar.gz" | cut -d' ' -f1)"
     rm -rf "$work"
     exit 0
