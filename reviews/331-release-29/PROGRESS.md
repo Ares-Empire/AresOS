@@ -176,3 +176,9 @@ check follows the owner's update. There are no downloads over 500 MB in `.work/`
   2. Give labwc and labnag distinct fixture payloads, add a swap regression, and add direct regressions for an extra RPM path, a duplicate record and a valid but stale installed lock. Do it with step 3 or 4 as a small first item.
   3. Refresh the `aresos2` fixture bindings at the cut, in B321's late-package slice.
 - **Next:** step 3, the walk, on Codex when the pace allows (Monday).
+- **Merged on main since step 1's baseline (2026-11-21/22):**
+  - 18c-b (PR76, `d37ea134`): its release handoff is in `reviews/18c-b-chrome-image/PROGRESS.md`, "For linux-aresos's release brief". Keep C6's first-use half on R29's first boot, before the synthetic list. The CI overlay now sets a static hostname (`e9379346`) to stop Chrome's lock flake.
+  - B329, the frame (PR143, `b720da42`).
+  - B330, the Prism handler (PR140, `a7fb7cfe`).
+  - 327 and 328a, mod/ only (`4dd5288b`, `92cf365a`): the jar pin renews at the cut.
+  - The late-package slice merges main and classifies these.
