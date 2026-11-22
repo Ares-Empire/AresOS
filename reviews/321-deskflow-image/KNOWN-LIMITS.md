@@ -112,17 +112,20 @@ entry there is the record of how it was.
 
 - **The input portal's bus side can run while sharing is Off** (changed by the step 3 review fixes, finding 1).
   The bundled polkit agent requests the desktop portal at login (run 45009968432), and the frontend activates the
-  backend while it initializes Clipboard and InputCapture. That bus side answers and refuses sessions; it holds no
-  Wayland connection until an authorized session while sharing is On starts its worker, and none again once Off
-  (or the last session's end) stops it. So the custom-mode compositor limit above applies only while Deskflow's
-  session is live with sharing On. Commit `450c48f8`; harness test8 and the VM gate check it from outside.
+  backend while it initializes Clipboard and InputCapture. That bus side answers discovery and refuses capture
+  sessions. An authorized request while sharing is On starts the only Wayland worker in the process. Off or the
+  last session closing starts teardown and exits the process. D-Bus can then activate a fresh backend, which
+  answers discovery while Off without reaching Wayland. The custom-mode compositor limit above applies during
+  worker startup, live sessions and the short teardown. Harness test8 checks the exit and fresh activation from
+  outside. The hosted VM gate is pending.
 - **Flathub's Deskflow shares the native ID.** The portal sees `org.deskflow.deskflow` for both. A caller
   with that ID can request capture once the owner has turned sharing On. The lead accepted the collision
   on 2026-11-21 because sharing starts Off and the matching Flathub entry is the same application.
 - **Pairing rests on the owner's comparison** (step 3 review fixes, finding 3). With no saved Mac, or with
   `aresos-deskflow --enroll`, the guarded launcher shows each TLS peer's fingerprint and saves only one the owner
   confirms; a stranger on the network that connects during pairing gets its own dialog with another fingerprint,
-  and the owner has to refuse it. Accepted: the brief's laptop test 3 is exactly this comparison. The launcher
+  and Enter selects rejection. The owner still has to compare the fingerprints before selecting “It matches.”
+  The brief's laptop test 3 is exactly this comparison. The launcher
   refuses a saved list with more than one or a malformed entry and points to `--enroll`. Edits to the original
   profile or its trust list take effect on the next guarded launch. `--enroll` is a terminal command; the hub
   starts pairing by itself only while no Mac is saved.
@@ -131,5 +134,9 @@ entry there is the record of how it was.
   in a terminal still opens the stock window with the user's TLS settings; its core then has the terminal's scope,
   so its ID is empty and the backend refuses it (VM gate, "terminal launch refused"). A per-user entry in
   `~/.local/share/applications` could point the ID elsewhere: a program of the same user, as 316's limit says.
+- **Manually replacing Deskflow can restore Fedora's desktop entry.** If the owner runs `dnf reinstall` or
+  `rpm-ostree override replace` for Deskflow, the replacement transaction can restore `Exec=deskflow` under the
+  allow-listed desktop ID. The image build excludes that entry from each locked RPM install and ships the
+  guarded entry. Ordinary image updates repeat the exclusion.
 - **Rust dependency notices are pending.** The backend's own MIT license ships. The exact notice and license
   texts for its linked Rust crates still need to be collected and reviewed before publication.

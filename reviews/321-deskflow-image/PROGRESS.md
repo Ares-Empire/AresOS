@@ -741,6 +741,49 @@ The three BLOCKING findings of `REVIEW-3.md`, as the lead triaged them. Started 
   `os/ci/check-image.sh`.
 - Not run: any image build, the image checks in an image, the VM gate (step 4's dispatch).
 
+## Step 3 review fixes, round 2
+
+Followed the lead's triage in [REVIEW-3-RECHECK.md](REVIEW-3-RECHECK.md) on the draft PR #133 branch. This
+round ran locally. The hosted gate belongs to step 4.
+
+| Finding | Commit | Fix and verification |
+|---|---|---|
+| 1. Worker startup and shutdown | `0aab2216` | The process keeps its sole worker from launch through exit. The worker reads the switch just after connecting, before binding globals. The watcher sees a worker blocked in startup. Off closes the forwarding gate and every session. Off and the last session closing both end the capture and disarm, then exit after labwc's confirmation, with a one-second confirmation deadline. Concurrent release and revoke wait for that outcome. On an unconfirmed release the existing pidfd fallback still applies. The unit races used an in-process recorded Wayland worker. In harness test8, real labwc and D-Bus showed the old process exiting and an Off discovery call activating a fresh backend with zero Wayland connections. The harness frontend and input are fixtures. |
+| 1. VM gate | `dad6e205` | A vanished descriptor can be ignored. Other `pidfd_getfd` errors fail the check. The identity action checks the original process's exit via its pidfd and then checks a fresh bus-only backend. `test_deskflow_vm.py` exercises real socket counting and injects the error returns. The hosted gate is pending. |
+| 1. Backend pin | `ca6be85f` | Two clean builds each passed 102 unit tests and produced byte-identical binaries, SHA-256 `0c609b6a9571bb0c14d7e9dc8710c691be49e9e3a718c54cbd6c3282fb8e11fb`. Both harness runs used that binary. |
+| 2. Image RPM verification | `a7fadb4e` | The image runs `rpm -V deskflow` directly with errexit. The shell regression substitutes RPM returning 0 or 42 without output and verifies that the latter stops the image check. The manual package replacement limit is in [KNOWN-LIMITS.md](KNOWN-LIMITS.md). |
+| 3. Default pairing decision | `ece7b993` | The pairing prompt is a Qt message box whose default and Escape buttons both reject. The acceptance button has auto-default disabled. The unit tests drive the real offscreen prompt with Qt Test and a stand-in core. The isolated integration below used both real cores and the real prompt. |
+
+KDialog assigns the same Yes/No buttons to the question and warning forms, and Qt lets a focused auto-default
+button take over Enter. An explicit reject default and a deliberately selected acceptance button keep the existing
+wording and make the decision independent of KDialog's button ordering. [KDialog button setup](https://github.com/KDE/kdialog/blob/v26.08.1/src/kdialog.cpp#L431)
+[Qt dialog key handling](https://github.com/qt/qtbase/blob/v6.11.2/src/widgets/dialogs/qdialog.cpp#L758)
+
+### Verified locally
+
+- `os/input-portal/dev/container.sh build`, twice without `--cache`, in the pinned rootless Rust image.
+  Both printed `102 passed; 0 failed` and the SHA-256 above. `cmp` succeeded and the duplicate output was removed.
+- `HARNESS_IMAGE=localhost/aresos-input-portal-harness:321-step2 os/input-portal/harness/run.sh run`, twice.
+  Both printed `SUMMARY 133 passed, 0 failed, exit 0`. Tests 1 through 10 passed 18, 8, 9, 8, 3, 8, 15, 20,
+  5 and 26 checks, with 13 setup, isolation and review checks. Both runs reproduced the known labwc custom-mode
+  control abort with the listen-only client and the connected worker. The no-client control survived.
+- `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s os/tests -p <file>`, one module at a time.
+  `test_aresos_deskflow.py` 6, `test_deskflow_vm.py` 10, `test_shell_assertions.py` 10,
+  `test_everyday_account.py` 36, and `test_aresos_desktop.py` 189 (one existing skip for an unreachable user
+  systemd manager). No `__pycache__` under `os/config`. `bash -n` passed for the image check and both harness
+  shell scripts.
+- Pairing integration, `podman run --rm --network=none` on a throwaway rootless image with the locked Fedora
+  Deskflow RPM (1.27.0-1.fc44) and PySide6 6.11.2. The fixture files and log are in `.work/step3-round2/`.
+  A private D-Bus session, two private Xvfb displays and isolated loopback supported real `deskflow-core server`
+  and `deskflow-core client` processes. The server began with an empty source profile. Three client profiles
+  used distinct real certificates. `QT_QPA_PLATFORM=offscreen` and Qt Test drove the actual pairing prompt.
+  Enter and clicking “It doesn't match” each left both trust files absent. Clicking “It matches” saved exactly
+  the approved fingerprint to each file. The approved certificate was accepted on reconnect and another
+  certificate was refused, with the trust files unchanged. The fixture printed `PAIRING_SUMMARY 5 passed 0 failed`.
+  Xvfb stood in for the display and input transport, and Qt Test for the owner's actions. The cores, TLS,
+  fingerprint IPC, launcher, dialog and trust-file writes were real.
+- Removed the throwaway pairing image. There were no files over 500 MB in this worktree's `.work/`.
+
 ## Left, in order
 
 1. **Step 4 merges current `origin/main` first** (package 328a, `92cf365a`, and anything newer) and retests the
@@ -749,16 +792,17 @@ The three BLOCKING findings of `REVIEW-3.md`, as the lead triaged them. Started 
 2. Step 4 adds the sharing-on login hook (the owner's answer T455), launching Deskflow the hub's scoped way
    (`app-aresos-org.deskflow.deskflow-<id>.scope`, argv `/usr/libexec/aresos-deskflow`); turning sharing Off stops
    it. Finish any linked-crate notice changes before building the last check image.
-3. VM checks 2 to 9 with a Deskflow client under Xvfb in the guest, on boots with normal frontend activation (now
-   the layer's default). Pairing is part of it: with the server's fixture trust list empty, the client's first try
-   brings `peerFingerprint` on the core's IPC channel and the launcher's dialog; drive the dialog (as 22d's dialog
-   driver does for polkit, or with a stand-in `kdialog` on the CI path) to accept the client's fingerprint, check the
-   saved list holds only it, and that a second client with another certificate is refused (VM test 9).
+3. VM checks 2 to 9 with a Deskflow client under Xvfb in the guest, on boots with normal frontend activation.
+   Repeat the local pairing check through the image's Wayland session and frontend. From an empty trust list, the
+   real client's first try should bring its fingerprint to the pairing dialog. Verify the reject default, accept
+   the verified fingerprint deliberately, check the saved list holds only it, and check that a different
+   certificate is refused (VM test 9).
 4. **Dispatch 8 of 8**, `check_build=deskflow`, must show: the corrected DRM controls with normal activation (no
    backend on Wayland in `regular-none`/`regular-listener` and the custom controls; `first_boot_backend` none or 0 in
    every boot); the backend state's worker (`worker_connections` 1 through the DRM runs) and its return to Off (`off`
-   in the identity result: session gone, bus name kept, no Wayland connection); the image check's effective Deskflow
-   entry (`DESKFLOW_ENTRY_GUARDED`, clean `rpm -V deskflow`) and the new backend pin `ef3d0978…`; pairing; VM checks
+   in the identity result: original process exited, fresh bus owner with no Wayland connection); the image
+   check's effective Deskflow entry (`DESKFLOW_ENTRY_GUARDED`, successful `rpm -V deskflow`) and backend pin
+   `0c609b6a…`; pairing; VM checks
    2 to 9. If the identity step fails at readiness, read `deskflow-ci-identity/core.log` in the evidence first (see
    "Step 3 review fixes", finding 1). Then the bindings table, `KNOWN-LIMITS.md` and the final review. Send the
    refreshed "For linux-aresos" and "For linux-hub" lists.
@@ -846,6 +890,10 @@ The lead sends this list when step 3 ends and at the final head.
 | `os/build.sh` | `6dbb7a89` | Finding 2: for the locked install alone, `%_netsharedpath` keeps Fedora's copy of that entry out; `rpm -V deskflow` stays clean. |
 | `os/ci/image-checks.sh`, `os/ci/check-image.sh` | `313aba4c` | Finding 2: assert the effective Deskflow entry, every `Exec`, the net-shared state and a clean `rpm -V deskflow`; `openssl` present. |
 | `os/ci/deskflow/{Containerfile,actions.py,deskflow_vm.py}`, `os/tests/test_deskflow_vm.py` | `05cf9f05` | Finding 1: normal frontend activation in the test layer (undoes `0ce12ae3`'s removal), the backend's Wayland connections read from outside in every boot, the backend state's worker started by the real Deskflow and kept, and the return to Off. Not yet run hosted. |
+| `os/ci/deskflow/actions.py`, `os/tests/test_deskflow_vm.py` | `dad6e205` | Round 2: fail on descriptor inspection errors and check original process exit plus fresh bus-only activation. |
+| `os/ci/image-checks.sh`, `os/tests/test_shell_assertions.py` | `a7fadb4e` | Round 2: require `rpm -V deskflow` to exit 0, including when RPM prints nothing. |
+| `os/config/usr/libexec/aresos-deskflow`, `os/tests/test_aresos_deskflow.py` | `ece7b993` | Round 2: set an explicit reject default in the pairing dialog and drive it with Qt Test. |
+| `os/manifest/input-portal.sha256` | `ca6be85f` | Round 2: pin the backend that exits after teardown, from two byte-identical clean builds. |
 
 Not touched in step 1c: `os/Containerfile` (the stage copies the whole `labwc/` folder, so the second patch needs no
 new line; its comment above the stage still says "one upstream fix" and should name both patches when the file is
