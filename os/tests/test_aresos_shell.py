@@ -86,7 +86,7 @@ class Base(unittest.TestCase):
 
     def launcher(self):
         return shell.ScopeLauncher(popen=self.popen, run=self.systemctl, environ={
-            'HOME': '/var/home/ares', 'PATH': '/usr/bin', 'WAYLAND_DISPLAY': 'wayland-0',
+            'HOME': self.folder.name, 'PATH': '/usr/bin', 'WAYLAND_DISPLAY': 'test-display',
             'ARESOS_LAUNCH_NONCE': NONCE, 'ARESOS_DESKTOP_INSTANCE': INSTANCE, 'NOTIFY_SOCKET': '/run/notify'})
 
     def helper(self, registry=REGISTRY, missing=('/usr/bin/google-chrome',), tracked=False, keep_foreground=False):
@@ -442,12 +442,12 @@ class LaunchTest(Base):
                                 '--description=AresOS app: Terminal', '--expand-environment=no', '--',
                                 '/usr/bin/foot', '--app-id=aresos.terminal',
                                 '/usr/bin/bash', '--rcfile', '/usr/share/aresos/bashrc', '-i'])
-        self.assertEqual(options['cwd'], '/var/home/ares')
+        self.assertEqual(options['cwd'], self.folder.name)
         self.assertTrue(options['start_new_session'])
         self.assertNotIn('ARESOS_LAUNCH_NONCE', options['env'])
         self.assertNotIn('ARESOS_DESKTOP_INSTANCE', options['env'])
         self.assertNotIn('NOTIFY_SOCKET', options['env'])
-        self.assertEqual(options['env']['WAYLAND_DISPLAY'], 'wayland-0')
+        self.assertEqual(options['env']['WAYLAND_DISPLAY'], 'test-display')
         self.assertNotIn('shell', options)
 
     def test_unit_names_escape_dashes(self):

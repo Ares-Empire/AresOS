@@ -5,6 +5,7 @@ card is injected wherever a test needs a fixed answer, so the tests pass on a ma
 """
 import dataclasses
 import json
+import os
 import shutil
 from unittest import mock
 
@@ -26,7 +27,8 @@ STEAM = shell.Hint('steam.desktop', (), ('steam_app_',))
 # The image's hint files, read by the helper under test (the socket checks below run against both helpers).
 IMAGE_HINTS = shell.load_hints
 # What the helper's own session holds: the plain values, its own SDL choice, and keys every start drops.
-SESSION = {'HOME': '/var/home/ares', 'PATH': '/usr/bin', 'WAYLAND_DISPLAY': 'wayland-0', 'SDL_VIDEO_DRIVER': 'x11'}
+SESSION = {'HOME': os.path.expanduser('~'), 'PATH': '/usr/bin',
+           'WAYLAND_DISPLAY': 'test-display', 'SDL_VIDEO_DRIVER': 'x11'}
 INHERITED = {**SESSION, **{key: 'inherited' for key in shell.GPU_KEYS},
              **{key: 'private' for key in shell.PRIVATE_ENVIRONMENT}}
 
@@ -240,7 +242,8 @@ class LaunchEnvironmentTest(DiscoveredBase):
                              'starting')
             sent = json.dumps(self.conn.sent)
             self.assertNotIn('SDL_', sent)
-            self.assertNotIn('wayland', sent.replace('wayland-0', ''))
+            self.assertNotIn('wayland', sent)
+            self.assertNotIn('test-display', sent)
             self.assertNotIn('discrete', sent)
         self.assertEqual(rows['now'], rows['before'])
         self.assertIn('lunarclient', [row['id'] for row in rows['now']])

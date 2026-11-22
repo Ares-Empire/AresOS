@@ -2302,8 +2302,9 @@ class Journal:
 
     def evictable_view(self, joining):
         # A departing view can still owe an outcome to a different, connected client.
-        waiting = {entry['launch_id'] for entry in self.entries.values()
+        waiting = {entry.get('launch_id') for entry in self.entries.values()
                    if entry.get('joined') and not entry.get('settled')}
+        waiting.discard(None)
         if joining is not None:
             waiting.add(joining)
         protected = {client for (client, _), entry in self.entries.items()
@@ -3188,7 +3189,7 @@ class Helper:
         self.journal = Journal(journal_path, instance, clock)
         # Restore the last desktop's ownership rules when its journal still holds a discovered launch.
         self.window_minor = int(any(client == DESKTOP and entry.get('discovered') and entry['state'] not in FINAL
-                                    for (client, _), entry in self.journal.entries.items()))
+                                    for (client, _), entry in self.launch_entries()))
         self.windows_pending = False
         # What the supervisor was last told about the app windows (package 25): (count, names), or None before the
         # first report.
@@ -3298,7 +3299,8 @@ class Helper:
                 changed = True
             if entry.get('joined') and entry['state'] not in FINAL:
                 origin = origins.get(entry.get('launch_id'))
-                if origin is not None and entry['state'] != origin['state']:
+                if origin is not None and (entry['state'] != origin['state']
+                                           or (origin.get('settled') and not entry.get('settled'))):
                     self.update_join(entry, origin)
                     changed = True
         if changed:
@@ -4080,7 +4082,7 @@ class Helper:
             entry.pop('uncertain', None)  # a window confirms the app started
         self.journal.touch(entry)
         joined = [other for other, record in self.journal.entries.items()
-                  if entry.get('launch_id') and record.get('joined') and record['launch_id'] == entry['launch_id']
+                  if entry.get('launch_id') and record.get('joined') and record.get('launch_id') == entry['launch_id']
                   and record['state'] not in FINAL]
         for other in joined:
             self.update_join(self.journal.entries[other], entry)
