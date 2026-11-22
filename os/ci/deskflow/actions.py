@@ -1153,7 +1153,10 @@ def daily_proof(request):
         declaration = daily_state['root'] / 'flatpak-info'
         fixture_file(declaration, f'[Application]\nname={app_id}\nruntime=org.fedoraproject.Platform\n')
         before = session_log().count(app_id)
-        command = ['bwrap', '--ro-bind', '/', '/', '--ro-bind', str(declaration), '/.flatpak-info',
+        command = ['bwrap', '--die-with-parent', '--ro-bind', '/usr', '/usr', '--ro-bind', '/etc', '/etc',
+                   '--ro-bind', '/run', '/run', '--ro-bind', '/tmp', '/tmp', '--proc', '/proc', '--dev', '/dev',
+                   '--symlink', 'usr/bin', '/bin', '--symlink', 'usr/lib64', '/lib64',
+                   '--ro-bind', str(declaration), '/.flatpak-info',
                    '--', 'gdbus', 'call', '--session', '--dest', FRONTEND, '--object-path',
                    '/org/freedesktop/portal/desktop', '--method',
                    'org.freedesktop.portal.InputCapture.CreateSession', '',

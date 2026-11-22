@@ -1,6 +1,7 @@
 """Drive package 321's real Deskflow server and client through the check VM."""
 import concurrent.futures
 import json
+import threading
 import time
 import xml.etree.ElementTree as ET
 
@@ -349,12 +350,17 @@ class Checks:
             self.capture()
             self.input('mark')
             # Send more keys on the QEMU keyboard while the separate guest channel changes the switch.
+            started = threading.Event()
+
             def typing():
                 for _ in range(12):
                     self.keys('b')
+                    started.set()
 
             with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
                 incoming = pool.submit(typing)
+                assert started.wait(4)
+                self.input('still')
                 if manual:
                     elapsed = self.proof('off-time')
                 else:
