@@ -76,6 +76,25 @@ class DeskflowVMTest(unittest.TestCase):
         with patch.object(actions, 'windows', return_value=[named, [2, 'Other window', False]]):
             self.assertEqual(actions.windows_with(actions.SHARING_TITLE), [named])
 
+    def test_invalid_profile_waits_for_the_dialog_even_with_the_recorder_focused(self):
+        recorder = [1, 'Deskflow CI laptop', True]
+        dialog = [2, 'Deskflow — KDialog', True]
+        with patch.object(actions, 'windows', return_value=[recorder, dialog]):
+            self.assertTrue(actions.daily_dialog({'name': 'invalid-profile'})['mapped'])
+        with patch.object(actions, 'windows', return_value=[recorder]):
+            self.assertFalse(actions.daily_dialog({'name': 'invalid-profile', 'absent': True})['mapped'])
+
+    def test_rejected_peer_clipboard_must_stay_unchanged(self):
+        state = {'clip_marker': 'fixture marker'}
+        initial = Mock(returncode=0, stdout='original value')
+        changed = Mock(returncode=0, stdout='fixture marker')
+        with patch.object(actions, 'daily_state', state), patch.object(actions, 'x_command') as x_command:
+            x_command.side_effect = [initial, initial, changed]
+            actions.daily_clip({'op': 'mark-recipient'})
+            self.assertTrue(actions.daily_clip({'op': 'unchanged-recipient'})['clipboard_unchanged'])
+            with self.assertRaisesRegex(AssertionError, 'rejected peer clipboard changed'):
+                actions.daily_clip({'op': 'unchanged-recipient'})
+
     def test_hotplug_fails_if_drm_moves_without_labwc(self):
         for connected in (True, False):
             for original in (None, {'card1-Virtual-1'}):

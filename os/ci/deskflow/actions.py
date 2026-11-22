@@ -880,21 +880,34 @@ def daily_switch(request):
 
 
 def daily_dialog(request):
-    title = {'sharing': SHARING_TITLE, 'pair': PAIR_TITLE, 'recovery': 'AresOS',
-             'invalid-profile': 'Deskflow'}[request['name']]
+    name = request['name']
+    title = {'sharing': SHARING_TITLE, 'pair': PAIR_TITLE, 'recovery': 'AresOS', 'invalid-profile': 'Deskflow'}[name]
+
+    def matching():
+        candidates = windows_with(title)
+        if name == 'invalid-profile':
+            # The local input recorder also starts with "Deskflow".
+            return [window for window in candidates if re.fullmatch(r'Deskflow(?: [—–-] KDialog)?', window[1], re.I)]
+        return candidates
+
     if request.get('absent'):
-        assert not windows_with(title), f'{request["name"]} unexpectedly mapped'
+        assert not matching(), f'{name} unexpectedly mapped'
     else:
-        seen = wait_for(lambda: windows_with(title), f'{request["name"]} mapped')
+        try:
+            seen = wait_for(matching, f'{name} mapped', timeout=2 if request.get('optional') else 30)
+        except TimeoutError:
+            if request.get('optional'):
+                return dict(returncode=0, mapped=False)
+            raise
         if request.get('new'):
             before = [window for window in daily_state['window_mark'] if window[1].startswith(title)]
-            wait_for(lambda: len(windows_with(title)) == len(before) + 1, 'new recovery terminal')
+            wait_for(lambda: len(matching()) == len(before) + 1, 'new recovery terminal')
         else:
-            assert len(seen) == 1, f'{request["name"]} opened more than one window'
+            assert len(seen) == 1, f'{name} opened more than one window'
         if request.get('focused', True):
-            wait_for(lambda: any(window[2] for window in windows_with(title)),
-                     f'{request["name"]} has the keyboard')
-    return dict(returncode=0)
+            wait_for(lambda: any(window[2] for window in matching()), f'{name} has the keyboard')
+        return dict(returncode=0, mapped=True)
+    return dict(returncode=0, mapped=False)
 
 
 def trust_file():
@@ -1209,6 +1222,9 @@ def daily_clip(request):
     elif op == 'read-host':
         wait_for(lambda: paste_matches(['wl-paste', '--no-newline'], daily_state['clip_marker']),
                  'clipboard arrived at the laptop through Deskflow', timeout=6)
+    elif op == 'host-ready':
+        wait_for(lambda: paste_matches(['wl-paste', '--no-newline'], daily_state['clip_marker']),
+                 'the local clipboard contains the TLS test marker', timeout=6)
     elif op == 'release':
         # Return through Deskflow's configured boundary so it switches the active screen and its clipboard.
         send_virtual('pointer', ['rel -1600 0'])
@@ -1225,6 +1241,17 @@ def daily_clip(request):
         after, = wait_for(stable_fd_count, 'frontend returned to its original descriptor count', timeout=5)
         assert all(value >= 20 for value in counts.values()), counts
         return dict(returncode=0, portal_calls=counts, frontend_fds=[daily_state['clip_fds'], after])
+    elif op in ('mark-recipient', 'unchanged-recipient'):
+        copy = x_command('timeout', '3', 'xclip', '-o', '-selection', 'clipboard')
+        assert copy.returncode != 124, 'the recipient clipboard read timed out'
+        clipboard = (copy.returncode, copy.stdout)
+        if op == 'mark-recipient':
+            daily_state['recipient_clipboard'] = clipboard
+        else:
+            marker = daily_state['clip_marker']
+            assert clipboard == daily_state['recipient_clipboard'], 'the rejected peer clipboard changed'
+            assert marker not in copy.stdout, 'the rejected peer received the clipboard marker'
+            return dict(returncode=0, clipboard_unchanged=True)
     elif op == 'no-read':
         # Each attempted copy remained on its origin after shutdown.
         side = request['side']

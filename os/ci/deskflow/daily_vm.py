@@ -277,13 +277,16 @@ class Checks:
             self.peer('start', peer=name)
             refusal = self.peer('refused', peer=name)
             self.input('mark')
+            self.clip('mark-recipient')
+            self.clip('host')
+            self.clip('host-ready')
             self.input('untrusted-cross')
             self.keys('b')
             self.input('local-key')
-            self.clip('host')
-            self.clip('no-read', side='client')
             client = self.peer('no-data', peer=name)
-            self.check(9, 'same screen name refused; input and clipboard stayed local', peer=name, **refusal, **client)
+            clipboard = self.clip('unchanged-recipient')
+            self.check(9, 'same screen name refused; input and clipboard stayed local', peer=name,
+                       **refusal, **client, **clipboard)
         finally:
             self.peer('stop')
 
@@ -313,6 +316,7 @@ class Checks:
             self.server(path)
             self.dialog('invalid-profile')
             self.keys('ret')
+            self.dialog('invalid-profile', absent=True)
             self.server('off')
             self.check(9, 'stale plus approved fingerprint prevented launch', path=path)
         self.peer('settings', stale=False)
@@ -412,6 +416,11 @@ class Checks:
                 incoming.result()
             self.input('closed')
             assert not self.server('off')['connections']
+            # The core may retry once as its session closes. In a fresh login that Off refusal can open
+            # the once-per-login sharing dialog, which deliberately takes keyboard focus.
+            if self.dialog('sharing', optional=True)['mapped']:
+                self.keys('esc')
+                self.dialog('sharing', absent=True)
             self.input('focus')
             self.input('mark')
             self.keys('b')
@@ -453,11 +462,12 @@ def run(guest, evidence):
             (9, 'TLS negative controls', checks.privacy_and_trust),
             (8, 'log privacy', checks.log_privacy),
             ('5/6', 'idle, stopped backend and session restarts', checks.idle_and_restart),
-            (7, 'Off during typing', checks.disable),
         ):
             if not checks.attempt(case, label, operation) and label != 'log privacy':
                 if not checks.attempt(case, f'fixture restart after {label}', checks.restart_pair):
                     break
+        else:
+            checks.attempt(7, 'Off during typing', checks.disable)
     if checks.ask('switch', op='status')['switch'] == 'off':
         checks.ask('switch', op='seed-on')
         checks.record(7, 'persistence control was seeded by the fixture', 'fixture')
