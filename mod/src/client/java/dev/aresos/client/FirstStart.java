@@ -14,7 +14,7 @@ import java.nio.file.LinkOption;
 /**
  * Package 48, B: the first start. A game the AresOS session started that reaches its first title screen while no
  * AresHub folder exists makes the flat home at once, through the title screen's own create path, instead of showing
- * the title screen. He arrives in Live mode in the flat home; the Nether home is one Esc away ("New home…").
+ * the title screen. He arrives in Live mode in the flat home; the Nether home is one Esc away ("Start a new home…").
  *
  * <p>Decided once per game start, at the first title screen, so a failed creation's error screen leads to the title
  * screen with the AresOS button as before. An AresHub that exists, damaged or not, is never touched, and neither is

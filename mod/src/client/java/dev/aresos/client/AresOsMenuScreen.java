@@ -12,6 +12,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.options.OptionsScreen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.level.GameType;
 
 /**
  * Package 48: the AresOS menu, which Esc opens in the home screen instead of the game's menu (brief 48, A). The home
@@ -23,15 +24,20 @@ public final class AresOsMenuScreen extends Screen {
     static final Component BACK = Component.literal("Back to the world");
     static final Component APPS = Component.literal("Apps…");
     static final Component SETTINGS = Component.literal("Settings…");
-    static final Component NEW_HOME = Component.literal("New home…");
-    static final Component NEW_HOME_TITLE = Component.literal("New home");
-    static final Component NEW_HOME_QUESTION = Component.literal("Keep this home under a dated name and make the new "
-            + "one? Nothing is deleted: the old home stays in your saves.");
+    static final Component BUILD_OFF = Component.literal("Build mode: Off");
+    static final Component BUILD_ON = Component.literal("Build mode: On");
+    static final Component BUILD_HINT = Component.literal("In Build mode you can change the home's blocks. G switches it too.");
+    static final Component NEW_HOME = Component.literal("Start a new home…");
+    static final Component NEW_HOME_HINT = Component.literal("Builds a fresh home world and switches to it. Your current home is kept.");
+    static final Component NEW_HOME_TITLE = Component.literal("Start a new home?");
+    static final Component NEW_HOME_QUESTION = Component.literal("AresOS will build a fresh home and open it. "
+            + "Your current home will stay in your saves.");
     static final Component MAKE_IT = Component.literal("Make the new home");
     private static final int BUTTON_WIDTH = 200;
 
-    private final LinearLayout layout = LinearLayout.vertical().spacing(4);
+    private LinearLayout layout;
     private Button apps;
+    private Button buildMode;
     private StringWidget keyHint;
 
     public AresOsMenuScreen() { super(Component.literal("AresOS")); }
@@ -42,6 +48,7 @@ public final class AresOsMenuScreen extends Screen {
     }
 
     @Override protected void init() {
+        layout = LinearLayout.vertical().spacing(4);
         layout.defaultCellSetting().alignHorizontallyCenter();
         layout.addChild(new StringWidget(title, font), settings -> settings.paddingBottom(8));
         layout.addChild(Button.builder(BACK, button -> onClose()).width(BUTTON_WIDTH).build());
@@ -49,12 +56,15 @@ public final class AresOsMenuScreen extends Screen {
                 .width(BUTTON_WIDTH).build());
         layout.addChild(Button.builder(SETTINGS, button -> minecraft.gui.setScreen(new OptionsScreen(this, minecraft.options, true)))
                 .width(BUTTON_WIDTH).build());
+        buildMode = layout.addChild(Button.builder(BUILD_OFF, button -> ModeSwitchClient.requestToggle())
+                .tooltip(Tooltip.create(BUILD_HINT)).width(BUTTON_WIDTH).build());
         layout.addChild(Button.builder(NEW_HOME, button -> minecraft.gui.setScreen(
-                new HomeCreateScreen(this, AresOsMenuScreen::confirmNewHome))).width(BUTTON_WIDTH).build());
+                new HomeCreateScreen(this, AresOsMenuScreen::confirmNewHome)))
+                .tooltip(Tooltip.create(NEW_HOME_HINT)).width(BUTTON_WIDTH).build());
         keyHint = layout.addChild(new StringWidget(hint(minecraft), font), settings -> settings.paddingTop(8));
         keyHint.setMaxWidth(width - 16, StringWidget.TextOverflow.SCROLLING);
         layout.visitWidgets(this::addRenderableWidget);
-        updateApps();
+        updateButtons();
         repositionElements();
     }
 
@@ -95,19 +105,22 @@ public final class AresOsMenuScreen extends Screen {
         if (keyHint != null) {
             keyHint.setMessage(hint(minecraft));
             repositionElements();
-            updateApps();
+            updateButtons();
         }
     }
 
     /** The Apps screen is Live's: in Build mode it would close at once, so its button waits for Live. */
-    private void updateApps() {
+    private void updateButtons() {
         boolean live = AppsScreen.active(minecraft);
         apps.active = live;
-        apps.setTooltip(live ? null : Tooltip.create(Component.literal("Apps open in Live mode. Back to the world, then ")
-                .append(modeKey()).append(".")));
+        apps.setTooltip(live ? null : Tooltip.create(Component.literal("Apps open in Live mode. Use the Build mode button or press ")
+                .append(modeKey()).append(" in the world.")));
+        boolean building = minecraft.gameMode != null && minecraft.gameMode.getPlayerMode() == GameType.CREATIVE;
+        buildMode.setMessage(building ? BUILD_ON : BUILD_OFF);
+        buildMode.active = ModeSwitchClient.canRequestToggle(minecraft);
     }
 
-    @Override public void tick() { updateApps(); }
+    @Override public void tick() { updateButtons(); }
 
     /** The world keeps moving behind it, as behind the Apps screen. */
     @Override public boolean isPauseScreen() { return false; }

@@ -5,8 +5,11 @@ temporary folder. The image build's own extras (pip, the wheel record, the self-
 their record is checked here with stand-ins for pip's report and the vendored tree.
 """
 import base64
+import contextlib
+import copy
 import hashlib
 import importlib.util
+import io
 import json
 import marshal
 import os
@@ -18,6 +21,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 import zipfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -34,12 +38,21 @@ FILES = {
     '/usr/lib/sysusers.d/aresos-tools.conf': ('0644', 'control/packaging/aresos-tools.sysusers'),
     '/usr/lib/tmpfiles.d/aresos-tools.conf': ('0644', 'control/packaging/aresos-tools.tmpfiles'),
     '/usr/libexec/aresos-control/chrome/qualification.json': ('0644', 'control/chrome/qualification.json'),
+    '/usr/libexec/aresos-control/chrome/host': ('0755', 'control/chrome/packaging/host'),
+    '/usr/libexec/aresos-control/chrome/native_host.py': ('0644', 'control/chrome/native_host.py'),
+    '/usr/share/polkit-1/actions/org.aresos.control.chrome-loosen.policy':
+        ('0644', 'control/chrome/packaging/org.aresos.control.chrome-loosen.policy'),
+    '/usr/lib/tmpfiles.d/aresos-control-chrome.conf': ('0644', 'control/chrome/packaging/aresos-control-chrome.tmpfiles'),
     '/usr/libexec/aresos-control/launch.py': ('0644', 'control/launch.py'),
     '/usr/share/aresos/control/user-mcp.json': ('0644', 'control/settings/user-mcp.json'),
 }
 DERIVED = ('/usr/lib/tmpfiles.d/aresos-control-folders.conf', '/usr/libexec/aresos-control/chrome/build-id.json',
            '/usr/share/aresos/control/proxy.json', '/usr/share/aresos/control/service.json')
 LINK = ('/etc/systemd/system/multi-user.target.wants/aresos-toold.service', '/usr/lib/systemd/system/aresos-toold.service')
+CHROME_LINKS = {
+    '/etc/opt/chrome/policies/managed/aresos.json': '/usr/share/aresos/chrome/policy.json',
+    '/etc/opt/chrome/native-messaging-hosts/org.aresos.chrome.json': '/usr/share/aresos/chrome/native-host.json',
+}
 
 
 def sha256(data):
@@ -97,7 +110,15 @@ class InstallMapTest(unittest.TestCase):
                          '{"build":"%s"}\n' % build)
         self.assertEqual(record['format'], 1)
         self.assertEqual(record['requirements_lock'], sha256((CONTROL / 'requirements.lock').read_bytes()))
-        self.assertEqual(record['links'], dict([LINK]))
+        self.assertEqual(record['chrome_build'], build)
+        gh = json.loads((ROOT / 'os/gh.lock.json').read_text())
+        self.assertEqual(record['gh'], dict(version=gh['nevra'].split('-')[1], binary_sha256=gh['binary_sha256']))
+        self.assertNotIn('chrome_extension', record, 'control-tree must not sign a bundle')
+        self.assertEqual(list((dest / 'usr/share/aresos/chrome').iterdir()), [])
+        self.assertEqual(record['links'], dict([LINK], **CHROME_LINKS))
+        for name, target in CHROME_LINKS.items():
+            self.assertTrue((dest / name.lstrip('/')).is_symlink())
+            self.assertEqual(os.readlink(dest / name.lstrip('/')), target)
         self.assertEqual(os.readlink(dest / LINK[0].lstrip('/')), LINK[1])
         expected = {name: dict(mode=mode, sha256=sha256((ROOT / source).read_bytes()), source=source)
                     for name, (mode, source) in FILES.items()}
@@ -119,7 +140,7 @@ class InstallMapTest(unittest.TestCase):
         self.assertEqual(sorted(record['directories']), sorted(
             ['/etc/claude-code', '/usr/libexec/aresos-control', '/usr/libexec/aresos-control/aresos_control',
              '/usr/libexec/aresos-control/chrome',
-             '/usr/libexec/aresos-control/generated', '/usr/share/aresos/control',
+             '/usr/libexec/aresos-control/generated', '/usr/share/aresos/control', '/usr/share/aresos/chrome',
              *{'/usr/libexec/aresos-control/aresos_control/' + p.parent.relative_to(CONTROL / 'aresos_control').as_posix()
                for p in tree_files('aresos_control') if p.parent != CONTROL / 'aresos_control'}]))
         # No exclusive MCP file, no Python bytecode from the checkout, nothing under his home.
@@ -172,6 +193,7 @@ class InstallMapTest(unittest.TestCase):
         # Another declared account changes every derived value and nothing else.
         other = self.work / 'os'
         (other / 'config/usr/lib/sysusers.d').mkdir(parents=True)
+        shutil.copyfile(ROOT / 'os/gh.lock.json', other / 'gh.lock.json')
         declaration = (ROOT / 'os/config/usr/lib/sysusers.d/aresos.conf').read_text()
         (other / 'config/usr/lib/sysusers.d/aresos.conf').write_text(
             declaration.replace('1001', '1002').replace(' ares ', ' pat ').replace('/var/home/ares', '/var/home/pat'))
@@ -228,6 +250,12 @@ class InstallMapTest(unittest.TestCase):
         result, dest = run(pinned)
         self.assertEqual(result.returncode, 0, result.stderr)
         record = json.loads((dest / 'usr/share/aresos/manifest/control.json').read_text())
+        checker = load_chrome_check()
+        extension = record['chrome_extension']
+        self.assertIn(f'CONTROL_CHROME_EXTENSION {extension["id"]} {extension["crx_sha256"]}', result.stdout)
+        checker.bundle_content({name: (dest / checker.BUNDLE.lstrip('/') / name).read_bytes()
+                                for name in checker.NAMES}, extension)
+        checker.compare(record, record, CONTROL)
         self.assertEqual(record['source_revision'], REVISION)
         self.assertEqual([(w['name'], w['version'], w['sha256']) for w in record['wheels']],
                          sorted((name.lower(), version, digest) for name, version, digest in pinned))
@@ -297,7 +325,7 @@ class ImageCheckTest(unittest.TestCase):
         result = check(changed)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("control.json files differs at: ['/usr/share/aresos/control/service.json']", result.stderr)
-        for key, value in (('requirements_lock', '0' * 64), ('links', {}), ('directories', {}),
+        for key, value in (('requirements_lock', '0' * 64), ('chrome_build', '0' * 64), ('gh', {}), ('links', {}), ('directories', {}),
                            ('vendor', {'/usr/lib/python3.14/site-packages/mcp': dict(mode='0755', sha256=None)})):
             self.assertNotEqual(check(dict(record, **{key: value})).returncode, 0, key)
         extra = json.loads(json.dumps(record))
@@ -587,6 +615,444 @@ class VendorTreeTest(unittest.TestCase):
             self.vendor_check.fetch(dict(wheels=[dict(self.recorded[0], file='../demo.whl')]), folder, index())
 
 
+def load_chrome_check():
+    spec = importlib.util.spec_from_file_location('chrome_image', ROOT / 'os/ci/control/chrome_image.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+class ChromeImageTest(unittest.TestCase):
+    def setUp(self):
+        self.work = pathlib.Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.work)
+        self.checker = load_chrome_check()
+        spec = importlib.util.spec_from_file_location('chrome_pack', CONTROL / 'chrome/packaging/pack.py')
+        self.pack = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.pack)
+
+    def bundle(self):
+        files, extension = self.pack.pack(CONTROL / 'chrome/extension')
+        extension['files'] = {self.checker.BUNDLE + '/' + name: {'mode': '0644', 'sha256': sha256(data)}
+                              for name, data in files.items()}
+        return files, extension
+
+    def test_control_tree_hashes_before_generation_and_leaves_sources_byte_identical(self):
+        control = self.work / 'source/control'
+        shutil.copytree(CONTROL, control, ignore=shutil.ignore_patterns('__pycache__'))
+        dest = self.work / 'root'
+        # This runs in the actual build subprocess. Generating even a destination
+        # file first fails, not just a source edit that later happens to be undone.
+        build_py = control / 'chrome/build.py'
+        build_py.write_text('from pathlib import Path\nimport os\n'
+                            'assert not Path(os.environ["CHROME_ORDER_DEST"]).exists(), "generated before hash"\n'
+                            + build_py.read_text())
+        before = {str(p.relative_to(control)): p.read_bytes() for p in control.rglob('*') if p.is_file()}
+        expected = subprocess.run([sys.executable, '-I', '-B', str(build_py)], capture_output=True, text=True,
+                                  check=True, env={**os.environ, 'CHROME_ORDER_DEST': str(dest)}).stdout.strip()
+        result = subprocess.run(['bash', str(ROOT / 'os/build.sh'), 'control-tree', str(ROOT / 'os'), str(control), str(dest)],
+                                capture_output=True, text=True, env={**os.environ, 'CHROME_ORDER_DEST': str(dest)}, timeout=120)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(before, {str(p.relative_to(control)): p.read_bytes() for p in control.rglob('*') if p.is_file()})
+        record = json.loads((dest / 'usr/share/aresos/manifest/control.json').read_bytes())
+        self.assertEqual(record['chrome_build'], expected)
+        self.assertEqual(json.loads((dest / 'usr/libexec/aresos-control/chrome/build-id.json').read_bytes()), {'build': expected})
+        for name in record['files']:
+            data = (dest / name.lstrip('/')).read_bytes()
+            for token in self.checker.PLACEHOLDERS:
+                self.assertNotIn(token, data, name)
+        self.assertFalse((dest / 'var').exists())
+        self.assertFalse((dest / 'etc/aresos/control/chrome-excluded-sites.json').exists())
+
+    def test_one_packer_call_only_in_image_mode_after_hash_and_no_source_writes(self):
+        dest = self.work / 'root'
+        report = self.work / 'pip-report.json'
+        report.write_text(json.dumps({'install': [
+            {'metadata': {'name': name, 'version': version}, 'download_info': {
+                'url': f'https://files.invalid/{name}-{version}-py3-none-any.whl',
+                'archive_info': {'hashes': {'sha256': digests[0]}}}}
+            for (name, version), digests in lock_pins().items()]}))
+        code = heredoc('os/build.sh', 'python3 -B - "$os_dir" "$control_dir" "$dest" $report <<\'PY\'\n')
+        calls = []
+        run = subprocess.run
+        before = {str(p.relative_to(CONTROL)): p.read_bytes() for p in CONTROL.rglob('*')
+                  if p.is_file() and '__pycache__' not in p.parts}
+
+        def tracked(argv, **kwargs):
+            calls.append(argv)
+            if argv[3].endswith('/build.py'):
+                self.assertFalse(dest.exists(), 'a destination exists before build.py runs')
+            return run(argv, **kwargs)
+
+        with patch.object(sys, 'argv', ['-', str(ROOT / 'os'), str(CONTROL), str(dest), str(report)]), \
+                patch.dict(os.environ, {'ARESOS_SOURCE_REVISION': REVISION}), patch('subprocess.run', tracked):
+            exec(compile(code, 'build.sh control map', 'exec'), {})
+        self.assertEqual([pathlib.Path(argv[3]).name for argv in calls], ['build.py', 'pack.py'])
+        self.assertEqual(before, {str(p.relative_to(CONTROL)): p.read_bytes() for p in CONTROL.rglob('*')
+                                  if p.is_file() and '__pycache__' not in p.parts})
+        record = json.loads((dest / 'usr/share/aresos/manifest/control.json').read_bytes())
+        self.checker.bundle_content({name: (dest / self.checker.BUNDLE.lstrip('/') / name).read_bytes()
+                                    for name in self.checker.NAMES}, record['chrome_extension'])
+
+    def test_independent_reader_rejects_signature_payload_identity_and_policy_mutations(self):
+        files, record = self.bundle()
+        self.checker.bundle_content(files, record)
+        other, _ = self.bundle()
+        self.assertNotEqual(files['extension.crx'], other['extension.crx'])
+        cases = {
+            'broken signature': lambda f, r: f.__setitem__('extension.crx', f['extension.crx'][:-1] + bytes([f['extension.crx'][-1] ^ 1])),
+            'foreign CRX': lambda f, r: f.__setitem__('extension.crx', other['extension.crx']),
+            'recorded identity': lambda f, r: r.__setitem__('id', 'a' * 32),
+            'recorded payload': lambda f, r: r['payload'][0].__setitem__('sha256', '0' * 64),
+            'recorded version': lambda f, r: r.__setitem__('version', '99'),
+            'wildcard policy': lambda f, r: f.__setitem__('policy.json', b'{"ExtensionSettings":{"*":{}}}'),
+            'override removed': lambda f, r: f.__setitem__('policy.json', f['policy.json'].replace(b'"override_update_url":true,', b'')),
+            'second origin': lambda f, r: f.__setitem__('native-host.json', f['native-host.json'].replace(b'"]', b'","chrome-extension://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/"]')),
+            'network update': lambda f, r: f.__setitem__('policy.json', f['policy.json'].replace(b'file:///usr/share', b'https://example.invalid')),
+            'network CRX': lambda f, r: f.__setitem__('update.xml', f['update.xml'].replace(b'file:///usr/share', b'https://example.invalid')),
+            'template left': lambda f, r: f.__setitem__('update.xml', f['update.xml'].replace(r['version'].encode(), b'EXTENSION_VERSION')),
+            'extra bundle': lambda f, r: f.__setitem__('probe.crx', b'probe'),
+        }
+        for name, change in cases.items():
+            with self.subTest(name=name):
+                f, r = copy.deepcopy(files), copy.deepcopy(record)
+                change(f, r)
+                self.assertTrue(f != files or r != record, 'mutation did not change anything')
+                # Bind the edited bytes too: the independent content checks,
+                # not merely a stale hash, must detect these mutations.
+                r['files'] = {self.checker.BUNDLE + '/' + key: {'mode': '0644', 'sha256': sha256(data)} for key, data in f.items()}
+                r['crx_sha256'] = sha256(f['extension.crx'])
+                with self.assertRaises(Exception):
+                    self.checker.bundle_content(f, r)
+
+    def test_release_image_rejects_the_test_layers_payload_paths_and_dangling_roots(self):
+        root = self.work / 'root'
+        files, extension = self.bundle()
+        build = 'c' * 64
+        record = {'chrome_extension': extension, 'chrome_build': build, 'files': {}, 'links': self.checker.LINKS}
+        code = 'usr/libexec/aresos-control/chrome'
+
+        def write(name, data):
+            path = root / name.lstrip('/')
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(data)
+            return path
+
+        for name, data in files.items():
+            write(f'{self.checker.BUNDLE}/{name}', data)
+        write('usr/share/aresos/manifest/control.json', json.dumps(record).encode())
+        write(f'{code}/build-id.json', json.dumps({'build': build}).encode())
+        for name in ('host', 'native_host.py', 'qualification.json'):
+            write(f'{code}/{name}', b'fixture')
+        for name, target in self.checker.LINKS.items():
+            path = root / name.lstrip('/')
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.symlink_to(target)
+        for name in ('tmp', 'var/tmp', 'root'):
+            (root / name).mkdir(parents=True)
+
+        def in_image(name):
+            path = pathlib.Path(name)
+            return path if path.is_relative_to(root) else root / path.relative_to('/')
+
+        other_files, _ = self.bundle()
+        with patch.object(self.checker, 'Path', in_image), patch.object(self.checker, 'owned'), \
+                patch.object(self.checker, 'owned_link'):
+            self.checker.image(root)
+            for name, payload in (
+                    ('usr/share/aresos-install-test/probe/extension.crx', {'': other_files['extension.crx']}),
+                    ('usr/libexec/aresos-install-test/probe-host', {'': b'#!/bin/sh\nexit 0\n'}),
+                    ('usr/share/aresos-install-test/bundles/b', other_files)):
+                with self.subTest(payload=name):
+                    for part, data in payload.items():
+                        path = write(f'{name}/{part}' if part else name, data)
+                        if name.endswith('/probe-host'):
+                            path.chmod(0o755)
+                    test_root = pathlib.Path(*pathlib.Path(name).parts[:3])
+                    try:
+                        with self.assertRaisesRegex(AssertionError, f'test-only Chrome payload root: /{test_root}'):
+                            self.checker.image(root)
+                    finally:
+                        shutil.rmtree(root / test_root)
+            for name in ('usr/share/aresos-install-test', 'usr/libexec/aresos-install-test'):
+                with self.subTest(dangling=name):
+                    path = root / name
+                    path.symlink_to('missing')
+                    self.assertFalse(path.exists())
+                    with self.assertRaisesRegex(AssertionError, f'test-only Chrome payload root: /{name}'):
+                        self.checker.image(root)
+                    path.unlink()
+
+    def test_checkout_comparison_binds_payload_templates_build_and_links(self):
+        _, extension = self.bundle()
+        record = {'chrome_build': 'c' * 64, 'links': dict(CHROME_LINKS), 'chrome_extension': extension}
+        self.checker.compare(record, record, CONTROL)
+        for name, change in (
+                ('build', lambda r: r.__setitem__('chrome_build', 'd' * 64)),
+                ('link', lambda r: r['links'].__setitem__(next(iter(CHROME_LINKS)), '/tmp/other')),
+                ('payload', lambda r: r['chrome_extension']['payload'][0].__setitem__('sha256', '0' * 64)),
+                ('version', lambda r: r['chrome_extension'].__setitem__('version', '99')),
+                ('mode', lambda r: r['chrome_extension']['files'][self.checker.BUNDLE + '/policy.json'].__setitem__('mode', '0664')),
+                ('template', lambda r: r['chrome_extension']['files'][self.checker.BUNDLE + '/policy.json'].__setitem__('sha256', '0' * 64))):
+            changed = copy.deepcopy(record)
+            change(changed)
+            with self.assertRaises(AssertionError, msg=name):
+                self.checker.compare(changed, record, CONTROL)
+
+    def test_key_scans_find_newlines_chunk_boundaries_every_encoding_and_pem(self):
+        value = bytes(range(256))
+        needles = self.checker.forms(value)
+        path = self.work / 'scan'
+        for name, data in [('raw', value), ('hex', value.hex().encode()), ('HEX', value.hex().upper().encode())] + [
+                (f'{encoding}-{alignment}', encode(b'x' * alignment + value + b'y' * 3))
+                for encoding, encode in [('base64', base64.b64encode), ('base64url', base64.urlsafe_b64encode)]
+                for alignment in range(3)]:
+            for wrap in (False, True):
+                encoded = b'\n'.join(data[n:n + 64] for n in range(0, len(data), 64)) if wrap and name != 'raw' else data
+                path.write_bytes(b'x' * 1023 + encoded + b'z' * 500)
+                self.assertTrue(self.checker.hits(path, needles, chunk_size=1024), (name, wrap))
+        path.write_bytes(b'no key here')
+        self.assertFalse(self.checker.hits(path, needles, chunk_size=1024))
+        checks = self.work / 'checks.txt'
+        checks.write_text('CONTROL_CHROME_PUBLIC_MODULUS ' + value.hex() + '\n')
+        self.checker.build_log(checks, path)
+        path.write_bytes(b'x' * 1023 + value + b'\n')
+        with self.assertRaisesRegex(AssertionError, 'public modulus in build log'):
+            self.checker.build_log(checks, path)
+        for kind in (b'', b'RSA ', b'EC ', b'ENCRYPTED '):
+            path.write_bytes(b'x' * (1024 * 1024 - 4) + b'-----BEGIN ' + kind + b'PRIVATE KEY-----\n')
+            with self.assertRaisesRegex(AssertionError, 'private key marker'):
+                self.checker.private_markers(path)
+        with self.assertRaises(FileNotFoundError):
+            list(self.checker.regular_files(self.work / 'absent'))
+
+    def test_image_and_runner_wire_all_chrome_checks(self):
+        image = (ROOT / 'os/ci/image-checks.sh').read_text()
+        runner = (ROOT / 'os/ci/check-image.sh').read_text()
+        build = (ROOT / 'os/ci/check-build.sh').read_text()
+        self.assertIn('python3 -I -B /tmp/aresos-chrome-image-check.py image', image)
+        self.assertIn('mount --bind / "$chrome_scan_root"', image)
+        self.assertIn('image "$chrome_scan_root"', image)
+        self.assertIn('umount "$chrome_scan_root"', image)
+        checker = (ROOT / 'os/ci/control/chrome_image.py').read_text()
+        self.assertIn('private_scan(scan_root)', checker)
+        self.assertIn("regular_files(scan_root, excluded=tuple(scan_root / name for name in ('proc', 'sys', 'dev')))", checker)
+        self.assertIn('chrome_image.py:/tmp/aresos-chrome-image-check.py:ro', runner)
+        self.assertNotIn('rmdir /etc/opt/chrome/policies', image)
+        self.assertIn('pkaction --action-id org.aresos.control.chrome-loosen --verbose', image)
+        self.assertEqual(image.count('systemd-tmpfiles --create /usr/lib/tmpfiles.d/aresos-control-chrome.conf'), 2)
+        self.assertIn('chrome_image.py compare', runner)
+        self.assertIn('chrome_image.py build-log evidence/image/checks.txt evidence/build.log', build)
+        self.assertLess(build.index('bash os/ci/check-image.sh'), build.index('chrome_image.py build-log'))
+        release_check = 'bash os/ci/check-image.sh localhost/aresos:check "$kind"'
+        self.assertEqual(build.count('bash os/ci/check-image.sh'), 1)
+        self.assertIn(release_check, build)
+        self.assertLess(build.index(release_check), build.index('--tag localhost/aresos:vm'))
+        self.assertLess(build.index(release_check), build.index('bash os/ci/control/runner.sh layer'))
+
+    def test_image_metadata_rejects_wrong_mode_owner_group_and_unsafe_parents(self):
+        path = self.work / 'record.json'
+
+        def info(mode, uid=0, gid=0):
+            return os.stat_result((mode, 0, 0, 1, uid, gid, 0, 0, 0, 0))
+
+        rows = {parent: info(0o040755) for parent in path.parents}
+        rows[path] = info(0o100644)
+        with patch.object(pathlib.Path, 'lstat', lambda p: rows[p]):
+            self.checker.owned(path, 0o644)
+            for name, target, changed in (
+                    ('file mode', path, info(0o100600)), ('file writable', path, info(0o100666)),
+                    ('file owner', path, info(0o100644, uid=1001)), ('file group', path, info(0o100644, gid=250)),
+                    ('file link', path, info(0o120777)), ('file is a folder', path, info(0o040644)),
+                    ('parent owner', path.parent, info(0o040755, uid=1001)),
+                    ('parent group', path.parent, info(0o040755, gid=250)),
+                    ('parent writable', path.parent, info(0o040775)), ('parent link', path.parent, info(0o120755))):
+                previous = rows[target]
+                rows[target] = changed
+                with self.assertRaises(AssertionError, msg=name):
+                    self.checker.owned(path, 0o644)
+                rows[target] = previous
+
+    def test_chrome_links_keep_the_readonly_image_root_and_pin_etc_parents(self):
+        def info(mode, uid=0, gid=0):
+            return os.stat_result((mode, 0, 0, 1, uid, gid, 0, 0, 0, 0))
+
+        root = pathlib.Path('/')
+        for name, target in self.checker.LINKS.items():
+            path = pathlib.Path(name)
+            rows = {parent: info(0o040755) for parent in path.parents}
+            rows[root] = info(0o040555)
+            rows[path] = info(0o120777)
+            with patch.object(pathlib.Path, 'lstat', lambda p: rows[p]), \
+                    patch.object(self.checker.os, 'readlink', return_value=target) as link:
+                self.checker.owned_link(path, target)
+                for label, changed_path, changed in (
+                        ('ordinary file', path, info(0o100644)),
+                        ('link owner', path, info(0o120777, uid=1001)),
+                        ('link group', path, info(0o120777, gid=250)),
+                        ('parent mode', path.parent, info(0o040555)),
+                        ('parent writable', path.parent, info(0o040775)),
+                        ('root owner', root, info(0o040555, uid=1001)),
+                        ('root group', root, info(0o040555, gid=250)),
+                        ('root mode', root, info(0o040755)),
+                        ('root writable', root, info(0o040575))):
+                    previous = rows[changed_path]
+                    rows[changed_path] = changed
+                    with self.assertRaises(AssertionError, msg=f'{name}: {label}'):
+                        self.checker.owned_link(path, target)
+                    rows[changed_path] = previous
+                link.return_value = '/tmp/another-bundle.json'
+                with self.assertRaises(AssertionError):
+                    self.checker.owned_link(path, target)
+
+
+class ChromePrivateScanTest(unittest.TestCase):
+    def setUp(self):
+        self.work = pathlib.Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.work)
+        self.root = self.work / 'image'
+        self.root.mkdir()
+        self.checker = load_chrome_check()
+        self.marker = b'-----BEGIN ' + b'PRIVATE KEY-----\n'
+        for name in ('tmp', 'var/tmp', 'root'):
+            (self.root / name).mkdir(parents=True)
+
+    def scan(self):
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            evidence = self.checker.private_scan(self.root)
+        rows = [json.loads(line.removeprefix('CONTROL_CHROME_SCAN_LINK '))
+                for line in output.getvalue().splitlines()]
+        self.assertEqual(rows, evidence, 'every link observation is retained in checks.txt')
+        return evidence
+
+    def test_linked_folder_with_private_marker_fails_for_each_scan_name(self):
+        target = self.root / 'var/scan-content'
+        target.mkdir()
+        (target / 'key').write_bytes(self.marker)
+        for name in ('tmp', 'var/tmp', 'root'):
+            with self.subTest(name=name):
+                link = self.root / name
+                link.rmdir()
+                link.symlink_to('scan-content' if name == 'var/tmp' else 'var/scan-content')
+                with self.assertRaisesRegex(AssertionError, 'private key marker'):
+                    self.scan()
+                link.unlink()
+                link.mkdir()
+
+    def test_missing_link_target_passes_and_is_recorded_for_each_scan_name(self):
+        for name in ('tmp', 'var/tmp', 'root'):
+            with self.subTest(name=name):
+                link = self.root / name
+                link.rmdir()
+                target = 'roothome' if name == 'var/tmp' else 'var/roothome'
+                link.symlink_to(target)
+                self.assertEqual(self.scan(), [dict(path=name, target=target,
+                                                   resolved='var/roothome', status='missing')])
+                link.unlink()
+                link.mkdir()
+
+    def test_absolute_link_uses_image_contents_never_the_host_view(self):
+        # Both views exist, entirely in this test's scratch directory. Host
+        # Path.resolve() would choose the clean decoy and miss the image key.
+        outside = (self.work / 'host-decoy').absolute()
+        outside.mkdir()
+        target = self.root / outside.as_posix().lstrip('/')
+        target.mkdir(parents=True)
+        (outside / 'key').write_bytes(b'clean host decoy')
+        (target / 'key').write_bytes(self.marker)
+        link = self.root / 'root'
+        link.rmdir()
+        link.symlink_to(outside)
+        with self.assertRaisesRegex(AssertionError, 'private key marker'):
+            self.scan()
+        (target / 'key').write_bytes(b'clean image content')
+        (outside / 'key').write_bytes(self.marker)
+        rows = self.scan()
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]['status'], 'present')
+        self.assertEqual(rows[0]['resolved'], target.relative_to(self.root).as_posix())
+
+    def test_unreadable_folder_fails_instead_of_becoming_a_missing_target(self):
+        target = self.root / 'var/roothome'
+        target.mkdir()
+        (self.root / 'root').rmdir()
+        (self.root / 'root').symlink_to('var/roothome')
+        scandir = os.scandir
+
+        def unreadable(path):
+            if pathlib.Path(path) == target:
+                raise PermissionError('unreadable image folder')
+            return scandir(path)
+
+        # Inject the kernel's read error even on CI jobs running as root.
+        with patch.object(self.checker.os, 'scandir', unreadable):
+            with self.assertRaisesRegex(PermissionError, 'unreadable image folder'):
+                self.scan()
+
+    def test_read_and_lstat_errors_and_missing_plain_names_fail(self):
+        path = self.root / 'root/file'
+        path.write_bytes(b'content')
+        with patch.object(pathlib.Path, 'open', side_effect=PermissionError('unreadable image file')):
+            with self.assertRaisesRegex(PermissionError, 'unreadable image file'):
+                self.scan()
+        lstat = pathlib.Path.lstat
+
+        def unreadable(entry, *args, **kwargs):
+            if entry == path:
+                raise PermissionError('unreadable image metadata')
+            return lstat(entry, *args, **kwargs)
+
+        with patch.object(pathlib.Path, 'lstat', unreadable):
+            with self.assertRaisesRegex(PermissionError, 'unreadable image metadata'):
+                self.scan()
+        path.unlink()
+        (self.root / 'root').rmdir()
+        with self.assertRaises(FileNotFoundError):
+            self.scan()
+
+    def test_nested_and_parent_links_are_resolved_inside_the_image(self):
+        (self.root / 'var/tmp').rmdir()
+        (self.root / 'var').rmdir()
+        (self.root / 'storage/tmp').mkdir(parents=True)
+        (self.root / 'var').symlink_to('/storage')
+        (self.root / 'tmp/nested').symlink_to('/var/secret')
+        (self.root / 'storage/secret').write_bytes(self.marker)
+        with self.assertRaisesRegex(AssertionError, 'private key marker'):
+            self.scan()
+        (self.root / 'storage/secret').write_bytes(b'clean')
+        self.assertTrue(self.scan())
+
+    def test_parent_traversal_stops_at_image_root(self):
+        (self.root / 'root').rmdir()
+        (self.root / 'root').symlink_to('../../../../var/tmp')
+        (self.root / 'var/tmp/key').write_bytes(self.marker)
+        # Scan only root here: scanning var/tmp first would hide an escape bug.
+        with self.assertRaisesRegex(AssertionError, 'private key marker'):
+            self.checker.private_scan(self.root, names=('root',))
+
+    def test_missing_plain_child_of_existing_link_target_still_fails(self):
+        (self.root / 'var/tmp').rmdir()
+        (self.root / 'var').rmdir()
+        (self.root / 'storage').mkdir()
+        (self.root / 'var').symlink_to('/storage')
+        with self.assertRaises(FileNotFoundError):
+            self.scan()
+
+    def test_link_cycles_and_non_directory_parents_fail(self):
+        link = self.root / 'root/loop'
+        for target in ('loop', '.', '/root'):
+            with self.subTest(target=target):
+                link.symlink_to(target)
+                with self.assertRaises(OSError):
+                    self.scan()
+                link.unlink()
+        (self.root / 'file').write_bytes(b'ordinary file')
+        link.symlink_to('/file/child')
+        with self.assertRaises(NotADirectoryError):
+            self.scan()
+
+
 class ServiceUserTest(unittest.TestCase):
     """Agreed change 5: one fixed number, unused by Fedora's static block and the image's own declarations."""
 
@@ -645,6 +1111,316 @@ class ContainerfileTest(unittest.TestCase):
         build = (ROOT / 'os/build.sh').read_text()
         self.assertIn('"AresOS-$revision/control"', build.split('if [[ $1 == source ]]', 1)[1].split('\nfi\n', 1)[0])
 
+
+
+class GhImageTest(unittest.TestCase):
+    """Exercise the packages step's checks, without importing any host RPM key."""
+    def setUp(self):
+        self.work = pathlib.Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.work)
+        self.code = heredoc('os/build.sh', "python3 - /tmp/aresos /tmp/ares-gh / <<'PY'\n")
+        self.ns = {'__name__': 'gh_fixture'}
+        exec(compile(self.code, 'build.sh gh', 'exec'), self.ns)
+        self.pin = json.loads((ROOT / 'os/gh.lock.json').read_text())
+        self.payload_paths = self.pin['payload_paths'].copy()
+        self.key = ROOT / 'os' / self.pin['signing_key']['file']
+        self.package = self.work / 'gh.rpm'
+        self.package.write_bytes(b'fixture rpm')
+        self.pin['sha256'] = sha256(self.package.read_bytes())
+        self.fingerprint = self.pin['signing_key']['fingerprint']
+        self.scripts = ''
+        self.nevra = self.pin['nevra']
+        self.signature = (str(self.package) + ':\n    Header OpenPGP V4 RSA/SHA512 signature, key fingerprint: '
+                          + self.fingerprint + ': OK\n    Header SHA256 digest: OK\n    Payload SHA256 digest: OK\n')
+        self.base = 'a' * 40 + ' fixture base key'
+        self.added = self.fingerprint + ' fixture signing key'
+        self.keys = [self.base]
+        self.import_extra = False
+        self.leave_key = False
+        self.calls = []
+
+    def output(self, *args):
+        self.calls.append(args)
+        if args == ('rpmkeys', '--list'):
+            return '\n'.join(self.keys) + '\n'
+        if args[:3] == ('rpmkeys', '--checksig', '--verbose'):
+            return self.signature
+        if args[:3] == ('rpm', '-qp', '--nosignature'):
+            if args[3:5] == ('--qf', '[%{FILENAMES}\n]'):
+                return '\n'.join(self.payload_paths) + '\n'
+            if '--scripts' in args:
+                self.assertIn('--triggers', args)
+                self.assertIn('--filetriggers', args)
+                return self.scripts
+            return self.nevra
+        self.fail(f'Unexpected command: {args}')
+
+    def command(self, args, **kwargs):
+        self.calls.append(tuple(args))
+        if args[:2] == ['rpmkeys', '--import']:
+            self.keys.append(self.added)
+            if self.import_extra:
+                self.keys.append('b' * 40 + ' fixture second imported key')
+        elif args[:2] == ['rpmkeys', '--delete']:
+            if not self.leave_key:
+                self.keys = [row for row in self.keys if row.split()[0] != args[2]]
+        elif args[0] == 'curl':
+            self.assertIn('--proto-redir', args)
+            self.assertEqual(args[args.index('--proto') + 1], '=https')
+            pathlib.Path(args[args.index('-o') + 1]).write_bytes(self.package.read_bytes())
+        elif args[0] == 'cpio':
+            self.assertEqual(args, ['cpio', '--extract', '--to-stdout', '--quiet', './usr/bin/gh'])
+            self.assertEqual(self.keys, [self.base], 'key cleanup must precede extraction')
+            kwargs['stdout'].write(b'fixture binary')
+        else:
+            self.fail(f'Unexpected mutation command: {args}')
+        return subprocess.CompletedProcess(args, 0)
+
+    @contextlib.contextmanager
+    def fixtures(self):
+        with patch.dict(self.ns, output=self.output, check_key=lambda *args: None), \
+                patch('subprocess.run', self.command):
+            yield
+
+    def verify(self):
+        with self.fixtures():
+            self.ns['verify_rpm'](self.pin, self.key, self.package, self.work)
+
+    def test_lock_shape_order_provenance_and_committed_licence(self):
+        pin = json.loads((ROOT / 'os/gh.lock.json').read_text())
+        self.assertEqual(list(pin), ['nevra', 'url', 'sha256', 'signing_key', 'binary_sha256', 'license_sha256',
+                                    'payload_paths'])
+        key = pin['signing_key']
+        self.assertEqual(list(key)[:4], ['file', 'source', 'sha256', 'fingerprint'])
+        self.assertEqual(key['file'], 'keys/github-cli-rpm.pub')
+        for digest in (pin['sha256'], pin['binary_sha256'], pin['license_sha256'], key['sha256'], key['source_sha256']):
+            self.assertRegex(digest, r'^[0-9a-f]{64}$')
+        self.assertEqual(key['fingerprint'], '7f38bbb59d064dbcb3d84d725612b36462313325')
+        self.assertEqual(key['provenance']['published_fingerprints'],
+                         ['2c6106201985b60e6c7ac87323f3d4ea75716059', key['fingerprint']])
+        self.assertEqual(key['source'], 'https://cli.github.com/packages/githubcli-archive-keyring.asc')
+        self.assertTrue(key['provenance']['documentation'].startswith('https://github.com/cli/cli/'))
+        self.assertTrue(key['provenance']['confirmation'])
+        self.assertEqual(sha256(self.key.read_bytes()), key['sha256'])
+        self.assertEqual(sha256((ROOT / 'os/config/usr/share/licenses/gh/LICENSE').read_bytes()), pin['license_sha256'])
+        version = re.fullmatch(r'gh-(\d+\.\d+\.\d+)-1.x86_64', pin['nevra']).group(1)
+        self.assertEqual(pin['url'], f'https://github.com/cli/cli/releases/download/v{version}/gh_{version}_linux_amd64.rpm')
+        self.assertGreaterEqual(tuple(map(int, version.split('.'))), (2, 102, 0))
+
+    def test_committed_key_is_exactly_one_and_second_key_is_refused(self):
+        self.ns['check_key'](self.key, self.fingerprint, self.work)
+        second = self.work / 'two-keys.pub'
+        second.write_bytes(self.key.read_bytes() + (ROOT / 'os/keys/google-linux-signing-key.pub').read_bytes())
+        with self.assertRaisesRegex(AssertionError, 'exactly the pinned primary key'):
+            self.ns['check_key'](second, self.fingerprint, self.work)
+        with self.assertRaisesRegex(AssertionError, 'exactly the pinned primary key'):
+            self.ns['check_key'](self.key, '0' * 40, self.work)
+
+    def test_valid_rpm_and_all_imported_keys_are_removed(self):
+        self.import_extra = True
+        self.verify()
+        self.assertEqual(self.keys, [self.base])
+        deleted = [c[2] for c in self.calls if c[:2] == ('rpmkeys', '--delete')]
+        self.assertEqual(set(deleted), {self.fingerprint, 'b' * 40})
+
+    def test_payload_list_must_equal_the_verified_rpm(self):
+        self.payload_paths.append('/usr/share/man/man1/gh-new-command.1')
+        with self.assertRaisesRegex(AssertionError, 'RPM payload paths differ from its pin'):
+            self.verify()
+        self.assertEqual(self.keys, [self.base])
+
+    def check_payload(self):
+        code = heredoc('os/ci/image-checks.sh', "# --- gh is one pinned binary, not an installed RPM or a repository.\npython3 - <<'PY'\n")
+        code = code.split("# Check gh's own payload; the base may carry similarly named files.\n", 1)[1]
+        image = self.work / 'image'
+        path_class = pathlib.Path
+        stream = io.StringIO()
+        with patch('pathlib.Path', side_effect=lambda name: image / path_class(name).relative_to('/')), \
+                contextlib.redirect_stdout(stream):
+            exec(compile(code, 'image-checks.sh gh payload', 'exec'),
+                 dict(pathlib=pathlib, json=json, pin=self.pin, version='fixture'))
+        return stream.getvalue()
+
+    def payload_file(self, name):
+        path = self.work / 'image' / name.lstrip('/')
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b'fixture')
+        return path
+
+    def test_image_payload_check_allows_only_the_binary(self):
+        self.payload_file('/usr/bin/gh')
+        self.assertIn('CONTROL_GH_IMAGE_PASS', self.check_payload())
+
+    def test_image_payload_check_names_each_man_page_or_completion(self):
+        names = ('/usr/share/man/man1/gh.1', '/usr/share/bash-completion/completions/gh',
+                 '/usr/share/fish/vendor_completions.d/gh.fish', '/usr/share/zsh/site-functions/_gh')
+        for name in names:
+            with self.subTest(name=name):
+                self.assertIn(name, self.pin['payload_paths'])
+                path = self.payload_file(name)
+                with self.assertRaisesRegex(AssertionError, re.escape(name)):
+                    self.check_payload()
+                path.unlink()
+        for name in names:
+            self.payload_file(name)
+        with self.assertRaises(AssertionError) as raised:
+            self.check_payload()
+        for name in names:
+            self.assertIn(name, str(raised.exception))
+
+    def test_image_payload_check_refuses_a_dangling_payload_link(self):
+        name = '/usr/share/man/man1/gh.1'
+        path = self.payload_file(name)
+        path.unlink()
+        path.symlink_to('missing-target')
+        with self.assertRaisesRegex(AssertionError, re.escape(name)):
+            self.check_payload()
+
+    def test_image_payload_check_allows_unrelated_base_file_and_logs_old_match(self):
+        name = '/usr/share/bash-completion/completions/gh-base-tool'
+        self.assertNotIn(name, self.pin['payload_paths'])
+        self.payload_file('/usr/bin/gh')
+        self.payload_file(name)
+        output = self.check_payload()
+        self.assertIn('CONTROL_GH_IMAGE_PASS', output)
+        self.assertIn('INFO gh legacy name matches=', output)
+        self.assertIn('gh-base-tool', output)
+
+    def test_wrong_rpm_hash_and_key_hash_stop_before_import(self):
+        for field in ('rpm', 'key'):
+            with self.subTest(field=field):
+                pin = copy.deepcopy(self.pin)
+                if field == 'rpm':
+                    self.pin['sha256'] = '0' * 64
+                else:
+                    self.pin['signing_key']['sha256'] = '0' * 64
+                with self.assertRaisesRegex(AssertionError, 'differs from its pin'):
+                    self.verify()
+                self.assertFalse(any(c[:2] == ('rpmkeys', '--import') for c in self.calls))
+                self.pin = pin
+
+    def test_wrong_nevra_and_rpm_with_script_are_refused_before_import(self):
+        self.nevra = 'gh-0.0.0-1.x86_64'
+        with self.assertRaisesRegex(AssertionError, 'NEVRA'):
+            self.verify()
+        self.nevra = self.pin['nevra']
+        self.scripts = 'postinstall scriptlet (using /bin/sh):\necho fixture\n'
+        with self.assertRaisesRegex(AssertionError, 'scripts or triggers'):
+            self.verify()
+        self.assertFalse(any(c[:2] == ('rpmkeys', '--import') for c in self.calls))
+
+    def test_bad_signature_lines_other_key_and_nonzero_verifier_fail(self):
+        good = self.signature
+        for bad in (good.replace('digest: OK', 'digest: BAD'),
+                    good.replace(self.fingerprint, '0' * 40),
+                    good + 'unrecognized diagnostic\n', str(self.package) + ':\n',
+                    good.replace('Header OpenPGP', 'Payload OpenPGP')):
+            with self.subTest(bad=bad):
+                self.signature = bad
+                with self.assertRaisesRegex(AssertionError, 'signature|fingerprint'):
+                    self.verify()
+                self.assertEqual(self.keys, [self.base])
+        real = self.output
+        def failed(*args):
+            if args[:2] == ('rpmkeys', '--checksig'):
+                raise subprocess.CalledProcessError(1, args)
+            return real(*args)
+        with self.fixtures(), patch.dict(self.ns, output=failed):
+            with self.assertRaises(subprocess.CalledProcessError):
+                self.ns['verify_rpm'](self.pin, self.key, self.package, self.work)
+        self.assertEqual(self.keys, [self.base])
+
+    def test_leftover_imported_key_is_refused(self):
+        self.leave_key = True
+        with self.assertRaisesRegex(AssertionError, 'changed RPM keyring'):
+            self.verify()
+
+    def install(self, binary_hash=None, license_hash=None):
+        source, dest = self.work / 'os', self.work / 'image'
+        source.mkdir(exist_ok=True)
+        (source / 'keys').mkdir(exist_ok=True)
+        shutil.copyfile(self.key, source / 'keys/github-cli-rpm.pub')
+        license = source / 'config/usr/share/licenses/gh/LICENSE'
+        license.parent.mkdir(parents=True, exist_ok=True)
+        license.write_bytes(b'fixture licence')
+        self.pin['binary_sha256'] = binary_hash or sha256(b'fixture binary')
+        self.pin['license_sha256'] = license_hash or sha256(license.read_bytes())
+        (source / 'gh.lock.json').write_text(json.dumps(self.pin))
+        (dest / 'usr/bin').mkdir(parents=True, exist_ok=True)
+        (dest / 'usr/share/aresos/manifest').mkdir(parents=True, exist_ok=True)
+        self.signature = self.signature.replace(str(self.package), str(self.work / 'download/gh.rpm'))
+        class RpmPipe:
+            def __init__(pipe, args, **kwargs):
+                self.assertEqual(args, ['rpm2cpio', str(self.work / 'download/gh.rpm')])
+                pipe.stdout = io.BytesIO(b'fixture cpio')
+            def __enter__(pipe): return pipe
+            def __exit__(pipe, *args): pipe.stdout.close()
+            def wait(pipe): return 0
+        with self.fixtures(), patch('subprocess.Popen', RpmPipe), patch('os.chown') as chown:
+            self.ns['install_gh'](source, self.work / 'download', dest)
+        self.assertEqual(chown.call_args_list[0].args, (dest / 'usr/bin/gh', 0, 0))
+        return dest
+
+    def test_extracts_only_binary_and_lock_with_modes_and_cleans_scratch(self):
+        dest = self.install()
+        self.assertEqual({p.relative_to(dest).as_posix() for p in dest.rglob('*') if p.is_file()},
+                         {'usr/bin/gh', 'usr/share/aresos/manifest/gh.lock.json'})
+        self.assertEqual((dest / 'usr/bin/gh').read_bytes(), b'fixture binary')
+        self.assertEqual((dest / 'usr/bin/gh').stat().st_mode & 0o777, 0o755)
+        self.assertEqual((dest / 'usr/share/aresos/manifest/gh.lock.json').stat().st_mode & 0o777, 0o644)
+        self.assertFalse((self.work / 'download').exists())
+
+    def test_wrong_binary_hash_and_licence_hash_refused(self):
+        for kw, message in (({'binary_hash': '0' * 64}, 'gh binary'),
+                            ({'license_hash': '0' * 64}, 'gh licence')):
+            with self.subTest(kw=kw), self.assertRaisesRegex(AssertionError, message):
+                self.install(**kw)
+            self.assertFalse((self.work / 'image/usr/bin/gh').exists())
+            self.assertFalse((self.work / 'download').exists())
+
+    def test_resolve_is_informational_on_success_failure_and_malformed_reply(self):
+        code = heredoc('os/ci/check-resolve.sh', "python3 - /tmp/aresos/gh.lock.json <<'PY' | tee \"$out/gh.txt\" || true\n")
+        for response in ('{"tag_name":"v9.8.7"}', '{}', '{', '{"tag_name":"injected\\nline"}', None):
+            stream = io.StringIO()
+            with patch.object(sys, 'argv', ['-', str(ROOT / 'os/gh.lock.json')]), \
+                    patch('subprocess.check_output', return_value=response,
+                          side_effect=subprocess.CalledProcessError(22, ['curl']) if response is None else None), \
+                    contextlib.redirect_stdout(stream):
+                exec(compile(code, 'check-resolve.sh gh', 'exec'), {})
+            text = stream.getvalue()
+            self.assertEqual(len(text.splitlines()), 1)
+            self.assertIn('INFO gh newest=', text)
+            self.assertIn('pinned=' + self.pin['nevra'], text)
+            self.assertIn('v9.8.7' if response == '{"tag_name":"v9.8.7"}' else 'unavailable (lookup failed)', text)
+
+    def test_packages_key_list_spans_both_imports_and_image_checks_are_wired(self):
+        build = (ROOT / 'os/build.sh').read_text()
+        before = build.index('rpmkeys --list | sort > /tmp/ares-chrome/keys-before.txt')
+        self.assertLess(before, build.index('rpmkeys --import /tmp/aresos/keys/google-linux-signing-key.pub'))
+        self.assertLess(build.index(self.code), build.index('cmp /tmp/ares-chrome/keys-before.txt /tmp/ares-chrome/keys-final.txt'))
+        self.assertIn("'Installed gh binary differs from control.json'", build)
+        image = (ROOT / 'os/ci/image-checks.sh').read_text()
+        for token in ('CONTROL_GH_IMAGE_PASS', "['rpm', '-q', 'gh']", 'license_sha256', "['runuser', '-u', 'ares', '--']"):
+            self.assertIn(token, image)
+        check = (ROOT / 'os/ci/check-image.sh').read_text()
+        comparison = 'cmp os/gh.lock.json "$out/manifest/gh.lock.json"'
+        self.assertIn(comparison, check)
+        (self.work / 'os').mkdir()
+        reviewed = self.work / 'os/gh.lock.json'
+        shutil.copyfile(ROOT / 'os/gh.lock.json', reviewed)
+        shipped = self.work / 'out/manifest/gh.lock.json'
+        shipped.parent.mkdir(parents=True)
+        shipped.write_bytes(reviewed.read_bytes())
+        def compare():
+            return subprocess.run(['bash', '-c', comparison], cwd=self.work,
+                                  env={**os.environ, 'out': 'out'}, capture_output=True).returncode
+        self.assertEqual(compare(), 0)
+        shipped.write_bytes(reviewed.read_bytes() + b'\n')
+        self.assertNotEqual(compare(), 0, 'even JSON-equivalent changes must fail the byte comparison')
+        shipped.unlink()
+        self.assertNotEqual(compare(), 0, 'a missing image lock must fail')
+        self.assertIn("'chrome_build', 'gh'):", check)
+        self.assertIn('CONTROL_GH_CHECKOUT_PASS', check)
 
 if __name__ == '__main__':
     unittest.main()

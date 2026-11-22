@@ -20,15 +20,17 @@ class LookPackTest(unittest.TestCase):
             regenerated = Path(folder)
             generator['generate'](regenerated)
             manifest = json.loads((PACK / 'look.json').read_text())
-            expected = {'look.json', *(part['file'] for part in manifest['sprites'].values())}
-            self.assertEqual(len(expected), 18)
+            sizes = {part['file']: tuple(part['size']) for part in manifest['sprites'].values()}
+            self.assertEqual(len(sizes), 17)
+            sizes.update((file, (24, 20)) for file in manifest['frame_sprites'].values())
+            expected = {'look.json', *sizes}
+            self.assertEqual(len(expected), 54)
             for tree in (PACK, regenerated):
                 self.assertEqual({p.relative_to(tree).as_posix() for p in tree.rglob('*') if p.is_file()}, expected)
             self.assertEqual((PACK / 'look.json').read_bytes(), (regenerated / 'look.json').read_bytes())
-            for sprite in manifest['sprites'].values():
-                file = sprite['file']
+            for file, size in sizes.items():
                 with self.subTest(file=file), Image.open(PACK / file) as actual, Image.open(regenerated / file) as made:
-                    self.assertEqual((actual.mode, actual.size), ('RGBA', tuple(sprite['size'])))
+                    self.assertEqual((actual.mode, actual.size), ('RGBA', size))
                     self.assertEqual((actual.mode, actual.size, actual.tobytes()), (made.mode, made.size, made.tobytes()))
 
 

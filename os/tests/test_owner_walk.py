@@ -702,9 +702,10 @@ class Release28Session:
             self.doomed_foot = not assigned.get('WAYLAND_DISPLAY') or kw.get('cwd') != '/var/home/ares' or not monitor
             self.events.append('terminal opened')
         elif words[0] == '/usr/bin/fc-match': stdout = self.walk.SPACE_GROTESK
-        elif words == ['/usr/bin/python3', '-I', '-']:
+        elif words[:3] == ['/usr/bin/python3', '-I', '-']:
             assert kw.get('input') == (ROOT / self.walk.CONTROL_CHECKER).read_text(), 'Not the bound checker on stdin'
-            code, stdout = self.execute(kw['input'], allow_exit=True)
+            assert words[3:] == ['service_user', 'unit', 'claude_code_files', 'folders', 'state_folders'], words
+            code, stdout = self.execute(kw['input'], argv=words[3:], allow_exit=True)
         elif words[:2] == ['systemctl', 'show']:
             if words[2] == 'aresos-toold.service':
                 stdout = 'ActiveState=active\nSubState=running\nMainPID=4243\nNRestarts=0\nUnitFileState=enabled\n'

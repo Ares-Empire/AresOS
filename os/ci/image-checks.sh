@@ -193,6 +193,34 @@ for _ in $(seq 100); do
     sleep 0.2
 done
 busctl --system status org.freedesktop.PolicyKit1 > /dev/null
+# 18c-b: ask the real authority while this check's system bus is running.
+pkaction --action-id org.aresos.control.chrome-loosen --verbose > /tmp/chrome-polkit-action.txt
+cat /tmp/chrome-polkit-action.txt
+python3 - <<'PY'
+import pathlib, re, xml.etree.ElementTree as ET
+action = 'org.aresos.control.chrome-loosen'
+root = ET.parse('/usr/share/polkit-1/actions/' + action + '.policy').getroot()
+assert [node.get('id') for node in root.findall('action')] == [action]
+node = root.find('action')
+assert {child.tag: child.text for child in node.find('defaults')} == {
+    'allow_any': 'no', 'allow_inactive': 'no', 'allow_active': 'auth_admin'}
+unit = pathlib.Path('/usr/lib/systemd/system/aresos-toold.service').read_text()
+user = re.findall(r'^User=(\S+)$', unit, re.M)
+assert len(user) == 1
+assert [(a.get('key'), a.text) for a in node.findall('annotate')] == [
+    ('org.freedesktop.policykit.owner', 'unix-user:' + user[0])]
+reported = pathlib.Path('/tmp/chrome-polkit-action.txt').read_text()
+for key, value in [('implicit any', 'no'), ('implicit inactive', 'no'), ('implicit active', 'auth_admin')]:
+    assert re.search(r'^\s*' + re.escape(key) + r':\s*' + re.escape(value) + r'\s*$', reported, re.M), reported
+assert re.search(r'^\s*annotation:\s*org\.freedesktop\.policykit\.owner -> unix-user:'
+                 + re.escape(user[0]) + r'\s*$', reported, re.M), reported
+for folder in ('/usr/share/polkit-1/rules.d', '/etc/polkit-1/rules.d'):
+    for path in pathlib.Path(folder).glob('*.rules'):
+        assert action not in path.read_text(), f'a rule names the Chrome action: {path}'
+PY
+test -x /usr/bin/pkcheck
+test -x /usr/libexec/kf6/polkit-kde-authentication-agent-1
+pass 'Chrome polkit action: no/no/auth_admin, never kept, owner is the service user; no rule names it; pkcheck and agent exist'
 runuser -u ares -- python3 - org.aresos.ci.cached org.freedesktop.NetworkManager.settings.modify.system \
     org.fedoraproject.FirewallD1.config > /tmp/polkit-reuse.json <<'PY'
 import json, os, pty, select, subprocess, sys, time
@@ -287,6 +315,60 @@ done
 python3 /usr/libexec/aresos-audit --output /tmp/updaters.json
 pass 'automatic updaters masked; Flatpak helpers available; static updater audit passes'
 
+# --- gh is one pinned binary, not an installed RPM or a repository.
+python3 - <<'PY'
+import hashlib, json, pathlib, re, stat, subprocess
+pin = json.loads(pathlib.Path('/usr/share/aresos/manifest/gh.lock.json').read_text())
+record = json.loads(pathlib.Path('/usr/share/aresos/manifest/control.json').read_text())['gh']
+version = re.fullmatch(r'gh-(\d+\.\d+\.\d+)-[^-]+\.x86_64', pin['nevra']).group(1)
+assert tuple(map(int, version.split('.'))) >= (2, 102, 0), 'gh is too old for qualification'
+assert record == dict(version=version, binary_sha256=pin['binary_sha256']), 'gh record differs from its lock'
+for name, mode, digest in (
+        ('/usr/bin/gh', 0o755, pin['binary_sha256']),
+        ('/usr/share/licenses/gh/LICENSE', 0o644, pin['license_sha256']),
+        ('/usr/share/aresos/manifest/gh.lock.json', 0o644, None)):
+    path = pathlib.Path(name)
+    info = path.lstat()
+    assert stat.S_ISREG(info.st_mode) and stat.S_IMODE(info.st_mode) == mode, name
+    assert (info.st_uid, info.st_gid) == (0, 0), name
+    if digest:
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, name
+    for parent in path.parents:
+        info = parent.lstat()
+        assert stat.S_ISDIR(info.st_mode) and not info.st_mode & 0o022, str(parent)
+        assert (info.st_uid, info.st_gid) == (0, 0), str(parent)
+for prefix in ([], ['runuser', '-u', 'ares', '--']):
+    text = subprocess.check_output([*prefix, 'env', '-i', 'PATH=/usr/bin:/bin', 'HOME=/tmp',
+                                    '/usr/bin/gh', '--version'], text=True)
+    assert text.splitlines()[0].split()[:3] == ['gh', 'version', version], text
+    print(('ares' if prefix else 'root') + ': ' + text.splitlines()[0])
+query = subprocess.run(['rpm', '-q', 'gh'], capture_output=True, text=True)
+assert query.returncode == 1 and 'package gh is not installed' in query.stdout, query.stdout
+keys = subprocess.check_output(['rpm', '-q', 'gpg-pubkey', '--qf', '%{NAME}-%{VERSION}\n'], text=True)
+assert pin['signing_key']['fingerprint'] not in keys.lower(), 'RPM database trusts gh signing key'
+listed = subprocess.check_output(['rpmkeys', '--list'], text=True)
+assert pin['signing_key']['fingerprint'] not in listed.lower(), 'RPM keyring trusts gh signing key'
+for root in ('/etc/yum.repos.d', '/etc/dnf', '/etc/zypp'):
+    for path in pathlib.Path(root).rglob('*'):
+        if path.is_file():
+            text = path.read_bytes().lower()
+            assert b'cli.github.com' not in text and b'gh-cli' not in text, str(path)
+# Check gh's own payload; the base may carry similarly named files.
+legacy = []
+for root in ('/usr/share/man', '/usr/share/bash-completion', '/usr/share/fish', '/usr/share/zsh'):
+    legacy.extend(str(p) for p in pathlib.Path(root).rglob('*') if p.name in ('gh', '_gh', 'gh.fish')
+                  or p.name.startswith(('gh.', 'gh-')))
+print('INFO gh legacy name matches=' + json.dumps(sorted(legacy)))
+unexpected = []
+for name in pin['payload_paths']:
+    if name != '/usr/bin/gh':
+        path = pathlib.Path(name)
+        if path.exists() or path.is_symlink():
+            unexpected.append(name)
+assert not unexpected, 'Unexpected gh RPM payload paths: ' + ', '.join(unexpected)
+print(f'CONTROL_GH_IMAGE_PASS {version} {pin["binary_sha256"]}')
+PY
+
 # --- Google Chrome from the image, under /usr, without a side updater.
 lock=/usr/share/aresos/manifest/google-chrome.lock.json
 test "$(rpm -q --qf '%{NEVRA}' google-chrome-stable)" = "$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["nevra"])' "$lock")"
@@ -328,15 +410,40 @@ grep -qx 'repo_add_once="false"' /etc/default/google-chrome
 pass 'no Google repository, cron job or trusted key in the image'
 test -f /usr/share/applications/google-chrome.desktop
 grep -q '^Exec=/usr/bin/google-chrome-stable' /usr/share/applications/google-chrome.desktop
-handler=$(runuser -u ares -- env HOME=/var/home/ares XDG_CURRENT_DESKTOP=AresOS xdg-mime query default x-scheme-handler/https)
-test "$handler" = google-chrome.desktop
-handler=$(runuser -u ares -- env HOME=/var/home/ares XDG_CURRENT_DESKTOP=AresOS xdg-mime query default x-scheme-handler/http)
-test "$handler" = google-chrome.desktop
-pass 'xdg-open sends http and https links to Chrome in the AresOS session'
-test ! -e /etc/opt/chrome || test -d /etc/opt/chrome
-mkdir -p /etc/opt/chrome/policies/managed
-rmdir /etc/opt/chrome/policies/managed /etc/opt/chrome/policies
-pass '/etc/opt/chrome/policies can be created for the control layer'
+session_mime=(runuser -u ares -- env XDG_CURRENT_DESKTOP=AresOS LC_ALL=C)
+for mime in x-scheme-handler/http x-scheme-handler/https text/html application/xhtml+xml; do
+    handler=$("${session_mime[@]}" xdg-mime query default "$mime")
+    test "$handler" = google-chrome.desktop
+done
+pass 'Chrome is the default for http, https, HTML and XHTML in the AresOS session'
+
+prism_entry=/usr/share/applications/org.prismlauncher.PrismLauncher.desktop
+test -f "$prism_entry"
+validation=$(desktop-file-validate "$prism_entry" 2>&1)
+test -z "$validation"
+grep -Fxq 'Type=Application' "$prism_entry"
+grep -Fxq 'Name=Prism Launcher' "$prism_entry"
+grep -Fxq 'NoDisplay=true' "$prism_entry"
+grep -Fxq 'Exec=/usr/bin/prismlauncher %U' "$prism_entry"
+grep -Fxq 'MimeType=x-scheme-handler/prismlauncher;' "$prism_entry"
+pass 'the hidden Prism Launcher sign-in desktop entry passes validation'
+handler=$("${session_mime[@]}" xdg-mime query default x-scheme-handler/prismlauncher)
+test "$handler" = org.prismlauncher.PrismLauncher.desktop
+pass 'xdg-mime resolves the Prism Launcher sign-in handler in the AresOS session'
+if command -v gio >/dev/null; then
+    handler=$("${session_mime[@]}" gio mime x-scheme-handler/prismlauncher)
+    grep -Eq '^Default application for .*: org\.prismlauncher\.PrismLauncher\.desktop$' <<< "$handler"
+    pass 'gio resolves the Prism Launcher sign-in handler in the AresOS session'
+fi
+
+# The folder is now installed, not made and removed by the check. The reader
+# verifies its exact contents, both links, the signed payload and key disposal.
+chrome_scan_root=$(mktemp -d)
+mount --bind / "$chrome_scan_root"
+python3 -I -B /tmp/aresos-chrome-image-check.py image "$chrome_scan_root"
+umount "$chrome_scan_root"
+rmdir "$chrome_scan_root"
+pass 'Chrome bundle: signed CRX3, one identity and origin, fixed file URLs, exact policy folder and links, root-owned recorded bytes; no key or test bundle'
 
 # --- The daily login shell: PATH, Homebrew through /usr/bin/brew, no Flatpak errors.
 # A stand-in for the stock administrator who owns the inherited Homebrew.
@@ -763,18 +870,22 @@ pack = share / 'aresos/look'
 icons = ('sun', 'speaker', 'speaker-muted', 'microphone', 'microphone-off')
 names = {'plate', 'slot', *icons, *(f'{icon}-unavailable' for icon in icons),
          *(f'step-{kind}' for kind in ('lit', 'unlit', 'muted', 'part', 'limit'))}
-expected = {'look.json', 'sprites', *(f'sprites/{name}.png' for name in names)}
+buttons = ('menu', 'iconify', 'max', 'max_toggled', 'close', 'shade', 'shade_toggled', 'desk', 'desk_toggled')
+frame = {f'sprites/frame/{button}{hover}-{state}.png' for button in buttons
+         for hover in ('', '_hover') for state in ('active', 'inactive')}
+directories = {'sprites', 'sprites/frame'}
+expected = {'look.json', *directories, *(f'sprites/{name}.png' for name in names), *frame}
 paths = {path.relative_to(pack).as_posix() for path in pack.rglob('*')}
 assert paths == expected, f'look A file list differs: {paths ^ expected}'
-files = sorted(paths - {'sprites'})
+files = sorted(paths - directories)
 tree = '\n'.join(f'{hashlib.sha256((pack / name).read_bytes()).hexdigest()}  {name}' for name in files)
 digest = hashlib.sha256(tree.encode()).hexdigest()
-assert digest == '386d46534f4c38d5b0d53688628095e47a707bb60be2f902e0b861b447617ede', f'look A differs: {digest}'
+assert digest == 'f4c4a0f201d30e5cafddd278eb8f69d0f40d61e1efa12ede8a7bb7f5735baabd', f'look A differs: {digest}'
 PY
 font=$(runuser -u ares -- env -i HOME=/nonexistent PATH=/usr/bin /usr/bin/fc-match --format '%{file}' 'Jersey 10')
 test "$font" = /usr/share/fonts/aresos/Jersey10-Regular.ttf
 test -x /usr/bin/pw-dump
-pass "Jersey 10 and its licence are installed ($font); the look A indicator pack matches its pin"
+pass "Jersey 10 and its licence are installed ($font); the look A pack matches its pin"
 layer=/usr/lib64/libgtk4-layer-shell.so.0
 if [[ ! -r $layer ]]; then
     echo 'The indicator requires gtk4-layer-shell from the R29 image package' >&2
@@ -1050,7 +1161,6 @@ license = (font.parent / 'OFL-SpaceGrotesk.txt').read_text()
 assert 'Copyright 2020 The Space Grotesk Project Authors' in license
 assert 'SIL OPEN FONT LICENSE Version 1.1' in license
 rc = ET.parse(share / 'aresos/labwc/rc.xml').getroot()
-assert rc.findtext('theme/name') == 'Ares-Crown'
 assert rc.findtext('theme/titlebar/layout') == 'menu:iconify,max,close'
 assert rc.find('windowSwitcher/osd').get('style') == 'thumbnail'
 override = share / 'glib-2.0/schemas/zz-aresos.gschema.override'
@@ -1066,7 +1176,67 @@ layout=$(runuser -u ares -- env -i HOME=/tmp/pkg31-home PATH=/usr/bin:/usr/sbin 
 rm -rf /tmp/pkg31-home
 printf '%s\n' "$layout"
 test "$layout" = "'appmenu:minimize,maximize,close'"
-pass 'Ares-Crown files installed; compiled AresOS default gives apps all three buttons'
+pass 'Ares-Crown files kept unused; compiled AresOS default gives apps all three buttons'
+
+# --- Package 329: look A's window frame.
+python3 - <<'PY'
+import hashlib
+from pathlib import Path
+import struct
+import xml.etree.ElementTree as ET
+
+share = Path('/usr/share')
+theme = share / 'themes/AresOS/labwc'
+buttons = ('menu', 'iconify', 'max', 'max_toggled', 'close', 'shade', 'shade_toggled', 'desk', 'desk_toggled')
+names = {f'{button}{hover}-{state}.png' for button in buttons
+         for hover in ('', '_hover') for state in ('active', 'inactive')}
+files = sorted(theme.iterdir(), key=lambda path: path.name)
+expected = {'themerc', *names}
+actual = {path.name for path in files}
+assert actual == expected, f'AresOS theme file list differs: {actual ^ expected}'
+tree = []
+for path in files:
+    data = path.read_bytes()
+    if path.name in names:
+        assert data[:16] == b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR', path
+        assert struct.unpack('>IIBB', data[16:26]) == (48, 40, 8, 6), path
+    tree.append(f'{hashlib.sha256(data).hexdigest()}  {path.name}')
+aresos_theme = hashlib.sha256('\n'.join(tree).encode()).hexdigest()
+assert aresos_theme == '1edd49859255bde9a1c8f4ba779d92010ad38bde0f591507a3b29bbee17d916e', f'AresOS theme differs: {aresos_theme}'
+
+labwc = share / 'aresos/labwc'
+assert 'themerc-override' not in {path.name for path in labwc.iterdir()}
+rc = ET.parse(labwc / 'rc.xml').getroot()
+
+def expect(path, xml):
+    elements = rc.findall(path)
+    assert len(elements) == 1, path
+    assert ET.canonicalize(ET.tostring(elements[0]), strip_text=True) == ET.canonicalize(xml, strip_text=True), path
+
+expect('theme/name', '<name>AresOS</name>')
+expect('theme/cornerRadius', '<cornerRadius>0</cornerRadius>')
+places = ('ActiveWindow', 'InactiveWindow', 'MenuHeader', 'MenuItem', 'OnScreenDisplay')
+assert len(rc.findall('theme/font')) == len(places)
+for place in places:
+    expect(f'theme/font[@place="{place}"]', f'<font place="{place}"><name>Jersey 10</name><size>28</size></font>')
+expect('windowSwitcher', '''<windowSwitcher preview="yes" outlines="yes" order="focus">
+    <osd show="yes" style="thumbnail" output="focused" thumbnailLabelFormat="%T" />
+    </windowSwitcher>''')
+expect('keyboard/keybind[@key="A-S-Tab"]', '<keybind key="A-S-Tab"><action name="PreviousWindow" /></keybind>')
+expect('mouse', '''<mouse>
+    <default />
+    <context name="TitleBar">
+      <mousebind direction="Up" action="Scroll"><action name="None" /></mousebind>
+      <mousebind direction="Down" action="Scroll"><action name="None" /></mousebind>
+    </context>
+    <context name="Root">
+      <mousebind button="Left" action="Press"><action name="None" /></mousebind>
+      <mousebind button="Right" action="Press"><action name="None" /></mousebind>
+      <mousebind button="Middle" action="Press"><action name="None" /></mousebind>
+    </context>
+    </mouse>''')
+PY
+pass 'the pinned AresOS theme has 36 RGBA buttons, and labwc selects it with the frame, switcher and mouse settings'
 
 # --- Package 18c: the Control tools (the tool service, its commands, Claude
 # Code's managed files). Every path the image records in control.json is here
@@ -1162,6 +1332,70 @@ test "$(stat -c '%a %U %G' /var/home/ares/Documents)" = '700 root root'
 chmod 0700 /var/home/ares/Downloads
 chown ares:ares /var/home/ares/Documents
 pass 'tmpfiles: /run/aresos-tools 0711, both state folders 0700 for aresos-tools; Downloads and Documents 0700 for ares when missing, kept as they are when present'
+
+# 18c-b: no owner setting is baked into the image. Only boot creates it, and
+# a later boot restores permissions without replacing the owner's content.
+test ! -e /var/lib/aresos-control
+test ! -L /var/lib/aresos-control
+test ! -e /etc/aresos/control/chrome-excluded-sites.json
+test ! -L /etc/aresos/control/chrome-excluded-sites.json
+python3 - <<'PY'
+import pathlib, shlex
+tmpfiles = pathlib.Path('/usr/lib/tmpfiles.d/aresos-control-chrome.conf').read_text()
+assert [line for line in tmpfiles.splitlines() if line and not line.startswith('#')] == [
+    'd /var/lib/aresos-control 0755 root root -',
+    'f /var/lib/aresos-control/chrome-excluded-sites.json 0640 root aresos-tools - {"format":0,"hosts":[]}']
+unit = pathlib.Path('/usr/lib/systemd/system/aresos-toold.service').read_text()
+target = pathlib.PurePosixPath('/var/lib/aresos-control')
+for line in unit.splitlines():
+    key, _, value = line.partition('=')
+    if key not in ('ReadWritePaths', 'StateDirectory'):
+        continue
+    for name in shlex.split(value):
+        name = name.lstrip('-+')
+        path = pathlib.PurePosixPath('/var/lib') / name.split(':')[0] if key == 'StateDirectory' else pathlib.PurePosixPath(name)
+        assert path != target and path not in target.parents and target not in path.parents, line
+PY
+systemd-tmpfiles --create /usr/lib/tmpfiles.d/aresos-control-chrome.conf
+test "$(stat -c '%a %U %G' /var/lib/aresos-control)" = '755 root root'
+test "$(stat -c '%a %U %G' /var/lib/aresos-control/chrome-excluded-sites.json)" = '640 root aresos-tools'
+python3 - <<'PY'
+import pathlib, stat
+path = pathlib.Path('/var/lib/aresos-control/chrome-excluded-sites.json')
+assert stat.S_ISREG(path.lstat().st_mode)
+assert path.read_bytes() == b'{"format":0,"hosts":[]}'
+path.write_bytes(b'{"format":1,"hosts":["rehearsal.invalid"]}')
+PY
+chmod 0644 /var/lib/aresos-control/chrome-excluded-sites.json
+chown root:root /var/lib/aresos-control/chrome-excluded-sites.json
+systemd-tmpfiles --create /usr/lib/tmpfiles.d/aresos-control-chrome.conf
+test "$(stat -c '%a %U %G' /var/lib/aresos-control/chrome-excluded-sites.json)" = '640 root aresos-tools'
+python3 - <<'PY'
+from pathlib import Path
+assert Path('/var/lib/aresos-control/chrome-excluded-sites.json').read_bytes() == b'{"format":1,"hosts":["rehearsal.invalid"]}'
+PY
+rm -r /var/lib/aresos-control
+# Boundary.read rejects /tmp as a parent. Use a root-owned folder, and invoke
+# the installed validator as the service user so its read permission is real.
+install -d -o root -g root -m 0755 /run/aresos-chrome-setting-check
+install -o root -g aresos-tools -m 0640 /dev/null /run/aresos-chrome-setting-check/sites.json
+for format in 0 1; do
+    printf '{"format":%s,"hosts":[]}' "$format" > /run/aresos-chrome-setting-check/sites.json
+    runuser -u aresos-tools -- /usr/bin/python3 -I -B - "$format" <<'PY'
+import sys
+sys.path[:0] = ['/usr/libexec/aresos-control', '/usr/lib/aresos-control/vendor']
+from aresos_control.chrome.exclusions import owner_hosts
+from aresos_control.common import Refused
+try:
+    value = owner_hosts('/run/aresos-chrome-setting-check/sites.json')
+except Refused as error:
+    assert sys.argv[1] == '0' and error.code == 'chrome_settings_unavailable', error
+else:
+    assert sys.argv[1] == '1' and value == [], value
+PY
+done
+rm -r /run/aresos-chrome-setting-check
+pass 'Chrome excluded sites: absent in image; tmpfiles creates refused placeholder, keeps changed content and restores mode/group; installed validator refuses format 0 and accepts empty format 1; unit cannot write its folder'
 
 # Agreed change 7: the config follows the image's own account declaration.
 python3 - <<'PY'

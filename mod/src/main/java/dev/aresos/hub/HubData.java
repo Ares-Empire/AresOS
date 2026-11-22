@@ -7,7 +7,6 @@ import com.mojang.serialization.Decoder;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.aresos.AresOs;
-import dev.aresos.mode.LiveMode;
 import dev.aresos.world.DesktopWorld;
 import dev.aresos.zone.AppZone;
 import dev.aresos.zone.GatePalette;
@@ -19,7 +18,6 @@ import net.minecraft.core.GlobalPos;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.GameType;
@@ -543,18 +541,6 @@ public final class HubData extends SavedData {
             if (logo.app().equals(app)) town.logos.set(i, logo.without(Set.of(pos)));
         }
         town.setDirty();
-    }
-
-    /** In Live mode he cannot break the hub's own blocks by hand. */
-    public static boolean protectsFrom(ServerPlayer player, BlockPos pos) {
-        return protection(player, pos) != null;
-    }
-
-    /** What the action bar says when he tries to break one of the hub's blocks in Live mode; null when he may. */
-    public static String protection(ServerPlayer player, BlockPos pos) {
-        if (!LiveMode.isLive(player)) return null;
-        HubData hub = get(player.level().getServer());
-        return hub == null ? null : hub.refusal(player.level(), pos);
     }
 
     /** Names what protects the block: a logo of the town, or the pad and roads. Null for a block that isn't the hub's. */

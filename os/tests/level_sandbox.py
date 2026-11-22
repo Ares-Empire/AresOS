@@ -7,6 +7,7 @@ system bus and backlight are out of reach. The real device tools never run: the 
 names in /usr/bin are the stand-ins. Each run has a scratch HOME and XDG_RUNTIME_DIR and its own dbus-run-session,
 and every process it left ends with the namespace.
 """
+import fcntl
 import functools
 import json
 import os
@@ -23,6 +24,21 @@ MARK = 'ARESOS-TEST-STAND-IN'
 BACKLIGHT = {'class': 'backlight', 'id': 'intel_backlight', 'cur': 48000, 'max': 96000}
 LED = {'class': 'leds', 'id': 'input3::capslock', 'cur': 0, 'max': 1}
 
+
+def read_device_state(path):
+    with path.open() as handle:
+        fcntl.flock(handle, fcntl.LOCK_SH)
+        return json.load(handle)
+
+
+def write_device_state(path, state):
+    # Keep one inode so the driver and both stand-ins lock the same state file.
+    with path.open('a') as handle:
+        fcntl.flock(handle, fcntl.LOCK_EX)
+        handle.truncate(0)
+        json.dump(state, handle)
+
+
 BRIGHTNESSCTL = r'''#!/usr/bin/python3 -IS
 # ARESOS-TEST-STAND-IN: brightnessctl 0.5.1's options, operations and output (its brightnessctl.c), with the devices
 # in a state file. Rounding as roundf; exponent 1; --min-value as atol (raw units); no class means every device.
@@ -32,8 +48,10 @@ args = sys.argv[1:]
 with open(D + '/calls.jsonl', 'a') as log:
     log.write(json.dumps({'tool': sys.argv[0], 'argv': args, 't': time.monotonic()}) + '\n')
 with open(D + '/state.json') as f:
-    if any(' '.join(['brightnessctl'] + args).startswith(h) for h in json.load(f).get('hang', [])):
-        time.sleep(60)
+    fcntl.flock(f, fcntl.LOCK_SH)
+    hangs = json.load(f).get('hang', [])
+if any(' '.join(['brightnessctl'] + args).startswith(h) for h in hangs):
+    time.sleep(60)
 quiet = mach = False
 cls, minimum, ops = None, 0, []
 for a in args:
@@ -88,10 +106,12 @@ args = sys.argv[1:]
 with open(D + '/calls.jsonl', 'a') as log:
     log.write(json.dumps({'tool': sys.argv[0], 'argv': args, 't': time.monotonic()}) + '\n')
 with open(D + '/state.json') as f:
-    if any(' '.join(['wpctl'] + args).startswith(h) for h in json.load(f).get('hang', [])):
-        with open(D + '/read-blocked', 'w') as ready:
-            print(os.getpid(), file=ready)
-        time.sleep(60)
+    fcntl.flock(f, fcntl.LOCK_SH)
+    hangs = json.load(f).get('hang', [])
+if any(' '.join(['wpctl'] + args).startswith(h) for h in hangs):
+    with open(D + '/read-blocked', 'w') as ready:
+        print(os.getpid(), file=ready)
+    time.sleep(60)
 limit = 0.0
 if '--limit' in args:
     i = args.index('--limit'); limit = float(args[i + 1]); del args[i:i + 2]
@@ -284,10 +304,10 @@ class Sandbox:
         path.chmod(mode)
 
     def write_state(self, **state):
-        (self.state_dir / 'state.json').write_text(json.dumps(state))
+        write_device_state(self.state_dir / 'state.json', state)
 
     def state(self):
-        return json.loads((self.state_dir / 'state.json').read_text())
+        return read_device_state(self.state_dir / 'state.json')
 
     def calls(self):
         """The device tools' calls as 'path argv…' strings, with {'mark': name} rows kept as '== name'."""

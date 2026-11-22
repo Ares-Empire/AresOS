@@ -6,9 +6,10 @@ set -euo pipefail
 here=$(realpath -e -- "$(dirname -- "$0")")
 repo=$(realpath -e -- "$here/../../..")
 portal=$repo/os/input-portal/harness
-labwc_image=localhost/aresos-labwc:311e
-clients_image=localhost/aresos-indicator-clients:320
-image=localhost/aresos-indicator-harness:320
+labwc_image=${LABWC_IMAGE:-localhost/aresos-labwc:311e}
+tag=${HARNESS_IMAGE_TAG:-329}
+clients_image=localhost/aresos-indicator-clients:$tag
+image=localhost/aresos-indicator-harness:$tag
 mkdir -p "$repo/.work"
 work=$(mktemp -d "$repo/.work/indicator-harness.XXXXXX")
 name=aresos-indicator-harness-$$
@@ -38,23 +39,39 @@ stage() {
     cp -- "$config/share/aresos/labwc/rc.xml" "$config/share/fonts/aresos/Jersey10-Regular.ttf" \
         "$repo/reviews/312-component-study/tools/look.py" "$work/stage/"
     cp -r -- "$config/share/aresos/look" "$work/stage/"
+    cp -r -- "$config/share/themes/AresOS" "$work/stage/"
     cp -- "$repo/os/tests/level_sandbox.py" "$work/stage/os/tests/"
+    cp -- "$repo/os/labwc/"{labwc.lock.json,loaded_image.py} "$work/stage/"
+}
+
+stage_frame() {
+    local base prefix=os/config/usr/share
+    base=$(git -C "$repo" merge-base HEAD origin/main)
+    printf '%s\n' "$base" > "$work/stage/merge-base.txt"
+    mkdir -p "$work/stage/baseline"
+    git -C "$repo" show "$base:$prefix/aresos/labwc/rc.xml" > "$work/stage/baseline/rc.xml"
+    git -C "$repo" show "$base:$prefix/fonts/aresos/SpaceGrotesk-Variable.ttf" > "$work/stage/baseline/SpaceGrotesk-Variable.ttf"
+    git -C "$repo" archive "$base" "$prefix/themes/Ares-Crown" |
+        tar -xf - -C "$work/stage/baseline" --strip-components=5
+    cp -- "$repo/docs/design/components/"A-{09,10,11,14}-*.png "$work/stage/"
 }
 
 run_tests() {
-    local evidence status=0
+    local evidence status=0 mode=$2
     mkdir -p -- "$1"
     evidence=$(realpath -e -- "$1")
     [[ -z $(ls -A -- "$evidence") ]] || die "evidence directory is not empty"
     podman image exists "$image" || die "build the harness image first"
     stage
+    podman image inspect --format '{{.Id}}' "$image" > "$work/stage/harness-image.txt"
+    if [[ $mode == frame ]]; then stage_frame; fi
     # No bind, device, forwarded host environment or shared PID/network namespace.
     tar -C "$work/stage" -cf - . |
         podman run --rm -i --cgroups=disabled --network=none --http-proxy=false --timeout 300 --name "$name" \
             "$image" bash -euc '
                 mkdir /harness
                 tar -xf - -C /harness --no-same-owner
-                exec bash /harness/in-container.sh' > "$work/evidence.tar" || status=$?
+                exec bash /harness/in-container.sh "$1"' bash "$mode" > "$work/evidence.tar" || status=$?
     if ! tar -tf "$work/evidence.tar" >/dev/null 2>&1; then
         die "container returned no evidence (exit $status)"
     fi
@@ -68,6 +85,6 @@ run_tests() {
 
 case "$#:${1:-}" in
     1:image) build_image ;;
-    2:run) run_tests "$2" ;;
-    *) die "usage: run.sh image | run.sh run <empty evidence directory>" ;;
+    2:run|2:frame) run_tests "$2" "$1" ;;
+    *) die "usage: run.sh image | run.sh {run|frame} <empty evidence directory>" ;;
 esac

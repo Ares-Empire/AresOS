@@ -3,16 +3,16 @@
 **Decision: 2026-11-13 (board #206).** The owner chose Ares-Crown: "None look crazy tbh but yes crown.
 But chrome shouldn't get the extra bar, other OS don't have that right? It looks weird".
 
-**Superseded 2026-11-20 (board T432):** after the component study drew the window frame, the owner chose "Yes,
-follow the look". Windows will wear the frame of the look setting (A, B or C; by default the Minecraft look), as
-`docs/design/COMPONENTS.md` 4.2 designs it. Ares-Crown stays shipped until that frame is built. Chrome keeping its
-own bar still holds.
+**2026-11-20 (board T432).** After the component study drew the window frame, the owner chose "Yes, follow the
+look". The frame follows the look setting (A, B or C, with B as the default) as designed in COMPONENTS.md 4.2.
 
-Package 31 ships **Ares-Crown as designed**, Space Grotesk with its OFL licence, thumbnail Alt+Tab, and the
-AresOS-scoped GSettings default `appmenu:minimize,maximize,close` for programs with their own bars. The image build
-compiles the schemas. **Chrome keeps its own tab bar**, with all three buttons and no second title bar; there is
-no Chrome preference, policy or decoration rule. Ares-Plain and Ares-Block were not chosen and their files do not
-ship; their pictures and design remain below and their files remain in git history.
+**2026-11-21 (package 329).** The image ships Look A as `AresOS`, with a 40 px dark stone bar, Jersey 10 at
+28 pt and a 2 px edge. All three settings use the image's frame until the B and C sync step ships. The Ares-Crown
+files and their image pin are kept unused through R29 for release 28's checks. [Frame design](COMPONENTS.md#42-the-window-frame-and-its-buttons)
+
+Package 31 introduced thumbnail Alt+Tab and the AresOS-scoped GSettings default `appmenu:minimize,maximize,close`
+for programs with their own bars. The image build compiles the schemas. **Chrome keeps its own tab bar**, with all
+three buttons. Ares-Plain and Ares-Block remain design studies below.
 
 Verification and fallback pictures: [package 31 report](../../reviews/31-window-frame/REPORT.md). The look on the
 real panel, Discord and the Lunar Client launcher still need the owner's check. Only title-bar size on the real
@@ -34,7 +34,7 @@ close at the right in that order, and X closes the window and puts him back in t
 
 The previous default was a 26-pixel grey bar with tiny buttons. The active and the inactive window look almost the same.
 
-## The shipped theme
+## Package 31's theme
 
 Each picture is a real screenshot at the laptop's 1920x1080: an inactive window (the editor) and the active one (the
 terminal) over a bright scene. The scene is a drawing made for these tests, not the game.
@@ -56,7 +56,7 @@ accent, glass. On a frame that becomes:
 - **Edge:** a 1 px warm line all round, top corners rounded by 10 px, a deep soft shadow.
 - **Alt+Tab:** a dark panel with a preview picture of each window; the chosen one has a gold outline.
 
-Ships with Space Grotesk in the image (see "Image additions"). Without it labwc uses the system's
+Shipped with Space Grotesk in the image (see "Image additions"). Without it labwc uses the system's
 default sans font and the theme still looks right (tried, including package 31's recovery shortcut).
 
 ### More pictures
@@ -128,7 +128,7 @@ Things I wanted and what stands in their place:
 | A hard pixel shadow for Ares-Block | soft shadows only | a short soft shadow |
 | A small app icon next to wide buttons (Ares-Plain) | the icon's size follows the button box | a larger icon than Windows shows |
 | Space before the title without a button at the left | the title starts flush at the edge | every layout keeps one button at the left (dot or icon) |
-| Any font size | whole points only (`20.25` is read as 20) | Jersey 10 at 21 pt = 28 px, its exact double size. A few letter edges still land on half pixels, because the font's own spacing uses quarter steps |
+| Any font size | whole points only (`20.25` is read as 20) | Jersey 10 at 21 pt is one and a half times its drawn size and lands on half pixels. At 28 pt it doubles onto whole pixels. |
 | The whole look in the theme folder | corner radius, fonts, shadows on or off, button order and Alt+Tab style are `rc.xml` settings | the lines below must change together with the theme's name |
 
 Two notes on labwc's manual: it says font sizes are pixels, but they are points (13 gives 17 px text, 21 gives 28 px).
@@ -184,26 +184,51 @@ Ares-Block is the furthest from all of them.
 
 ## Shipped configuration
 
-Package 31 replaces only `<theme><name>Default</name></theme>` in `rc.xml` with the Crown block below and adds its
-`<windowSwitcher>` line. Key bindings and window rules are unchanged. These are the settings used for its pictures.
-
-**Ares-Crown**
+Package 329 selects `AresOS` in `/usr/share/aresos/labwc/rc.xml`.
 
 ```xml
   <theme>
-    <name>Ares-Crown</name>
+    <name>AresOS</name>
     <icon>breeze</icon>
     <fallbackAppIcon>application-x-executable</fallbackAppIcon>
-    <cornerRadius>10</cornerRadius>
+    <cornerRadius>0</cornerRadius>
     <dropShadows>yes</dropShadows>
     <titlebar><layout>menu:iconify,max,close</layout></titlebar>
-    <font place="ActiveWindow"><name>Space Grotesk</name><size>13</size><weight>medium</weight></font>
-    <font place="InactiveWindow"><name>Space Grotesk</name><size>13</size><weight>medium</weight></font>
-    <font place="MenuHeader"><name>Space Grotesk</name><size>12</size><weight>bold</weight></font>
-    <font place="MenuItem"><name>Space Grotesk</name><size>12</size></font>
-    <font place="OnScreenDisplay"><name>Space Grotesk</name><size>13</size><weight>medium</weight></font>
+    <font place="ActiveWindow"><name>Jersey 10</name><size>28</size></font>
+    <font place="InactiveWindow"><name>Jersey 10</name><size>28</size></font>
+    <font place="MenuHeader"><name>Jersey 10</name><size>28</size></font>
+    <font place="MenuItem"><name>Jersey 10</name><size>28</size></font>
+    <font place="OnScreenDisplay"><name>Jersey 10</name><size>28</size></font>
   </theme>
-  <windowSwitcher><osd style="thumbnail" /></windowSwitcher>
+```
+
+In `<keyboard>`, `A-S-Tab` steps back through the switcher.
+
+```xml
+    <keybind key="A-Tab"><action name="NextWindow" /></keybind>
+    <keybind key="A-S-Tab"><action name="PreviousWindow" /></keybind>
+```
+
+The switcher shows thumbnails on the focused output in focus order. The mouse block loads labwc's defaults for
+moving, resizing and the title-bar menu. It clears both title-bar scroll actions and the three bare-desktop
+button presses so a stray click cannot open the built-in menu with its session-ending Exit item.
+
+```xml
+  <windowSwitcher preview="yes" outlines="yes" order="focus">
+    <osd show="yes" style="thumbnail" output="focused" thumbnailLabelFormat="%T" />
+  </windowSwitcher>
+  <mouse>
+    <default />
+    <context name="TitleBar">
+      <mousebind direction="Up" action="Scroll"><action name="None" /></mousebind>
+      <mousebind direction="Down" action="Scroll"><action name="None" /></mousebind>
+    </context>
+    <context name="Root">
+      <mousebind button="Left" action="Press"><action name="None" /></mousebind>
+      <mousebind button="Right" action="Press"><action name="None" /></mousebind>
+      <mousebind button="Middle" action="Press"><action name="None" /></mousebind>
+    </context>
+  </mouse>
 ```
 
 What the lines do:
@@ -215,18 +240,15 @@ What the lines do:
   icon instead of an empty space. A desktop entry `aresos.terminal.desktop` with a terminal icon would be the better
   fix; it is left out here because another session is building the program listing in `aresos-shell`, and a new
   desktop entry could show up in it.
-- `<cornerRadius>`, `<dropShadows>`, `<font>` and `<windowSwitcher>` belong to the theme's look but are `rc.xml`
-  settings in labwc.
-- Sizes are whole points: 12 = 16 px, 13 = 17 px, 21 = 28 px.
-
-Dragging the bar, double-click to maximize, dragging to the top edge to maximize and the right-click window menu are
-labwc's default mouse settings; they are not changed.
+- `<cornerRadius>`, `<dropShadows>`, `<font>` and `<windowSwitcher>` are `rc.xml` settings in labwc. The 28 pt
+  Jersey 10 line fills the 40 px bar.
 
 ### Image additions
 
 | For | What | Size and licence |
 |---|---|---|
-| Ares-Crown | `/usr/share/fonts/aresos/SpaceGrotesk-Variable.ttf`, with `OFL-SpaceGrotesk.txt`. Unchanged from `ares-empire/web/fonts/` | 137 KB, SIL Open Font License 1.1, © 2020 The Space Grotesk Project Authors |
+| AresOS | `/usr/share/themes/AresOS/labwc/`, with `themerc` and 36 PNGs generated from the look pack. Uses `/usr/share/fonts/aresos/Jersey10-Regular.ttf` and `OFL-Jersey10.txt` from package 320. | 78 KB font, SIL Open Font License 1.1, © 2023 The Soft Type Project Authors |
+| Ares-Crown | `/usr/share/fonts/aresos/SpaceGrotesk-Variable.ttf`, with `OFL-SpaceGrotesk.txt`, from `ares-empire/web/fonts/`. The startup cover uses it. | 137 KB, SIL Open Font License 1.1, © 2020 The Space Grotesk Project Authors |
 | Apps with their own bar | `/usr/share/glib-2.0/schemas/zz-aresos.gschema.override`: `[org.gnome.desktop.wm.preferences:AresOS]`, `button-layout='appmenu:minimize,maximize,close'` | A default only in `XDG_CURRENT_DESKTOP=AresOS`; saved user settings still win |
 
 The configure step runs `glib-compile-schemas --strict /usr/share/glib-2.0/schemas`; errors fail the build.
@@ -235,19 +257,19 @@ The image checks validate all 36 button images, the theme configuration, the fon
 AresOS default as `ares` with a fresh home and memory settings backend.
 
 Space Grotesk SHA-256: `acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72`.
-The README lists its copyright and licence. Neither Jersey 10 nor either alternative theme ships.
+The README lists its copyright and licence.
 
 ## Still open
 
-1. **Size on the real panel.** Crown's bar is 36 px high with a 17 px title. The owner needs to judge size and
-   legibility on the laptop's screen with the real game behind it.
+1. **Size on the real panel.** The owner needs to judge the 40 px bar and Jersey 10's legibility on the laptop's
+   screen with the real game behind it.
 2. **A dark look for other programs later.** Telling programs to prefer their dark look would change every app's
    appearance and is outside package 31.
 
 ## Not chosen
 
 The following designs and pictures are retained as alternatives. Their theme files stay in git history, and
-switching either on would first need its files restored. The original Block design also needs Jersey 10 installed.
+switching either on would first need its files restored.
 
 ### Ares-Plain: like Windows, but ours
 
@@ -270,14 +292,11 @@ Needs: nothing. Every font and icon it uses is already in the image.
 
 A flat grey panel with a hard dark outline and square corners. The buttons are sunken slots with pixel glyphs in them;
 under the pointer a slot lights up, close turns red. Everything sits on a grid of 2x2 screen pixels: the 2 px outline,
-the 40 px bar, the 32 px slots, the glyphs. The title is set in the pixel font Jersey 10 at twice its drawn size.
+the 40 px bar, the 32 px slots, the glyphs. The original configuration uses Jersey 10 at 21 pt.
 Alt+Tab is a list like the game's own lists: the chosen row has a white outline.
 
 Drawn from scratch from rectangles and flat greys: no texture, font, sound or image of the game is used or copied, and
 Jersey 10 is a sports-lettering pixel font, not a copy of the game's font.
-
-Needs: the font Jersey 10 in the image (details below). Do not switch this theme on before the font
-is there: the fallback font at this size is much too large and makes the bar taller.
 
 ### Alternative configurations (reference only)
 
@@ -321,7 +340,7 @@ is there: the fallback font at this size is much too large and makes the bar tal
 
 Jersey 10's tested file was `Jersey10-Regular.ttf`, SHA-256
 `db9cbd091617048a145d249daa2b815fe7083be6ab66ac26626e21a4e01c3e82`, from Google Fonts' `ofl/jersey10`;
-78 KB, SIL Open Font License 1.1, © 2023 The Soft Type Project Authors. It is not in the image.
+78 KB, SIL Open Font License 1.1, © 2023 The Soft Type Project Authors. Package 320 installs this font.
 
 ## Not verified
 

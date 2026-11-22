@@ -14,6 +14,7 @@ import java.util.stream.IntStream;
 public final class GatePalette {
     /** The niche's back, the door posts and the bar over the door. */
     public static final String BLACK = "black_concrete";
+    private static final double LIGHTNESS_WEIGHT = 0.5;
     public static final List<LogoPixels.Color> BLOCKS;
     /**
      * Plain blocks first (HUB.md 3.6): a block with spots, bricks, a frame or a pattern shows its texture from the
@@ -65,8 +66,10 @@ public final class GatePalette {
             BUILT[i] = i;
             if (PLAIN[i]) continue;
             int nearest = 0;
-            for (int j = 1; j < PLAIN.length; j++) if (PLAIN[j] && away(OKLAB[i], j) < away(OKLAB[i], nearest)) nearest = j;
-            if (away(OKLAB[i], nearest) <= PATTERN) BUILT[i] = nearest;
+            for (int j = 1; j < PLAIN.length; j++) {
+                if (PLAIN[j] && away(OKLAB[i], j, LIGHTNESS_WEIGHT) < away(OKLAB[i], nearest, LIGHTNESS_WEIGHT)) nearest = j;
+            }
+            if (away(OKLAB[i], nearest, LIGHTNESS_WEIGHT) <= PATTERN) BUILT[i] = nearest;
         }
     }
 
@@ -74,21 +77,22 @@ public final class GatePalette {
 
     /**
      * The block for a colour: the nearest of the 60, or the plain block that stands in for it. Distance is Oklab
-     * with lightness counted half, so the right hue wins over the right brightness (plain RGB distance turned a
-     * bright red orange).
+     * with reduced weight on lightness, so the right hue wins over the right brightness.
      */
     public static String nearest(int rgb) {
         double[] wanted = oklab(rgb);
+        double weight = lightnessWeight(wanted);
         int best = 0;
-        for (int i = 1; i < OKLAB.length; i++) if (away(wanted, i) < away(wanted, best)) best = i;
+        for (int i = 1; i < OKLAB.length; i++) if (away(wanted, i, weight) < away(wanted, best, weight)) best = i;
         return BLOCKS.get(BUILT[best]).block();
     }
 
     /** The blocks that can be built for a colour: the one {@link #nearest} picks first, then the next best, and so on. */
     public static List<String> nearestFirst(int rgb) {
         double[] wanted = oklab(rgb);
+        double weight = lightnessWeight(wanted);
         // A stable sort: blocks equally far keep the palette's order, as nearest() takes the first.
-        return IntStream.range(0, OKLAB.length).boxed().sorted(Comparator.comparingDouble(i -> away(wanted, i)))
+        return IntStream.range(0, OKLAB.length).boxed().sorted(Comparator.comparingDouble(i -> away(wanted, i, weight)))
                 .map(i -> BLOCKS.get(BUILT[i]).block()).distinct().toList();
     }
 
@@ -104,8 +108,14 @@ public final class GatePalette {
         throw new IllegalArgumentException("Not a palette block: " + block);
     }
 
-    private static double away(double[] wanted, int block) {
-        double l = 0.5 * (wanted[0] - OKLAB[block][0]), a = wanted[1] - OKLAB[block][1], b = wanted[2] - OKLAB[block][2];
+    private static double lightnessWeight(double[] wanted) {
+        // Dark gray terracotta is brown. Favor neutrality over an exact shade for charcoal and near-black.
+        return wanted[0] < 0.35 && Math.hypot(wanted[1], wanted[2]) < 0.015 ? 0.25 : LIGHTNESS_WEIGHT;
+    }
+
+    private static double away(double[] wanted, int block, double lightnessWeight) {
+        double l = lightnessWeight * (wanted[0] - OKLAB[block][0]);
+        double a = wanted[1] - OKLAB[block][1], b = wanted[2] - OKLAB[block][2];
         return Math.sqrt(l * l + a * a + b * b);
     }
 

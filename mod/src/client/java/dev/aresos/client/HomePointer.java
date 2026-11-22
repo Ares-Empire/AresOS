@@ -83,6 +83,8 @@ public final class HomePointer {
     private static void enterWorld(Minecraft client) {
         foregroundFrames = 0;
         appClick = false;
+        // A press reached the world (labwc focuses a window before it hands it the press), or the helper said so.
+        WorldCapture.worldFocused(true);
         AppInput.reset();
         HomeScreen.appInFront(false);
         if (client.gui.screen() == null && client.isWindowActive()) client.mouseHandler.grabMouse();

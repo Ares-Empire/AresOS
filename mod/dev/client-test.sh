@@ -3,7 +3,8 @@
 # owner's screen. Extra arguments go to Gradle.
 #
 #   mod/dev/client-test.sh [--force] [--session] [--keep-screenshots <dir>] [--gpu auto|nvidia|intel|software] [gradle args...]
-#   --session uses headless labwc with the image's window rules and enables small native-window checks.
+#   --session uses headless labwc with the image's window rules and two 1280x720 outputs side by side (package 328),
+#   and enables the native-window checks.
 #
 # - The game runs inside its own headless Wayland compositor (cage with WLR_BACKENDS=headless) and that
 #   compositor's own Xwayland (Minecraft asks GLFW for X11). DISPLAY and WAYLAND_DISPLAY point there only, so
@@ -182,7 +183,9 @@ aresos_cleanup() {
 
 stamp=$(/usr/bin/mktemp -- "$ARESOS_DEV_CACHE/client-test-started.XXXXXX")
 if ((session)); then
-    # The image's rules, without its autostart: tests may open small stand-in apps on this private compositor.
+    # The image's rules, without its autostart: tests may open small stand-in apps on this private compositor. Two
+    # outputs side by side, as on the laptop with its monitor (package 328); the game maps on the left one, where the
+    # pointer starts. The tests' virtual pointers get the layout's size (ARESOS_POINTER_LAYOUT).
     /usr/bin/mkdir -p -- "$ARESOS_MOD_DIR/build"
     session_dir=$(/usr/bin/mktemp -d -- "$ARESOS_MOD_DIR/build/pointer-session.XXXXXX")
     /usr/bin/cp -- "$REPO_DIR/os/config/usr/share/aresos/labwc/rc.xml" "$session_dir/rc.xml"
@@ -190,12 +193,17 @@ if ((session)); then
         printf '#!/usr/bin/bash\nset +e\n'
         printf '[[ ${WAYLAND_DISPLAY:-wayland-0} != wayland-0 && ${DISPLAY:-:0} != :0 ]] || exit 1\n'
         printf 'exec 2>&"${ARESOS_SCOPED_STDERR_FD:-3}"\n'
+        # Turning the right output off first moves the pointer, which starts at the layout's centre, onto the left one.
+        printf '{ /usr/bin/wlr-randr --output HEADLESS-1 --on --custom-mode 1280x720 --pos 0,0 --output HEADLESS-2 --off'
+        printf ' && /usr/bin/wlr-randr --output HEADLESS-2 --on --custom-mode 1280x720 --pos 1280,0; } >/dev/null'
+        printf ' || { kill -TERM "$LABWC_PID"; exit 1; }\n'
+        printf 'export ARESOS_POINTER_LAYOUT=2560x720\n'
         printf '%q ' "${ARESOS_GRADLE[@]}" runClientGameTest "${gradle_args[@]}"
         printf '\ncode=$?\nprintf "%%s\\n" "$code" > %q\nkill -TERM "$LABWC_PID"\nexit "$code"\n' "$session_dir/status"
     } > "$session_dir/start.sh"
     /usr/bin/chmod +x -- "$session_dir/start.sh"
     aresos_scoped client-test -- /usr/bin/env "${ISOLATE[@]}" "${compositor_env[@]}" "${game_env[@]}" \
-        LABWC_UPDATE_ACTIVATION_ENV=0 ALSOFT_DRIVERS=null /usr/bin/labwc --config-dir "$session_dir" \
+        WLR_HEADLESS_OUTPUTS=2 LABWC_UPDATE_ACTIVATION_ENV=0 ALSOFT_DRIVERS=null /usr/bin/labwc --config-dir "$session_dir" \
         --startup "$session_dir/start.sh" 3>&2 2>"$COMPOSITOR_LOG"
     [[ -s $session_dir/status ]] || aresos_fail 1 "The headless session ended before Gradle returned."
     status=$(<"$session_dir/status")

@@ -10,6 +10,7 @@ import dev.aresos.hub.Place;
 import dev.aresos.hub.Town;
 import dev.aresos.hub.TownKeeper;
 import dev.aresos.hub.TownSeal;
+import dev.aresos.world.DesktopWorld;
 import dev.aresos.zone.AppZone;
 import dev.aresos.zone.GateBuilder;
 import dev.aresos.zone.GatePicture;
@@ -174,6 +175,7 @@ public final class TownGameTests {
         hold(level, chunks, true);
         helper.startSequence().thenWaitUntil(waitFor(helper, level, chunks, () -> loaded(level, chunks), "The town's chunks are not loaded yet", () -> { })).thenExecute(() -> {
             var previous = HubData.get(server);
+            boolean desktop = DesktopWorld.isEnabled(server);
             try {
                 // The arrival fixture may hold an old gate at its new home column. Its far corner is beyond every
                 // gate it builds, so use that grass surface before resetting its own ground.
@@ -181,10 +183,12 @@ public final class TownGameTests {
                 BlockPos home = new BlockPos(column.getX(), level.getHeight(Heightmap.Types.WORLD_SURFACE, surface.getX(), surface.getZ()), column.getZ());
                 if (resetArrival) resetArrivalFixture(level, home);
                 check(level.getBlockState(home.below()).is(Blocks.GRASS_BLOCK) && level.getBlockState(home).isAir(), "Fixture: no grass surface at " + home);
+                DesktopWorld.setEnabled(server, true);
                 body.run(level, home);
             } catch (IOException error) {
                 throw new AssertionError(error.getMessage(), error);
             } finally {
+                DesktopWorld.setEnabled(server, desktop);
                 if (previous != null) HubData.store(server, previous);
                 hold(level, chunks, false);
             }
@@ -649,13 +653,17 @@ public final class TownGameTests {
 
     /** Runs a part; after the last one, or when one fails, puts back the server's hub record and lets go of the chunks. */
     private static void keeping(Fake fake, ServerLevel level, Set<Long> near, boolean last, Part part) {
+        var server = level.getServer();
+        boolean desktop = DesktopWorld.isEnabled(server);
         boolean done = false;
         try {
+            DesktopWorld.setEnabled(server, true);
             part.run();
             done = true;
         } catch (IOException error) {
             throw new AssertionError(error.getMessage(), error);
         } finally {
+            DesktopWorld.setEnabled(server, desktop);
             if (last || !done) {
                 if (!done) fake.clearZones(level.getServer());
                 letGo(fake, level, near);
@@ -966,10 +974,7 @@ public final class TownGameTests {
         check(text(level, hub.fixed().names().getFirst()).equals("INTERNET \u00b7 2"), "A leave is not counted");
 
         // Point 4: a logo drawn by another converter is renewed in place by itself.
-        var chrome = hub.logo("re-chrome").orElseThrow();
-        hub.remove("re-chrome");
-        hub.add(new HubData.Logo(chrome.app(), chrome.place(), chrome.picture(), GatePicture.CONVERTER - 1, chrome.name(), chrome.shortName(),
-                chrome.zone(), chrome.gate()));
+        older(hub, "re-chrome");
         var converted = fake.pass(server);
         check(converted.lines().equals(List.of("The logo of Chrome was renewed.")) && hub.logo("re-chrome").orElseThrow().converter() == GatePicture.CONVERTER
                 && place(server, "re-chrome").equals("N0R0"), "Another converter: " + converted.lines());
@@ -1347,6 +1352,7 @@ public final class TownGameTests {
             var chromeNow = drawnBefore.logo("seal-chrome").orElseThrow();
             check(drawn.lines().equals(List.of("The logo of Chrome Browser was renewed.")) && chromeNow.converter() == GatePicture.CONVERTER
                     && chromeNow.place().equals("N0L0"), "After trust, the logo of converter 1: " + drawn.lines() + " " + chromeNow);
+            desktopMarkerPausesRenewal(fake, level, world, chromeNow);
             server.saveAllChunks(true, true, true);
 
             // town.dat restored from the backup taken after the first save, into a copy of this world: unsealed.
@@ -1394,6 +1400,45 @@ public final class TownGameTests {
                 server.saveAllChunks(true, true, true);
             }
         }
+    }
+
+    /** Package 327 review 1: a disabled save keeps a converter-2 gate, including an opening mined in it. */
+    private static void desktopMarkerPausesRenewal(Fake fake, ServerLevel level, Path world, HubData.Logo chrome) {
+        var server = level.getServer();
+        var hub = HubData.get(server);
+        hub.remove(chrome.app());
+        hub.add(new HubData.Logo(chrome.app(), chrome.place(), chrome.picture(), 2, chrome.name(), chrome.shortName(),
+                chrome.zone(), chrome.gate()));
+        DesktopWorld.setEnabled(server, false);
+        var plan = Town.plan(hub, fake.get(chrome.app()), Place.parse(chrome.place()).orElseThrow(), fake.ring);
+        var opening = plan.blocks().keySet().stream().filter(pos -> pos.getY() == hub.home().pos().getY() + 6).findFirst().orElseThrow();
+        var panel = level.getBlockState(opening);
+        check(!panel.isAir(), "Fixture: the version-2 gate has no panel to mine");
+        level.setBlockAndUpdate(opening, Blocks.AIR.defaultBlockState());
+        check(level.getBlockState(opening).isAir(), "Fixture: the gate panel was not removed");
+        // Mining drops ownership of the panel, so preserve the record as saved after mining.
+        var versionTwo = hub.logo(chrome.app()).orElseThrow();
+        check(versionTwo.converter() == 2, "Fixture: the gate is not from converter 2");
+        var blocks = new HashMap<BlockPos, BlockState>();
+        chrome.gate().placed().forEach(block -> blocks.put(block.pos(), level.getBlockState(block.pos())));
+
+        server.saveAllChunks(true, true, true);
+        var loaded = reopen(server, world);
+        check(!loaded.frozen() && loaded.refusal().isEmpty() && loaded.logo(chrome.app()).orElseThrow().equals(versionTwo),
+                "Fixture: the saved version-2 gate did not load as an active town record");
+        HubData.store(server, loaded);
+        var disabled = fake.pass(server);
+        check(disabled.lines().isEmpty() && !disabled.pending() && disabled.pictures().isEmpty(), "The keeper ran with desktop mode off: " + disabled);
+        check(loaded.logo(chrome.app()).orElseThrow().equals(versionTwo), "Desktop mode off: the gate record changed");
+        for (var block : blocks.entrySet())
+            check(level.getBlockState(block.getKey()).equals(block.getValue()), "Desktop mode off: the gate changed at " + block.getKey());
+
+        DesktopWorld.setEnabled(server, true);
+        var enabled = fake.pass(server);
+        var renewed = loaded.logo(chrome.app()).orElseThrow();
+        check(enabled.lines().equals(List.of("The logo of " + chrome.name() + " was renewed."))
+                && renewed.converter() == GatePicture.CONVERTER && renewed.place().equals(chrome.place()), "Desktop mode on: " + enabled.lines());
+        check(level.getBlockState(opening).equals(panel), "Desktop mode on: the renewed gate did not fill the opening");
     }
 
     private interface Action { void run() throws IOException; }

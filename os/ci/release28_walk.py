@@ -73,6 +73,7 @@ GENERATED = ('commands.json', 'history.json', 'payload/history.json', 'payload/r
 CONTROL_RIDES = True
 CHROME_RIDES = False
 CONTROL_CHECKER = 'os/ci/control/release_checks.py'
+CONTROL_CHECKS = ('service_user', 'unit', 'claude_code_files', 'folders', 'state_folders')
 SITES = '/var/lib/aresos-control/chrome-excluded-sites.json'
 SITES_LIST = '{"format":1,"hosts":["rehearsal.invalid"]}'
 # Package 23d's soft memory target of the game scope (aresos-desktop's MEMORY_HIGH, 2560M).
@@ -549,7 +550,7 @@ def receipt_setting(receipt):
 
 # The release checker is bound by the host receipt and passed through its documented stdin interface.
 CONTROL = '''import json, subprocess
-checked=subprocess.run(['/usr/bin/python3','-I','-'],input=@CHECKER@,capture_output=True,text=True,timeout=150)
+checked=subprocess.run(['/usr/bin/python3','-I','-',*@CHECKS@],input=@CHECKER@,capture_output=True,text=True,timeout=150)
 roots=['greetd.service','systemd-user-sessions.service']
 graph={}
 pending=list(roots)
@@ -567,7 +568,8 @@ print(json.dumps(dict(release_checks=dict(status=checked.returncode,stdout=check
 
 def control(guest, stage, vm):
     source = pathlib.Path(CONTROL_CHECKER).read_text()
-    value = guest.capture_json(stage + '-control', vm.sw.framed('python3 -c ' + shlex.quote(program(CONTROL, checker=source))))
+    probe = program(CONTROL, checker=source, checks=CONTROL_CHECKS)
+    value = guest.capture_json(stage + '-control', vm.sw.framed('python3 -c ' + shlex.quote(probe)))
     # Retain failures too, before making assertions on the result.
     vm.td.save(stage + '-control', value)
     checked = value['release_checks']
@@ -575,7 +577,7 @@ def control(guest, stage, vm):
     assert checked['status'] == 0 and len(lines) == 2 and lines[-1] == 'CONTROL_RELEASE_CHECKS_PASS', \
         'STOP: Control release checker failed: ' + json.dumps(checked)
     results = json.loads(lines[0])
-    assert set(results) == {'service_user', 'unit', 'claude_code_files', 'folders', 'state_folders'} \
+    assert set(results) == set(CONTROL_CHECKS) \
         and all(row['ok'] is True for row in results.values()), 'STOP: Control checks missing or failed'
     user = results['service_user']['value']
     assert (user['uid'], user['gid'], user['group_gid']) == (250, 250, 250) \
