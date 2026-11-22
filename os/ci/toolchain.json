@@ -9,6 +9,7 @@
     "qemu-system-x86": "1:8.2.2+ds-0ubuntu1.18",
     "qemu-system-data": "1:8.2.2+ds-0ubuntu1.18",
     "qemu-system-common": "1:8.2.2+ds-0ubuntu1.18",
+    "qemu-system-modules-opengl": "1:8.2.2+ds-0ubuntu1.18",
     "qemu-utils": "1:8.2.2+ds-0ubuntu1.18",
     "qemu-block-extra": "1:8.2.2+ds-0ubuntu1.18",
     "ovmf": "2024.02-2ubuntu0.10",
