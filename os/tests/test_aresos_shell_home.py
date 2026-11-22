@@ -35,9 +35,9 @@ class RefusalLogTest(Base):
             self.request(helper, conn, 'open_app', 'o-2', app_id='browser')
             # A resent request is answered from the journal: one line per launch, not per message.
             self.request(helper, conn, 'open_app', 'o-2', app_id='browser')
-        self.assertEqual(lines(warning), ["'spotify' not opened: no such app", 'browser not opened: not_installed'])
+        self.assertEqual(lines(warning), ['unknown app ID (7 characters) not opened', 'browser not opened: not_installed'])
 
-    def test_an_unknown_id_is_logged_clipped_and_quoted(self):
+    def test_an_unknown_id_is_logged_by_length(self):
         helper = self.helper()
         conn = self.connect(helper)
         with mock.patch.object(shell.LOG, 'warning') as warning:
@@ -45,6 +45,7 @@ class RefusalLogTest(Base):
         (line,) = lines(warning)
         self.assertNotIn('\n', line)
         self.assertLess(len(line), 200)
+        self.assertEqual(line, 'unknown app ID (120 characters) not opened')
 
     def test_a_launch_that_shows_no_window_is_logged(self):
         helper = self.helper(tracked=True)
