@@ -1366,7 +1366,8 @@ class WiringTest(unittest.TestCase):
         # Both installs must land in the same layer even when their file metadata matches.
         instructions = packages.replace('\\\n', '').splitlines()
         install, = [line for line in instructions if line.startswith('RUN ')]
-        self.assertIn('test ! -e /tmp/aresos/ci && bash /tmp/aresos/build.sh packages &&', install)
+        self.assertIn('test ! -e /tmp/aresos/ci && bash /tmp/aresos/build.sh packages "$ARESOS_BUILD_KIND" &&', install)
+        self.assertIn('test ! -e /tmp/aresos/input-portal &&', install)
         self.assertIn('python3 -I /tmp/aresos/labwc/stage.py install /tmp/aresos-labwc-rpm /tmp/aresos/labwc &&', install)
         self.assertLess(install.index('build.sh packages'), install.index('stage.py install'))
 
