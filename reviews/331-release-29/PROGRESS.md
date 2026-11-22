@@ -658,3 +658,127 @@ still counts. The next slice owns the bound and hosted wiring.
 All nine package 331 caps are zero. This round used zero hosted dispatches
 and uploads. All evidence above is local. There are no files over 500 MB
 in `.work/`.
+
+## Done · step 5 second slice · 2026-11-22
+
+Started at `5da3b3da96f75b370b2622b773ec2955dc59ce73` on draft PR144.
+Implementation and fixture head `13b169d0611e23a8ab4516d694adb001e027e860`.
+
+- The read-only `release-29-baseline` selector has its own dispatch count.
+  It requires successful regressions and the full model on the exact head.
+  The hosted runner checks its native capabilities, fetches missing pinned Git
+  objects and verifies R13, R27 and R28 with the scoped job token and each
+  immutable record's exact digest, Cosign identity and issuer. It removes the
+  temporary auth before booting the disposable disks. The pinned ISO check and
+  served Web UI bundle and source map checks gate the walk through confirmed
+  R28 and tools v5. The separate qualifying dispatch also verifies the
+  successful R29 publish job, recorded source trees and exact signed candidate
+  before running the candidate route.
+- The baseline artifact `release-29-baseline-receipt` retains
+  `release-29-baseline.json` with the commit, run ID, attempt, registry proof,
+  inputs, installer hashes and final audit facts. A passing qualification
+  retains `release-29-qualifying-receipt` with the same-run registries, candidate
+  equality and deployment result and `331-bound-sources.json`. Bounded
+  diagnostics use `release-29-baseline-evidence` and `release-29-evidence`.
+  Checks authorization has its own `331-checks-authorization` artifact.
+- The R29 build modes use the immutable R28 target even when the active
+  release pointer changes. The R29 publish entry checks the exact hosted
+  branch, job, mode and ledger before its prospective shipment stop.
+  The workflow publish stub is read-only and still needs authorization.
+  The dry-run stub stays in place for step 7.
+- REVIEW-8 limit 5 is covered by committed bounds. The ledger retains failed
+  and cancelled dispatches. An unusable job interval falls back to the
+  job's committed ceiling, with 360 minutes for an unrecognized hosted job.
+  The checks reservation includes all 100 minutes across authorization and
+  both workers. The ledger records the actual spend and preserves prior
+  publish dispatches and uploads when both publish caps close.
+- All ten effective caps remain zero in `os/ci/rehearsal-331-caps.json`.
+  The separate file lets the lead change allowances without changing the
+  hashed walk and policy inputs. The guard and its bounds remain bound.
+  Refreshed the 314 host receipt rows and 23 pending rows with zero removals.
+
+### Reviewed budget to open in later steps
+
+| Mode | Initial dispatch allowance after review | Reservation per dispatch |
+| --- | --- | --- |
+| Same-head checks with full model | Separately reviewed, propose one now | 100 minutes, including 5 for authorization |
+| Historical baseline preflight | Separately reviewed, propose one now | 345 minutes |
+| Resolve | Separately reviewed on the cut | 120 minutes |
+| Dry run | Two | 180 minutes |
+| Private publish | One, with both publish caps open | 185 minutes, including 5 for authorization |
+| Qualifying rehearsal | Up to three | 345 minutes |
+
+The 345-minute ceiling covers each VM job from setup through evidence upload.
+Measure the longer qualifying route before setting a separate VM-step limit.
+Retry allowances require separate review. The first pair requires a 445-minute
+cumulative cap with an empty ledger. Account for any previously charged minutes
+before setting it.
+
+### Lead dispatches in order
+
+After reviewing this slice, commit the allowance for `checks: 1`,
+`release-29-baseline: 1` and the reviewed minute cap. Keep the other caps closed.
+Run both commands on that same pushed head. Wait for the checks and full model
+to pass before dispatching the baseline.
+
+```bash
+gh workflow run "OS image" --ref pkg/331-release-29 -f checks_only=true -f full_model=true
+gh workflow run "OS image" --ref pkg/331-release-29 -f rehearsal=release-29-baseline
+```
+
+Watch each run with `gh run watch <run-id> --exit-status --interval 60`. Record
+both run IDs, attempts and head SHAs. Preserve the passing baseline artifact and
+its bounded diagnostics for review. Before private upload, verify the passing
+run identity and use `python3 os/ci/release29_walk.py check-receipt <receipt>`
+against the intended checkout. A change to a bound baseline input requires a
+fresh reviewed preflight. Steps 6 and 7 settle the cut, late-package rules,
+resolve and dry run.
+
+### Verified locally
+
+Ran `python3 -m unittest discover -s os/tests -p <module>.py` from the
+repository root, one module at a time, with `TMPDIR` in `.work/tmp`.
+
+| Module | Result |
+| --- | --- |
+| `test_release29_workflow` | `Ran 15 tests in 0.122s`, `OK` |
+| `test_build_tools` | `Ran 6 tests in 0.128s`, `OK` |
+| `test_release29_rehearsal` | `Ran 26 tests in 30.902s`, `OK`. Printed the three Control Chrome PASS markers from fixtures. |
+| `test_ci_api_permissions` | `Ran 4 tests in 4.138s`, `OK` |
+| `test_ci_step_environment` | `Ran 4 tests in 20.909s`, `OK` |
+| `test_owner_capabilities` | `Ran 6 tests in 0.180s`, `OK` |
+| `test_owner_devices_native` | `Ran 14 tests in 2.203s`, `OK` |
+| `test_owner_counter_flush` | `Ran 7 tests in 0.045s`, `OK` |
+| `test_rehearsal_budget` | `Ran 6 tests in 0.083s`, `OK` |
+| `test_owner_staged_release` | `Ran 7 tests in 0.058s`, `OK` |
+| `test_rehearsal_auth` | `Ran 9 tests in 0.108s`, `OK` |
+| `test_checkout_sources` | `Ran 10 tests in 1.063s`, `OK` |
+| `test_release28_rehearsal` | `Ran 44 tests in 34.952s`, `OK` |
+| `test_release28` | `Ran 94 tests in 56.248s`, `OK` |
+| `test_release27` | `Ran 41 tests in 7.015s`, `OK` |
+| `test_tools_local_wiring` | `Ran 42 tests in 57.257s`, `OK`. The disposable Git fixture printed the default-branch and empty-remote-HEAD notices. |
+| `test_ways_back_model` with `-k test_hosted_checks_explore_the_slice_and_a_parallel_job_the_full_model_when_selected` | `Ran 1 test in 0.044s`, `OK` |
+
+The first workflow fixture caught the new baseline selector reaching the
+legacy rehearsal on another branch. The legacy selector now excludes it.
+The environment audit originally expected a single device-proof caller and
+now checks both callers. The historical decision scan flagged two R29
+predicates it could not evaluate. The registry predicate now puts the
+literal package check first, and the driver compares the receipt with a
+separately constructed dispatch identity. The final runs passed.
+
+YAML parsing and `bash -n` passed for all 102 workflow shell steps with
+expressions rendered as fixture values. `bash -n os/ci/publish.sh`,
+`python3 -m py_compile` on the edited Python files and `git diff --check`
+passed. Source replay and raw-byte checks validated all 314 host receipt
+rows. There are no files over 500 MB in `.work/`.
+
+### Limits
+
+This slice used zero hosted dispatches and zero uploads, so it has no hosted
+run ID, attempt or SHA. Live job-token access, Cosign and ISO availability,
+the served installer assets, disposable VM boot and protected disk audits
+remain for the hosted baseline. Qualification still needs the real R29
+record and exact candidate payload after publishing. The owner's live
+world close and save, Terminal with the world open and physical boot menu
+remain manual checks. All effective caps are zero at handoff.
