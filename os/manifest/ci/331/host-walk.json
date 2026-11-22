@@ -44,7 +44,11 @@
         "Jersey 10": "/usr/share/fonts/aresos/Jersey10-Regular.ttf"
       }
     },
+    "prism_handler": {
+      "x-scheme-handler/prismlauncher": "org.prismlauncher.PrismLauncher.desktop"
+    },
     "polkit_review": "os/ci/polkit-review.json",
+    "gh_version": "2.103.3",
     "game_memory_high": "2684354560"
   },
   "baseline": {
@@ -88,7 +92,7 @@
       "previous-28-check",
       "final-29-check"
     ],
-    "probe_count": 49,
+    "probe_count": 51,
     "result": "passed"
   },
   "inherited_from": "os/manifest/ci/42/host-walk.json",
@@ -351,11 +355,11 @@
       "path": "os/ci/release29_chrome_probe.py"
     },
     {
-      "sha256": "76ec4eeb5c391c2ae5d10651b4f15f1d6670e4020e6e07921057436dcdfdec31",
+      "sha256": "9d486494fc282fa4ef58bd6a94d527ace81aac45e39b7342bb578491dd793b3a",
       "path": "os/ci/release29_probes.py"
     },
     {
-      "sha256": "b024933eb4e48e603a4e8cc1e223f0a1b859514e92e1af0d78ef7ebd4e4bc614",
+      "sha256": "e4dd0522efa375727950c6849a20c120fc5910104719e5e920459cd7e278a102",
       "path": "os/ci/release29_walk.py"
     },
     {
@@ -407,12 +411,32 @@
       "path": "os/config/usr/libexec/aresos-desktop"
     },
     {
+      "sha256": "87a333df18b94fd7e8219b4c0f3dbd32002dbe578dd31ec0fbe5bca44620becc",
+      "path": "os/config/usr/share/applications/aresos-mimeapps.list"
+    },
+    {
+      "sha256": "1bd08f214ddac6223b32525a7473cdf0099976483d203a207001aa56f32fead6",
+      "path": "os/config/usr/share/applications/org.prismlauncher.PrismLauncher.desktop"
+    },
+    {
       "sha256": "59128a062387d5be7a604d29829a0859d5d50ec02c54fdd4cedfa18fb06bd7e5",
       "path": "os/config/usr/share/aresos/apps/browser.json"
     },
     {
       "sha256": "ac36b5ad7d1e6bc1554e8d8212ee4d28972447c3704e50bce14b64cfdd887479",
       "path": "os/config/usr/share/aresos/apps/terminal.json"
+    },
+    {
+      "sha256": "71eb1f8b99e487b1cd966b0ccb0815a133a66c861895e065c4657c367c085029",
+      "path": "os/config/usr/share/aresos/labwc/rc.xml"
+    },
+    {
+      "sha256": "60fabc8452209393ce4267e992603e8c1e66540c50b9fc8cc2de8a8ae488dd04",
+      "path": "os/config/usr/share/themes/AresOS/labwc/themerc"
+    },
+    {
+      "sha256": "7f86b7188913b87b8caa3eebcbae08f8c94fca044fddf6fdc60f6c058f14024d",
+      "path": "os/gh.lock.json"
     },
     {
       "sha256": "750558b95a7bfb8b6121361935ec5b0bf68de6bc4b127fca00606a5d0d6383ec",
@@ -1283,7 +1307,7 @@
       "path": "os/tests/test_release28_rehearsal.py"
     },
     {
-      "sha256": "1c318f10d4b77487beb9ef9e576289e4a793a3126a993e5710069edbf9ed37df",
+      "sha256": "32d2a49edf7d9808f5a8b0e49ba628d912d511ca592c783d2543c7829602650b",
       "path": "os/tests/test_release29_rehearsal.py"
     },
     {
@@ -1343,7 +1367,7 @@
       "path": "reviews/27-first-update-release/walk-host.py"
     },
     {
-      "sha256": "0f487a044325eca6fc986e713fd7172133052f2302336c0275d22a0f56169758",
+      "sha256": "fc2e6fa94fe094553f96a3f1413a188e6e49fcd51df25585c9953e7436ea675b",
       "path": "reviews/331-release-29/walk-host.py"
     },
     {
