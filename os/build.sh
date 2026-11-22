@@ -308,6 +308,8 @@ PY
 fi
 
 if [[ $1 == packages ]]; then
+    source /tmp/aresos/deskflow-rpm.sh
+    deskflow_repos "${2:-release}"
     mkdir -p /usr/share/aresos/manifest /tmp/ares-rpms /tmp/ares-chrome
     rpm -qa --qf '%{NEVRA}\n' | sort > /tmp/base-packages.txt
     mapfile -t packages < <(python3 - <<'PY'
@@ -317,9 +319,8 @@ assert lock['packages'], 'An exact package lock is required'
 print('\n'.join(p['nevra'] for p in lock['packages']))
 PY
     )
-    dnf5 --disable-repo='*' --enable-repo=fedora --enable-repo=updates \
-        --setopt=install_weak_deps=False --setopt=skip_if_unavailable=False --setopt=gpgcheck=True \
-        download --resolve --destdir=/tmp/ares-rpms "${packages[@]}"
+    dnf5 "${fedora_repos[@]}" download --resolve --destdir=/tmp/ares-rpms "${packages[@]}"
+    check_deskflow_rpm /tmp/ares-rpms
     python3 - <<'PY'
 import hashlib, json, pathlib, subprocess
 packages = []
