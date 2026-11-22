@@ -46,6 +46,7 @@ def diagnostics():
         negative = {}
         cases = {fault: (message, 'release-28-terminal') for fault, (message, _) in TERMINAL_FAILURES.items()}
         cases.update({fault: (message, name) for fault, (message, _, name) in CONTROL_FAILURES.items()})
+        cases['prism-default'] = ('Prism callback handler differs', 'release-29-prism-handler')
         for fault, (message, name) in cases.items():
             with test.model(fault) as model:
                 try:

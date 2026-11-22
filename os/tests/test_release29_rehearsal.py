@@ -1,5 +1,6 @@
 """Fixture checks for the historical preflight and R29 route, with no live guest."""
 import contextlib
+import configparser
 import copy
 import errno
 import json
@@ -44,6 +45,7 @@ CONTROL_FAILURES = {
     'restored-placeholder': ('sites hash or metadata changed', 'final-29', 'final-29-control'),
     'missing-sites': ('sites hash failed', 'previous-28', 'previous-28-sites-hash'),
     'missing-check': ('Control checks missing or failed', 'release-29', 'release-29-control'),
+    'gh-version': ('shipped gh version differs', 'release-29', 'release-29-control'),
     'gate-reached-page': ('first-use gate failed', 'release-29', 'release-29-chrome-first-use'),
     'masked-requirement': ('requires masked', 'release-28', 'r29-starting-28-control-login'),
     'masked-control': ('Control service delays login', 'release-28', 'r29-starting-28-control-login'),
@@ -462,7 +464,8 @@ class Release29Session(Release28Session):
         self.Path('/run/user/1001').mkdir(exist_ok=True)
         labwc = self.Path('/proc/42/environ')
         labwc.write_text(labwc.read_text() + 'PATH=' + vm.SYSTEM_PATH + '\0')
-        self.write('/usr/share/themes/AresOS/labwc/themerc', 'fixture')
+        supervisor = self.Path('/proc/43/environ')
+        supervisor.write_text(supervisor.read_text() + 'XDG_CURRENT_DESKTOP=AresOS\0')
         self.write('/usr/libexec/aresos-shell', 'fixture')
         for app in ('terminal', 'browser'):
             rel = f'usr/share/aresos/apps/{app}.json'
@@ -478,6 +481,9 @@ class Release29Session(Release28Session):
         self.foot, self.vt = 1, 'tty3'
         self.write('/usr/share/aresos/labwc/rc.xml', f'<labwc_config><theme><name>{probes.THEMES[release]}</name></theme></labwc_config>')
         if release == '29':
+            for rel in ('usr/share/aresos/labwc/rc.xml', 'usr/share/themes/AresOS/labwc/themerc',
+                        'usr/share/applications/aresos-mimeapps.list', 'usr/share/applications/' + probes.PRISM_DESKTOP):
+                self.write('/' + rel, (ROOT / 'os/config' / rel).read_text())
             live = self.Path(probes.SITES)
             if not live.exists():
                 self.write(probes.SITES, probes.PLACEHOLDER.decode())
@@ -514,8 +520,10 @@ class Release29Session(Release28Session):
         record['files'][action] = dict(mode='0644', sha256=walk.sha256(self.Path(action).read_bytes()))
         self.write('/usr/bin/gh', 'fixture gh')
         binary = walk.sha256(b'fixture gh')
-        record['gh'] = dict(version='2.0.0', binary_sha256=binary)
-        self.write('/usr/share/aresos/manifest/gh.lock.json', json.dumps(dict(nevra='gh-2.0.0-1.x86_64', binary_sha256=binary)))
+        version = '2.0.0' if self.fault == 'gh-version' else probes.gh_version()
+        record['gh'] = dict(version=version, binary_sha256=binary)
+        self.write('/usr/share/aresos/manifest/gh.lock.json',
+                   json.dumps(dict(nevra=f'gh-{version}-1.x86_64', binary_sha256=binary)))
         record_path.write_text(json.dumps(record))
 
     def probe_modules(self, modules, allowed):
@@ -573,6 +581,17 @@ class Release29Session(Release28Session):
                 stdout = '\n'.join([json.dumps(checks), *lines]) + '\n'
         elif words[0] == '/usr/bin/fc-match':
             stdout = '/wrong/font' if self.fault == 'fontconfig' else probes.FONTS_29[words[-1]]
+        elif words == ['/usr/bin/xdg-mime', 'query', 'default', probes.PRISM_MIME]:
+            self.expect(self.release == '29' and command[:4] == ['runuser', '-u', 'ares', '--']
+                        and 'XDG_CURRENT_DESKTOP=AresOS' in command)
+            apps = self.Path('/usr/share/applications')
+            mime = configparser.ConfigParser(interpolation=None)
+            mime.read(apps / 'aresos-mimeapps.list')
+            handler = mime['Default Applications'][probes.PRISM_MIME].rstrip(';')
+            desktop = configparser.ConfigParser(interpolation=None)
+            desktop.read(apps / handler)
+            self.expect('prism' in desktop['Desktop Entry']['MimeType'])
+            stdout = ('old-handler.desktop' if self.fault == 'prism-default' else handler) + '\n'
         elif words == ['/usr/bin/sha256sum']:
             stdout = walk.sha256(kw['stdin'].read()) + '  -\n'
         elif words[0] == '/usr/bin/tee':
@@ -603,7 +622,8 @@ class Release29Session(Release28Session):
             return subprocess.run(['/usr/bin/openssl', *words[1:]], **kw)
         elif pathlib.Path(words[0]) == self.Path('/usr/bin/gh'):
             self.expect(words[1:] == ['--version'])
-            stdout = 'gh version 2.0.0\n'
+            version = '2.0.0' if self.fault == 'gh-version' else probes.gh_version()
+            stdout = f'gh version {version}\n'
         elif words[:2] == ['sudo', '-l']:
             stdout = 'Defaults timestamp_timeout=0\n    (ALL) ALL\n'
         elif words[-3:] == ['sudo', '-n', 'true']:
@@ -980,6 +1000,11 @@ class CandidateRouteTest(unittest.TestCase):
                     self.assertIn('masked.service', graph)
                     self.assertIn('wanted.service', graph)
                     self.assertEqual(saved[stage + '-session']['theme'], probes.THEMES[release])
+                    if release == '29':
+                        self.assertEqual(saved[stage + '-prism-handler']['handler'], probes.PRISM_DESKTOP)
+                        self.assertEqual(checks['gh']['value']['version'], probes.gh_version())
+                    else:
+                        self.assertNotIn(stage + '-prism-handler', saved)
                     self.assertEqual(saved[stage + '-terminal-path']['path'], vm.DAILY_PATH)
                     self.assertEqual(saved[stage + '-polkit-sweep']['session_active'], 'yes')
                     self.assertTrue(saved[stage + '-package21-rules']['sudo_n_refused'])
@@ -1034,6 +1059,7 @@ class CandidateRouteTest(unittest.TestCase):
     def test_theme_font_privilege_and_game_failures_are_retained(self):
         cases = [('theme', 'labwc theme differs', 'r29-starting-28-session'),
                  ('fontconfig', 'fontconfig differs', 'r29-starting-28-session'),
+                 ('prism-default', 'Prism callback handler differs', 'release-29-prism-handler'),
                  ('wheel', 'ares_in_wheel', 'r29-starting-28-package21-rules'),
                  ('polkit', 'beyond the reviewed list', 'r29-starting-28-polkit-sweep')]
         for fault, error, diagnostic in cases:

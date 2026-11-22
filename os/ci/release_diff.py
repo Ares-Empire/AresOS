@@ -1910,7 +1910,11 @@ CONFIG_DIRECTORIES_29 = {
     FRAME_SPRITES_29: 'B329 (#143): Look A native frame cells referenced by look.json',
     'usr/share/licenses/gh': '18c-b (#76): parent directory of the checked-in GitHub CLI licence',
 }
-JAR_REASON_29 = '56 (#117) and 53d (#121): rebuilt mod with free-pointer and hotbar behaviour, faster flight and world search IPC'
+JAR_REASON_29 = (
+    '56 (#117) and 53d (#121): free-pointer and hotbar behaviour, faster flight and world search IPC. '
+    '327 (#142, 4dd5288b): home onboarding, Live protection, menu, New home and Terminal artwork. '
+    '328a (#148, 92cf365a): keep the pointer in the active world and stop click-through. '
+    '328 (#166, 17211fb1): click-to-look and edge-turn prototypes in the pinned mod jar')
 NEW_EXECUTABLES_29 = {'usr/libexec/' + name for name in ('aresos-level', 'aresos-indicator', 'aresos-settings', 'aresos-laptop-home')}
 
 
@@ -2005,6 +2009,7 @@ def package_diff29(old, new, old_lock, new_lock, labwc):
     assert {nevra for nevra, name in old.items() if name == 'labwc'} == {LABWC_FEDORA_29} and \
         {nevra for nevra, name in new.items() if name == 'labwc'} == {replacement}, 'STOP: unexpected labwc inventory'
     assert new.get(GTK_LAYER_29) == 'gtk4-layer-shell', 'STOP: unexpected GTK layer-shell RPM name'
+    assert all('gh' not in names.values() for names in (old, new)), 'STOP: gh must stay outside the installed RPM set'
     return rows, added, removed
 
 

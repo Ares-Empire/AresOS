@@ -2,11 +2,13 @@
 import ast
 import gzip
 import hashlib
+import importlib.util
 import json
 import os
 import pathlib
 import re
 import shlex
+import shutil
 import stat
 import struct
 import subprocess
@@ -26,9 +28,8 @@ import release_diff as rd
 
 ROOT = r28.ROOT
 R28 = json.loads((ROOT / rd.PREVIOUS_29).read_text())
-MAIN = 'a9863055b2987127cd1cd684182deed9ece24ce0'
-# Exercise the reviewed step 1 and 2 cut until the late-package profile is built.
-PROFILE_HEAD = '028cc3158404035c1155da33048155eb7654b6cc'
+MAIN = '17211fb1203a53d64653e49429a7fdecee39a69b'
+PROFILE_HEAD = MAIN  # The merged image inputs, before a cut-specific jar pin.
 REAL_GIT = rd.git
 FONT_64 = rd.FONT_CACHES + '50471fd4bd417ff5c0731b6a17aa3708-le64.cache-9'
 FONT_32 = FONT_64.replace('le64', 'le32d4')
@@ -74,7 +75,7 @@ def package_inputs():
 class CurrentMainTest(unittest.TestCase):
     def test_source_stops_keep_the_historical_source_lists(self):
         self.assertEqual(rd.RELEASES['29']['previous_source'], R28['source_commit'])
-        self.assertEqual(rd.IMAGE_SOURCES_29, rd.IMAGE_SOURCES + ('os/labwc',))
+        self.assertEqual(rd.IMAGE_SOURCES_29, rd.IMAGE_SOURCES + ('os/labwc', 'os/gh.lock.json'))
         self.assertEqual(set(rd.BRANCH_SOURCE_CHANGES_29), {'os/minecraft/desktop.lock.json'})
         self.assertIn('os/build.sh', rd.BRANCH_SOURCE_CHANGES)
         self.assertEqual(rd.source_changes(MAIN, PROFILE_HEAD, sources=rd.IMAGE_SOURCES_29,
@@ -96,6 +97,8 @@ class CurrentMainTest(unittest.TestCase):
             paths.update('os/' + path for path in re.findall(r'/tmp/aresos/([\w.-]+(?:/audit\.py)?)', content))
         paths -= {'os/ci', 'os/control'}  # explicitly refused, and copied from source respectively
         paths.update(('os/.containerignore', 'os/manifest/base.json'))
+        self.assertIn("os_dir / 'gh.lock.json'", build)
+        paths.add('os/gh.lock.json')
         paths.update(('control', 'mod'))
         self.assertIn('/tmp/aresos-mod/build.sh source', container)
         tar, = [shlex.split(line) for line in build.splitlines() if line.strip().startswith('tar -xzf')]
@@ -145,14 +148,21 @@ class CurrentMainTest(unittest.TestCase):
                     'XF86AudioRaiseVolume': 'volume-up', 'XF86AudioLowerVolume': 'volume-down',
                     'XF86AudioMute': 'mute', 'XF86AudioMicMute': 'mic-mute'}
         self.assertEqual(set(re.findall(r'key="(\w+)"', '\n'.join(rows['removed']))), set(expected))
-        self.assertEqual(len(rows['removed']), 6)
-        self.assertEqual(len(rows['added']), 7)
+        self.assertEqual(len(rows['removed']), 8)
+        self.assertEqual(len(rows['added']), 13)
         for key, action in expected.items():
             row, = [row for row in rows['added'] if f'key="{key}"' in row]
             self.assertIn(f'command="/usr/libexec/aresos-level {action}"', row)
         black, = [row for row in rows['added'] if 'aresos.black' in row]
         self.assertIn('serverDecoration="no"', black)
         self.assertIn('ToggleAlwaysOnTop', black)
+        fixture = 'os/tests/fixtures/329-window-frame/'
+        reviewed = rd.rc_xml_changes(rd.git_bytes('b720da42', fixture + 'rc-pre-329.xml'),
+                                     rd.git_bytes('b720da42', fixture + 'rc-expected-329.xml'))
+        new_xml = rd.git_bytes(MAIN, path)
+        self.assertEqual(rd.rc_xml_changes(rd.git_bytes('a9863055', path), new_xml), reviewed)
+        self.assertEqual([row.split(':', 1)[0] for row in reviewed['added']],
+                         ['keyboard', 'mouse', 'mouse', 'mouse', 'theme', 'windowSwitcher'])
         unit = rd.git_bytes(MAIN, 'os/config/' + rd.GUARDIAN_UNIT).decode()
         self.assertEqual(rd.GUARDIAN_AUDIT['commands'], [line for line in unit.splitlines() if line.startswith('Exec')])
         self.assertFalse(audit.PATTERN.search(unit))
@@ -162,11 +172,13 @@ class CurrentMainTest(unittest.TestCase):
         build = rd.git_bytes(MAIN, 'os/build.sh').decode()
         block = build.split('if [[ $1 == control ||', 1)[1].split('if [[ $1 == packages ]]', 1)[0]
         python = [line for line in block.splitlines() if 'python3' in line and not line.lstrip().startswith('#')]
-        self.assertEqual(len(python), 5)
+        self.assertEqual(len(python), 6)
         self.assertTrue(all(' -B ' in line for line in python))
-        child = next(node for node in ast.walk(ast.parse(block.split("<<'PY'\n", 1)[1].split('\nPY\n', 1)[0]))
-                     if isinstance(node, ast.Call) and ast.unparse(node.func) == 'subprocess.run')
-        self.assertEqual(ast.literal_eval(ast.List(elts=child.args[0].elts[1:3], ctx=ast.Load())), ['-I', '-B'])
+        children = [node for node in ast.walk(ast.parse(block.split("<<'PY'\n", 1)[1].split('\nPY\n', 1)[0]))
+                    if isinstance(node, ast.Call) and ast.unparse(node.func) == 'subprocess.run']
+        self.assertEqual(len(children), 2)
+        for child in children:
+            self.assertEqual(ast.literal_eval(ast.List(elts=child.args[0].elts[1:3], ctx=ast.Load())), ['-I', '-B'])
         self.assertIn('setpriv --reuid=nobody --regid=nobody --clear-groups -- /usr/bin/aresos --help', block)
         self.assertIn('--invalidation-mode checked-hash "$vendor"', block)
 
@@ -190,6 +202,9 @@ class CurrentMainTest(unittest.TestCase):
             rd.package_diff29(old, new, old_lock, new_lock + ['unreviewed-1-1.x86_64'], labwc)
         with self.assertRaisesRegex(AssertionError, 'unexpected R29 download lock delta'):
             rd.package_diff29(old, new, old_lock, new_lock + [rd.GTK_LAYER_29], labwc)
+        gh = {'gh-2.103.3-1.x86_64': 'gh'}
+        with self.assertRaisesRegex(AssertionError, 'gh must stay outside'):
+            rd.package_diff29(old | gh, new | gh, old_lock, new_lock, labwc)
 
     def test_reviewed_labwc_inputs(self):
         self.assertEqual(rd.LABWC_FIXED_PATHS_29, FIXED_311)
@@ -204,6 +219,26 @@ class CurrentMainTest(unittest.TestCase):
 
 class ImageDiffTest(unittest.TestCase):
     maxDiff = None
+
+    @classmethod
+    def setUpClass(cls):
+        temp = pathlib.Path(cls.enterClassContext(tempfile.TemporaryDirectory(dir=ROOT)))
+        cls.control_fixtures = {}
+        for side, revision in (('old', R28['source_commit']), ('new', PROFILE_HEAD)):
+            source, installed = temp / side, temp / (side + '-installed')
+            source.mkdir()
+            rd.control_source29(revision, source, chrome=side == 'new')
+            record = r28.install_control_fixture(installed, source, revision)
+            if side == 'new':
+                spec = importlib.util.spec_from_file_location('pack', source / 'control/chrome/packaging/pack.py')
+                pack = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(pack)
+                record['chrome_extension'] = pack.write(source / 'control/chrome/extension', installed / rd.CHROME_BUNDLE_29)
+                record['chrome_extension']['files'] = {
+                    '/' + path.relative_to(installed).as_posix(): dict(mode='0644', sha256=rd.file_sha256(path))
+                    for path in (installed / rd.CHROME_BUNDLE_29).iterdir()}
+                (installed / rd.CONTROL_RECORD).write_text(json.dumps(record))
+            cls.control_fixtures[side] = installed
 
     def setUp(self):
         self.work = pathlib.Path(self.enterContext(tempfile.TemporaryDirectory(dir=ROOT)))
@@ -245,9 +280,7 @@ class ImageDiffTest(unittest.TestCase):
             for link in (rd.CONSOLE_KEYMAP_LINK, rd.DESKTOP_COMMAND, rd.PRISM_COMMAND):
                 self.link(side, link)
             self.install_alternatives(side, java)
-            r28.install_control_fixture(self.roots[side])
-            record = self.roots[side] / rd.CONTROL_RECORD
-            record.write_text(record.read_text().replace('a' * 40, version))
+            shutil.copytree(self.control_fixtures[side], self.roots[side], dirs_exist_ok=True, symlinks=True)
             for name, raw in {
                 'passwd': 'aresos-tools:x:250:250:AresOS tool service:/var/lib/aresos-tools:/usr/sbin/nologin\n',
                 'group': 'aresos-tools:x:250:\n', 'gshadow': 'aresos-tools:!::\n',
@@ -258,6 +291,8 @@ class ImageDiffTest(unittest.TestCase):
             self.write(side, rd.RPM_DATABASE, side)
             (self.roots[side] / pathlib.PurePosixPath(TYPELIB).parent).mkdir(parents=True)
         self.link('new', rd.GUARDIAN_LINK)
+        self.write('new', rd.GH_RECORD_29, rd.git_bytes(PROFILE_HEAD, rd.GH_LOCK_29))
+        self.write('new', rd.GH_BINARY_29, b'fixture gh binary', 0o755)
         for side in self.versions:
             self.write_audit(side)
         self.labwc_lock = json.loads(rd.git_bytes(MAIN, rd.LABWC_LOCK_29))
@@ -278,6 +313,8 @@ class ImageDiffTest(unittest.TestCase):
             row = dict(value, uid=0, gid=0, xattrs=self.xattrs.get((side, rel), {}))
             if rel == rd.MOD_JAR:
                 row['sha256'] = self.jar[side]
+            if rel == rd.GH_BINARY_29 and side == 'new' and row.get('sha256') == hashlib.sha256(b'fixture gh binary').hexdigest():
+                row['sha256'] = json.loads(rd.git_bytes(PROFILE_HEAD, rd.GH_LOCK_29))['binary_sha256']
             return row
         self.enterContext(patch.object(image_diff, 'inventory', side_effect=lambda root: {
             rel: typed(root.name, rel, val) for rel, val in old_inventory(root).items()}))
@@ -479,11 +516,18 @@ class ImageDiffTest(unittest.TestCase):
         self.assertEqual(set(result['units']), {rd.GUARDIAN_UNIT, rd.GUARDIAN_LINK[0], rd.GUARDIAN_DROPIN,
                                               str(pathlib.PurePosixPath(rd.GUARDIAN_DROPIN).parent)})
         self.assertEqual(result['updaters'][0]['unit'], 'aresos-guardian.service')
-        self.assertEqual(len(result['rc_xml']['added']), 7)
+        self.assertEqual(len(result['rc_xml']['added']), 13)
+        self.assertTrue(result['theme']['frame']['equal'])
+        self.assertTrue(result['theme']['look']['equal'])
         self.assertEqual({row['format'] for row in result['font_caches']}, {'le64', 'le32d4'})
         with gzip.open(evidence / 'classified-files.json.gz', 'rt') as stream:
             files = json.load(stream)
         self.assertEqual(files[rd.CONTROL_RECORD]['rule'], 'control')
+        self.assertEqual(set(result['control']['install_changes']), set(rd.CONTROL_CHANGES_29))
+        self.assertTrue(result['control']['vendor_unchanged'])
+        self.assertEqual(files[rd.GH_BINARY_29]['rule'], 'build')
+        self.assertEqual(files[rd.GH_RECORD_29]['rule'], 'manifest')
+        self.assertEqual(files[rd.GH_LICENCE_29]['rule'], 'config')
         self.assertEqual(files[GTK]['rule'], 'package')
         self.assertEqual(files[rd.LABWC_RECORD]['rule'], 'manifest')
         for side in ('old', 'new'):
@@ -492,6 +536,81 @@ class ImageDiffTest(unittest.TestCase):
                 for rel in (link, str(pathlib.PurePosixPath(link).parent)):
                     self.assertEqual(files[rel]['rule'], 'package')
         self.assertEqual(files[LABWC]['rule'], files[LABNAG]['rule'])
+
+    def test_frame_rejects_missing_sprite_wrong_mode_and_reordered_mouse_bindings(self):
+        frame = rd.FRAME_THEME_29 + '/menu-active.png'
+        sprite = self.roots['new'] / frame
+        sprite.unlink()
+        cells = rd.FRAME_SPRITES_29 + '/shade_hover-inactive.png'
+        (self.roots['new'] / cells).chmod(0o755)
+        rc = (self.roots['new'] / rd.RC_XML).read_text()
+        rc = rc.replace('    <default />\n', '').replace('  </mouse>', '    <default />\n  </mouse>')
+        self.write('new', rd.RC_XML, rc)
+        _, result = self.diff()
+        self.assertIn('missing, retained or different os/config input: ' + frame, result['problems'])
+        self.assertIn(cells, result['unexplained'])
+        self.assertIn(rd.RC_XML, result['unexplained'])
+        self.assertFalse(result['theme']['frame']['equal'])
+        self.assertFalse(result['theme']['look']['equal'])
+
+    def test_prism_rejects_visible_entry_wrong_default_and_cache_change(self):
+        desktop = 'usr/share/applications/org.prismlauncher.PrismLauncher.desktop'
+        defaults = 'usr/share/applications/aresos-mimeapps.list'
+        for rel, before, after in (
+            (desktop, 'NoDisplay=true', 'NoDisplay=false'),
+            (defaults, 'x-scheme-handler/prismlauncher=', 'x-scheme-handler/prismlauncher-test='),
+        ):
+            raw = (self.roots['new'] / rel).read_text()
+            self.assertIn(before, raw)
+            self.write('new', rel, raw.replace(before, after))
+        cache = 'usr/share/applications/mimeinfo.cache'
+        self.write('new', cache, '[MIME Cache]\n')
+        _, result = self.diff()
+        self.assertTrue({desktop, defaults, cache} <= set(result['unexplained']))
+
+    def test_control_rejects_consistent_record_with_tampered_crx_signature(self):
+        rel = rd.CHROME_BUNDLE_29 + '/extension.crx'
+        raw = (self.roots['new'] / rel).read_bytes()
+        raw = raw[:-1] + bytes([raw[-1] ^ 1])
+        self.write('new', rel, raw)
+        record = json.loads((self.roots['new'] / rd.CONTROL_RECORD).read_bytes())
+        extension = record['chrome_extension']
+        extension['crx_sha256'] = extension['files']['/' + rel]['sha256'] = hashlib.sha256(raw).hexdigest()
+        self.write('new', rd.CONTROL_RECORD, json.dumps(record))
+        _, result = self.diff()
+        self.assertEqual(result['control']['error'], 'invalid Chrome CRX signature')
+        self.assertIn(rel, result['unexplained'])
+
+    def test_control_rejects_vendor_drift_even_with_matching_file_record(self):
+        rel = 'usr/lib/aresos-control/vendor/fixture.py'
+        self.write('new', rel, b'# changed vendor\n')
+        record = json.loads((self.roots['new'] / rd.CONTROL_RECORD).read_bytes())
+        record['vendor']['/' + rel]['sha256'] = rd.file_sha256(self.roots['new'] / rel)
+        self.write('new', rd.CONTROL_RECORD, json.dumps(record))
+        _, result = self.diff()
+        self.assertEqual(result['control']['error'], 'Control vendor differs from R28')
+        self.assertIn(rel, result['unexplained'])
+
+    def test_control_rejects_wrong_policy_link_and_preplanted_sites_state(self):
+        rel = 'etc/opt/chrome/policies/managed/aresos.json'
+        (self.roots['new'] / rel).unlink()
+        self.link('new', (rel, '/' + rd.CHROME_BUNDLE_29 + '/native-host.json'))
+        _, result = self.diff()
+        self.assertIn('Control enable link: /' + rel, result['control']['error'])
+        self.write('new', rd.CHROME_SITES_29, b'{"format":0,"hosts":[]}', 0o640)
+        _, result = self.diff('preplanted')
+        self.assertEqual(result['control']['error'], 'Chrome sites state in image')
+
+    def test_gh_rejects_a_different_binary_lock_and_another_rpm_payload_file(self):
+        pin = json.loads((self.roots['new'] / rd.GH_RECORD_29).read_bytes())
+        self.write('new', rd.GH_RECORD_29, json.dumps(pin))  # Same JSON, different bytes.
+        self.write('new', rd.GH_BINARY_29, b'different gh binary', 0o755)
+        payload = next(path for path in pin['payload_paths'] if path.endswith('/gh.1'))
+        self.write('old', payload[1:], b'unexpected on both sides')
+        self.write('new', payload[1:], b'unexpected on both sides')
+        _, result = self.diff()
+        self.assertTrue({rd.GH_RECORD_29, rd.GH_BINARY_29} <= set(result['unexplained']))
+        self.assertIn('18c-b gh RPM payload outside the one extracted binary: ' + payload, result['problems'])
 
     def test_guardian_audit_requires_exact_fields_types_and_row_order(self):
         raw = (self.roots['new'] / rd.UPDATERS).read_text()
@@ -737,6 +856,7 @@ class ImageDiffTest(unittest.TestCase):
             (('diff', '-z', '--name-only', '--no-renames', MAIN, 'HEAD', '--', *rd.IMAGE_SOURCES_29),
              'os/labwc/stage.py\0', 'differ from main'),
             (('ls-tree', 'HEAD', '--', *rd.LABWC_INPUT_MODES_29), rd.LABWC_ELF_29, 'wrong Git type or mode'),
+            (('ls-tree', 'HEAD', '--', *rd.GH_INPUTS_29), rd.GH_KEY_29, 'gh lock or signing key missing'),
         ]
         for index, (intercept, path, expected) in enumerate(cases):
             def git(*args, **kwargs):

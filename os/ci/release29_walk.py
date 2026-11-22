@@ -126,6 +126,8 @@ def host_walk_paths():
         'os/config/usr/share/aresos/apps/browser.json', 'os/config/usr/share/aresos/apps/terminal.json',
         'os/config/usr/share/applications/aresos-mimeapps.list',
         'os/config/usr/share/applications/' + probes.PRISM_DESKTOP,
+        'os/config/usr/share/aresos/labwc/rc.xml',
+        'os/config/usr/share/themes/AresOS/labwc/themerc',
         'os/tests/test_release29_rehearsal.py', 'reviews/331-release-29/walk-host.py',
         *tracked.decode().split('\0')[:-1],
     }
