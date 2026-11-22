@@ -17,5 +17,6 @@ public abstract class RenderSystemCaptureMixin {
     @Inject(method = "pollEvents", at = @At("RETURN"))
     private static void aresos$afterPollEvents(CallbackInfo ci) {
         WorldCapture.afterPollEvents();
+        dev.aresos.client.ClickToLook.afterPollEvents();
     }
 }
