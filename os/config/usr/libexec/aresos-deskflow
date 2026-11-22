@@ -35,8 +35,8 @@ FINGERPRINT = re.compile(r'v2:sha256:[0-9a-fA-F]{64}')
 PEER = re.compile(r'peerFingerprint=([0-9A-F]{64})')
 # The core's local IPC server (Deskflow's kCoreIpcName): a socket of this name in the core's TMPDIR.
 IPC_NAME = 'deskflow-core'
-# Deskflow 1.27 Server::switchComputer logs cursor coordinates even at its default Info level.
-CROSSING = re.compile(rb'(\bswitch from "[^"\r\n]*" to "[^"\r\n]*") at -?\d+,-?\d+')
+# Deskflow 1.27 logs cursor coordinates at Info when crossing or when the active peer disconnects.
+CROSSING = re.compile(rb'(\b(?:switch|jump) from "[^"\r\n]*" to "[^"\r\n]*") at -?\d+,-?\d+')
 
 
 def trust_line(hex_digest):
@@ -167,7 +167,11 @@ def ask(peer, own, server_alive=lambda: True):
     timer = QTimer(box)
     timer.timeout.connect(lambda: None if server_alive() else box.reject())
     timer.start(250)
-    box.exec()
+    try:
+        box.exec()
+    finally:
+        timer.stop()
+        timer.timeout.disconnect()
     return box.clickedButton() == accept and server_alive()
 
 

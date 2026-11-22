@@ -15,7 +15,7 @@ import signal
 import stat
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtTest import QTest
@@ -23,6 +23,7 @@ from PySide6.QtWidgets import QApplication, QMessageBox
 
 CONFIG = Path(__file__).resolve().parents[1] / 'config'
 LAUNCHER = CONFIG / 'usr/libexec/aresos-deskflow'
+LOGIN = CONFIG / 'usr/libexec/aresos-deskflow-login'
 MAC = 'AB' * 32
 STRANGER = 'CD' * 32
 OLD = 'v2:sha256:' + 'ef' * 32
@@ -82,7 +83,8 @@ class PairingTest(unittest.TestCase):
         self.source = self.root / 'config/Deskflow'
         self.source.mkdir(parents=True)
         # Whatever the user's settings say, the launch makes TLS and the peer check effective.
-        (self.source / 'Deskflow.conf').write_text('[security]\ntlsEnabled=false\ncheckPeerFingerprints=false\n')
+        (self.source / 'Deskflow.conf').write_text('[security]\ntlsEnabled=false\ncheckPeerFingerprints=false\n'
+                                                  '[log]\ntoFile=true\n')
         self.core = self.root / 'deskflow-core'
         self.core.write_text(CORE)
         self.core.chmod(0o755)
@@ -114,7 +116,8 @@ class PairingTest(unittest.TestCase):
                     button = next(button for button in box.buttons() if button.text().replace('&', '') == label)
                     QTest.mouseClick(button, Qt.MouseButton.LeftButton)
                 else:
-                    QTest.keyClick(self.app.focusWidget() or box, Qt.Key.Key_Return)
+                    focus = self.app.focusWidget()
+                    QTest.keyClick(focus if focus and box.isAncestorOf(focus) else box, Qt.Key.Key_Return)
 
             QTimer.singleShot(0, answer)
             return self.launcher['ask'](peer, own)
@@ -157,6 +160,7 @@ class PairingTest(unittest.TestCase):
         self.assertEqual(report['argv'], ['server'])
         self.assertIn('tlsEnabled=true', report['settings'])
         self.assertIn('checkPeerFingerprints=true', report['settings'])
+        self.assertIn('toFile=false', report['settings'])
         self.assertEqual(report['tmpdir'], report['config'])
         self.assertEqual(Path(report['tmpdir']).parent, self.runtime)
         self.assertEqual((report['platform'], report['display']), ('wayland', None))
@@ -229,11 +233,37 @@ class PairingTest(unittest.TestCase):
 
     def test_crossing_coordinates_do_not_leave_the_guard(self):
         source = io.BytesIO(b'[2026-11-22T12:00:00] INFO: switch from "laptop" to "mac" at -18,479\n'
-                            b'INFO: accepted secure socket\n')
+                            b'INFO: accepted secure socket\nINFO: jump from "mac" to "laptop" at 221,444\n')
         output = io.BytesIO()
         self.launcher['relay_core_output'](source, output)
         self.assertEqual(output.getvalue(), b'[2026-11-22T12:00:00] INFO: switch from "laptop" to "mac"\n'
-                                           b'INFO: accepted secure socket\n')
+                                           b'INFO: accepted secure socket\nINFO: jump from "mac" to "laptop"\n')
+
+class LoginTest(unittest.TestCase):
+    def test_off_does_not_even_load_the_hub_catalogue(self):
+        login = runpy.run_path(str(LOGIN))
+        with patch('runpy.run_path', return_value={'sharing_on': lambda: False}) as load:
+            login['main']()
+        load.assert_called_once_with('/usr/libexec/aresos-input-sharing-set')
+
+    def test_on_uses_the_hub_scope_and_exact_guarded_executable(self):
+        login = runpy.run_path(str(LOGIN))
+        app = Mock(source='image', argv=login['GUARDED'])
+        launcher = Mock()
+        launcher.command.return_value = ['/usr/bin/systemd-run', '--scope', *app.argv]
+        launcher.working_directory.return_value = '/fixture'
+        shell = {'REGISTRY': '/registry', 'load_catalogue': Mock(return_value=({login['APP_ID']: app}, None)),
+                 'resolve': Mock(return_value=(list(app.argv), '~', None)),
+                 'ScopeLauncher': Mock(return_value=launcher)}
+        with (patch('runpy.run_path', side_effect=({'sharing_on': lambda: True}, shell)),
+              patch('os.chdir') as chdir, patch('os.execve') as execve):
+            login['main']()
+        self.assertEqual(launcher.command.call_args.args[:2], (app, list(app.argv)))
+        self.assertRegex(launcher.command.call_args.args[2], r'^[0-9a-f]{16}$')
+        chdir.assert_called_once_with('/fixture')
+        execve.assert_called_once_with('/usr/bin/systemd-run', launcher.command.return_value,
+                                        launcher.environment.return_value)
+
 
 if __name__ == '__main__':
     unittest.main()
