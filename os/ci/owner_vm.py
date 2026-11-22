@@ -149,7 +149,8 @@ class Guest(td.Guest):
         self.xhci_context = dict(stage=getattr(self, 'boot_purpose', self.mode), since_usec=0,
             attached=False, needed=self.mode == 'live' or getattr(self, 'boot_purpose', '') == 'tools-stock',
             removals=[])
-        super().__init__(*args, **kwargs)
+        # Package 331's preflight removes host auth before the guest uses the job token at login.
+        super().__init__(*args, legacy_registry_auth=os.environ.get('REHEARSAL_PACKAGE') != '331', **kwargs)
         # The CPU has never run. Set carrier before even the firmware starts.
         self.monitor.command('set_link', {'name': 'owner-net', 'up': self.network_up})
         self.monitor.command('cont')
@@ -2323,7 +2324,8 @@ def main():
                '22c':'os/manifest/ci/22c/host-walk.json','22d':'os/manifest/ci/22d/host-walk.json',
                '42':'os/manifest/ci/42/host-walk.json'}.get(package,'os/manifest/ci/14/host-walk/result.json')
     if mode == 'release-29':
-        walk_path = 'os/manifest/ci/331/host-walk.json'
+        import release29_walk
+        walk_path = release29_walk.HOST_WALK_RECEIPT
     walk = json.loads(pathlib.Path(walk_path).read_text())
     assert walk['status'] == 'passed' and walk['stick_across_reboot'] is False
     assert isinstance(walk['sources'], list) and walk['sources']
@@ -2347,7 +2349,6 @@ def main():
         # Package 42's rehearsal rebinds package 22d's tables (its record step, after a pass).
         td.save('42-bound-sources', bound_sources(walk['sources'], '42', '22d'))
     if mode == 'release-29':
-        import release29_walk
         baseline = release29_walk.prepare(sys.modules[__name__])
     sw.WORK, sw.EVIDENCE = td.WORK, td.EVIDENCE
     td.Guest = sw.Guest = Guest

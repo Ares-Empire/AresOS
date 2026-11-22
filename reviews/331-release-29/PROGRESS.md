@@ -263,3 +263,29 @@ candidate equality, the update and recovery walk, and its new guest checks remai
 steps 3 and 4. Hosted workflow and ledger changes remain for step 5. Ledger use is zero
 dispatches and uploads, with both R29 publish caps at zero. There are no files over
 500 MB in `.work/`.
+
+## Done · step 3 slice A REVIEW-4 fixes · 2026-11-22
+
+Started from review head `c364ea88a721ce9be88bef99ed5d0bf7c5662f0a`. The package 331
+owner guest skips the legacy registry auth lookup after preflight removes its temporary
+auth. The physical guest login supplies the read-only job token. The regression constructs
+the real firmware marker guest with QEMU mocked and verifies that the guest starts without
+an auth share. Refreshed the two affected pending source hashes.
+
+The baseline receipt now hashes `os/ci/install-tools.sh`, `os/ci/toolchain.json` and
+`os/ci/firmware_contract.py`. It will also hash `os/manifest/ci/331/host-walk.json` when
+step 4 adds it. The hosted route and baseline hash check share that path. Adding the host
+receipt or changing any of those inputs requires a fresh baseline preflight.
+
+| Command | Result |
+| --- | --- |
+| `python3 -m unittest discover -s os/tests -p test_release29_rehearsal.py` | `Ran 9 tests in 0.945s`, `OK` |
+| `python3 -m unittest discover -s os/tests -p test_two_disk_vm.py` | `Ran 29 tests in 0.170s`, `OK` |
+| `python3 -m unittest discover -s os/tests -p test_checkout_sources.py` | `Ran 10 tests in 1.203s`, `OK` |
+| `python3 -m unittest discover -s os/tests -p test_rehearsal_auth.py` | `Ran 9 tests in 0.094s`, `OK` |
+| `git diff --check` and `git diff --cached --check` | Exit 0 with no output |
+
+The modules ran one at a time from the repo root with `TMPDIR` inside the worktree.
+The step 4 host-walk receipt and hosted registry and VM proof remain pending. Ledger
+use is zero dispatches and uploads, with both R29 publish caps at zero. There are no
+files over 500 MB in `.work/`.

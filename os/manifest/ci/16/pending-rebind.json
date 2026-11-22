@@ -8,7 +8,8 @@
     "42 final look: INSTALL-STATUS's R28 summary says rehearsed, and test_owner_path pins it",
     "T475: INSTALL-STATUS records the laptop on R28 (R13 earlier, R27 previous, R28 on the laptop); test_owner_path and test_owner_equality follow the new labels",
     "T475 REVIEW-1: R28 published 2026-11-19; tools version 4 on the laptop 2026-11-17 to 2026-11-21, version 5 since",
-    "331 step 3 historical walk through confirmed R28 with the released v5 tools and read-only baseline input checks."
+    "331 step 3 historical walk through confirmed R28 with the released v5 tools and read-only baseline input checks.",
+    "331 REVIEW-4: the package 331 owner guest skips the legacy host auth lookup."
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -21,7 +22,7 @@
       "path": "os/ci/owner_media.py"
     },
     {
-      "sha256": "27b0d36a0df83990801e5c836db61a644f966acdf106f76b3b707ef23b29671d",
+      "sha256": "63d7f80ca32a442085f3d6e77ded9efdfa4bfc7e861ba7e461f46868630b3b27",
       "path": "os/ci/owner_vm.py"
     },
     {
@@ -37,7 +38,7 @@
       "path": "os/ci/tools_local.py"
     },
     {
-      "sha256": "b14dd6eb662e8c8d8dfd27d8db882f9b5fe6fe32f49e09b311bcb0d9547ecc28",
+      "sha256": "9eb7c387cbfc960dc27353b04c904e1b43e67facdc58b48b63f3622bba8c4a65",
       "path": "os/ci/two_disk_vm.py"
     },
     {

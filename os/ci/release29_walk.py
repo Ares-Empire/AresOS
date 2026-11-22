@@ -20,18 +20,21 @@ R13_SQUASH = '775be05b7f0d6971cbdc8a3bd1aea617fc008c4d'
 R13_IMAGE_PATHS = ('os/Containerfile.keyboard', 'os/.containerignore', 'os/packages.lock.json',
                    'os/config', 'os/policy', 'os/manifest/base.json', 'os/keys', 'os/tests/audit.py')
 BASELINE_RECEIPT = pathlib.Path('evidence/release-29-baseline.json')
+HOST_WALK_RECEIPT = 'os/manifest/ci/331/host-walk.json'
 PAYLOAD = 'os/owner-tools/payload'
 # This tracks the historical route's checkout inputs. Image sources, released tools and
 # old release records are checked at their pinned Git objects or against their record hashes.
 BASELINE_PATHS = (
     '.gitattributes', '.github/workflows/os-image.yml', 'docs/install-tools/OwnerTools.psm1',
-    'os/ci/disk_audit.py', 'os/ci/greeter.py', 'os/ci/grub_bls.py', 'os/ci/installer_inspect.py',
+    'os/ci/disk_audit.py', 'os/ci/firmware_contract.py', 'os/ci/greeter.py', 'os/ci/grub_bls.py',
+    'os/ci/install-tools.sh', 'os/ci/installer_inspect.py',
     'os/ci/installer_webui.py', 'os/ci/keyboard_diagnostic.py', 'os/ci/keyboard_entries.py',
     'os/ci/keyboard_proof.py', 'os/ci/keyboard_vm.py', 'os/ci/offline_webui.py',
     'os/ci/prepare_two_disks.py', 'os/ci/qmp.py', 'os/ci/registry_auth.py', 'os/ci/rehearsal_auth.py',
     'os/ci/release28_walk.py', 'os/ci/release29_walk.py', 'os/ci/reorder_probe.py',
     'os/ci/serial_console.py', 'os/ci/serial_transport.py', 'os/ci/stock_image.py',
-    'os/ci/switch_vm.py', 'os/ci/tools_local.py', 'os/ci/two_disk_vm.py', 'os/ci/windows_marker.c',
+    'os/ci/switch_vm.py', 'os/ci/toolchain.json', 'os/ci/tools_local.py', 'os/ci/two_disk_vm.py',
+    'os/ci/windows_marker.c',
     'os/manifest/base.json', 'os/manifest/installer-isos.json', 'os/owner-tools/owner.py',
     'os/manifest/ci/13/13f-zero-cost/qemu-keymap.csv',
     'os/tests/inherited-homebrew.sh',
@@ -86,6 +89,9 @@ def baseline_inputs():
     tracked = r28.git('ls-files', '-z', '--', *INPUT_PATHSPECS).decode().split('\0')[:-1]
     paths = set(BASELINE_PATHS) | set(tracked)
     paths.update(f'os/manifest/releases/{version}.json' for version in registry_auth.BASELINE_RECORDS)
+    # Step 4 adds the host walk receipt that the hosted owner route requires.
+    if pathlib.Path(HOST_WALK_RECEIPT).exists():
+        paths.add(HOST_WALK_RECEIPT)
     return [dict(sha256=sha256(pathlib.Path(path).read_bytes()), path=path) for path in sorted(paths)]
 
 

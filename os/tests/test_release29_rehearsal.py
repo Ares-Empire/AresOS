@@ -8,7 +8,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'os/ci'))
@@ -54,6 +54,39 @@ def prepare_fixture(root, stack):
 
 
 class RegistryTest(unittest.TestCase):
+    def test_owner_marker_guest_starts_after_preflight_removes_host_auth(self):
+        firmware = ROOT / 'os/manifest/ci/11k/full-5/two-disk/protected-second/pre-firmware-vars.fd'
+        with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as tmp, contextlib.ExitStack() as stack:
+            root = pathlib.Path(tmp)
+            (root / 'vars.fd').write_bytes(firmware.read_bytes())
+            for name in ('target.raw', 'protected.raw'):
+                (root / name).touch()
+            stack.enter_context(patch.dict(os.environ, ENV, clear=True))
+            for module in (vm.td, vm.sw):
+                stack.enter_context(patch.multiple(module, WORK=root, EVIDENCE=root))
+            stack.enter_context(patch.multiple(vm.Guest, mode='marker-baseline', order='protected-second',
+                                               boot_purpose='baseline-firmware', network_up=False))
+            stack.enter_context(patch.object(vm.td.Guest, 'boot_count', 0))
+            legacy = stack.enter_context(patch.object(vm.td, 'auth_file', wraps=auth.auth_file))
+            monitor = stack.enter_context(patch.object(vm.sw, 'QMP')).return_value
+            stack.enter_context(patch.object(vm.Guest, 'connect'))
+            stack.enter_context(patch.object(vm.Guest, 'device_inventory', return_value={}))
+
+            def launch(argv, *, stdout, stderr):
+                stdout.close()
+                return Mock()
+
+            qemu = stack.enter_context(patch.object(vm.sw.subprocess, 'Popen', side_effect=launch))
+            guest = vm.Guest(root / 'target.raw', '', [])
+            legacy.assert_not_called()
+            qemu.assert_called_once()
+            argv = qemu.call_args.args[0]
+            self.assertEqual(argv[0], 'qemu-system-x86_64')
+            self.assertNotIn('-fsdev', argv)
+            self.assertFalse(guest.bootnext_authorization['written'])
+            self.assertEqual(monitor.command.call_args_list, [call('qmp_capabilities'),
+                call('set_link', {'name': 'owner-net', 'up': False}), call('cont')])
+
     def test_branch_allowlist_rejects_other_ref_types_and_modes(self):
         with patch.dict(os.environ, ENV, clear=True):
             auth.require_baseline_dispatch()
@@ -241,11 +274,26 @@ class InputTest(unittest.TestCase):
 
         with patch.object(pathlib.Path, 'read_bytes', changed):
             for changed_path in ('os/manifest/installer-isos.json', 'os/ci/installer_webui.py',
-                                 'os/manifest/releases/28.json', 'os/ci/release28_walk.py'):
+                                 'os/manifest/releases/28.json', 'os/ci/release28_walk.py',
+                                 'os/ci/install-tools.sh', 'os/ci/toolchain.json', 'os/ci/firmware_contract.py'):
                 with self.subTest(path=changed_path), self.assertRaisesRegex(AssertionError, 'rerun the historical'):
                     walk.check_receipt(vm, dict(status='passed', inputs=inputs))
             for changed_path in ('os/manifest/release.json', 'os/owner-tools/payload/SHA256SUMS'):
                 self.assertEqual(walk.baseline_inputs(), inputs)
+
+    def test_baseline_receipt_binds_the_host_walk_when_it_lands(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as tmp:
+            path = pathlib.Path(tmp).relative_to(ROOT) / 'host-walk.json'
+            with patch.object(walk, 'HOST_WALK_RECEIPT', str(path)):
+                without_host = walk.baseline_inputs()
+                path.write_bytes(b'{"status":"passed"}\n')
+                with_host = walk.baseline_inputs()
+                self.assertIn(dict(sha256=walk.sha256(path.read_bytes()), path=str(path)), with_host)
+                with self.assertRaisesRegex(AssertionError, 'rerun the historical'):
+                    walk.check_receipt(vm, dict(status='passed', inputs=without_host))
+                path.write_bytes(b'{"status":"passed","sources":[]}\n')
+                with self.assertRaisesRegex(AssertionError, 'rerun the historical'):
+                    walk.check_receipt(vm, dict(status='passed', inputs=with_host))
 
 
 if __name__ == '__main__':

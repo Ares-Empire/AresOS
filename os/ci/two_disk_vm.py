@@ -46,9 +46,9 @@ class Guest(sw.Guest):
     def network_args(self):
         return super().network_args() + (',hostfwd=tcp:127.0.0.1:18080-:8080' if self.mode == 'live' else '')
 
-    def __init__(self, disk, password, secrets):
+    def __init__(self, disk, password, secrets, *, legacy_registry_auth=True):
         assert 'GHCR_READ_TOKEN' not in os.environ, 'Owner token must not enter the VM observer environment'
-        self.owner_auth_directory = auth_file().parent
+        self.owner_auth_directory = auth_file().parent if legacy_registry_auth else None
         Guest.boot_count += 1
         self.boot_number = Guest.boot_count
         token = os.environ.get('GH_TOKEN', '')
