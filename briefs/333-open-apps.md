@@ -13,8 +13,8 @@ The owner's answer T483 keeps the world's own hotbar, so these marks and clicks 
 ### The helper (`os/config/usr/libexec/aresos-shell`)
 
 1. **`aresos-shell/1.3`:** `MINOR` becomes 3. Everything in 1.2 stays, byte for byte, for a client that speaks 1.2: the laptop home pins minor 2 and must keep working unchanged. Minor 3 brings exactly two capabilities, as HOME-OUTSIDE section 5's table defines them:
-   - **`apps_state`** (event, to the desktop and to views): `{"apps": [{"id": "chrome", "windows": 2, "active": true, "hidden": false}]}`. It lists every catalogue app with at least one window. `active` means one of its windows has the keyboard; `hidden` means all its windows are minimized. It's sent once after `hello` and on each change, coalesced as `apps_running` is. `apps_running` stays for 1.2 clients.
-   - **`activate_app`** (request, from the desktop and views): `{"app_id": "chrome"}`.
+   - **`apps_state`** (event, to the desktop and to views): `{"apps": [{"id": "browser", "windows": 2, "active": true, "hidden": false}]}` (Chrome's wire ID is `browser`; `/chrome` is its short name). It lists every catalogue app with at least one window. `active` means one of its windows has the keyboard; `hidden` means all its windows are minimized. It's sent once after `hello` and on each change, coalesced as `apps_running` is. `apps_running` stays for 1.2 clients.
+   - **`activate_app`** (request, from the desktop and views): `{"app_id": "browser"}`.
      - **The app has a window:** the helper activates its most recently active window, un-minimizing it if needed (labwc through foreign-toplevel). There's no launch. The reply is `{"state": "activated"}`.
      - **A launch of that app is still starting** (from any client): the reply is that launch's, and no second launch starts.
      - **Otherwise:** it does exactly what `open_app` does with this request ID.
@@ -36,6 +36,48 @@ The owner's answer T483 keeps the world's own hotbar, so these marks and clicks 
 6. **A left click brings it back.** Every way he opens an app from the world sends `activate_app` when the helper offers it: a left click on a hotbar slot with the free pointer (package 56's taskbar click), using an app item, walking into a gate, and `/name` (for example `/chrome`). So `/chrome` and a click on Chrome's slot bring back the minimized Chrome with its tab.
 7. **A right click opens a new window.** A right click on a hotbar slot that holds an app, with the free pointer, sends `open_app`. Today any click there but the left one enters the world (`mod/src/main/java/dev/aresos/focus/PointerRules.java`), so this is new. A right click with an app item in hand, with the pointer captured in the world, is a different path and stays as it is. The full app menu (windows by title, Close all) comes with the bar outside, in package 4.
 8. **Open apps that aren't pinned** aren't added to the world's hotbar in this package. The world's hotbar has nine slots and they are his pins. The bar outside shows the others after a gap (HOME-OUTSIDE section 8). Write this as a Known limit.
+
+## Review 1's points, settled by the lead (2026-11-22)
+
+The brief's Codex review (`reviews/333-open-apps/BRIEF-REVIEW-1.md`) found these gaps. They bind the build.
+
+1. **Launch joining and replay.**
+   - `activate_app` joins both a pending check and an in-flight start of the same app, across clients. It answers under the joining request's own ID, and later delivers that launch's outcome under that ID, never exposing the origin's ID.
+   - Same-ID replay works across reconnects, also when a window appears or disappears before the retry.
+   - A deliberate `open_app` stays independent (a right click really opens a new window), and today's launch limits stay.
+   - A refused activation or a stale window handle never turns into an automatic launch.
+   - Tests use distinct request IDs and assert the spawn count.
+2. **1.2 stays as it is, for both roles.**
+   - `apps_state` and `activate_app` are offered and sent only to a client that negotiated minor 3 and asked for that capability, as a desktop or as a view.
+   - They're offered only when the compositor supports activation through foreign-toplevel.
+   - A 1.2 client keeps today's `apps_running` payload, ordering and launch behaviour. Error texts that include the protocol string name the client's negotiated version.
+   - **In the mod**, the new right-click gesture exists only against a helper that offered `activate_app`. Against 1.2, every gesture stays exactly as today.
+   - Tests: a 1.2 laptop-home view beside a 1.3 desktop, and a 1.3 view that omits the new capabilities.
+3. **The log file is safe.**
+   - It records only safe diagnostic fields:
+     - catalogue app IDs as they are, and an unknown ID only as "unknown app ID (N characters)";
+     - spawn errors as the exception's class and errno, never argv or environment;
+     - unexpected exceptions as the type and the helper's own code location.
+   - Nothing caller-supplied goes in verbatim, and never a nonce or credential.
+   - Mode 0600 for the file and its backup. If the file can't be opened or rotated, the helper goes on logging to stderr.
+   - Tests use synthetic sentinels for credential rejection, untrusted request fields, spawn errors and rollover.
+4. **Test isolation and files.**
+   - The builder may add and change helper tests under `os/tests/` (`test_aresos_shell*.py`, `check_aresos_shell_headless.py` and their fixtures), plus headless harness files under `reviews/333-open-apps/`.
+   - **On the laptop, run only the touched Python test modules, by filename.** Never unpatterned discovery: `test_owner_update` can reach the laptop's real `rpm-ostree`. The full OS suite runs in the hosted checks.
+   - Every helper test runs with a private home, runtime and state folders, a private headless compositor and D-Bus, disposable credentials and stand-in apps. Don't use `run-hub.sh` (it inherits the home and its session mode opens a visible preview).
+   - The 1.2 JSON fixtures stay untouched. Assertions that check the newest version (the Python negotiation test, the Java hello test) change to 1.3.
+5. **Which window comes back.**
+   - Attribute windows to apps with the catalogue observer and the existing ownership rules, as `report_running()` does (identities, reviewed hints, parents), for both the snapshot and the target. `app_windows()` and `covering()` aren't the model.
+   - Record activation history per live handle when the compositor commits its state. For a window never seen active, use a deterministic fallback (the most recently mapped).
+   - After an activate request, wait a bounded time for the compositor's events before replying `activated`. A modal child of the window may take the focus instead, and that counts.
+6. **The mod's other paths.**
+   - **The captured right click** (an app item in hand, pointer in the world) keeps its gesture and now uses bring-back like every other open.
+   - **World search** results send `activate_app` too. `activate_app` accepts the same optional `"screen": "world"` as the desktop's `open_app`, and passes it on when it falls back to a launch.
+   - **The marks** are drawn by the existing hotbar HUD hook, independent of hover. The snapshot clears on disconnect, so no mark goes stale.
+7. **A real restore test.** Add a headless real-helper check: two stand-in windows of one catalogue app. Minimize the most recently focused one, send `activate_app`, and check that the same window is restored and activated, with zero new spawns. A fake foreign-toplevel proves only which requests were sent.
+8. **Smaller points.**
+   - `apps_state` coalescing works as `apps_running` does today: each view's last snapshot is compared on the helper's ticks, with no debounce timer.
+   - Update `HUB.md`'s paragraph on `/chrome` (around line 301) with the new behaviour.
 
 ## Docs
 
@@ -66,7 +108,7 @@ The owner's answer T483 keeps the world's own hotbar, so these marks and clicks 
 - **Headless only,** never `WAYLAND_DISPLAY=wayland-0` or `DISPLAY=:0`.
 - **The owner's real home runs on this laptop.** Never touch it, its Prism instance (`~/.local/share/PrismLauncher`), `~/.local/state/aresos`, the running `aresos-desktop` or `aresos-shell`, `~/AresOS-try` or `hub-try`. Test the helper only as a fresh process with a temporary home folder and socket.
 - **Memory:** before each build or client test, wait until no other Gradle build from another worktree is running and 6 GB is available. On exit 75, wait about five minutes and retry, at most six times.
-- **Files:** only `aresos-shell` changes under `os/` (it isn't a bound file). Don't change the supervisor, labwc's rules or the laptop home. If one of them turns out to be needed, stop and say so in the report.
+- **Files:** under `os/`, only `aresos-shell` (not a bound file) and the helper's tests named in point 4 above change. Don't change the supervisor, labwc's rules or the laptop home. If one of them turns out to be needed, stop and say so in the report.
 - **The report:** `reviews/333-open-apps/REPORT.md`, with the changes, the tests and Known limits.
 - **Commits:** end each with the trailer line `Codex-Model: gpt-6.2-sol xhigh`.
 - **The PR:** push `pkg/333-open-apps` and open a PR titled "Package 333: open apps and bring back (apps_state, activate_app, hotbar marks, right click for a new window)". End its body with:
