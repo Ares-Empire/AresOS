@@ -444,7 +444,7 @@ During a capture Ctrl+Alt+Escape is forwarded like every key; the way out is lab
   under `os/config/`.
 - `mod/dev/build.sh` reported **BUILD SUCCESSFUL** and **106 required server game tests passed**.
   The first `mod/dev/client-test.sh … build` attempt waited for the shared client-test lock. It was stopped
-  before launching a client after the hosted failure. The two full client passes remain outstanding.
+  before launching a client after the hosted failure. The two later full passes are recorded below.
 
 ### What the code doesn't show
 
@@ -480,6 +480,11 @@ See [REVIEW-2.md](REVIEW-2.md) for the lead's record.
 - Replaying the three regular cases' artifacts from run 45001307065 against the updated host VM
   driver passed for all three states. `mod/dev/build.sh` finished with `BUILD SUCCESSFUL` and all 106
   required server game tests passed.
+- Two full `mod/dev/client-test.sh --keep-screenshots <evidence-dir> build` runs completed
+  `runClientGameTest` with exit 0. Each also passed all 106 required server game tests and printed
+  `BUILD SUCCESSFUL` (15m 55s and 15m 53s). The preliminary attempt with a 15-minute outer timeout
+  reached the client after waiting for the shared lock and timed out before completing the suite.
+  Screenshots from both full passes are in `.work/step2-review-fixes/mod-client-complete-{1,2}/`.
 
 ## Left, in order
 
