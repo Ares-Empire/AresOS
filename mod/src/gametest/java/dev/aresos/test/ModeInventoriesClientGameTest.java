@@ -136,6 +136,8 @@ public final class ModeInventoriesClientGameTest implements FabricClientGameTest
                     var player = world.getConnection().getServerPlayer();
                     check(player.containerMenu == player.inventoryMenu, "Chest close packet has not reached the server");
                 });
+                // Closing the chest and acknowledging the rejected toggle are separate round trips.
+                world.getServer().waitFor(server -> !ModeInventories.of(world.getConnection().getServerPlayer()).pending());
                 for (int i = 0; i < 50; i++) {
                     toggle(context, world, i % 2 == 0 ? GameType.CREATIVE : GameType.SURVIVAL,
                             i % 2 == 0 ? build.selected() : live.selected());
