@@ -69,6 +69,17 @@ There were no files over 500 MB in this worktree's `.work/`.
 **Left:** `linux-tools` watches the hosted control runs and inspects the failed-start evidence if the
 intermittent timeout recurs.
 
+### Hosted dispatch and PR checks
+
+Dispatched `os-image.yml` once with `check_build=control` on `3122cb46`.
+[OS image control run 45000138164](https://github.com/Ares-Empire/AresOS/actions/runs/45000138164)
+
+GitHub listed zero pull-request workflow runs and zero check runs for code push `f7cc4e03`.
+Check suite `121784487889` belonged to the Claude app and had zero check runs. GitHub reported
+PR #76 as `mergeable: false` and `mergeable_state: dirty`. At the receipt, `main` was
+`c2e94551`, eight commits past the common ancestor `a9863055`. The lead handles branch
+integration and CI monitoring. [Draft PR #76](https://github.com/Ares-Empire/AresOS/pull/76)
+
 ## Recheck 1 and the round's CI (2026-11-21, the lead, `linux-tools`)
 
 The lead's CI for the fix head, all green (**run**, logs read 2026-11-21):
