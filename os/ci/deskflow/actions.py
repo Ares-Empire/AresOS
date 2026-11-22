@@ -1100,8 +1100,9 @@ def daily_clip(request):
         wait_for(lambda: paste_matches(['wl-paste', '--no-newline'], daily_state['clip_marker']),
                  'clipboard arrived at the laptop through Deskflow', timeout=6)
     elif op == 'release':
-        require(guest_command(PORTAL, '--release'))
-        wait_for(lambda: backend_session(capture=False), 'clipboard round returned to the laptop')
+        # Return through Deskflow's configured boundary so it switches the active screen and its clipboard.
+        send_virtual('pointer', ['rel -1600 0'])
+        wait_for(lambda: backend_session(capture=False), 'Deskflow crossed back to the laptop')
     elif op == 'counts':
         pid = daily_state['clip_frontend']
         assert pid == backend_pid(current_owner(FRONTEND))
