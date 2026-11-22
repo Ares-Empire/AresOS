@@ -5,6 +5,8 @@ code doesn't show. The last step turns it into the report text.
 
 ## 328a second review fix stopped at step 1
 
+**Lead ruling (2026-11-22 08:15):** F2 applies to capture bookkeeping only. The unfocused cursor-image update is harmless because XFixes shows the cursor right after it. Resume design A at step 2 and stop at step 3 if either race control fails to reproduce stale capture.
+
 **Status remains NOT SAFE.** The step 1 source check in [Analysis 1](ANALYSIS-1.md#26-order-of-work-for-the-builder)
 failed on F2. The release path still has the risk described in [Recheck 1](RECHECK-1.md).
 
