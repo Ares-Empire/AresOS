@@ -139,6 +139,22 @@ class DeskflowVMTest(unittest.TestCase):
                     with self.assertRaisesRegex(AssertionError, 'listen-only Wayland connection ended'):
                         actions.vt({'expected': vt})
 
+    def test_daily_vt_waits_for_logind_after_the_kernel_switch(self):
+        with (
+            patch.object(actions, 'session', {'daily': True, 'pid': 42}),
+            patch.object(actions, 'environ', return_value={'XDG_SESSION_ID': 'fixture'}),
+            patch.object(actions, 'VT', Mock(**{'read_text.return_value': 'tty3\n'})),
+            patch.object(actions.subprocess, 'run', side_effect=[
+                Mock(stdout='yes\n', returncode=0), Mock(stdout='no\n', returncode=0),
+            ]) as loginctl,
+            patch.object(actions.time, 'sleep'),
+            patch.object(actions, 'check_compositor') as compositor,
+        ):
+            self.assertEqual(actions.vt({'expected': 'tty3'})['vt'], 'tty3')
+        self.assertEqual(loginctl.call_count, 2)
+        self.assertEqual(loginctl.call_args.args[0], ['loginctl', 'show-session', 'fixture', '-p', 'Active', '--value'])
+        compositor.assert_called_once_with()
+
     def test_drm_control_never_accepts_a_backend_on_wayland(self):
         for state in ('none', 'listener'):
             base = (

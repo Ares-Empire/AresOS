@@ -392,6 +392,17 @@ def vt(request):
     expected = request['expected']
     assert expected in ('tty1', 'tty3'), expected
     observed = wait_for(lambda: VT.read_text().strip() == expected, f'VT switched to {expected}')
+    if session.get('daily'):
+        # The kernel can switch VTs before logind updates the state polkit uses.
+        login = environ(session['pid'])['XDG_SESSION_ID']
+        active = 'yes' if expected == 'tty1' else 'no'
+
+        def login_active():
+            result = subprocess.run(['loginctl', 'show-session', login, '-p', 'Active', '--value'],
+                                    capture_output=True, text=True, timeout=5)
+            return require(result).strip() == active
+
+        wait_for(login_active, f'logind reports Active={active} on {expected}', timeout=10)
     check_compositor()
     return dict(returncode=0, labwc_pid=session['pid'], vt=expected, observed=observed)
 
@@ -1042,6 +1053,8 @@ def daily_input(request):
         assert status() == 'no sessions'
         attempt_crossing()
         assert status() == 'no sessions' and not backend_connections()
+        # Leave the pointer inside the output before the On check places a barrier at the edge.
+        local_focus()
     elif op == 'mark':
         daily_state.update(input_mark=input_mark(), event_mark=portal_events(), window_mark=windows())
     elif op == 'inward':
@@ -1297,10 +1310,12 @@ def remote_switch_denied():
         authorized.chmod(0o600)
         require(subprocess.run(['ssh-keygen', '-A'], capture_output=True, text=True, timeout=12))
         require(subprocess.run(['restorecon', '-R', str(keys), '/etc/ssh'], capture_output=True, text=True, timeout=12))
-        command = ['/usr/sbin/sshd', '-D', '-e', '-o', 'ListenAddress=127.0.0.1', '-o', 'UsePAM=yes',
+        command = ['/usr/sbin/sshd', '-D', '-e', '-f', '/dev/null',
+                   '-o', 'ListenAddress=127.0.0.1', '-o', 'UsePAM=yes',
                    '-o', 'AuthorizedKeysFile=.ssh/deskflow-ci-authorized', '-o', 'PasswordAuthentication=no',
                    '-o', 'PermitRootLogin=no', '-o', 'UseDNS=no']
-        with (work / 'sshd.log').open('w') as log:
+        sshd_log = work / 'sshd.log'
+        with sshd_log.open('w') as log:
             process = subprocess.Popen(command, stdout=log, stderr=log)
             try:
                 def listening():
@@ -1312,16 +1327,18 @@ def remote_switch_denied():
                         return False
 
                 wait_for(listening, 'isolated loopback sshd')
-                script = ('test "$(loginctl show-session "$XDG_SESSION_ID" -p Remote --value)" = yes || exit 31; '
-                          'echo remote; '
-                          'pkexec --disable-internal-agent /usr/libexec/aresos-input-sharing-set on; echo "code=$?"')
-                result = subprocess.run(['ssh', '-F', '/dev/null', '-o', 'BatchMode=yes',
+                script = ('test "$(loginctl show-session self -p Remote --value)" = yes || exit 31; '
+                          'exec pkexec --disable-internal-agent /usr/libexec/aresos-input-sharing-set on')
+                result = subprocess.run(['ssh', '-n', '-tt', '-F', '/dev/null', '-o', 'BatchMode=yes',
+                                         '-o', 'IdentitiesOnly=yes',
                                          '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null',
                                          '-i', str(key), f'{session["name"]}@127.0.0.1', script],
                                         capture_output=True, text=True, timeout=12)
                 daily_state['helper_reports'].extend((result.stdout, result.stderr))
-                assert result.returncode == 0 and result.stdout.splitlines() in (
-                    ['remote', 'code=126'], ['remote', 'code=127'])
+                if result.returncode not in (126, 127):
+                    lines = (result.stdout + result.stderr + sshd_log.read_text(errors='replace')).splitlines()
+                    safe = '\n'.join('' if LOG_DATA.search(line) else line for line in lines[-15:])
+                    raise AssertionError(f'remote switch probe exited {result.returncode}: {safe}')
                 assert not SWITCH.exists()
                 return dict(returncode=0, remote=True, refused=True)
             finally:
