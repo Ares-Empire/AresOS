@@ -486,7 +486,7 @@ See [REVIEW-2.md](REVIEW-2.md) for the lead's record.
   reached the client after waiting for the shared lock and timed out before completing the suite.
   Screenshots from both full passes are in `.work/step2-review-fixes/mod-client-complete-{1,2}/`.
 
-## Step 3
+## Step 3, Deskflow in the image
 
 - The initial pull confirmed that `origin/main` at `c2e94551` was already an ancestor. Main gained package
   328a (`92cf365a`) during dispatch 7. Step 4 starts with that merge and retests the combined branch.
@@ -497,10 +497,13 @@ See [REVIEW-2.md](REVIEW-2.md) for the lead's record.
   The gate's Deskflow SHA-256, `21a404d8bd0488fdc7ec635ed26447d623b132dc4ae3d12e5f944991ab76484b`, is
   checked before install. While the exact RPM is absent from stable, throwaway resolve and build allow that
   NEVRA alone from `updates-testing`. Release mode resolves against Fedora and updates.
-- The RPM's desktop ID is `org.deskflow.deskflow`. The allow-list has that one line. The guarded native
-  hub entry uses `app-aresos-org.deskflow.deskflow-<launch_id>.scope` and continues to send
-  `org-deskflow-deskflow` in the hub protocol. The single hosted dispatch records the native core's real
-  `CreateSession2` caller, scope and the backend's observed ID, plus the terminal control, if the proof runs.
+- The real frontend proved the native ID `org.deskflow.deskflow` in run 45009968432. The allow-list has that one
+  line. The guarded native hub entry uses `app-aresos-org.deskflow.deskflow-<launch_id>.scope` and continues to send
+  `org-deskflow-deskflow` in the hub protocol. D-Bus mapped the real `CreateSession2` sender `:1.105` to
+  PID 2880, executable `/usr/bin/deskflow-core` and scope
+  `app-aresos-org.deskflow.deskflow-3213213213213213.scope`. The backend kept the same session, enabled
+  Clipboard on it and completed the EIS handshake. The identical launch outside the hub scope had an
+  empty ID and was refused.
 - The sharing window, desktop entry, root helper and two per-verb polkit actions are installed. The helper
   checks the root-owned path, writes `on\n` atomically with mode 0644 and removes that file for Off. The
   user entry follows Off with `--revoke`. The backend can offer the window once per session bus after an
@@ -508,6 +511,10 @@ See [REVIEW-2.md](REVIEW-2.md) for the lead's record.
 - A local regression after dispatch showed that a reader's advisory lock on the switch directory could stall
   Off. Commit `938a4deb` removes the dependency on a lock. Atomic replacement and removal still order concurrent
   changes in the root-owned directory. The test failed with a timeout before the fix and passed after it.
+- Run 7's raw logs showed the polkit agent starting the frontend, which activated the backend during both
+  regular control boots. Commit `0ce12ae3` suppresses frontend bus activation in the DRM test layer and
+  checks that the backend stays absent in the two controls. The native ID check explicitly starts the real
+  frontend after the DRM comparison. The production image keeps its normal activation.
 - The two image bindings marked `allowWhenInhibited="yes"` are Super+Shift+Escape and Super+Ctrl+Escape.
   The recovery command waits for release and starts the terminal, with its existing separate hide-cover action.
   Package 329's theme, window switcher, title-bar scrolls and Root actions are present.
@@ -580,6 +587,10 @@ The raw observations are in `.work/step3/rootless-image-inputs.log`.
   in a root:root 0755 directory. Off finished while an unprivileged fixture still held an advisory lock on
   that directory. Both verbs refused a symlink and a writable parent. The fixture printed
   `INPUT_SHARING_REAL_PATH_PASSED`.
+- After `0ce12ae3`, `test_deskflow_vm.py` passed 7 and `test_shell_assertions.py` passed 9. A rootless pinned-base
+  probe removed the frontend activation file from its container, got `ServiceUnknown` on bus activation,
+  and then ran the frontend directly to acquire its bus name. It printed `DESKFLOW_FRONTEND_ISOLATION_PASSED`.
+  The corrected layer still needs a hosted rerun.
 
 ### Judgment call
 
@@ -602,13 +613,13 @@ launch hook or a change to Deskflow itself.
 
 ## Left, in order
 
-1. Step 4 merges current main, adds the sharing-on login hook and reuses the guarded Deskflow server and desktop-ID scope.
-   Prove `CreateSession2` from that hook too. Run VM checks 2 to 9, including all bindings, prompt and revoke
-   checks, TLS and stale-fingerprint cases, the other-ID Flatpak and log redaction. Dispatch 8 is reserved for
-   this work.
-2. Finish the linked-crate notice inventory, the bindings table, known limits and the final review. Send
-   the refreshed file and commit lists to `linux-aresos` and `linux-hub`. The standalone `check_build=build`
-   dispatch was cancelled in step 2. Deskflow mode runs the same image checks before booting its VM.
+1. Step 4 merges current main, adds the sharing-on login hook and reuses the guarded Deskflow server and desktop-ID
+   scope. Prepare VM checks 2 to 9 on boots with the standard frontend activation file. Keep the DRM control boots
+   isolated and finish any linked-crate notice changes before building the last check image.
+2. Dispatch 8 covers the corrected DRM controls, the advisory-lock fix and VM checks 2 to 9, including
+   `CreateSession2` from the login hook, all bindings, prompt and revoke checks, TLS and stale-fingerprint cases,
+   the other-ID Flatpak and log redaction. Finish the bindings table, known limits and final review. Send the
+   refreshed file and commit lists to `linux-aresos` and `linux-hub`.
 3. Prepare the exact laptop rehearsal for the lead. The owner gives direct approval, saves work, and
    verifies monitor and session behaviour, the Mac fingerprint, input, clipboard and release keys on hardware.
 
@@ -685,6 +696,7 @@ The lead sends this list when step 3 ends and at the final head.
 | `os/ci/deskflow/{actions.py,deskflow_vm.py}` | `fd1a979d` | Prove the real frontend route, Deskflow caller and stable session in the regular backend VM. |
 | `os/tests/test_aresos_desktop.py`, `os/tests/test_everyday_account.py`, `os/tests/test_aresos_shell{,_discovery,_icons,_protocol}.py` | `dccb0f1d` | Update release-mode, recovery and registry assertions, including the scope regression. |
 | `os/config/usr/libexec/aresos-input-sharing-set`, `os/tests/test_input_sharing.py` | `938a4deb` | Keep Off independent of an advisory lock any reader could hold. Locally verified after dispatch 7. |
+| `os/ci/deskflow/{Containerfile,actions.py}`, `os/tests/test_deskflow_vm.py` | `0ce12ae3` | Isolate the DRM controls from frontend auto-activation and fail a contaminated control. Locally verified after dispatch 7. |
 
 Not touched in step 1c: `os/Containerfile` (the stage copies the whole `labwc/` folder, so the second patch needs no
 new line; its comment above the stage still says "one upstream fix" and should name both patches when the file is
@@ -752,7 +764,21 @@ None in steps 1 and 1b.
 | 4 of 8 | 2 | [45000755789](https://github.com/Ares-Empire/AresOS/actions/runs/45000755789), on `a04a693c` (2026-11-22 09:00 CET) | `check_build=build`. **Cancelled before any workflow steps** after run 3's external failure. `gh run watch 45000755789 --exit-status --interval 60` returned 1 and GitHub reports `cancelled`. |
 | 5 of 8 | 2 | [45001307065](https://github.com/Ares-Empire/AresOS/actions/runs/45001307065), on `0c948087` (dispatched by the lead 2026-11-22 09:07 CET) | `check_build=deskflow` on step 2's final head. **Green** (2026-11-22 09:31): image build and checks, then the DRM output gate. Regular runs (a) to (d) **passed in all three states** (`regular-none`, `regular-listener`, `regular-backend`), the second screen's hotplug by `SetUIInfo`. Custom mode (e): `custom-none` passed; `custom-listener` and `custom-backend` hit the compositor assertion (`head_send_state`), as 316's analysis expected. **The gate passes** (brief item 2's rule): step 3 may start, and (e) is the known limit "no custom mode while the backend runs". |
 | 6 of 8 | 2 review fixes | [45004171828](https://github.com/Ares-Empire/AresOS/actions/runs/45004171828), verified at `f4c52a3ca122ee75798c32f9505920c0c03d7d60` (2026-11-22 09:43 CET) | `check_build=deskflow`. **Passed** (10:10 CET). `gh run watch 45004171828 --exit-status --interval 60` returned 0. The image checks passed, the layer scan passed on 9 added layers, and the installed backend SHA-256 matched the pin. The DRM gate passed with the six case results below. |
-| 7 of 8 | 3 | [45009968432](https://github.com/Ares-Empire/AresOS/actions/runs/45009968432), verified at `dccb0f1da264fff6b092f77238ee6ff20c49917b` (2026-11-22 10:56 CET) | `check_build=deskflow`. Watching at 60-second intervals. |
+| 7 of 8 | 3 | [45009968432](https://github.com/Ares-Empire/AresOS/actions/runs/45009968432), verified at `dccb0f1da264fff6b092f77238ee6ff20c49917b` (2026-11-22 10:56 CET) | `check_build=deskflow`. **GitHub passed** at 12:11 CET and `gh run watch 45009968432 --exit-status --interval 60` returned 0. Image and polkit checks passed, all 11 added layers passed, and the installed backend SHA-256 matched the pin. The real frontend proved the native ID. The table below accounts for unexpected backend activation in the DRM controls. |
+
+| Run 45009968432 VM case | Result |
+|---|---|
+| `regular-none` | Passed the output operations with SetUIInfo. The frontend activated the backend during the run, leaving the no-client control unverified. |
+| `regular-listener` | Passed the output operations with SetUIInfo. The frontend activated the backend during the run, leaving the listener-only control unverified. |
+| `regular-backend` | Passed (a) to (d), including SetUIInfo, geometry and original backend liveness. The native identity proof passed and the terminal control was refused with an empty ID. |
+| `custom-none` | Passed initial custom mode, off and re-enable. The backend never acquired its name in the log. |
+| `custom-listener` | Initial custom mode and off passed. Re-enable hit the expected `head_send_state` assertion. The frontend requested backend activation, which failed during compositor teardown. |
+| `custom-backend` | Initial custom mode and off passed. Re-enable hit the expected `head_send_state` assertion. |
+
+The artifact reported `gate: passed` with an empty `custom_incomplete`. The two regular controls still need
+hosted evidence on `0ce12ae3`, because the original assertions missed the additional client. Dispatch 8 stays
+with step 4. The raw checks and operation traces are in the
+[check-build-evidence artifact](https://github.com/Ares-Empire/AresOS/actions/runs/45009968432/artifacts/14752141095).
 
 | Run 45004171828 VM case | Result |
 |---|---|

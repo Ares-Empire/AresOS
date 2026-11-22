@@ -110,6 +110,10 @@ entry there is the record of how it was.
 
 ## Deskflow in the image (step 3)
 
+- **The input portal can run while sharing is Off.** The bundled polkit agent requested the desktop portal
+  during login in run 45009968432. The frontend then activated the input portal when initializing Clipboard
+  and InputCapture. The switch still gates sessions and data. The custom-mode compositor limit therefore
+  applies even before Deskflow starts when the backend is active.
 - **Flathub's Deskflow shares the native ID.** The portal sees `org.deskflow.deskflow` for both. A caller
   with that ID can request capture once the owner has turned sharing On. The lead accepted the collision
   on 2026-11-21 because sharing starts Off and the matching Flathub entry is the same application.
