@@ -3453,6 +3453,7 @@ class Helper:
         return result
 
     def list_apps(self, conn, request_id, message):
+        raise Failure('bench_fixture', 'Deliberately broken hosted bench health fixture')
         self.refresh_catalogue()
         if conn.minor == 0:
             return {'revision': self.legacy_revision,
