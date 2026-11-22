@@ -55,7 +55,7 @@ def saved_trust(source):
     entries = [line for line in trusted.read_text().splitlines() if line] if trusted.exists() else []
     if len(entries) > 1 or any(not FINGERPRINT.fullmatch(line) for line in entries):
         raise ValueError('Deskflow needs a trust list with only the verified Mac fingerprint. '
-                         'Run aresos-deskflow --enroll to pair the Mac again.')
+                         'Run /usr/libexec/aresos-deskflow-login --enroll to pair the Mac again.')
     return entries
 
 

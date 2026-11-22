@@ -264,6 +264,12 @@ class LoginTest(unittest.TestCase):
         execve.assert_called_once_with('/usr/bin/systemd-run', launcher.command.return_value,
                                         launcher.environment.return_value)
 
+    def test_enrollment_requires_the_same_sharing_gate(self):
+        login = runpy.run_path(str(LOGIN))
+        with patch('runpy.run_path', return_value={'sharing_on': lambda: False}) as load:
+            login['main'](['--enroll'])
+        load.assert_called_once_with('/usr/libexec/aresos-input-sharing-set')
+
 
 if __name__ == '__main__':
     unittest.main()
