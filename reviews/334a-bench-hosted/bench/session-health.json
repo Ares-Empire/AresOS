@@ -1,0 +1,11 @@
+{
+  "network": "none",
+  "steps": [
+    {"kind": "wait", "for": "active_session"},
+    {"kind": "expect", "for": "helper_health"},
+    {"kind": "shot"},
+    {"kind": "reboot"},
+    {"kind": "wait", "for": "active_session"},
+    {"kind": "expect", "for": "helper_health"}
+  ]
+}

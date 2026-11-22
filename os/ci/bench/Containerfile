@@ -1,0 +1,6 @@
+FROM localhost/aresos:check
+COPY agent.py channel.py /usr/libexec/aresos-bench/
+COPY aresos-bench.service /usr/lib/systemd/system/
+RUN mkdir -p /usr/lib/systemd/system/multi-user.target.wants && \
+    ln -s ../aresos-bench.service /usr/lib/systemd/system/multi-user.target.wants/aresos-bench.service && \
+    bootc container lint
