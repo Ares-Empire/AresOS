@@ -9,16 +9,17 @@ class PointerRulesTest {
         for (int bits = 0; bits < 16; bits++) {
             boolean free = PointerRules.free((bits & 1) != 0, (bits & 2) != 0, (bits & 4) != 0, (bits & 8) != 0);
             assertEquals(bits == 15, free, "session/desktop/connection/app bits: " + bits);
-            assertEquals(bits == 15 ? OPEN_APP : VANILLA, PointerRules.click(free, true, true));
-            assertEquals(bits == 15 ? ENTER_WORLD : VANILLA, PointerRules.click(free, true, false));
+            assertEquals(bits == 15 ? OPEN_APP : VANILLA, PointerRules.click(free, true, false, true, true));
+            assertEquals(bits == 15 ? ENTER_WORLD : VANILLA, PointerRules.click(free, true, false, false, true));
         }
     }
 
-    @Test void onlyPrimaryClicksOnAppsOpenThemAndEveryOtherPressEntersTheWorld() {
-        assertEquals(OPEN_APP, PointerRules.click(true, true, true));
-        assertEquals(ENTER_WORLD, PointerRules.click(true, true, false));
-        assertEquals(ENTER_WORLD, PointerRules.click(true, false, true));
-        assertEquals(ENTER_WORLD, PointerRules.click(true, false, false));
+    @Test void secondaryAppClicksNeedAnActivationCapableHelper() {
+        assertEquals(OPEN_APP, PointerRules.click(true, true, false, true, false));
+        assertEquals(NEW_WINDOW, PointerRules.click(true, false, true, true, true));
+        assertEquals(ENTER_WORLD, PointerRules.click(true, false, true, true, false));
+        assertEquals(ENTER_WORLD, PointerRules.click(true, false, true, false, true));
+        assertEquals(ENTER_WORLD, PointerRules.click(true, false, false, true, true));
     }
 
     @Test void aDesktopWorldTakesTheMouseOnlyWithTheFocusAndThePointerOnIt() {

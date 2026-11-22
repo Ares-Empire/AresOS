@@ -99,7 +99,7 @@ A dark road with a light blue line down its middle runs straight ahead, north. L
 He turns right. A road with a red line runs east. Beside it stands a black front with a moon: Lunar Client, `/lunar`. The word over this road is GAMES. Behind him a road with a yellow line runs south, with Terminal and Notepad: SYSTEM & TOOLS. To his left a road with a purple line runs west. WORK & MEDIA hangs there, and nothing stands on it yet.
 
 **Opening Discord, three ways.**
-1. **Hotbar.** With Discord pinned, he selects it in the hotbar and right-clicks. Discord opens on top of the game. This is the taskbar: nine apps, no walking.
+1. **Hotbar.** With Discord pinned, he selects it in the hotbar and uses the held item to open or bring back Discord. With the pointer free over the world, left-click its slot to open or bring it back, or right-click its slot to request a new window. A short mark under an open app is longer and brighter while it has the keyboard and dimmer when all its windows are minimized. The nine slots keep his pins.
 2. **Walking.** He runs at the dark blue front and through its doorway. It takes under four seconds. A sound, a puff of purple particles, and Discord opens.
 3. **Typing.** He presses T and types `/dc`. Discord opens.
 
@@ -298,7 +298,7 @@ Reasons: one notion is easier to live with than three. "What is in my inventory 
 - **He lists them** with `/apps`, and each logo's sign shows the main one.
 - **Tab completion.** The names are real commands, so `/ch` and Tab gives `/chrome`. Only My apps get such commands, so the list stays short. `/open`, `/go` and `/aresos app …` complete program names.
 - **`/open <name>`** opens any program in All programs, also one without a logo.
-- **When the app is already open,** `/chrome` does exactly what a right-click on Chrome in the hotbar does: the same request goes to the system, and the program decides. For Chrome that is a new window (the owner's answer on board #155). A program that keeps one window comes to the front.
+- **When the app is already open,** `/chrome` brings back Chrome's last focused window with its tabs, even if it is minimized. A free-pointer left click on Chrome's hotbar slot, using its held item, walking through its gate and choosing it in world search do the same. A free-pointer right click asks Chrome to open again through its usual launch command.
 - **Where they work.** In an AresOS world, for him alone, in Live and in Build mode. In a normal world and on servers these commands do not exist.
 
 ---
@@ -483,6 +483,12 @@ One description for both sides: the mod's client (package 34) and the OS helper 
 - **Never sent to the game:** a command, arguments, an environment, or a path other than `icon`.
 - **Example messages.** The mod package commits one example file per message kind under `mod/src/test/resources/shell-1.1/` (a first page with `next`, a last page, an entry with every field, an entry with none, `apps_changed`). The helper package's tests read the same files and check that the helper produces and accepts that shape.
 
+### 3.9 Open apps and bringing them back (`aresos-shell/1.3`)
+
+[HOME-OUTSIDE.md section 5](HOME-OUTSIDE.md#5-one-source-of-truth) defines `apps_state` and `activate_app`. A helper with compositor activation offers them to desktops and views that negotiate 1.3 and ask for them. The helper sends the window snapshot after hello and when it changes on a tick. The world uses the snapshot to draw the marks on pinned apps and clears it on disconnect. Minor 1.2 views keep `apps_running`.
+
+The world's normal open actions use `activate_app` when offered and `open_app` otherwise. The free-pointer right click requires `activate_app` and uses `open_app` for a fresh invocation.
+
 ---
 
 ## 4. Short-name rules
@@ -655,6 +661,9 @@ Later, and not blocked by anything here: his own look for the world (a look is a
 
 - Esc now shows **Build mode: Off** or **Build mode: On**. Click it to switch, or use G in the world.
 - **Start a new home…** builds and opens a fresh home and keeps your current one in your saves.
+- The mark under a pinned app shows it is open. A longer, brighter mark shows which app has the keyboard, and a dim mark means its windows are minimized.
+- Left-click an app slot with the free pointer, use its held item, walk through its gate or type its short name to open it or bring back its last window.
+- Right-click an app slot with the free pointer to ask for a new window.
 
 **1. How tall may a logo be?**
 I chose 12 blocks. It is the smallest size at which Chrome, Discord and Lunar Client are all still recognisable; that is under seven times your height, about a tall tree. At 10 the town is lower and tighter but Lunar's moon is a smudge. At 16 every logo is clearer, but they stand a third taller and everything is about a quarter farther away. There is a picture of the three logos at 10, 12, 14 and 16 next to a player. It is one number; the town rebuilds itself when it changes.

@@ -21,6 +21,7 @@ import java.util.Locale;
 import java.util.Objects;
 
 public final class AresOsClient implements ClientModInitializer {
+    private enum LaunchAction { BRING_BACK, WORLD_SCREEN, NEW_WINDOW }
     public static final FocusReturn FOCUS_RETURN = new FocusReturn();
     private static long zoneFocusToken;
     private static long zoneVisit;
@@ -58,7 +59,8 @@ public final class AresOsClient implements ClientModInitializer {
         ClientPlayNetworking.registerGlobalReceiver(ZoneLaunchPayload.TYPE, (payload, context) -> {
             // A remote Minecraft server must never be able to auto-launch local programs.
             if (acceptsAppCommands(Minecraft.getInstance())
-                    && (payload.visit() == 0 || AppsScreen.active(Minecraft.getInstance()))) launch(payload.app(), payload.visit(), false, null);
+                    && (payload.visit() == 0 || AppsScreen.active(Minecraft.getInstance())))
+                launch(payload.app(), payload.visit(), LaunchAction.BRING_BACK, null);
             else {
                 if (ClientPlayNetworking.canSend(ZoneReturnPayload.TYPE))
                     ClientPlayNetworking.send(new ZoneReturnPayload(payload.visit(), false));
@@ -130,12 +132,12 @@ public final class AresOsClient implements ClientModInitializer {
     }
 
     public static void launch(String id) {
-        launch(id, 0, false, null);
+        launch(id, 0, LaunchAction.BRING_BACK, null);
     }
 
     /** From the search over the world (package 53d): as {@link #launch(String)}, on the screen that shows the world. */
     public static void launchOnWorldScreen(String id) {
-        launch(id, 0, true, null);
+        launch(id, 0, LaunchAction.WORLD_SCREEN, null);
     }
 
     public static boolean regainedFocus(Object screen) {
@@ -156,11 +158,11 @@ public final class AresOsClient implements ClientModInitializer {
         zoneVisit = 0; zoneFocusToken = 0;
     }
 
-    static void launchFromPointer(String id, Runnable opened) {
-        launch(id, 0, false, opened);
+    static void launchFromPointer(String id, boolean newWindow, Runnable opened) {
+        launch(id, 0, newWindow ? LaunchAction.NEW_WINDOW : LaunchAction.BRING_BACK, opened);
     }
 
-    private static void launch(String id, long visit, boolean worldScreen, Runnable opened) {
+    private static void launch(String id, long visit, LaunchAction action, Runnable opened) {
         Minecraft client = Minecraft.getInstance();
         finishZone(false);
         var app = AresOs.app(id);
@@ -174,7 +176,12 @@ public final class AresOsClient implements ClientModInitializer {
         zoneFocusToken = visit == 0 ? 0 : token;
         zoneVisit = visit;
         try {
-            (worldScreen ? launcher.launchOnWorldScreen(app) : launcher.launchTracked(app)).whenComplete((requestId, error) -> {
+            var launch = switch (action) {
+                case BRING_BACK -> launcher.launchTracked(app);
+                case WORLD_SCREEN -> launcher.launchOnWorldScreen(app);
+                case NEW_WINDOW -> launcher.launchNewWindow(app);
+            };
+            launch.whenComplete((requestId, error) -> {
                 if (error == null && requestId != null) client.execute(() -> LATE_TOKENS.put(requestId, token));
                 if (error != null) {
                     client.execute(() -> {

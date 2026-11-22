@@ -1,0 +1,1 @@
+{"protocol":"aresos-shell/1.3","id":"e-1","event":"apps_state","apps":[{"id":"browser","windows":2,"active":true,"hidden":false},{"id":"notepad","windows":1,"active":false,"hidden":true},{"id":"terminal","windows":1,"active":false,"hidden":false}]}

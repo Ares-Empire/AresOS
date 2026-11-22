@@ -382,14 +382,14 @@ public final class FreePointerClientGameTest implements FabricClientGameTest {
         }
     }
 
-    private static void pointAtSlot(Minecraft client, int slot) {
+    static void pointAtSlot(Minecraft client, int slot) {
         var w = client.getWindow();
         double scale = (double)w.getScreenWidth() / w.getGuiScaledWidth();
         mouse(client).aresos$onMove(w.handle(), (w.getGuiScaledWidth() / 2 - 80 + slot * 20) * scale,
                 (w.getGuiScaledHeight() - 11) * (double)w.getScreenHeight() / w.getGuiScaledHeight());
     }
     private static MouseTestAccess mouse(Minecraft client) { return (MouseTestAccess)(Object)client.mouseHandler; }
-    private static void click(Minecraft client, int button) {
+    static void click(Minecraft client, int button) {
         mouse(client).aresos$onButton(client.getWindow().handle(), new MouseButtonInfo(button, 0), GLFW.GLFW_PRESS);
         mouse(client).aresos$onButton(client.getWindow().handle(), new MouseButtonInfo(button, 0), GLFW.GLFW_RELEASE);
     }
@@ -399,7 +399,7 @@ public final class FreePointerClientGameTest implements FabricClientGameTest {
     }
     private static void check(boolean ok, String message) { if (!ok) throw new AssertionError(message); }
 
-    private static final class NativeApps implements AutoCloseable {
+    static final class NativeApps implements AutoCloseable {
         final boolean enabled = Boolean.getBoolean("aresos.pointerSession");
         final ClientGameTestContext context;
         final Map<String, Process> apps = new HashMap<>();
@@ -409,6 +409,7 @@ public final class FreePointerClientGameTest implements FabricClientGameTest {
         BufferedReader replies;
         org.lwjgl.glfw.GLFWCursorPosCallback previousMove;
         org.lwjgl.glfw.GLFWMouseButtonCallback previousButton;
+        java.util.function.Consumer<Minecraft> beforeRightPress = client -> { };
         NativeApps(ClientGameTestContext context) throws IOException {
             this.context = context;
             if (!enabled) return;
@@ -434,8 +435,11 @@ public final class FreePointerClientGameTest implements FabricClientGameTest {
                                 y * w.getScreenHeight() / height.get(0));
                     }
                 });
-                previousButton = GLFW.glfwSetMouseButtonCallback(handle, (window, button, action, modifiers) ->
-                        mouse(client).aresos$onButton(window, new MouseButtonInfo(button, modifiers), action));
+                previousButton = GLFW.glfwSetMouseButtonCallback(handle, (window, button, action, modifiers) -> {
+                    if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT && action == GLFW.GLFW_PRESS)
+                        beforeRightPress.accept(client);
+                    mouse(client).aresos$onButton(window, new MouseButtonInfo(button, modifiers), action);
+                });
             });
             // Earlier fullscreen tests can unmaximize the shared native window. Put the desktop back as in the image.
             tool("max", "desktop");

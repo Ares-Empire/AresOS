@@ -4,7 +4,7 @@ package dev.aresos.focus;
 public final class PointerRules {
     private PointerRules() { }
 
-    public enum Click { VANILLA, OPEN_APP, ENTER_WORLD }
+    public enum Click { VANILLA, OPEN_APP, NEW_WINDOW, ENTER_WORLD }
 
     public static boolean free(boolean session, boolean desktop, boolean connected, boolean appInFront) {
         return session && desktop && connected && appInFront;
@@ -17,9 +17,11 @@ public final class PointerRules {
                 ? (int) ((x - left) / 20) : -1;
     }
 
-    public static Click click(boolean free, boolean primary, boolean appSlot) {
+    public static Click click(boolean free, boolean primary, boolean secondary, boolean appSlot, boolean canActivate) {
         if (!free) return Click.VANILLA;
-        return primary && appSlot ? Click.OPEN_APP : Click.ENTER_WORLD;
+        if (appSlot && primary) return Click.OPEN_APP;
+        if (appSlot && secondary && canActivate) return Click.NEW_WINDOW;
+        return Click.ENTER_WORLD;
     }
 
     /**
