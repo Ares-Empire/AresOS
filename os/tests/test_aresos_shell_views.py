@@ -230,6 +230,35 @@ class AuthenticationTest(ViewBase):
         self.assertFalse(desktop.closing)
         self.assertTrue(all(not conn.closing for conn in others))
 
+    def test_a_view_name_in_use_never_gives_way_and_a_ninth_name_is_busy(self):
+        helper = self.start()
+        laptop = self.view(helper)  # connected throughout, with no record of its own
+        launched = {}
+        for number in range(shell.MAX_VIEW_NAMES - 1):
+            conn = self.view(helper, f'name-{number}')
+            launched[number] = self.call(helper, conn, 'open_app', 'same', app_id='terminal')['launch_id']
+            helper.disconnected(conn)
+        late = Conn()
+        helper.connected(late)
+        refused = self.send(helper, late, dict(example('view-hello-request'), view='one-more'))
+        self.assertEqual((refused['ok'], refused['error']), (False, 'busy'))
+        self.assertTrue(late.closing)
+        self.assertEqual(len(helper.journal.view_clients), shell.MAX_VIEW_NAMES)
+        # No other name's records count against a name that is let in.
+        self.assertEqual(self.call(helper, laptop, 'open_app', 'mine', app_id='notepad')['state'], 'starting')
+        self.now[0] += 1
+        again = self.view(helper, 'name-0')
+        self.assertEqual(self.call(helper, again, 'open_app', 'same', app_id='terminal')['launch_id'], launched[0])
+        helper.disconnected(again)
+        # Gone for longer than any request ID can be resent: the name longest away gives way, and only then.
+        self.now[0] += shell.REPLAY_HORIZON
+        self.view(helper, 'one-more')
+        self.assertNotIn('view:name-1', helper.journal.view_clients)
+        self.assertFalse(any(client == 'view:name-1' for client, _ in helper.journal.entries))
+        self.assertIn('view:laptop-home', helper.journal.view_clients)
+        self.assertIn(launched[1], helper.app_launches['terminal'].running)
+        self.assertEqual(self.popen.call_count, len(launched) + 1)
+
 
 class LaunchIsolationTest(ViewBase):
     def test_pending_and_replayed_request_ids_are_scoped_to_the_client(self):
@@ -263,42 +292,33 @@ class LaunchIsolationTest(ViewBase):
         self.assertTrue(self.call(helper, desktop, 'open_app', 'v-0', app_id='notepad')['ok'])
         self.assertEqual(self.popen.call_count, 33)
 
-    def test_fifth_launching_view_evicts_oldest_history_and_live_processes_keep_their_ids(self):
+    def test_a_fifth_view_name_evicts_nothing_and_every_reply_still_replays(self):
         helper = self.start()
         desktop = self.desktop(helper)
         self.assertTrue(self.call(helper, desktop, 'open_app', 'same', app_id='notepad')['ok'])
-        for name in ('a', 'b', 'c', 'd'):
+        names = ('a', 'b', 'c', 'd', 'e')
+        first = {}
+        for name in names:
             conn = self.view(helper, name)
-            self.assertTrue(self.call(helper, conn, 'open_app', 'same', app_id='terminal')['ok'])
+            first[name] = self.call(helper, conn, 'open_app', 'same', app_id='terminal')
+            self.assertTrue(first[name]['ok'])
             helper.disconnected(conn)
-        old_launch = self.launch_for(helper, 'view:b', 'same')
-        old_process = old_launch.process
-        old_state = dict(old_launch.entry)
-        again = self.view(helper, 'a')
-        original_a = helper.journal.entries['view:a', 'same']['launch_id']
-        self.assertEqual(self.call(helper, again, 'open_app', 'same', app_id='terminal')['launch_id'], original_a)
-        newest = self.view(helper, 'e')
-        self.assertTrue(self.call(helper, newest, 'open_app', 'same', app_id='terminal')['ok'])
-        self.assertNotIn(('view:b', 'same'), helper.journal.entries)
-        launch_id = old_state['launch_id']
-        self.assertIs(helper.app_launches['terminal'].running[launch_id], old_launch)
-        self.assertIs(old_launch.process, old_process)
-        self.assertEqual(old_launch.entry, old_state)
+        self.assertEqual(self.popen.call_count, 6)
         with pathlib.Path(self.journal).open() as handle:
             saved = json.load(handle)
-        self.assertEqual(list(saved['view_launches']), ['c', 'd', 'a', 'e'])
+        self.assertEqual(list(saved['view_launches']), list(names))
+        self.assertNotIn('view_replays', saved)
         self.assertIn('same', saved['launches'])
         self.active_units = {launch.entry['unit'] for launch in helper.launch_entries()}
-        restarted = self.start()
-        self.assertEqual(set(restarted.journal.entries), set(helper.journal.entries))
-        self.assertEqual(restarted.app_launches['terminal'].running[launch_id].entry['state'], 'starting')
-        b_again = self.view(helper, 'b')
-        new_b = self.call(helper, b_again, 'open_app', 'same', app_id='notepad')
-        old_process.code = 2
-        helper.tick()
-        self.assertNotIn(launch_id, helper.app_launches['terminal'].running)
-        self.assertEqual(self.call(helper, b_again, 'open_app', 'same', app_id='notepad'), new_b)
-        self.assertEqual(b_again.events('app_state'), [])
+        for current in (helper, self.start()):
+            for name in names:
+                conn = self.view(current, name)
+                again = self.call(current, conn, 'open_app', 'same', app_id='terminal')
+                self.assertEqual((again['launch_id'], again['state']), (first[name]['launch_id'], 'starting'))
+                self.assertEqual(self.call(current, conn, 'open_app', 'same', app_id='notepad')['error'],
+                                 'request_id_reused')
+                current.disconnected(conn)
+        self.assertEqual(self.popen.call_count, 6)
 
     def test_app_state_only_reaches_its_client_after_reconnect_and_restart(self):
         helper = self.start(tracked=True)

@@ -55,6 +55,7 @@ class OpenAppsTest(ViewBase):
         self.assertTrue(set(NEW) <= set(reply['capabilities']))
         self.assertTrue(set(NEW) <= set(reply13['capabilities']))
         self.assertTrue(set(NEW).isdisjoint(omitted_reply['capabilities']))
+        self.assertEqual(laptop.sent[0]['minor'], 2)
         self.assertEqual(laptop.sent[1], dict(protocol='aresos-shell/1.2', id='e-1', event='apps_running',
                                              apps=['browser', 'notepad', 'terminal']))
         self.assertEqual(desktop.sent[1], example('apps-state-event'))
@@ -85,6 +86,49 @@ class OpenAppsTest(ViewBase):
         self.assertEqual(laptop.events('apps_running')[-1]['apps'], ['browser', 'terminal'])
         self.assertEqual(laptop.events('apps_state'), [])
         self.assertEqual(omitted.events('apps_state'), [])
+
+    def test_no_other_clients_replies_can_refuse_bringing_back_a_visible_window(self):
+        helper = self.start(tracked=True)
+        self.show(helper.windows, 30, BROWSER)
+        helper.windows_changed()
+        with mock.patch.object(helper, 'activate_window', return_value=False):
+            for name in range(5):
+                filler, _ = self.hello13(helper, view=f'filler-{name}')
+                for number in range(shell.RECEIPT_LIMIT):
+                    self.assertEqual(self.ask(helper, filler, f'a-{number}')['error'], 'activation_refused')
+                self.assertEqual(self.ask(helper, filler, 'one-too-many')['error'], 'journal_full')
+                # Its launch records are another table.
+                self.assertEqual(self.call(helper, filler, 'open_app', 'unknown', app_id='fixture-unknown')['error'],
+                                 'unknown_app')
+                helper.disconnected(filler)
+        desktop, _ = self.hello13(helper)
+        other, _ = self.hello13(helper, view='unrelated')
+        for conn in (desktop, other):
+            self.assertIsNone(self.ask(helper, conn, 'restore'))
+        helper.windows.state(30, True)
+        helper.windows.done(30)
+        helper.windows_changed()
+        for conn in (desktop, other):
+            self.assertEqual(next(m for m in conn.sent if m['id'] == 'restore')['state'], 'activated')
+        # A receipt makes room once nobody can resend its ID any more.
+        self.now[0] += shell.RECEIPT_HORIZON
+        filler, _ = self.hello13(helper, view='filler-0')
+        self.assertIsNone(self.ask(helper, filler, 'after-the-horizon'))
+        self.assertEqual(self.popen.call_count, 0)
+
+    def test_a_full_launch_table_never_refuses_a_visible_window(self):
+        helper = self.start(tracked=True)
+        view, _ = self.hello13(helper, view='full')
+        for number in range(shell.VIEW_JOURNAL_LIMIT):
+            self.call(helper, view, 'open_app', f'u-{number}', app_id='fixture-unknown')
+        self.assertEqual(self.call(helper, view, 'open_app', 'more', app_id='terminal')['error'], 'journal_full')
+        self.assertEqual(self.ask(helper, view, 'no-window', app='terminal')['error'], 'journal_full')
+        self.show(helper.windows, 30, BROWSER, active=True)
+        helper.windows_changed()
+        self.assertIsNone(self.ask(helper, view, 'restore'))
+        helper.tick()
+        self.assertEqual(next(m for m in view.sent if m['id'] == 'restore')['state'], 'activated')
+        self.assertEqual(self.popen.call_count, 0)
 
     def test_capabilities_need_compositor_activation_even_with_window_tracking(self):
         helper = self.start(tracked=True)
@@ -298,7 +342,7 @@ class OpenAppsTest(ViewBase):
                          ('restore', 'starting', deliberate['launch_id']))
         self.assertEqual(self.popen.call_count, 1)
 
-    def test_fallback_recheck_joins_a_deliberate_open_after_its_view_history_is_evicted(self):
+    def test_fallback_recheck_joins_a_deliberate_open_whose_reply_is_gone(self):
         helper = self.start(tracked=True)
         desktop, _ = self.hello13(helper)
         laptop = self.view(helper)
@@ -310,12 +354,14 @@ class OpenAppsTest(ViewBase):
             deliberate = self.call(helper, laptop, 'open_app', 'new-window', app_id='browser')
         self.assertEqual(deliberate['state'], 'starting')
         helper.disconnected(laptop)
+        # RECHECK-1's sequence drops no reply any more.
         self.protect_view_histories(helper, 3)
-        self.assertEqual(len(helper.journal.view_clients), 4)
         new_view = self.view(helper, 'new-view')
         self.assertEqual(self.call(helper, new_view, 'open_app', 'unknown', app_id='fixture-unknown')['error'],
                          'unknown_app')
-        self.assertNotIn((laptop.client, 'new-window'), helper.journal.entries)
+        self.assertIn((laptop.client, 'new-window'), helper.journal.entries)
+        # And the recheck reads the launch table: it holds even with the reply gone.
+        del helper.journal.entries[laptop.client, 'new-window']
         self.assertIsNone(helper.activation_target('browser'))
 
         helper.tick()
@@ -349,11 +395,10 @@ class OpenAppsTest(ViewBase):
         helper = self.start(tracked=True)
         replies = self.protect_view_histories(helper, 4)
         laptop = self.view(helper)
-        # A full protected-reply reserve still leaves room for an ordinary open from a new view.
-        with mock.patch.object(shell, 'VIEW_REPLAY_LIMIT', len(replies)):
-            self.assertEqual(self.call(helper, laptop, 'open_app', 'new-window', app_id='browser')['state'], 'starting')
-        self.assertEqual(len(helper.journal.view_clients), 4)
-        self.assertNotIn('view:protected-0', helper.journal.view_clients)
+        # Other names' replies take no room from the laptop home, and none of them gives way to it.
+        self.assertEqual(self.call(helper, laptop, 'open_app', 'new-window', app_id='browser')['state'], 'starting')
+        self.assertEqual(len(helper.journal.view_clients), 5)
+        self.assertIn('view:protected-0', helper.journal.view_clients)
         for current in (helper, self.start(tracked=True)):
             for name, original in replies:
                 view, _ = self.hello13(current, view=name)

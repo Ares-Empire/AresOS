@@ -136,11 +136,15 @@ SCOPE_TIMEOUT = 5.0
 JOURNAL_LIMIT = 256
 MAX_VIEWS = 4
 VIEW_JOURNAL_LIMIT = 32
-# Four full histories can move aside for a new view without exhausting its own quota.
-VIEW_REPLAY_LIMIT = (MAX_VIEWS + 1) * VIEW_JOURNAL_LIMIT
+# View names that hold replay tables at once: the four that can be connected and four that left a while ago.
+MAX_VIEW_NAMES = 2 * MAX_VIEWS
+# Answers to activate_app that started nothing: each client's own table, beside its launch records.
+RECEIPT_LIMIT = 64
 DESKTOP = 'desktop'
 # Well beyond the mod's 45-second open timeout, the only window in which it resends a request ID.
 REPLAY_HORIZON = 600.0
+# The same window with a wide margin, for an answer that started nothing.
+RECEIPT_HORIZON = 120.0
 REGISTRY = '/usr/share/aresos/apps'
 DESKTOP_ENTRY_DIRS = ('/usr/share/applications', '/usr/local/share/applications')
 EXEC_PATH = '/usr/local/bin:/usr/bin'
@@ -2223,8 +2227,14 @@ class Journal:
     least REPLAY_HORIZON ago, may be forgotten (the mod resends a request ID only within its 45-second open
     timeout). Its answer is settled when it finished, or when it was handed over to a running app whose windows
     can't be watched; how long that app stays open does not hold the entry. A launch still in progress is never
-    forgotten within its client's quota. Four view names have ordinary history. Protected replies can outlive
-    that history so a new view can launch even while four other views have retries outstanding.
+    forgotten within its client's quota.
+
+    A client is the desktop or one view name. Each has two tables of its own: launch records (every request that
+    started, joined or was refused a launch) and receipts (activate_app answers that started nothing, kept for
+    RECEIPT_HORIZON). A full table refuses the new request. It never drops an old one, and nothing another client
+    does takes room in it. At most MAX_VIEW_NAMES view names hold tables. A name gets them at hello and gives
+    them up only to a new name, and only after it has been gone for REPLAY_HORIZON: no request ID of its own can
+    be resent by then. view_clients maps each name to when it was last connected.
     """
 
     def __init__(self, path, instance, clock=time.monotonic):
@@ -2250,18 +2260,16 @@ class Journal:
             return
         now = self.clock()
         self.load_client(DESKTOP, data.get('launches'), now)
-        views = data.get('view_launches')
-        if isinstance(views, dict):
-            names = [name for name in views if VIEW_NAME.fullmatch(name)]
-            for name in names[-MAX_VIEWS:]:
+        # view_replays: a journal written before every view name kept its own tables.
+        for field in ('view_launches', 'view_replays'):
+            views = data.get(field)
+            for name, records in (views.items() if isinstance(views, dict) else ()):
                 client = f'view:{name}'
-                self.view_clients[client] = None
-                self.load_client(client, views[name], now)
-        replays = data.get('view_replays')
-        if isinstance(replays, dict):
-            for name, entries in replays.items():
-                if VIEW_NAME.fullmatch(name) and f'view:{name}' not in self.view_clients:
-                    self.load_client(f'view:{name}', entries, now)
+                if VIEW_NAME.fullmatch(name) and (client in self.view_clients
+                                                  or len(self.view_clients) < MAX_VIEW_NAMES):
+                    # Seen now: a restart never shortens the time a name keeps its tables.
+                    self.view_clients[client] = now
+                    self.load_client(client, records, now)
         launches = data.get('active_launches')
         if isinstance(launches, list):
             for item in launches:
@@ -2277,107 +2285,92 @@ class Journal:
                     self.saved_launches.append(((client, request_id), entry))
 
     def load_client(self, client, launches, now):
-        count = 0
         for request_id, entry in (launches.items() if isinstance(launches, dict) else ()):
             if (isinstance(request_id, str) and REQUEST_ID.match(request_id) and isinstance(entry, dict)
                     and isinstance(entry.get('app_id'), str) and isinstance(entry.get('state'), str)):
+                receipt = self.receipt(entry)
+                # A table never holds more than its limit, whatever the file says.
+                if len(self.table(client, receipt)) >= self.limit(client, receipt):
+                    continue
                 updated = entry.get('updated')
                 # The monotonic clock is system-wide, so ages survive a helper restart; anything odd counts as new.
                 if type(updated) not in (int, float) or not 0 <= updated <= now:
                     entry['updated'] = now
                 self.entries[client, request_id] = entry
-                count += 1
-                if client != DESKTOP and count >= VIEW_JOURNAL_LIMIT:
-                    break
 
     def touch(self, entry):
         entry['updated'] = self.clock()
 
     def put(self, key, entry):
         client, _ = key
-        entries = self.client_entries(client)
-        removed = self.expired(entries) if len(entries) >= self.limit(client) else []
-        joining = entry.get('launch_id') if entry.get('joined') and not entry.get('settled') else None
-        protected = self.protected_view_entries(joining)
-        removed.extend(old for old in self.entries
-                       if old[0] != DESKTOP and old[0] not in self.view_clients and old not in protected)
-        if client != DESKTOP and client not in self.view_clients and len(self.view_clients) >= MAX_VIEWS:
-            protected_clients = {old[0] for old in protected}
-            oldest = next((name for name in self.view_clients if name not in protected_clients),
-                          next(iter(self.view_clients)))
-            del self.view_clients[oldest]
-            removed.extend(old for old in self.client_entries(oldest) if old not in protected)
-        for old_key in set(removed):
-            del self.entries[old_key]
+        receipt = self.receipt(entry)
+        entries = self.table(client, receipt)
+        entries.pop(key, None)
+        # Only a record that nobody may resend any more makes room, and only in its own client's table.
+        if len(entries) >= self.limit(client, receipt):
+            for old_key in self.expired(entries):
+                del self.entries[old_key]
         if client != DESKTOP:
-            self.view_clients.pop(client, None)
-            self.view_clients[client] = None
+            self.view_clients.setdefault(client, self.clock())
         self.touch(entry)
         self.entries[key] = entry
 
-    def client_entries(self, client):
-        return {key: entry for key, entry in self.entries.items() if key[0] == client}
+    @staticmethod
+    def receipt(entry):
+        """An answer to activate_app that started nothing: it has its own table and a shorter horizon."""
+        return bool(entry.get('activation'))
+
+    def table(self, client, receipt):
+        return {key: entry for key, entry in self.entries.items()
+                if key[0] == client and self.receipt(entry) == receipt}
+
+    def horizon(self, entry):
+        return RECEIPT_HORIZON if self.receipt(entry) else REPLAY_HORIZON
 
     @staticmethod
-    def limit(client):
+    def limit(client, receipt=False):
+        if receipt:
+            return RECEIPT_LIMIT
         return JOURNAL_LIMIT if client == DESKTOP else VIEW_JOURNAL_LIMIT
 
-    def use_client(self, client):
-        """Refresh the launch history's usage order, including a duplicate answered from that history."""
-        if client not in self.view_clients or next(reversed(self.view_clients)) == client:
-            return False
-        self.view_clients.pop(client, None)
-        self.view_clients[client] = None
+    def admit_view(self, client, connected):
+        """Give a view name its tables at hello. False when every name is still in use: none of them gives way."""
+        now = self.clock()
+        if client not in self.view_clients and len(self.view_clients) >= MAX_VIEW_NAMES:
+            idle = [name for name, seen in self.view_clients.items()
+                    if name not in connected and now - seen >= REPLAY_HORIZON]
+            if not idle:
+                return False
+            # Gone for longer than any request ID of its own can be resent. Its launches stay in the launch table.
+            gone = min(idle, key=self.view_clients.get)
+            del self.view_clients[gone]
+            for key in [key for key in self.entries if key[0] == gone]:
+                del self.entries[key]
+        self.view_clients[client] = now
         return True
+
+    def view_left(self, client):
+        if client in self.view_clients:
+            self.view_clients[client] = self.clock()
 
     def expired(self, entries):
         now = self.clock()
-        return [key for key, entry in entries.items() if (entry['state'] in FINAL or entry.get('settled'))
-                and now - entry.get('updated', now) >= REPLAY_HORIZON]
+        return [key for key, entry in entries.items()
+                if (entry['state'] in FINAL or entry.get('settled')) and not entry.get('activation_pending')
+                and now - entry.get('updated', now) >= self.horizon(entry)]
 
-    def protects_reply(self, entry, now):
-        return (entry.get('activation_pending')
-                or (entry.get('joined') and not entry.get('settled'))
-                or ((entry.get('activation') or entry.get('activation_fallback') or entry.get('joined'))
-                    and now - entry.get('updated', now) < REPLAY_HORIZON))
-
-    def protected_view_entries(self, joining):
-        # A departing view can still owe an outcome to a different, connected client.
-        waiting = {entry.get('launch_id') for entry in self.entries.values()
-                   if entry.get('joined') and not entry.get('settled')}
-        waiting.discard(None)
-        if joining is not None:
-            waiting.add(joining)
-        now = self.clock()
-        return {key for key, entry in self.entries.items() if key[0] != DESKTOP
-                and (self.protects_reply(entry, now)
-                     or (entry.get('launch_id') in waiting and not entry.get('settled')))}
-
-    def room(self, client, reserved=0, *, protect=False):
-        """True when a new request can be recorded without dropping any still-replayable entry for this client."""
-        if client != DESKTOP and protect:
-            now = self.clock()
-            if sum(1 for (name, _), entry in self.entries.items()
-                   if name != DESKTOP and self.protects_reply(entry, now)) >= VIEW_REPLAY_LIMIT:
-                return False
-        entries = self.client_entries(client)
-        if client != DESKTOP and client not in self.view_clients:
-            protected = self.protected_view_entries(None)
-            entries = {key: entry for key, entry in entries.items() if key in protected}
-        limit = self.limit(client)
-        return len(entries) + reserved < limit or len(entries) + reserved - len(self.expired(entries)) < limit
+    def room(self, client, reserved=0, *, receipt=False):
+        """True when one more record fits in this client's own table beside every record it may still replay."""
+        entries = self.table(client, receipt)
+        return len(entries) + reserved - len(self.expired(entries)) < self.limit(client, receipt)
 
     def save(self, launches):
-        clients = {client: {} for client in (DESKTOP, *self.view_clients)}
+        clients = {DESKTOP: {}}
         for (client, request_id), entry in self.entries.items():
             clients.setdefault(client, {})[request_id] = entry
-        data = {'instance': self.instance, 'launches': clients[DESKTOP]}
-        if self.view_clients:
-            data['view_launches'] = {client.removeprefix('view:'): clients[client] for client in self.view_clients}
-        replays = {client.removeprefix('view:'): entries for client, entries in clients.items()
-                   if client != DESKTOP and client not in self.view_clients}
-        if replays:
-            data['view_replays'] = replays
+        data = {'instance': self.instance, 'launches': clients.pop(DESKTOP)}
+        if clients:
+            data['view_launches'] = {client.removeprefix('view:'): entries for client, entries in clients.items()}
         if launches:
             data['active_launches'] = [[*launch.origin, launch.entry] for launch in launches]
         temporary = f'{self.path}.{os.getpid()}.tmp'
@@ -3463,6 +3456,7 @@ class Helper:
             self.publishing = None
         if self.views.get(conn.client) is conn:
             del self.views[conn.client]
+            self.journal.view_left(conn.client)
 
     def receive(self, conn, data):
         conn.inbuf += data
@@ -3672,6 +3666,14 @@ class Helper:
         if missing:
             raise Failure('incompatible_version', 'missing capabilities: ' + ', '.join(missing), close=True,
                           missing=missing)
+        if client != DESKTOP:
+            # The last refusal: only a view that is let in takes one of the view names.
+            records = len(self.journal.entries)
+            if not self.journal.admit_view(client, self.views):
+                LOG.warning('refused a view hello: all %d view names are in use', MAX_VIEW_NAMES)
+                raise Failure('busy', 'all view names are in use', close=True)
+            if len(self.journal.entries) != records:
+                self.save_launches()
         conn.authenticated = True
         conn.client = client
         conn.minor = min(minor, MINOR)
@@ -3894,23 +3896,23 @@ class Helper:
                 # A 1.1 client's launch stays its own; a 1.0 client gets what it gets for any unknown ID.
                 return self.launch_result(request_id, unknown)
             # A duplicate (e.g. resent after a reconnect) returns the same launch, never a second one.
-            if self.journal.use_client(conn.client):
-                self.save_launches()
             return self.launch_result(request_id, entry)
-        if not self.launch_room(conn.client, protect=bring_back):
-            raise self.journal_full(request_id, app_id)
         # A 1.0 client knows only the reviewed registry: for it, a discovered ID is an unknown one, answered and
         # journaled exactly as before package 30 (review 1, finding 3).
         app = self.catalogue_apps.get(app_id) if conn.minor >= 1 or app_id in self.legacy_apps else None
+        requests = {key: [conn]}
+        # Bringing a window back takes a receipt, not a launch record, and a join asks for its own room where it
+        # joins. So this comes before the launch table is asked: a full one never refuses a visible window.
+        if bring_back and app is not None and self.bring_back(app_id, requests):
+            return None
+        if not self.launch_room(conn.client):
+            raise self.journal_full(request_id, app_id)
         if app is None:
             # Every launch that does not start says why here (package 40): a refusal used to leave no line.
             LOG.warning('unknown app ID (%d characters) not opened', len(app_id))
             if bring_back:
                 unknown['activation_fallback'] = True
             return self.record(key, unknown)
-        requests = {key: [conn]}
-        if bring_back and self.bring_back(app_id, requests):
-            return None
         # Whether its program is still there is checked off the loop (review 2, FIX 1).
         check = self.checks.start(app, launch_check, app, self.executable, self.launcher.working_directory,
                                   from_view=conn.client != DESKTOP)
@@ -3929,10 +3931,10 @@ class Helper:
         group.checking[key] = waiting
         return None
 
-    def launch_room(self, client, reserved=0, *, protect=False):
+    def launch_room(self, client, reserved=0):
         reserved += sum(key[0] == client for origin, waiting in self.pending_checks()
                         for key in waiting['requests'] if key != origin)
-        return self.journal.room(client, reserved, protect=protect)
+        return self.journal.room(client, reserved)
 
     def activation_target(self, app_id):
         # Layout restoration can select a group here once layouts exist.
@@ -3949,7 +3951,7 @@ class Helper:
         if group.checking:
             origin, waiting = next(iter(group.checking.items()))
             for key, conns in requests.items():
-                if not self.launch_room(key[0], int(key[0] == origin[0]), protect=True):
+                if not self.launch_room(key[0], int(key[0] == origin[0])):
                     self.reply_waiters(key, conns, self.journal_full_reply(key, app_id))
                 else:
                     waiting['requests'][key] = conns
@@ -3968,7 +3970,8 @@ class Helper:
         refused = self.activation_result(app_id, 'activation_refused')
         pending = {}
         for key, conns in requests.items():
-            if not self.launch_room(key[0], protect=True):
+            # Its own receipt table: no other client's records, and none of its own launch records, count here.
+            if not self.journal.room(key[0], receipt=True):
                 self.reply_waiters(key, conns, self.journal_full_reply(key, app_id))
                 continue
             # Journal each ID before asking the compositor, so even a restart cannot turn a retry into a spawn.
@@ -4065,7 +4068,7 @@ class Helper:
             if self.bring_back(app.id, requests):
                 return
         reserved = sum(other != key and other[0] == key[0] for other in requests)
-        if self.launch_room(key[0], reserved, protect=bring_back):
+        if self.launch_room(key[0], reserved):
             answer = self.launch(key, app, *result, waiting['screen'], activation_fallback=bring_back)
         else:
             answer = self.journal_full_reply(key, app.id)
@@ -4080,7 +4083,7 @@ class Helper:
         if origin.get('discovered'):
             entry['discovered'] = True
         self.update_join(entry, origin)
-        if not self.journal.room(key[0], protect=True):
+        if not self.journal.room(key[0]):
             return self.journal_full_reply(key, entry['app_id'])
         return self.record(key, entry)
 
