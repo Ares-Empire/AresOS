@@ -20,6 +20,7 @@ import owner_media
 import owner_vm as vm
 import registry_auth as auth
 import release29_walk as walk
+from release29_walk import probes
 from test_owner_walk import Release28Local, Release28Session, laptop_rows
 
 
@@ -27,6 +28,23 @@ ENV = dict(GITHUB_ACTIONS='true', GITHUB_EVENT_NAME='workflow_dispatch', GITHUB_
            GITHUB_REF_NAME=auth.BASELINE_BRANCH, GITHUB_REF='refs/heads/' + auth.BASELINE_BRANCH,
            REHEARSAL_PACKAGE='331', REHEARSAL_MODE='release-29', GITHUB_SHA='ab' * 20, GITHUB_RUN_ID='331',
            GITHUB_RUN_ATTEMPT='1', GITHUB_ACTOR='fixture-runner', GH_TOKEN='fixture-job-token')
+
+TERMINAL_FAILURES = {
+    'display': ('no Wayland display', 0),
+    'cwd': ('did not start in the daily home', 1),
+    'vt': ('requires tty1', 0),
+    'replacement-pid': ('did not survive', 1),
+    'no-monitor': ('could not find a monitor in five attempts', 5),
+}
+CONTROL_FAILURES = {
+    'rewrite-sites': ('sites hash or metadata changed', 'previous-28', 'previous-28-sites-hash'),
+    'restored-placeholder': ('sites hash or metadata changed', 'final-29', 'final-29-control'),
+    'missing-sites': ('sites hash failed', 'previous-28', 'previous-28-sites-hash'),
+    'missing-check': ('Control checks missing or failed', 'release-29', 'release-29-control'),
+    'gate-reached-page': ('first-use gate failed', 'release-29', 'release-29-chrome-first-use'),
+    'masked-requirement': ('requires masked', 'release-28', 'r29-starting-28-control-login'),
+    'masked-control': ('Control service delays login', 'release-28', 'r29-starting-28-control-login'),
+}
 
 
 def save(path, value):
@@ -358,6 +376,207 @@ class CandidateEqualityTest(unittest.TestCase):
                 walk.announced((json.dumps(reused) + '\n').encode(), 6)
 
 
+class Release29Session(Release28Session):
+    """Run submitted probe Python against disposable paths and explicit guest stand-ins."""
+
+    def __init__(self, bundle, fault):
+        super().__init__(True, faults={
+            'display': ('supervisor_without_display',),
+            'late-monitor': ('late_monitor',),
+            'masked-ordering': ('masked_login_unit',),
+            'masked-requirement': ('masked_login_requirement',),
+            'masked-control': ('masked_unit_after_control',),
+        }.get(fault, ()))
+        self.bundle, self.fault, self.release = bundle, fault, '28'
+        self.control_fixture()
+        self.Path('/run/user/1001').mkdir(exist_ok=True)
+        labwc = self.Path('/proc/42/environ')
+        labwc.write_text(labwc.read_text() + 'PATH=' + vm.SYSTEM_PATH + '\0')
+        self.write('/usr/share/themes/AresOS/labwc/themerc', 'fixture')
+        self.write('/usr/libexec/aresos-shell', 'fixture')
+        for app in ('terminal', 'browser'):
+            rel = f'usr/share/aresos/apps/{app}.json'
+            self.write('/' + rel, (ROOT / 'os/config' / rel).read_text())
+        self.tee_calls = 0
+        self.now = 0
+        self.owners[str(self.Path(probes.STAGED_SITES))] = (0, 0)
+        self.passwordless = {'org.aresos.rehearsal.unreviewed'} if fault == 'polkit' else set()
+        self.actions = sorted(self.passwordless | {'org.aresos.rehearsal.authentication'})
+
+    def start(self, release, stage):
+        self.release = release
+        self.foot, self.vt = 1, 'tty3'
+        self.write('/usr/share/aresos/labwc/rc.xml', f'<labwc_config><theme><name>{probes.THEMES[release]}</name></theme></labwc_config>')
+        if release == '29':
+            live = self.Path(probes.SITES)
+            if not live.exists():
+                self.write(probes.SITES, probes.PLACEHOLDER.decode())
+                self.owners[str(live)] = (0, 250)
+                live.chmod(0o640)
+            self.chrome_files()
+        if stage == 'previous-28' and self.fault in ('rewrite-sites', 'missing-sites'):
+            if self.fault == 'rewrite-sites':
+                self.write(probes.SITES, '{"format":1,"hosts":["changed.invalid"]}\n')
+            else:
+                self.Path(probes.SITES).unlink()
+        if stage == 'final-29' and self.fault == 'restored-placeholder':
+            self.write(probes.SITES, probes.PLACEHOLDER.decode())
+
+    def chrome_files(self):
+        files, extension = self.bundle
+        record_path = self.Path('/usr/share/aresos/manifest/control.json')
+        record = json.loads(record_path.read_bytes())
+        record['chrome_extension'] = extension
+        folder = '/usr/share/aresos/chrome/'
+        for name, data in files.items():
+            path = self.Path(folder + name)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(data)
+        for rel, file in (('policies/managed/aresos.json', 'policy.json'),
+                          ('native-messaging-hosts/org.aresos.chrome.json', 'native-host.json')):
+            for top in ('/etc/opt/chrome/', '/usr/etc/opt/chrome/'):
+                link = self.Path(top + rel)
+                link.parent.mkdir(parents=True, exist_ok=True)
+                if not link.is_symlink():
+                    link.symlink_to(self.Path(folder + file))
+        action = '/usr/share/polkit-1/actions/org.aresos.control.chrome-loosen.policy'
+        self.write(action, '<policyconfig/>\n')
+        record['files'][action] = dict(mode='0644', sha256=walk.sha256(self.Path(action).read_bytes()))
+        self.write('/usr/bin/gh', 'fixture gh')
+        binary = walk.sha256(b'fixture gh')
+        record['gh'] = dict(version='2.0.0', binary_sha256=binary)
+        self.write('/usr/share/aresos/manifest/gh.lock.json', json.dumps(dict(nevra='gh-2.0.0-1.x86_64', binary_sha256=binary)))
+        record_path.write_text(json.dumps(record))
+
+    def probe_modules(self, modules, allowed):
+        def readlink(path):
+            if path == '/proc/50/cwd':
+                return '/var/home/recovery' if self.fault == 'cwd' else '/var/home/ares'
+            return self.readlink(path)
+
+        def get_group(name):
+            if name == 'wheel':
+                return SimpleNamespace(gr_mem=[] if self.fault == 'wheel' else ['ares'])
+            assert name == 'aresos-tools'
+            return SimpleNamespace(gr_gid=250)
+
+        def chown(path, uid, gid, *, follow_symlinks=True):
+            path = self.Path(path)
+            assert path.is_relative_to(self.root)
+            self.owners[str(path)] = uid, gid
+
+        def mkdtemp(*, prefix, dir):
+            return tempfile.mkdtemp(prefix=prefix, dir=self.Path(dir))
+
+        modules['os'].readlink = readlink
+        modules['os'].fchmod = os.fchmod
+        modules['os'].chown = chown
+        modules['os'].chdir = lambda path: self.expect(path == '/')
+        modules['grp'].getgrnam = get_group
+        modules['time'].monotonic = lambda: self.now
+        modules['time'].sleep = lambda seconds: setattr(self, 'now', self.now + seconds)
+        modules['tempfile'] = SimpleNamespace(mkdtemp=mkdtemp, TemporaryDirectory=lambda **kw:
+                                              tempfile.TemporaryDirectory(dir=self.root, **kw))
+        allowed.update(('http.server', 'urllib.request', 'shutil', 'struct', 'threading'))
+
+    @staticmethod
+    def expect(condition):
+        assert condition, 'Unexpected probe command or data'
+
+    def run(self, argv, **kw):
+        command = list(argv)
+        words = command[4:] if command[:4] == ['runuser', '-u', 'ares', '--'] else command
+        if words[:1] in (['env'], ['/usr/bin/env']):
+            words = words[2:] if words[1] == '-i' else words[1:]
+        while '=' in words[0]:
+            words = words[1:]
+        status, stdout, stderr = 0, '', ''
+        if words[:3] == ['/usr/bin/python3', '-I', '-']:
+            self.expect(kw['input'] == (ROOT / probes.CONTROL_CHECKER).read_text())
+            self.expect(tuple(words[3:]) == (probes.SERVICE_CHECKS if self.release == '28'
+                                           else probes.SERVICE_CHECKS + probes.CHROME_CHECKS))
+            status, stdout = self.execute(kw['input'], argv=words[3:], allow_exit=True)
+            if self.fault == 'missing-check' and self.release == '29':
+                first, *lines = stdout.splitlines()
+                checks = json.loads(first)
+                del checks['chrome_polkit']
+                stdout = '\n'.join([json.dumps(checks), *lines]) + '\n'
+        elif words[0] == '/usr/bin/fc-match':
+            stdout = '/wrong/font' if self.fault == 'fontconfig' else probes.FONTS_29[words[-1]]
+        elif words == ['/usr/bin/sha256sum']:
+            stdout = walk.sha256(kw['stdin'].read()) + '  -\n'
+        elif words[0] == '/usr/bin/tee':
+            self.expect(words[1:] == [str(self.Path(probes.SITES))] and kw['input'] == probes.SYNTHETIC_SITES)
+            self.Path(words[1]).write_bytes(kw['input'])
+            self.tee_calls += 1
+        elif words[:2] == ['/usr/bin/aresos', 'chrome']:
+            self.expect(command[:4] == ['runuser', '-u', 'ares', '--'] and kw['cwd'] == '/var/home/ares')
+            if self.Path(probes.SITES).read_bytes() == probes.PLACEHOLDER:
+                code = 'chrome_settings_unavailable'
+                if self.fault == 'gate-reached-page' and words[2] == 'open':
+                    import urllib.request
+                    direct = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+                    with direct.open(json.loads(words[-1])['url'], timeout=5):
+                        pass
+                if words[2] == 'tabs' and getattr(self, 'waiting_for_chrome', True):
+                    code = 'chrome_unavailable'
+                    self.waiting_for_chrome = False
+                status, stdout = 1, json.dumps(dict(ok=False, error=dict(code=code)))
+            else:
+                self.expect(words[2] == 'tabs')
+                stdout = '{"ok":true,"data":{"items":[]}}'
+        elif words[:3] == ['/usr/bin/systemctl', '--user', 'stop']:
+            self.expect(words[3:] == ['app-aresos-browser-r29-probe.scope'])
+        elif pathlib.Path(words[0]) == self.Path('/usr/bin/openssl'):
+            self.expect(words[1:6] == ['dgst', '-sha256', '-keyform', 'DER', '-verify'])
+            self.expect(all(pathlib.Path(words[i]).is_relative_to(self.root) for i in (6, 8)))
+            return subprocess.run(['/usr/bin/openssl', *words[1:]], **kw)
+        elif pathlib.Path(words[0]) == self.Path('/usr/bin/gh'):
+            self.expect(words[1:] == ['--version'])
+            stdout = 'gh version 2.0.0\n'
+        elif words[:2] == ['sudo', '-l']:
+            stdout = 'Defaults timestamp_timeout=0\n    (ALL) ALL\n'
+        elif words[-3:] == ['sudo', '-n', 'true']:
+            status, stderr = 1, 'sudo: a password is required'
+        elif words[:2] == ['getent', 'shadow']:
+            stdout = 'fixture:$fixture:1::::::\n'
+        elif words[0] == 'timeout':
+            stdout = 'ARESOS_CHROME_STARTED'
+        elif words == ['/usr/bin/google-chrome', '--version']:
+            stdout = 'Chrome fixture'
+        elif words == ['/usr/libexec/aresos-shell', '--list']:
+            stdout = json.dumps(dict(apps=[dict(id=id, available=True) for id in ('browser', 'notepad', 'terminal')]))
+        elif words[0] == 'setsid' and self.fault == 'no-monitor':
+            self.expect(words[1:] == ['-f', *vm.HUB_TERMINAL])
+            self.launches += 1
+            kw['stdout'].write(b'err: no monitors available\n')
+        else:
+            done = super().run(argv, **kw)
+            if words[0] == 'setsid':
+                self.write('/proc/50/cwd', '')
+            if words[0] == 'pgrep' and words[-1] == 'foot' and done.stdout and self.launches and self.fault == 'replacement-pid':
+                self.foot_reads = getattr(self, 'foot_reads', 0) + 1
+                if self.foot_reads >= 2:
+                    done.stdout = '51\n'
+            return done
+        done = subprocess.CompletedProcess(argv, status, stdout, stderr)
+        if kw.get('check'):
+            done.check_returncode()
+        return done
+
+    def popen(self, argv, **kw):
+        if '/usr/bin/systemd-run' in argv:
+            self.expect(argv[:4] == ['runuser', '-u', 'ares', '--'] and kw['cwd'] == '/var/home/ares')
+            self.expect('/usr/bin/google-chrome' in argv and '--slice=app.slice' in argv)
+            kw['stdout'].write(b'fixture Chrome started\n')
+            def wait(**_kw):
+                browser.returncode = 0
+
+            browser = SimpleNamespace(returncode=None, poll=lambda: browser.returncode, wait=wait)
+            return browser
+        return super().popen(argv, **kw)
+
+
 class RouteModel:
     def __init__(self, prepared, qualified, session, fault=None):
         self.session, self.fault, self.events, self.saved = session, fault, [], {}
@@ -382,7 +601,8 @@ class RouteModel:
         self.vm = SimpleNamespace(td=self.td, kb=SimpleNamespace(deployment_snapshot=self.snapshot), sw=vm.sw,
                                   deployment_shape=vm.deployment_shape, keyboard=Mock(), Console=self.console, finish=vm.finish,
                                   result_lines=vm.result_lines, ACTIVE_DESKTOP=vm.ACTIVE_DESKTOP, HUB_TERMINAL=vm.HUB_TERMINAL,
-                                  diagnostic_reader=Mock(), git_blob=vm.git_blob)
+                                  diagnostic_reader=Mock(), git_blob=vm.git_blob, release_rules=vm.release_rules,
+                                  terminal_path=vm.terminal_path, polkit_sweep=vm.polkit_sweep)
         self.local = Release28Local([], None, 'fixture-password', session.root)
         candidate = qualified.candidate
         for fingerprint, version in candidate['variants'].values():
@@ -472,29 +692,47 @@ class RouteModel:
             self.running = 28
         if stage == 'release-29-retry' and self.fault == 'retry-still-r28':
             self.running = 28
-        self.session.foot, self.session.vt = 1, 'tty1'
+        self.session.start(str(self.running), stage)
         guest = Mock(stage=stage, stopped_events_verified=False, failed_command=False)
         guest.process.poll.return_value = None
         guest.capture_json.side_effect = lambda name, script: self.probe(guest, name, script)
         guest.command.side_effect = lambda name, script: self.command(name, script)
-        guest.keys.side_effect = lambda keys: setattr(self.session, 'vt', 'tty1')
+        guest.keys.side_effect = lambda keys: self.keys(keys)
         guest.poweroff.side_effect = lambda name: guest.process.poll.configure_mock(return_value=0)
         self.guests.append(guest)
         return guest
 
+    def keys(self, keys):
+        if keys == ['ctrl', 'alt', 'f1'] and self.fault != 'vt':
+            self.session.vt = 'tty1'
+        if keys == ['ctrl', 'alt', 'f3']:
+            self.session.vt = 'tty3'
+
     def command(self, name, script):
-        if name.endswith('-terminal-desktop'):
-            self.assert_route(self.session.vt == 'tty1' and '= tty1' in script)
+        if name.endswith('-path-prepare'):
+            import base64
+            words = shlex.split(script)
+            self.session.write('/run/aresos-path.py', base64.b64decode(words[words.index('printf')+2]).decode())
+        if name.endswith('-path-session') or name.endswith('-path-foot'):
+            self.assert_route(self.session.vt == 'tty1' and self.session.foot == 1)
+
+    def type_text(self, guest, text, layout):
+        self.assert_route(text == 'python3 /run/aresos-path.py\n' and layout == 'de')
+        self.session.execute(self.session.Path('/run/aresos-path.py').read_text(), uid=1001)
 
     def probe(self, guest, name, framed):
         self.events.append((name, 'probe'))
+        self.session.write('/sys/class/tty/tty0/active', self.session.vt + '\n')
         if name.endswith('-home') and guest.stage == 'final-29':
             if self.fault == 'corrupt-world':
                 self.session.Path(walk.r28.INSTANCE + '/minecraft/saves/' + walk.r28.WORLD + '/level.dat').write_bytes(b'corrupt')
             if self.fault == 'missing-image-targets':
                 self.session.share.rename(self.session.absent_share)
-        words = shlex.split(framed)
-        script = words[words.index('python3') + 2]
+        if '-path-' in name:
+            script = framed.split("python3 - <<'PY'\n", 1)[1].split('\nPY', 1)[0]
+        else:
+            words = shlex.split(framed)
+            script = words[words.index('python3') + 2]
         state = dict(state='SETUP', reason='setup', ready=False, jvm_pid=None)
         if name.endswith('-save-gate') and self.fault in ('open-on-update', 'open-on-recovery', 'open-on-forward',
                                                            'missing-close-message', 'normal-close'):
@@ -507,7 +745,7 @@ class RouteModel:
                     state.update(state='IN_WORLD', ready=True)
 
         def run(argv, **kw):
-            if argv[:-1] == [*walk.r28.AS_ARES, '/usr/libexec/aresos-desktop']:
+            if name.endswith('-save-gate') and argv[:-1] == [*walk.r28.AS_ARES, '/usr/libexec/aresos-desktop']:
                 message = 'Minecraft was closed. Nothing is wrong.\n' if self.fault == 'normal-close' else 'Other message\n'
                 output = json.dumps(state) if argv[-1] == 'status' else message
                 return subprocess.CompletedProcess(argv, 0, output, '')
@@ -520,10 +758,12 @@ class RouteModel:
     def console(self, guest, *, commands):
         console = Mock(commands=commands)
         console.run.side_effect = lambda word, stage, **kw: self.run(guest, console, word, stage, **kw)
+        console.select.side_effect = lambda: self.keys(['ctrl', 'alt', 'f3'])
         return console
 
     def run(self, guest, console, word, stage, *, expect_stop=False, allow_stop=False):
         self.events.append((stage, word))
+        console.select()
         self.assert_route(console.commands[word].endswith('/at ' + word))
         result = []
         if word == 'check':
@@ -590,16 +830,24 @@ class CandidateRouteTest(unittest.TestCase):
         cls.folder = tempfile.TemporaryDirectory()
         cls.addClassCleanup(cls.folder.cleanup)
         cls.qualified, cls.records, _ = candidate_fixture(pathlib.Path(cls.folder.name))
+        import importlib.util
+        path = ROOT / 'control/chrome/packaging/pack.py'
+        spec = importlib.util.spec_from_file_location('release29_pack_fixture', path)
+        pack = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(pack)
+        cls.bundle = pack.pack(ROOT / 'control/chrome/extension')
 
     @contextlib.contextmanager
     def model(self, fault=None):
         with contextlib.ExitStack() as stack:
-            session = Release28Session(False)
+            session = Release29Session(self.bundle, fault)
             stack.callback(session.close)
             prepared = SimpleNamespace(records=self.records, commands={5: json.loads(vm.git_blob(walk.TOOLS_V5_COMMIT, 'os/owner-tools/commands.json'))},
                                        inputs=walk.baseline_inputs())
             model = RouteModel(prepared, self.qualified, session, fault)
             stack.enter_context(patch.object(vm.time, 'sleep'))
+            stack.enter_context(patch.object(vm.td, 'save', side_effect=model.save))
+            stack.enter_context(patch.object(vm, 'type_text', side_effect=model.type_text))
             stack.enter_context(patch.object(walk.r28, 'stage_update', side_effect=model.historical_stage))
             stack.enter_context(patch.object(walk, 'served_webui', return_value=walk.ui_hashes()))
             stack.enter_context(patch.object(vm.owner_xhci, 'checkpoint'))
@@ -632,6 +880,117 @@ class CandidateRouteTest(unittest.TestCase):
                        ('r29-update-reboot-save-gate', 'probe'), ('r29-update-reboot', 'reboot'), ('release-29', 'F12 Bazzite'),
                        ('release-29-no-foot-check', 'check'), ('release-29-terminal', 'probe'), ('release-29-check', 'check')]
             self.assertEqual([event for event in model.events if event in ordered], ordered)
+
+    def test_submitted_probes_follow_the_chrome_gate_and_game_order(self):
+        with self.model('masked-ordering') as model:
+            model.run_route()
+            saved = model.saved
+            staged = saved['r29-starting-28-sites-stage']
+            self.assertEqual(staged['sha256'], walk.sha256(probes.SYNTHETIC_SITES))
+            self.assertEqual(saved['previous-28-sites-hash']['sha256'], staged['sha256'])
+            self.assertEqual(saved['release-29-sites-placeholder']['sha256'], walk.sha256(probes.PLACEHOLDER))
+            self.assertEqual(saved['release-29-chrome-first-use']['refusals'], probes.REFUSALS)
+            self.assertTrue(saved['release-29-chrome-first-use']['opened'])
+            self.assertEqual(saved['release-29-chrome-first-use']['page_server_hits'], 0)
+            self.assertEqual(model.session.tee_calls, 1)
+            self.assertFalse(model.session.Path(probes.STAGED_SITES).exists())
+            self.assertEqual(model.session.Path(probes.SITES).read_bytes(), probes.SYNTHETIC_SITES)
+            for stage, release in (('r29-starting-28', '28'), ('release-29', '29'),
+                                   ('previous-28', '28'), ('final-29', '29')):
+                with self.subTest(stage=stage):
+                    lines = saved[stage + '-control']['stdout'].splitlines()
+                    checks = json.loads(lines[0])
+                    self.assertEqual(set(checks), set(probes.receipt_settings()['control_checks'][release]))
+                    self.assertEqual(lines[1:-1], ['CONTROL_CHROME_SITES_SHA256 ' + staged['sha256']] if release == '29' else [])
+                    self.assertIn('masked.service', saved[stage + '-control-login']['graph'])
+                    self.assertEqual(saved[stage + '-session']['theme'], probes.THEMES[release])
+                    self.assertEqual(saved[stage + '-terminal-path']['path'], vm.DAILY_PATH)
+                    self.assertEqual(saved[stage + '-polkit-sweep']['session_active'], 'yes')
+                    self.assertTrue(saved[stage + '-package21-rules']['sudo_n_refused'])
+            game = saved['final-29-game-scope']
+            self.assertEqual(game['memory_high'], '2684354560')
+            self.assertTrue(game['in_scope'])
+            order = list(saved)
+            self.assertLess(order.index('release-29-sites-placeholder'), order.index('release-29-chrome-first-use'))
+            self.assertLess(order.index('release-29-chrome-first-use'), order.index('release-29-control'))
+            self.assertLess(order.index('final-29-control'), order.index('final-29-control-login'))
+            self.assertLess(order.index('final-29-control-login'), order.index('final-29-game-scope'))
+            self.assertNotIn('release-29-game-scope', saved)
+
+    def test_terminal_uses_same_pid_and_retries_only_for_a_missing_monitor(self):
+        with self.model('late-monitor') as model:
+            model.run_route()
+            terminal = model.saved['release-28-terminal']
+            first, second = terminal['attempts']
+            self.assertIn('no monitors available', first['log'])
+            self.assertEqual(first['survived'], [])
+            self.assertEqual(second['started'], second['survived'])
+            self.assertEqual(terminal['pid'], int(second['survived'][0]))
+        for fault, (message, launches) in TERMINAL_FAILURES.items():
+            with self.subTest(fault=fault), self.model(fault) as model:
+                with self.assertRaisesRegex(AssertionError, message):
+                    model.run_route()
+                self.assertEqual(model.session.launches, launches)
+                self.assertEqual(len(model.saved['release-28-terminal']['attempts']), launches)
+                self.assertEqual(model.events[-1], ('release-28', 'audit'))
+
+    def test_control_stops_on_bad_state_and_saves_its_actual_results(self):
+        for fault, (error, stage, diagnostic) in CONTROL_FAILURES.items():
+            with self.subTest(fault=fault), self.model(fault) as model:
+                with self.assertRaisesRegex(AssertionError, error):
+                    model.run_route()
+                self.assertIn(diagnostic, model.saved)
+                self.assertEqual(model.events[-1], (stage, 'audit'))
+                if fault == 'missing-check':
+                    self.assertNotIn(stage + '-control-login', model.saved)
+                if fault == 'gate-reached-page':
+                    self.assertEqual(model.saved[diagnostic]['page_server_hits'], 1)
+                    self.assertEqual(model.session.tee_calls, 0)
+
+    def test_theme_font_privilege_and_game_failures_are_retained(self):
+        cases = [('theme', 'labwc theme differs', 'r29-starting-28-session'),
+                 ('fontconfig', 'fontconfig differs', 'r29-starting-28-session'),
+                 ('wheel', 'ares_in_wheel', 'r29-starting-28-package21-rules'),
+                 ('polkit', 'beyond the reviewed list', 'r29-starting-28-polkit-sweep')]
+        for fault, error, diagnostic in cases:
+            with self.subTest(fault=fault), self.model(fault) as model, self.assertRaisesRegex(AssertionError, error):
+                try:
+                    if fault == 'theme':
+                        start = model.session.start
+
+                        def bad_theme(release, stage):
+                            start(release, stage)
+                            model.session.write('/usr/share/aresos/labwc/rc.xml',
+                                                '<labwc_config><theme><name>AresOS</name></theme></labwc_config>')
+
+                        model.session.start = bad_theme
+                    model.run_route()
+                finally:
+                    self.assertIn(diagnostic, model.saved)
+        for bad_value in ('max', '2684354559'):
+            with self.subTest(memory_high=bad_value), self.model() as model:
+                group = '/user.slice/user-1001.slice/user@1001.service/aresos.slice/aresos-game-fixture.scope'
+                model.session.write('/sys/fs/cgroup' + group + '/memory.high', bad_value)
+                with self.assertRaisesRegex(AssertionError, 'memory.high'):
+                    model.run_route()
+                self.assertEqual(model.saved['final-29-game-scope']['memory_high'], bad_value)
+        with self.model() as model:
+            model.session.write('/proc/4242/cgroup', '0::/user.slice/app.slice/fixture.scope\n')
+            model.session.write('/sys/fs/cgroup/user.slice/app.slice/fixture.scope/memory.high', '2684354560')
+            with self.assertRaisesRegex(AssertionError, 'JVM is not in its game scope'):
+                model.run_route()
+            self.assertFalse(model.saved['final-29-game-scope']['in_scope'])
+
+    def test_host_receipt_rejects_changed_settings_or_omitted_probe_sources(self):
+        settings = probes.receipt_settings()
+        receipt = dict(probe_settings=settings, sources=[dict(path=path) for path in
+                       (probes.CONTROL_CHECKER, probes.CHROME_FIRST_USE, probes.POLKIT_REVIEW, 'os/ci/release29_probes.py')])
+        probes.check_receipt(receipt)
+        with self.assertRaisesRegex(AssertionError, 'missing probe sources'):
+            probes.check_receipt(dict(receipt, sources=receipt['sources'][1:]))
+        wrong = dict(settings, control_checks={'28': list(probes.SERVICE_CHECKS)})
+        with self.assertRaisesRegex(AssertionError, 'probe settings differ'):
+            probes.check_receipt(dict(receipt, probe_settings=wrong))
 
     def test_failed_start_may_retry_once_after_the_r28_save_gate(self):
         with self.model('recovery') as model:

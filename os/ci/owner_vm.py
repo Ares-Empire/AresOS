@@ -2359,6 +2359,7 @@ def main():
         # Package 42's rehearsal rebinds package 22d's tables (its record step, after a pass).
         td.save('42-bound-sources', bound_sources(walk['sources'], '42', '22d'))
     if mode == 'release-29':
+        release29_walk.probes.check_receipt(walk)
         phase = os.environ.get('RELEASE29_PHASE', 'baseline')
         assert phase in ('baseline', 'qualify'), 'STOP: unknown R29 walk phase'
         baseline = release29_walk.prepare(sys.modules[__name__], qualifying=phase == 'qualify')

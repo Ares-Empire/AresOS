@@ -333,7 +333,7 @@ out.update(labwc_argv=argv,rc=str(rc))
 out['theme']=ET.parse(rc).getroot().findtext('theme/name') if rc.is_file() else None
 out['themerc']=pathlib.Path('/usr/share/themes/'+str(out['theme'])+'/labwc/themerc').is_file()
 fonts={}
-for pattern in ('Space Grotesk','Space Grotesk:bold'):
+for pattern in @FONTS@:
     done=subprocess.run(AS_ARES+['/usr/bin/fc-match','-f','%{file}',pattern],capture_output=True,text=True)
     fonts[pattern]=done.stdout if done.returncode==0 else 'exit '+str(done.returncode)
 out['fonts']=fonts
@@ -548,9 +548,7 @@ def receipt_setting(receipt):
         'STOP: host walk Control setting differs from the VM driver'
 
 
-# The release checker is bound by the host receipt and passed through its documented stdin interface.
-CONTROL = '''import json, subprocess
-checked=subprocess.run(['/usr/bin/python3','-I','-',*@CHECKS@],input=@CHECKER@,capture_output=True,text=True,timeout=150)
+LOGIN_GRAPH = '''
 roots=['greetd.service','systemd-user-sessions.service']
 graph={}
 pending=list(roots)
@@ -562,7 +560,16 @@ while pending:
     row=dict(line.split('=',1) for line in shown.stdout.splitlines() if '=' in line)
     graph[name]=dict(status=shown.returncode,properties=row,stderr=shown.stderr)
     pending.extend(dep for key in ('After','Requires','Requisite','BindsTo') for dep in row.get(key,'').split() if dep not in graph)
-print(json.dumps(dict(release_checks=dict(status=checked.returncode,stdout=checked.stdout,stderr=checked.stderr),login=dict(roots=roots,graph=graph))))
+login=dict(roots=roots,graph=graph)
+'''
+
+# The release checker is bound by the host receipt and passed through its documented stdin interface.
+CHECK_CONTROL = '''import json, subprocess
+checked=subprocess.run(['/usr/bin/python3','-I','-',*@CHECKS@],input=@CHECKER@,capture_output=True,text=True,timeout=150)
+release_checks=dict(status=checked.returncode,stdout=checked.stdout,stderr=checked.stderr)
+'''
+CONTROL = CHECK_CONTROL + LOGIN_GRAPH + '''
+print(json.dumps(dict(release_checks=release_checks,login=login)))
 '''
 
 
@@ -579,6 +586,13 @@ def control(guest, stage, vm):
     results = json.loads(lines[0])
     assert set(results) == set(CONTROL_CHECKS) \
         and all(row['ok'] is True for row in results.values()), 'STOP: Control checks missing or failed'
+    validate_control_service(results)
+    login = value['login']
+    validate_login(login)
+    return dict(checks=results, login=login, checker_sha256=hashlib.sha256(source.encode()).hexdigest())
+
+
+def validate_control_service(results):
     user = results['service_user']['value']
     assert (user['uid'], user['gid'], user['group_gid']) == (250, 250, 250) \
         and user['users_with_250'] == user['groups_with_250'] == ['aresos-tools'], 'STOP: Control account differs'
@@ -597,7 +611,9 @@ def control(guest, stage, vm):
     for name, row in folders['folders'].items():
         assert row['exists'] is True and row['directory'] is True and row['link'] is False and row['uid'] == 1001 \
             and row['mode'] == '0700', 'STOP: Control daily folder metadata differs: ' + name
-    login = value['login']
+
+
+def validate_login(login, *, strict_requirements=False):
     assert login['roots'] == ['greetd.service', 'systemd-user-sessions.service'], 'STOP: missing login roots'
     graph = login['graph']
     pending, seen, masked_units, required = list(login['roots']), set(), set(), set()
@@ -628,7 +644,9 @@ def control(guest, stage, vm):
     assert set(graph) == seen, 'STOP: login graph has unvisited entries'
     assert not masked_units & required, 'STOP: login dependency query failed: a login unit requires masked ' \
         + ', '.join(sorted(masked_units & required))
-    return dict(checks=results, login=login, checker_sha256=hashlib.sha256(source.encode()).hexdigest())
+    if strict_requirements:
+        missing = sorted(name for name in required if graph[name]['properties'].get('LoadState') == 'not-found')
+        assert not missing, 'STOP: login requires missing units: ' + ', '.join(missing)
 
 
 def sites_hash(guest, stage):
@@ -646,7 +664,8 @@ def write_sites(guest, stage):
 
 def session(guest, stage, vm):
     """B.3's session checks on release 28."""
-    value = guest.capture_json(stage + '-session', vm.sw.framed('python3 -c ' + shlex.quote(program(SESSION, as_ares=AS_ARES))))
+    value = guest.capture_json(stage + '-session', vm.sw.framed('python3 -c ' + shlex.quote(
+        program(SESSION, as_ares=AS_ARES, fonts=('Space Grotesk', 'Space Grotesk:bold')))))
     vm.td.save(stage + '-session', value)
     assert value['labwc'] == 1, 'STOP: his labwc session is not running'
     assert value['theme'] == THEME and value['themerc'], "STOP: package 31's Ares-Crown is not labwc's theme: " + str(value['theme'])
@@ -688,13 +707,13 @@ def home_unchanged(before, after, *, prism_started=False):
                 'STOP: mutable instance metadata changed: ' + name
 
 
-def no_foot(console, guest, stage, vm):
+def no_foot(console, guest, stage, vm, *, reopen=None):
     """The lead's note: `at check` with no foot of ares STOPs with FOOT_STOP; then the Terminal app's foot again."""
     ended = end_foot(guest, stage, vm)
     stopped = console.run('check', stage + '-no-foot-check', expect_stop=True)
     assert FOOT_STOP in str(stopped['error']), 'STOP: check without foot did not stop with ' + FOOT_STOP + ': ' + str(stopped['error'])
     assert not any(row.get('mutation') for row in stopped['trace']), 'STOP: the stopped check changed something'
-    return dict(ended=ended['ended'], stop=str(stopped['error']), terminal=open_terminal(guest, stage, vm))
+    return dict(ended=ended['ended'], stop=str(stopped['error']), terminal=(reopen or open_terminal)(guest, stage, vm))
 
 
 def end_foot(guest, stage, vm):

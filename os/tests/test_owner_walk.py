@@ -617,6 +617,9 @@ class Release28Session:
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(data)
 
+    def probe_modules(self, modules, allowed):
+        """Let a later release supply its additional guest interfaces."""
+
     def execute(self, script, *, uid=0, argv=(), allow_exit=False):
         import builtins, io, subprocess, xml.etree.ElementTree as ET
 
@@ -641,6 +644,7 @@ class Release28Session:
             xml=SimpleNamespace(etree=SimpleNamespace(ElementTree=SimpleNamespace(
                 parse=lambda p: ET.ElementTree(ET.fromstring(p.read_text()))))))
         allowed = {'hashlib', 'json', 'stat', 're'}
+        self.probe_modules(modules, allowed)
 
         def imports(name, globals=None, locals=None, fromlist=(), level=0):
             key = 'xml' if name == 'xml.etree.ElementTree' else name

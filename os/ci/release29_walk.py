@@ -12,6 +12,7 @@ import installer_inspect
 import installer_webui
 import registry_auth
 import release28_walk as r28
+import release29_probes as probes
 import stock_image
 import tools_local
 
@@ -35,7 +36,7 @@ BASELINE_PATHS = (
     'os/ci/installer_webui.py', 'os/ci/keyboard_diagnostic.py', 'os/ci/keyboard_entries.py',
     'os/ci/keyboard_proof.py', 'os/ci/keyboard_vm.py', 'os/ci/offline_webui.py',
     'os/ci/prepare_two_disks.py', 'os/ci/qmp.py', 'os/ci/registry_auth.py', 'os/ci/rehearsal_auth.py',
-    'os/ci/release28_walk.py', 'os/ci/release29_walk.py', 'os/ci/reorder_probe.py',
+    'os/ci/release28_walk.py', 'os/ci/release29_walk.py', 'os/ci/release29_probes.py', 'os/ci/reorder_probe.py',
     'os/ci/serial_console.py', 'os/ci/serial_transport.py', 'os/ci/stock_image.py',
     'os/ci/switch_vm.py', 'os/ci/toolchain.json', 'os/ci/tools_local.py', 'os/ci/two_disk_vm.py',
     'os/ci/windows_marker.c',
@@ -347,7 +348,7 @@ class CandidateWalk(r28.Walk):
 
 def terminal(guest, stage, vm):
     r28.end_foot(guest, stage, vm)
-    return r28.open_terminal(guest, stage, vm)
+    return probes.open_terminal(guest, stage, vm)
 
 
 SAVE_GATE = '''import json,subprocess
@@ -415,6 +416,10 @@ def stage_candidate(vm, guest, console, route, release, confirmed, daily_passwor
     d27, stock_digest, stock = route['new_digest'], route['stock_digest'], route['stock']
     kept = r28.home(guest, 'r29-starting-28', vm, plant=True, write_saves=True)
     assert kept['planted'], 'STOP: starting R28 did not plant the apps fixture'
+    probes.session(guest, 'r29-starting-28', vm, '28')
+    probes.control(guest, 'r29-starting-28', vm)
+    sites = probes.stage_sites(guest, 'r29-starting-28', vm)
+    console.select()
     walk = CandidateWalk(vm, guest, daily_password, candidate, bootstrap=SimpleNamespace(**r28.bootstrap_of()))
     receipt = walk.install()
     before = [d28, d27, stock_digest]
@@ -442,7 +447,7 @@ def stage_candidate(vm, guest, console, route, release, confirmed, daily_passwor
     save_gate(vm, guest, 'r29-update-reboot')
     console.run('reboot', 'r29-update-reboot')
     vm.td.save('r29-tools-walk', dict(receipt=receipt, compared=walk.compared, dialogs=walk.dialogs))
-    return dict(home=kept, before=confirmed, staged=staged)
+    return dict(home=kept, before=confirmed, staged=staged, sites=sites)
 
 
 def boot_console(vm, guest, password, stage, commands, *, no_foot=False):
@@ -451,7 +456,7 @@ def boot_console(vm, guest, password, stage, commands, *, no_foot=False):
     console.login(password, stage)
     console.become_root(password, stage)
     if no_foot:
-        r28.no_foot(console, guest, stage, vm)
+        r28.no_foot(console, guest, stage, vm, reopen=probes.open_terminal)
     else:
         terminal(guest, stage, vm)
     checked = console.run('check', stage + '-check')
@@ -516,6 +521,9 @@ def complete_candidate(vm, audit, password, hashed, route, release, qualifying, 
             console, lines = boot_console(vm, guest, password, stage, candidate['commands'], no_foot=True)
             updated = confirm(vm, guest, console, stage, lines, 'Update', candidate['reference'], first, candidate)
             r28.home_unchanged(update['home'], r28.home(guest, stage, vm, write_saves=True), prism_started=True)
+            probes.session(guest, stage, vm, '29')
+            probes.first_use(guest, stage, vm, update['sites'])
+            probes.control(guest, stage, vm, expected_sites=update['sites'])
             previous = console.run('previous', 'r29-previous')
             assert 'Previous AresOS queued for the next start ' + release in vm.result_lines(previous)
             shape(vm, guest, 'r29-previous-queued', stock, back, d29, retained, queued=True)
@@ -532,6 +540,9 @@ def complete_candidate(vm, audit, password, hashed, route, release, qualifying, 
         console, lines = boot_console(vm, guest, password, stage, candidate['commands'])
         returned = confirm(vm, guest, console, stage, lines, 'Return', release, back, candidate)
         r28.home_unchanged(update['home'], r28.home(guest, stage, vm, write_saves=True), prism_started=True)
+        probes.session(guest, stage, vm, '28')
+        probes.control(guest, stage, vm)
+        probes.checked_sites(guest, stage, vm, update['sites'])
         forward = console.run('forward', 'r29-forward')
         assert 'Newest installed AresOS starts next ' + candidate['reference'] in vm.result_lines(forward)
         shape(vm, guest, 'r29-forward-queued', stock, first, d28, retained, queued=True)
@@ -548,6 +559,10 @@ def complete_candidate(vm, audit, password, hashed, route, release, qualifying, 
         console, lines = boot_console(vm, guest, password, stage, candidate['commands'])
         forwarded = confirm(vm, guest, console, stage, lines, 'Forward', candidate['reference'], first, candidate)
         r28.home_unchanged(update['home'], r28.home(guest, stage, vm, write_saves=True), prism_started=True)
+        probes.session(guest, stage, vm, '29')
+        probes.control(guest, stage, vm, expected_sites=update['sites'])
+        print('CONTROL_CHROME_SITES_REBOOT_PASS')
+        r28.game_scope(guest, stage, vm)
         console.logout(stage + '-logout')
     finally:
         vm.finish(guest, audit, stage)
@@ -556,7 +571,9 @@ def complete_candidate(vm, audit, password, hashed, route, release, qualifying, 
     first_start_passed = receipt['first_booted'] == d29
     td.save('release-29-deployment-walk', dict(receipt, status='passed' if first_start_passed else 'not-qualifying',
         booted=d29, retired=route['new_digest'], identities=retained, home_preserved=True,
-        confirmations=[updated, returned, forwarded], protected_disk_audits=True))
+        confirmations=[updated, returned, forwarded], protected_disk_audits=True,
+        chrome_sites_sha256=update['sites'], control_checks=list(probes.SERVICE_CHECKS + probes.CHROME_CHECKS),
+        game_scope_passed=True))
     assert first_start_passed, 'STOP: R29 did not boot on the first unattended start'
 
 

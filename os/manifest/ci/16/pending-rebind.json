@@ -21,7 +21,8 @@
     "18c-b step 6b checks fix: release 28's rehearsal selects the service checks explicitly; the stand-in checks and passes their arguments; the Chrome signature imports are local to that check and the build's gh hash check uses python3 -B.",
     "18c-b review round: main merged after R29's image package (B323) and T475; both sides' notes kept, the waiting files recomputed from the merged checkout.",
     "18c-b Chrome start diagnostics: failed Chrome actions return their start log and launch result",
-    "331 step 4: merge main through 18c-b and retain both sets of pending notes."
+    "331 step 4: merge main through 18c-b and retain both sets of pending notes.",
+    "331 step 4: bind qualifying session, Chrome first-use and rollback probes and preserve the historical route scans."
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -42,7 +43,7 @@
       "path": "os/ci/owner_media.py"
     },
     {
-      "sha256": "663d5ba3d82ecf400aceb7cf10ed35e7dcc544c743a3f3213bfb2a4a6d89c5bc",
+      "sha256": "49e64dbdfe82d2e68070e9a7794300e9c857f9d73cc935f2fd2469b257f10689",
       "path": "os/ci/owner_vm.py"
     },
     {
@@ -50,7 +51,7 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "fed859d42586ec5e8a6c4c83ca6fe8cec70ae77b77c9a083e2764b0eaecdbb0e",
+      "sha256": "4200687cf4638cbb51dec1bc4c80ad70ab751d1c54d6252642a37b7507dae1c7",
       "path": "os/ci/release28_walk.py"
     },
     {
@@ -58,7 +59,7 @@
       "path": "os/ci/tools_local.py"
     },
     {
-      "sha256": "4991b1d75be71af51e45de386ba5db4102b6bbb5fed8bbc6167084d186633000",
+      "sha256": "b837829d960b123ae66de0267a71d6730cc372e0652ba388c48181cd9c7ffdf0",
       "path": "os/ci/two_disk_vm.py"
     },
     {
@@ -78,7 +79,7 @@
       "path": "os/tests/test_owner_path.py"
     },
     {
-      "sha256": "01e903daf4b9eaab8c3dfbb5b4699a4ee7800965d055005e95778fb8c0e3534f",
+      "sha256": "77ae2abf2285df0f0e5a222535b5bb3608afe8293fe8bb1d6f597a082a284c3e",
       "path": "os/tests/test_owner_walk.py"
     }
   ],
