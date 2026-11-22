@@ -1,0 +1,13 @@
+1. **Blocking — X focus can move during release and leave the mouse snapping to the centre.** `mod/src/client/java/dev/aresos/client/WorldCapture.java:115`, `:126`, `:145`. The helper-loss handler releases owned capture even after the connected-world gate closes. But both release paths can see the game focused just before GLFW sees it unfocused. GLFW then records `CURSOR_NORMAL` while leaving its internal disabled-cursor window set. The queued `FocusOut` sees `CURSOR_NORMAL` and skips clearing that state. The mod shows the cursor and drops the X grab, but GLFW can still warp the pointer back to the centre on later polls. [GLFW cursor mode and event pump](https://github.com/glfw/glfw/blob/3.5.1/src/x11_window.c#L2599-L2709) · [GLFW FocusOut handling](https://github.com/glfw/glfw/blob/3.5.1/src/x11_window.c#L1629-L1650)
+
+2. **The Escape callback no longer re-enters GLFW’s event loop.** `mod/src/client/java/dev/aresos/client/WorldCapture.java:109`, `:123`, `:137`; `mod/src/client/java/dev/aresos/client/mixin/RenderSystemCaptureMixin.java:12`. A release requested inside the callback queues cleanup for the normal event pump. The fix adds no nested poll or wait.
+
+3. **The synthetic FocusOut no longer overwrites a racing FocusIn.** `mod/src/client/java/dev/aresos/client/WorldCapture.java:164`; `mod/src/client/java/dev/aresos/client/mixin/WindowHomeScreenMixin.java:34`. If the real FocusIn was processed first, the synthetic callback reads current X focus before Minecraft stores it. If the real FocusIn comes later, it sets Minecraft’s focus normally.
+
+4. **The new tests exercise the real paths they claim.** `mod/src/gametest/java/dev/aresos/test/WorldKeepsPointerClientGameTest.java:246`, `:259`, `:345`, `:462`. The test kills a separate helper over the real Unix socket, sends Escape through GLFW into Minecraft’s keyboard handler, and queues a real X FocusIn before the synthetic FocusOut before verifying click recapture. The helper-kill case holds X focus steady, so it misses finding 1. The existing log records these tests passing. This recheck was read-only.
+
+### Known limits / nits
+
+5. Pointer restoration remains best-effort when X focus stays elsewhere. GLFW skips `glfwSetCursorPos` while unfocused. I found no regression in the vanilla mouse path outside connected desktop worlds, on Windows, or on non-X11 backends. `mod/src/client/java/dev/aresos/client/WorldCapture.java:93`, `:109`, `:151`, `:183`. [GLFW cursor positioning](https://github.com/glfw/glfw/blob/3.5.1/src/input.c#L754-L780)
+
+NOT SAFE

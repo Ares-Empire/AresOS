@@ -64,6 +64,7 @@ KEYS = dict(esc=1, tab=15, enter=28, space=57, slash=53, f4=62, f11=87, f3=61, m
             **{c: k for c, k in zip('1234567890', range(2, 12))}, **{c: k for c, k in zip('qwertyuiop', range(16, 26))},
             **{c: k for c, k in zip('asdfghjkl', range(30, 39))}, **{c: k for c, k in zip('zxcvbnm', range(44, 51))})
 MODS = dict(shift=1, ctrl=4, alt=8, super=64)
+LAYOUT = tuple(int(v) for v in os.environ.get('ARESOS_POINTER_LAYOUT', '1280x720').split('x'))
 now = lambda: int(time.monotonic() * 1000) & 0xffffffff
 def key(code, state):
     send(kb, 1, struct.pack('=III', now(), code, state))
@@ -86,7 +87,8 @@ for line in sys.stdin:
     elif words[0] == 'rel':
         send(pt, 0, struct.pack('=Iii', now(), int(float(words[1])*256), int(float(words[2])*256))); send(pt, 4)
     elif words[0] == 'move':
-        send(pt, 1, struct.pack('=IIIII', now(), int(words[1]), int(words[2]), 1280, 720)); send(pt, 4)
+        # Compositor coordinates over the whole layout: two outputs side by side since package 328.
+        send(pt, 1, struct.pack('=IIIII', now(), int(words[1]), int(words[2]), *LAYOUT)); send(pt, 4)
     elif words[0] in ('click', 'button'):
         code = {'left': 0x110, 'right': 0x111}[words[1]]
         states = [1, 0] if words[0] == 'click' else [1 if words[2] == 'down' else 0]

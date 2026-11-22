@@ -34,6 +34,7 @@ public final class ShellFocusClient {
                     Minecraft.getInstance().schedule(() -> {
                         HomeScreen.appInFront(false);
                         HomePointer.reset();
+                        WorldCapture.helperLost(Minecraft.getInstance());
                     });
             }
 
@@ -54,6 +55,7 @@ public final class ShellFocusClient {
 
     /** An app took the foreground, or the helper handed focus back to the hub. */
     public static void apply(Minecraft client, ShellClient.Focus focus) {
+        WorldCapture.worldFocused(focus.foreground());
         // Keys held while focus moved (walking into a logo, the click that opened it) never see their release.
         KeyMapping.releaseAll();
         AppInput.reset();
