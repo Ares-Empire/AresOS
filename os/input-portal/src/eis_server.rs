@@ -17,6 +17,7 @@ use reis::{
     PendingRequestResult,
 };
 use std::{
+    collections::BTreeSet,
     os::fd::{AsFd, OwnedFd},
     os::unix::net::UnixStream,
     sync::{Arc, RwLock},
@@ -136,6 +137,7 @@ struct Devices {
     keyboard: Option<reis::request::Device>,
     pointer: Option<reis::request::Device>,
     emulating: bool,
+    pressed_keys: BTreeSet<u32>,
     /// The seat the receiver bound, and which devices (pointer, keyboard) it may
     /// have there: kept so the devices can be made again when the screens change.
     seat: Option<reis::request::Seat>,
@@ -196,6 +198,7 @@ impl Devices {
             device.remove();
         }
         self.emulating = false;
+        self.pressed_keys.clear();
         self.ensure(conn, sequence, keymap, region);
     }
 
@@ -221,6 +224,20 @@ impl Devices {
             EisCommand::StopEmulating => {
                 if !self.emulating {
                     return;
+                }
+                // The Deskflow receiver doesn't release keys on StopEmulating. The
+                // compositor takes the release chord's key-up events after giving
+                // the keyboard back, so close the client's frame while it still
+                // has the emulated keyboard. Off already closed the forwarding gate.
+                let pressed = std::mem::take(&mut self.pressed_keys);
+                if sharing && !pressed.is_empty()
+                    && let Some(device) = &self.keyboard
+                    && let Some(keyboard) = device.interface::<eis::Keyboard>()
+                {
+                    for key in pressed {
+                        keyboard.key(key, eis::keyboard::KeyState::Released);
+                    }
+                    device.frame(u64::try_from(started.elapsed().as_micros()).unwrap_or(u64::MAX));
                 }
                 for dev in [self.pointer.as_ref(), self.keyboard.as_ref()]
                     .into_iter()
@@ -288,6 +305,11 @@ impl Devices {
                     .as_ref()
                     .and_then(reis::request::Device::interface::<eis::Keyboard>)
                 {
+                    if *press {
+                        self.pressed_keys.insert(*keycode);
+                    } else {
+                        self.pressed_keys.remove(keycode);
+                    }
                     k.key(
                         *keycode,
                         if *press {

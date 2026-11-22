@@ -1554,7 +1554,25 @@ def test10_shortcuts(fe, admin):
     check(T, "the capture held through all of them: no Deactivated, and the local window got nothing",
           not fe.sig("Deactivated", session.path, mark) and not leaked, f"{leaked}")
 
-    # The second marked chord (the first, Super+Shift+Escape, is test3's and test9's): out, and the terminal.
+    # Keep the physical modifiers down until the receiver has stopped. Their releases must come from EIS,
+    # because the physical key-up events after teardown belong to the compositor.
+    seen = len(session.eis())
+    vkbd.cmd(f"key {SUPER} 1")
+    vkbd.cmd(f"key {SHIFT} 1")
+    vkbd.cmd(f"key {ESC} 1")
+    try:
+        stopped = wait_for(lambda: any(line.startswith("STOP") for line in session.eis()[seen:]), 3)
+        check(T, "the release chord sends releases for both held modifiers before StopEmulating",
+              stopped and in_order(session.eis()[seen:], [f"KEY {SUPER} 1", f"KEY {SHIFT} 1",
+                                                        f"KEY {SHIFT} 0", f"KEY {SUPER} 0", "STOP*"]),
+              f"{session.eis()[seen:]}")
+    finally:
+        for code in (ESC, SHIFT, SUPER):
+            vkbd.cmd(f"key {code} 0")
+    mark = len(fe.signals)
+    check(T, "a new capture starts after releasing the held modifiers", capture(session))
+
+    # The second marked chord releases the capture and opens the terminal.
     opened, got_key = recovery_window()
     ended = wait_for(lambda: fe.sig("Deactivated", session.path, mark), 3)
     check(T, "during a capture Super+Ctrl+Escape releases it and opens the recovery window",
