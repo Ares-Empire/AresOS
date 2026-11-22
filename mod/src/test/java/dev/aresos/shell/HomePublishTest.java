@@ -106,7 +106,7 @@ class HomePublishTest {
                 client.home(town("notepad"));
                 int heartbeats = helper.received("heartbeat").size();
                 FakeHelper.await(() -> helper.received("heartbeat").size() >= heartbeats + 2, "legacy messages");
-                assertEquals(2, helper.received("hello").getFirst().get("minor").getAsInt());
+                assertEquals(3, helper.received("hello").getFirst().get("minor").getAsInt());
                 assertFalse(client.tracksHome());
                 assertTrue(helper.received("publish_home").isEmpty());
             }

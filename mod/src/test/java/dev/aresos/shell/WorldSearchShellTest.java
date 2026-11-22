@@ -60,7 +60,7 @@ class WorldSearchShellTest {
     @Test void minor2IsNegotiatedAndShellSearchOfferedBothWays() throws Exception {
         connect();
         var hello = helper.received("hello").getFirst();
-        assertEquals(2, hello.get("minor").getAsInt());
+        assertEquals(3, hello.get("minor").getAsInt());
         assertTrue(hello.getAsJsonArray("capabilities").contains(new com.google.gson.JsonPrimitive("shell_search")));
         // The example desktop hello offers what the mod offers.
         var offered = example("desktop-hello-request").getAsJsonArray("capabilities");
