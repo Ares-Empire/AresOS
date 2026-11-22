@@ -455,10 +455,18 @@ reboot
 
 
 def live_inventory(guest, stage):
-    release = json.loads(pathlib.Path('os/manifest/release.json').read_text())
-    assert release['reference'] == REFERENCE
-    verify = pathlib.Path('os/release/verify.sh').read_text().replace('@REFERENCE@', REFERENCE).replace('@IDENTITY@', release['signature']['identity'])
-    if os.environ.get('REHEARSAL_PACKAGE') in ('14', '16', '27', '22c', '22d', '42'):
+    package = os.environ.get('REHEARSAL_PACKAGE')
+    if package == '331':
+        from registry_auth import (BASELINE_REGISTRY, baseline_run, check_baseline_registry,
+                                   historical_records, require_baseline_dispatch)
+        require_baseline_dispatch()
+        records = historical_records()
+        check_baseline_registry(json.loads(BASELINE_REGISTRY.read_bytes()), records, baseline_run())
+        release = json.loads(records['13'])
+    else:
+        release = json.loads(pathlib.Path('os/manifest/release.json').read_text())
+        assert release['reference'] == REFERENCE
+    if package in ('14', '16', '27', '22c', '22d', '42'):
         # The unchanged cryptographic check runs natively before the offline VM.
         # A guest cosign pull here would violate the link-down installer route.
         proof = json.loads(pathlib.Path('evidence/private-release-signature-proof.json').read_text())
@@ -467,9 +475,10 @@ def live_inventory(guest, stage):
         assert proof['identity'] == release['signature']['identity'] and proof['issuer'] == release['signature']['issuer']
         assert proof['sha'] == os.environ['GITHUB_SHA']
         assert __import__('hashlib').sha256(signatures).hexdigest() == proof['signature_sha256']
-    else:
+    elif package != '331':
+        verify = pathlib.Path('os/release/verify.sh').read_text().replace('@REFERENCE@', REFERENCE).replace('@IDENTITY@', release['signature']['identity'])
         guest.command(stage + '-release-signature', verify, timeout=180)
-    save(stage + '-release-signature-proof', dict(status='passed', reference=REFERENCE,
+    save(stage + '-release-signature-proof', dict(status='passed', reference=release['reference'],
         identity=release['signature']['identity'], issuer=release['signature']['issuer'],
         diagnostics='private; only fixed proof fields exported'))
     # Before anything reads the ISO's stock cache: the base image takes its place (stock_image.py).

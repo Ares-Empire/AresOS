@@ -272,8 +272,8 @@ def real_commit(head, standin, source='.', *, allow_deferred=False):
 class Walk(tools_local.Walk):
     """22d's dialog driver over this walk's stand-in origin: `main` at the stand-in for 634e1237 first."""
 
-    def __init__(self, vm, guest, ares_password, standin):
-        super().__init__(vm, guest, ares_password, standin, 'announced', standin['fingerprint'])
+    def __init__(self, vm, guest, ares_password, standin, *, bootstrap=None):
+        super().__init__(vm, guest, ares_password, standin, 'announced', standin['fingerprint'], bootstrap=bootstrap)
         self.compared = []
 
     def setup(self, stage):
@@ -705,32 +705,27 @@ def facts_27(vm):
     return record
 
 
-def rehearsal(vm, audit, media, password, hashed, ares_password, version_2, record, *, allow_deferred=False):
-    """The walk in the module docstring. vm: the running owner_vm module; record: release 28's record (bytes)."""
+def stage_update(vm, audit, media, password, hashed, ares_password, version_2, release_27, release_28,
+                 standin, *, commands=None, bootstrap=None, prepare_sites=False):
+    """Reach R27, install the reviewed v4 and v5 bundles, and stage R28 on the same disposable disks."""
     td, Console = vm.td, vm.Console
-    head = os.environ['GITHUB_SHA']
-    release_27 = facts_27(vm)
-    r27, r28 = release_27['reference'], json.loads(record)['reference']
-    standin = standin_origin(td.WORK / 'stand-in-28', record)
+    r27, r28 = release_27, release_28
     fingerprint = standin['fingerprint']
-    real = real_commit(head, standin, allow_deferred=allow_deferred)
-    announced_rows = [dict(standin=standin['commits'][key], real=V4_COMMIT if key == 'v4' else head if real['equal'] else None,
-                           bound={path: standin['hashes'][key][path] for path in BOUND}, guide=standin['hashes'][key][GUIDE],
-                           fingerprint=TOOLS_V4 if key == 'v4' else fingerprint, version=4 if key == 'v4' else TOOLS_VERSION)
-                      for key in ('v4', 'announced')]
-    route = vm.laptop_update(audit, media, password, hashed, bundle=(version_2, vm.TOOLS_V2), target=r27)
+    stick_commands = (commands[1], commands[2]) if commands else None
+    route = vm.laptop_update(audit, media, password, hashed, bundle=(version_2, vm.TOOLS_V2), target=r27,
+                             historical_commands=stick_commands)
     stock, stock_digest = route['stock'], route['stock_digest']
     d13, d27, d28 = route['old_digest'], route['new_digest'], r28.split('@')[1]
-    bootstrap = vm.bundle_module('bootstrap')
+    bootstrap = bootstrap or vm.bundle_module('bootstrap')
     routine_action = bootstrap.ACTIONS['tools-routine']
     entries = dict(folder='tools-folder', routine='tools-routine')
-    sites, controls = None, {}
+    sites = None
     guest = td.start_installed(password, hashed, 'release-27')
     try:
-        console, identities = vm.confirmed_update(guest, password, route)
+        console, identities = vm.confirmed_update(guest, password, route, commands=commands[2] if commands else None)
         console.passwd(ares_password, 'release-27-ares-password')
         Console(guest, 'tty4').ares_sudo(ares_password, 'release-27-ares-sudo')
-        walk = Walk(vm, guest, ares_password, standin)
+        walk = Walk(vm, guest, ares_password, standin, bootstrap=bootstrap)
         walk.setup('r28-setup')
         start = walk.state('r28-start')
         assert start['entry'] == 'tools-' + vm.TOOLS_V2 + '/at' and (start['journal'] is None or start['journal']['phase'] == 'complete'), \
@@ -776,31 +771,63 @@ def rehearsal(vm, audit, media, password, hashed, ares_password, version_2, reco
                     receipt=dict(source=receipt['source'], caller=receipt['caller'], previous_version=4))
 
         # B.2 (Chrome browser side only): the made-up sites list.
-        if CHROME_RIDES:
+        if prepare_sites:
             sites = write_sites(guest, 'r28-before-update')
 
         # B.3: the console's update box.
+        if commands:
+            console.commands = commands[5]
         console.select()
         update = console.run('update', 'r28-update')
         assert 'Signed exact release staged ' + r28 in vm.result_lines(update), 'STOP: release 28 was not staged'
-        vm.deployment_shape(vm.kb.deployment_snapshot(guest, 'r28-update-staged'), stock, [d28, d27, d13, stock_digest], staged=True)
+        staged, running = vm.deployment_shape(vm.kb.deployment_snapshot(guest, 'r28-update-staged'),
+                                              stock, [d28, d27, d13, stock_digest], staged=True)
+        assert running == d27 and staged[d27] == identities[d27], 'STOP: R27 changed while staging R28'
         console.run('title', 'r28-update-title')
         console.run('reboot', 'r28-update-reboot')
     finally:
         vm.finish(guest, audit, 'release-27')
 
+    return route, staged, walk, sites
+
+
+def confirm_boot(vm, guest, password, route, reference, *, commands=None):
+    """Check the first R28 boot and confirm its exact update through the console."""
+    digest = reference.split('@')[1]
+    identities, booted = vm.deployment_shape(vm.kb.deployment_snapshot(guest, 'release-28'), route['stock'],
+                                             [digest, route['new_digest'], route['stock_digest']])
+    assert booted == digest, 'STOP: release 28 did not start'
+    vm.keyboard(guest, 'release-28', 'de')
+    console = vm.Console(guest, commands=commands)
+    console.login(password, 'release-28')
+    console.become_root(password, 'release-28')
+    checked = console.run('check', 'release-28-check')
+    titled = console.run('title', 'release-28-title')
+    assert 'Update to ' + reference + ' confirmed after the restart' in vm.result_lines(checked, titled), 'STOP: update not confirmed'
+    return console, identities
+
+
+def rehearsal(vm, audit, media, password, hashed, ares_password, version_2, record, *, allow_deferred=False):
+    """The walk in the module docstring. vm: the running owner_vm module; record: release 28's record (bytes)."""
+    td, Console = vm.td, vm.Console
+    head = os.environ['GITHUB_SHA']
+    release_27 = facts_27(vm)
+    r27, r28 = release_27['reference'], json.loads(record)['reference']
+    standin = standin_origin(td.WORK / 'stand-in-28', record)
+    fingerprint = standin['fingerprint']
+    real = real_commit(head, standin, allow_deferred=allow_deferred)
+    announced_rows = [dict(standin=standin['commits'][key], real=V4_COMMIT if key == 'v4' else head if real['equal'] else None,
+                           bound={path: standin['hashes'][key][path] for path in BOUND}, guide=standin['hashes'][key][GUIDE],
+                           fingerprint=TOOLS_V4 if key == 'v4' else fingerprint, version=4 if key == 'v4' else TOOLS_VERSION)
+                      for key in ('v4', 'announced')]
+    route, _, walk, sites = stage_update(vm, audit, media, password, hashed, ares_password, version_2, r27, r28, standin,
+                                         prepare_sites=CHROME_RIDES)
+    stock, stock_digest = route['stock'], route['stock_digest']
+    d27, d28 = route['new_digest'], r28.split('@')[1]
+    controls = {}
     guest = td.start_installed(password, hashed, 'release-28')
     try:
-        # Package 22's JUDGMENT-CALL 1: the update removed release 13 at its shutdown, nothing else.
-        identities, booted = vm.deployment_shape(vm.kb.deployment_snapshot(guest, 'release-28'), stock, [d28, d27, stock_digest])
-        assert booted == d28, 'STOP: release 28 did not start'
-        vm.keyboard(guest, 'release-28', 'de')
-        console = Console(guest)
-        console.login(password, 'release-28')
-        console.become_root(password, 'release-28')
-        checked = console.run('check', 'release-28-check')
-        titled = console.run('title', 'release-28-title')
-        assert 'Update to ' + r28 + ' confirmed after the restart' in vm.result_lines(checked, titled), 'STOP: update not confirmed'
+        console, identities = confirm_boot(vm, guest, password, route, r28)
         rules = vm.release_rules(guest, 'release-28')
         seen = session(guest, 'release-28', vm)
         if CONTROL_RIDES:

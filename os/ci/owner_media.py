@@ -30,6 +30,10 @@ def digest(path):
 
 
 def require_runner():
+    if os.environ.get('REHEARSAL_PACKAGE') == '331':
+        from registry_auth import require_baseline_dispatch
+        require_baseline_dispatch()
+        return
     assert os.environ.get('GITHUB_ACTIONS') == 'true'
     assert os.environ.get('GITHUB_REPOSITORY') == 'Ares-Empire/AresOS'
     assert ((os.environ.get('GITHUB_REF_NAME'),os.environ.get('REHEARSAL_PACKAGE')) == ('pkg/14-owner-tools','14') or

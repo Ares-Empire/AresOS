@@ -1530,7 +1530,7 @@ def owner_scripts(guest, stage, commit=None, homebrew_stage='aresos'):
     return policy, hashes[0]
 
 
-def laptop_update(audit, media, password, hashed, bundle=None, target=None):
+def laptop_update(audit, media, password, hashed, bundle=None, target=None, *, historical_commands=None):
     """The laptop's history up to the restart into the new release (package 27's route, unchanged).
 
     Steps 4 to 6 with the laptop's 15f tools, then step 8 on release 13: the newer tools through the
@@ -1549,7 +1549,8 @@ def laptop_update(audit, media, password, hashed, bundle=None, target=None):
                          .read_text())['releases']
     assert [r['reference'] for r in history[-2:]] == [old, new] and history[-1]['daily_wheel'] is True
     # Steps 4 to 6 as on 2026-11-08/09, with the laptop's own tools.
-    stock, brew = prepare_and_switch(audit, media, password, hashed, old, laptop_commands())
+    first_commands = historical_commands[0] if historical_commands else laptop_commands()
+    stock, brew = prepare_and_switch(audit, media, password, hashed, old, first_commands)
     stock_digest = stock['container-image-reference-digest']
     if bundle is None:
         media.replace('update-windows-copy')
@@ -1559,7 +1560,8 @@ def laptop_update(audit, media, password, hashed, bundle=None, target=None):
         media.replace('update-windows-copy', source=bundle[0])
         assert media.fingerprint == bundle[1]
         # As laptop_commands(): only the fingerprint line of the bootstrap differs between bundles.
-        commands = dict(COMMANDS, install=bundle_module('bootstrap').command(bundle[1]))
+        commands = (historical_commands[1] if historical_commands else
+                    dict(COMMANDS, install=bundle_module('bootstrap').command(bundle[1])))
     guest = td.start_installed(password, hashed, 'release-13')
     try:
         snapshot = kb.deployment_snapshot(guest, 'release-13')
@@ -1567,7 +1569,7 @@ def laptop_update(audit, media, password, hashed, bundle=None, target=None):
         assert sw.booted_digest(snapshot['bootc']) == old_digest
         first = {d['container-image-reference-digest']: ke.key(d) for d in snapshot['rpm']['deployments']}
         keyboard(guest, 'release-13', 'de')
-        console = Console(guest, commands=laptop_commands())
+        console = Console(guest, commands=first_commands)
         console.login(password, 'release-13')
         console.become_root(password, 'release-13')
         console.run('check', 'release-13-check')
@@ -1598,7 +1600,7 @@ def laptop_update(audit, media, password, hashed, bundle=None, target=None):
                 brew=brew, first=first)
 
 
-def confirmed_update(guest, password, route):
+def confirmed_update(guest, password, route, *, commands=None):
     """The new release's first start: the reviewed list, then `check` and `title` confirm the update.
 
     Returns the root console on tty3 and the three deployments' identities by digest.
@@ -1608,7 +1610,7 @@ def confirmed_update(guest, password, route):
     assert booted == route['new_digest'] and identities[route['old_digest']] == route['first'][route['old_digest']], \
         'STOP: the update did not boot the new release'
     keyboard(guest, 'release-27', 'de')
-    console = Console(guest)
+    console = Console(guest, commands=commands)
     console.login(password, 'release-27')
     console.become_root(password, 'release-27')
     checked = console.run('check', 'release-27-check')
@@ -2297,7 +2299,7 @@ def bound_sources(walk_sources, package='27', before='16'):
 def main():
     global PROBE_MEDIA
     mode, = sys.argv[1:]
-    assert mode in ('probe', 'owner-tools', 'update', 'reorder-probe', 'ways-back', 'tools-local', 'release-28')
+    assert mode in ('probe', 'owner-tools', 'update', 'reorder-probe', 'ways-back', 'tools-local', 'release-28', 'release-29')
     from owner_media import require_runner
     require_runner()
     package=os.environ['REHEARSAL_PACKAGE']
@@ -2306,6 +2308,7 @@ def main():
     assert (package=='22c') == (mode in ('reorder-probe', 'ways-back')), 'STOP: the reorder probe and the ways-back rehearsal are package 22c only'
     assert (package=='22d') == (mode=='tools-local'), 'STOP: the tools-local rehearsal is package 22d only'
     assert (package=='42') == (mode=='release-28'), 'STOP: the release-28 rehearsal is package 42 only'
+    assert (package=='331') == (mode=='release-29'), 'STOP: the release-29 rehearsal is package 331 only'
     authorization = json.loads(pathlib.Path('evidence/'+package+'-dispatch-authorization.json').read_text())
     assert authorization['allowance'] == package and authorization['native']['status'] == 'passed'
     assert authorization['native']['sha'] == os.environ['GITHUB_SHA']
@@ -2319,6 +2322,8 @@ def main():
     walk_path={'16':'os/manifest/ci/16/host-walk.json','27':'os/manifest/ci/27/host-walk.json',
                '22c':'os/manifest/ci/22c/host-walk.json','22d':'os/manifest/ci/22d/host-walk.json',
                '42':'os/manifest/ci/42/host-walk.json'}.get(package,'os/manifest/ci/14/host-walk/result.json')
+    if mode == 'release-29':
+        walk_path = 'os/manifest/ci/331/host-walk.json'
     walk = json.loads(pathlib.Path(walk_path).read_text())
     assert walk['status'] == 'passed' and walk['stick_across_reboot'] is False
     assert isinstance(walk['sources'], list) and walk['sources']
@@ -2341,6 +2346,9 @@ def main():
         release28_walk.receipt_setting(walk)
         # Package 42's rehearsal rebinds package 22d's tables (its record step, after a pass).
         td.save('42-bound-sources', bound_sources(walk['sources'], '42', '22d'))
+    if mode == 'release-29':
+        import release29_walk
+        baseline = release29_walk.prepare(sys.modules[__name__])
     sw.WORK, sw.EVIDENCE = td.WORK, td.EVIDENCE
     td.Guest = sw.Guest = Guest
     Guest.order = 'protected-second'
@@ -2349,7 +2357,7 @@ def main():
         with (td.WORK / name).open('wb') as output:
             subprocess.run(['bsdtar', '-xOf', str(td.WORK / td.LIVE['filename']), 'images/pxeboot/' + name], stdout=output, check=True)
     media = Media()
-    if mode in ('update', 'reorder-probe', 'ways-back', 'tools-local', 'release-28'):
+    if mode in ('update', 'reorder-probe', 'ways-back', 'tools-local', 'release-28', 'release-29'):
         media.create(source=laptop_payload(td.WORK / 'laptop-tools'))
     else:
         media.create()
@@ -2419,6 +2427,14 @@ def main():
                                          laptop_payload(td.WORK / 'tools-version-2', TOOLS_V2_COMMIT, TOOLS_V2), record.read_bytes())
             finally:
                 del ares_password
+        elif mode == 'release-29':
+            daily_password = ''.join(secrets.choice(ARES_LETTERS) for _ in range(24))
+            print(f'::add-mask::{daily_password}', flush=True)
+            try:
+                release29_walk.rehearsal(sys.modules[__name__], audit, media, password, hashed, daily_password,
+                    laptop_payload(td.WORK / 'tools-version-2', TOOLS_V2_COMMIT, TOOLS_V2), baseline)
+            finally:
+                del daily_password
         else:
             qualification(audit, media, password, hashed)
     finally:

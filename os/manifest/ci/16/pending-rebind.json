@@ -7,10 +7,39 @@
     "42 merge retains main's newer VM and desktop supervisor",
     "42 final look: INSTALL-STATUS's R28 summary says rehearsed, and test_owner_path pins it",
     "T475: INSTALL-STATUS records the laptop on R28 (R13 earlier, R27 previous, R28 on the laptop); test_owner_path and test_owner_equality follow the new labels",
-    "T475 REVIEW-1: R28 published 2026-11-19; tools version 4 on the laptop 2026-11-17 to 2026-11-21, version 5 since"
+    "T475 REVIEW-1: R28 published 2026-11-19; tools version 4 on the laptop 2026-11-17 to 2026-11-21, version 5 since",
+    "331 step 3 historical walk through confirmed R28 with the released v5 tools and read-only baseline input checks."
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
+    {
+      "sha256": "66bad9047e3697fbc5b0524b88f4228fa4b4c7cc01a7c3693b3a14c29d0d5b4f",
+      "path": "os/ci/installer_webui.py"
+    },
+    {
+      "sha256": "0a9de4a59d1faca09ab5d620ac5645c3fde082075543180566c45236ee05073d",
+      "path": "os/ci/owner_media.py"
+    },
+    {
+      "sha256": "27b0d36a0df83990801e5c836db61a644f966acdf106f76b3b707ef23b29671d",
+      "path": "os/ci/owner_vm.py"
+    },
+    {
+      "sha256": "3ced8263d5dbb4255e26dffba5738933377c26bf9190d76587bd073cc445de01",
+      "path": "os/ci/registry_auth.py"
+    },
+    {
+      "sha256": "0655d9df0200c14b02d87d30a1cbda3c84f97f9fb624c36c79686a9ff09128af",
+      "path": "os/ci/release28_walk.py"
+    },
+    {
+      "sha256": "51a956e82522d2a0c4ef8bd526a83546bd22094e15741766d4a994ea78a67d15",
+      "path": "os/ci/tools_local.py"
+    },
+    {
+      "sha256": "b14dd6eb662e8c8d8dfd27d8db882f9b5fe6fe32f49e09b311bcb0d9547ecc28",
+      "path": "os/ci/two_disk_vm.py"
+    },
     {
       "sha256": "b9af8f7a4fe4a43db15f2d27b181ed442a9f86a90b47c0577a6183efb48117c4",
       "path": "os/ci/vm.py"
@@ -26,6 +55,10 @@
     {
       "sha256": "f5b8ba4051fc82ec1bc72d08bcb5fb5fefdfd6177f812dc52f7d2b3a1c73bbd8",
       "path": "os/tests/test_owner_path.py"
+    },
+    {
+      "sha256": "d38e785dfb16839e78ef3403133378a52f13cddb769f5e0b4ab5ece8ff443e0f",
+      "path": "os/tests/test_owner_walk.py"
     }
   ],
   "unwalked_commands": [],
