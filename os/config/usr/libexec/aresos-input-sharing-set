@@ -1,6 +1,5 @@
 #!/usr/bin/python3 -I
 """The pkexec entry point and the UI's read-only view of the sharing switch."""
-import fcntl
 import os
 import secrets
 import stat
@@ -63,7 +62,8 @@ def sharing_on():
 def set_switch(verb):
     try:
         with switch_directory(create=verb == 'on') as directory:
-            fcntl.flock(directory, fcntl.LOCK_EX)
+            # Each change is atomic in this root-owned directory. An advisory
+            # lock here would let an ordinary reader keep the owner from turning Off.
             try:
                 check_switch(os.stat(SWITCH, dir_fd=directory, follow_symlinks=False))
             except FileNotFoundError:

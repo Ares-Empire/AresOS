@@ -1,5 +1,7 @@
 """Exercise the installed switch logic against private directories and stub commands."""
 from contextlib import contextmanager
+from concurrent.futures import ThreadPoolExecutor
+import fcntl
 import os
 from pathlib import Path
 import runpy
@@ -54,6 +56,17 @@ class InputSharingTest(unittest.TestCase):
                         self.helper['set_switch'](verb)
                 self.switch.unlink()
         self.assertEqual(target.read_text(), 'on\n')
+
+    def test_off_does_not_wait_for_an_advisory_lock_on_its_public_directory(self):
+        self.helper['set_switch']('on')
+        with ThreadPoolExecutor() as executor:
+            fd = os.open(self.folder, self.helper['DIR_FLAGS'])
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX)
+                executor.submit(self.helper['set_switch'], 'off').result(timeout=2)
+            finally:
+                os.close(fd)
+        self.assertFalse(self.switch.exists())
 
     def test_invalid_arguments_are_refused_before_touching_files(self):
         with (patch('os.geteuid', return_value=0),
