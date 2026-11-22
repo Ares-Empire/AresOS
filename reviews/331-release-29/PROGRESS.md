@@ -782,3 +782,57 @@ remain for the hosted baseline. Qualification still needs the real R29
 record and exact candidate payload after publishing. The owner's live
 world close and save, Terminal with the world open and physical boot menu
 remain manual checks. All effective caps are zero at handoff.
+
+## Done · step 5 slice B REVIEW-10 fixes · 2026-11-22
+
+Started at `3a7bd3a665250f2740bb9d5618fbdb24d99268b4` on `pkg/331-release-29`.
+
+- After authorization, the qualifying job validates the publish URL in the
+  checked-in R29 record and passes its exact run ID and the job token to the
+  pinned artifact download action. It uses the `os-image-evidence` name and
+  root `release.json` path used by prior publishes. The verifier compares the
+  artifact's digest and full record against the candidate before the native
+  checks, signature checks and VM walk. Fixtures accept the matching record
+  and refuse a missing artifact, a wrong run ID and a different digest with
+  the same signing identity.
+- Both R29 walk mode names now reach the exact package 331 guard through
+  `owner_media.require_runner()`, including the capability, device and kernel
+  counter entry points. Fixtures accept the exact dispatch context for both
+  modes and refuse a package 14 context before reaching any native probe.
+- Refreshed five hashes in the 314-row host receipt and the affected pending
+  bindings. The pending list has 23 files and zero removals.
+
+### Verified locally
+
+Ran `python3 -m unittest discover -s os/tests -p <module>.py` from the
+repository root, one module at a time, with `TMPDIR` in `.work/tmp`.
+
+| Module | Result |
+| --- | --- |
+| `test_release29_workflow.py` | `Ran 15 tests in 0.132s`, `OK` |
+| `test_release29_rehearsal.py` | `Ran 26 tests in 30.959s`, `OK`, with the three Control Chrome PASS markers from fixtures |
+| `test_owner_media.py` | `Ran 6 tests in 0.213s`, `OK` |
+| `test_owner_capabilities.py` | `Ran 6 tests in 0.180s`, `OK` |
+| `test_owner_devices_native.py` | `Ran 14 tests in 1.807s`, `OK` |
+| `test_owner_counter_flush.py` | `Ran 7 tests in 0.048s`, `OK`, with `COUNTER_KERNEL_PROOF guest-required guest-before-hidden-input` from the fixture |
+| `test_ci_api_permissions.py` | `Ran 4 tests in 4.030s`, `OK` |
+| `test_ci_step_environment.py` | `Ran 4 tests in 20.748s`, `OK` |
+| `test_checkout_sources.py` | `Ran 10 tests in 1.046s`, `OK` |
+| `test_release27.py` | `Ran 41 tests in 6.739s`, `OK` |
+| `test_release28_rehearsal.py` | `Ran 44 tests in 36.171s`, `OK` |
+
+YAML parsing and `bash -n` passed for all 103 workflow shell steps with
+expressions rendered as fixture values. Six local cases exercised the actual
+run-ID step, including refusal of an absent ID, an attempt URL, another
+repository and a preexisting download directory. Source replay and raw-byte
+checks validated all 314 host receipt rows. `git diff --check` passed. There
+are no files over 500 MB in `.work/`.
+
+### Limits and next
+
+All ten caps are zero, and the publish stub stays read-only behind
+authorization. Ledger use for this round is zero dispatches and uploads.
+After recheck, the lead still owns the same-head checks and baseline preflight
+in the order above. Later qualification needs the real publish run's retained
+artifact and the exact candidate payload. Hosted artifact access and VM boot
+remain unverified.

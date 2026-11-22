@@ -88,21 +88,27 @@ class RegistryTest(unittest.TestCase):
                     patch.object(owner_devices.os, 'geteuid', return_value=0), \
                     patch.object(owner_devices, 'Observations'), patch.object(owner_devices, 'prove') as devices, \
                     patch.object(pathlib.Path, 'exists', return_value=False), patch.object(pathlib.Path, 'write_text'):
+                owner_media.require_runner()
                 with self.assertRaisesRegex(AssertionError, 'missing host capability tool'):
                     owner_capabilities.main()
                 owner_devices.main()
                 devices.assert_called_once()
                 owner_counter_kernel.native()
-        for changed in ({'GITHUB_REF': 'refs/tags/' + auth.BASELINE_BRANCH}, {'REHEARSAL_MODE': 'publish-29'}):
+        package14 = dict(REHEARSAL_PACKAGE='14', GITHUB_REF_NAME='pkg/14-owner-tools',
+                         GITHUB_REF='refs/heads/pkg/14-owner-tools')
+        for changed in ({'GITHUB_REF': 'refs/tags/' + auth.BASELINE_BRANCH}, {'REHEARSAL_MODE': 'publish-29'},
+                        *(package14 | {'REHEARSAL_MODE': mode} for mode in auth.R29_WALK_MODES)):
             with self.subTest(changed=changed), patch.dict(os.environ, ENV | changed, clear=True), \
                     patch.object(owner_devices, 'Observations'), patch.object(owner_devices, 'prove') as devices, \
-                    patch.object(owner_capabilities.shutil, 'which') as tool, patch.object(owner_counter_kernel, 'prove') as counter:
-                for script in (owner_capabilities.main, owner_devices.main, owner_counter_kernel.native):
-                    with self.assertRaisesRegex(AssertionError, 'R29 dispatch'):
+                    patch.object(owner_capabilities.shutil, 'which') as tool, patch.object(owner_counter_kernel, 'prove') as counter, \
+                    patch.object(pathlib.Path, 'exists', return_value=False) as exists, patch.object(pathlib.Path, 'write_text'):
+                for script in (owner_media.require_runner, owner_capabilities.main, owner_devices.main, owner_counter_kernel.native):
+                    with self.subTest(script=script.__module__), self.assertRaisesRegex(AssertionError, 'R29 dispatch'):
                         script()
                 tool.assert_not_called()
                 devices.assert_not_called()
                 counter.assert_not_called()
+                exists.assert_not_called()
 
     def test_vm_refuses_a_receipt_from_another_run_or_walk_before_host_access(self):
         dispatch = dict(mode=ENV['REHEARSAL_MODE'], commit=ENV['GITHUB_SHA'],

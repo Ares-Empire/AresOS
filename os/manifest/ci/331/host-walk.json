@@ -99,7 +99,7 @@
       "path": ".gitattributes"
     },
     {
-      "sha256": "f02469da1aa3cecda1f4a2d8fcf8f2939e7169a62f44deef6139ef77a5a1db7e",
+      "sha256": "5df767d1bebf69b88917655a8dbab81715b20ecb9629dfd8d38fdda15fbad749",
       "path": ".github/workflows/os-image.yml"
     },
     {
@@ -271,7 +271,7 @@
       "path": "os/ci/owner_console.py"
     },
     {
-      "sha256": "62db855cb2c72f3f1e858eaab1a33f281ed7a81df6e15ff15f2c47890fcc3468",
+      "sha256": "a03f590420e5e70081b0fc91ee7625a0c80a255c8b83d2d51d8dedd6f959a229",
       "path": "os/ci/owner_counter_kernel.py"
     },
     {
@@ -299,7 +299,7 @@
       "path": "os/ci/owner_login.py"
     },
     {
-      "sha256": "0a9de4a59d1faca09ab5d620ac5645c3fde082075543180566c45236ee05073d",
+      "sha256": "aa8051cc594b81ac94c5641bd43427961c2f76d8e9e3f1afa30242dc879d4948",
       "path": "os/ci/owner_media.py"
     },
     {
@@ -391,7 +391,7 @@
       "path": "os/ci/two_disk_vm.py"
     },
     {
-      "sha256": "a5725546f1e51f1fbeb32c433e49796b7d561c45ffb7b16d02c27f05db781fba",
+      "sha256": "5ea271b2dbc196cde2b30f0f93eb26891173ba6d6da910d0d867eadec152597d",
       "path": "os/ci/verify_release.py"
     },
     {
@@ -1283,7 +1283,7 @@
       "path": "os/tests/test_release28_rehearsal.py"
     },
     {
-      "sha256": "030d70e75e9e6a3e57dbed1d10e0f338f5ef38aec744a9990faf157a06134855",
+      "sha256": "cbfcdc07483ed95b1a604a31f218f82afaa46f0117ceda8199b0a1f08add6798",
       "path": "os/tests/test_release29_rehearsal.py"
     },
     {

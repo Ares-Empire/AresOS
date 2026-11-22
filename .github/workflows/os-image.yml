@@ -915,15 +915,32 @@ jobs:
           import release29_walk
           release29_walk.fetch_historical_sources(owner_vm)
           PY
+      - name: Read the exact R29 publish run ID
+        id: r29-publish
+        if: inputs.rehearsal == 'release-29'
+        run: |
+          set -euo pipefail
+          run_url=$(jq -er .run os/manifest/releases/29.json)
+          if [[ ! "$run_url" =~ ^https://github\.com/Ares-Empire/AresOS/actions/runs/([1-9][0-9]*)$ ]]; then
+            echo 'STOP: invalid R29 publish run URL'
+            exit 1
+          fi
+          [[ ! -e .work/r29-publish && ! -L .work/r29-publish ]]
+          echo "run-id=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        if: inputs.rehearsal == 'release-29'
+        with:
+          name: os-image-evidence
+          path: .work/r29-publish
+          run-id: ${{ steps.r29-publish.outputs.run-id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Verify the recorded R29 publish before the qualifying walk
         if: inputs.rehearsal == 'release-29'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REHEARSAL_MODE: release-29
-        run: |
-          set -euo pipefail
-          cp os/manifest/releases/29.json evidence/release.json
-          python3 os/ci/verify_release.py "$(jq -r .run evidence/release.json | sed 's|.*/||')"
+          RELEASE_RUN: ${{ steps.r29-publish.outputs.run-id }}
+        run: python3 os/ci/verify_release.py "$RELEASE_RUN"
       - uses: ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6
         with:
           extra-squeeze: 'true'

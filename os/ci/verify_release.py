@@ -17,7 +17,9 @@ if subprocess.check_output(['git', 'rev-parse', '--is-shallow-repository']).deco
 
 run_id = sys.argv[1]
 assert run_id.isdigit(), 'A numeric workflow run ID is required'
-release = json.loads(pathlib.Path('evidence/release.json').read_text())
+is_r29 = os.environ.get('REHEARSAL_PACKAGE') == '331'
+artifact = pathlib.Path('.work/r29-publish/release.json' if is_r29 else 'evidence/release.json')
+release = json.loads(artifact.read_text())
 source = release['source_commit']
 assert re.fullmatch(r'[0-9a-f]{40}', source), source
 assert re.fullmatch(r'ghcr\.io/(carlsenares|ares-empire)/aresos@sha256:[0-9a-f]{64}', release['reference'])
@@ -36,7 +38,7 @@ def api(suffix):
 
 run = api('')
 assert run['head_sha'] == source and run['path'] == '.github/workflows/os-image.yml', 'Original release run identity differs'
-if os.environ.get('REHEARSAL_PACKAGE') == '331':
+if is_r29:
     assert org and run['head_branch'] == 'pkg/331-release-29', 'STOP: package 331 requires its own candidate publish'
 job_listing = api('/jobs?per_page=100')
 assert job_listing['total_count'] == len(job_listing['jobs']) <= 100, 'Incomplete release job listing'
@@ -54,7 +56,9 @@ if run.get('head_branch') == 'pkg/331-release-29':
     from registry_auth import historical_records, r29_candidate
     from release_diff import IMAGE_SOURCES_29
     assert repository == release_repository == 'Ares-Empire/AresOS'
-    assert r29_candidate() == release, 'STOP: verified artifact differs from the R29 record'
+    candidate = r29_candidate()
+    assert candidate['reference'] == release['reference'], 'STOP: R29 candidate digest differs from the named publish artifact'
+    assert candidate == release, 'STOP: verified artifact differs from the R29 record'
     assert run['event'] == 'workflow_dispatch' and run['display_title'] == 'Package 29 image release'
     assert run['run_attempt'] == 1 and run['status'] == 'completed' and run['conclusion'] == 'success'
     job, = qualified

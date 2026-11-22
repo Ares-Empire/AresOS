@@ -30,7 +30,8 @@ def digest(path):
 
 
 def require_runner():
-    if os.environ.get('REHEARSAL_PACKAGE') == '331':
+    if (os.environ.get('REHEARSAL_PACKAGE') == '331'
+            or os.environ.get('REHEARSAL_MODE') in ('release-29-baseline', 'release-29')):
         from registry_auth import require_baseline_dispatch
         require_baseline_dispatch()
         return

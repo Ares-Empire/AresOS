@@ -165,11 +165,23 @@ class WorkflowTest(unittest.TestCase):
         job = WORKFLOW['jobs']['release-29-rehearsal']
         self.assertEqual(job['timeout-minutes'], '345')
         steps = job['steps']
+        authorize, = [i for i, step in enumerate(steps) if 'rehearsal_guard.py ci' in step.get('run', '')]
+        publish_id, = [i for i, step in enumerate(steps) if step.get('id') == 'r29-publish']
+        download, = [i for i, step in enumerate(steps) if step.get('uses', '').startswith('actions/download-artifact@')]
+        verify, = [i for i, step in enumerate(steps) if 'verify_release.py' in step.get('run', '')]
+        native, = [i for i, step in enumerate(steps) if 'owner_capabilities.py' in step.get('run', '')]
         registry, = [i for i, step in enumerate(steps) if 'registry_auth.py baseline' in step.get('run', '')]
         iso, = [i for i, step in enumerate(steps) if 'installer_inspect.py' in step.get('run', '')]
         vm, = [i for i, step in enumerate(steps) if 'owner_vm.py release-29' in step.get('run', '')]
-        self.assertLess(registry, iso)
-        self.assertLess(iso, vm)
+        order = [authorize, publish_id, download, verify, native, registry, iso, vm]
+        self.assertEqual(order, sorted(order))
+        run_id = '${{ steps.r29-publish.outputs.run-id }}'
+        self.assertIn('jq -er .run os/manifest/releases/29.json', steps[publish_id]['run'])
+        self.assertEqual(steps[download]['with'], {'name': 'os-image-evidence', 'path': '.work/r29-publish',
+                         'run-id': run_id, 'github-token': '${{ secrets.GITHUB_TOKEN }}'})
+        self.assertEqual(steps[verify]['env'], {'GH_TOKEN': '${{ secrets.GITHUB_TOKEN }}',
+                         'REHEARSAL_MODE': 'release-29', 'RELEASE_RUN': run_id})
+        self.assertEqual(steps[verify]['run'], 'python3 os/ci/verify_release.py "$RELEASE_RUN"')
         self.assertNotIn('timeout-minutes', steps[vm])
         self.assertNotIn('GHCR_READ_TOKEN', json.dumps(job))
         self.assertNotIn('publish.sh', json.dumps(job))
@@ -180,8 +192,8 @@ class WorkflowTest(unittest.TestCase):
                 self.assertEqual(LEDGER['job_bounds'][name], 345)
                 eligible = [s for s in steps if not s.get('if') or condition(s['if'], mode=mode,
                             **{'steps.evidence.outputs.safe': 'true'})]
-                verify = [s for s in eligible if 'verify_release.py' in s.get('run', '')]
-                self.assertEqual(len(verify), int(mode == 'release-29'))
+                for step in (publish_id, download, verify):
+                    self.assertEqual(steps[step] in eligible, mode == 'release-29')
                 receipts = [s['with']['name'] for s in eligible if 'receipt' in s.get('with', {}).get('name', '')]
                 self.assertEqual(receipts, ['release-29-baseline-receipt' if mode.endswith('baseline')
                                             else 'release-29-qualifying-receipt'])
@@ -407,9 +419,12 @@ class VerifyReleaseTest(unittest.TestCase):
         env = dict(GITHUB_ACTIONS='true', GITHUB_EVENT_NAME='workflow_dispatch', GITHUB_REPOSITORY=guard.REPOSITORY,
                    GITHUB_REF=REF, GITHUB_REF_NAME=BRANCH, REHEARSAL_PACKAGE='331', REHEARSAL_MODE='release-29')
         original_text, original_bytes = pathlib.Path.read_text, pathlib.Path.read_bytes
-        for near_miss in (None, 'baseline', 'tag', 'artifact', 'publish-step', 'attempt', 'source', 'old-run'):
+        for near_miss in (None, 'baseline', 'tag', 'artifact', 'missing-artifact', 'other-signed-digest',
+                          'publish-step', 'attempt', 'source', 'old-run', 'wrong-run-id'):
             def output(argv):
                 if argv[:2] == ['gh', 'api']:
+                    endpoint = 'repos/Ares-Empire/AresOS/actions/runs/29'
+                    self.assertIn(argv[-1], (endpoint, endpoint + '/jobs?per_page=100'))
                     if argv[-1].endswith('/jobs?per_page=100'):
                         changed = job | {'steps': [step | {'conclusion': 'skipped'}]} if near_miss == 'publish-step' else job
                         return json.dumps(dict(total_count=1, jobs=[changed])).encode()
@@ -423,24 +438,40 @@ class VerifyReleaseTest(unittest.TestCase):
                 return (('e' if near_miss == 'source' else 'd') * 40 + '\n').encode()
 
             def read_text(path, *args, **kwargs):
-                if path == pathlib.Path('evidence/release.json'):
-                    return json.dumps(record | ({'tag': 'unrelated'} if near_miss == 'artifact' else {}))
+                if path == pathlib.Path('.work/r29-publish/release.json'):
+                    if near_miss == 'missing-artifact':
+                        raise FileNotFoundError(path)
+                    change = {'tag': 'unrelated'} if near_miss == 'artifact' else {}
+                    if near_miss == 'wrong-run-id':
+                        change = {'run': record['run'].removesuffix('/29') + '/39'}
+                    return json.dumps(record | change)
+                self.assertNotEqual(path, pathlib.Path('evidence/release.json'))
                 return original_text(path, *args, **kwargs)
 
             def read_bytes(path):
                 if path == pathlib.Path('os/manifest/releases/29.json'):
+                    if near_miss == 'other-signed-digest':
+                        # The candidate uses the same signing identity and has its own successful digest read.
+                        other = 'ghcr.io/ares-empire/aresos@sha256:' + '39' * 32
+                        return json.dumps(record | dict(reference=other,
+                            job_token_read=record['job_token_read'] | {'reference': other})).encode()
                     return json.dumps(record).encode()
                 return original_bytes(path)
 
             context = {'REHEARSAL_MODE': 'release-29-baseline'} if near_miss == 'baseline' else (
                        {'GITHUB_REF': 'refs/tags/' + BRANCH} if near_miss == 'tag' else {})
             expected = AssertionError if near_miss else SystemExit
+            if near_miss == 'missing-artifact':
+                expected = FileNotFoundError
             with self.subTest(near_miss=near_miss), patch.dict(os.environ, env | context, clear=True), \
                     patch.object(sys, 'argv', ['verify_release.py', '29']), \
                     patch.object(pathlib.Path, 'read_text', read_text), patch.object(pathlib.Path, 'read_bytes', read_bytes), \
                     patch.object(subprocess, 'check_output', side_effect=output), \
                     patch.object(subprocess, 'run', return_value=subprocess.CompletedProcess([], 0)), \
-                    contextlib.redirect_stdout(io.StringIO()) as printed, self.assertRaises(expected):
+                    contextlib.redirect_stdout(io.StringIO()) as printed, self.assertRaises(expected) as stopped:
                 runpy.run_path('os/ci/verify_release.py', run_name='__main__')
             if near_miss is None:
+                self.assertEqual(stopped.exception.code, 0)
                 self.assertIn('Qualified R29 private publish', printed.getvalue())
+            elif near_miss == 'other-signed-digest':
+                self.assertIn('candidate digest differs from the named publish artifact', str(stopped.exception))
