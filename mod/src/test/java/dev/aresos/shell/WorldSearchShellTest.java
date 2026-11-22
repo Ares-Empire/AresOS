@@ -62,10 +62,13 @@ class WorldSearchShellTest {
         var hello = helper.received("hello").getFirst();
         assertEquals(3, hello.get("minor").getAsInt());
         assertTrue(hello.getAsJsonArray("capabilities").contains(new com.google.gson.JsonPrimitive("shell_search")));
-        // The example desktop hello offers what the mod offers.
+        // The 1.2 fixture still describes the whole hello apart from the two optional 1.3 additions.
         var offered = example("desktop-hello-request").getAsJsonArray("capabilities");
-        for (var name : ShellClient.CAPABILITIES) assertTrue(offered.contains(new com.google.gson.JsonPrimitive(name)), name);
-        assertEquals(offered.size(), ShellClient.CAPABILITIES.size());
+        offered.add("apps_state");
+        offered.add("activate_app");
+        assertEquals(offered, hello.getAsJsonArray("capabilities"));
+        FakeHelper.await(() -> !helper.received("heartbeat").isEmpty(), "first negotiated message");
+        assertEquals("aresos-shell/1.2", FakeHelper.string(helper.received("heartbeat").getFirst(), "protocol"));
         assertTrue(example("desktop-hello-reply").getAsJsonArray("capabilities").contains(new com.google.gson.JsonPrimitive("shell_search")));
     }
 
