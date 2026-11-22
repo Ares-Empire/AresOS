@@ -283,18 +283,25 @@ fn idle_timeout(raw: Option<&str>) -> std::time::Duration {
     }
 }
 
-/// Start the Wayland thread.
+/// Start a Wayland worker: a thread with its own connection to the compositor.
 ///
-/// Returns a handle for sending commands plus the stream of barrier events.
-
+/// Returns a handle for sending commands plus the stream of barrier events,
+/// once the worker has bound what it needs and taken its first snapshot of the
+/// screens. It is started only for a session the portal has authorized while
+/// sharing is on, and it stops (its connection, and every binding with it,
+/// goes) when the last [`WaylandHandle`] is dropped. A worker that is not ready
+/// within `within` is given up: a stopped compositor must not hold the caller.
 ///
 /// `gate` is read before every captured event is handed on: closed (sharing is
-/// off), nothing is forwarded or buffered.
-pub fn spawn(
+/// off), nothing is forwarded or buffered. `crossings` numbers the crossings of
+/// every worker of the process.
+pub async fn start(
     keymap: crate::eis_server::SharedKeymap,
     idle_timeout: std::time::Duration,
     screens: SharedScreens,
     gate: crate::sharing::Gate,
+    crossings: std::sync::Arc<std::sync::atomic::AtomicU64>,
+    within: std::time::Duration,
 ) -> Result<(WaylandHandle, mpsc::UnboundedReceiver<WaylandEvent>)> {
     let (cmd_tx, cmd_rx) = calloop::channel::channel::<WaylandCmd>();
     let (event_tx, event_rx) = mpsc::unbounded_channel::<WaylandEvent>();
@@ -302,22 +309,33 @@ pub fn spawn(
 
     thread::Builder::new()
         .name("wayland-barriers".into())
-        .spawn(move || match state::run(cmd_rx, event_tx, keymap, idle_timeout, screens, gate, &ready_tx) {
-            Ok(()) => info!("Wayland barrier thread stopped"),
+        .spawn(move || match state::run(cmd_rx, event_tx, keymap, idle_timeout, screens, gate, crossings, &ready_tx) {
+            Ok(()) => info!("Wayland worker stopped"),
             Err(err) => {
                 // If startup failed the error goes to `ready_rx`; a later failure
                 // has nobody left to report to, so log it here.
                 let _ = ready_tx.send(Err(anyhow::anyhow!("{err:#}")));
-                warn!("Wayland barrier thread failed: {err:#}");
+                warn!("Wayland worker failed: {err:#}");
             }
         })
         .context("failed to start the Wayland thread")?;
+    // Made before the wait: given up, it is dropped, and the worker that
+    // becomes ready later finds `Shutdown` waiting and stops.
+    let handle = WaylandHandle { cmd_tx };
 
-    ready_rx
-        .recv()
-        .context("Wayland thread exited before signalling readiness")??;
-
-    Ok((WaylandHandle { cmd_tx }, event_rx))
+    let ready = tokio::task::spawn_blocking(move || ready_rx.recv_timeout(within))
+        .await
+        .context("the wait for the Wayland worker failed")?;
+    match ready {
+        Ok(result) => result?,
+        Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+            anyhow::bail!("the compositor did not answer the Wayland worker within {within:?}")
+        }
+        Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
+            anyhow::bail!("the Wayland worker exited before signalling readiness")
+        }
+    }
+    Ok((handle, event_rx))
 }
 
 /// Whether another output lies directly against the stretch `lo..hi` of an

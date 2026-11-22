@@ -29,6 +29,10 @@ use smithay_client_toolkit::{
     },
     shm::{slot::SlotPool, Shm, ShmHandler},
 };
+use std::sync::{
+    atomic::{AtomicU64, Ordering},
+    Arc,
+};
 use tokio::sync::mpsc;
 use tracing::{debug, info, warn};
 use wayland_client::{
@@ -163,8 +167,10 @@ struct AppState {
     surfaces: Vec<BarrierSurface>,
     /// The session whose barriers `surfaces` are.
     armed_for: Option<Armed>,
-    /// The number the next crossing gets.
-    next_crossing: u64,
+    /// Where the next crossing's number comes from: shared by every worker of
+    /// the process, so a number is never used twice when a worker is started
+    /// again (a late notice of an earlier worker can't name a later crossing).
+    crossings: Arc<AtomicU64>,
     capture: Option<Capture>,
     /// Absent when the compositor does not advertise `ext-data-control`, which
     /// costs the clipboard but nothing else.
@@ -432,8 +438,7 @@ impl AppState {
         // like the pointer really left.
         pointer.set_cursor(self.last_enter_serial, None, 0, 0);
 
-        let crossing = self.next_crossing;
-        self.next_crossing += 1;
+        let crossing = self.crossings.fetch_add(1, Ordering::Relaxed);
         // Where it was crossed is the cursor's position and stays out of the log.
         info!(barrier = barrier_id, "barrier crossed, asking the compositor for the grab");
         self.capture = Some(Capture {
@@ -1226,6 +1231,7 @@ pub fn run(
     idle_timeout: std::time::Duration,
     screens: SharedScreens,
     gate: Gate,
+    crossings: Arc<AtomicU64>,
     ready: &std::sync::mpsc::Sender<Result<()>>,
 ) -> Result<()> {
     let conn = Connection::connect_to_env().context("failed to connect to the Wayland display")?;
@@ -1269,7 +1275,7 @@ pub fn run(
         screens,
         surfaces: Vec::new(),
         armed_for: None,
-        next_crossing: 1,
+        crossings,
         capture: None,
         clipboard,
         idle_timeout,
@@ -1290,8 +1296,13 @@ pub fn run(
     let cmd_conn = conn.clone();
     handle
         .insert_source(cmd_rx, move |event, (), state: &mut AppState| {
-            let calloop::channel::Event::Msg(cmd) = event else {
-                return;
+            let cmd = match event {
+                calloop::channel::Event::Msg(cmd) => cmd,
+                // Every handle is gone: nobody can send `Shutdown` any more.
+                calloop::channel::Event::Closed => {
+                    state.exit = true;
+                    return;
+                }
             };
             match cmd {
                 WaylandCmd::Arm {

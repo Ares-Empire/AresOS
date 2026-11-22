@@ -148,24 +148,11 @@ async fn serve() -> Result<()> {
     // Closed until a read of the sharing switch says on.
     let gate = sharing::Gate::default();
 
-    // Fails here, with a clear message, when there is no compositor or it lacks
-    // a protocol the backend needs.
-    let (wayland, wayland_events) = wayland::spawn(keymap.clone(), idle_timeout, screens.clone(), gate.clone())
-        .context("failed to start the Wayland barrier thread")?;
-    for screen in &screens.current().screens {
-        info!(
-            "screen {}: {}x{} at ({}, {}) scale {} {:?}",
-            screen.name,
-            screen.zone.width,
-            screen.zone.height,
-            screen.zone.x,
-            screen.zone.y,
-            screen.scale,
-            screen.transform
-        );
-    }
-
-    let (state, eis_closed) = portal::State::new(std::sync::Arc::new(wayland), screens, keymap, gate);
+    // No Wayland connection yet: the worker starts for the first session the
+    // portal authorizes while sharing is on, and stops when sharing goes off or
+    // no session needs it (`portal.rs`, `Worker`). Until then the bus side only
+    // answers the frontend and refuses sessions.
+    let (state, eis_closed) = portal::State::new(idle_timeout, screens, keymap, gate);
     let conn = zbus::connection::Builder::session()
         .context("failed to connect to the session bus")?
         .serve_at(PORTAL_PATH, portal::InputCapture::new(state.clone()))
@@ -190,7 +177,6 @@ async fn serve() -> Result<()> {
         .await
         .context("failed to watch the portal frontend's bus name")?;
     tokio::spawn(portal::watch_frontend(state.clone(), frontend_changes));
-    tokio::spawn(portal::pump_wayland_events(state.clone(), wayland_events));
     tokio::spawn(portal::handle_eis_closed(state.clone(), eis_closed));
     tokio::spawn(portal::watch_switch(state.clone()));
 
@@ -208,10 +194,10 @@ async fn serve() -> Result<()> {
     );
 
     if idle_timeout == std::time::Duration::MAX {
-        info!("{BUS_NAME} ready at {PORTAL_PATH}; idle watchdog disabled");
+        info!("{BUS_NAME} ready at {PORTAL_PATH}; idle watchdog disabled; no Wayland worker until a session needs one");
     } else {
         info!(
-            "{BUS_NAME} ready at {PORTAL_PATH}; capture auto-releases after {}s idle",
+            "{BUS_NAME} ready at {PORTAL_PATH}; capture auto-releases after {}s idle; no Wayland worker until a session needs one",
             idle_timeout.as_secs()
         );
     }

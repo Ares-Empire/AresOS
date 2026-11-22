@@ -32,7 +32,7 @@ use std::{
     os::unix::net::UnixStream,
     path::PathBuf,
     sync::{
-        atomic::{AtomicU32, Ordering},
+        atomic::{AtomicU32, AtomicU64, Ordering},
         Arc, OnceLock,
     },
     time::Duration,
@@ -77,20 +77,54 @@ pub const SWITCH_INTERVAL: Duration = Duration::from_millis(250);
 /// before `ForceRelease` answers that it could not confirm.
 pub const CONFIRM_TIMEOUT: Duration = Duration::from_secs(1);
 
+/// How long a Wayland worker may take to bind what it needs and describe the
+/// screens (the worker itself waits up to 5 seconds for the screens). The
+/// session that asked fails after it; nothing else waits on it.
+const WORKER_START_TIMEOUT: Duration = Duration::from_secs(8);
+
 /// What a read of the switch under the state's lock found.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Sharing {
     On,
     Off,
-    /// Off, and this read closed the sessions there were. [`State::conclude`]
-    /// sends their signals and has the end of the capture confirmed.
-    TurnedOff,
+    /// Off, and this read closed what was live: the sessions there were, and
+    /// the Wayland worker, taken out of the state here. [`State::conclude`]
+    /// sends the signals, has the end of the capture confirmed on that worker,
+    /// and then lets it go, which ends its connection.
+    TurnedOff(Option<Worker>),
 }
 
 impl Sharing {
-    fn is_on(self) -> bool {
-        self == Self::On
+    fn is_on(&self) -> bool {
+        matches!(self, Self::On)
     }
+}
+
+/// The Wayland worker of this process: its own thread and its own connection to
+/// the compositor (`wayland::start`). It binds output management, the layer
+/// shell, pointer constraints and clipboard data control, so it runs only while
+/// sharing is on and a session needs it: it starts for a session the portal has
+/// authorized ([`State::create_session`]) and stops when sharing goes off or the
+/// last session ends. While it is stopped the backend holds no Wayland
+/// connection; the bus side keeps answering the frontend and refusing sessions.
+struct Worker {
+    handle: Arc<WaylandHandle>,
+    /// Which worker this is: events of a worker that has been stopped are dropped.
+    generation: u64,
+}
+
+/// How a worker is started: the real thread, or in tests a recorded handle.
+enum Spawner {
+    Wayland { idle_timeout: Duration },
+    #[cfg(test)]
+    Recording(Arc<std::sync::Mutex<Vec<RecordedWorker>>>),
+}
+
+/// A worker the tests started: what was sent to it, and the sending end of its
+/// events (dropped, the worker is gone as if its connection had ended).
+#[cfg(test)]
+struct RecordedWorker {
+    cmds: calloop::channel::Channel<WaylandCmd>,
+    events: Option<mpsc::UnboundedSender<WaylandEvent>>,
 }
 
 /// One zone as the portal wire format wants it: width, height, x, y.
@@ -379,6 +413,10 @@ struct Trust {
 #[derive(Default)]
 struct Inner {
     sessions: HashMap<OwnedObjectPath, Session>,
+    /// `CreateSession` calls between their start of the worker and the storing
+    /// of their session: while there are any, a worker with no session is not
+    /// idle ([`State::stop_worker_if_idle`]).
+    starting: usize,
     /// The unique bus name of the frontend that made every session in
     /// `sessions`: the one place their signals are sent to.
     frontend: Option<String>,
@@ -397,7 +435,16 @@ pub struct State {
     /// Held while a Session object is exported or removed, so a removal can't
     /// take the object of a new session at the same path (`remove_session_object`).
     objects: Arc<Mutex<()>>,
-    wayland: Arc<WaylandHandle>,
+    /// The running Wayland worker, if any. Read without the state's lock (a
+    /// command goes to whichever worker runs), but put in and taken out only
+    /// with it held, so its start and stop are ordered with the sessions.
+    worker: Arc<std::sync::Mutex<Option<Worker>>>,
+    /// Held while a worker is started, so two sessions can't start two.
+    worker_start: Arc<Mutex<()>>,
+    next_generation: Arc<AtomicU64>,
+    /// The crossings' numbers, over every worker of the process.
+    crossings: Arc<AtomicU64>,
+    spawner: Arc<Spawner>,
     screens: SharedScreens,
     keymap: eis_server::SharedKeymap,
     /// Signalled by each EIS task when its connection ends.
@@ -425,13 +472,13 @@ fn sharing_off() -> fdo::Error {
 
 impl State {
     pub fn new(
-        wayland: Arc<WaylandHandle>,
+        idle_timeout: Duration,
         screens: SharedScreens,
         keymap: eis_server::SharedKeymap,
         gate: Gate,
     ) -> (Self, mpsc::UnboundedReceiver<(String, u32)>) {
         Self::with_trust(
-            wayland,
+            Spawner::Wayland { idle_timeout },
             screens,
             keymap,
             gate,
@@ -446,7 +493,7 @@ impl State {
     }
 
     fn with_trust(
-        wayland: Arc<WaylandHandle>,
+        spawner: Spawner,
         screens: SharedScreens,
         keymap: eis_server::SharedKeymap,
         gate: Gate,
@@ -460,7 +507,11 @@ impl State {
             stop: Arc::new(tokio::sync::Notify::new()),
             stop_reason: Arc::new(OnceLock::new()),
             objects: Arc::new(Mutex::new(())),
-            wayland,
+            worker: Arc::new(std::sync::Mutex::new(None)),
+            worker_start: Arc::new(Mutex::new(())),
+            next_generation: Arc::new(AtomicU64::new(1)),
+            crossings: Arc::new(AtomicU64::new(1)),
+            spawner: Arc::new(spawner),
             screens,
             keymap,
             eis_closed,
@@ -477,6 +528,141 @@ impl State {
 
     fn connection(&self) -> Option<&zbus::Connection> {
         self.conn.get()
+    }
+
+    // ---- the Wayland worker ---------------------------------------------------
+
+    fn worker_slot(&self) -> std::sync::MutexGuard<'_, Option<Worker>> {
+        // Nothing panics while holding it; a poisoned slot still holds a worker.
+        self.worker.lock().unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
+    /// The running worker's handle, if one runs.
+    fn wayland(&self) -> Option<Arc<WaylandHandle>> {
+        self.worker_slot().as_ref().map(|worker| worker.handle.clone())
+    }
+
+    /// Whether a Wayland worker runs, so the backend holds a Wayland connection.
+    pub fn worker_running(&self) -> bool {
+        self.worker_slot().is_some()
+    }
+
+    fn is_current_worker(&self, generation: u64) -> bool {
+        self.worker_slot().as_ref().is_some_and(|worker| worker.generation == generation)
+    }
+
+    /// Send a command to the running worker. With none running there is no
+    /// barrier, no capture and no clipboard claim to act on, so it is dropped.
+    fn send(&self, cmd: WaylandCmd) {
+        match self.wayland() {
+            Some(wayland) => wayland.send(cmd),
+            // The command's name only: its fields carry positions and types.
+            None => debug!(command = ?cmd, "no Wayland worker runs: nothing to send it to"),
+        }
+    }
+
+    async fn spawn_worker(&self) -> anyhow::Result<(WaylandHandle, mpsc::UnboundedReceiver<WaylandEvent>)> {
+        match &*self.spawner {
+            Spawner::Wayland { idle_timeout } => {
+                let started = wayland::start(
+                    self.keymap.clone(),
+                    *idle_timeout,
+                    self.screens.clone(),
+                    self.gate.clone(),
+                    self.crossings.clone(),
+                    WORKER_START_TIMEOUT,
+                )
+                .await?;
+                for screen in &self.screens.current().screens {
+                    info!(
+                        "screen {}: {}x{} at ({}, {}) scale {} {:?}",
+                        screen.name,
+                        screen.zone.width,
+                        screen.zone.height,
+                        screen.zone.x,
+                        screen.zone.y,
+                        screen.scale,
+                        screen.transform
+                    );
+                }
+                Ok(started)
+            }
+            #[cfg(test)]
+            Spawner::Recording(workers) => {
+                let (handle, cmds) = WaylandHandle::recording();
+                let (events, events_rx) = mpsc::unbounded_channel();
+                workers.lock().expect("recorded workers").push(RecordedWorker {
+                    cmds,
+                    events: Some(events),
+                });
+                Ok((handle, events_rx))
+            }
+        }
+    }
+
+    /// Have a worker running for a request that has passed the frontend and the
+    /// allow-list checks: the switch is read first, and with sharing off nothing
+    /// is started. The caller has counted itself in `Inner::starting`, so the
+    /// worker isn't stopped as idle before its session is stored.
+    async fn ensure_worker(&self) -> fdo::Result<()> {
+        let _one_start = self.worker_start.lock().await;
+        let mut out = Vec::new();
+        let (to, sharing) = {
+            let mut inner = self.inner.lock().await;
+            let sharing = self.switch_locked(&mut inner, &mut out);
+            (inner.frontend.clone(), sharing)
+        };
+        let on = sharing.is_on();
+        self.conclude(to, out, sharing).await;
+        if !on {
+            return Err(sharing_off());
+        }
+        if self.worker_running() {
+            return Ok(());
+        }
+
+        let generation = self.next_generation.fetch_add(1, Ordering::Relaxed);
+        let (handle, events) = self.spawn_worker().await.map_err(|err| {
+            error!("could not start the Wayland worker: {err:#}");
+            fdo::Error::Failed("the backend could not reach the compositor".into())
+        })?;
+        let handle = Arc::new(handle);
+
+        // Sharing may have gone off while the worker started: read it again
+        // under the lock that puts the worker in place.
+        let mut out = Vec::new();
+        let (to, sharing) = {
+            let mut inner = self.inner.lock().await;
+            let sharing = self.switch_locked(&mut inner, &mut out);
+            if sharing.is_on() {
+                *self.worker_slot() = Some(Worker {
+                    handle: handle.clone(),
+                    generation,
+                });
+            }
+            (inner.frontend.clone(), sharing)
+        };
+        let on = sharing.is_on();
+        self.conclude(to, out, sharing).await;
+        if !on {
+            // Dropped here, unused: its connection ends.
+            return Err(sharing_off());
+        }
+        info!(generation, "Wayland worker started");
+        tokio::spawn(pump_wayland_events(self.clone(), events, generation));
+        Ok(())
+    }
+
+    /// Stop the worker when nothing needs it: no session, and no `CreateSession`
+    /// about to store one. With the lock held. The commands already sent go
+    /// first; then the worker ends its connection, and every binding with it.
+    fn stop_worker_if_idle(&self, inner: &Inner) {
+        if !inner.sessions.is_empty() || inner.starting > 0 {
+            return;
+        }
+        if let Some(worker) = self.worker_slot().take() {
+            info!(generation = worker.generation, "no session needs the Wayland worker: stopping it");
+        }
     }
 
     async fn offer_sharing_window(&self) {
@@ -571,6 +757,7 @@ impl State {
                 self.remove_session(&mut inner, old, &mut orphaned);
             }
             inner.frontend = sender.map(str::to_owned);
+            self.stop_worker_if_idle(&inner);
         }
         self.emit_all(None, orphaned).await;
     }
@@ -601,17 +788,25 @@ impl State {
         } else {
             debug!("sharing is off: {off}");
         }
-        if inner.sessions.is_empty() {
+        if inner.sessions.is_empty() && !self.worker_running() {
             return Sharing::Off;
         }
         let handles: Vec<OwnedObjectPath> = inner.sessions.keys().cloned().collect();
-        warn!("sharing was turned off: closing {} session(s)", handles.len());
+        if !handles.is_empty() {
+            warn!("sharing was turned off: closing {} session(s)", handles.len());
+        }
         for handle in &handles {
             self.remove_session(inner, handle, out);
         }
         // Whatever is captured ends, also a crossing the portal hasn't heard of.
         self.release_everything();
-        Sharing::TurnedOff
+        // Then the worker goes, after the commands above: once the compositor
+        // has confirmed them, its connection ends.
+        let worker = self.worker_slot().take();
+        if worker.is_some() {
+            info!("sharing is off: stopping the Wayland worker");
+        }
+        Sharing::TurnedOff(worker)
     }
 
     /// Run `f` with the lock held, after a read of the switch under the same
@@ -642,18 +837,21 @@ impl State {
     /// awaited on a task of its own, so the call isn't held up by it.
     async fn conclude(&self, to: Option<String>, out: Vec<Signal>, sharing: Sharing) {
         self.emit_all(to, out).await;
-        if sharing == Sharing::TurnedOff {
+        if let Sharing::TurnedOff(worker) = sharing {
             let state = self.clone();
-            tokio::spawn(async move { state.confirm_off().await });
+            tokio::spawn(async move { state.confirm_off(worker).await });
         }
     }
 
-    /// After Off closed the sessions: unless the compositor confirms within
-    /// [`CONFIRM_TIMEOUT`] that it has handled the end of the capture, the
-    /// backend stops, and labwc drops the grab with its connection. Returns
-    /// whether it confirmed.
-    async fn confirm_off(&self) -> bool {
-        if self.wayland.confirm(CONFIRM_TIMEOUT).await {
+    /// After Off closed the sessions and took the worker out: unless the
+    /// compositor confirms within [`CONFIRM_TIMEOUT`] that it has handled the
+    /// end of the capture, the backend stops, and labwc drops the grab with its
+    /// connection. Confirmed, the worker is let go here, and its connection
+    /// ends. Returns whether it confirmed.
+    async fn confirm_off(&self, worker: Option<Worker>) -> bool {
+        // No worker ran: no connection, so nothing can be held.
+        let Some(worker) = worker else { return true };
+        if worker.handle.confirm(CONFIRM_TIMEOUT).await {
             debug!("the compositor confirmed the end of the capture after Off");
             return true;
         }
@@ -663,12 +861,13 @@ impl State {
         false
     }
 
-    /// The timer's read of the switch ([`watch_switch`]), while any session exists.
+    /// The timer's read of the switch ([`watch_switch`]), while any session
+    /// exists or the worker runs.
     pub async fn reread_switch(&self) {
         let mut out = Vec::new();
         let (to, sharing) = {
             let mut inner = self.inner.lock().await;
-            if inner.sessions.is_empty() {
+            if inner.sessions.is_empty() && !self.worker_running() {
                 return;
             }
             let sharing = self.switch_locked(&mut inner, &mut out);
@@ -695,12 +894,15 @@ impl State {
         match sharing {
             Sharing::On => "sharing is on: nothing changed".to_owned(),
             Sharing::Off => "sharing is off: there was nothing to close".to_owned(),
-            Sharing::TurnedOff if self.confirm_off().await => {
-                format!("sharing is off: closed {closed} session(s)")
+            Sharing::TurnedOff(worker) => {
+                if self.confirm_off(worker).await {
+                    format!("sharing is off: closed {closed} session(s)")
+                } else {
+                    format!(
+                        "sharing is off: closed {closed} session(s); the compositor did not confirm, so the backend stops"
+                    )
+                }
             }
-            Sharing::TurnedOff => format!(
-                "sharing is off: closed {closed} session(s); the compositor did not confirm, so the backend stops"
-            ),
         }
     }
 
@@ -814,12 +1016,12 @@ impl State {
         if session.barriers.is_empty() {
             // Nothing to place; make sure nothing of an earlier set stays up.
             session.arming = 0;
-            self.wayland.send(WaylandCmd::Disarm);
+            self.send(WaylandCmd::Disarm);
             return;
         }
         // A new number for every arming, see `Session::arming`.
         session.arming = self.next_arming.fetch_add(1, Ordering::Relaxed);
-        self.wayland.send(WaylandCmd::Arm {
+        self.send(WaylandCmd::Arm {
             session: session.handle.as_str().to_owned(),
             arming: session.arming,
             keyboard: session.capabilities & CAP_KEYBOARD != 0,
@@ -831,7 +1033,7 @@ impl State {
     /// Take a session's capture and its barriers away and tell its client.
     fn disarm_session(&self, session: &mut Session, out: &mut Vec<Signal>) {
         if let Some((activation_id, crossing)) = session.stop_capture() {
-            self.wayland.send(WaylandCmd::EndCapture {
+            self.send(WaylandCmd::EndCapture {
                 crossing: Some(crossing),
                 cursor_hint: None,
             });
@@ -845,7 +1047,7 @@ impl State {
             session.arming = 0;
             // Also ends a crossing of this session the portal has not heard of
             // yet, and drops the input buffered for it.
-            self.wayland.send(WaylandCmd::Disarm);
+            self.send(WaylandCmd::Disarm);
             out.push(Signal::Disabled {
                 session: session.handle.clone(),
             });
@@ -858,7 +1060,7 @@ impl State {
     /// can arrive for a parked transfer, so holding those pipes open would leave the
     /// applications blocked on them waiting for a write that will never come.
     fn release_claim(&self, clipboard: &mut ClipboardTracker) {
-        self.wayland.send(WaylandCmd::ClipboardRelease);
+        self.send(WaylandCmd::ClipboardRelease);
         clipboard.owned_by_session = false;
         clipboard.owner_session = None;
         clipboard.claim_id = clipboard.claim_id.wrapping_add(1);
@@ -873,7 +1075,7 @@ impl State {
             return false;
         };
         if let Some((activation_id, crossing)) = session.stop_capture() {
-            self.wayland.send(WaylandCmd::EndCapture {
+            self.send(WaylandCmd::EndCapture {
                 crossing: Some(crossing),
                 cursor_hint: None,
             });
@@ -886,7 +1088,7 @@ impl State {
             // Also ends a crossing of this session that is still on its way
             // here (the Wayland thread drops it with its buffered input). The
             // notice of it, when it comes, names an arming no session has.
-            self.wayland.send(WaylandCmd::Disarm);
+            self.send(WaylandCmd::Disarm);
         }
         if let Some(eis) = session.eis.take() {
             eis.send(EisCommand::Close);
@@ -938,11 +1140,50 @@ impl State {
         }
         let started = v1_capabilities.is_some();
 
-        // The switch is read under the lock that stores the session, so a
+        // An authorized request from a listed application, so the Wayland
+        // worker may start, if the switch says on (`ensure_worker`). Counted in
+        // `starting` until its session is stored or refused.
+        self.inner.lock().await.starting += 1;
+        let result = self.create_session_locked(handle, app_id, granted, started).await;
+        {
+            let mut inner = self.inner.lock().await;
+            inner.starting -= 1;
+            // A refused session leaves no worker behind that nothing needs.
+            self.stop_worker_if_idle(&inner);
+        }
+        if app_id == DESKFLOW_ID && matches!(&result, Err(fdo::Error::AccessDenied(_))) {
+            debug!(app_id, "Deskflow requested a session while sharing is off");
+            self.offer_sharing_window().await;
+        }
+        result?;
+
+        // The backend owns the impl-side Session object.
+        if let Err(err) = self.export_session_object(handle).await {
+            let mut inner = self.inner.lock().await;
+            inner.sessions.remove(handle);
+            self.stop_worker_if_idle(&inner);
+            return Err(err);
+        }
+
+        info!(app_id = ?app_id, session = %handle.as_str(), capabilities = granted, started, "session created");
+        Ok(granted)
+    }
+
+    /// Start the worker if need be, then store the session: both only while the
+    /// switch says on.
+    async fn create_session_locked(
+        &self,
+        handle: &OwnedObjectPath,
+        app_id: &str,
+        granted: u32,
+        started: bool,
+    ) -> fdo::Result<()> {
+        self.ensure_worker().await?;
+        // The switch is read again under the lock that stores the session, so a
         // session can't be made after an Off that the timer reads a moment later.
         // `authorize` has made the caller the frontend these sessions belong to,
         // closing an earlier owner's first.
-        let result = self.with_sharing("CreateSession", |inner, _| {
+        self.with_sharing("CreateSession", |inner, _| {
             if inner.sessions.contains_key(handle) {
                 return Err(fdo::Error::Failed("this session already exists".into()));
             }
@@ -968,21 +1209,7 @@ impl State {
             );
             Ok(())
         })
-        .await;
-        if app_id == DESKFLOW_ID && matches!(&result, Err(fdo::Error::AccessDenied(_))) {
-            debug!(app_id, "Deskflow requested a session while sharing is off");
-            self.offer_sharing_window().await;
-        }
-        result?;
-
-        // The backend owns the impl-side Session object.
-        if let Err(err) = self.export_session_object(handle).await {
-            self.inner.lock().await.sessions.remove(handle);
-            return Err(err);
-        }
-
-        info!(app_id = ?app_id, session = %handle.as_str(), capabilities = granted, started, "session created");
-        Ok(granted)
+        .await
     }
 
     /// Negotiate capabilities and start a session made by `CreateSession2`.
@@ -1173,7 +1400,7 @@ impl State {
         let mut inner = self.inner.lock().await;
         let session = inner.sessions.get_mut(handle).ok_or_else(unknown_session)?;
         if let Some((_, crossing)) = session.stop_capture() {
-            self.wayland.send(WaylandCmd::EndCapture {
+            self.send(WaylandCmd::EndCapture {
                 crossing: Some(crossing),
                 cursor_hint: None,
             });
@@ -1183,7 +1410,7 @@ impl State {
             session.arming = 0;
             // Free the screen edges; leaving the surfaces up would keep swallowing
             // clicks on the edge pixel column for no reason.
-            self.wayland.send(WaylandCmd::Disarm);
+            self.send(WaylandCmd::Disarm);
         }
         info!(session = %handle.as_str(), "capture disabled");
         Ok(())
@@ -1206,7 +1433,7 @@ impl State {
         info!(session = %handle.as_str(), "capture released");
         // Unlock the pointer first, then rebuild the barriers so the pointer is
         // back under local control before an edge can trigger again.
-        self.wayland.send(WaylandCmd::EndCapture {
+        self.send(WaylandCmd::EndCapture {
             crossing: Some(crossing),
             cursor_hint,
         });
@@ -1276,7 +1503,7 @@ impl State {
         // new content, so let their readers see EOF now.
         clipboard.clear_transfers();
         info!(session = %handle.as_str(), types = mime_types.len(), "session claimed the clipboard");
-        self.wayland.send(WaylandCmd::ClipboardClaim {
+        self.send(WaylandCmd::ClipboardClaim {
             claim_id: clipboard.claim_id,
             mime_types,
         });
@@ -1350,7 +1577,7 @@ impl State {
         }
 
         let (reply_tx, reply_rx) = tokio::sync::oneshot::channel();
-        self.wayland.send(WaylandCmd::ClipboardRead {
+        self.send(WaylandCmd::ClipboardRead {
             mime_type,
             reply: reply_tx,
         });
@@ -1376,6 +1603,7 @@ impl State {
             if self.remove_session(&mut inner, handle, &mut out) {
                 info!(session = %handle.as_str(), "session closed by the portal");
             }
+            self.stop_worker_if_idle(&inner);
         }
         self.emit_all(to, out).await;
         Ok(())
@@ -1414,6 +1642,7 @@ impl State {
             for handle in handles {
                 self.remove_session(&mut inner, &handle, &mut out);
             }
+            self.stop_worker_if_idle(&inner);
         }
         self.emit_all(to, out).await;
     }
@@ -1438,8 +1667,9 @@ impl State {
     }
 
     async fn stop_serving(&self, why: &'static str) {
-        self.close_all_sessions(why).await;
+        // Released first: closing the last session stops the worker.
         self.release_everything();
+        self.close_all_sessions(why).await;
         let _ = self.stop_reason.set(why);
         self.stop.notify_one();
     }
@@ -1471,6 +1701,7 @@ impl State {
             if is_current && self.remove_session(&mut inner, &handle, &mut out) {
                 warn!(session = %label, "its EIS connection ended: the session is closed");
             }
+            self.stop_worker_if_idle(&inner);
         }
         self.emit_all(to, out).await;
     }
@@ -1480,11 +1711,11 @@ impl State {
     /// Unlock the pointer and clear the screen edges. Used on shutdown so the
     /// session is never left with a grab owned by a process that is going away.
     pub fn release_everything(&self) {
-        self.wayland.send(WaylandCmd::EndCapture {
+        self.send(WaylandCmd::EndCapture {
             crossing: None,
             cursor_hint: None,
         });
-        self.wayland.send(WaylandCmd::Disarm);
+        self.send(WaylandCmd::Disarm);
     }
 
     /// End every in-flight capture, returning how many there were, once the
@@ -1495,7 +1726,7 @@ impl State {
     async fn force_release(&self, disarm: bool) -> fdo::Result<usize> {
         let mut out = Vec::new();
         let to;
-        let released = {
+        let (released, wayland) = {
             let mut inner = self.inner.lock().await;
             to = inner.frontend.clone();
             let mut released = 0;
@@ -1519,20 +1750,25 @@ impl State {
             // that the local pointer comes back regardless of what the client does.
             // No crossing is named: whatever is captured ends, also a crossing
             // the portal has not heard of yet.
-            self.wayland.send(WaylandCmd::EndCapture {
+            self.send(WaylandCmd::EndCapture {
                 crossing: None,
                 cursor_hint: None,
             });
             if disarm {
-                self.wayland.send(WaylandCmd::Disarm);
+                self.send(WaylandCmd::Disarm);
             }
-            released
+            (released, self.wayland())
         };
         self.emit_all(to, out).await;
         if released > 0 {
             warn!("force-released {released} capture(s)");
         }
-        if !self.wayland.confirm(CONFIRM_TIMEOUT).await {
+        // No worker runs: the backend holds no Wayland connection, so neither
+        // the pointer nor the keyboard can be held by it.
+        let Some(wayland) = wayland else {
+            return Ok(released);
+        };
+        if !wayland.confirm(CONFIRM_TIMEOUT).await {
             error!("the compositor did not confirm that the pointer and the keyboard are free");
             return Err(fdo::Error::Failed(
                 "the compositor did not confirm the release in time".into(),
@@ -1638,7 +1874,7 @@ impl State {
                         });
                         // The Wayland thread already locked the pointer; this tells it
                         // where to send what that crossing captures.
-                        self.wayland.send(WaylandCmd::AttachEis {
+                        self.send(WaylandCmd::AttachEis {
                             crossing,
                             eis: eis.clone(),
                         });
@@ -1652,7 +1888,7 @@ impl State {
                 }
                 None => {
                     warn!(session = %label, barrier_id, "a crossing for a session that may not capture: staying local");
-                    self.wayland.send(WaylandCmd::EndCapture {
+                    self.send(WaylandCmd::EndCapture {
                         crossing: Some(crossing),
                         cursor_hint: None,
                     });
@@ -1671,7 +1907,7 @@ impl State {
                     // armed session has, or nothing.
                     match inner.sessions.values_mut().find(|s| s.enabled) {
                         Some(armed) => self.arm(armed),
-                        None => self.wayland.send(WaylandCmd::Disarm),
+                        None => self.send(WaylandCmd::Disarm),
                     }
                 }
             }
@@ -2303,9 +2539,9 @@ impl Control {
     }
 }
 
-/// Read the sharing switch every [`SWITCH_INTERVAL`] while any session exists,
-/// so Off takes effect with no second process (`--revoke` only makes it
-/// immediate).
+/// Read the sharing switch every [`SWITCH_INTERVAL`] while any session exists
+/// or the Wayland worker runs, so Off takes effect, and the worker stops, with
+/// no second process (`--revoke` only makes it immediate).
 pub async fn watch_switch(state: State) {
     let mut tick = tokio::time::interval(SWITCH_INTERVAL);
     tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
@@ -2322,13 +2558,24 @@ pub async fn handle_eis_closed(state: State, mut closed: mpsc::UnboundedReceiver
     }
 }
 
-/// Drive portal signals from what the Wayland thread observes.
-pub async fn pump_wayland_events(state: State, mut events: mpsc::UnboundedReceiver<WaylandEvent>) {
+/// Drive portal signals from what worker `generation` observes.
+pub async fn pump_wayland_events(state: State, mut events: mpsc::UnboundedReceiver<WaylandEvent>, generation: u64) {
     while let Some(event) = events.recv().await {
+        // A worker taken out (Off, or no session left) has nobody to report
+        // to: every session it served is gone, and a later worker's sessions
+        // are not its business.
+        if !state.is_current_worker(generation) {
+            debug!(generation, event = ?event, "an event of a stopped Wayland worker: dropped");
+            continue;
+        }
         state.handle_event(event).await;
     }
-    // The Wayland thread holds the sending end until it stops, and it stops
-    // only when its connection to the compositor fails or the process ends.
+    if !state.is_current_worker(generation) {
+        debug!(generation, "a stopped Wayland worker has ended");
+        return;
+    }
+    // The running worker holds the sending end until it stops, and it stops on
+    // its own only when its connection to the compositor fails.
     warn!("the Wayland connection ended: closing every session and stopping");
     state.wayland_lost().await;
 }
@@ -2403,7 +2650,10 @@ mod tests {
     /// switch (on) in temp files.
     struct Rig {
         state: State,
-        cmds: calloop::channel::Channel<WaylandCmd>,
+        /// Every worker the state started, in order.
+        workers: Arc<std::sync::Mutex<Vec<RecordedWorker>>>,
+        /// How many workers were told to stop (their last handle dropped).
+        shutdowns: std::sync::atomic::AtomicUsize,
         /// Commands taken from the channel and not yet returned by `cmds`.
         stash: std::sync::Mutex<Vec<WaylandCmd>>,
         /// The Wayland thread's confirmations nobody has answered yet: kept, so
@@ -2426,7 +2676,7 @@ mod tests {
 
         fn with(allow_list: Option<&str>, frontend: Option<&str>) -> Self {
             let list = TempList::new(allow_list);
-            let (wayland, cmds) = WaylandHandle::recording();
+            let workers = Arc::new(std::sync::Mutex::new(Vec::new()));
             let signals = Arc::new(std::sync::Mutex::new(Vec::new()));
             let objects = Arc::new(std::sync::Mutex::new(std::collections::HashSet::new()));
             let screens = SharedScreens::new();
@@ -2434,7 +2684,7 @@ mod tests {
             screens.commit(vec![screen("A", 0, 0, 1920, 1080), screen("B", 1920, 0, 1920, 1080)]);
             let switch = TempSwitch::new(Some("on\n"));
             let (state, eis_closed) = State::with_trust(
-                Arc::new(wayland),
+                Spawner::Recording(workers.clone()),
                 screens.clone(),
                 eis_server::SharedKeymap::default(),
                 Gate::default(),
@@ -2451,7 +2701,8 @@ mod tests {
             );
             Self {
                 state,
-                cmds,
+                workers,
+                shutdowns: std::sync::atomic::AtomicUsize::new(0),
                 stash: std::sync::Mutex::new(Vec::new()),
                 syncs: std::sync::Mutex::new(Vec::new()),
                 switch,
@@ -2466,13 +2717,36 @@ mod tests {
 
         /// Move what was sent to the Wayland thread out of the channel: the
         /// confirmations it was asked for aside, the rest into the stash.
+        /// A worker's `Shutdown` is counted (`shutdowns`) and not returned.
         fn drain(&self) {
-            while let Ok(cmd) = self.cmds.try_recv() {
-                match cmd {
-                    WaylandCmd::Sync { done } => self.syncs.lock().unwrap().push(done),
-                    cmd => self.stash.lock().unwrap().push(cmd),
+            for worker in self.workers.lock().unwrap().iter() {
+                while let Ok(cmd) = worker.cmds.try_recv() {
+                    match cmd {
+                        WaylandCmd::Sync { done } => self.syncs.lock().unwrap().push(done),
+                        WaylandCmd::Shutdown => {
+                            self.shutdowns.fetch_add(1, Ordering::Relaxed);
+                        }
+                        cmd => self.stash.lock().unwrap().push(cmd),
+                    }
                 }
             }
+        }
+
+        /// How many workers the state has started.
+        fn started(&self) -> usize {
+            self.workers.lock().unwrap().len()
+        }
+
+        /// How many workers have been told to stop.
+        fn stopped(&self) -> usize {
+            self.drain();
+            self.shutdowns.load(Ordering::Relaxed)
+        }
+
+        /// The newest worker's connection ends, as if the compositor had gone.
+        fn end_connection(&self) {
+            let events = self.workers.lock().unwrap().last_mut().and_then(|worker| worker.events.take());
+            drop(events.expect("a worker with its events"));
         }
 
         /// Everything sent to the Wayland thread since the last call, but the
@@ -3143,11 +3417,20 @@ mod tests {
         }
 
         // The dead session can never take the pointer again: a crossing that was
-        // already on its way stays local, and it can't be enabled.
+        // already on its way stays local, and it can't be enabled. While other
+        // sessions keep the worker, the crossing is ended on it; when this was
+        // the last session the worker is stopped, its connection and any grab
+        // gone with it, and there is nothing left to send to.
+        let worker_left = rig.state.worker_running();
+        assert_eq!(worker_left, rig.session_count().await > 0, "the worker runs exactly while a session needs it");
         cross(&rig.state, handle, 7).await;
         assert!(rig.signals().is_empty());
         let cmds = rig.cmds();
-        assert!(matches!(&cmds[..], [WaylandCmd::EndCapture { .. }, WaylandCmd::Disarm]));
+        if worker_left {
+            assert!(matches!(&cmds[..], [WaylandCmd::EndCapture { .. }, WaylandCmd::Disarm]));
+        } else {
+            assert!(cmds.is_empty(), "{cmds:?}");
+        }
         assert!(rig.state.enable(Some(FRONTEND), handle).await.is_err());
         assert!(rig.state.selection_write(Some(FRONTEND), handle, 1).await.is_err());
         assert!(rig.cmds().is_empty());
@@ -3199,9 +3482,13 @@ mod tests {
         rig.state.eis_closed(handle.as_str(), eis_id).await;
         assert!(matches!(&rig.cmds()[..], [WaylandCmd::Disarm]));
         assert_eq!(rig.signals(), [Signal::SessionClosed { session: handle.clone() }]);
+        // It was the only session: the worker is stopped, and with it every
+        // barrier surface, so a crossing on its way finds nothing to capture.
+        assert!(!rig.state.worker_running());
+        assert_eq!(rig.stopped(), 1);
         cross(&rig.state, &handle, 7).await;
         assert!(rig.signals().is_empty(), "the next crossing stays local");
-        assert!(matches!(rig.cmds()[0], WaylandCmd::EndCapture { .. }));
+        assert!(rig.cmds().is_empty());
     }
 
     #[tokio::test]
@@ -3591,10 +3878,11 @@ mod tests {
         assert_eq!(rig.session_count().await, 0);
         let cmds = rig.cmds();
         assert!(
-            cmds.iter().any(|c| matches!(c, WaylandCmd::EndCapture { crossing: None, .. })),
-            "whatever is captured is released"
+            matches!(cmds.first(), Some(WaylandCmd::EndCapture { crossing: None, .. })),
+            "whatever is captured is released first"
         );
-        assert!(matches!(cmds.last(), Some(WaylandCmd::Disarm)), "no barrier stays up");
+        assert!(cmds.iter().any(|c| matches!(c, WaylandCmd::Disarm)), "the barriers go");
+        assert_eq!(rig.stopped(), 1, "then the worker stops, and no surface outlives its connection");
 
         // A crossing after that stays local.
         cross(&rig.state, &busy, 7).await;
@@ -3618,14 +3906,17 @@ mod tests {
         rig.cmds();
         rig.signals();
 
-        // The Wayland thread holds the sending end; it ends with its connection.
-        let (events, wayland_events) = mpsc::unbounded_channel::<WaylandEvent>();
-        let pump = tokio::spawn(pump_wayland_events(rig.state.clone(), wayland_events));
-        drop(events);
-        tokio::time::timeout(std::time::Duration::from_secs(1), pump)
-            .await
-            .expect("the pump ends")
-            .unwrap();
+        // The running worker holds the sending end; it ends with its connection.
+        // Its commands are read before the pump has seen the end.
+        rig.end_connection();
+        tokio::time::timeout(std::time::Duration::from_secs(1), async {
+            while rig.session_count().await > 0 {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .expect("the pump sees the end");
+        rig.settle().await;
 
         assert_eq!(rig.session_count().await, 0);
         let closed: Vec<Signal> = rig
@@ -3636,8 +3927,9 @@ mod tests {
         assert_eq!(closed.len(), 2, "both sessions are closed and their clients told");
         assert!(!rig.has_object(&busy) && !rig.has_object(&idle));
         let cmds = rig.cmds();
-        assert!(cmds.iter().any(|c| matches!(c, WaylandCmd::EndCapture { crossing: None, .. })));
-        assert!(matches!(cmds.last(), Some(WaylandCmd::Disarm)));
+        assert!(matches!(cmds.first(), Some(WaylandCmd::EndCapture { crossing: None, .. })));
+        assert!(cmds.iter().any(|c| matches!(c, WaylandCmd::Disarm)));
+        assert!(!rig.state.worker_running());
         let why = tokio::time::timeout(std::time::Duration::from_secs(1), rig.state.wait_for_stop())
             .await
             .expect("the backend is told to stop");
@@ -3835,7 +4127,9 @@ mod tests {
         let signals = rig.signals();
         assert!(!signals.iter().any(|s| matches!(s, Signal::Activated { .. })), "{signals:?}");
         assert!(signals.contains(&Signal::SessionClosed { session: b.clone() }));
-        assert!(rig.cmds().iter().any(|c| matches!(c, WaylandCmd::EndCapture { crossing: Some(_), .. })));
+        // Ended on the worker before it was taken out: the crossing the portal
+        // hasn't let through, with whatever else is captured.
+        assert!(rig.cmds().iter().any(|c| matches!(c, WaylandCmd::EndCapture { crossing: None, .. })));
         assert!(!rig.state.gate.is_open());
         rig.settle().await;
         assert_eq!(rig.answer_syncs(), 1);
@@ -3998,6 +4292,133 @@ mod tests {
         rig.settle().await;
         assert_eq!(rig.refuse_syncs(), 1);
         assert!(release.await.unwrap().is_err());
+    }
+
+    // ---- the Wayland worker (brief 321, step 3 review, finding 1) ----
+
+    #[tokio::test]
+    async fn the_wayland_worker_starts_only_for_an_authorized_session_while_sharing_is_on() {
+        let rig = Rig::new();
+        let s = &rig.state;
+        // Off: the bus side answers and refuses, and no worker means no Wayland
+        // connection: no output management, no clipboard data control.
+        rig.set_sharing(false);
+        assert!(sharing_was_off(s.create_session(Some(FRONTEND), &path("a"), APP, None).await));
+        assert!(sharing_was_off(s.create_session(Some(FRONTEND), &path("a"), APP, Some(CAP_POINTER)).await));
+        assert_eq!(rig.started(), 0);
+        assert!(!s.worker_running());
+        // On, but refused by another check: still none.
+        rig.set_sharing(true);
+        assert!(denied(s.create_session(Some(STRANGER), &path("b"), APP, None).await));
+        assert!(denied(s.create_session(Some(FRONTEND), &path("c"), "org.example.Other", None).await));
+        assert!(denied(s.create_session(Some(FRONTEND), &path("d"), "", None).await));
+        assert_eq!(rig.started(), 0);
+        // The status and the way out need none: nothing to confirm without a connection.
+        assert_eq!(s.status().await, "no sessions");
+        assert_eq!(s.force_release(false).await.unwrap(), 0);
+        assert_eq!(rig.refuse_syncs(), 0);
+        rig.state.reread_switch().await;
+        assert_eq!(rig.started(), 0);
+        // An authorized request while on: one worker, for every session.
+        s.create_session(Some(FRONTEND), &path("e"), APP, None).await.unwrap();
+        s.create_session(Some(FRONTEND), &path("f"), APP, None).await.unwrap();
+        assert_eq!(rig.started(), 1);
+        assert!(s.worker_running());
+    }
+
+    #[tokio::test]
+    async fn off_on_off_stops_the_worker_starts_a_new_one_and_stops_that() {
+        let mut rig = Rig::new();
+        let timer = tokio::spawn(watch_switch(rig.state.clone()));
+        busy_session(&mut rig, "a").await;
+        assert_eq!((rig.started(), rig.stopped()), (1, 0));
+
+        // Off, read by the timer: the worker is taken out at once, and stopped
+        // once the compositor has confirmed the end of the capture.
+        rig.set_sharing(false);
+        tokio::time::sleep(SWITCH_INTERVAL * 2).await;
+        assert_eq!(rig.session_count().await, 0);
+        assert!(!rig.state.worker_running());
+        assert_eq!(rig.stopped(), 0, "kept until the compositor confirms");
+        assert_eq!(rig.answer_syncs(), 1);
+        rig.settle().await;
+        assert_eq!(rig.stopped(), 1, "then its connection ends");
+        assert!(rig.state.stop_reason.get().is_none(), "the backend goes on, without a worker");
+
+        // Off stays off: nothing is started; a refused session starts nothing.
+        tokio::time::sleep(SWITCH_INTERVAL * 2).await;
+        assert!(sharing_was_off(rig.state.create_session(Some(FRONTEND), &path("x"), APP, None).await));
+        assert_eq!((rig.started(), rig.stopped()), (1, 1));
+
+        // On: the next authorized session starts a new worker.
+        rig.set_sharing(true);
+        let b = rig.session("b").await;
+        assert_eq!((rig.started(), rig.stopped()), (2, 1));
+        assert!(rig.state.worker_running());
+
+        // Off again, by --revoke this time.
+        rig.set_sharing(false);
+        let said = rig.confirmed(rig.state.revoke()).await;
+        assert_eq!(said, "sharing is off: closed 1 session(s)");
+        rig.settle().await;
+        assert_eq!((rig.started(), rig.stopped()), (2, 2));
+        assert!(!rig.state.worker_running() && !rig.has_object(&b));
+        timer.abort();
+    }
+
+    #[tokio::test]
+    async fn the_worker_stops_when_no_session_needs_it() {
+        let mut rig = Rig::new();
+        let a = rig.session("a").await;
+        let b = rig.session("b").await;
+        rig.state.enable(Some(FRONTEND), &b).await.unwrap();
+        rig.state.close_session(Some(FRONTEND), &a).await.unwrap();
+        assert!(rig.state.worker_running(), "b still needs it");
+        rig.cmds();
+        rig.state.close_session(Some(FRONTEND), &b).await.unwrap();
+        assert!(!rig.state.worker_running());
+        // The teardown reaches the worker before it is told to stop.
+        let sent: Vec<String> = std::iter::from_fn(|| rig.workers.lock().unwrap()[0].cmds.try_recv().ok())
+            .map(|cmd| format!("{cmd:?}"))
+            .collect();
+        assert_eq!(sent, ["Disarm", "Shutdown"]);
+
+        // The frontend leaving ends it the same way, and so does a new owner
+        // of the frontend's name (the old owner's sessions go).
+        // (The first worker's `Shutdown` was read above, so it isn't counted.)
+        rig.session("c").await;
+        rig.state.frontend_left(FRONTEND).await;
+        assert_eq!((rig.started(), rig.stopped()), (2, 1));
+        assert!(!rig.state.worker_running());
+        rig.session("d").await;
+        rig.set_frontend(Some(":1.6"));
+        // Its first call: the old owner's session goes, and so does the worker.
+        rig.state.close_session(Some(":1.6"), &path("none")).await.unwrap();
+        assert_eq!((rig.started(), rig.stopped()), (3, 2));
+        assert!(!rig.state.worker_running());
+        assert_eq!(rig.session_count().await, 0);
+    }
+
+    #[tokio::test]
+    async fn a_stopped_worker_s_events_reach_no_later_session() {
+        let mut rig = Rig::new();
+        let a = rig.session("a").await;
+        let old = rig.workers.lock().unwrap()[0].events.clone().unwrap();
+        rig.state.close_session(Some(FRONTEND), &a).await.unwrap();
+        let b = rig.session("b").await;
+        rig.state.enable(Some(FRONTEND), &b).await.unwrap();
+        assert_eq!(rig.started(), 2);
+        rig.signals();
+        old.send(crossing_event(&rig.state, &b, 7).await).unwrap();
+        old.send(WaylandEvent::OutputsChanged).unwrap();
+        rig.settle().await;
+        assert!(rig.signals().is_empty(), "no Activated, no ZonesChanged from the stopped worker");
+        assert!(!rig.cmds().iter().any(|c| matches!(c, WaylandCmd::AttachEis { .. })));
+        // The same crossing from the running worker is a capture.
+        let current = rig.workers.lock().unwrap()[1].events.clone().unwrap();
+        current.send(crossing_event(&rig.state, &b, 7).await).unwrap();
+        rig.settle().await;
+        assert!(rig.signals().iter().any(|s| matches!(s, Signal::Activated { .. })));
     }
 
     #[test]
