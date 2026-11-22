@@ -216,7 +216,8 @@ class Checks:
             else:
                 self.keys(*keys)
             self.keys('b')
-            self.attempt(8, binding, lambda: self.check(8, binding, **self.input('binding', key=symbol)))
+            options = {'mic_mute_limit': True} if binding == 'XF86AudioMicMute' else {'key': symbol}
+            self.attempt(8, binding, lambda: self.check(8, binding, **self.input('binding', **options)))
         for binding, mouse, pattern in (
             ('Left button', ['btn 272 1', 'btn 272 0'], '1'),
             ('Right button', ['btn 273 1', 'btn 273 0'], '3'),
@@ -272,24 +273,40 @@ class Checks:
 
     def reject_peer(self, name):
         self.peer('stop')
-        self.peer('start', peer=name)
-        self.peer('refused', peer=name)
-        self.input('mark')
-        self.input('untrusted-cross')
-        self.keys('b')
-        self.input('local-key')
+        try:
+            self.peer('start', peer=name)
+            refusal = self.peer('refused', peer=name)
+            self.input('mark')
+            self.input('untrusted-cross')
+            self.keys('b')
+            self.input('local-key')
+            self.clip('host')
+            self.clip('no-read', side='client')
+            client = self.peer('no-data', peer=name)
+            self.check(9, 'same screen name refused; input and clipboard stayed local', peer=name, **refusal, **client)
+        finally:
+            self.peer('stop')
+
+    def approved_after_refusal(self):
+        self.peer('start', peer='approved', connected=True)
         self.clip('host')
-        self.clip('no-read', side='client')
-        self.peer('stop')
-        self.check(9, 'same screen name refused; no crossing, key or clipboard', peer=name)
+        self.capture()
+        self.input('mark')
+        self.keys('b')
+        self.input('still')
+        self.clip('read-client')
+        self.release()
 
     def privacy_and_trust(self):
         def flatpak():
-            self.proof('flatpak')
-            self.check(8, 'real frontend supplied the unlisted sandbox ID and backend refused it')
+            self.check(8, 'real frontend supplied the unlisted sandbox ID and backend refused it',
+                       **self.proof('flatpak'))
         self.attempt(8, 'Flatpak identity refusal', flatpak)
-        self.reject_peer('stranger')
-        self.reject_peer('plain')
+        for name in ('stranger', 'plain'):
+            self.attempt(9, f'{name} refusal', lambda: self.reject_peer(name))
+        self.approved_after_refusal()
+        self.check(9, 'approved peer still received input and clipboard after both negative controls')
+        self.peer('stop')
         self.server('stop')
         self.peer('settings', stale=True)
         for path in ('hub', 'hook'):
@@ -303,10 +320,8 @@ class Checks:
             self.server(path)
             self.server('armed')
             self.peer('protected')
-            self.reject_peer('stranger')
-            self.peer('start', peer='approved', connected=True)
-            self.capture()
-            self.release()
+            self.attempt(9, f'{path} stranger refusal with unsafe settings', lambda: self.reject_peer('stranger'))
+            self.approved_after_refusal()
             self.check(9, 'TLS and fingerprint checks still effective with both user checks disabled', path=path)
             if path == 'hub':
                 self.peer('stop')
@@ -333,22 +348,23 @@ class Checks:
         self.check(5, 'capture still held and next key reached the client after 60 seconds idle')
         self.server('freeze')
         self.keys(*RELEASE)
-        self.server('frozen-exited')
+        stopped = self.server('frozen-exited')
         self.input('focus')
         self.input('mark')
         self.keys('b')
         self.input('local-key')
-        self.check(5, 'QMP release chord killed the stopped backend, next key was local')
+        self.check(5, 'QMP release chord stopped the frozen backend and guarded Deskflow; next key was local', **stopped)
         self.peer('stop')
-        self.server('stop')
         self.server('hub')
         initial = self.server('armed')
+        self.peer('start', peer='approved', connected=True)
+        self.capture()
+        self.release()
+        self.check(5, 'explicit hub launch resumed sharing after the fallback', **initial)
         self.server('kill-backend')
-        self.server('stop')
-        self.server('hub')
         current = self.server('armed')
         assert current['backend'] != initial['backend'] and current['owner'] != initial['owner']
-        self.peer('start', peer='approved', connected=True)
+        assert current['pid'] == initial['pid'], 'the same guarded core should re-arm after an ordinary backend exit'
         self.capture()
         self.release()
         self.check(6, 'fresh D-Bus backend with the right Wayland socket captured after the original was killed', **current)

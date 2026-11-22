@@ -13,7 +13,9 @@ import select
 import signal
 import socket
 import subprocess
+import tempfile
 import time
+import uuid
 
 PROC = pathlib.Path('/proc')
 VT = pathlib.Path('/sys/class/tty/tty0/active')
@@ -768,11 +770,20 @@ def daily_server(request):
     elif action == 'freeze':
         pid = backend_pid(backend_owner())
         daily_state['frozen'] = pid
+        record = session['runtime'] / 'aresos-deskflow.pid'
+        launch, core = (int(line.split()[0]) for line in record.read_text().splitlines())
+        assert core_pids() == [core] and GUARD in (
+            PROC / str(launch) / 'cmdline').read_text().split('\0')
+        daily_state['frozen_guard'] = (launch, core)
         os.kill(pid, signal.SIGSTOP)
     elif action == 'frozen-exited':
         pid = daily_state['frozen']
         wait_for(lambda: not (PROC / str(pid) / 'exe').exists(), 'release killed the stopped backend', timeout=4)
         assert not backend_running() or backend_pid(backend_owner()) != pid
+        assert all(not (PROC / str(process) / 'exe').exists() for process in daily_state['frozen_guard'])
+        assert SWITCH.read_text().strip() == 'on'
+        assert not core_pids() and status() == 'no sessions' and not backend_connections()
+        return dict(returncode=0, backend_stopped=True, guard_stopped=True, core_stopped=True, sharing='on')
     elif action == 'off':
         wait_for(lambda: status() == 'no sessions' and not core_pids(), 'sharing stopped, no server or sessions')
         return dict(returncode=0, connections=backend_connections())
@@ -896,11 +907,17 @@ def trusted_line(peer):
 
 
 def server_listening():
-    try:
-        socket.create_connection(('127.0.0.1', 24800), timeout=0.2).close()
-    except OSError:
-        return False
-    return True
+    # A readiness probe must not generate a failed TLS handshake in the evidence.
+    return bool(tcp_sockets('-l', 'sport = :24800'))
+
+
+def tcp_sockets(*args):
+    return require(subprocess.run(['ss', '-Htnp', *args], capture_output=True, text=True, timeout=5))
+
+
+def new_server_log():
+    server, session_tail = daily_state['peer_server_mark']
+    return probe_log('server')[server:] + session_log()[session_tail:]
 
 
 def daily_peer(request):
@@ -917,12 +934,13 @@ def daily_peer(request):
         wait_for(server_listening, 'guarded server listening')
         stop_probe('peer')
         profile = daily_state['root'] / label
+        daily_state['peer_server_mark'] = (len(probe_log('server')), len(session_log()))
         # Keep client logs separate so a later connection cannot obscure an earlier refusal.
         start_probe('peer', ['env', '-u', 'WAYLAND_DISPLAY', 'QT_QPA_PLATFORM=xcb', 'XDG_SESSION_TYPE=x11',
                    f'XDG_CONFIG_HOME={profile}', f'TMPDIR={profile}', CORE, 'client'], display=True)
         daily_state['peer'] = label
         if request.get('connected'):
-            wait_for(lambda: 'accepted secure socket' in probe_log('server') + session_log() and
+            wait_for(lambda: 'accepted client connection' in new_server_log() and
                      'connected to secure socket' in probe_log('peer'), 'Deskflow peers completed TLS')
             time.sleep(0.5)  # The next crossing proves the Deskflow protocol handshake as well.
     elif op == 'stop':
@@ -941,13 +959,40 @@ def daily_peer(request):
             assert len(runtime) == 1 and runtime[0].read_text() == path.read_text()
             assert path.stat().st_mode & 0o777 == 0o600
     elif op == 'refused':
-        wait_for(lambda: re.search(r'(?im)refused|connection failed|disconnected|timed out|error|closed',
-                                   probe_log('peer')), 'untrusted peer got a refusal')
-        assert not re.search(r'(?im)\bconnected to server\b', probe_log('peer'))
+        assert label == daily_state['peer'] and label in ('stranger', 'plain'), label
+        client_log = lambda: probe_log('peer')
+        if label == 'stranger':
+            assert trusted_line(label) != trusted_line('approved')
+            daily_peer({'op': 'trusted', 'peer': 'approved'})
+            wait_for(lambda: 'fingerprint does not match trusted fingerprint' in new_server_log(),
+                     'server rejected the untrusted certificate')
+            wait_for(lambda: 'connected to secure socket' in client_log(),
+                     'stranger completed TLS on the client side before server fingerprint refusal')
+        else:
+            wait_for(lambda: 'deskflow-core' in tcp_sockets('state', 'established', 'dport = :24800'),
+                     'native plaintext client attempted a TCP connection')
+            wait_for(lambda: 'failed to accept secure socket' in new_server_log(),
+                     'server did not complete TLS with the plaintext client')
+            assert 'connected to secure socket' not in client_log()
+        assert 'accepted secure socket' not in new_server_log()
+        assert 'accepted client connection' not in new_server_log()
+        return dict(returncode=0, server='fingerprint mismatch' if label == 'stranger' else 'TLS accept failed',
+                    client='TLS reached' if label == 'stranger' else 'plaintext TCP reached')
+    elif op == 'no-data':
+        assert label == daily_state['peer'], label
+        if label == 'stranger':
+            wait_for(lambda: not tcp_sockets('state', 'established', 'dport = :24800'),
+                     'the stranger lost its client-side transport after the fingerprint refusal', timeout=5)
+        assert 'accepted client connection' not in new_server_log()
+        assert 'accepted secure socket' not in new_server_log()
+        assert not re.search(r'(?m)^(KeyPress|KeyRelease|MotionNotify|ButtonPress|ButtonRelease) event',
+                             input_since(daily_state['input_mark'], 'x11-input')), 'rejected peer received input'
+        assert not captured(), 'capture stayed active for a rejected peer'
+        return dict(returncode=0, client_input_events=0, client_transport_closed=label == 'stranger')
     elif op == 'settings':
         settings = daily_state['source'] / 'Deskflow.conf'
         text = settings.read_text()
-        if '[security]' not in text:
+        if not request.get('stale') and '[security]' not in text:
             fixture_file(settings, text + '[security]\ntlsEnabled=false\ncheckPeerFingerprints=false\n')
         if request.get('stale'):
             fixture_file(trust_file(), trusted_line('approved') + trusted_line('stranger'))
@@ -1077,13 +1122,18 @@ def daily_input(request):
         expected = request.get('key')
         if expected:
             wait_received(mark, x_key(expected), 'the unmarked binding itself reached the client')
+        if request.get('mic_mute_limit'):
+            assert not re.search(x_key('XF86AudioMicMute'), input_since(mark, 'x11-input'))
         if button := request.get('mouse'):
             assert button in ('1', '2', '3', '4', '5')
             wait_received(mark, rf'button {button}, same_screen', 'the mouse binding itself reached the client')
         assert captured() and portal_events()['Deactivated'] == daily_state['event_mark']['Deactivated']
         assert windows() == daily_state['window_mark'], 'an unmarked binding changed local windows or focus'
         assert not re.search(r'(?m)^(KEY|MOTION|BUTTON|AXIS|CLOSE)', input_since(mark, 'local-input'))
-        return dict(returncode=0, laptop='unchanged', capture='held', next_key='client')
+        result = dict(returncode=0, laptop='unchanged', capture='held', next_key='client')
+        if request.get('mic_mute_limit'):
+            result['binding_key'] = 'dropped by Deskflow 1.27'
+        return result
     elif op == 'virtual-key':
         code = request['code']
         send_virtual('keyboard', [f'key {code} 1', f'key {code} 0'])
@@ -1194,6 +1244,56 @@ def daily_clip(request):
     return dict(returncode=0)
 
 
+def sandbox_refusal():
+    app_id = 'org.aresos.UnlistedFixture'
+    instance = str(uuid.uuid4().int % 10**18)
+    root = session['runtime'] / '.flatpak' / instance
+    require(guest_command('mkdir', '-m', '0700', '-p', str(root)))
+    declaration = root / 'info'
+    fixture_file(declaration, f'[Application]\nname={app_id}\nruntime=org.fedoraproject.Platform\n'
+                 f'[Instance]\ninstance-id={instance}\n')
+    before = len(session_log())
+    command = ['sh', '-c', 'exec "$@" 3>&1', 'bwrap-info',
+               'bwrap', '--die-with-parent', '--unshare-pid', '--info-fd', '3',
+               '--ro-bind', '/usr', '/usr', '--ro-bind', '/etc', '/etc',
+               '--ro-bind', '/run', '/run', '--ro-bind', '/tmp', '/tmp', '--proc', '/proc', '--dev', '/dev',
+               '--symlink', 'usr/bin', '/bin', '--symlink', 'usr/lib', '/lib', '--symlink', 'usr/lib64', '/lib64',
+               '--ro-bind', str(declaration), '/.flatpak-info', '--', 'sh', '-c', 'read -r start && exec "$@"',
+               'sandbox-probe', 'gdbus', 'call', '--session', '--dest', FRONTEND,
+               '--object-path', '/org/freedesktop/portal/desktop', '--method',
+               'org.freedesktop.portal.InputCapture.CreateSession2', "{'session_handle_token': <'unlisted'>}"]
+    try:
+        with subprocess.Popen(session['prefix'] + command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE, text=True) as sandbox:
+            try:
+                header = sandbox.stdout.readline() if select.select([sandbox.stdout], [], [], 5)[0] else ''
+                if header.strip() == '{':
+                    for line in sandbox.stdout:
+                        header += line
+                        if line.strip() == '}':
+                            break
+                    # The frontend resolves the Flatpak instance to the actual sandbox's pidfd.
+                    assert json.loads(header)['child-pid'] > 0, header
+                    fixture_file(root / 'bwrapinfo.json', header)
+                stdout, stderr = sandbox.communicate('start\n', timeout=12)
+            finally:
+                if sandbox.poll() is None:
+                    sandbox.kill()
+                    sandbox.wait()
+        evidence = dict(bwrap=header.strip(), reply=stdout.strip(), stderr=stderr.strip(), code=sandbox.returncode)
+        reason = 'refused: this application is not on the allow-list'
+        evidence['backend_refusal'] = next((line for line in session_log()[before:].splitlines()
+                                            if f'app_id="{app_id}"' in line and reason in line), None)
+        assert (header.startswith('{') and sandbox.returncode == 1 and not stdout.strip()
+                and 'org.freedesktop.DBus.Error.AccessDenied: this application may not capture input' in stderr
+                and evidence['backend_refusal']), evidence
+        return dict(returncode=0, app_id=app_id, **evidence)
+    finally:
+        for file in (declaration, root / 'bwrapinfo.json'):
+            file.unlink(missing_ok=True)
+        root.rmdir()
+
+
 def daily_proof(request):
     op = request['op']
     if op == 'off-launch':
@@ -1216,22 +1316,7 @@ def daily_proof(request):
         assert elapsed <= 2
         return dict(returncode=0, seconds=round(elapsed, 3))
     elif op == 'flatpak':
-        app_id = 'org.aresos.UnlistedFixture'
-        declaration = daily_state['root'] / 'flatpak-info'
-        fixture_file(declaration, f'[Application]\nname={app_id}\nruntime=org.fedoraproject.Platform\n')
-        before = session_log().count(app_id)
-        command = ['bwrap', '--die-with-parent', '--ro-bind', '/usr', '/usr', '--ro-bind', '/etc', '/etc',
-                   '--ro-bind', '/run', '/run', '--ro-bind', '/tmp', '/tmp', '--proc', '/proc', '--dev', '/dev',
-                   '--symlink', 'usr/bin', '/bin', '--symlink', 'usr/lib64', '/lib64',
-                   '--ro-bind', str(declaration), '/.flatpak-info',
-                   '--', 'gdbus', 'call', '--session', '--dest', FRONTEND, '--object-path',
-                   '/org/freedesktop/portal/desktop', '--method',
-                   'org.freedesktop.portal.InputCapture.CreateSession', '',
-                   "{'capabilities': <uint32 7>, 'session_handle_token': <'unlisted'>}"]
-        guest_command(*command)
-        wait_for(lambda: session_log().count(app_id) > before and
-                 any(app_id in line and 'not on the allow-list' in line for line in session_log().splitlines()),
-                 'frontend supplied the sandbox ID and the backend refused it')
+        return sandbox_refusal()
     elif op == 'log':
         assert daily_state['clip_markers'] and portal_events()['Activated'] and portal_events()['Deactivated']
         pid = backend_pid(backend_owner())
@@ -1297,7 +1382,6 @@ ACTIONS.update({'deskflow-daily-prepare': daily_prepare, 'deskflow-daily-switch'
 
 def remote_switch_denied():
     """Ask from a real PAM SSH login on guest loopback, with only throwaway keys."""
-    import tempfile
     with tempfile.TemporaryDirectory(prefix='deskflow-ssh-') as directory:
         work = pathlib.Path(directory)
         key = work / 'id'
@@ -1310,39 +1394,44 @@ def remote_switch_denied():
         authorized.chmod(0o600)
         require(subprocess.run(['ssh-keygen', '-A'], capture_output=True, text=True, timeout=12))
         require(subprocess.run(['restorecon', '-R', str(keys), '/etc/ssh'], capture_output=True, text=True, timeout=12))
-        command = ['/usr/sbin/sshd', '-D', '-e', '-f', '/dev/null',
+        unit = 'deskflow-ci-sshd.service'
+        command = ['systemd-run', '--quiet', f'--unit={unit}', '--service-type=exec',
+                   '/usr/sbin/sshd', '-D', '-e',
                    '-o', 'ListenAddress=127.0.0.1', '-o', 'UsePAM=yes',
                    '-o', 'AuthorizedKeysFile=.ssh/deskflow-ci-authorized', '-o', 'PasswordAuthentication=no',
                    '-o', 'PermitRootLogin=no', '-o', 'UseDNS=no']
-        sshd_log = work / 'sshd.log'
-        with sshd_log.open('w') as log:
-            process = subprocess.Popen(command, stdout=log, stderr=log)
-            try:
-                def listening():
-                    assert process.poll() is None, 'the isolated sshd exited before starting'
-                    try:
-                        socket.create_connection(('127.0.0.1', 22), timeout=0.2).close()
-                        return True
-                    except OSError:
-                        return False
-
-                wait_for(listening, 'isolated loopback sshd')
-                script = ('test "$(loginctl show-session self -p Remote --value)" = yes || exit 31; '
-                          'exec pkexec --disable-internal-agent /usr/libexec/aresos-input-sharing-set on')
-                result = subprocess.run(['ssh', '-n', '-tt', '-F', '/dev/null', '-o', 'BatchMode=yes',
-                                         '-o', 'IdentitiesOnly=yes',
-                                         '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null',
-                                         '-i', str(key), f'{session["name"]}@127.0.0.1', script],
-                                        capture_output=True, text=True, timeout=12)
-                daily_state['helper_reports'].extend((result.stdout, result.stderr))
-                if result.returncode not in (126, 127):
-                    lines = (result.stdout + result.stderr + sshd_log.read_text(errors='replace')).splitlines()
-                    safe = '\n'.join('' if LOG_DATA.search(line) else line for line in lines[-15:])
-                    raise AssertionError(f'remote switch probe exited {result.returncode}: {safe}')
-                assert not SWITCH.exists()
-                return dict(returncode=0, remote=True, refused=True)
-            finally:
-                if process.poll() is None:
-                    process.terminate()
-                    process.wait(timeout=5)
-                authorized.unlink(missing_ok=True)
+        started = time.strftime('%Y-%m-%d %H:%M:%S')
+        try:
+            # Let the system manager start sshd in its normal SELinux domain and load the image's SSH config.
+            require(subprocess.run(command, capture_output=True, text=True, timeout=12))
+            wait_for(lambda: 'sshd' in tcp_sockets('-l', 'src 127.0.0.1 and sport = :22'),
+                     'systemd loopback sshd')
+            pid = int(require(subprocess.run(['systemctl', 'show', '-p', 'MainPID', '--value', unit],
+                                             capture_output=True, text=True, timeout=5)).strip())
+            domain = (PROC / str(pid) / 'attr/current').read_text().strip().rstrip('\0')
+            script = ('test "$(loginctl show-session self -p Remote --value)" = yes || exit 31; '
+                      'printf "deskflow-remote=yes\n"; '
+                      'exec pkexec --disable-internal-agent /usr/libexec/aresos-input-sharing-set on')
+            result = subprocess.run(['ssh', '-n', '-tt', '-F', '/dev/null', '-o', 'BatchMode=yes',
+                                     '-o', 'IdentitiesOnly=yes', '-o', 'StrictHostKeyChecking=no',
+                                     '-o', 'UserKnownHostsFile=/dev/null', '-i', str(key),
+                                     f'{session["name"]}@127.0.0.1', script],
+                                    capture_output=True, text=True, timeout=12)
+            daily_state['helper_reports'].extend((result.stdout, result.stderr))
+            if result.returncode != 127 or 'deskflow-remote=yes' not in result.stdout.splitlines():
+                journal = subprocess.run(['journalctl', '-b', '--since', started, '-u', unit,
+                                          '-o', 'cat', '--no-pager', '-n', '20'], capture_output=True, text=True,
+                                         timeout=10).stdout
+                audit = subprocess.run(['journalctl', '-b', '--since', started, '-o', 'cat', '--no-pager',
+                                        '-g', r'avc:.*(sshd|bash|pkexec)'], capture_output=True, text=True,
+                                       timeout=10).stdout
+                shell = pwd.getpwnam(session['name']).pw_shell
+                lines = (result.stdout + result.stderr + journal + audit).splitlines()
+                safe = '\n'.join(line for line in lines[-24:] if not LOG_DATA.search(line))
+                raise AssertionError(f'remote switch probe exited {result.returncode}; sshd={domain}, shell={shell}, '
+                                     f'nologin={pathlib.Path("/run/nologin").exists()}: {safe}')
+            assert not SWITCH.exists()
+            return dict(returncode=0, remote=True, refused=True, sshd_domain=domain, pkexec=result.returncode)
+        finally:
+            subprocess.run(['systemctl', 'stop', unit], capture_output=True, text=True, timeout=6)
+            authorized.unlink(missing_ok=True)
