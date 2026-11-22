@@ -167,3 +167,12 @@ check follows the owner's update. There are no downloads over 500 MB in `.work/`
 - **Late-package notes (2026-11-21):**
   - B329 (PR143): the lead's os/ read is clean. Its image-difference list is in its PROGRESS.md under "For linux-aresos". R29's guest walk expects the AresOS theme.
   - For R29's Known limits: after Alt+Tab then Escape, the world keeps its pointer lock but gets no keys until you switch away and back. Main's rc.xml does the same; the frame isn't the cause (linux-desktop).
+
+## Step 2 reviewed 2026-11-22 (the lead)
+
+- **REVIEW-3** (fresh Codex `gpt-6.2-sol` high, at `144fd9ae`): SAFE. It ran on Sol rather than the brief's Astra, under mac-capacity's Codex pace rule.
+- **Carried into the next slices:**
+  1. Extend the build-context guard to non-ignored untracked files and tracked edits outside `IMAGE_SOURCES_29` that `COPY .` would bring in. The image diff would still catch any resulting image change; this closes the gap earlier. Do it in the next slice that touches the guard.
+  2. Give labwc and labnag distinct fixture payloads, add a swap regression, and add direct regressions for an extra RPM path, a duplicate record and a valid but stale installed lock. Do it with step 3 or 4 as a small first item.
+  3. Refresh the `aresos2` fixture bindings at the cut, in B321's late-package slice.
+- **Next:** step 3, the walk, on Codex when the pace allows (Monday).
