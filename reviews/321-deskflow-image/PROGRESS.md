@@ -874,8 +874,8 @@ After the final review and release, get the owner's direct OK and have the owner
    Before step 4, save work again and keep sharing On. Run `aresos-input-portal --status` and confirm that it
    lists one armed Deskflow session (`enabled=true` and at least one barrier), so the Wayland worker has bound
    the output manager. Record labwc's PID and repeat all of step 1's display, replug, lid, suspend and VT
-   operations with the worker bound. Confirm that each operation keeps the same labwc PID and the outputs
-   recover before continuing to steps 4 through 10.
+   operations with the worker bound. Confirm after each operation that the same labwc PID is running,
+   the outputs have recovered and the session is still armed before continuing to steps 4 through 10.
 4. Cross to the Mac and back with and without the external display. Check where the laptop pointer lands.
 5. Type on the Mac, including Cmd shortcuts. Press Super+Shift+Escape and verify that input is back on the
    laptop and no modifier is still held on the Mac.
@@ -891,8 +891,9 @@ After the final review and release, get the owner's direct OK and have the owner
 
 ## Left, in order
 
-1. The fresh Fable final review is in `REVIEW-4-FABLE.md`. The hosted daily-use gate and binding table are tracked
-   under “CI dispatches”.
+1. Resolve the remaining hosted findings from dispatch 11, including the pinned Deskflow microphone-mute
+   mapping and the stopped-backend re-capture, and get the daily-use gate and binding table green. The lead
+   holds dispatch 12. The final Fable review is in `REVIEW-4-FABLE.md`.
 2. The lead sends the final heads for `linux-aresos` and `linux-hub` to read. Both give their read verdicts.
 3. Merge the PR after both reads and resolution of the outstanding hosted VM evidence and review findings.
 4. `linux-aresos` prepares the release after R29.
@@ -1004,6 +1005,8 @@ The lead sends this list when step 3 ends and at the final head.
 | `os/config/usr/share/aresos/labwc/autostart`, `os/ci/image-checks.sh`, `os/tests/test_{everyday_account,aresos_desktop}.py` | `a5836aa6` | Publish the compositor environment to the private bus before either login app can activate the portal. |
 | `os/ci/deskflow/actions.py`, `os/tests/test_deskflow_vm.py` | `147a61f5` | Observe the actual app-ID-specific Off log and record safe facts about failed startup. |
 | `os/ci/deskflow/{actions.py,daily_vm.py}`, `os/tests/test_deskflow_vm.py` | `d63029cd` | Observe the image's own activation variables and collect redacted diagnostics for failed daily checks. |
+| `os/ci/deskflow/actions.py` | `a8c2ee30` | Give the daily VM fixture the screen names and layout links Deskflow 1.27 expects. |
+| `os/ci/deskflow/actions.py`, `os/tests/test_deskflow_vm.py` | `64c6661c` | Wait for logind's seat transition, isolate the PAM SSH probe and recenter the fixture pointer before pairing. |
 
 Not touched in step 1c: `os/Containerfile` (the stage copies the whole `labwc/` folder, so the second patch needs no
 new line; its comment above the stage still says "one upstream fix" and should name both patches when the file is
@@ -1097,6 +1100,98 @@ had never been built. Dispatch 12 is reserved for the lead.
 | 6 of 8 | 2 review fixes | [45004171828](https://github.com/Ares-Empire/AresOS/actions/runs/45004171828), verified at `f4c52a3ca122ee75798c32f9505920c0c03d7d60` (2026-11-22 09:43 CET) | `check_build=deskflow`. **Passed** (10:10 CET). `gh run watch 45004171828 --exit-status --interval 60` returned 0. The image checks passed, the layer scan passed on 9 added layers, and the installed backend SHA-256 matched the pin. The DRM gate passed with the six case results below. |
 | 7 of 8 | 3 | [45009968432](https://github.com/Ares-Empire/AresOS/actions/runs/45009968432), verified at `dccb0f1da264fff6b092f77238ee6ff20c49917b` (2026-11-22 10:56 CET) | `check_build=deskflow`. **GitHub passed** at 12:11 CET and `gh run watch 45009968432 --exit-status --interval 60` returned 0. Image and polkit checks passed, all 11 added layers passed, and the installed backend SHA-256 matched the pin. The real frontend proved the native ID. The table below accounts for unexpected backend activation in the DRM controls. |
 | 8 of 8 | 4 | [45025378331](https://github.com/Ares-Empire/AresOS/actions/runs/45025378331), verified at `bcea0dadb2fc143ae6bd06c73776615da459e725` (2026-11-22 14:02 CET) | `check_build=deskflow`. **Failed in the daily-use VM** at 14:28 CET. The image build and checks passed. The six DRM boots finished with the expected results. The daily-use boot proved the initial Off state, then the scoped refusal assertion timed out. The reboot-On boot read the persisted On setting and timed out waiting for an armed server. The first `gh run watch 45025378331 --exit-status --interval 60` lost its GitHub API connection, and reattaching returned 1 with the completed failure. |
+| 9 of 12 | Final review | [45052405509](https://github.com/Ares-Empire/AresOS/actions/runs/45052405509), verified at `7f29cd91dfaf85cc68fbd8e6798b0b93cc3c17dc` (2026-11-22 18:58 CET) | `check_build=deskflow`. **`DESKFLOW_VM_GATE_FAILED`** at 20:08 CET. The image and six DRM boots gave their expected results. Deskflow rejected the daily fixture's legacy screen layout on the Off and reboot-On boots. The watch returned 1. |
+| 10 of 12 | Final review, layout fix | [45059202351](https://github.com/Ares-Empire/AresOS/actions/runs/45059202351), verified at `a8c2ee301c35bcb4c8f132674c1027c5e5556e30` (2026-11-22 20:10 CET) | `check_build=deskflow`. **`DESKFLOW_VM_GATE_FAILED`** at 21:16 CET. The image, DRM cases and reboot persistence passed. Inactive polkit, the SSH PAM check and pairing failed. The watch returned 1. |
+| 11 of 12 | Final review, seat and pairing fixes | [45065781890](https://github.com/Ares-Empire/AresOS/actions/runs/45065781890), verified at `64c6661c233c4f72bb933f21858a4ebc083ad81d` (2026-11-22 21:19 CET) | `check_build=deskflow`. **`DESKFLOW_VM_GATE_FAILED`** at 22:29 CET. The image and DRM cases passed their gates. Remote polkit, microphone mute, sandbox refusal, the TLS negative controls, and stopped-backend recovery/restarts remained open. The watch returned 1. |
+
+### Dispatch 11 evidence
+
+Image, guarded desktop entry, `rpm -V deskflow`, polkit, 11 added layers and installed backend pin passed.
+All 16 local `test_deskflow_vm.py` tests passed by discovery. There were no `__pycache__` directories under
+`os/config`. The harness files did not change. No local containers were started and no images were built
+or removed. No file larger than 500 MB remained in `.work/`.
+[Check-build evidence](https://github.com/Ares-Empire/AresOS/actions/runs/45065781890#artifacts)
+
+| VM case or brief check | Result |
+|---|---|
+| `regular-none` | Passed listed-mode cycles, both VT changes and SetUIInfo hotplug with zero backend Wayland connections. |
+| `regular-listener` | Passed the same mode, VT and hotplug checks with the original listener and zero backend Wayland connections. |
+| `regular-backend` | Passed the mode, VT, geometry, hotplug and scoped native identity checks. Terminal launch was refused for an empty ID. Off closed the session and ended the original process. The fresh backend held zero Wayland connections. |
+| `custom-none` | Passed custom mode, disable and re-enable. |
+| `custom-listener` | Custom mode and disable passed. Re-enable reproduced the known `head_send_state` assertion with the listener bound. |
+| `custom-backend` | Custom mode and disable passed with the worker bound. Re-enable reproduced the same assertion. |
+| `daily-use` (check 2, first boot and switch) | Initial Off, two scoped refusals, one dialog, local crossing, active and inactive local polkit, cancellation, both forms of invalid-argument tests, symlink and writable-directory refusals, and password-authenticated On all passed. One native session stayed armed. |
+| `daily-use` (check 2, remote) | The guest sshd accepted the fixture's public key. Executing `/bin/bash` failed with Permission denied before the remote command could check the session or run pkexec. The shell denial is outside the Deskflow package and its cause needs guest evidence. |
+| `daily-use` (check 3) | Real-client crossing, motion, buttons, scroll and keys passed. Twenty clipboard transfers each way passed with 20 SelectionRead and 38 SelectionWrite calls and 23 frontend descriptors before and after. Activated and Deactivated were observed through the real frontend. |
+| `daily-use` (check 4) | Super+Shift+Escape released the pointer and both modifiers at the client before QEMU sent physical key-up. |
+| `daily-use` (check 5) | Capture stayed held over 60 seconds idle and the next key reached the client. The chord killed the frozen backend. Deskflow immediately created and armed a new session over D-Bus, and its barrier captured again before the fixture could deliver the next key locally. |
+| `daily-use` (check 6) | The stopped-backend re-capture stopped the restart sequence before the clean backend kill, frontend restart and logout/login checks. Fixture restart succeeded and allowed the Off checks to proceed. |
+| `daily-use` (check 7) | Passwordless Off and a separate manual removal while typing closed the client session, and subsequent input and clipboard stayed local. The original backend exited 0.204 seconds after manual removal without revoke. On required the password again. |
+| `daily-use` (check 8, bindings) | 21 rows passed. The microphone-mute keysym was absent at the recipient even though the next key reached the client and the capture was still held. The table below distinguishes the observed fields. |
+| `daily-use` (check 8, sandbox and privacy) | The sandbox request produced no observed ID-specific refusal. The fixture did not retain the `bwrap`/D-Bus reply, so the cause is unknown. The journal, launcher and probe-log scan passed with backend trace and Deskflow Info. |
+| `daily-use` (check 9) | Live pairing rejected Enter and explicit rejection, and confirmed exactly one certificate with deliberate approval. The subsequent same-name stranger probe timed out waiting for an explicit refusal in the client log. No successful untrusted input was observed, and the attempted connection's outcome remains unverified. Plaintext, stale trust and disabled peer-check controls were not reached. |
+| `reboot-on` (check 7) | The On setting survived and the real login started one guarded armed server. Passwordless Off then stopped it. |
+| `reboot-off` (check 7) | Off survived and the real login left Deskflow and its Wayland worker stopped. |
+
+The pinned Deskflow 1.27 source maps `XF86AudioMicMute` (`0x1008ffb2`) to zero in
+`XDGKeyUtil::s_map1008FF`, reached by its Wayland EIS key conversion. A local source check used
+`xkb_keysym_from_name` to verify that entry and the neighboring audio-mute control. This dependency
+failure leaves the binding gate open. The stopped-backend re-capture also leaves the recovery guarantee
+open. Both failures are tracked here with the other unresolved VM checks. Dispatch 12 was left unused.
+
+### Dispatch 10 evidence
+
+Image, guarded desktop entry, `rpm -V deskflow`, polkit, 11 added layers and installed backend pin passed.
+[Check-build evidence](https://github.com/Ares-Empire/AresOS/actions/runs/45059202351#artifacts)
+
+| VM case or brief check | Result |
+|---|---|
+| `regular-none` | Passed listed-mode cycles, both VT changes and SetUIInfo hotplug with zero backend Wayland connections. |
+| `regular-listener` | Passed the same mode, VT and SetUIInfo checks with the original listener and zero backend Wayland connections. |
+| `regular-backend` | Passed mode, VT, geometry, SetUIInfo, native identity, empty-ID terminal refusal and original backend exit on Off. The fresh backend held zero Wayland connections. |
+| `custom-none` | Passed custom mode, disable and re-enable. |
+| `custom-listener` | Custom mode and disable passed. Re-enable reproduced the known `head_send_state` assertion with the listener bound. |
+| `custom-backend` | Custom mode and disable passed with the worker bound. Re-enable reproduced the same assertion. |
+| `daily-use` (check 2) | First login Off, two scoped refusals, one sharing window, local crossing, active-seat polkit, canceling On, invalid arguments and both unsafe switch paths passed. Password-authenticated On kept one scoped native session with one Wayland worker. |
+| `daily-use` (check 2, inactive and remote) | The VT reached tty3, and the immediate polkit call still returned the active-seat decisions. The SSH probe failed its combined exit/output assertion. The artifact did not record which of SSH, PAM's Remote check, or pkexec returned the unexpected result. |
+| `daily-use` (check 9, live pairing) | The real pair window mapped. The portal grabbed the keyboard and pointer immediately after installing its barrier, with the fixture pointer left at the edge after the Off crossing. The pair window could not get keyboard focus. |
+| `daily-use` (checks 3–8 and remaining 9) | Forwarding, clipboard, chords, idle, restarts, Off during capture, bindings, sandbox refusal, log privacy and TLS negative controls were not reached. |
+| `reboot-on` (check 7) | On persisted. The guest's real autostart hook armed one scoped Deskflow session. Passwordless Off then succeeded and left zero worker connections. |
+| `reboot-off` (check 7) | Off persisted. The real login left no Deskflow process or worker. |
+
+The follow-up brings the pointer back to the fixture window after the Off crossing, waits for logind to
+report the session's expected Active state after each daily VT change, and gives the loopback SSH test a
+separate configuration, a real terminal and explicit PAM Remote and pkexec exit checks. SSH failures now
+include bounded, filtered output. Discovery of `test_deskflow_vm.py` passed all 16 tests before dispatch 11.
+
+### Dispatch 9 evidence
+
+Image checks passed with `IMAGE_CHECKS_PASSED`, `POLKIT_CHECK_PASSED`, and `INPUT_PORTAL_LAYERS_PASSED`
+for all 11 added layers. The guarded desktop entry and `rpm -V deskflow` passed. The installed backend
+matched `00e8ff021c7978c6ed7548e050f23734d4e198bcbcebebe8d51157545d28cb57`.
+[Check-build evidence](https://github.com/Ares-Empire/AresOS/actions/runs/45052405509#artifacts)
+
+| VM case | Result |
+|---|---|
+| `regular-none` | Passed listed-mode cycles, both VT changes and SetUIInfo hotplug. The backend was absent at readiness and held zero Wayland connections through the control. |
+| `regular-listener` | Passed the same mode, VT and SetUIInfo checks with the original listener and zero backend Wayland connections. |
+| `regular-backend` | Passed modes, VT and SetUIInfo with one worker, correct geometry and the original bus owner. The real frontend supplied the native ID. A terminal launch was refused with an empty ID. Off closed one session and ended the original backend. The fresh backend held zero Wayland connections. |
+| `custom-none` | Passed custom mode, disable and re-enable. |
+| `custom-listener` | Custom mode and disable passed. Re-enable reproduced the known `head_send_state` assertion with the listener bound. |
+| `custom-backend` | Custom mode and disable passed with one worker. Re-enable reproduced the same assertion. |
+| `daily-use` (check 2) | Initial Off passed with no core and zero worker connections. The launched core rejected its configuration before contacting the portal. The scoped refusal timed out. The dialog, crossing and interactive switch and polkit checks were not reached. |
+| `daily-use` (checks 3–9) | Input, clipboard, release, idle, restarts, Off, bindings, sandbox refusal, log privacy and pairing/TLS checks were not reached. The fixture seeded On for the persistence check. |
+| `reboot-on` (check 7) | The switch persisted as On. Login started the guarded launch, and its core exited with code 4 on `unknown computer name "fixture-host"` while loading the links. No session armed. |
+| `reboot-off` (check 7) | Not reached after the On boot failed. |
+
+Both daily preparations observed `backend_has_wayland_display: true`. Both failure requests captured
+`--status` as `no sessions`, zero backend refusal reasons and zero Wayland connections. The reboot tail names
+the unsupported legacy screens section, the unknown screen in the links and the launcher's startup error.
+The daily fixture now puts the names in `Deskflow.conf`'s `computer_` groups and keeps reciprocal links in
+the layout file (`a8c2ee30`). A mocked preparation run verified the emitted names and links against the
+pinned source's parser. Discovery of `test_deskflow_vm.py` passed all 15 tests before both dispatches.
+
+### Earlier dispatch evidence
 
 The hosted job checked out `bcea0dadb2fc143ae6bd06c73776615da459e725`. See
 [run 45025378331 and its check-build-evidence artifact](https://github.com/Ares-Empire/AresOS/actions/runs/45025378331#artifacts).
@@ -1130,35 +1225,36 @@ The detailed records are `image/checks.txt`, `image/polkit.txt`, `image/input-po
 | 8. Bindings, Flatpak refusal and trace/log privacy | **Not reached.** The image verified both marked bindings. The hosted run recorded no live binding, sandbox or log privacy results. |
 | 9. Real Wayland-session pairing, different certificate and plaintext refusal, stale and disabled peer-check settings | **Not reached.** |
 
-#### Binding table for the installed capture
+### Binding table for the installed capture
 
-The hosted boot stopped before entering a capture. Window/focus action, capture state and the next key's
-destination are unobserved for each row below. The local harness has separate compositor checks.
+Dispatch 11 recorded 21 passing rows for the installed image. The microphone-mute probe verified the next
+key at the client before timing out on the mute keysym. Its follow-up status showed the capture still held.
+The window and focus assertion comes after the keysym check, so that field remains unobserved.
 
 | Binding | Laptop windows and focus | Capture | Next key |
 |---|---|---|---|
-| Alt+F4 | Unobserved | Unobserved | Unobserved |
-| Alt+Tab | Unobserved | Unobserved | Unobserved |
-| Alt+Shift+Tab | Unobserved | Unobserved | Unobserved |
-| Brightness up | Unobserved | Unobserved | Unobserved |
-| Brightness down | Unobserved | Unobserved | Unobserved |
-| Volume up | Unobserved | Unobserved | Unobserved |
-| Volume down | Unobserved | Unobserved | Unobserved |
-| Audio mute | Unobserved | Unobserved | Unobserved |
-| Microphone mute | Unobserved | Unobserved | Unobserved |
-| Ctrl+Alt+Escape | Unobserved | Unobserved | Unobserved |
-| Lone Super | Unobserved | Unobserved | Unobserved |
-| Left button | Unobserved | Unobserved | Unobserved |
-| Middle button | Unobserved | Unobserved | Unobserved |
-| Right button | Unobserved | Unobserved | Unobserved |
-| Scroll up | Unobserved | Unobserved | Unobserved |
-| Scroll down | Unobserved | Unobserved | Unobserved |
-| Alt+left drag | Unobserved | Unobserved | Unobserved |
-| Alt+right drag | Unobserved | Unobserved | Unobserved |
-| Alt+middle | Unobserved | Unobserved | Unobserved |
-| Alt+scroll | Unobserved | Unobserved | Unobserved |
-| Super+Shift+Escape | Unobserved | Unobserved | Unobserved |
-| Super+Ctrl+Escape | Unobserved | Unobserved | Unobserved |
+| Alt+F4 | Unchanged | Held | Client |
+| Alt+Tab | Unchanged | Held | Client |
+| Alt+Shift+Tab | Unchanged | Held | Client |
+| Brightness up | Unchanged | Held | Client |
+| Brightness down | Unchanged | Held | Client |
+| Volume up | Unchanged | Held | Client |
+| Volume down | Unchanged | Held | Client |
+| Audio mute | Unchanged | Held | Client |
+| Microphone mute | Unobserved | Held | Client. The mute keysym itself failed to arrive. |
+| Ctrl+Alt+Escape | Unchanged | Held | Client |
+| Lone Super | Unchanged | Held | Client |
+| Left button | Unchanged | Held | Client |
+| Middle button | Unchanged | Held | Client |
+| Right button | Unchanged | Held | Client |
+| Scroll up | Unchanged | Held | Client |
+| Scroll down | Unchanged | Held | Client |
+| Alt+left drag | Unchanged | Held | Client |
+| Alt+right drag | Unchanged | Held | Client |
+| Alt+middle | Unchanged | Held | Client |
+| Alt+scroll | Unchanged | Held | Client |
+| Super+Shift+Escape | Pointer and keyboard returned | Ended | Local |
+| Super+Ctrl+Escape | Recovery terminal opened | Ended | Recovery terminal |
 
 ### Local follow-up after dispatch 8
 

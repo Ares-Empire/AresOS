@@ -171,8 +171,6 @@ entry there is the record of how it was.
 - A program running as the same user can delete the once-per-login marker and open the sharing window again.
 - If the launcher exits unexpectedly, its lock is released while the Deskflow core may still be running.
   A subsequent launch can then start a second core.
-- Hosted run 45025378331 proved the DRM controls, the initial Off login and the installed image checks.
-  It stopped before the live capture cases. The On file survived a reboot and the test timed out before a
-  fully armed server was observed. The follow-up verified the Off log predicate in the confined harness and
-  the startup environment order on a private bus. Login On and the remaining real-client cases still need
-  end-to-end evidence.
+- Hosted dispatches 10 and 11 proved that On and Off survive reboot and that the real login arms one
+  guarded server while On and leaves Deskflow stopped while Off. The live VM gate remains open. Its
+  evidence and outstanding blockers are in `PROGRESS.md` under “CI dispatches”.
