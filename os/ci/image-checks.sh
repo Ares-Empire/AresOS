@@ -681,7 +681,9 @@ grep -qx "Exec=$portal" "/usr/share/dbus-1/services/$portal_service"
 cmp "$portal_source/LICENSE" "$portal_license"
 test ! -e /etc/aresos/input-portal/sharing && test ! -L /etc/aresos/input-portal/sharing
 ldd "$portal" > /tmp/input-portal-ldd.txt
-! grep -q 'not found' /tmp/input-portal-ldd.txt
+if grep 'not found' /tmp/input-portal-ldd.txt; then
+    exit 1
+fi
 sha256sum -c /usr/share/aresos/manifest/input-portal.sha256
 echo "INPUT_PORTAL_INSTALLED $(sha256sum "$portal" | cut -d' ' -f1)"
 
