@@ -549,8 +549,7 @@ def receipt_setting(receipt):
 
 
 LOGIN_REQUIREMENTS = ('Requires', 'Requisite', 'BindsTo')
-LOGIN_DEPENDENCIES = ('After', 'Wants', *LOGIN_REQUIREMENTS)
-LOGIN_GRAPH = 'edges=' + repr(LOGIN_DEPENDENCIES) + '''
+LOGIN_GRAPH = '''
 roots=['greetd.service','systemd-user-sessions.service']
 graph={}
 pending=list(roots)
@@ -566,12 +565,21 @@ while pending:
 login=dict(roots=roots,graph=graph)
 '''
 
+
+def login_dependencies(include_wants):
+    return ('After', 'Wants', *LOGIN_REQUIREMENTS) if include_wants else ('After', *LOGIN_REQUIREMENTS)
+
+
+def login_graph(*, include_wants=False):
+    return 'edges=' + repr(login_dependencies(include_wants)) + LOGIN_GRAPH
+
+
 # The release checker is bound by the host receipt and passed through its documented stdin interface.
 CHECK_CONTROL = '''import json, subprocess
 checked=subprocess.run(['/usr/bin/python3','-I','-',*@CHECKS@],input=@CHECKER@,capture_output=True,text=True,timeout=150)
 release_checks=dict(status=checked.returncode,stdout=checked.stdout,stderr=checked.stderr)
 '''
-CONTROL = CHECK_CONTROL + LOGIN_GRAPH + '''
+CONTROL = CHECK_CONTROL + login_graph() + '''
 print(json.dumps(dict(release_checks=release_checks,login=login)))
 '''
 
@@ -616,9 +624,10 @@ def validate_control_service(results):
             and row['mode'] == '0700', 'STOP: Control daily folder metadata differs: ' + name
 
 
-def validate_login(login, *, strict_requirements=False):
+def validate_login(login, *, strict_requirements=False, include_wants=False):
     assert login['roots'] == ['greetd.service', 'systemd-user-sessions.service'], 'STOP: missing login roots'
     graph = login['graph']
+    edges = login_dependencies(include_wants)
     pending, seen, masked_units, required = list(login['roots']), set(), set(), set()
     while pending:
         name = pending.pop()
@@ -629,7 +638,7 @@ def validate_login(login, *, strict_requirements=False):
         row = graph[name]
         properties = row['properties']
         assert properties.get('Id') and properties['Id'] != 'aresos-toold.service', 'STOP: login dependency query failed or names Control'
-        dependencies = [dep for key in LOGIN_DEPENDENCIES for dep in properties.get(key, '').split()]
+        dependencies = [dep for key in edges for dep in properties.get(key, '').split()]
         # Optional After= or Wants= units can be absent. They cannot delay
         # login; a missing root or an unreadable graph still stops the walk.
         absent = properties.get('LoadState') == 'not-found' and name not in login['roots'] and not dependencies

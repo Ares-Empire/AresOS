@@ -345,6 +345,8 @@ def budget(reserve, current=None):
     assert type(reserve) is int and reserve >= 0, 'STOP: invalid reservation'
     start = START
     counts = {key: 0 for key in SETTINGS.get('dispatch_caps', {})}
+    if PACKAGE == '331':
+        counts['rejected'] = 0
     if START == 'first-dispatch':
         dispatched = [r for r in runs if r['event'] == 'workflow_dispatch']
         start = min((r['created_at'] for r in dispatched), default=None)
@@ -360,15 +362,19 @@ def budget(reserve, current=None):
             continue
         if PACKAGE in TITLED_PACKAGES and run['event'] == 'workflow_dispatch':
             kinds = [kind for kind, title in SETTINGS['titles'].items() if title == run['display_title']]
-            assert len(kinds) == 1, (f"STOP: run {run['id']} is titled {run['display_title']!r}, which package {PACKAGE}'s "
-                                     'ledger does not know; record it in os/ci/rehearsal-packages.json before any dispatch')
-            kind, = kinds
+            if PACKAGE == '331' and not kinds:
+                kind = 'rejected'
+            else:
+                assert len(kinds) == 1, (f"STOP: run {run['id']} is titled {run['display_title']!r}, which package {PACKAGE}'s "
+                                         'ledger does not know; record it in os/ci/rehearsal-packages.json before any dispatch')
+                kind, = kinds
             assert run.get('run_attempt') == 1, 'STOP: a rerun is an additional dispatch, not a free retry'
             counts[kind] += 1
-        if run['display_title'] == 'Two-disk rehearsal (full)':
-            full += 1
-        if run['display_title'] == 'Two-disk rehearsal (part-b)':
-            part_b += 1
+        if PACKAGE != '331':
+            if run['display_title'] == 'Two-disk rehearsal (full)':
+                full += 1
+            if run['display_title'] == 'Two-disk rehearsal (part-b)':
+                part_b += 1
         if str(run['id']) == str(current):
             continue
         assert run['status'] == 'completed', 'Another branch workflow is active; cannot reserve its cost'
@@ -388,7 +394,7 @@ def budget(reserve, current=None):
         bound = None
         if PACKAGE in ('14','16') and run['event']=='workflow_dispatch':
             bound = 72 if run['display_title']==SETTINGS['titles']['probe'] else OWNER_QUALIFICATION_BOUND
-        if 'job_bounds' in SETTINGS and run['event'] == 'workflow_dispatch':
+        if 'job_bounds' in SETTINGS and run['event'] == 'workflow_dispatch' and kind != 'rejected':
             # Each kind's own job timeout bounds a job GitHub cannot account.
             bound = SETTINGS['job_bounds'][kind]
         accounts = [job_accounting(job, bound) for job in jobs]
@@ -400,6 +406,8 @@ def budget(reserve, current=None):
     assert full <= FULL_CAP, 'STOP: full-run allowance exhausted'
     assert part_b <= PART_B_CAP, 'STOP: Part B qualification allowance exhausted'
     for kind, count in counts.items():
+        if kind == 'rejected':
+            continue
         if PACKAGE == '331' and kind == 'publish-29':
             # R29 closes the publish gate after use. Keep the historical charge
             # and enforce the gate when authorizing another publish dispatch.
@@ -527,6 +535,8 @@ def main():
         assert os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch', 'STOP: workflow dispatch required'
         assert os.environ.get('GITHUB_REPOSITORY') == REPOSITORY, 'STOP: wrong repository'
         assert current and current.isdigit(), 'STOP: missing current dispatch ID'
+        if os.environ.get('REHEARSAL_MODE') == 'checks':
+            assert reserve == 95, 'STOP: package 331 checks require the combined 95-minute reservation'
     result = budget(reserve, current)
     if plan is not None:
         result['reservation_plan']=plan

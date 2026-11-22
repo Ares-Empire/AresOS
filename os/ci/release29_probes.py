@@ -59,8 +59,9 @@ def control(guest, stage, vm, *, expected_sites=None):
     else:
         assert len(lines) == 2, 'STOP: unexpected Control service checker output'
     # Save the checker result before starting any systemd graph queries.
-    login = capture(guest, stage + '-control-login', vm, 'import json, subprocess\n' + r28.LOGIN_GRAPH + 'print(json.dumps(login))')
-    r28.validate_login(login, strict_requirements=True)
+    probe = 'import json, subprocess\n' + r28.login_graph(include_wants=True) + 'print(json.dumps(login))'
+    login = capture(guest, stage + '-control-login', vm, probe)
+    r28.validate_login(login, strict_requirements=True, include_wants=True)
     return results
 
 

@@ -594,3 +594,67 @@ Hosted dispatches and uploads used by this slice are zero. No hosted run ID or
 SHA was issued. `dispatch_caps.publish-29`, `publish_cap` and the qualifying
 `dispatch_caps.release-29` are all zero. There are no files over 500 MB in
 `.work/`.
+
+## Done · step 5 slice A REVIEW-8 fixes · 2026-11-22
+
+Started at `d9862df5` on `pkg/331-release-29`.
+
+- The read-only `release-29-authorize` job checks the full branch ref
+  case-sensitively and requires both publish caps. The separate `release-29`
+  stub needs its success and has only `contents: read`. That downstream job
+  is where the future publish steps and their package write and OIDC
+  permissions belong. Fixtures reject a case-variant branch even with both
+  caps open and keep the stub gated on failures, skips and cancellations.
+- `checks-29-authorize` reserves 95 minutes once for the 60-minute regressions
+  job and the 35-minute model job. Both jobs require its success on package
+  331. A fixture with 60 minutes available refuses the dispatch. The
+  historical R28 checks guard still reserves 60 minutes.
+- Rejected package 331 input combinations use the default `OS image` title.
+  The ledger counts that title and other unrecognized titles under
+  `dispatch_counts.rejected`, while charging any measured job time. A
+  collision with `release_29=true` still counts as a publish dispatch.
+- The package 331 walk opts into `Wants=` queries and validation on both
+  R28 and both R29 Control-checked boots. The historical R28 rehearsal keeps
+  its original edge set. The guest fixtures exercise both routes.
+- Refreshed the affected host receipt hashes and pending source bindings.
+  The pending record has 18 changed files and zero removals.
+
+### Verified locally
+
+Ran `python3 -m unittest discover -s os/tests -p <module>.py` from the
+repository root, one module at a time, with `TMPDIR` in `.work/tmp`.
+
+| Module | Final result |
+| --- | --- |
+| `test_release29_workflow` | `Ran 12 tests in 0.082s`, `OK` |
+| `test_release29_rehearsal` | `Ran 23 tests in 32.175s`, `OK`. Printed `CONTROL_CHROME_FILES_PASS`, `CONTROL_CHROME_SITES_FIRST_USE_PASS` and `CONTROL_CHROME_SITES_REBOOT_PASS`. |
+| `test_release28_rehearsal` | `Ran 44 tests in 31.683s`, `OK` |
+| `test_release28` | `Ran 94 tests in 58.714s`, `OK` |
+| `test_release27` | `Ran 41 tests in 7.109s`, `OK` |
+| `test_rehearsal_budget` | `Ran 6 tests in 0.076s`, `OK` |
+| `test_owner_staged_release` | `Ran 7 tests in 0.056s`, `OK` |
+| `test_checkout_sources` | `Ran 10 tests in 1.052s`, `OK` |
+| `test_ci_api_permissions` | `Ran 4 tests in 4.055s`, `OK` |
+| `test_ci_step_environment` | `Ran 4 tests in 19.888s`, `OK` |
+| `test_ways_back_model` with `-k test_hosted_checks_explore_the_slice_and_a_parallel_job_the_full_model_when_selected` | `Ran 1 test in 0.039s`, `OK` |
+
+The first workflow fixture run found a missing step name in the synthetic
+timed job. The first budget test run found an assertion that still expected the
+R29 clause in the R28 guard. The final runs include the corrected fixture
+and the restored R28-only assertion.
+
+The source comparison validated all 314 host receipt rows. Python compilation
+of the edited modules, YAML parsing and `bash -n` on 94 workflow shell steps
+with expressions replaced by fixture values passed. `git diff --check`
+passed.
+
+### Limits and next
+
+REVIEW-8 known limit 5 stays with the next budget slice. A cancelled job row
+without usable timestamps still stops the R29 ledger because the committed
+settings supply no fallback bound. A cancelled dispatch with no job rows
+still counts. The next slice owns the bound and hosted wiring.
+
+All nine package 331 caps are zero. This round used zero hosted dispatches
+and uploads. All evidence above is local. There are no files over 500 MB
+in `.work/`.

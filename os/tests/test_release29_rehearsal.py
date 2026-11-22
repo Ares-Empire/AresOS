@@ -389,6 +389,7 @@ class Release29Session(Release28Session):
             'masked-control': ('masked_unit_after_control',),
         }.get(fault, ()))
         self.bundle, self.fault, self.release = bundle, fault, '28'
+        self.wants_target = 'aresos-toold.service' if fault == 'wanted-control' else None
         self.control_fixture()
         self.Path('/run/user/1001').mkdir(exist_ok=True)
         labwc = self.Path('/proc/42/environ')
@@ -553,9 +554,9 @@ class Release29Session(Release28Session):
             kw['stdout'].write(b'err: no monitors available\n')
         else:
             done = super().run(argv, **kw)
-            if self.fault == 'wanted-control' and words[:2] == ['systemctl', 'show'] \
+            if self.wants_target and words[:2] == ['systemctl', 'show'] \
                     and words[-1] == 'greetd.service' and 'Wants' in words[2:-1]:
-                done.stdout += 'Wants=aresos-toold.service\n'
+                done.stdout += 'Wants=' + self.wants_target + '\n'
             if words[0] == 'setsid':
                 self.write('/proc/50/cwd', '')
             if words[0] == 'pgrep' and words[-1] == 'foot' and done.stdout and self.launches and self.fault == 'replacement-pid':
@@ -887,6 +888,7 @@ class CandidateRouteTest(unittest.TestCase):
 
     def test_submitted_probes_follow_the_chrome_gate_and_game_order(self):
         with self.model('masked-ordering') as model:
+            model.session.wants_target = 'wanted.service'
             model.run_route()
             saved = model.saved
             staged = saved['r29-starting-28-sites-stage']
@@ -906,7 +908,9 @@ class CandidateRouteTest(unittest.TestCase):
                     checks = json.loads(lines[0])
                     self.assertEqual(set(checks), set(probes.receipt_settings()['control_checks'][release]))
                     self.assertEqual(lines[1:-1], ['CONTROL_CHROME_SITES_SHA256 ' + staged['sha256']] if release == '29' else [])
-                    self.assertIn('masked.service', saved[stage + '-control-login']['graph'])
+                    graph = saved[stage + '-control-login']['graph']
+                    self.assertIn('masked.service', graph)
+                    self.assertIn('wanted.service', graph)
                     self.assertEqual(saved[stage + '-session']['theme'], probes.THEMES[release])
                     self.assertEqual(saved[stage + '-terminal-path']['path'], vm.DAILY_PATH)
                     self.assertEqual(saved[stage + '-polkit-sweep']['session_active'], 'yes')
@@ -920,6 +924,14 @@ class CandidateRouteTest(unittest.TestCase):
             self.assertLess(order.index('final-29-control'), order.index('final-29-control-login'))
             self.assertLess(order.index('final-29-control-login'), order.index('final-29-game-scope'))
             self.assertNotIn('release-29-game-scope', saved)
+
+    def test_historical_r28_control_guard_does_not_follow_wants(self):
+        with self.model('wanted-control') as model:
+            guest = SimpleNamespace(capture_json=model.session.capture)
+            result = walk.r28.control(guest, 'release-28', model.vm)
+            graph = result['login']['graph']
+            self.assertNotIn('Wants', graph['greetd.service']['properties'])
+            self.assertNotIn('aresos-toold.service', graph)
 
     def test_terminal_uses_same_pid_and_retries_only_for_a_missing_monitor(self):
         with self.model('late-monitor') as model:
