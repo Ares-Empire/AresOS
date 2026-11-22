@@ -92,8 +92,11 @@ function policyActions() {
         return found ? found[1] : 'no';
       };
       const imply = /<annotate\s+key="org\.freedesktop\.policykit\.imply"\s*>([^<]*)<\/annotate>/.exec(match[0]);
+      const annotations = [...match[0].matchAll(
+        /<annotate\s+key="org\.freedesktop\.policykit\.exec\.(path|argv1)"\s*>([^<]*)<\/annotate>/g,
+      )].map(([, key, value]) => [key, value.trim()]);
       actions[match[1]] = { file: name, defaults: [get('allow_any'), get('allow_inactive'), get('allow_active')],
-                            implies: imply ? imply[1].trim().split(/\s+/) : [] };
+                            implies: imply ? imply[1].trim().split(/\s+/) : [], annotations };
     }
   }
   return actions;
@@ -200,6 +203,26 @@ for (const [id, expected] of Object.entries(review.expected)) {
   if (!row) { failures.push(`${id}: expected action is not declared in the image`); continue; }
   for (const [key, value] of Object.entries(expected)) {
     if (row[key] !== value) failures.push(`${id}: ${key} is ${row[key]}, expected ${value}`);
+  }
+}
+const reviewedExec = review.expected_exec || {};
+const reviewedPaths = new Set(Object.values(reviewedExec).map((entry) => entry.path));
+for (const [id, policy] of Object.entries(actions)) {
+  if (!reviewedExec[id] && policy.annotations.some(([key, value]) => key === 'path' && reviewedPaths.has(value))) {
+    failures.push(`${id}: unreviewed pkexec action for a reviewed executable`);
+  }
+}
+for (const [id, expected] of Object.entries(reviewedExec)) {
+  const policy = actions[id];
+  const annotations = policy && Object.fromEntries(policy.annotations);
+  if (!annotations || policy.annotations.length !== 2 ||
+      annotations.path !== expected.path || annotations.argv1 !== expected.argv1) {
+    failures.push(`${id}: expected exec.path ${expected.path} and exec.argv1 ${expected.argv1}`);
+    continue;
+  }
+  for (const [where, context] of Object.entries(rows[id].contexts)) {
+    const decision = expected[where.split('/')[0]];
+    if (context.granted !== decision) failures.push(`${id} (${where}): expected ${decision}, got ${context.granted}`);
   }
 }
 const cachedDefaults = Object.entries(actions).filter(([, a]) => a.defaults.some((d) => d.endsWith('_keep')))
