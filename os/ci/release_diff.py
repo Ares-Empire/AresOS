@@ -17,6 +17,7 @@ import collections
 import fnmatch
 import gzip
 import hashlib
+import io
 import json
 import os
 import pathlib
@@ -31,6 +32,7 @@ import tempfile
 import types
 import urllib.request
 import xml.etree.ElementTree as ET
+import zipfile
 
 import image_diff
 
@@ -575,19 +577,19 @@ def control_accounts(name, old, new):
     return accounts_explained(name, strip(a), strip(b))
 
 
-def control_install_map():
+def control_install_map(source='.'):
     """Recompute the build's supported install map, without pip, downloads or privileges."""
     with tempfile.TemporaryDirectory() as folder:
         root = pathlib.Path(folder) / 'root'
         subprocess.run(['bash', 'os/build.sh', 'control-tree', 'os', 'control', str(root)],
-                       check=True, capture_output=True, text=True, timeout=120)
+                       cwd=source, check=True, capture_output=True, text=True, timeout=120)
         return json.loads((root / CONTROL_RECORD).read_text())
 
 
-def control_wheels(record):
+def control_wheels(record, requirements=pathlib.Path('control/requirements.lock')):
     normal = lambda name: re.sub(r'[-_.]+', '-', name).lower()
     lock, current = {}, None
-    for line in pathlib.Path('control/requirements.lock').read_text().splitlines():
+    for line in requirements.read_text().splitlines():
         if found := re.fullmatch(r'([A-Za-z0-9._-]+)==(\S+) \\', line):
             current = normal(found[1]), found[2]
             assert current not in lock, 'duplicate Control requirement'
@@ -604,22 +606,29 @@ def control_wheels(record):
                and '/' not in w['file'] and w['file'].endswith('.whl') for w in wheels), 'Control wheel pin differs'
 
 
-def control_inventory(root, revision):
+def control_inventory(root, revision, *, expected=None, requirements=None, extension_files=None):
     """Part A's exact install map and locked vendor record. check-image.sh also derives vendor bytes from wheels.
 
     Hold the record to this checkout and require the whole of every Control folder to match, including absent
     entries: a missing path never enters the diff. Every changed path still needs its own rule.
     """
     record = json.loads((root / CONTROL_RECORD).read_text())
-    expected = control_install_map()
-    assert set(record) == set(expected) | {'source_revision', 'wheels', 'vendor'}, 'Control record fields'
+    expected = control_install_map() if expected is None else expected
+    fields = {'source_revision', 'wheels', 'vendor'}
+    if extension_files is not None:
+        fields.add('chrome_extension')
+    assert set(record) == set(expected) | fields, 'Control record fields'
     assert re.fullmatch('[0-9a-f]{40}', revision) and record['source_revision'] == revision, 'Control source revision'
     assert json.dumps({key: record[key] for key in expected}, sort_keys=True) == json.dumps(expected, sort_keys=True), \
         'Control install map differs from checkout'
-    control_wheels(record)
+    if requirements is None:
+        control_wheels(record)
+    else:
+        control_wheels(record, requirements)
     vendor = record['vendor']
     assert isinstance(vendor, dict) and '/usr/lib/aresos-control/vendor' in vendor, 'Control vendor missing'
     rows = {**record['files'], **{p: dict(mode=m, sha256=None) for p, m in record['directories'].items()}}
+    rows.update(extension_files or {})
     for path, row in vendor.items():
         assert path in ('/usr/lib/aresos-control', '/usr/lib/aresos-control/vendor') or path.startswith('/usr/lib/aresos-control/vendor/'), \
             'Control vendor neighbour: ' + path
@@ -641,7 +650,8 @@ def control_inventory(root, revision):
             meta = entry(root, str(parent))
             assert meta and meta['kind'] == stat.S_IFDIR and root_owned(meta, 0o755) and not meta['xattrs'], 'Control parent: ' + str(parent)
         typed[rel] = now
-    for top in CONTROL_ROOTS:
+    bundle_roots = ('usr/share/aresos/chrome',) if extension_files is not None else ()
+    for top in (*CONTROL_ROOTS, *bundle_roots):
         actual = {top, *(p.relative_to(root).as_posix() for p in (root / top).rglob('*'))}
         assert actual == {p for p in typed if p == top or p.startswith(top + '/')}, 'Control extra or missing paths: ' + top
     for path, target in record['links'].items():
@@ -1706,7 +1716,7 @@ class Classifier28:
 
 PREVIOUS_29 = 'os/manifest/releases/28.json'
 PREVIOUS_SOURCE_29 = '7d5fbbf2c7f7c5b4d41dd707a9407e6401a4d062'
-IMAGE_SOURCES_29 = IMAGE_SOURCES + ('os/labwc',)
+IMAGE_SOURCES_29 = IMAGE_SOURCES + ('os/labwc', 'os/gh.lock.json')
 # The build.sh fix was shipped in R28 and is on main. Only the jar pin can change on this branch.
 BRANCH_SOURCE_CHANGES_29 = {'os/minecraft/desktop.lock.json': BRANCH_SOURCE_CHANGES['os/minecraft/desktop.lock.json']}
 CHMOD_0755_29 = CHMOD_0755_28  # The same configure chmod line. New scripts use their Git mode.
@@ -1792,6 +1802,36 @@ PACKAGE_REASONS_29 = {
     'labwc': '311 (#119) and B323 (#135): pinned pointer-lock backport replaces Fedora labwc in the packages layer',
 }
 MANIFEST = 'usr/share/aresos/manifest/'
+GH_LOCK_29 = 'os/gh.lock.json'
+GH_KEY_29 = 'os/keys/github-cli-rpm.pub'
+GH_INPUTS_29 = (GH_LOCK_29, GH_KEY_29)
+GH_RECORD_29 = MANIFEST + 'gh.lock.json'
+GH_BINARY_29 = 'usr/bin/gh'
+GH_LICENCE_29 = 'usr/share/licenses/gh/LICENSE'
+CHROME_BUNDLE_29 = 'usr/share/aresos/chrome'
+CHROME_CODE_29 = 'usr/libexec/aresos-control/chrome'
+CHROME_SITES_29 = 'var/lib/aresos-control/chrome-excluded-sites.json'
+CONTROL_CHANGES_29 = {
+    'usr/libexec/aresos-control/aresos_control/chrome/exclusions.py':
+        'read the first-boot exclusion list from /var/lib and refuse Chrome calls until setup',
+    CHROME_CODE_29 + '/build-id.json': 'bind Chrome qualification to the committed Control build hash',
+    CHROME_CODE_29 + '/host': 'native messaging executable wrapper named in native-host.json',
+    CHROME_CODE_29 + '/native_host.py': 'native messaging relay to the local Control service',
+    CHROME_BUNDLE_29: 'parent directory of the per-build Chrome extension and manifests',
+    CHROME_BUNDLE_29 + '/extension.crx': 'signed CRX3 of the committed Chrome extension payload',
+    CHROME_BUNDLE_29 + '/native-host.json': 'allow the build extension ID to reach the native messaging host',
+    CHROME_BUNDLE_29 + '/policy.json': 'force-install and pin the build extension ID in Chrome',
+    CHROME_BUNDLE_29 + '/update.xml': 'link the build extension ID and version to its signed CRX',
+    'etc/opt/chrome/policies/managed/aresos.json': 'managed policy link to the build policy under /usr/share',
+    'etc/opt/chrome/native-messaging-hosts/org.aresos.chrome.json': 'native host link to the build manifest under /usr/share',
+    'usr/share/polkit-1/actions/org.aresos.control.chrome-loosen.policy': 'require administrator authentication for Chrome rule loosening',
+    'usr/lib/tmpfiles.d/aresos-control-chrome.conf': 'create the closed format-0 exclusion list at first boot and retain existing contents',
+    CONTROL_RECORD: 'bind the install map, managed links, Chrome build and signed bundle, and gh lock',
+}
+CHROME_LINK_PARENTS_29 = {
+    'etc/opt', 'etc/opt/chrome', 'etc/opt/chrome/policies', 'etc/opt/chrome/policies/managed',
+    'etc/opt/chrome/native-messaging-hosts',
+}
 LABWC_RECORD = MANIFEST + 'labwc.lock.json'
 UPDATERS = MANIFEST + 'updaters.json'
 MOD_RECORD = MANIFEST + 'aresos-mod.json'
@@ -1833,6 +1873,7 @@ FONT_REASONS_29 = {
     'OFL-JetBrainsMono.txt': 'B323 (#135): licence for the JetBrains Mono font',
 }
 CONFIG_REASONS_29 = {
+    GH_LICENCE_29: '18c-b (#76): GitHub CLI licence from os/config, with its SHA-256 in os/gh.lock.json',
     'usr/share/applications/org.prismlauncher.PrismLauncher.desktop':
         'B330 (#140): hidden upstream desktop ID passes browser callback URLs to Prism through %U',
     'usr/share/applications/aresos-mimeapps.list':
@@ -1867,6 +1908,7 @@ CONFIG_DIRECTORIES_29 = {
     'usr/share/themes/AresOS': 'B329 (#143): AresOS theme directory selected by labwc rc.xml',
     FRAME_THEME_29: 'B329 (#143): AresOS labwc theme directory with themerc and window buttons',
     FRAME_SPRITES_29: 'B329 (#143): Look A native frame cells referenced by look.json',
+    'usr/share/licenses/gh': '18c-b (#76): parent directory of the checked-in GitHub CLI licence',
 }
 JAR_REASON_29 = '56 (#117) and 53d (#121): rebuilt mod with free-pointer and hotbar behaviour, faster flight and world search IPC'
 NEW_EXECUTABLES_29 = {'usr/libexec/' + name for name in ('aresos-level', 'aresos-indicator', 'aresos-settings', 'aresos-laptop-home')}
@@ -1926,6 +1968,15 @@ def verify_source29(previous, main_base):
     bad_inputs = LABWC_INPUT_MODES_29.keys() - labwc_inputs.keys()
     if bad_inputs:
         problems.append('labwc inputs missing or of the wrong Git type or mode: ' + ', '.join(sorted(bad_inputs)))
+    gh_inputs = {}
+    for line in git('ls-tree', 'HEAD', '--', *GH_INPUTS_29, text=True).splitlines():
+        info, path = line.split('\t')
+        mode, kind, oid = info.split()
+        if kind == 'blob' and mode == '100644':
+            gh_inputs[path] = dict(mode=mode, blob=oid)
+    main['gh_inputs'] = gh_inputs
+    if gh_inputs.keys() != set(GH_INPUTS_29):
+        problems.append('gh lock or signing key missing or of the wrong Git type or mode')
     dirty = git('diff', '--name-only', 'HEAD', '--', *IMAGE_SOURCES_29, text=True).splitlines()
     dirty += git('ls-files', '--others', '--exclude-standard', '--', *IMAGE_SOURCES_29, text=True).splitlines()
     if dirty:
@@ -1985,6 +2036,16 @@ def labwc_module(revision, path):
     module = types.ModuleType(pathlib.PurePosixPath(path).stem)
     exec(compile(source, path, 'exec'), module.__dict__)
     return module, source
+
+
+def control_source29(revision, destination, chrome=False):
+    """Replay the install map from the exact source trees used for that image."""
+    paths = ['os/build.sh', 'os/config/usr/lib/sysusers.d/aresos.conf', 'control']
+    if chrome:
+        paths.append(GH_LOCK_29)
+    archive = git('archive', revision, '--', *paths)
+    with tarfile.open(fileobj=io.BytesIO(archive)) as sources:
+        sources.extractall(destination, filter='data')
 
 
 LABWC_NORMALIZE_29 = """import json, sys
@@ -2097,6 +2158,9 @@ class Classifier29(Classifier28):
                          for side, raw in self.locks.items()}
         self.prism_pin = json.loads(self.locks['new'])['prism']['sha256']
         self.prism = self.groups = self.schema_rebuild = self.control = self.control_error = None
+        self.control_evidence = {}
+        self.gh_lock_bytes = git_bytes(self.revisions['new'], GH_LOCK_29)
+        self.gh_lock = json.loads(self.gh_lock_bytes)
         self.font_caches = []
         alternatives = json.loads(git_bytes(PREVIOUS_SOURCE_29, ALTERNATIVES_MANIFEST_28))
         self.expected_alternatives = alternatives['groups']
@@ -2154,24 +2218,75 @@ class Classifier29(Classifier28):
     def control_entries(self):
         if self.control is None:
             try:
-                # Both images carry the exact same Part A install recipe and inputs on this cut.
-                for path in ('control', 'os/config/usr/lib/sysusers.d/aresos.conf'):
-                    assert not git('diff', '--name-only', PREVIOUS_SOURCE_29, self.revisions['new'], '--', path), path
-                control_step = lambda raw: raw.split(b'if [[ $1 == control ||', 1)[1].split(b'if [[ $1 == packages ]]', 1)[0]
-                assert control_step(git_bytes(PREVIOUS_SOURCE_29, 'os/build.sh')) == control_step(git_bytes(
-                    self.revisions['new'], 'os/build.sh')), 'Control build recipe differs from R28'
-                before = control_inventory(self.old_root, self.revisions['old'])
-                after = control_inventory(self.new_root, self.revisions['new'])
-                assert before.keys() == after.keys() and without(before, CONTROL_RECORD) == without(after, CONTROL_RECORD), \
-                    'Control install or vendor differs from R28'
-                old, new = (self.read(side, CONTROL_RECORD) for side in ('old', 'new'))
-                assert old.count(self.revisions['old'].encode()) == 1 and \
-                    old.replace(self.revisions['old'].encode(), self.revisions['new'].encode()) == new, \
-                    'Control record differs beyond its source revision'
-                self.control = after
-            except (AssertionError, ValueError, KeyError, TypeError, OSError, IndexError, subprocess.SubprocessError) as error:
+                self.control = self.compare_control()
+            except (AssertionError, ValueError, KeyError, TypeError, OSError, IndexError, ImportError,
+                    ET.ParseError, tarfile.TarError, zipfile.BadZipFile, subprocess.SubprocessError) as error:
                 self.control, self.control_error = {}, str(error)
         return self.control
+
+    def compare_control(self):
+        from control import chrome_image
+        from cryptography.exceptions import InvalidSignature
+
+        old, new = (json.loads(self.read(side, CONTROL_RECORD)) for side in ('old', 'new'))
+        assert old['requirements_lock'] == new['requirements_lock'], '18c-b leaves the Control wheel lock unchanged'
+        assert old['wheels'] == new['wheels'] and old['vendor'] == new['vendor'], 'Control vendor differs from R28'
+        inventory = self.policy['inventory']
+        assert all(plain_directory(inventory.get(path)) for path in CHROME_LINK_PARENTS_29), 'Chrome link parent metadata'
+        assert CHROME_SITES_29 not in inventory and 'var/lib/aresos-control' not in inventory, 'Chrome sites state in image'
+        bundle = new['chrome_extension']
+        with tempfile.TemporaryDirectory() as folder:
+            source = pathlib.Path(folder)
+            typed = {}
+            for side, root, record in (('old', self.old_root, old), ('new', self.new_root, new)):
+                revision = self.revisions[side]
+                tree = source / side
+                tree.mkdir()
+                control_source29(revision, tree, chrome=side == 'new')
+                expected = control_install_map(tree)
+                extension_files = None
+                if side == 'new':
+                    chrome_image.compare(record, expected, tree / 'control')
+                    assert all(plain_file(inventory.get(f'{CHROME_BUNDLE_29}/{name}'), 0o644)
+                               for name in chrome_image.NAMES), 'Chrome bundle file metadata'
+                    data = {name: self.read('new', f'{CHROME_BUNDLE_29}/{name}') for name in chrome_image.NAMES}
+                    try:
+                        chrome_image.bundle_content(data, bundle)
+                    except InvalidSignature as error:
+                        raise AssertionError('invalid Chrome CRX signature') from error
+                    extension_files = bundle['files']
+                typed[side] = control_inventory(root, revision, expected=expected,
+                                                requirements=tree / 'control/requirements.lock',
+                                                extension_files=extension_files)
+        before, after = typed['old'], typed['new']
+        changed = {path for path in before.keys() | after.keys() if before.get(path) != after.get(path)}
+        assert changed == CONTROL_CHANGES_29.keys() and changed <= after.keys(), \
+            'Control delta differs from the 18c-b handoff: ' + ', '.join(sorted(changed ^ CONTROL_CHANGES_29.keys()))
+        self.control_evidence = dict(chrome_build=new['chrome_build'], chrome_extension=bundle, gh=new['gh'],
+                                     install_changes=sorted(changed), wheels_unchanged=True, vendor_unchanged=True)
+        return {path: after[path] for path in changed}
+
+    def gh_problems(self, new):
+        pin = self.gh_lock
+        payload = pin['payload_paths']
+        problems = []
+        if len(payload) != 240 or len(set(payload)) != 240 or '/' + GH_BINARY_29 not in payload:
+            problems.append('18c-b gh lock does not list the exact-size RPM payload and binary')
+        unexpected = sorted(path for path in payload if path != '/' + GH_BINARY_29 and path[1:] in new)
+        if unexpected:
+            problems.append('18c-b gh RPM payload outside the one extracted binary: ' + ', '.join(unexpected))
+        key = pin['signing_key']
+        if key['file'] != GH_KEY_29.removeprefix('os/') or \
+                hashlib.sha256(git_bytes(self.revisions['new'], GH_KEY_29)).hexdigest() != key['sha256']:
+            problems.append('18c-b gh signing key differs from its lock')
+        licence = new.get(GH_LICENCE_29)
+        if not plain_file(licence, 0o644) or licence['sha256'] != pin['license_sha256']:
+            problems.append('18c-b gh licence differs from its lock')
+        parents = {str(parent) for rel in (GH_BINARY_29, GH_LICENCE_29, GH_RECORD_29)
+                   for parent in pathlib.PurePosixPath(rel).parents if str(parent) != '.'}
+        if not all(plain_directory(new.get(path)) for path in parents):
+            problems.append('18c-b gh install parent metadata differs')
+        return problems
 
     def audit_rows(self):
         def unique_fields(pairs):
@@ -2199,6 +2314,12 @@ class Classifier29(Classifier28):
     def manifest_matches(self, side, rel, value):
         if rel == LABWC_RECORD and side == 'old':
             return value is None
+        if rel in (GH_BINARY_29, GH_RECORD_29):
+            if side == 'old':
+                return value is None
+            mode, sha256 = (0o755, self.gh_lock['binary_sha256']) if rel == GH_BINARY_29 else (
+                0o644, hashlib.sha256(self.gh_lock_bytes).hexdigest())
+            return plain_file(value, mode) and value['sha256'] == sha256
         if not plain_file(value, 0o644):
             return False
         if rel == MOD_JAR:
@@ -2230,14 +2351,18 @@ class Classifier29(Classifier28):
         MOD_RECORD: JAR_REASON_29 + '. The mod record binds the jar pin to the build revision',
         MOD_JAR: JAR_REASON_29,
         DESKTOP_LOCK: 'Package 23: desktop inputs stay pinned. The release cut renews the AresOS mod SHA-256',
+        GH_BINARY_29: '18c-b (#76): only /usr/bin/gh extracted from the signature-checked RPM pinned in os/gh.lock.json',
+        GH_RECORD_29: '18c-b (#76): exact copy of the gh RPM, signing key, payload, binary and licence pins in os/gh.lock.json',
     }
 
     def manifest_rule(self, rel, before, after):
         if rel in self.MANIFEST_REASONS and self.manifest_matches('old', rel, before) \
                 and self.manifest_matches('new', rel, after):
-            return 'build' if rel == MOD_JAR else 'manifest', self.MANIFEST_REASONS[rel]
-        if rel == CONTROL_RECORD and self.control_entries():
-            return 'control', 'Existing Control Part A: the record changes only its build source revision'
+            return 'build' if rel in (MOD_JAR, GH_BINARY_29) else 'manifest', self.MANIFEST_REASONS[rel]
+        if rel in CONTROL_CHANGES_29 and rel in self.control_entries():
+            return 'control', '18c-b (#76): ' + CONTROL_CHANGES_29[rel]
+        if rel in CHROME_LINK_PARENTS_29 and before is None and plain_directory(after) and self.control_entries():
+            return 'control', '18c-b (#76): root-owned parent of a managed Chrome policy or host link'
         if rel == UPDATERS and all(plain_file(value, 0o644) for value in (before, after)) and self.audit_rows():
             return 'manifest', '25 (#125): updater audit adds the enabled guardian with its exact start and save commands'
         return None
@@ -2374,6 +2499,7 @@ class Classifier29(Classifier28):
             problems.append('AresOS system font caches missing or different in either format')
         if not self.control_entries():
             problems.append('Control install differs from R28 or its validated install record: ' + str(self.control_error))
+        problems.extend(self.gh_problems(new))
         for rel in (path for path in CONTROL_ACCOUNTS if not path.endswith('-')):
             for side in ('old', 'new'):
                 try:
@@ -2387,7 +2513,7 @@ class Classifier29(Classifier28):
         rc = rc_xml_changes(old_rc, new_rc) if all(self.matching_config(side, RC_XML, inv.get(RC_XML))
             for side, inv in (('old', old), ('new', new))) else None
         return dict(control=dict(previous_revision=self.revisions['old'], source_revision=self.revisions['new'],
-                                 error=self.control_error),
+                                 error=self.control_error, **self.control_evidence),
                     schema_rebuild=self.rebuilt_schemas(),
                     font_caches=sorted(self.font_caches, key=lambda row: row['path']), updaters=rows,
                     alternatives={name: dict(sorted(targets.items())) for name, (_, targets) in sorted(self.alternatives().items())},

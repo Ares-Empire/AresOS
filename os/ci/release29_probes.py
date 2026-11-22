@@ -14,6 +14,7 @@ SERVICE_CHECKS = r28.CONTROL_CHECKS
 CHROME_CHECKS = ('chrome_links', 'chrome_bundle', 'chrome_other_ids', 'chrome_sites', 'gh', 'chrome_polkit')
 CHROME_FIRST_USE = 'os/ci/release29_chrome_probe.py'
 POLKIT_REVIEW = 'os/ci/polkit-review.json'
+GH_LOCK = 'os/gh.lock.json'
 SITES = r28.SITES
 STAGED_SITES = '/var/lib/aresos-r29-rehearsal-sites.json'
 SYNTHETIC_SITES = r28.SITES_LIST.encode() + b'\n'
@@ -28,12 +29,17 @@ FONTS_29 = FONTS | {'JetBrains Mono': '/usr/share/fonts/aresos/JetBrainsMono-Var
                     'Jersey 10': '/usr/share/fonts/aresos/Jersey10-Regular.ttf'}
 
 
+def gh_version():
+    nevra = json.loads(pathlib.Path(GH_LOCK).read_bytes())['nevra']
+    return re.fullmatch(r'gh-(\d+\.\d+\.\d+)-[^-]+\.x86_64', nevra)[1]
+
+
 def receipt_settings():
     return dict(control_checker=CONTROL_CHECKER, control_checks={
         '28': list(SERVICE_CHECKS), '29': list(SERVICE_CHECKS + CHROME_CHECKS)},
         chrome_first_use=CHROME_FIRST_USE, chrome_sites_sha256=hashlib.sha256(SYNTHETIC_SITES).hexdigest(),
         themes=THEMES, fonts={'28': FONTS, '29': FONTS_29}, prism_handler={PRISM_MIME: PRISM_DESKTOP},
-        polkit_review=POLKIT_REVIEW,
+        polkit_review=POLKIT_REVIEW, gh_version=gh_version(),
         game_memory_high=r28.MEMORY_HIGH)
 
 
@@ -59,6 +65,8 @@ def control(guest, stage, vm, *, expected_sites=None):
         digest = 'CONTROL_CHROME_SITES_SHA256 ' + expected_sites
         assert lines[1:-1] == [digest] and results['chrome_sites']['value'] == SITE_METADATA | {'sha256': expected_sites}, \
             'STOP: Chrome sites hash or metadata changed at ' + stage
+        gh = results['gh']['value']
+        assert gh['version'] == gh['pinned_version'] == gh_version(), 'STOP: shipped gh version differs at ' + stage
     else:
         assert len(lines) == 2, 'STOP: unexpected Control service checker output'
     # Save the checker result before starting any systemd graph queries.

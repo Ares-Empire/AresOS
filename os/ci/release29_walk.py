@@ -122,7 +122,7 @@ def host_walk_paths():
     gone = {path for path in inherited if not pathlib.Path(path).is_file()}
     tracked = r28.git('ls-files', '-z', '--', 'control/chrome/extension', 'control/chrome/packaging')
     paths = (inherited - gone) | baseline_paths() | {
-        PARENT_HOST_WALK, probes.CONTROL_CHECKER, probes.CHROME_FIRST_USE, probes.POLKIT_REVIEW,
+        PARENT_HOST_WALK, probes.CONTROL_CHECKER, probes.CHROME_FIRST_USE, probes.POLKIT_REVIEW, probes.GH_LOCK,
         'os/config/usr/share/aresos/apps/browser.json', 'os/config/usr/share/aresos/apps/terminal.json',
         'os/config/usr/share/applications/aresos-mimeapps.list',
         'os/config/usr/share/applications/' + probes.PRISM_DESKTOP,
