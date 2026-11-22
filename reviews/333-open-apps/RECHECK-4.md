@@ -1,0 +1,13 @@
+1. **Blocking (I2) — A live scope can fall out of the quota.** A reviewed launcher can exit after a child in its own scope has mapped a window. The helper clears the process handle and keeps the focused launch record, but it never starts watching that scope. The old cap counted the record. The new cap sees neither a live process nor a tracked scope, so a second view with replay room can start a 33rd launch while all 32 scopes are still alive. `os/config/usr/libexec/aresos-shell:3952`, `os/config/usr/libexec/aresos-shell:4179`, `os/config/usr/libexec/aresos-shell:4346`, `os/config/usr/libexec/aresos-shell:4400`
+
+2. **Ended handoffs — Covered.** The test ends 33 handoff processes across two 1.2 views, confirms each scope is gone while the shared window stays attached, then opens another app from laptop home and replays the first handoff. This isolates the live cap from each view’s replay limit. `os/tests/test_aresos_shell_views.py:327`
+
+3. **Desktop join — Covered.** The test fills the view live cap and leaves the requesting view’s replay table free. The view gets `journal_full`. The desktop reuses the completed check, starts exactly one desktop-owned launch with its own screen hint, and receives the focus event under its own request ID. `os/config/usr/libexec/aresos-shell:4097`, `os/tests/test_aresos_shell_open_apps.py:269`
+
+4. **Prior finding 8 — Covered.** The test keeps 256 processes alive after their launch replies expire. It checks that the next spawn is refused and that retry succeeds after one process exits. With the desktop cap bypassed, the refusal assertion fails because the 257th launch returns `starting`. `os/tests/test_aresos_shell.py:612`, `reviews/333-open-apps/REPORT.md:34`
+
+5. **Nearby behavior — No additional regression found.** The inspected paths preserve visible-window receipt admission, replay lookup, view-name retention, and laptop home’s 1.2 `apps_running`, `open_app`, and refusal text. Saved trackers are bounded by the live allowance plus replay references, subject to the liveness defect in finding 1. `os/config/usr/libexec/aresos-shell:2275`, `os/config/usr/libexec/aresos-shell:2341`, `os/config/usr/libexec/aresos-shell:3587`, `os/config/usr/libexec/aresos-shell:3884`, `os/config/usr/libexec/aresos-shell:3994`, `os/config/usr/libexec/aresos-laptop-home:339`, `os/config/usr/libexec/aresos-laptop-home:540`
+
+Read-only review of `a3421bfb`. No files changed and no builds or tests ran.
+
+NOT SAFE
