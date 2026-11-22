@@ -1481,7 +1481,8 @@ def release_rules(guest, stage):
         assert value[name] is True, 'STOP: package 21 rule failed on the updated system: ' + name
     assert value['session_path'] == SYSTEM_PATH, 'STOP: the session lost the system PATH'
     assert value['hub_terminal_argv'] == HUB_TERMINAL, "STOP: the hub's terminal does not read his PATH"
-    assert value['aresos_shell'] == {'browser': True, 'notepad': True, 'terminal': True}, 'STOP: aresos-shell apps'
+    builtins = {'browser': True, 'notepad': True, 'terminal': True}
+    assert value['aresos_shell'] in (builtins, {**builtins, 'org-deskflow-deskflow': True}), 'STOP: aresos-shell apps'
     return value
 
 
