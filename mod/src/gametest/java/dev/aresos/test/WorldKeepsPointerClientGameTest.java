@@ -441,7 +441,8 @@ public final class WorldKeepsPointerClientGameTest implements FabricClientGameTe
         final boolean enabled = Boolean.getBoolean("aresos.pointerSession");
         final ClientGameTestContext context;
         Path root, repo;
-        Process probe, vinput;
+        Process probe, vinput, sideWindow;
+        int sideOutputX;
         org.lwjgl.glfw.GLFWCursorPosCallback previousMove;
         org.lwjgl.glfw.GLFWMouseButtonCallback previousButton;
         org.lwjgl.glfw.GLFWScrollCallback previousScroll;
@@ -458,6 +459,7 @@ public final class WorldKeepsPointerClientGameTest implements FabricClientGameTe
                 root = Files.createDirectories(Path.of("p328-rig").toAbsolutePath());
                 repo = Path.of(System.getProperty("aresos.repoDir"));
                 String[] layout = System.getenv().getOrDefault("ARESOS_POINTER_LAYOUT", "1280x720").split("x");
+                sideOutputX = Integer.parseInt(layout[0]) / 2;
                 Files.writeString(root.resolve("env"), "WAYLAND_DISPLAY=" + System.getenv("WAYLAND_DISPLAY")
                         + "\nDISPLAY=" + System.getenv("DISPLAY") + "\nLAYOUT_W=" + layout[0] + "\nLAYOUT_H=" + layout[1] + "\n");
                 Files.deleteIfExists(root.resolve("vinput.sock"));
@@ -465,6 +467,9 @@ public final class WorldKeepsPointerClientGameTest implements FabricClientGameTe
                 vinput = new ProcessBuilder("python3", "-I", rigFile("vinput.py"), root.toString())
                         .redirectErrorStream(true).redirectOutput(root.resolve("vinput.log").toFile()).start();
                 await(() -> Files.exists(root.resolve("vinput.sock")), "the virtual input");
+                sideWindow = new ProcessBuilder("python3", "-I", rigFile("xside.py"), Integer.toString(sideOutputX))
+                        .redirectErrorStream(true).start();
+                check("ready".equals(sideWindow.inputReader().readLine()), "The second-output X11 fixture did not start");
             } catch (IOException error) { throw new UncheckedIOException(error); }
             // Fabric attaches no native input callbacks and renders at a virtual size: map real coordinates to it.
             context.runOnClient(client -> {
@@ -510,19 +515,29 @@ public final class WorldKeepsPointerClientGameTest implements FabricClientGameTe
 
         void closeMenuOverProbe() {
             int[] box = windowBox();
+            // Record a native X motion outside the game before entering the Wayland-only probe.
+            moveOffWorld(box, "Escape over the probe");
             int cx = box[0] + box[2] / 2, cy = box[1] + box[3] / 2;
-            input("abs " + cx + " " + cy);
-            input("abs " + (cx + 10) + " " + (cy + 10));
-            await(() -> probe().contains("\"pointer_inside\": true"), "the pointer over the probe");
-            context.waitTicks(3);
+            for (int offset = 0; offset <= 30 && !probe().contains("\"pointer_inside\": true"); offset += 10) {
+                input("abs " + (cx + offset) + " " + (cy + offset));
+                context.waitTicks(3);
+            }
+            check(probe().contains("\"pointer_inside\": true"), "The released pointer did not reach the probe: " + probe());
             context.runOnClient(client -> {
                 check(client.gui.screen() instanceof AresOsMenuScreen, "The Escape menu closed before the test could close it");
+                check(client.isWindowActive() && !WorldCapture.pointerOverWorld(client),
+                        "The test needs a focused game with the X pointer outside its window");
                 client.gui.setScreen(null);
             });
         }
 
         void restoreFocus() {
             context.runOnClient(client -> X11.focus(client.getWindow().handle(), Focus.BACK));
+        }
+
+        void moveOffWorld(int[] box, String label) {
+            moveTo(box, sideOutputX + 90 - box[0], 70 - box[1], label);
+            check(!context.computeOnClient(WorldCapture::pointerOverWorld), label + ": X still reports the pointer on the world");
         }
 
         void races() {
@@ -581,16 +596,14 @@ public final class WorldKeepsPointerClientGameTest implements FabricClientGameTe
         void clean(String label) {
             context.waitFor(client -> released(client) && WorldCapture.settled());
             int[] box = windowBox();
+            // Restore focus with the pointer off the game to avoid HomeScreen's separate capture-on-return path.
+            if (!context.computeOnClient(WorldKeepsPointerClientGameTest::xFocused)) moveOffWorld(box, label);
             context.runOnClient(client -> {
                 check(seamRun == null, label + ": the release never reached its seam");
-                // Restoring focus for measurement must not start HomeScreen's separate capture-on-return path.
-                // GLFW still sees real X focus and input, including a stale grab if the release left one behind.
-                WorldCapture.forTests(false, true);
                 X11.focus(client.getWindow().handle(), Focus.BACK);
             });
             context.waitTicks(3);
             context.runOnClient(client -> {
-                WorldCapture.forTests(null, true);
                 check(released(client) && WorldCapture.settled(), label + ": release did not settle");
                 check(client.isWindowActive(), label + ": Minecraft lost focus after X focus returned");
                 X11.checkCursorShown(client.getWindow().handle());
@@ -609,14 +622,15 @@ public final class WorldKeepsPointerClientGameTest implements FabricClientGameTe
         }
 
         void moveTo(int[] box, int x, int y, String label) {
-            input("abs " + (box[0] + x) + " " + (box[1] + y));
-            try {
-                context.waitFor(client -> atPosition(cursorPosition(client), x, y));
-            } catch (AssertionError error) {
-                var actual = context.computeOnClient(Rig::cursorPosition);
-                throw new AssertionError(label + ": Xwayland did not deliver the move to " + x + "," + y
-                        + ", pointer at " + actual[0] + "," + actual[1], error);
+            int screenX = box[0] + x, screenY = box[1] + y;
+            for (int attempt = 0; attempt < 4; attempt++) {
+                // If labwc consumed the first motion while dropping a lock, a repeated destination may be a no-op.
+                if (attempt > 0) input("abs " + (screenX - 8) + " " + (screenY - 8));
+                input("abs " + screenX + " " + screenY);
+                context.waitTicks(2);
+                if (context.computeOnClient(client -> atPosition(cursorPosition(client), x, y))) return;
             }
+            checkPosition(x, y, label + " (after delivering virtual motion)");
         }
 
         void checkPosition(int x, int y, String label) {
@@ -698,7 +712,8 @@ public final class WorldKeepsPointerClientGameTest implements FabricClientGameTe
             });
             try {
                 input("key esc");
-                context.waitFor(client -> client.gui.screen() instanceof AresOsMenuScreen && released(client));
+                context.waitFor(client -> client.gui.screen() instanceof AresOsMenuScreen && released(client)
+                        && WorldCapture.settled());
                 context.runOnClient(client -> check(seamRun == null, "Escape never reached its release seam"));
             } finally {
                 context.runOnClient(client -> {
@@ -795,6 +810,7 @@ public final class WorldKeepsPointerClientGameTest implements FabricClientGameTe
                 if (focus != null) focus.free();
             });
             if (probe != null) probe.destroy();
+            if (sideWindow != null) sideWindow.destroy();
             if (vinput != null) vinput.destroy();
         }
     }
