@@ -73,9 +73,14 @@ public final class HomeScreen {
         appInFront = inFront;
     }
 
+    static boolean appInFront() {
+        return appInFront;
+    }
+
+    /** Package 56: the pointer is free while an app is in front; with {@code look = click} also outside look mode. */
     public static boolean freePointer(Minecraft client) {
         return dev.aresos.focus.PointerRules.free(session(), AresOsClient.acceptsAppCommands(client),
-                active(client), appInFront);
+                active(client), appInFront || ClickToLook.idle(client));
     }
 
     /** The helper said a window hides the world on its screen, or no longer does (false also when it went away). */
@@ -122,6 +127,7 @@ public final class HomeScreen {
     public static void frame(Minecraft client) {
         boolean focused = client.getWindow().isFocused();
         HomePointer.frame(client);
+        ClickToLook.frame(client);
         if (!active(client)) {
             wasFocused = true;
             // A helper event can precede the player/world while joining or switching homes. Keep its focus until
@@ -150,6 +156,8 @@ public final class HomeScreen {
         appInFront = false;
         covered = false;
         HomePointer.reset();
+        // Tests that stand for a session run in classic unless they ask for another look (package 328).
+        ClickToLook.forTests(session == null && active == null ? null : dev.aresos.config.LookMode.CLASSIC);
         // Callback-driven tests have no real pointer over the window: they stand for one that is (package 328a).
         WorldCapture.forTests(session == null && active == null ? null : Boolean.TRUE, false);
     }
