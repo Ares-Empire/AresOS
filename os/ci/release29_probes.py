@@ -21,6 +21,8 @@ PLACEHOLDER = b'{"format":0,"hosts":[]}'
 SITE_METADATA = dict(regular=True, owner=[0, 250], mode='0640')
 REFUSALS = dict.fromkeys(('tabs', 'read', 'open', 'take_tab'), 'chrome_settings_unavailable')
 THEMES = {'28': r28.THEME, '29': 'AresOS'}
+PRISM_MIME = 'x-scheme-handler/prismlauncher'
+PRISM_DESKTOP = 'org.prismlauncher.PrismLauncher.desktop'
 FONTS = {'Space Grotesk': r28.SPACE_GROTESK, 'Space Grotesk:bold': r28.SPACE_GROTESK}
 FONTS_29 = FONTS | {'JetBrains Mono': '/usr/share/fonts/aresos/JetBrainsMono-Variable.ttf',
                     'Jersey 10': '/usr/share/fonts/aresos/Jersey10-Regular.ttf'}
@@ -30,7 +32,8 @@ def receipt_settings():
     return dict(control_checker=CONTROL_CHECKER, control_checks={
         '28': list(SERVICE_CHECKS), '29': list(SERVICE_CHECKS + CHROME_CHECKS)},
         chrome_first_use=CHROME_FIRST_USE, chrome_sites_sha256=hashlib.sha256(SYNTHETIC_SITES).hexdigest(),
-        themes=THEMES, fonts={'28': FONTS, '29': FONTS_29}, polkit_review=POLKIT_REVIEW,
+        themes=THEMES, fonts={'28': FONTS, '29': FONTS_29}, prism_handler={PRISM_MIME: PRISM_DESKTOP},
+        polkit_review=POLKIT_REVIEW,
         game_memory_high=r28.MEMORY_HIGH)
 
 
@@ -214,6 +217,17 @@ def session(guest, stage, vm, release):
     value = capture(guest, stage + '-session', vm, r28.program(r28.SESSION, as_ares=r28.AS_ARES, fonts=list(fonts)))
     assert value['labwc'] == 1 and value['theme'] == THEMES[release] and value['themerc'], 'STOP: running labwc theme differs at ' + stage
     assert value['fonts'] == fonts, 'STOP: session fontconfig differs at ' + stage
+    if release == '29':
+        probe = r28.program("""import json
+env=supervisor()
+assert env.get('XDG_CURRENT_DESKTOP')=='AresOS', 'expected the AresOS desktop'
+done=subprocess.run(daily(env)+['/usr/bin/xdg-mime','query','default',@MIME@],
+                    cwd=env['HOME'],capture_output=True,text=True,timeout=20)
+print(json.dumps(dict(status=done.returncode,handler=done.stdout.strip(),stderr=done.stderr)))
+""", mime=PRISM_MIME)
+        handler = capture(guest, stage + '-prism-handler', vm, DESKTOP_ENV + probe)
+        assert handler['status'] == 0 and handler['handler'] == PRISM_DESKTOP, \
+            'STOP: Prism callback handler differs at ' + stage + ': ' + json.dumps(handler)
     vm.release_rules(guest, stage)
     vm.terminal_path(guest, stage)
     vm.polkit_sweep(guest, stage)

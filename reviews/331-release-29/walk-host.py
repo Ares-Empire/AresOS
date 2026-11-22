@@ -37,7 +37,7 @@ def diagnostics():
             successful = {name: guest_paths(model, value) for name, value in model.saved.items() if name.endswith((
                 '-control', '-control-login', '-session', '-terminal', '-terminal-path', '-package21-rules',
                 '-polkit-sweep', '-sites-stage', '-sites-placeholder', '-sites-hash', '-game-scope',
-                '-chrome-first-use', '-deployment-walk'))}
+                '-chrome-first-use', '-prism-handler', '-deployment-walk'))}
             candidate = dict(stages=[stage for stage, event in model.events if event == 'F12 Bazzite'],
                              audits=[stage for stage, event in model.events if event == 'audit'],
                              checks=[stage for stage, event in model.events if event == 'check'],

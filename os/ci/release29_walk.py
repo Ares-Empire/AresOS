@@ -124,6 +124,8 @@ def host_walk_paths():
     paths = (inherited - gone) | baseline_paths() | {
         PARENT_HOST_WALK, probes.CONTROL_CHECKER, probes.CHROME_FIRST_USE, probes.POLKIT_REVIEW,
         'os/config/usr/share/aresos/apps/browser.json', 'os/config/usr/share/aresos/apps/terminal.json',
+        'os/config/usr/share/applications/aresos-mimeapps.list',
+        'os/config/usr/share/applications/' + probes.PRISM_DESKTOP,
         'os/tests/test_release29_rehearsal.py', 'reviews/331-release-29/walk-host.py',
         *tracked.decode().split('\0')[:-1],
     }

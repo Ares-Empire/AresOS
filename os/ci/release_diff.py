@@ -1833,6 +1833,10 @@ FONT_REASONS_29 = {
     'OFL-JetBrainsMono.txt': 'B323 (#135): licence for the JetBrains Mono font',
 }
 CONFIG_REASONS_29 = {
+    'usr/share/applications/org.prismlauncher.PrismLauncher.desktop':
+        'B330 (#140): hidden upstream desktop ID passes browser callback URLs to Prism through %U',
+    'usr/share/applications/aresos-mimeapps.list':
+        'B330 (#140): set the AresOS session default for x-scheme-handler/prismlauncher',
     GUARDIAN_UNIT: '25 (#125): graphical-target guardian asks the supervisor to save the world on planned stops, within its deadline',
     GUARDIAN_DROPIN: '25 (#125): all login scopes stop after the guardian, giving it time to finish the save',
     'usr/libexec/aresos-desktop': '25 (#125): supervise planned-stop saves, close deadlines, and restart of the Minecraft home',
