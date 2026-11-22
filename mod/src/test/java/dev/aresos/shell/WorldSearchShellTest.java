@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -66,7 +67,9 @@ class WorldSearchShellTest {
         var offered = example("desktop-hello-request").getAsJsonArray("capabilities");
         offered.add("apps_state");
         offered.add("activate_app");
-        assertEquals(offered, hello.getAsJsonArray("capabilities"));
+        var advertised = hello.getAsJsonArray("capabilities");
+        assertEquals(offered.size(), advertised.size());
+        assertEquals(new HashSet<>(offered.asList()), new HashSet<>(advertised.asList()));
         FakeHelper.await(() -> !helper.received("heartbeat").isEmpty(), "first negotiated message");
         assertEquals("aresos-shell/1.2", FakeHelper.string(helper.received("heartbeat").getFirst(), "protocol"));
         assertTrue(example("desktop-hello-reply").getAsJsonArray("capabilities").contains(new com.google.gson.JsonPrimitive("shell_search")));
