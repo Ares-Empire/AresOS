@@ -27,7 +27,8 @@
     "331 step 5 first slice: bind the guarded R29 selectors and closed publish and rehearsal caps.",
     "331 REVIEW-8: bind the split publish authorization, combined checks reservation, rejected titles and opt-in Wants traversal.",
     "331 step 5 second slice: bind the reviewed hosted R29 runner, registry and ledger sources.",
-    "331 REVIEW-10: bind qualification to the named publish artifact and require the exact R29 runner for both walk modes."
+    "331 REVIEW-10: bind qualification to the named publish artifact and require the exact R29 runner for both walk modes.",
+    "331: refresh bindings for the fresh evidence directory fix and reset regression."
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -84,7 +85,7 @@
       "path": "os/ci/tools_local.py"
     },
     {
-      "sha256": "b837829d960b123ae66de0267a71d6730cc372e0652ba388c48181cd9c7ffdf0",
+      "sha256": "b721fed040d984efd91865e467b029c14c67dcfcb841107e9856aaec3895ea55",
       "path": "os/ci/two_disk_vm.py"
     },
     {
@@ -110,6 +111,10 @@
     {
       "sha256": "f5b8ba4051fc82ec1bc72d08bcb5fb5fefdfd6177f812dc52f7d2b3a1c73bbd8",
       "path": "os/tests/test_owner_path.py"
+    },
+    {
+      "sha256": "d378230f3e11d2d79741c7894439897c1ed34833c1f7a0a73015b8b2b4d1b043",
+      "path": "os/tests/test_owner_reset.py"
     },
     {
       "sha256": "cf1122fa5fb65611ba4a79c292782ed5caf11ba9df3d07194ff15f96f8435839",

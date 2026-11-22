@@ -836,3 +836,47 @@ After recheck, the lead still owns the same-head checks and baseline preflight
 in the order above. Later qualification needs the real publish run's retained
 artifact and the exact candidate payload. Hosted artifact access and VM boot
 remain unverified.
+
+## Hosted checks fix for a fresh evidence directory · 2026-11-22
+
+All three rejected reset cases in hosted checks run 45065464450 raised
+`FileNotFoundError` while saving shutdown diagnostics. The shutdown console
+writer now creates its parent directory and reports filesystem errors as a
+warning. Shutdown event validation and the final write-counter audit still
+determine the shutdown result.
+[Hosted checks run](https://github.com/Ares-Empire/AresOS/actions/runs/45065464450)
+
+The shared JSON writer used by `release29_probes.py` and `owner_vm.py` now
+creates its parent directory. The separate baseline receipt in
+`release29_walk.py` does the same. Required receipts still fail if they
+cannot be saved. Refreshed four hashes in the 314-row host receipt and
+updated the pending source bindings, which now contain 24 files and zero
+removals.
+
+The reset test now discovers on its own. Each rejected event starts with a
+fresh temporary evidence path and checks both the rejection reason and the
+saved console file. A file collision fixture checks that an evidence write
+error preserves both accepted and rejected reset results. The JSON writer
+and baseline fixtures also use missing parent directories.
+
+### Verified locally
+
+Ran `python3 -m unittest discover -s os/tests -p <module>.py` from the
+repository root, one module at a time. Moved the existing `evidence/` folder
+aside for the runs and restored it afterward. Before the fix, the isolated
+reset module reproduced the three `FileNotFoundError` cases and raised an
+`IsADirectoryError` in the new collision fixture.
+
+| Module | Result |
+| --- | --- |
+| `test_owner_reset.py` | `Ran 5 tests in 0.013s`, `OK` |
+| `test_two_disk_vm.py` | `Ran 32 tests in 0.173s`, `OK` |
+| `test_release29_rehearsal.py` | `Ran 26 tests in 31.115s`, `OK`, with the three Control Chrome PASS markers from fixtures |
+| `test_owner_walk.py` | `Ran 40 tests in 623.299s`, `OK`, with `PASS historical R29 baseline through confirmed R28 with tools v5` |
+| `test_checkout_sources.py` | `Ran 10 tests in 1.050s`, `OK` |
+| `test_stock_image.py` | `Ran 29 tests in 0.122s`, `OK`, with three stock-rewind free-space messages from fixtures |
+
+Source replay and raw-byte checks verified all 314 host receipt rows.
+`git diff --check` passed. There are no files over 500 MB in `.work/`.
+Verification covered local fixtures. The hosted rerun and live VM remain
+unverified.

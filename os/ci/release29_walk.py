@@ -673,6 +673,7 @@ def rehearsal(vm, audit, media, password, hashed, daily_password, version_2, pre
         deployments=expected, identities=confirmed, stock_pinned=True, transaction_idle=True, r13_retired=True,
         tools_phase=installed['phase'], outcome_pending=False, protected_disk_audits=True)
     td.save('release-29-baseline-walk', dict(real=real, compared=walk.compared, stages=walk.stages, dialogs=walk.dialogs))
+    BASELINE_RECEIPT.parent.mkdir(parents=True, exist_ok=True)
     BASELINE_RECEIPT.write_text(json.dumps(receipt, indent=2) + '\n')
     print('PASS historical R29 baseline through confirmed R28 with tools v5')
 

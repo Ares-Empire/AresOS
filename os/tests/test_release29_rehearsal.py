@@ -65,7 +65,7 @@ def registry_fixture():
 def prepare_fixture(root, stack):
     registry = root / 'historical-registry.json'
     stack.enter_context(patch.object(auth, 'BASELINE_REGISTRY', registry))
-    stack.enter_context(patch.object(walk, 'BASELINE_RECEIPT', root / 'baseline.json'))
+    stack.enter_context(patch.object(walk, 'BASELINE_RECEIPT', root / 'evidence' / 'baseline.json'))
     download = walk.installer_download
     stack.enter_context(patch.object(walk, 'installer_download', side_effect=lambda live: download(live, root)))
     save(registry, registry_fixture())

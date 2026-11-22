@@ -27,7 +27,9 @@ LIVE = next(i for i in json.loads(pathlib.Path('os/manifest/installer-isos.json'
 
 
 def save(name, value):
-    (EVIDENCE / (name + '.json')).write_text(json.dumps(value, indent=2) + '\n')
+    path = EVIDENCE / (name + '.json')
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(value, indent=2) + '\n')
 
 
 class Guest(sw.Guest):
@@ -291,7 +293,14 @@ lsblk --json --bytes --list --output NAME,TYPE,SERIAL,PARTUUID,PARTTYPE,MOUNTPOI
             self.transcript += text
             if not self.authentication_started:
                 self.boot_transcript += text
-            (EVIDENCE / (stage + '-shutdown-console.txt')).write_text(sw.redact(text, self.secrets))
+            try:
+                path = EVIDENCE / (stage + '-shutdown-console.txt')
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(sw.redact(text, self.secrets), encoding='utf-8')
+            except OSError as error:
+                # A diagnostic write failure must leave the shutdown verdict intact.
+                print(f'Warning: could not write shutdown console evidence for {stage} ({type(error).__name__})',
+                      file=sys.stderr)
         shutdowns = [e for e in self.monitor.events if e.get('event') == 'SHUTDOWN']
         assert len(shutdowns) == 1 and shutdowns[0]['data'] == dict(guest=reason != 'host-qmp-system-reset', reason=reason), shutdowns
         assert not any(e.get('event') == 'GUEST_PANICKED' for e in self.monitor.events)

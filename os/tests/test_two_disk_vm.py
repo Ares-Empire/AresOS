@@ -16,6 +16,12 @@ from prepare_two_disks import verify_loop
 
 
 class TwoDiskHarnessTest(unittest.TestCase):
+    def test_save_creates_evidence_directory(self):
+        evidence = self.directory / 'evidence' / 'two-disk'
+        with patch.object(vm, 'EVIDENCE', evidence):
+            vm.save('fixture', {'status': 'passed'})
+        self.assertEqual(json.loads((evidence / 'fixture.json').read_text()), {'status': 'passed'})
+
     def test_real_retained_vars_first_stock_uses_default_and_later_linux_records_bootnext(self):
         root = pathlib.Path(__file__).resolve().parents[2] / 'os/manifest/ci/11k/full-5/two-disk'
         shutil.copyfile(root / 'stock-before-windows-vars.fd', self.directory / 'vars.fd')

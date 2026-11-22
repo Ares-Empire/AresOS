@@ -355,7 +355,7 @@
       "path": "os/ci/release29_probes.py"
     },
     {
-      "sha256": "981575ae0dfe5c86535fafa021d488bdd557c22aa9f50306dc91aef65f3f9627",
+      "sha256": "b024933eb4e48e603a4e8cc1e223f0a1b859514e92e1af0d78ef7ebd4e4bc614",
       "path": "os/ci/release29_walk.py"
     },
     {
@@ -387,7 +387,7 @@
       "path": "os/ci/tools_local.py"
     },
     {
-      "sha256": "b837829d960b123ae66de0267a71d6730cc372e0652ba388c48181cd9c7ffdf0",
+      "sha256": "b721fed040d984efd91865e467b029c14c67dcfcb841107e9856aaec3895ea55",
       "path": "os/ci/two_disk_vm.py"
     },
     {
@@ -1223,7 +1223,7 @@
       "path": "os/tests/test_owner_reliable_typing.py"
     },
     {
-      "sha256": "15c30ccf1ad4b5c84a8116077365b68c2f5aeef0bed4b9cd0578ed90326af768",
+      "sha256": "d378230f3e11d2d79741c7894439897c1ed34833c1f7a0a73015b8b2b4d1b043",
       "path": "os/tests/test_owner_reset.py"
     },
     {
@@ -1283,7 +1283,7 @@
       "path": "os/tests/test_release28_rehearsal.py"
     },
     {
-      "sha256": "cbfcdc07483ed95b1a604a31f218f82afaa46f0117ceda8199b0a1f08add6798",
+      "sha256": "1c318f10d4b77487beb9ef9e576289e4a793a3126a993e5710069edbf9ed37df",
       "path": "os/tests/test_release29_rehearsal.py"
     },
     {
