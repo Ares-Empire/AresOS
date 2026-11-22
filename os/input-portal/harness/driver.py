@@ -1238,23 +1238,27 @@ def test8_switch(fe, admin):
         mark = len(fe.signals)
         copy("aresos-321 a clipboard read in flight 3d7e")
         offered = wait_for(lambda: fe.sig("SelectionOwnerChanged", session.path, mark), 3)
-        os.kill(fresh_pid, signal.SIGSTOP)
+        pidfd = os.pidfd_open(fresh_pid)
         try:
-            pending = fe.call_async(PORTAL, CLIP, "SelectionRead", V("(os)", (session.path, "text/plain;charset=utf-8")))
-            pump(0.2)
-            mark = len(fe.signals)
-            set_switch(None)
+            os.kill(fresh_pid, signal.SIGSTOP)
+            try:
+                pending = fe.call_async(PORTAL, CLIP, "SelectionRead", V("(os)", (session.path, "text/plain;charset=utf-8")))
+                pump(0.2)
+                mark = len(fe.signals)
+                set_switch(None)
+            finally:
+                os.kill(fresh_pid, signal.SIGCONT)
+            got = wait_for(lambda: pending.get("reply"), 3)
+            if got and got.ok and got.nfds:
+                os.close(got.fd())
+            closed = wait_for(lambda: fe.sig("Closed", session.path, mark), 3)
+            exited = select.select([pidfd], [], [], 1.0)[0]
         finally:
-            os.kill(fresh_pid, signal.SIGCONT)
-        got = wait_for(lambda: pending.get("reply"), 3)
-        if got and got.ok and got.nfds:
-            os.close(got.fd())
-        closed = wait_for(lambda: fe.sig("Closed", session.path, mark), 3)
+            os.close(pidfd)
         check(T, "the same with a clipboard read in flight: no file descriptor comes back, and the session is closed",
               offered and got and not got.ok and got.nfds == 0 and closed, f"offered {bool(offered)}, reply {got and (got.ok, got.error, got.nfds)}, Closed {bool(closed)}")
-        stopped = wait_for(lambda: not admin.has_owner(NAME), 1.0)
         check(T, "On again: the activated backend starts one connection, and Off ends that process too",
-              again_connections == 1 and stopped, f"{again_connections} while On")
+              again_connections == 1 and exited, f"{again_connections} while On")
         stop(session.receiver)
 
         # After Off no new clipboard transfer starts, either way.
@@ -1298,7 +1302,7 @@ def test8_switch(fe, admin):
         closed = wait_for(lambda: fe.sig("Closed", session.path, mark), 1)
         code = closed_backend(backend)
         check(T, "--revoke with the switch on changes nothing: the capture holds", "sharing is on" in said_on and kept, f"{said_on!r}")
-        check(T, "--revoke right after the switch is removed: by its answer the session is closed and the capture over",
+        check(T, "--revoke right after the switch is removed: the session closes, the backend exits and input returns",
               activated and said.startswith(("sharing is off", "no backend is running")) and code == 0 and closed and local_motion() and local_key(), f"{said!r}, exit {code}")
         stop(session.receiver)
 
