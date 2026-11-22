@@ -1,9 +1,12 @@
 """Guest actions for the DRM output gate. The virtio layer is the only caller."""
+import contextlib
 import json
 import os
 import pathlib
 import pwd
 import re
+import shutil
+import signal
 import subprocess
 import time
 
@@ -233,10 +236,106 @@ def vt(request):
     return dict(returncode=0, labwc_pid=session['pid'], vt=expected, observed=observed)
 
 
+@contextlib.contextmanager
+def logged_process(log, argv):
+    with log.open('w') as stream:
+        process = subprocess.Popen(session['prefix'] + argv, stdout=stream, stderr=subprocess.STDOUT,
+                                   start_new_session=True)
+    try:
+        yield process
+    finally:
+        if process.poll() is None:
+            os.killpg(process.pid, signal.SIGTERM)
+            process.wait(timeout=10)
+
+
+def identity(_request):
+    """Trace one real Deskflow caller through the real portal on the session bus."""
+    root = session['runtime'] / 'deskflow-ci-identity'
+    layout = root / 'Deskflow'
+    require(guest_command('mkdir', '-p', str(layout)))
+    (layout / 'Deskflow.conf').write_text('[core]\ncomputerName=fixture\ninterface=127.0.0.1\n')
+    (layout / 'deskflow-server.conf').write_text('section: screens\n    fixture:\nend\n')
+    helper = '/usr/libexec/aresos-input-sharing-set'
+    frontend = root / 'frontend.log'
+    monitor = root / 'monitor.log'
+    core = root / 'core.log'
+    desktop_id = 'org.deskflow.deskflow'
+    slug = 'org-deskflow-deskflow'
+    launch_id = '3213213213213213'
+    unit = f'app-aresos-{desktop_id}-{launch_id}.scope'
+    launch = f"""
+import runpy
+shell = runpy.run_path('/usr/libexec/aresos-shell')
+apps, _ = shell['load_catalogue'](shell['REGISTRY'])
+app = apps[{slug!r}]
+launcher = shell['ScopeLauncher']()
+assert launcher.unit(app, {launch_id!r}) == {unit!r}
+argv, work, reason = shell['resolve'](app)
+assert reason is None, reason
+import os
+cmd = launcher.command(app, argv, {launch_id!r})
+os.chdir(launcher.working_directory(work))
+os.execve(cmd[0], cmd, launcher.environment(app))
+"""
+    require(subprocess.run([helper, 'on'], capture_output=True, text=True, timeout=10))
+    try:
+        with logged_process(frontend, ['/usr/libexec/xdg-desktop-portal', '--verbose', '--replace']):
+            wait_for(lambda: 'org.freedesktop.portal.Desktop acquired' in frontend.read_text(),
+                     'real frontend acquired its name')
+            routes = frontend.read_text()
+            assert "Using portal configuration file '/usr/share/xdg-desktop-portal/aresos-portals.conf'" in routes, routes
+            assert all(f'Using aresos-input.portal for org.freedesktop.impl.portal.{name}' in routes
+                       for name in ('InputCapture', 'Clipboard')), routes
+            with logged_process(monitor, [
+                '/usr/bin/dbus-monitor', '--session',
+                "type='method_call',interface='org.freedesktop.portal.InputCapture',member='CreateSession2'",
+            ]):
+                wait_for(lambda: 'member=NameAcquired' in monitor.read_text(), 'input capture monitor ready')
+                count = session_log().count('session created')
+                with logged_process(core, ['env', f'XDG_CONFIG_HOME={root}', 'python3', '-B', '-c', launch]):
+                    try:
+                        def observe():
+                            match = re.search(r'method call .*?sender=(:[\d.]+).*?member=CreateSession2',
+                                              monitor.read_text())
+                            return match[1] if match else None
+
+                        sender = wait_for(observe, 'Deskflow CreateSession2')
+                        pid = backend_pid(sender)
+                        executable = os.readlink(PROC / str(pid) / 'exe')
+                        assert executable == '/usr/bin/deskflow-core', executable
+                        assert unit in (PROC / str(pid) / 'cgroup').read_text().strip().split('/'), unit
+                        line = wait_for(lambda: next((line for line in session_log().splitlines()
+                                                     if 'session created' in line and f'app_id="{desktop_id}"' in line),
+                                                    None), 'the backend received the native Deskflow ID')
+                        first = require(guest_command(PORTAL, '--status')).splitlines()
+                        assert len(first) == 1 and desktop_id in first[0], first
+                        time.sleep(1)
+                        kept = require(guest_command(PORTAL, '--status')).splitlines()
+                        assert len(kept) == 1 and kept[0].split(': app=', 1)[0] == first[0].split(': app=', 1)[0], kept
+                        assert session_log().count('session created') == count + 1
+                    finally:
+                        guest_command('systemctl', '--user', 'stop', unit)
+            # The same guarded executable, started from outside the hub scope.
+            start_log = session_log().count('refused: the application has no ID')
+            with logged_process(core, ['env', f'XDG_CONFIG_HOME={root}', '/usr/libexec/aresos-deskflow']):
+                wait_for(lambda: session_log().count('refused: the application has no ID') > start_log,
+                         'terminal launch refused with no app ID')
+            check_compositor()
+            return dict(returncode=0, app_id=desktop_id, hub_id=slug, sender=sender, pid=pid, exe=executable,
+                        scope=unit, backend=line, terminal='empty ID refused', frontend_routes=routes.splitlines())
+    except (OSError, AssertionError) as error:
+        logs = {path.name: path.read_text()[-2500:] for path in (frontend, monitor, core) if path.exists()}
+        raise AssertionError((str(error), logs)) from error
+    finally:
+        require(subprocess.run([helper, 'off'], capture_output=True, text=True, timeout=10))
+        shutil.rmtree(root)
+
+
 def diagnostics(request):
     return dict(returncode=0, labwc_pid=labwc_pid(session['uid']), connectors=drm_connectors(),
                 session_log=session_log()[-20000:])
 
 
 ACTIONS = {'deskflow-ready': ready, 'deskflow-snapshot': snapshot, 'deskflow-change': change,
-           'deskflow-vt': vt, 'deskflow-diagnostics': diagnostics}
+           'deskflow-vt': vt, 'deskflow-identity': identity, 'deskflow-diagnostics': diagnostics}

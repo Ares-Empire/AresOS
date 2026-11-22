@@ -283,7 +283,11 @@ def regular(guest, ready):
     guest.keys('f1')
     guest.request('vt', expected='tty1')
     assert guest.request('snapshot', geometry=False)['outputs'][PRIMARY]['enabled']
-    return dict(status='passed', **hotplug(guest))
+    result = dict(status='passed', **hotplug(guest))
+    if ready['state'] == 'backend':
+        proof = guest.request('identity')
+        result['identity'] = {key: proof[key] for key in ('app_id', 'hub_id', 'sender', 'pid', 'exe', 'scope', 'terminal')}
+    return result
 
 
 def custom(guest, ready):
