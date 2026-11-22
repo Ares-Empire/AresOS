@@ -216,12 +216,17 @@ public final class ClickToLookClientGameTest implements FabricClientGameTest {
         rig.tool("activate", "aresos-desktop");
         helper.focus(true);
         context.waitTicks(4);
+        // Earlier tests leave the X focus wherever their own X windows had it, and labwc does not focus a window it
+        // already counts as active. A click on the world gives it the X focus in the session; the rig makes that so here.
+        rig.clean("328b start");
         int[] box = rig.windowBox();
         rig.moveTo(box, 60, 60, "328b free pointer");
         context.waitTicks(3);
         context.runOnClient(client -> {
             check(WorldCapture.pointerOverWorld(client), "GLFW does not see the free pointer on the world");
             check(released(client) && HomeScreen.freePointer(client), "The world took the pointer before a click");
+            check(WorldKeepsPointerClientGameTest.xFocused(client) && client.isWindowActive(),
+                    "The world does not have the X focus before the click");
         });
 
         // A click on open world starts look mode; the mouse steers the camera as in classic.
@@ -236,7 +241,11 @@ public final class ClickToLookClientGameTest implements FabricClientGameTest {
         catch (InterruptedException error) { Thread.currentThread().interrupt(); throw new RuntimeException(error); }
         context.waitTicks(2);
         float turned = context.computeOnClient(client -> client.player.getYRot()) - yaw;
-        check(Math.abs(turned) > 1, "Look mode did not steer the camera (turned " + turned + ")");
+        String state = context.computeOnClient(client -> "grabbed=" + client.mouseHandler.isMouseGrabbed()
+                + " mode=" + GLFW.glfwGetInputMode(client.getWindow().handle(), GLFW.GLFW_CURSOR)
+                + " xFocused=" + WorldKeepsPointerClientGameTest.xFocused(client) + " active=" + client.isWindowActive()
+                + " free=" + HomeScreen.freePointer(client) + " focusIn=" + rig.focusIn + " focusOut=" + rig.focusOut);
+        check(Math.abs(turned) > 1, "Look mode did not steer the camera (turned " + turned + "; " + state + ")");
 
         // Stillness ends it through 328a's release; the pointer reappears where the click was.
         waitReal(context, client -> released(client) && WorldCapture.settled(), "stillness to end the native look mode");

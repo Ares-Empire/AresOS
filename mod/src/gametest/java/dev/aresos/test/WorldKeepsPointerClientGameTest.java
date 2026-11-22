@@ -306,7 +306,7 @@ public final class WorldKeepsPointerClientGameTest implements FabricClientGameTe
         return GLFW.glfwGetInputMode(client.getWindow().handle(), GLFW.GLFW_CURSOR);
     }
 
-    private static boolean xFocused(Minecraft client) {
+    static boolean xFocused(Minecraft client) {
         return GLFW.glfwGetWindowAttrib(client.getWindow().handle(), GLFW.GLFW_FOCUSED) == GLFW.GLFW_TRUE;
     }
 
