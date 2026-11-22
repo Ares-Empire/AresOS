@@ -81,6 +81,20 @@ class DeskflowVMTest(unittest.TestCase):
                     with self.assertRaisesRegex(AssertionError, 'listen-only Wayland connection ended'):
                         actions.vt({'expected': vt})
 
+    def test_drm_control_never_accepts_an_activated_backend(self):
+        for state in ('none', 'listener'):
+            with (
+                self.subTest(state=state),
+                patch.object(actions, 'session', {'uid': 1000, 'pid': 1, 'state': state}),
+                patch.object(actions, 'labwc_pid', return_value=1),
+                patch.object(actions, 'session_log', return_value=''),
+                patch.object(actions, 'listener', None),
+                patch.object(actions.subprocess, 'run', return_value=Mock(stdout='')),
+                patch.object(actions, 'bus', return_value='b true'),
+            ):
+                with self.assertRaisesRegex(AssertionError, 'input portal started during a DRM control case'):
+                    actions.check_compositor()
+
     def test_custom_verifies_each_transition(self):
         on = {'outputs': {vm.PRIMARY: {'enabled': True, 'modes': [CUSTOM]}}}
         off = {'outputs': {vm.PRIMARY: {'enabled': False}}}

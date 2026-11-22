@@ -94,10 +94,19 @@ def check_compositor():
         assert listener.poll() is None, 'listen-only Wayland connection ended'
     if 'backend_owner' in session:
         assert backend_owner() == session['backend_owner'], 'original backend lost its bus name'
+    elif session.get('state') in ('none', 'listener'):
+        assert not backend_running(), 'input portal started during a DRM control case'
 
 
 def bus(*args):
     return require(guest_command('busctl', '--user', '--no-pager', *args)).strip()
+
+
+def backend_running():
+    answer = bus('call', 'org.freedesktop.DBus', '/org/freedesktop/DBus', 'org.freedesktop.DBus',
+                 'NameHasOwner', 's', BUS_NAME)
+    assert answer in ('b true', 'b false'), answer
+    return answer == 'b true'
 
 
 def backend_owner():
@@ -120,6 +129,7 @@ def ready(request):
     state = request['state']
     assert state in ('none', 'listener', 'backend'), state
     session = wait_for(connect_session, 'real labwc session', timeout=120)
+    session['state'] = state
     initial = wait_for(lambda: randr() if active_primary() else None, 'Virtual-1 enabled', timeout=90)
     initial_pid = session['pid']
     proof = dict(state=state, labwc_pid=initial_pid, wayland=session['wayland'], outputs=initial)
@@ -132,8 +142,7 @@ def ready(request):
             lambda: (report if 'OUTPUT Virtual-1\n' in (report := path.read_text())
                      and 'OUTPUTS_READY ' in report else None), 'listen-only output list')
     if state == 'backend':
-        assert bus('call', 'org.freedesktop.DBus', '/org/freedesktop/DBus', 'org.freedesktop.DBus',
-                   'NameHasOwner', 's', BUS_NAME) == 'b false', 'backend was already running'
+        assert not backend_running(), 'backend was already running'
         assert not pathlib.Path('/etc/aresos/input-portal/sharing').exists()
         # Set the log level for this activation alone. Use the socket of the real session.
         require(guest_command('env', 'ARESOS_INPUT_PORTAL_LOG=debug', 'dbus-update-activation-environment',
