@@ -611,19 +611,162 @@ launch hook or a change to Deskflow itself.
 - The upstream MIT license is in the image. The linked Rust crates' notice inventory is open before
   publication.
 
+## Step 3 review fixes (2026-11-22, Claude Opus 5.5)
+
+The three BLOCKING findings of `REVIEW-3.md`, as the lead triaged them. Started 12:22 CET at `18e224b2`
+(`origin/main` was not merged in this round: step 4 starts with that merge, see "Left, in order"). No CI dispatch.
+
+| Commit | What |
+|---|---|
+| `450c48f8` | Finding 1: the backend's Wayland worker starts only for an authorized session while sharing is On (`os/input-portal/src/`). |
+| `8da79ac5` | Finding 1: harness test8 counts the backend's Wayland connections from outside; `UPSTREAM.md`'s row. |
+| `121ee33b` | The backend's new pin (two byte-identical clean builds). |
+| `d01f335d` | Finding 3: pairing through the guarded launcher, with its tests (`os/tests/test_aresos_deskflow.py`). |
+| `67f69117` | Finding 2: the image's own `org.deskflow.deskflow.desktop`, opening the guarded launcher. |
+| `6dbb7a89` | Finding 2: `os/build.sh` keeps Fedora's copy of that entry out (RPM net shared). |
+| `313aba4c` | Finding 2: the image check asserts the effective entry, its `Exec` and a clean `rpm -V deskflow`. |
+| `05cf9f05` | Finding 1: the VM gate with normal activation, the worker started by the real Deskflow, and the return to Off. |
+
+### Finding 1: the Wayland worker stays stopped while sharing is Off
+
+- **Fix.** `serve` no longer connects to the compositor. The bus side (InputCapture, Clipboard, Control) answers
+  the frontend's discovery and the control commands and refuses sessions while Off, as before. `CreateSession` and
+  `CreateSession2` start the worker (`wayland::start`, the same thread as before: output management, layer shell,
+  pointer constraints, clipboard data control) only after the frontend, empty-ID and allow-list checks, and only
+  when a read of the switch under the state's lock says On; the session is then stored under a second read. The
+  worker stops (its handle dropped: `Shutdown` after the commands already sent, then the thread returns and its
+  connection closes with every binding) when a read of the switch says Off (the 250 ms timer now also runs while
+  only a worker exists, `--revoke`, and every place that already read the switch), and when no session needs it
+  (`Close`, the frontend leaving or changing owner, a dead EIS connection, a refused or failed `CreateSession`).
+  Off keeps step 1's order: sessions closed, `EndCapture` and `Disarm` sent, then the worker is taken out and the
+  compositor's confirmation awaited on it within 1 s; unconfirmed, the backend exits as before. Only then is the
+  worker dropped. Kept: one armed session, teardown, `--revoke`, `--release` with its pidfd fallback (with no worker
+  `ForceRelease` answers at once: no connection can hold anything), the forwarding gate, an unexpected end of the
+  running worker's connection still ends the process. Events of a stopped worker are dropped (generation check in
+  the pump), and crossing numbers come from one counter shared by all workers, so a late event can't name a later
+  crossing. A worker that isn't ready within 8 s fails the session and holds nothing else.
+- **Tests.** 4 new unit tests (102 in all): no worker for a refused, unlisted, empty-ID or stranger's request or
+  while Off; Off/On/Off (timer Off: worker taken out at once, stopped after the confirmation; On: a new worker;
+  `--revoke` Off: stopped again); the worker stops when no session needs it (teardown first, then `Shutdown`; also
+  on the frontend leaving and on a new frontend owner); a stopped worker's events reach no later session. Six
+  existing tests were re-aimed where the last session's teardown now stops the worker (a crossing on its way finds
+  nothing to send to; `stop_serving` now releases before it closes).
+- **Harness** (`os/input-portal/harness/run.sh`, image `localhost/aresos-input-portal-harness:321-step2`), on the
+  counted binary: see "Verified locally" below for the two counts. New test8 checks, read from outside the backend
+  (each socket descriptor copied with `pidfd_getfd` and asked for its peer): no Wayland connection with the switch On
+  and no session, nor while Off after four refused requests; one while an authorized session runs; none within 1 s
+  after the switch is removed; one again for the next session after On, none after Off. The output control now
+  opens a session so the backend is bound (it showed `1 Wayland connection`, and labwc aborted at step 2 as before).
+- **VM gate** (`os/ci/deskflow/`, not dispatched in this round). The test layer keeps the frontend's activation
+  file, as the image ships it (0ce12ae3's removal is undone), so every boot is a first boot with normal activation:
+  `ready` records `first_boot_backend` (the backend's Wayland connections if the frontend started it, else none)
+  and fails on any connection; the DRM controls' check changed from "no backend" to "no backend on Wayland". The
+  backend state stops a login-activated backend (it ran at the default log level), turns sharing On with the
+  helper, checks no connection without a session, then starts the real frontend, a `CreateSession2` monitor and
+  Deskflow under the hub scope and keeps them for the boot: the worker has one connection, and `check_compositor`
+  requires it through every DRM operation. The identity check reuses that caller (sender, PID, executable, scope),
+  then turns sharing Off with Deskflow connected: `--revoke` answers, the session is gone, the backend keeps its bus
+  name and has no Wayland connection (`off` in the result). Then the terminal launch is refused for its empty ID.
+  `test_deskflow_vm.py`: 9 (7 before; the control test re-aimed, two new).
+- **What the code doesn't show.** The VM gate's new paths have run only as unit tests: the hosted run is step 4's.
+  In the backend state Deskflow now pairs (empty fixture trust list): it makes a certificate with `openssl` and opens
+  the core's IPC channel; nobody connects, so no dialog appears. If the real core in the VM did not open its IPC
+  socket, the launcher would stop it and the backend state would fail at readiness: read the core log in the
+  evidence first. The custom-mode limit now needs Deskflow's live session with sharing On.
+
+### Finding 2: every desktop-entry launch of Deskflow uses the guarded launcher
+
+- **The way chosen.** The desktop ID must stay `org.deskflow.deskflow` with an existing `<ID>.desktop`, `/usr/local`
+  is not in a bootc image, and editing Fedora's file in place shows in `rpm -V` (`S.5....T.`, tried). So
+  `os/build.sh` sets, for the locked install alone, the rpm macro `%_netsharedpath` to that one path: RPM installs
+  no copy and records the file as `net shared`, which `rpm -V` skips (tried with rpm 6.0.2 and dnf5 in a throwaway
+  Fedora 44 container: dnf5 honours the macro, state `net shared`, `rpm -V` rc 0). The macro file is removed right
+  after; the build fails if a `_netsharedpath` was already set or if anything else is net shared. The image's own
+  entry (`os/config/usr/share/applications/org.deskflow.deskflow.desktop`: Fedora's text, translations included,
+  with `Exec=/usr/libexec/aresos-deskflow`) takes the path from `config/`. The hub's catalogue entry is unchanged.
+- **Image check.** `image-checks.sh` (with `check-image.sh` sending the repo's entry in): root 0644 and identical to
+  the repo's; the only `org.deskflow.deskflow.desktop` under `/usr`, `/etc` and `/var`; every `Exec`, actions
+  included, is the launcher; no other `TryExec`, no D-Bus activation; exactly that one file net shared and
+  `rpm -V deskflow` empty; `/usr/bin/openssl` present. Its parser passed on the repo's entry and failed on
+  Fedora's (`Exec=deskflow`) locally.
+- **What the code doesn't show.** Not yet run in a built image (step 4's dispatch). A per-user entry in
+  `~/.local/share/applications` and `deskflow` typed in a terminal stay possible; the latter's core has an empty ID
+  and is refused (KNOWN-LIMITS).
+
+### Finding 3: a guarded first-use pairing
+
+- **Fix.** `aresos-deskflow` pairs when no Mac is saved, or with `--enroll`. It starts the server with TLS and the
+  peer check on and an empty trust list (also with `--enroll`: the saved Mac is not trusted meanwhile), connects to
+  the core's own IPC channel (Deskflow 1.27's `deskflow-core` socket; it answers a hello with its version and then
+  replays what it queued) and reads `peerFingerprint=`, which the core sends for every TLS peer before it checks the
+  trust list. For each new peer a `kdialog --yesno` shows its fingerprint as Deskflow's own window shows one (byte
+  pairs with colons, eight to a line) and this laptop's, for the Mac to check: "It matches" / "It doesn't match".
+  Only a confirmed fingerprint is saved, as the single `v2:sha256:` entry (0600, one rename), and copied into the
+  running server's profile, which the core rereads at every connection, so the Mac's next try gets in; a refused
+  peer isn't asked about again in that run; nothing else is ever written. A profile that never ran Deskflow's window
+  gets a server certificate made as Deskflow's window makes one (RSA 2048, self-signed, `CN=Deskflow`, 365 days, key
+  and certificate in one PEM, 0600) with `openssl`. The core's `TMPDIR` is now the private runtime folder, so its IPC
+  socket (Deskflow opens it to everyone, `WorldAccessOption`) is the owner's alone. A core that doesn't open its
+  channel within 10 s is stopped and the launcher reports it. A saved list with two or malformed entries is refused
+  with a pointer to `--enroll`.
+- **Tests.** `os/tests/test_aresos_deskflow.py`, 6, with a stand-in core (it opens the IPC socket in the TMPDIR it
+  is given, answers the hello as 1.27 does, reports fingerprints, records what the running server trusts) and a
+  stand-in dialog, the real `openssl`: from an empty profile whose settings turn TLS and the peer check off, only the
+  confirmed Mac is saved and trusted by the running server, asked once, the stranger never asked after it; the
+  certificate is made and its fingerprint shown; TLS and the peer check on in the core's copy, `TMPDIR` private,
+  Wayland only. Nothing is trusted without a confirmation; `--enroll` replaces the saved Mac only when confirmed and
+  trusts nobody meanwhile; a saved Mac starts the server without a dialog or channel; two entries are refused; a core
+  without its channel is stopped.
+- **What the code doesn't show.** The real core's IPC replies were read from Deskflow 1.27's source
+  (`src/lib/deskflow/ipc/`, `src/lib/net/SecureSocket.cpp`), not observed: step 4 runs the real core against a
+  Deskflow client in the VM. The Mac's side (its own dialog for the laptop's fingerprint) is the owner's, laptop
+  test 3.
+
+### Verified locally (step 3 review fixes)
+
+- Backend: `os/input-portal/dev/container.sh build` (as the image stage builds it) passed 102 unit tests cached and
+  in two clean rootless builds, whose binaries are byte-identical, SHA-256
+  `ef3d09781e34e82fcd2a3db2cb025a8d9fef3f295eea6f177813a26479da23df` (pinned in `121ee33b`).
+- Harness, twice in a row on that binary (`HARNESS_IMAGE=localhost/aresos-input-portal-harness:321-step2
+  os/input-portal/harness/run.sh run`): each `SUMMARY 132 passed, 0 failed, exit 0` (129 before). Tests 1 to 10
+  passed 18, 8, 9, 8, 3, 8, 15, 19, 5 and 26 checks, plus 13 setup, isolation and review checks; test8's three new
+  checks are the Wayland-connection ones. The output control printed `the backend is connected (1 Wayland
+  connection, a session open)` and the expected labwc abort, as before. An earlier run on the cached build: 132, 0.
+- `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s os/tests -p <file>`, once each: `test_aresos_deskflow.py`
+  6, `test_deskflow_vm.py` 9, `test_input_portal_layers.py` 3, `test_input_sharing.py` 5, `test_shell_assertions.py`
+  9, `test_everyday_account.py` 36, `test_aresos_desktop.py` 189 (OK, 1 skip: no reachable user systemd manager).
+  No `__pycache__` under `os/config/`.
+- The net-shared exclusion with rpm 6.0.2 and dnf5 in a throwaway Fedora 44 container (above), and the image
+  check's entry parser on both entries (above). `bash -n` on `os/build.sh`, `os/ci/image-checks.sh` and
+  `os/ci/check-image.sh`.
+- Not run: any image build, the image checks in an image, the VM gate (step 4's dispatch).
+
 ## Left, in order
 
-1. Step 4 merges current main, adds the sharing-on login hook and reuses the guarded Deskflow server and desktop-ID
-   scope. Prepare VM checks 2 to 9 on boots with the standard frontend activation file. Keep the DRM control boots
-   isolated and finish any linked-crate notice changes before building the last check image.
-2. Dispatch 8 covers the corrected DRM controls, the advisory-lock fix and VM checks 2 to 9, including
-   `CreateSession2` from the login hook, all bindings, prompt and revoke checks, TLS and stale-fingerprint cases,
-   the other-ID Flatpak and log redaction. Finish the bindings table, known limits and final review. Send the
-   refreshed file and commit lists to `linux-aresos` and `linux-hub`.
-3. Prepare the exact laptop rehearsal for the lead. The owner gives direct approval, saves work, and
-   verifies monitor and session behaviour, the Mac fingerprint, input, clipboard and release keys on hardware.
+1. **Step 4 merges current `origin/main` first** (package 328a, `92cf365a`, and anything newer) and retests the
+   combined branch (backend tests, harness twice, the touched `os/tests` modules). Ask the lead on any conflict in
+   `linux-aresos`'s files.
+2. Step 4 adds the sharing-on login hook (the owner's answer T455), launching Deskflow the hub's scoped way
+   (`app-aresos-org.deskflow.deskflow-<id>.scope`, argv `/usr/libexec/aresos-deskflow`); turning sharing Off stops
+   it. Finish any linked-crate notice changes before building the last check image.
+3. VM checks 2 to 9 with a Deskflow client under Xvfb in the guest, on boots with normal frontend activation (now
+   the layer's default). Pairing is part of it: with the server's fixture trust list empty, the client's first try
+   brings `peerFingerprint` on the core's IPC channel and the launcher's dialog; drive the dialog (as 22d's dialog
+   driver does for polkit, or with a stand-in `kdialog` on the CI path) to accept the client's fingerprint, check the
+   saved list holds only it, and that a second client with another certificate is refused (VM test 9).
+4. **Dispatch 8 of 8**, `check_build=deskflow`, must show: the corrected DRM controls with normal activation (no
+   backend on Wayland in `regular-none`/`regular-listener` and the custom controls; `first_boot_backend` none or 0 in
+   every boot); the backend state's worker (`worker_connections` 1 through the DRM runs) and its return to Off (`off`
+   in the identity result: session gone, bus name kept, no Wayland connection); the image check's effective Deskflow
+   entry (`DESKFLOW_ENTRY_GUARDED`, clean `rpm -V deskflow`) and the new backend pin `ef3d0978…`; pairing; VM checks
+   2 to 9. If the identity step fails at readiness, read `deskflow-ci-identity/core.log` in the evidence first (see
+   "Step 3 review fixes", finding 1). Then the bindings table, `KNOWN-LIMITS.md` and the final review. Send the
+   refreshed "For linux-aresos" and "For linux-hub" lists.
+5. Prepare the exact laptop rehearsal for the lead. The owner gives direct approval, saves work, and verifies
+   monitor and session behaviour (laptop item 1 now means the backend's bus side only: no Wayland connection while
+   Off), the Mac fingerprint through the pairing dialog, input, clipboard and release keys on hardware.
 
-### For step 3
+### For step 3 (done in step 3)
 
 Mark exactly `W-S-Escape` and `W-C-Escape` with `allowWhenInhibited="yes"` in the image's `rc.xml` and require
 exactly those two marks in the image check. Use one `Execute` for release and terminal launch, and keep the
@@ -697,6 +840,12 @@ The lead sends this list when step 3 ends and at the final head.
 | `os/tests/test_aresos_desktop.py`, `os/tests/test_everyday_account.py`, `os/tests/test_aresos_shell{,_discovery,_icons,_protocol}.py` | `dccb0f1d` | Update release-mode, recovery and registry assertions, including the scope regression. |
 | `os/config/usr/libexec/aresos-input-sharing-set`, `os/tests/test_input_sharing.py` | `938a4deb` | Keep Off independent of an advisory lock any reader could hold. Locally verified after dispatch 7. |
 | `os/ci/deskflow/{Containerfile,actions.py}`, `os/tests/test_deskflow_vm.py` | `0ce12ae3` | Isolate the DRM controls from frontend auto-activation and fail a contaminated control. Locally verified after dispatch 7. |
+| `os/manifest/input-portal.sha256` | `121ee33b` | Step 3 review fixes: pin the backend whose Wayland worker starts only for an authorized session while sharing is On (two byte-identical clean builds). |
+| `os/config/usr/libexec/aresos-deskflow`, `os/tests/test_aresos_deskflow.py` | `d01f335d` | Step 3 review fixes, finding 3: pairing through the guarded launcher; the core's IPC socket in the private runtime folder. |
+| `os/config/usr/share/applications/org.deskflow.deskflow.desktop` (new) | `67f69117` | Finding 2: the image's own entry for the desktop ID, opening the guarded launcher. |
+| `os/build.sh` | `6dbb7a89` | Finding 2: for the locked install alone, `%_netsharedpath` keeps Fedora's copy of that entry out; `rpm -V deskflow` stays clean. |
+| `os/ci/image-checks.sh`, `os/ci/check-image.sh` | `313aba4c` | Finding 2: assert the effective Deskflow entry, every `Exec`, the net-shared state and a clean `rpm -V deskflow`; `openssl` present. |
+| `os/ci/deskflow/{Containerfile,actions.py,deskflow_vm.py}`, `os/tests/test_deskflow_vm.py` | `05cf9f05` | Finding 1: normal frontend activation in the test layer (undoes `0ce12ae3`'s removal), the backend's Wayland connections read from outside in every boot, the backend state's worker started by the real Deskflow and kept, and the return to Off. Not yet run hosted. |
 
 Not touched in step 1c: `os/Containerfile` (the stage copies the whole `labwc/` folder, so the second patch needs no
 new line; its comment above the stage still says "one upstream fix" and should name both patches when the file is
@@ -710,6 +859,7 @@ re-aimed at `aresos2`: R29 carries this package (release plan, 2026-11-21) and g
 |---|---|---|
 | (none in steps 1 and 1b) | | |
 | `os/config/usr/libexec/aresos-shell` | `d5ea344f` | Only the image Deskflow entry gets the native ID as its scope component. The launch suffix and hub protocol ID keep their existing form. |
+| (none in the step 3 review fixes) | | `aresos-shell` is unchanged; the hub's catalogue entry keeps its argv, so a hub launch with no saved Mac pairs by itself. |
 
 ## Rules from `linux-aresos` for the later steps (2026-11-21)
 
@@ -737,10 +887,17 @@ What the image gains or changes through this package, for `linux-aresos`'s relea
   `/usr/share/aresos/manifest/input-portal.sha256`. Release builds require the backend's binary pin.
 - The Rust toolchain and `os/input-portal/` source tree stay in the builder path. The listener, `wlr-randr`
   and the session log capture are part of the throwaway check layer.
-- **Deskflow (step 3):** Fedora's reviewed Deskflow 1.27.0 RPM and libportal are added. The vendor
-  desktop entry supplies metadata and the application ID. The hub runs `/usr/libexec/aresos-deskflow`
-  (0755) from the reviewed registry under the native ID scope. Its private runtime profile enables TLS and
-  peer checking. The updated backend hash is pinned again.
+- **Deskflow (step 3, review fixes):** Fedora's reviewed Deskflow 1.27.0 RPM and libportal are added, except
+  Fedora's `/usr/share/applications/org.deskflow.deskflow.desktop`, which RPM records as net shared (not installed;
+  `rpm -V deskflow` is clean). In its place the image's own entry with the same desktop ID (root, 0644) opens
+  `/usr/libexec/aresos-deskflow` (0755), which the hub also runs from the reviewed registry under the native ID scope.
+  Its private runtime profile enables TLS and peer checking and trusts at most one fingerprint; with none saved
+  (or `--enroll`) it pairs: a dialog shows the connecting peer's fingerprint and saves it only when the owner
+  confirms. It makes a server certificate with `openssl` for a profile that has none, and keeps the core's IPC socket
+  in its private runtime folder.
+- **Input portal behaviour (review fixes):** the backend runs on the bus without a Wayland connection; its worker
+  connects only for an authorized session while sharing is On and disconnects at Off or when no session is left.
+  The backend's pin is `ef3d09781e34e82fcd2a3db2cb025a8d9fef3f295eea6f177813a26479da23df`.
 - **Routing and switch (step 3):** `aresos-input.portal`, `aresos-portals.conf`, the one-ID `allowed-apps`,
   `org.aresos.InputSharing.desktop` and `org.aresos.input-sharing.policy` are root-owned, mode 0644.
   `/usr/bin/aresos-input-sharing` and `/usr/libexec/aresos-input-sharing-set` are root-owned, mode 0755.
@@ -750,11 +907,12 @@ What the image gains or changes through this package, for `linux-aresos`'s relea
 
 **Summary for the owner.** The image adds Deskflow and a Mouse and keyboard sharing switch that starts Off.
 Turning it on asks for the owner's password. Super+Shift+Escape brings the pointer back, and Super+Ctrl+Escape
-also opens the recovery terminal.
+also opens the recovery terminal. The first time the Mac connects, a window shows its fingerprint, and the
+laptop trusts it only after the owner confirms it matches what the Mac's Deskflow shows.
 
 ## CI dispatches
 
-None in steps 1 and 1b.
+None in steps 1 and 1b, and none in the step 3 review fixes (7 of 8 used; step 4 has the last).
 
 | # | Step | Run | What |
 |---|---|---|---|
@@ -790,6 +948,14 @@ with step 4. The raw checks and operation traces are in the
 | `custom-backend` | Initial custom mode and off passed. Re-enable hit the expected `head_send_state` assertion. |
 
 The evidence's `deskflow/result.json` recorded `gate: passed` and an empty `custom_incomplete` result.
+
+## Podman, after the step 3 review fixes
+
+Rootless, one container at a time, all throwaway (`--rm`): cached and two clean backend builds
+(`os/input-portal/dev/container.sh`, the cached one on 316's two cache volumes), three harness runs on the kept
+`localhost/aresos-input-portal-harness:321-step2`, and three short netshared/`rpm -V` probes in that image with
+networking off (the gated Deskflow RPM from `.work/deskflow-gate/` sent in as a tar stream). No image was built or
+removed; no `prune`. The builds and harness evidence are in the session's scratch folder, not in `.work/`.
 
 ## Podman, after step 3
 

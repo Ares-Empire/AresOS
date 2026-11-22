@@ -110,16 +110,26 @@ entry there is the record of how it was.
 
 ## Deskflow in the image (step 3)
 
-- **The input portal can run while sharing is Off.** The bundled polkit agent requested the desktop portal
-  during login in run 45009968432. The frontend then activated the input portal when initializing Clipboard
-  and InputCapture. The switch still gates sessions and data. The custom-mode compositor limit therefore
-  applies even before Deskflow starts when the backend is active.
+- **The input portal's bus side can run while sharing is Off** (changed by the step 3 review fixes, finding 1).
+  The bundled polkit agent requests the desktop portal at login (run 45009968432), and the frontend activates the
+  backend while it initializes Clipboard and InputCapture. That bus side answers and refuses sessions; it holds no
+  Wayland connection until an authorized session while sharing is On starts its worker, and none again once Off
+  (or the last session's end) stops it. So the custom-mode compositor limit above applies only while Deskflow's
+  session is live with sharing On. Commit `450c48f8`; harness test8 and the VM gate check it from outside.
 - **Flathub's Deskflow shares the native ID.** The portal sees `org.deskflow.deskflow` for both. A caller
   with that ID can request capture once the owner has turned sharing On. The lead accepted the collision
   on 2026-11-21 because sharing starts Off and the matching Flathub entry is the same application.
-- **The trusted-peer list depends on enrolment.** The image launch refuses multiple fingerprints and forces
-  TLS and peer checking in the running server's profile. The owner must compare the single fingerprint with
-  the one displayed on the Mac. Edits to the original profile or its trust list take effect on the next
-  guarded Deskflow launch.
+- **Pairing rests on the owner's comparison** (step 3 review fixes, finding 3). With no saved Mac, or with
+  `aresos-deskflow --enroll`, the guarded launcher shows each TLS peer's fingerprint and saves only one the owner
+  confirms; a stranger on the network that connects during pairing gets its own dialog with another fingerprint,
+  and the owner has to refuse it. Accepted: the brief's laptop test 3 is exactly this comparison. The launcher
+  refuses a saved list with more than one or a malformed entry and points to `--enroll`. Edits to the original
+  profile or its trust list take effect on the next guarded launch. `--enroll` is a terminal command; the hub
+  starts pairing by itself only while no Mac is saved.
+- **Deskflow's own window, run by hand, keeps its own settings.** The desktop ID's one entry in the image opens
+  the guarded launcher (finding 2), so the hub, a desktop launcher or `gtk-launch` all get it. `deskflow` typed
+  in a terminal still opens the stock window with the user's TLS settings; its core then has the terminal's scope,
+  so its ID is empty and the backend refuses it (VM gate, "terminal launch refused"). A per-user entry in
+  `~/.local/share/applications` could point the ID elsewhere: a program of the same user, as 316's limit says.
 - **Rust dependency notices are pending.** The backend's own MIT license ships. The exact notice and license
   texts for its linked Rust crates still need to be collected and reviewed before publication.
