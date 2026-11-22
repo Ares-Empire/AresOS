@@ -8,16 +8,35 @@ kind=$2
 out=evidence/image
 mkdir -p "$out/polkit" "$out/manifest"
 
+# The stage must use the input portal's pinned builder. Inspect all added
+# overlay directories separately, before checking the merged filesystem.
+portal_builder=$(sed -n 's/^BUILDER_IMAGE=//p' os/input-portal/toolchain.env)
+test -n "$portal_builder"
+test "$(awk '$1 == "FROM" && $4 == "input-portal" {print $2}' os/Containerfile)" = "$portal_builder"
+base=$(jq -er .reference os/manifest/base.json)
+sudo podman image inspect "$base" > "$out/base-inspect.json"
+sudo podman image inspect "$image" > "$out/image-inspect.json"
+sudo python3 -B os/ci/deskflow/check_layers.py "$out/base-inspect.json" "$out/image-inspect.json" \
+    | tee "$out/input-portal-layers.txt"
+
 # Checks that run inside the image, as root, without network. runuser and
 # podman need their PAM session and user namespaces, hence --privileged.
 # Send the checkout's labwc pin checker with the script so the image needn't ship it.
-tar -cf - -C os ci/image-checks.sh labwc/stage.py labwc/loaded_image.py |
+tar -cf - -C os ci/image-checks.sh labwc/stage.py labwc/loaded_image.py input-portal/LICENSE \
+    input-portal/data/org.freedesktop.impl.portal.desktop.aresos-input.service |
     sudo podman run --rm -i --privileged --network=none --entrypoint /usr/bin/bash "$image" -ec '
         check_dir=$(mktemp -d)
         tar -xf - -C "$check_dir"
         exec bash "$check_dir/ci/image-checks.sh"
     ' 2>&1 | tee "$out/checks.txt"
 grep -qx IMAGE_CHECKS_PASSED "$out/checks.txt"
+portal_hash=$(grep -E '^INPUT_PORTAL_BUILT aresos-input-portal [0-9a-f]{64}$' evidence/build.log | awk '{print $3}')
+test -n "$portal_hash"
+grep -Fx "INPUT_PORTAL_INSTALLED $portal_hash" "$out/checks.txt"
+if ! grep -Fxq "$portal_hash  /usr/libexec/aresos-input-portal" os/manifest/input-portal.sha256; then
+    test "$kind" = throwaway
+    echo "::warning title=Input portal SHA-256 differs from its pin::Built $portal_hash"
+fi
 
 # Rootless containers for the daily account need its subordinate ID ranges.
 # This needs user namespaces inside the check container, hence --privileged.
