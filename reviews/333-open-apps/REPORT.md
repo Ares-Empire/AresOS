@@ -8,12 +8,57 @@
 - The world hotbar draws a vanilla-sprite mark for each pinned app with windows. Left click, held use, a short name, a gate and world search open or bring back the app. A free-pointer right click requests a fresh invocation when the helper offers activation. The mod retains its 1.2 launch and gesture behavior.
 - Updated HUB.md and added shared 1.3 wire examples. The 1.2 examples remain intact.
 - Review 1 fixed the `activate_app` fallback after both immediate and deferred executable checks. The helper drains queued compositor events and uses the current window and launch state before spawning. Requests that joined the check get the restore or launch outcome under their own IDs. Deliberate `open_app` requests still have their own launch path.
-- Recent activation replies, joins and fallback launches keep their replay records through view-history churn. The helper keeps ordinary histories for four view names and retains protected replies when their histories rotate out.
 - The rotating file handler detaches on a write or rollover failure before closing its stream. It contains flush and close failures and keeps diagnostics and subsequent records going to stderr.
-- Recheck 1 moved executable checks, processes, scopes and window tracking into the helper's per-app launch state. Each launch keeps its own ID and survives eviction of its request history. The helper saves live launch records alongside the replay journal so a restart can recover launches whose history was evicted. An activation joins a live unwindowed launch, including a process still alive after its window wait expired.
-- The 1.2 laptop home can open an app after four other view histories record protected replies. Refusals and unjoined fallback launches retain their retry protection.
+- Recheck 1 moved executable checks, processes, scopes and window tracking into the helper's per-app launch state. The helper saves live launches alongside the replay journal and recovers them across restart.
+- Step A gives the desktop and each admitted view name separate launch records and activation receipts. View hello admits up to eight names. Package 53a's rewritten test checks that all five view names retain their replies across reconnect and restart.
+- Step B lets a live launch answer for its origin's request ID after the reply is gone.
+- Step C checks the live launch table before spawning and caps new starts at 32 live launches across views and 256 for the desktop. The cap uses the existing `journal_full` reply.
+- Step D starts a tray-resident app again after its last window closes. A second bring-back joins the new start while it waits for a window.
 
 ## Verified
+
+### Third fix (analysis steps A through D)
+
+Each command used `python3 reviews/333-open-apps/headless.py <filename>` with its own home, runtime, state directory, headless labwc compositor and D-Bus session.
+
+| Step | Filename | Output |
+|---|---|---|
+| A | `test_aresos_shell_open_apps.py` | `Ran 20 tests in 2.846s`, `OK` |
+| A | `test_aresos_shell_views.py` | `Ran 31 tests in 0.540s`, `OK` |
+| B | `test_aresos_shell_open_apps.py` | `Ran 21 tests in 3.072s`, `OK` |
+| C | `test_aresos_shell_views.py` | `Ran 32 tests in 0.868s`, `OK` |
+| D | `test_aresos_shell_open_apps.py` | `Ran 22 tests in 3.092s`, `OK` |
+
+| Invariant | Passing test |
+|---|---|
+| I1 | `test_a_resent_deliberate_open_never_starts_a_second_instance` |
+| I2, I3, I6 | `test_rotating_view_names_never_pass_the_launch_cap_or_grow_the_saved_state` |
+| I3, I7 | `test_a_view_name_in_use_never_gives_way_and_a_ninth_name_is_busy` |
+| I4 | `test_no_other_clients_replies_can_refuse_bringing_back_a_visible_window` |
+| I5 | `test_a_full_launch_table_never_refuses_a_visible_window` |
+| I6 | `test_view_cannot_fill_desktop_journal` |
+| I8 | `test_a_tray_resident_app_is_started_again_not_answered_closed` |
+
+The laptop-home negotiation test checks that the 1.3 helper's reply carries minor 2. The launch-cap test checks the 1.2 error code `journal_full` and exact message `too many launches in the last few minutes; try again shortly`.
+
+The final ten-module rerun passed all 287 tests.
+
+| Filename | Output |
+|---|---|
+| `test_aresos_shell_open_apps.py` | `Ran 22 tests in 3.036s`, `OK` |
+| `test_aresos_shell_views.py` | `Ran 32 tests in 0.829s`, `OK` |
+| `test_aresos_shell.py` | `Ran 75 tests in 17.695s`, `OK` |
+| `test_aresos_shell_followups.py` | `Ran 11 tests in 0.308s`, `OK` |
+| `test_aresos_shell_protocol.py` | `Ran 21 tests in 0.597s`, `OK` |
+| `test_aresos_shell_review_fixes.py` | `Ran 31 tests in 0.306s`, `OK` |
+| `test_aresos_shell_review_fixes_2.py` | `Ran 16 tests in 2.708s`, `OK` |
+| `test_aresos_shell_review_fixes_3.py` | `Ran 12 tests in 0.170s`, `OK` |
+| `test_aresos_shell_search.py` | `Ran 34 tests in 0.304s`, `OK` |
+| `test_aresos_shell_windows.py` | `Ran 33 tests in 9.011s`, `OK` |
+
+`test_aresos_shell.py` printed the existing unclosed-socket `ResourceWarning` messages from its fixtures. `git diff --check` passed. The worktree's `.work/` had zero files over 500 MB.
+
+`gh workflow run 'OS image' --ref pkg/333-open-apps -f checks_only=true` dispatched the hosted checks on `a38859b5`. `gh run watch 45063694139 --exit-status --interval 60` exited 0. The regression job printed `Ran 2514 tests in 1812.286s` and `OK (skipped=24)`. The system manager check reported 434 unit files and 421 unit names. The ways-back job passed its source-change check and skipped the full model. [Hosted OS checks](https://github.com/Ares-Empire/AresOS/actions/runs/45063694139)
 
 ### Recheck 1 fix
 
@@ -90,11 +135,14 @@ After both passes, `git checkout -- reviews/` restored 66 tracked screenshots an
 ## JUDGMENT-CALL
 
 - The marks use a two-GUI-pixel strip at the foot of the vanilla hotbar. Open and hidden marks are eight pixels wide. Active is fourteen pixels wide, and hidden is dimmer than open. Full-slot tint and badges would cover parts of the pinned icons. The width and brightness can be changed in `HotbarAppMarks` without altering the protocol or the saved world.
-- The four ordinary view histories can rotate while protected replies stay available in the same atomic journal. Keeping whole histories would spend more space on replies outside the protection window. Dropping protected replies would allow a retry to spawn. The aggregate quota for new protected view requests is 160, enough for four full histories and a fifth view's quota. Changing that bound later is a constant change with no wire update. The desktop and ordinary view opens keep their own quotas.
+- The lead approved eight view names with replay tables. A ninth name can take the place of one that has been disconnected for ten minutes. The five-name eviction rule would forget recent replies. The table count bounds the replay state, and changing it later is a constant change.
+- The lead approved a two-minute horizon for 64 activation receipts per client and a ten-minute horizon for launch records. A ten-minute receipt horizon would need a larger table to admit the same rate of bring-backs. Two minutes covers the mod's 45-second retry window. Changing these limits later is a constant change.
+- The lead approved 32 live launches across all view names and 256 for the desktop. Four separate quotas of 32 would permit 128 view-started apps. Updating a live limit later is a constant change with the same wire reply.
 
 ## PLAN-GAP
 
 - The examples in HOME-OUTSIDE section 5 use `chrome`. The shipped catalogue names the app `browser`, with `/chrome` as a short name. The new fixtures use `browser`.
+- The live caps govern new spawns. Restart reconciliation can recover more than 32 view-started launches from a pre-fix journal. Those launches count toward the cap while they remain live. The loader considers up to 288 entries from the old `active_launches` list alongside recoverable replay records. The restart test covers a journal written at the new cap.
 
 ## Known limits
 
@@ -103,7 +151,15 @@ After both passes, `git checkout -- reviews/` restored 66 tracked screenshots an
 - The free-pointer shortcut requires a visible slot and a free pointer. Minimizing the foreground app can return input to the world. The short name still works after capture.
 - Right click sends the usual launch command. A new window depends on the app. The reviewed Chrome command has no explicit new-window flag.
 - The helper journals and starts the origin of a pending-check join before it saves the joining request ID. A restart between these writes can lose the joining ID. The retry can join a surviving launch, restore an existing window, or start a fresh launch if both have gone.
-- After 160 protected view requests accumulate, a new view activation can receive `journal_full` until enough protected replies age out. The ordinary `open_app` path stays available within each view's 32-entry quota. The helper still accepts four simultaneous named view connections.
+- A ninth view name gets `busy` until a name has been disconnected for ten minutes. AresOS has one view program today. Names without records are held in memory for the lifetime of the helper.
+- All views share 32 live launches. While that limit is in use, view requests to start a process are refused. The desktop has its own allowance, and a visible window can still be brought back.
+- A client that fills its 64 activation receipts gets `journal_full` until a settled receipt is two minutes old. Each client has its own receipt limit.
+- A settled receipt is eligible for removal after two minutes. A resend after removal is a new request. The mod resends within 45 seconds, and laptop home never resends an open.
+- A holder of the shared view token can take a view's name, replace its connection and share its tables. A separate token per view would require a later supervisor change.
+- `journal_full` says “too many launches in the last few minutes” when the live launch cap is reached too.
+- When a launch outlives its saved reply, that request stops getting `app_state` events. A resend of the origin ID returns the launch's current state.
+- The desktop can start up to 256 live launches. A live launch counts even after its reply expires.
+- A tray-resident app that ignores a second start can leave the launch waiting for a window. The helper reports `no_window` after 30 seconds.
 
 ## Open questions
 
