@@ -118,5 +118,3 @@ swap or the OOM killer, and stop the VM when done. The VM never mounts his home 
    acceptance tests. Say which step gives value first.
 6. **Owner decides**, each with your advice.
 7. **Known limits.**
-</content>
-</invoke>
