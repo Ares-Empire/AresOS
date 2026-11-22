@@ -2,8 +2,8 @@
 
 A stand-in plays deskflow-core: it opens the core's IPC socket in the TMPDIR it is given, answers a hello the way
 Deskflow 1.27 does (its own version on a mismatch, then the messages it queued), reports peers' fingerprints as
-the real core does for every TLS peer, and writes down what the running server trusts. A stand-in dialog answers
-for the owner. The real openssl makes the certificate. Nothing outside a temporary folder is touched.
+the real core does for every TLS peer, and writes down what the running server trusts. Qt Test answers the real
+offscreen pairing prompt. The real openssl makes the certificate.
 """
 import json
 import os
@@ -14,6 +14,10 @@ import stat
 import tempfile
 import unittest
 from unittest.mock import patch
+
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtTest import QTest
+from PySide6.QtWidgets import QApplication, QMessageBox
 
 CONFIG = Path(__file__).resolve().parents[1] / 'config'
 LAUNCHER = CONFIG / 'usr/libexec/aresos-deskflow'
@@ -66,17 +70,6 @@ report['trust_at_end'] = trusted.read_text() if trusted.exists() else None
 Path(os.environ['STANDIN_REPORT']).write_text(json.dumps(report))
 '''
 
-DIALOG = r'''#!/usr/bin/python3 -I
-import json, os, sys
-from pathlib import Path
-plan = json.loads(Path(os.environ['STANDIN_PLAN']).read_text())
-text = sys.argv[sys.argv.index('--yesno') + 1]
-with open(os.environ['STANDIN_ASKED'], 'a') as log:
-    log.write(json.dumps(sys.argv[1:]) + '\n')
-sys.exit(0 if any(line in text for line in plan['accept']) else 1)
-'''
-
-
 class PairingTest(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory()
@@ -88,31 +81,45 @@ class PairingTest(unittest.TestCase):
         self.source.mkdir(parents=True)
         # Whatever the user's settings say, the launch makes TLS and the peer check effective.
         (self.source / 'Deskflow.conf').write_text('[security]\ntlsEnabled=false\ncheckPeerFingerprints=false\n')
-        self.core, self.dialog = self.root / 'deskflow-core', self.root / 'kdialog'
-        for path, text in ((self.core, CORE), (self.dialog, DIALOG)):
-            path.write_text(text)
-            path.chmod(0o755)
-        self.plan, self.report, self.asked = self.root / 'plan.json', self.root / 'report.json', self.root / 'asked'
+        self.core = self.root / 'deskflow-core'
+        self.core.write_text(CORE)
+        self.core.chmod(0o755)
+        self.plan, self.report = self.root / 'plan.json', self.root / 'report.json'
+        self.asked = []
         self.launcher = runpy.run_path(str(LAUNCHER))
         self.enterContext(patch.dict(os.environ, {
             'XDG_CONFIG_HOME': str(self.root / 'config'), 'XDG_RUNTIME_DIR': str(self.runtime),
-            'STANDIN_PLAN': str(self.plan), 'STANDIN_REPORT': str(self.report), 'STANDIN_ASKED': str(self.asked),
-            'DISPLAY': ':9'}))
+            'STANDIN_PLAN': str(self.plan), 'STANDIN_REPORT': str(self.report),
+            'XDG_CACHE_HOME': str(self.root / 'cache'), 'XDG_DATA_HOME': str(self.root / 'data'),
+            'QT_QPA_PLATFORM': 'offscreen', 'DISPLAY': ':9'}))
+        self.app = QApplication.instance() or QApplication([])
         previous = signal.getsignal(signal.SIGTERM)
         self.addCleanup(signal.signal, signal.SIGTERM, previous)
 
-    def launch(self, argv=(), peers=(), accept=(), wait_for_trust=False, accept_within=10.0):
-        first_lines = [self.launcher['columns'](peer).splitlines()[0] for peer in accept]
-        self.plan.write_text(json.dumps(dict(peers=list(peers), accept=first_lines, wait_for_trust=wait_for_trust,
+    def launch(self, argv=(), peers=(), accept=(), reject=(), wait_for_trust=False, accept_within=10.0):
+        self.plan.write_text(json.dumps(dict(peers=list(peers), wait_for_trust=wait_for_trust,
                                              accept_within=accept_within)))
-        code = self.launcher['main'](list(argv), core=str(self.core), dialog=str(self.dialog))
+
+        def prompt(peer, own):
+            def answer():
+                box = QApplication.activeModalWidget()
+                if not isinstance(box, QMessageBox):
+                    self.app.closeAllWindows()
+                    return
+                self.asked.append(box.text())
+                if peer in accept or peer in reject:
+                    label = 'It matches' if peer in accept else "It doesn't match"
+                    button = next(button for button in box.buttons() if button.text() == label)
+                    QTest.mouseClick(button, Qt.MouseButton.LeftButton)
+                else:
+                    QTest.keyClick(self.app.focusWidget() or box, Qt.Key.Key_Return)
+
+            QTimer.singleShot(0, answer)
+            return self.launcher['ask'](peer, own)
+
+        code = self.launcher['main'](list(argv), core=str(self.core), prompt=prompt)
         self.assertEqual(code, 0)
         return json.loads(self.report.read_text())
-
-    def questions(self):
-        if not self.asked.exists():
-            return []
-        return [json.loads(line) for line in self.asked.read_text().splitlines()]
 
     def saved(self):
         trusted = self.source / 'tls/trusted-clients'
@@ -126,9 +133,9 @@ class PairingTest(unittest.TestCase):
         self.assertEqual(report['trust_at_start'], None, 'the server trusted nobody before the owner answered')
         self.assertEqual(report['trust_at_end'], mac_line, "the running server trusts it too: the Mac's next try gets in")
         # Asked once: not again for the same Mac, and not at all for the stranger after the Mac was accepted.
-        questions = self.questions()
+        questions = self.asked
         self.assertEqual(len(questions), 1)
-        text = questions[0][questions[0].index('--yesno') + 1]
+        text = questions[0]
         self.assertIn(self.launcher['columns'](MAC), text)
         self.assertNotIn(self.launcher['columns'](STRANGER), text)
         # A profile that never ran Deskflow's window gets a server certificate, and the dialog shows its
@@ -154,10 +161,12 @@ class PairingTest(unittest.TestCase):
         self.assertTrue(report['client'])
 
     def test_nothing_is_trusted_unless_the_owner_confirms(self):
-        report = self.launch(peers=[MAC, STRANGER, MAC, 'not-a-fingerprint'], accept=[])
+        # Default Enter rejects the first peer and explicitly clicking reject
+        # rejects the second. A retry of the first peer cannot get another prompt.
+        report = self.launch(peers=[MAC, STRANGER, MAC, 'not-a-fingerprint'], reject=[STRANGER])
         self.assertIsNone(self.saved())
         self.assertIsNone(report['trust_at_end'])
-        texts = [question[question.index('--yesno') + 1] for question in self.questions()]
+        texts = self.asked
         self.assertEqual(len(texts), 2, 'each peer asked about once')
         self.assertIn(self.launcher['columns'](MAC), texts[0])
         self.assertIn(self.launcher['columns'](STRANGER), texts[1])
@@ -178,7 +187,7 @@ class PairingTest(unittest.TestCase):
         report = self.launch(peers=[MAC], accept=[MAC], accept_within=1.0)
         self.assertFalse(report['client'], 'no pairing channel is opened')
         self.assertEqual(report['trust_at_start'], OLD + '\n')
-        self.assertEqual(self.questions(), [])
+        self.assertEqual(self.asked, [])
         self.assertEqual(self.saved(), OLD + '\n')
 
     def test_a_trust_list_with_two_entries_is_refused_and_points_to_enroll(self):
@@ -193,7 +202,7 @@ class PairingTest(unittest.TestCase):
         self.core.write_text('#!/usr/bin/python3 -I\nimport os, time\n'
                              f'open({str(pid_file)!r}, "w").write(str(os.getpid()))\ntime.sleep(60)\n')
         with self.assertRaisesRegex(OSError, 'pairing channel'):
-            self.launcher['main']([], core=str(self.core), dialog=str(self.dialog), pairing_within=1.0)
+            self.launcher['main']([], core=str(self.core), pairing_within=1.0)
         with self.assertRaises(ProcessLookupError):
             os.kill(int(pid_file.read_text()), 0)
         self.assertIsNone(self.saved())
