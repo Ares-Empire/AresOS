@@ -1,6 +1,6 @@
 # Package 23: every image build builds the AresOS mod jar from this exact source
 # revision. The source stage fetches that commit in the pinned base (which has
-# curl) and keeps only mod/ (and control/, package 18c); the mod stage runs only Gradle on it, in the
+# curl) and keeps the mod, Control and input portal build sources; the mod stage runs only Gradle on it, in the
 # digest-pinned JDK (minecraft/desktop.lock.json, "builder"; it has no curl or
 # wget). The configure step below accepts the jar only with its pinned SHA-256,
 # unless os/ci/check-build.sh says this build is thrown away (ARESOS_BUILD_KIND).
@@ -15,8 +15,8 @@ COPY build.sh /tmp/aresos-mod/build.sh
 COPY --from=source /source/mod /tmp/aresos-mod/mod
 RUN bash /tmp/aresos-mod/build.sh mod /tmp/aresos-mod/mod /out "$ARESOS_SOURCE_REVISION"
 
-# Package 311: Fedora's labwc source package with one upstream fix, so a pointer lock holds on a layer-shell
-# surface. Every input is exact (labwc/labwc.lock.json); /out holds the RPM and nothing else. The build runs on a
+# Packages 311 and 321: labwc holds a pointer lock on a layer-shell surface and gates bindings during capture.
+# Every input is exact (labwc/labwc.lock.json); /out holds the RPM and nothing else. The build runs on a
 # pinned fedora:44 because the base's Terra mesa has no matching mesa-libgbm-devel. That image has no Python, so the
 # pinned base downloads and checks the inputs first, and refuses a labwc stage on any Fedora but the lock's (311c).
 FROM ghcr.io/ublue-os/bazzite-nvidia-open@sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151 AS labwc-inputs
@@ -31,26 +31,36 @@ COPY --from=labwc-inputs /inputs/ /tmp/aresos-labwc-inputs/
 RUN bash /tmp/aresos-labwc/install-inputs.sh /tmp/aresos-labwc-inputs && \
     python3 -I /tmp/aresos-labwc/stage.py build /tmp/aresos-labwc /tmp/aresos-labwc-inputs /out
 
+FROM docker.io/library/rust@sha256:f6c4a35d21dbb3c89d7a8d056c193e94fc09037f2b58dd858b09c39a47dd02d7 AS input-portal
+COPY --from=source /source/os/input-portal/ /src/
+RUN bash /src/build.sh /src /out
+
 FROM ghcr.io/ublue-os/bazzite-nvidia-open@sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151 AS packages
 COPY . /tmp/aresos/
 COPY --from=labwc /out/ /tmp/aresos-labwc-rpm/
 # Keep Fedora's labwc and its replacement in one RUN. A metadata-only layer diff can
 # miss the swap when both binaries have the same size, mode and reproducible mtime.
 RUN test ! -e /tmp/aresos/ci && bash /tmp/aresos/build.sh packages && \
+    test ! -e /tmp/aresos/input-portal && \
     python3 -I /tmp/aresos/labwc/stage.py install /tmp/aresos-labwc-rpm /tmp/aresos/labwc && \
     rm -rf /tmp/aresos-labwc-rpm
 
 FROM packages AS aresos
 ARG ARESOS_SOURCE_REVISION=unrecorded
-# release: the mod jar must be its pin. Only os/ci/check-build.sh passes throwaway.
+# Release images require the mod jar and input portal pins. Only check-build.sh passes throwaway.
 ARG ARESOS_BUILD_KIND=release
 LABEL org.opencontainers.image.source="https://github.com/Ares-Empire/AresOS" \
       org.opencontainers.image.revision="${ARESOS_SOURCE_REVISION}"
 COPY --from=mod /out/aresos.jar /tmp/aresos/minecraft/aresos.jar
+COPY --from=input-portal /out/aresos-input-portal /usr/libexec/aresos-input-portal
+COPY --from=input-portal /out/data/org.freedesktop.impl.portal.desktop.aresos-input.service /usr/share/dbus-1/services/
+COPY --from=input-portal /out/LICENSE /usr/share/licenses/aresos-input-portal/LICENSE
 # Package 18c: the Control tools from the same commit (the source stage keeps control/).
 COPY --from=source /source/control /tmp/aresos/control
 RUN cp -a /tmp/aresos/config/. / && \
     cp -a /tmp/aresos/policy /usr/share/aresos/ && \
     install -m 0755 /tmp/aresos/tests/audit.py /usr/libexec/aresos-audit && \
+    (test "$ARESOS_BUILD_KIND" = throwaway || sha256sum -c /tmp/aresos/manifest/input-portal.sha256) && \
+    sha256sum /usr/libexec/aresos-input-portal > /usr/share/aresos/manifest/input-portal.sha256 && \
     bash /tmp/aresos/build.sh control && \
     bash /tmp/aresos/build.sh configure && bootc container lint
