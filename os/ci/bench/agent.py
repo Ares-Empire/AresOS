@@ -67,20 +67,49 @@ def labwc_pid(uid):
     return output.split()[0] if code == 0 else None
 
 
+def session_status(user):
+    # Resolve the user's local session the same way as the existing VM policy
+    # test, then require an active greetd session containing the compositor.
+    code, sessions = captured(['loginctl', 'list-sessions', '--no-legend'])
+    pid = labwc_pid(user.pw_uid)
+    cgroup_paths = []
+    if pid:
+        try:
+            cgroup_paths = pathlib.Path(f'/proc/{pid}/cgroup').read_text().splitlines()
+        except FileNotFoundError:
+            pass
+    facts = dict(greetd_running=captured(['systemctl', 'is-active', '--quiet', 'greetd.service'])[0] == 0,
+                 initial_login_attempted=pathlib.Path('/run/greetd.run').exists(),
+                 compositor_running=bool(pid), seat_session=False, active_greetd_session=False,
+                 compositor_in_session=False)
+    if code == 0:
+        for line in sessions.splitlines():
+            columns = line.split()
+            if len(columns) < 4 or columns[2:4] != [user.pw_name, 'seat0']:
+                continue
+            facts['seat_session'] = True
+            code, output = captured(['loginctl', 'show-session', columns[0], '-p', 'Service', '-p', 'Active',
+                                     '-p', 'Remote', '-p', 'Scope'])
+            fields = dict(item.split('=', 1) for item in output.splitlines() if '=' in item)
+            if code != 0 or any(fields.get(name) != value for name, value in (
+                    ('Service', 'greetd'), ('Active', 'yes'), ('Remote', 'no'))):
+                continue
+            facts['active_greetd_session'] = True
+            scope = fields.get('Scope')
+            if scope and any(scope in row.split('/') for row in cgroup_paths):
+                facts['compositor_in_session'] = True
+                break
+    return facts
+
+
 def status():
     user, _ = desktop_user()
-    code, seat = captured(['loginctl', 'show-seat', 'seat0', '--property=ActiveSession', '--value'])
-    session = seat.strip() if code == 0 else ''
-    active = False
-    if session:
-        code, values = captured(['loginctl', 'show-session', session, '-p', 'Name', '-p', 'Service',
-                                 '-p', 'Active', '-p', 'VTNr', '-p', 'Remote'])
-        active = code == 0 and dict(line.split('=', 1) for line in values.splitlines()) == {
-            'Name': user.pw_name, 'Service': 'greetd', 'Active': 'yes', 'VTNr': '1', 'Remote': 'no'}
+    facts = session_status(user)
     manifest = pathlib.Path('/usr/share/aresos/manifest/aresos-mod.json')
     return dict(boot_id=pathlib.Path('/proc/sys/kernel/random/boot_id').read_text().strip(),
                 revision=json.loads(manifest.read_bytes())['source_revision'],
-                active_session=bool(active and labwc_pid(user.pw_uid)), no_nic=os.listdir('/sys/class/net') == ['lo'])
+                active_session=facts['compositor_in_session'], session=facts,
+                no_nic=os.listdir('/sys/class/net') == ['lo'])
 
 
 def probe_helper(runtime):

@@ -20,6 +20,8 @@ from script import dispatch, SHA
 WORK = pathlib.Path('vm-work').resolve()
 EVIDENCE = pathlib.Path('evidence/bench').resolve()
 BOOT_ID = re.compile(r'[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}')
+SESSION_FACTS = {'greetd_running', 'initial_login_attempted', 'compositor_running', 'seat_session',
+                 'active_greetd_session', 'compositor_in_session'}
 
 
 class Failed(Exception):
@@ -96,8 +98,12 @@ class Guest:
             raise Failed('guest has a network interface besides loopback')
         if type(status.get('active_session')) is not bool:
             raise ValueError('Invalid session status')
+        session = status.get('session')
+        if (not isinstance(session, dict) or session.keys() != SESSION_FACTS
+                or not all(type(value) is bool for value in session.values())):
+            raise ValueError('Invalid session facts')
         record['boots'][-1].update(boot_id=boot, revision=revision, no_nic=True,
-                                  active_session=status['active_session'])
+                                  active_session=status['active_session'], session=session)
         return record['boots'][-1]
 
     def screenshot(self, path):
@@ -150,6 +156,13 @@ def run_step(guest, step, number, record):
             if passed:
                 return dict(check=check)
             if time.monotonic() >= deadline:
+                if check == 'active_session':
+                    try:
+                        reply = guest.call('journal')
+                        (EVIDENCE / f'{number:03d}.journal.txt').write_text(reply['output'], encoding='utf-8')
+                        guest.screenshot(EVIDENCE / f'{number:03d}.png')
+                    except Exception:
+                        pass  # Log the original failed assertion even when diagnostics are unavailable.
                 raise Failed(f'{check} did not pass')
             time.sleep(1)
     if kind == 'shot':
