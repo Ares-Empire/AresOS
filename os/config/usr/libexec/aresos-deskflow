@@ -35,6 +35,8 @@ FINGERPRINT = re.compile(r'v2:sha256:[0-9a-fA-F]{64}')
 PEER = re.compile(r'peerFingerprint=([0-9A-F]{64})')
 # The core's local IPC server (Deskflow's kCoreIpcName): a socket of this name in the core's TMPDIR.
 IPC_NAME = 'deskflow-core'
+# Deskflow 1.27 Server::switchComputer logs cursor coordinates even at its default Info level.
+CROSSING = re.compile(rb'(\bswitch from "[^"\r\n]*" to "[^"\r\n]*") at -?\d+,-?\d+')
 
 
 def trust_line(hex_digest):
@@ -134,6 +136,8 @@ def prepare_profile(source, target, enroll=False):
         (target / layout.name).write_text(f'section: screens\n    {name}:\nend\n')
     profile.setValue('security/tlsEnabled', True)
     profile.setValue('security/checkPeerFingerprints', True)
+    # All logging from the guarded core goes through the same coordinate filter.
+    profile.setValue('log/toFile', False)
     profile.sync()
     if profile.status() != QSettings.Status.NoError:
         raise OSError('Could not write the protected Deskflow settings.')
@@ -257,6 +261,16 @@ def stop_core(process):
         process.kill()
 
 
+def relay_core_output(stream, output):
+    for line in stream:
+        try:
+            output.write(CROSSING.sub(rb'\1', line))
+            output.flush()
+        except BrokenPipeError:
+            # The launching terminal can go away while the core still has a capture.
+            continue
+
+
 def main(argv=None, core=CORE, prompt=None, openssl=OPENSSL, pairing_within=10.0, sharing_on=None):
     argv = sys.argv[1:] if argv is None else argv
     if argv not in ([], ['--enroll']):
@@ -291,11 +305,14 @@ def serve(argv, core, prompt, openssl, pairing_within, sharing_on, runtime_dir):
         env = dict(os.environ, XDG_CONFIG_HOME=runtime, QT_QPA_PLATFORM='wayland', XDG_SESSION_TYPE='wayland',
                    TMPDIR=runtime)
         env.pop('DISPLAY', None)
-        with subprocess.Popen([core, 'server'], env=env) as process:
+        with subprocess.Popen([core, 'server'], env=env, stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT) as process:
             signal.signal(signal.SIGTERM, lambda *_: process.terminate())
             finished = threading.Event()
             watcher = threading.Thread(target=watch_sharing, args=(process, finished, sharing_on, on))
+            relay = threading.Thread(target=relay_core_output, args=(process.stdout, sys.stdout.buffer))
             watcher.start()
+            relay.start()
             try:
                 # A manual launch while Off can ask the portal and show the sharing switch.
                 if pairing and on:
@@ -318,6 +335,7 @@ def serve(argv, core, prompt, openssl, pairing_within, sharing_on, runtime_dir):
             finally:
                 finished.set()
                 watcher.join()
+                relay.join()
 
 
 if __name__ == '__main__':

@@ -7,6 +7,7 @@ offscreen pairing prompt. The real openssl makes the certificate.
 """
 import json
 import fcntl
+import io
 import os
 from pathlib import Path
 import runpy
@@ -225,6 +226,14 @@ class PairingTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'already running'):
                 self.launcher['main'](['--enroll'], core=str(self.core), sharing_on=lambda: True)
         self.assertFalse(self.report.exists())
+
+    def test_crossing_coordinates_do_not_leave_the_guard(self):
+        source = io.BytesIO(b'[2026-11-22T12:00:00] INFO: switch from "laptop" to "mac" at -18,479\n'
+                            b'INFO: accepted secure socket\n')
+        output = io.BytesIO()
+        self.launcher['relay_core_output'](source, output)
+        self.assertEqual(output.getvalue(), b'[2026-11-22T12:00:00] INFO: switch from "laptop" to "mac"\n'
+                                           b'INFO: accepted secure socket\n')
 
 if __name__ == '__main__':
     unittest.main()
