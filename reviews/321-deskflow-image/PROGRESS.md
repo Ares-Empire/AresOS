@@ -415,10 +415,10 @@ During a capture Ctrl+Alt+Escape is forwarded like every key; the way out is lab
   returned OK for signature, header and payload. `rpm -qp` gave `deskflow-0:1.27.0-1.fc44.x86_64`, SHA-256 was
   `21a404d8bd0488fdc7ec635ed26447d623b132dc4ae3d12e5f944991ab76484b`, and `readelf --dyn-syms --wide`
   showed both undefined imports `xdp_session_selection_read` and `xdp_session_selection_write`.
-- The **DRM output gate is unverified**. The hosted Deskflow run stopped during the shared Cosign install.
+- The first hosted attempt left the **DRM output gate unverified**. It stopped during the shared Cosign install.
   Its bootstrap download of Cosign v2.5.2 timed out with curl exit 28 before the image-build step. The
-  queued standard build was cancelled under the stop rule for failures outside this package. Step 3 has
-  no DRM gate result to proceed on.
+  queued standard build was cancelled under the stop rule for failures outside this package. Run
+  45001307065 later passed the gate. See CI dispatches and the step 2 review fixes.
 
 ### Verified locally
 
@@ -457,11 +457,34 @@ During a capture Ctrl+Alt+Escape is forwarded like every key; the way out is lab
 - The physical monitor, lid, suspend and VT behavior need the owner's laptop rehearsal. If the VM cannot
   verify a second connector, the brief requires the physical hotplug rehearsal before publication.
 
+## Step 2 review fixes
+
+See [REVIEW-2.md](REVIEW-2.md) for the lead's record.
+
+| Finding | Fix | Commit | Test |
+|---|---|---|---|
+| 1. DRM hotplug could hide a labwc failure | Poll DRM status and labwc's output list separately. Fail (c) on an unreflected DRM transition. If neither SetUIInfo nor PCI drives the connector, record the laptop rehearsal with the owner's direct OK as a publication requirement. | `db4d0b14` | `test_deskflow_vm.py` covers mismatches in both directions and the unverified branch. The hosted regular cases exercise the actual connector. |
+| 2. A client could disappear during the run | Exit the listener with status 2 on the output manager's `finished` event. Check the listener and the original backend's unique D-Bus owner through the compositor check, including both VT transitions and hotplug polling. | `db4d0b14` | `test_deskflow_vm.py` checks client loss on both VT transitions. The rebuilt input-portal harness ran twice. |
+| 3. Custom-mode evidence could be incomplete | Verify and record the initial set, off, and re-enable. Identify the operation that hits `head_send_state`. Report a failed readiness or unverified operation separately in the log and `result.json`. Custom cases remain outside the pass rule. | `db4d0b14` | `test_deskflow_vm.py` covers ignored operations, the expected abort, and the separate report for incomplete evidence. |
+| 4. A shipped layer could hide Rust material | Scan every added layer for Rust source and artifact names and `target/` directories at any destination. | `f4c52a3c` | `test_input_portal_layers.py` includes a relocated `main.rs` hidden by a later opaque directory, plus each artifact kind. |
+
+- `python3 -m unittest discover -s os/tests -p <file>` ran separately for `test_deskflow_vm.py` (5 passed),
+  `test_input_portal_layers.py` (3 passed), and `test_shell_assertions.py` (9 passed). No `__pycache__`
+  directory was created under `os/config/`.
+- `os/input-portal/harness/run.sh image` rebuilt the listener on the checked labwc. Two sequential runs of
+  `os/input-portal/harness/run.sh run .work/step2/backend <evidence-dir>` each reported
+  `SUMMARY 129 passed, 0 failed, exit 0`. Tests 1 through 10 passed 18, 8, 9, 8, 3, 8, 15, 16, 5, and 26
+  checks respectively, plus 13 setup, isolation and review checks. The backend's SHA-256 matched the manifest.
+- A private Wayland fixture in the rebuilt rootless harness container sent `finished` on bind.
+  The listener logged that the compositor ended `zwlr_output_manager_v1` and exited 2.
+- Replaying the three regular cases' artifacts from run 45001307065 against the updated host VM
+  driver passed for all three states. `mod/dev/build.sh` finished with `BUILD SUCCESSFUL` and all 106
+  required server game tests passed.
+
 ## Left, in order
 
-1. Once the shared Cosign bootstrap is available, run the hosted `deskflow` and `build` modes at the
-   final step 2 head, record the regular, hotplug, VT and custom-mode outcomes, and record the DRM gate
-   decision. Confirm the installed backend hash in both hosted builds and verify the scan of the image layers.
+1. The standard `check_build=build` result is still outstanding after dispatch 4 was cancelled. Dispatch 6
+   verified the installed backend hash, the shipped layers and the DRM output gate in `deskflow` mode.
 2. When the gate permits, step 3 installs Deskflow, proves its ID and changes its scope name, allow-list and
    routing, then adds the release key, switch, helper, polkit actions, window, desktop entry and image checks.
    The helper writes `on\n` atomically, root-owned and mode 0644, in root-owned `/etc/aresos/input-portal` (0755).
@@ -518,6 +541,8 @@ The lead sends this list when step 3 ends and at the final head.
 | `os/tests/test_aresos_desktop.py` | `663009fb` | Require the locked Rust stage in the image wiring test. |
 | `os/ci/image-checks.sh` | `2b67a00c` | Fail explicitly if the runtime linker reports missing libraries. |
 | `os/ci/deskflow/deskflow_vm.py` | `e4668391` | Verify the mode's advertised refresh rate and restore the virtual connector before falling back to PCI. |
+| `os/ci/deskflow/{actions.py,deskflow_vm.py}`, `os/tests/test_deskflow_vm.py` | `db4d0b14` | Check DRM transitions, output-client liveness, and each custom-mode operation. |
+| `os/ci/deskflow/check_layers.py`, `os/tests/test_input_portal_layers.py` | `f4c52a3c` | Reject relocated Rust material in every shipped layer. |
 
 Not touched in step 1c: `os/Containerfile` (the stage copies the whole `labwc/` folder, so the second patch needs no
 new line; its comment above the stage still says "one upstream fix" and should name both patches when the file is
@@ -570,6 +595,18 @@ None in steps 1 and 1b.
 | 3 of 8 | 2 | [45000469287](https://github.com/Ares-Empire/AresOS/actions/runs/45000469287), on `bd5082dd` (2026-11-22 08:56 CET) | `check_build=deskflow`. **Failed before image build**. Pinned tools installed, then the common `sigstore/cosign-installer` timed out downloading its v2.5.2 bootstrap binary (curl exit 28). `gh run watch 45000469287 --exit-status --interval 60` returned 1. |
 | 4 of 8 | 2 | [45000755789](https://github.com/Ares-Empire/AresOS/actions/runs/45000755789), on `a04a693c` (2026-11-22 09:00 CET) | `check_build=build`. **Cancelled before any workflow steps** after run 3's external failure. `gh run watch 45000755789 --exit-status --interval 60` returned 1 and GitHub reports `cancelled`. |
 | 5 of 8 | 2 | [45001307065](https://github.com/Ares-Empire/AresOS/actions/runs/45001307065), on `0c948087` (dispatched by the lead 2026-11-22 09:07 CET) | `check_build=deskflow` on step 2's final head. **Green** (2026-11-22 09:31): image build and checks, then the DRM output gate. Regular runs (a) to (d) **passed in all three states** (`regular-none`, `regular-listener`, `regular-backend`), the second screen's hotplug by `SetUIInfo`. Custom mode (e): `custom-none` passed; `custom-listener` and `custom-backend` hit the compositor assertion (`head_send_state`), as 316's analysis expected. **The gate passes** (brief item 2's rule): step 3 may start, and (e) is the known limit "no custom mode while the backend runs". |
+| 6 of 8 | 2 review fixes | [45004171828](https://github.com/Ares-Empire/AresOS/actions/runs/45004171828), verified at `f4c52a3ca122ee75798c32f9505920c0c03d7d60` (2026-11-22 09:43 CET) | `check_build=deskflow`. **Passed** (10:10 CET). `gh run watch 45004171828 --exit-status --interval 60` returned 0. The image checks passed, the layer scan passed on 9 added layers, and the installed backend SHA-256 matched the pin. The DRM gate passed with the six case results below. |
+
+| Run 45004171828 VM case | Result |
+|---|---|
+| `regular-none` | Passed (a) to (d), with three unplug and replug cycles via SetUIInfo and both VT transitions. |
+| `regular-listener` | Passed (a) to (d), with SetUIInfo hotplug and the original listener still running. |
+| `regular-backend` | Passed (a) to (d), with SetUIInfo hotplug, matching geometry and the original backend keeping its bus name. |
+| `custom-none` | Passed initial custom mode, off, and re-enable. |
+| `custom-listener` | Initial custom mode and off passed. Re-enable hit the expected `head_send_state` assertion. |
+| `custom-backend` | Initial custom mode and off passed. Re-enable hit the expected `head_send_state` assertion. |
+
+The evidence's `deskflow/result.json` recorded `gate: passed` and an empty `custom_incomplete` result.
 
 ## Podman, after step 2
 
@@ -578,6 +615,10 @@ Rootless throughout, with one container at a time. Kept the merged harness image
 (`2db7970a522d`) and the locally verified Rust-stage image (`9163afe8d485`) by name or ID with
 `podman rmi --no-prune`. Reused the existing `localhost/aresos-labwc:321c` with both pinned binaries.
 No file under `.work/` is larger than 500 MB.
+
+The review fixes built `localhost/aresos-input-portal-harness:321-step2-fix1` (`32c68fe827e9`),
+used it for both harness runs and the `finished` fixture, and removed only that image with
+`podman rmi --no-prune`. All three runs used throwaway rootless containers.
 
 ## Podman, after step 1c
 
