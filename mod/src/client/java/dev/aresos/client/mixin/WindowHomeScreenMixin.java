@@ -7,7 +7,6 @@ import dev.aresos.client.WorldCapture;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
@@ -30,9 +29,10 @@ public abstract class WindowHomeScreenMixin {
         if (HomeScreen.session()) ci.cancel();
     }
 
-    // Package 328a: GLFW's focus callback, inside its event handling (WorldCapture.focusChanged says why).
-    @ModifyVariable(method = "onFocus", at = @At("HEAD"), argsOnly = true)
-    private boolean aresos$focusChanged(boolean focused, long handle) {
-        return WorldCapture.focusChanged(handle, focused);
+    // Package 328a: GLFW's focus callback, inside its event handling. The release's own focus events stop here, so
+    // Minecraft's record of the focus holds only what the real events said (WorldCapture.ownFocusEvent says why).
+    @Inject(method = "onFocus", at = @At("HEAD"), cancellable = true)
+    private void aresos$ownFocusEvent(long handle, boolean focused, CallbackInfo ci) {
+        if (WorldCapture.ownFocusEvent(handle, focused)) ci.cancel();
     }
 }

@@ -17,11 +17,14 @@ import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.input.MouseButtonInfo;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWNativeX11;
 import org.lwjgl.system.APIUtil;
 import org.lwjgl.system.JNI;
+import org.lwjgl.system.MemoryStack;
+import org.lwjgl.system.MemoryUtil;
 
 import java.io.*;
 import java.lang.foreign.Arena;
@@ -38,6 +41,7 @@ import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -47,13 +51,15 @@ import java.util.Map;
  * rig's inert probe app over the window's centre and the rig's virtual pointer, and the probe must count nothing.
  */
 public final class WorldKeepsPointerClientGameTest implements FabricClientGameTest {
-    private static Runnable raceFocusOut;
+    // Client thread only: what runs once at a named point of a release (WorldCaptureReleaseTestMixin).
+    private static String seamName;
+    private static Runnable seamRun;
 
-    public static void beforeSyntheticFocusOut() {
-        if (raceFocusOut == null) return;
-        var race = raceFocusOut;
-        raceFocusOut = null;
-        race.run();
+    public static void seam(String name) {
+        if (seamRun == null || !name.equals(seamName)) return;
+        var run = seamRun;
+        seamRun = null;
+        run.run();
     }
 
     @Override public void runTest(ClientGameTestContext context) {
@@ -76,8 +82,17 @@ public final class WorldKeepsPointerClientGameTest implements FabricClientGameTe
                     world.getServer().runOnServer(server -> DesktopWorld.setEnabled(server, true));
                     context.waitFor(HomeScreen::active);
                     rules(context, helper);
-                    if (rig.enabled) nativeCapture(context, helper, shell, rig);
-                    else AresOs.LOGGER.info("328a: no --session, so the native capture checks did not run");
+                    if (rig.enabled) {
+                        nativeCapture(context, helper, shell, rig);
+                        rig.prepareWorldExit();
+                    } else AresOs.LOGGER.info("328a: no --session, so the native capture checks did not run");
+                }
+                if (rig.enabled) {
+                    context.waitFor(client -> client.gui.screen() instanceof TitleScreen && client.level == null);
+                    rig.clean("world exit");
+                    check(!Files.readString(Path.of("logs/latest.log")).contains("did not hand back"),
+                            "GLFW missed a put-back focus event");
+                    AresOs.LOGGER.info("328a: world exit released the session's vanilla capture on the title screen");
                 }
                 // Its listeners reach Minecraft, which only the client thread may do.
                 context.runOnClient(client -> shell.close());
@@ -86,6 +101,7 @@ public final class WorldKeepsPointerClientGameTest implements FabricClientGameTe
         } catch (IOException error) { throw new UncheckedIOException(error); }
         finally {
             context.runOnClient(client -> {
+                seamRun = null;
                 client.mouseHandler.releaseMouse();
                 HomeScreen.forTests(null, null);
                 AppsTestAccess.aresos$setShell(previousShell);
@@ -229,56 +245,53 @@ public final class WorldKeepsPointerClientGameTest implements FabricClientGameTe
         context.waitFor(WorldKeepsPointerClientGameTest::captured);
         check(rig.count("button_press") == presses + 1, "The click on the world reached the probe: " + rig.probe());
         rig.escDuringHandoff(false);
-        context.runOnClient(client -> X11.focus(client.getWindow().handle(), true));
-        rig.input("abs " + cx + " " + cy);
-        rig.input("abs " + (cx + 10) + " " + (cy + 10));
-        context.waitTicks(3);
-        check(rig.probe().contains("\"pointer_inside\": true"), "The released pointer does not reach the probe: "
-                + rig.probe() + " grabbed=" + context.computeOnClient(client -> client.mouseHandler.isMouseGrabbed())
-                + " mode=" + Integer.toHexString(context.computeOnClient(client ->
-                        GLFW.glfwGetInputMode(client.getWindow().handle(), GLFW.GLFW_CURSOR))));
-        // Closing the menu with the pointer on the probe: the safe fallback keeps the pointer free.
-        context.runOnClient(client -> client.gui.setScreen(null));
+        rig.restoreFocus();
+        rig.closeMenuOverProbe();
         context.waitTicks(3);
         check(!context.computeOnClient(client -> client.mouseHandler.isMouseGrabbed()),
                 "Closing the menu took the mouse with the pointer on the probe");
+        rig.clean("Escape before NORMAL");
 
         // Queue a real FocusIn just before the synthetic FocusOut. It must leave Minecraft ready for the next click.
         rig.captureAt(box[0] + 60, box[1] + 60);
         rig.escDuringHandoff(true);
         check(context.computeOnClient(client -> client.isWindowActive() && xFocused(client)),
                 "The synthetic FocusOut overwrote the real FocusIn");
-        rig.input("abs " + cx + " " + cy);
-        context.waitTicks(3);
-        context.runOnClient(client -> client.gui.setScreen(null));
+        rig.closeMenuOverProbe();
         check(context.computeOnClient(WorldKeepsPointerClientGameTest::released),
                 "Closing the menu over the probe captured the pointer");
         rig.captureAt(box[0] + 60, box[1] + 60);
         AresOs.LOGGER.info("328a: real Escape released after its GLFW callback and a racing FocusIn allowed recapture");
 
-        // SIGKILL the fake helper while the world stays focused and no screen opens to release the capture for it.
+        // The matrix starts with a fresh click on every cycle, including the first one.
+        context.runOnClient(client -> client.mouseHandler.releaseMouse());
+        context.waitFor(client -> released(client) && WorldCapture.settled());
+        rig.checkPosition(60, 60, "focused release restored the original pointer position");
+        rig.clean("focused release before the matrix");
+        rig.races();
+
+        rig.captureAt(box[0] + 60, box[1] + 60);
+        rig.leaveAtNormal("helper background");
+        helper.focus(false);
+        rig.clean("helper background");
+        // SIGKILL the fake helper while the world holds the mouse and has no screen to release it.
+        rig.captureAt(box[0] + 60, box[1] + 60);
         context.runOnClient(client -> {
             check(xFocused(client) && captured(client), "The game was not focused and captured before helper death");
             client.options.keyUp.setDown(true);
         });
+        rig.leaveAtNormal("helper death");
         helper.kill();
         context.waitFor(client -> shell.status().state() != ShellClient.State.CONNECTED && released(client));
+        rig.clean("helper death");
         context.runOnClient(client -> {
             check(!HomeScreen.active(client) && client.gui.screen() == null && xFocused(client),
                     "The connected-world gate, a menu or lost focus interfered with helper-loss cleanup");
             check(!client.options.keyUp.isDown(), "Helper death left walking held");
-            long handle = client.getWindow().handle();
-            X11.checkCursorShown(handle);
-            double[] x = new double[1], y = new double[1];
-            GLFW.glfwGetCursorPos(handle, x, y);
-            check(Math.abs(x[0] - 60) <= 2 && Math.abs(y[0] - 60) <= 2,
-                    "Helper death did not restore the pointer to its starting position: " + x[0] + ", " + y[0]);
         });
-        check(rig.command("bash", rig.rigFile("state.sh"), rig.root.toString()).contains("X pointer grab: free"),
-                "An X client still holds the pointer after helper death");
         rig.input("abs " + cx + " " + cy);
         rig.await(() -> rig.probe().contains("\"pointer_inside\": true"), "free pointer on the probe after helper death");
-        AresOs.LOGGER.info("328a: SIGKILL of the fake helper showed the cursor, restored its position and freed the X grab");
+        AresOs.LOGGER.info("328a: helper background and SIGKILL freed the cursor with X focus leaving before NORMAL");
     }
 
     private static boolean captured(Minecraft client) {
@@ -300,6 +313,10 @@ public final class WorldKeepsPointerClientGameTest implements FabricClientGameTe
     private static MouseTestAccess mouse(Minecraft client) { return (MouseTestAccess)(Object)client.mouseHandler; }
 
     private static void check(boolean ok, String message) { if (!ok) throw new AssertionError(message); }
+
+    private enum Start { FOCUSED, AWAY_QUEUED, AWAY_HANDLED }
+
+    private enum Focus { AWAY, ROOT, BACK }
 
     /** The shared fake helper in its own process, so SIGKILL exercises the client's real socket-loss path. */
     public static final class HelperProcess implements AutoCloseable {
@@ -356,13 +373,33 @@ public final class WorldKeepsPointerClientGameTest implements FabricClientGameTe
         private static final org.lwjgl.system.SharedLibrary XFIXES = APIUtil.apiCreateLibrary("libXfixes.so.3");
         private static int xError;
 
-        static void focus(long handle, boolean onGame) {
+        static long target(long handle, Focus focus) {
             long display = GLFWNativeX11.glfwGetX11Display();
-            long target = onGame ? GLFWNativeX11.glfwGetX11Window(handle)
-                    : JNI.invokePP(display, X11.getFunctionAddress("XDefaultRootWindow"));
+            return switch (focus) {
+                case AWAY -> 1L; // PointerRoot
+                case ROOT -> JNI.invokePP(display, X11.getFunctionAddress("XDefaultRootWindow"));
+                case BACK -> GLFWNativeX11.glfwGetX11Window(handle);
+            };
+        }
+
+        static void focus(long handle, Focus focus) {
+            long display = GLFWNativeX11.glfwGetX11Display();
+            long target = target(handle, focus);
             JNI.invokePPPI(display, target, 0 /* RevertToNone */, 0L /* CurrentTime */,
                     X11.getFunctionAddress("XSetInputFocus"));
             sync(display);
+            checkFocus(handle, focus, "after XSetInputFocus");
+        }
+
+        static void checkFocus(long handle, Focus expected, String where) {
+            try (var stack = MemoryStack.stackPush()) {
+                var actual = stack.callocLong(1);
+                var revert = stack.callocInt(1);
+                JNI.invokePPPI(GLFWNativeX11.glfwGetX11Display(), MemoryUtil.memAddress(actual),
+                        MemoryUtil.memAddress(revert), X11.getFunctionAddress("XGetInputFocus"));
+                check(actual.get(0) == target(handle, expected),
+                        where + ": expected X focus " + expected + ", got 0x" + Long.toHexString(actual.get(0)));
+            }
         }
 
         static void checkCursorShown(long handle) {
@@ -408,6 +445,8 @@ public final class WorldKeepsPointerClientGameTest implements FabricClientGameTe
         org.lwjgl.glfw.GLFWCursorPosCallback previousMove;
         org.lwjgl.glfw.GLFWMouseButtonCallback previousButton;
         org.lwjgl.glfw.GLFWScrollCallback previousScroll;
+        org.lwjgl.glfw.GLFWWindowFocusCallback previousFocus;
+        int focusIn, focusOut;
         boolean installed;
 
         Rig(ClientGameTestContext context) { this.context = context; }
@@ -439,6 +478,14 @@ public final class WorldKeepsPointerClientGameTest implements FabricClientGameTe
                         mouse(client).aresos$onButton(window, new MouseButtonInfo(button, modifiers), action));
                 previousScroll = GLFW.glfwSetScrollCallback(handle, (window, dx, dy) ->
                         mouse(client).aresos$onScroll(window, dx, dy));
+                previousFocus = GLFW.glfwSetWindowFocusCallback(handle, null);
+                check(previousFocus != null, "Minecraft's native focus callback is missing");
+                GLFW.glfwSetWindowFocusCallback(handle, (window, focused) -> {
+                    if (focused) focusIn++;
+                    else focusOut++;
+                    previousFocus.invoke(window, focused);
+                });
+                NativeFocusTestPlugin.nativeFocus(true);
                 installed = true;
             });
         }
@@ -459,17 +506,162 @@ public final class WorldKeepsPointerClientGameTest implements FabricClientGameTe
             context.waitFor(WorldKeepsPointerClientGameTest::captured);
         }
 
+        void closeMenuOverProbe() {
+            int[] box = windowBox();
+            int cx = box[0] + box[2] / 2, cy = box[1] + box[3] / 2;
+            input("abs " + cx + " " + cy);
+            input("abs " + (cx + 10) + " " + (cy + 10));
+            await(() -> probe().contains("\"pointer_inside\": true"), "the pointer over the probe");
+            context.waitTicks(3);
+            context.runOnClient(client -> {
+                check(client.gui.screen() instanceof AresOsMenuScreen, "The Escape menu closed before the test could close it");
+                client.gui.setScreen(null);
+            });
+        }
+
+        void restoreFocus() {
+            context.runOnClient(client -> X11.focus(client.getWindow().handle(), Focus.BACK));
+        }
+
+        void moveOffWorld(int[] box) {
+            input("abs " + (box[0] + box[2] + 90) + " " + (box[1] + 70));
+            context.waitFor(client -> !WorldCapture.pointerOverWorld(client));
+        }
+
+        void races() {
+            int[] box = windowBox();
+            var moves = List.of(List.of(Focus.AWAY), List.of(Focus.ROOT),
+                    List.of(Focus.BACK), List.of(Focus.AWAY, Focus.BACK), List.of(Focus.BACK, Focus.AWAY));
+            int cycles = 0;
+            for (Start start : Start.values()) {
+                for (String point : List.of("asked", "queued", "normal", "show", "polled")) {
+                    for (var move : moves) {
+                        String label = start + " / " + point + " / " + move;
+                        captureAt(box[0] + 90, box[1] + 70);
+                        var events = context.computeOnClient(client -> {
+                            long handle = client.getWindow().handle();
+                            X11.checkFocus(handle, Focus.BACK, label + " before setup");
+                            if (start == Start.AWAY_HANDLED) X11.focus(handle, Focus.AWAY);
+                            return new int[] {focusOut, focusIn};
+                        });
+                        if (start == Start.AWAY_HANDLED) context.waitTicks(2);
+                        context.runOnClient(client -> {
+                            long handle = client.getWindow().handle();
+                            check(captured(client) && WorldCapture.ownsCapture(), label + ": capture lost before release");
+                            if (start == Start.AWAY_HANDLED) {
+                                check(focusOut > events[0] && focusIn > events[1] && client.isWindowActive(),
+                                        label + ": GLFW did not consume the real FocusOut and pointer FocusIn");
+                            } else if (start == Start.AWAY_QUEUED) {
+                                int out = focusOut, in = focusIn;
+                                X11.focus(handle, Focus.AWAY);
+                                check(focusOut == out && focusIn == in && client.isWindowActive(),
+                                        label + ": GLFW handled the X focus events before release");
+                            }
+                            Focus expected = start == Start.FOCUSED ? Focus.BACK : Focus.AWAY;
+                            arm(point, () -> {
+                                X11.checkFocus(handle, expected, label + " before seam");
+                                for (Focus destination : move) X11.focus(handle, destination);
+                            });
+                            client.mouseHandler.releaseMouse();
+                            check(!WorldCapture.settled() && cursorMode(client) == GLFW.GLFW_CURSOR_DISABLED,
+                                    label + ": release did not wait for the next poll");
+                            client.mouseHandler.grabMouse();
+                            check(!client.mouseHandler.isMouseGrabbed(), label + ": captured while release was pending");
+                        });
+                        clean(label);
+                        cycles++;
+                    }
+                }
+                AresOs.LOGGER.info("328a: {} passed all 25 focus races", start);
+            }
+            // Prove recapture for the final cycle too.
+            captureAt(box[0] + 90, box[1] + 70);
+            context.runOnClient(client -> client.mouseHandler.releaseMouse());
+            clean("final race recapture");
+            AresOs.LOGGER.info("328a: {} race cycles passed and every next click recaptured", cycles);
+        }
+
+        void clean(String label) {
+            context.waitFor(client -> released(client) && WorldCapture.settled());
+            int[] box = windowBox();
+            // Restoring keyboard focus with the pointer on the other output avoids a fresh capture through HomeScreen.
+            if (!context.computeOnClient(WorldKeepsPointerClientGameTest::xFocused)) moveOffWorld(box);
+            context.runOnClient(client -> {
+                check(seamRun == null, label + ": the release never reached its seam");
+                X11.focus(client.getWindow().handle(), Focus.BACK);
+            });
+            context.waitTicks(3);
+            context.runOnClient(client -> {
+                check(released(client) && WorldCapture.settled(), label + ": release did not settle");
+                check(client.isWindowActive(), label + ": Minecraft lost focus after X focus returned");
+                X11.checkCursorShown(client.getWindow().handle());
+            });
+            check(command("bash", rigFile("state.sh"), root.toString()).contains("X pointer grab: free"),
+                    label + ": an X client still holds the pointer");
+            for (int[] point : new int[][] {{90, 70}, {140, 110}}) {
+                input("abs " + (box[0] + point[0]) + " " + (box[1] + point[1]));
+                context.waitTicks(3);
+                checkPosition(point[0], point[1], label);
+            }
+        }
+
+        void checkPosition(int x, int y, String label) {
+            context.runOnClient(client -> {
+                double[] actualX = new double[1], actualY = new double[1];
+                GLFW.glfwGetCursorPos(client.getWindow().handle(), actualX, actualY);
+                check(Math.abs(actualX[0] - x) <= 2 && Math.abs(actualY[0] - y) <= 2,
+                        label + ": expected the free pointer at " + x + "," + y
+                                + ", got " + actualX[0] + "," + actualY[0]);
+            });
+        }
+
+        void prepareWorldExit() {
+            int[] box = windowBox();
+            captureAt(box[0] + 90, box[1] + 70);
+            context.runOnClient(client -> check(HomeScreen.session() && !WorldCapture.ownsCapture(),
+                    "World exit needs a Minecraft capture in the session without a helper"));
+            leaveAtNormal("world exit");
+        }
+
+        void leaveAtNormal(String label) {
+            context.runOnClient(client -> {
+                long handle = client.getWindow().handle();
+                arm("normal", () -> {
+                    X11.checkFocus(handle, Focus.BACK, label + " before NORMAL");
+                    X11.focus(handle, Focus.AWAY);
+                });
+            });
+        }
+
+        private static void arm(String point, Runnable run) {
+            check(seamRun == null, "Previous release never reached " + seamName);
+            seamName = point;
+            seamRun = run;
+        }
+
         void escDuringHandoff(boolean race) {
             var previous = context.computeOnClient(client -> {
                 long handle = client.getWindow().handle();
-                if (race) raceFocusOut = () -> X11.focus(handle, true);
+                if (race) {
+                    arm("queued", () -> {
+                        X11.checkFocus(handle, Focus.ROOT, "Escape before queueing");
+                        X11.focus(handle, Focus.BACK);
+                    });
+                } else {
+                    arm("normal", () -> {
+                        X11.checkFocus(handle, Focus.BACK, "Escape before NORMAL");
+                        X11.focus(handle, Focus.ROOT);
+                    });
+                }
                 var keyboard = (KeyboardTestAccess) (Object) client.keyboardHandler;
                 return GLFW.glfwSetKeyCallback(handle, (window, key, scancode, action, mods) -> {
                     if (key == GLFW.GLFW_KEY_ESCAPE && action == GLFW.GLFW_PRESS) {
                         check(captured(client), "Escape did not arrive while captured");
-                        // The key was already delivered to the game, but the X focus moves before it handles Escape.
-                        X11.focus(window, false);
-                        check(!xFocused(client), "Escape did not run during an X focus handoff");
+                        if (race) {
+                            // The key reached Minecraft before X focus left, and focus returns just before queuing.
+                            X11.focus(window, Focus.ROOT);
+                            check(!xFocused(client), "Escape did not run during an X focus handoff");
+                        }
                         keyboard.aresos$nativeKey(window, key, scancode, action, mods);
                         check(client.gui.screen() instanceof AresOsMenuScreen, "Escape did not open the AresOS menu inline");
                         check(!client.mouseHandler.isMouseGrabbed() && cursorMode(client) == GLFW.GLFW_CURSOR_DISABLED,
@@ -482,10 +674,10 @@ public final class WorldKeepsPointerClientGameTest implements FabricClientGameTe
             try {
                 input("key esc");
                 context.waitFor(client -> client.gui.screen() instanceof AresOsMenuScreen && released(client));
-                context.runOnClient(client -> check(raceFocusOut == null, "The real FocusIn never raced the synthetic event"));
+                context.runOnClient(client -> check(seamRun == null, "Escape never reached its release seam"));
             } finally {
                 context.runOnClient(client -> {
-                    raceFocusOut = null;
+                    seamRun = null;
                     GLFW.glfwSetKeyCallback(client.getWindow().handle(), previous).free();
                 });
             }
@@ -566,13 +758,16 @@ public final class WorldKeepsPointerClientGameTest implements FabricClientGameTe
 
         @Override public void close() {
             if (installed) context.runOnClient(client -> {
+                NativeFocusTestPlugin.nativeFocus(false);
                 long handle = client.getWindow().handle();
                 var move = GLFW.glfwSetCursorPosCallback(handle, previousMove);
                 var button = GLFW.glfwSetMouseButtonCallback(handle, previousButton);
                 var scroll = GLFW.glfwSetScrollCallback(handle, previousScroll);
+                var focus = GLFW.glfwSetWindowFocusCallback(handle, previousFocus);
                 if (move != null) move.free();
                 if (button != null) button.free();
                 if (scroll != null) scroll.free();
+                if (focus != null) focus.free();
             });
             if (probe != null) probe.destroy();
             if (vinput != null) vinput.destroy();

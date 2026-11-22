@@ -31,13 +31,14 @@ import org.lwjgl.system.SharedLibrary;
  * only where the lock works: the compositor has given it the focus and the pointer is over its window
  * ({@link PointerRules#mayCapture}, the brief's safe fallback).
  *
- * <p><b>Letting go after an app took the focus.</b> GLFW 3.5 changes its X state for a cursor mode only while its window
- * has the X focus. When an app takes the focus with a click, X first takes the focus away from the game and then hands it
- * a pointer focus, on which GLFW captures once more; the mod's release comes after that, without the X focus, and GLFW
- * skips it. GLFW then keeps its X grab and warps the pointer to the window's centre after every move over the world, and
- * once the world is clicked again labwc follows one of those warps before the capture starts (rig/GlfwProbe.java shows
- * it with GLFW alone). So such a release first gives GLFW a focus-out event of its own: GLFW's handling of it lets go
- * completely, as it does when the focus leaves for good.
+ * <p><b>Letting go.</b> GLFW 3.5 on X11 undoes a capture in two places. {@code glfwSetInputMode} does it only if the X
+ * server says, at that instant, that the window has the focus; otherwise it records the normal mode but keeps its grab,
+ * its raw motion and its disabled-cursor window, and then warps the pointer to the window's centre after every poll. Its
+ * handling of a FocusOut does it always. No question to the server can make the first way safe: the focus can move
+ * between the question and GLFW's own. So every release takes the second way, whatever asked for it and wherever the
+ * focus is: at the next event poll the mod puts a FocusOut of its own at the head of Xlib's queue, GLFW lets go
+ * completely, and inside that same event the mode turns normal. If Minecraft still records the window as focused, a
+ * FocusIn restores GLFW's input context. Minecraft sees neither event (rig/GlfwProbe.java shows the steps with GLFW alone).
  */
 public final class WorldCapture {
     /** {@code InputConstants.grabOrReleaseMouse}: a cursor position first, then GLFW's cursor mode. */
@@ -53,9 +54,11 @@ public final class WorldCapture {
     private static boolean hiddenInX;
     // Client thread only: where the pointer was when the capture began, in window coordinates.
     private static double startX, startY;
-    private record Release(Window window, double x, double y) { }
-    private static Release pendingRelease;
-    private static boolean pollingEvents, sentFocusOut;
+    // Client thread only: the window whose capture is being let go; the next event poll does it. Null: nothing to do.
+    private static Window letGo;
+    // Client thread only: the mod's own X focus event that GLFW reads next (0: none). The numbers are X's event types.
+    private static final int FOCUS_IN = 9, FOCUS_OUT = 10;
+    private static int own;
     private static Boolean pointerOverWorldForTests;
     private static boolean directForTests;
 
@@ -66,10 +69,13 @@ public final class WorldCapture {
         worldFocused = focused;
     }
 
-    /** The helper went away: its next connection reports the focus again. */
+    /** The helper went away: its next connection reports the focus again. What the mod hid is let go at once. */
     static void helperLost(Minecraft client) {
         worldFocused = true;
-        if (ownsCapture()) client.mouseHandler.releaseMouse();
+        if (!ownsCapture()) return;
+        client.mouseHandler.releaseMouse();
+        // Whatever Minecraft believed about the mouse, what the mod hid comes back at the next event poll.
+        if (letGo == null) letGo = client.getWindow();
     }
 
     public static boolean ownsCapture() {
@@ -78,7 +84,7 @@ public final class WorldCapture {
 
     /** Whether the world may take the mouse now (Minecraft's own check for its window's focus follows). */
     public static boolean allowed(Minecraft client) {
-        if (pendingRelease != null) return false;
+        if (letGo != null) return false;
         boolean desktop = HomeScreen.active(client);
         return PointerRules.mayCapture(desktop, worldFocused, desktop && worldFocused && pointerOverWorld(client));
     }
@@ -107,65 +113,85 @@ public final class WorldCapture {
 
     /** Replaces Minecraft's release call in {@code MouseHandler.releaseMouse}. */
     public static void release(Window window, double x, double y, CursorMode minecraft) {
-        if (!ownsCapture()) {
+        if (letGo != null) return;
+        if (!ownsCapture() && !capturedInX(window)) {
             (directForTests ? (CursorMode) WorldCapture::direct : minecraft).set(window, GLFW.GLFW_CURSOR_NORMAL, x, y);
             return;
         }
-        var release = new Release(window, x, y);
-        if (pollingEvents || !Xlib.focused(window.handle())) {
-            // Minecraft has already cleared mouseGrabbed. The next normal poll handles the native release.
-            pendingRelease = release;
-        } else {
-            finishRelease(release);
-        }
+        // Minecraft has already cleared mouseGrabbed. The next event poll lets go, the same way whatever asked for it.
+        letGo = window;
     }
 
+    /** A session's game on X11 with GLFW's cursor disabled, also when Minecraft did it before the helper was there. */
+    private static boolean capturedInX(Window window) {
+        return HomeScreen.session() && Xlib.ready()
+                && GLFW.glfwGetInputMode(window.handle(), GLFW.GLFW_CURSOR) == GLFW.GLFW_CURSOR_DISABLED;
+    }
+
+    /** Head of {@code RenderSystem.pollEvents}, outside every GLFW callback: GLFW's next event is the mod's FocusOut. */
     public static void beforePollEvents() {
-        if (pendingRelease != null) {
-            long handle = pendingRelease.window().handle();
-            if (Xlib.focused(handle)) {
-                finishRelease(pendingRelease);
-                pendingRelease = null;
-            } else {
-                sentFocusOut = true;
-                Xlib.focusOut(GLFWNativeX11.glfwGetX11Display(), GLFWNativeX11.glfwGetX11Window(handle));
-            }
-        }
-        pollingEvents = true;
+        if (letGo == null) return;
+        long handle = letGo.handle();
+        // GLFW's FocusOut handling lets go only in the disabled mode. It is that mode here unless something changed it
+        // behind the mod; then this puts it back first, so that what follows ends the same from any state.
+        if (GLFW.glfwGetInputMode(handle, GLFW.GLFW_CURSOR) != GLFW.GLFW_CURSOR_DISABLED)
+            GLFW.glfwSetInputMode(handle, GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_DISABLED);
+        own = FOCUS_OUT;
+        Xlib.putBack(handle, FOCUS_OUT);
     }
 
+    /** Return of {@code RenderSystem.pollEvents}. GLFW has handed the event back by now; if it ever has not, say so. */
     public static void afterPollEvents() {
-        pollingEvents = false;
-        if (!sentFocusOut) return;
-        finishRelease(pendingRelease);
-        pendingRelease = null;
-        sentFocusOut = false;
-    }
-
-    private static void finishRelease(Release release) {
-        var window = release.window();
-        long display = GLFWNativeX11.glfwGetX11Display();
-        long xwindow = GLFWNativeX11.glfwGetX11Window(window.handle());
-        direct(window, GLFW.GLFW_CURSOR_NORMAL, release.x(), release.y());
-        // Give Xwayland the original pointer position before showing the cursor drops its lock.
-        GLFW.glfwSetCursorPos(window.handle(), startX, startY);
-        JNI.invokePJI(display, 0L /* CurrentTime */, Xlib.UNGRAB_POINTER);
-        JNI.invokePJV(display, xwindow, Xlib.SHOW_CURSOR);
-        JNI.invokePI(display, Xlib.FLUSH);
-        hiddenInX = false;
+        if (own == 0) return;
+        AresOs.LOGGER.error("AresOS: GLFW did not hand back the release's own focus event ({}); forcing the normal cursor", own);
+        own = 0;
+        if (letGo == null) return;
+        GLFW.glfwSetInputMode(letGo.handle(), GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_NORMAL);
+        finish();
     }
 
     /**
-     * GLFW's focus callback ({@code Window.onFocus}). GLFW calls it at the end of its focus-out handling, right after it let
-     * go of the capture. For the release's own FocusOut the cursor mode turns normal here, at once: the ungrab and the
-     * warp of that letting go can make X send a pointer focus-in that the same poll reads, and a focus-in in the
-     * disabled mode makes GLFW capture again.
+     * GLFW's focus callback ({@code Window.onFocus}), inside GLFW's event handling. True: the event was the mod's own
+     * and Minecraft must not see it, so its record of the focus holds only what the real events said.
+     *
+     * <p>At the mod's FocusOut, GLFW has just let go completely: its handling of a FocusOut in the disabled mode asks
+     * the server nothing. The mode turns normal here, inside the same event, so nothing can come between. A FocusIn
+     * after it finds the normal mode and captures nothing, and whichever way GLFW's own focus test falls in
+     * {@code glfwSetInputMode}, there is nothing left for it to skip.
      */
-    public static boolean focusChanged(long handle, boolean focused) {
-        if (focused || !sentFocusOut || pendingRelease.window().handle() != handle) return focused;
-        GLFW.glfwSetInputMode(handle, GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_NORMAL);
-        // A real FocusIn can already have run ahead of our FocusOut. Use the server's focus during this poll.
-        return Xlib.focused(handle);
+    public static boolean ownFocusEvent(long handle, boolean focused) {
+        if (own == FOCUS_OUT && !focused && letGo != null && letGo.handle() == handle) {
+            GLFW.glfwSetInputMode(handle, GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_NORMAL);
+            finish();
+            // GLFW also took the focus from its input context (dead keys). Where the real events say the window has
+            // the focus, it gets a FocusIn the same way, as the very next event.
+            own = Minecraft.getInstance().getWindow().isFocused() ? FOCUS_IN : 0;
+            if (own == FOCUS_IN) Xlib.putBack(handle, FOCUS_IN);
+            return true;
+        }
+        if (own == FOCUS_IN && focused) {
+            own = 0;
+            return true;
+        }
+        return false;
+    }
+
+    private static void finish() {
+        long handle = letGo.handle();
+        long display = GLFWNativeX11.glfwGetX11Display();
+        // Give Xwayland the original pointer position before showing the cursor drops its lock. GLFW moves the pointer
+        // only for a window with the X focus; without it the pointer shows where labwc left it.
+        if (hiddenInX) GLFW.glfwSetCursorPos(handle, startX, startY);
+        JNI.invokePJI(display, 0L /* CurrentTime */, Xlib.UNGRAB_POINTER);
+        if (hiddenInX) JNI.invokePJV(display, GLFWNativeX11.glfwGetX11Window(handle), Xlib.SHOW_CURSOR);
+        JNI.invokePI(display, Xlib.FLUSH);
+        hiddenInX = false;
+        letGo = null;
+    }
+
+    /** Client game tests: no release is under way and none of the mod's own events waits in Xlib's queue. */
+    public static boolean settled() {
+        return letGo == null && own == 0;
     }
 
     private static void direct(Window window, int mode, double x, double y) {
@@ -177,44 +203,31 @@ public final class WorldCapture {
     private static final class Xlib {
         private static final SharedLibrary X11 = load("libX11.so.6"), XFIXES = load("libXfixes.so.3");
         static final long HIDE_CURSOR = address(XFIXES, "XFixesHideCursor"), SHOW_CURSOR = address(XFIXES, "XFixesShowCursor"),
-                UNGRAB_POINTER = address(X11, "XUngrabPointer"), GET_INPUT_FOCUS = address(X11, "XGetInputFocus"),
-                SEND_EVENT = address(X11, "XSendEvent"), SYNC = address(X11, "XSync"), FLUSH = address(X11, "XFlush");
+                UNGRAB_POINTER = address(X11, "XUngrabPointer"), PUT_BACK_EVENT = address(X11, "XPutBackEvent"),
+                FLUSH = address(X11, "XFlush");
 
         static boolean ready() {
-            return HIDE_CURSOR != 0 && SHOW_CURSOR != 0 && UNGRAB_POINTER != 0 && GET_INPUT_FOCUS != 0
-                    && SEND_EVENT != 0 && SYNC != 0 && FLUSH != 0
+            return HIDE_CURSOR != 0 && SHOW_CURSOR != 0 && UNGRAB_POINTER != 0 && PUT_BACK_EVENT != 0 && FLUSH != 0
                     && GLFW.glfwGetPlatform() == GLFW.GLFW_PLATFORM_X11 && GLFWNativeX11.glfwGetX11Display() != 0;
         }
 
         /**
-         * Sends the window the FocusOut X sends when the focus leaves it (NotifyNormal, NotifyNonlinear), and waits until
-         * the server has handled it: the event is then in Xlib's queue, and the next poll hands it to GLFW. (Without the
-         * round trip a poll could come first, and GLFW would see the event only after the mode was normal again.)
+         * Puts a focus event for the window (NotifyNormal, NotifyNonlinear, as X sends one) at the head of Xlib's event
+         * queue: XPutBackEvent. It is the next event GLFW reads, ahead of everything the server has sent. Nothing goes to
+         * the server and nothing is waited for, so no real focus change can get between this and GLFW's handling of it.
          */
-        static void focusOut(long display, long xwindow) {
+        static void putBack(long handle, int type) {
+            long display = GLFWNativeX11.glfwGetX11Display();
             try (var stack = MemoryStack.stackPush()) {
                 // XFocusChangeEvent on x86-64: type, serial, send_event, display, window, mode, detail; XEvent is 192 bytes.
                 var event = stack.calloc(192);
-                event.putInt(0, 10 /* FocusOut */);
-                event.putInt(16, 1 /* send_event */);
+                event.putInt(0, type);
+                event.putInt(16, 1 /* send_event: not from the server */);
                 event.putLong(24, display);
-                event.putLong(32, xwindow);
+                event.putLong(32, GLFWNativeX11.glfwGetX11Window(handle));
                 event.putInt(40, 0 /* NotifyNormal */);
                 event.putInt(44, 3 /* NotifyNonlinear */);
-                // XSendEvent(display, window, propagate False, FocusChangeMask, event)
-                JNI.invokePPPPI(display, xwindow, 0, 1L << 21, MemoryUtil.memAddress(event), SEND_EVENT);
-                JNI.invokePI(display, 0 /* keep the queued events */, SYNC);
-            }
-        }
-
-        /** GLFW's own test for its window's focus: the X input focus is that window. */
-        static boolean focused(long handle) {
-            try (var stack = MemoryStack.stackPush()) {
-                var focus = stack.callocLong(1);
-                var revert = stack.callocInt(1);
-                JNI.invokePPPI(GLFWNativeX11.glfwGetX11Display(), MemoryUtil.memAddress(focus),
-                        MemoryUtil.memAddress(revert), GET_INPUT_FOCUS);
-                return focus.get(0) == GLFWNativeX11.glfwGetX11Window(handle);
+                JNI.invokePPI(display, MemoryUtil.memAddress(event), PUT_BACK_EVENT);
             }
         }
 
