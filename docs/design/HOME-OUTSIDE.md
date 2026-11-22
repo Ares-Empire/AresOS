@@ -1,12 +1,16 @@
 # The home's parts outside the game
 
 **Status.** Design note for board brief 332, written 2026-11-21 by one Fable design agent with read-only tools.
-**Revision 3: home styles (2026-11-22).** Revisions 1 and 2 followed reviews 1 and 2
+**Revision 4, after review 3 (2026-11-22).** Revisions 1 and 2 followed reviews 1 and 2
 (`reviews/332-outside-game-design/REVIEW-1.md`, `REVIEW-2.md`, both NOT READY). The lead then fixed wording points by
-hand, and the fourth recheck found the note READY (`reviews/332-outside-game-design/RECHECK-4.md`). This revision
-folds in `reviews/332-outside-game-design/INPUTS-2.md`: the owner's idea of home styles, his answers T493 and T494,
-and `linux-desktop`'s points on video, icons and memory. It has not been reviewed yet. Nothing here is built. It
-decides the structure for the hub (`linux-hub`), the desktop (`linux-desktop`) and the supervisor (`linux-aresos`).
+hand, and the fourth recheck found the note READY (`reviews/332-outside-game-design/RECHECK-4.md`). Revision 3 folded
+in `reviews/332-outside-game-design/INPUTS-2.md`: the owner's idea of home styles, his answers T493 and T494, and
+`linux-desktop`'s points on video, icons and memory. Review 3 (`reviews/332-outside-game-design/REVIEW-3.md`) found
+it NOT READY on two points: a video could take the bar and the search away, and the second screen and the first
+icons had no place in the build order. This revision applies the lead's four decisions on that review and records
+the owner's answer T498. Both are the last two parts of INPUTS-2. It has not been reviewed yet. Nothing here is
+built. It decides the structure for the hub (`linux-hub`), the desktop (`linux-desktop`) and the supervisor
+(`linux-aresos`).
 
 **The lead's scope decision (2026-11-21).** The brief says this note gives the sleeping world its place and does
 not design swap or prefetch. Two reviews pushed the sleeping world and memory pressure into full mechanism design.
@@ -14,30 +18,84 @@ That is the work of its own study (board T364). So this note keeps the structura
 supervisor owns stop and admission, and the world is the one to give way. Review 2's blocking points 1, 2 and 3 are
 now three gates (section 13). Each says what must be true, how a test shows it, and which package waits for it.
 
-**What revision 3 changed**
+**What revision 4 changed**
 
-- **"The world-off switch" is now home styles** (section 6): Picture, Video and Minecraft world. Every rule, state
+- **The video is a program of its own** (the lead's decision 1, for review 3's finding 9). The player, working name
+  `aresos-video`, has its own process, its own surface above the picture, and its own scope with a hard memory
+  limit. `aresos-home` never decodes video. A video that stalls, leaks or crashes loses only the video: the picture
+  shows under it, and the bar and the search are untouched. After a second end or one missed beat the supervisor
+  turns the video off and says so (sections 4, 6 and 12).
+- **The flip waits for the icons** (decision 2; the owner, T498). He chose the starter icons column, so package 12
+  now needs package 3I. 3I seeds the column once, on a first normal home, and never on a home already in use.
+- **Package 3b is split** (decision 2). 3b1 puts the picture and the bar on every screen in a normal style. It needs
+  nothing of 23c and comes before 3I and 3V, which then cover the second screen themselves. 3b2 is the second screen
+  beside the world, and it alone waits for 23c. The two-screen normal home before 3b1 is a Known limit.
+- **Findings 10, 15 and 16** (decision 3).
+  - GL video only when the compositor draws on the Intel chip.
+  - Package 12 is M. Package 3V has `linux-aresos` in it, and the supervisor's part in the video is named as the
+    one exception in section 6. G2 needs 3a.
+  - Package 11's pins without a logo go only to a view that negotiated `pins`. The `town` picture does not count a
+    home the helper made. The starter apps are nine at most, and may be none.
+- **Finding 12's soft spots and the nits** (decision 4).
+  - Screens are told apart by make, model and serial number. "Straighten icons" works on kept places. The
+    switchable table has a row for shut down, restart and log out.
+  - The nits, each fixed where it stood: the keeper's terminals (section 3); decision 18's "nothing else"; the
+    icons during a first start; how the supervisor learns that the sign-in was closed; two transition rows marked
+    "from package 12"; `video-battery` is now `video-battery-pause`; "half a cell on each axis"; "on a drop"; no
+    Menu key on icons; icon pictures dropped in the Minecraft style, and 200 icons timed; `set_setting` never
+    carries a path; the latches a start can make, named for gate 2; four stale line references.
+- **T498 is answered** (section 11). No question is open.
+- Sections 1 to 13 keep their numbers. Decisions 1 to 20 keep theirs; 21 is new.
+
+**Beyond the lead's decisions, for the lead to confirm or drop.** The new structure needed these, and no input
+names them.
+
+- **In the Video style the icons get a surface of their own,** `aresos-icons`, on the bottom layer. The video's
+  surface lies above the picture, so icons drawn on the picture would be hidden. INPUTS-2 put the icons on the
+  picture's surface. That still holds in the Picture style. `linux-desktop` confirms the Video case.
+- **The player holds no view token.** The supervisor tells it what it needs, and its beat goes to the supervisor on
+  a pipe. One line is new on the helper's wire, `picture_shown`, and one supervisor command, `aresos-desktop video`.
+- **Starting values:** three seconds for a missed beat, one restart after a first end, and swap closed to the
+  player's scope.
+- **3b1 also carries the bar** on every screen in a normal style. The lead named the picture surface.
+- **The seeding moment:** when the helper makes its own home document and no `icons.json` exists.
+- **The starter apps** are the first nine registry entries that can start, by file name.
+- **Gate 2 through package 7.** 3b1, 3I, 3V and 3b2 need package 7, so they stand behind gate 2 with it. Revision 3
+  listed 3I and 3V under "no gate".
+
+**Review 3's findings that this revision leaves as they were.** The lead's four decisions do not name them. They
+wait for the lead.
+
+- Finding 2: three more things beyond INPUTS-2 that revision 3 did not list. His laptop keeps the Minecraft world,
+  `icon-align` starts on, and the keys on icons.
+- Finding 4: the keep rule when the settings file cannot be read.
+- Finding 5: `view_focus` and `view_alive`, now that two surfaces can hold the keyboard.
+- Finding 6, last row: a shutdown in a normal style still goes black first today (supervisor `:3221-3222`).
+- Finding 7: what opens in OFF when the helper keeps failing.
+- Finding 8: one test for "has a home".
+- Finding 11: the fallback if labwc gives an on-demand surface the keyboard by itself.
+- Findings 18 and 19: "tools on or off", and the "Normal" look against COMPONENTS.md as written.
+- Finding 20: where "on from the start" for `icon-align` is filed, and telling him about look B.
+
+**From revision 3, unchanged**
+
+- **Home styles** replace "the world-off switch" (section 6): Picture, Video and Minecraft world. Every rule, state
   and gate for turning the world off and on is kept. To the supervisor a normal style is still "world off".
 - **A fresh AresOS starts on the picture home** (the owner, T493). The owner's laptop keeps its Minecraft world until
-  he switches. Package 12 flips the default, after the picture, the bar, the search and the style switch have shipped.
-- **Video backgrounds and desktop icons** (the owner, T494) are designed in section 6. Package 3 is split, not grown:
-  3I is the icons and 3V is the video (section 10).
-- **Section 6 says what the supervisor's boot does in each style,** and that Prism's sign-in comes when he first picks
-  the Minecraft world.
-- **Three things go beyond INPUTS-2, for the lead to confirm or drop:**
-  - Gate 2 has a new row 8: a normal style needs nothing of Minecraft's.
-  - Package 11 is new: pins without the world. Only the mod makes pins today, so a fresh AresOS would have an empty bar.
-  - The flip also waits for package 5, the bar over a maximized app.
-- **"Switchable" is the owner's guideline, confirmed the same evening** (section 12, and answer 7 in section 11):
-  AresOS can run as a normal OS, and its designs and features are switches, without forcing a key piece to be
-  switchable where that isn't needed or possible. Nothing in the structure blocks it.
+  he switches.
+- **Section 6 says what the supervisor's boot does in each style,** and that Prism's sign-in comes when he first
+  picks the Minecraft world.
+- **Revision 3's three additions stay:** gate 2's row 8, package 11, and the flip waiting for package 5. Review 3
+  found each of them needed, and the lead's decisions build on them.
+- **"Switchable" is the owner's guideline** (section 12, and answer 7 in section 11): AresOS can run as a normal OS,
+  and its designs and features are switches, without forcing a key piece to be switchable where that isn't needed
+  or possible. Nothing in the structure blocks it.
 - **The `rc.xml` facts follow this checkout.** Package 329 already turned off labwc's clicks on a bare desktop.
-- Sections 1 to 13 keep their numbers. Decisions 1 to 16 keep theirs; 17 to 20 are new.
 
-**Sources.** The documents and code the brief names, as they are in this checkout, with INPUTS-2. Nothing was run
-and nothing was measured; every number names where it comes from. labwc's own behaviour, the image's effective
-systemd-oomd settings, the image's video decoding and `briefs/328-look-around.md` could not be read here. What rests
-on them is marked.
+**Sources.** The documents and code the brief names, as they are in this checkout, with INPUTS-2 and review 3.
+Nothing was run and nothing was measured; every number names where it comes from. labwc's own behaviour, the image's
+effective systemd-oomd settings, the image's video decoding and `briefs/328-look-around.md` could not be read here.
+The image's registry folder could not be listed. What rests on them is marked.
 
 **Words used below**
 
@@ -48,10 +106,12 @@ on them is marked.
 | The world | The Minecraft home: the game, its window (`aresos-desktop`) and the mod. |
 | The helper | `os/config/usr/libexec/aresos-shell`. "Helper `:N`" is line N of that file. |
 | The supervisor | `os/config/usr/libexec/aresos-desktop`. "Supervisor `:N`" is line N of that file. |
-| The native home | One program that draws the background, the icons, the bar, the search and toasts without the game. It grows out of `os/config/usr/libexec/aresos-laptop-home` ("laptop home `:N`"). Working name: `aresos-home`. |
+| The native home | One program that draws the picture, the icons, the bar, the search and toasts without the game. It never decodes video. It grows out of `os/config/usr/libexec/aresos-laptop-home` ("laptop home `:N`"). Working name: `aresos-home`. |
+| The player | The program that plays a video background, in a process, a surface and a scope of its own (section 6). Working name: `aresos-video`. |
 | Home output | The screen the world shows on, or would show on (package 23c's rule). |
 | Covered | A window fills the output: one on it is maximized or full-screen and not minimized. That is today's rule, applied per output. A full layout counts once the covering package ships (T372/T373). The world's own window, the start-up cover and the black screen never count. |
 | Icon | An app's picture and name on the normal home (section 6). Not a bar slot and not a status icon. |
+| Starter apps | The apps of the image's reviewed registry that a first normal home pins and shows as icons: nine at most (section 5). |
 | Still | A picture of the world's last frame, made by the mod, kept in his cache folder. |
 | Pending start | His own request to start the world that waits for memory. One durable record of the supervisor's, never a timer (section 6). |
 | Gate | A condition that a test must show before a package starts (section 13). |
@@ -62,8 +122,8 @@ on them is marked.
 
 1. **The home has three layers.** The helper holds the facts. The native home shows what must show without the game.
    The world is the third layer, and it is optional.
-2. **One native program, always running.** It draws the background, the icons, the bar, the search and toasts. A GTK
-   program costs about 50 MiB each, so these are surfaces of one program.
+2. **One native program, always running.** It draws the picture, the icons, the bar, the search and toasts. A GTK
+   program costs about 50 MiB each, so these are surfaces of one program. It never decodes video (decision 19).
 3. **It is the laptop home, grown.** That file is split into modules first. `linux-desktop` leads the program and
    the hub leads its content modules.
 4. **The helper lives as long as the supervisor.** Today it is started for each game launch. It must run with no
@@ -80,7 +140,8 @@ on them is marked.
 9. **Search is outside the game.** Super opens it over anything, on the home output. Nothing is minimized for it.
 10. **The background is one surface per output,** wherever the awake world is not showing. It holds a picture: the
     default is a plain picture in the look (the owner, T482), and black, a picture of his and the town are the other
-    kinds. In the Video style it holds a video. In both normal styles his icons sit on it.
+    kinds. In the Video style a video plays above it, on a surface of the player's. In both normal styles his icons
+    sit over the background.
 11. **The home has a style: Picture, Video or Minecraft world** (the owner, 2026-11-22). It is a setting and holds
     across restarts. A normal style closes the game and Prism. In a normal style only his own request starts the
     world. A change to a normal style is refused while there is no launcher outside the game.
@@ -92,26 +153,34 @@ on them is marked.
     that true. It is an aim until gate 3 shows it.
 15. **Three gates** stand before the packages that could hurt him (section 13). Package 7, the style switch, waits
     for gate 2, and package 12, the default flip, waits for it through package 7. Package 9, the sleeping world,
-    waits for gates 1 and 3. Packages 1 to 6, 8, 11, 3I and 3V wait for none.
+    waits for gates 1 and 3. Packages 1 to 6, 8 and 11 wait for none. Packages 3b1, 3I, 3V and 3b2 have no gate of
+    their own; each needs package 7 and so stands behind gate 2 with it.
 16. **There is always a way back.** Section 12 has the chain. Its last link is a message window, never a start.
 17. **A fresh AresOS starts on the picture home** (the owner, T493). The owner's laptop keeps the Minecraft world
-    until he switches. The default flips in package 12 and not before.
-18. **In a normal style the session needs nothing of Minecraft's.** The boot starts the helper and the native home
-    and nothing else: no pin check, no Prism, no sign-in. Prism's sign-in comes when he first picks the Minecraft
-    world.
-19. **A video is a background like the picture:** looped, silent, paused when covered and on low battery. It costs
-    nothing in the other styles, and it is the first thing to stop.
-20. **Icons sit on the background in the normal styles** (the owner, T494). He places them freely, and a setting
+    until he switches. The default flips in package 12 and not before, and package 12 waits for the icons (package
+    3I).
+18. **In a normal style the session needs nothing of Minecraft's.** The supervisor's boot starts the helper and the
+    native home, and in the Video style the player. It touches nothing of Minecraft's: no pin check, no Prism, no
+    sign-in. Prism's sign-in comes when he first picks the Minecraft world. The look's sync step is not part of that
+    boot: it runs at session start in every style, reads the instance if there is one, and the desktop never waits
+    for it (`docs/design/COMPONENTS.md:1553-1555`).
+19. **A video is a background like the picture, played by a program of its own:** looped, silent, paused when
+    covered and on low battery. The player has its own process, surface and scope with a hard memory limit. A video
+    that stalls, leaks or crashes loses only the video. It costs nothing in the other styles.
+20. **Icons sit over the background in the normal styles** (the owner, T494). He places them freely, and a setting
     straightens the lines and grids he makes. The helper keeps their places.
+21. **A first normal home has the starter apps as icons in one column** (the owner, T498), and pinned in the bar.
+    They are seeded once, and never on a home already in use.
 
 ---
 
 ## 2. What he will see
 
-- **A fresh AresOS** (after package 12). It starts with a plain picture, a bar at the bottom and Super's search.
-  Nothing asks him to sign in.
+- **A fresh AresOS** (after package 12). It starts with a plain picture, the starter apps as icons in a column at
+  the top left, a bar at the bottom with the same apps pinned, and Super's search. Nothing asks him to sign in.
 - **Making the home his own.** He drags icons where he wants them. He drops one near a row of others and it snaps
-  into the row. He sets a picture of his, or a video that loops silently behind his windows.
+  into the row. He removes one with a right click. He sets a picture of his, or a video that loops silently behind
+  his windows. If the video ever fails, the picture is there again, and the bar and the search never notice.
 - **Picking the Minecraft world.** He picks "Minecraft world" in the home menu. The first time, Prism opens and asks
   him to sign in, and Minecraft downloads. When his home is ready, the picture gives way to the world. After that a
   pick starts the world as a boot does today.
@@ -121,8 +190,10 @@ on them is marked.
 - **Working in a full-screen app.** The bar is hidden. He moves the pointer to the bottom edge and rests there for
   a third of a second. The bar slides up over the app. Chrome's slot is marked open and lit as active. He clicks
   Terminal: its window comes back. The pointer leaves the bar and the bar slides away.
-- **With the monitor plugged in** (package 23c's plan). The world moves to the monitor. The laptop's screen shows
-  the picture behind its apps, with its own bar. Windows there stop above the bar.
+- **With the monitor plugged in, in a normal style** (from package 3b1). Both screens show the picture and a bar.
+  Each screen has its own icons.
+- **With the monitor plugged in, in the Minecraft style** (package 23c's plan). The world moves to the monitor. The
+  laptop's screen shows the picture behind its apps, with its own bar. Windows there stop above the bar.
 - **The world asleep** (package 9, after its gates). Its last view stays on screen, and the bar stands where the
   hotbar stood. A click on the view brings the world back to life. On a full laptop a line says the world is waiting
   for memory, and his apps stay.
@@ -149,7 +220,7 @@ fit into.
 | The supervisor's states are SETUP, STARTING, IN_WORLD, AUTH_REQUIRED, RECOVERY and STOPPING. Its command list has no `search`, no world switch, no freeze. Its private environment list has no view token. | supervisor `:328-329`, `:4783-4785`, `:182-184` |
 | At its start the supervisor begins a launch at once, unless it adopts a game, is latched, or the session is ending. A launch first checks Minecraft's pinned files and makes the Prism instance if it is missing. | supervisor `:1816-1845`, `:1943-1952`, `:617-661` |
 | The first start ever is SETUP: no world yet and no home seen before. Prism opens without a world and shows its own sign-in, never under the cover, and a message window lists the steps. Whether a home was ever ready is kept as `hub_seen`. | supervisor `:1939-1940`, `:1982-1995`, `:1456-1472`, `:1111` |
-| An unreadable pin file ends the supervisor before it starts anything. The keeper tries five times and then leaves a terminal with the reason. | supervisor `:4568-4578`, `:4612-4627` |
+| An unreadable pin file ends the supervisor before it starts anything, and each such try opens a terminal with the reason. After five tries within ten minutes the keeper stops and opens one more. | supervisor `:4568-4578`, `:238`, `:4612-4627` |
 | A stop asks the game to save and then sends SIGTERM. The supervisor never sends SIGKILL. A plain stop without a confirmed save is called off; a shutdown closes anyway and latches `unsaved`. | supervisor `:3323-3355`, `:3380-3399`, `:79`, `:3370-3378`, `:3629-3633` |
 | A launch that ends while an open stop record names it is `stopped`: never counted, never restarted by backoff, never latched `killed`. It latches `unsaved` if its save was not confirmed. | supervisor `:2388-2391`, `:3618-3659` |
 | A stop or a logout counts as done only when the game's close is `exited` or `none`. | supervisor `:3425`, `:3600` |
@@ -181,33 +252,35 @@ fit into.
 | The open-app list and its marks | The helper works them out. Both bars draw them. | hub | | One answer to "what is open". |
 | The app options menu | The native home: popups on the bar and on an icon. In the world a right click on a hotbar slot is "New window". | hub | desktop | One menu. The game gets none of its own. |
 | The picture behind the windows | The native home: `aresos-picture`, per output | desktop; the town is the hub's | desktop | Needed in four cases: a normal style, a closed world, a sleeping world, a second screen. |
-| The video background | The native home: the same surface as the picture | desktop | desktop | It is a background. It must cost nothing in the other styles (section 6). |
-| Desktop icons | Kept by the helper. Drawn by the native home on the background surface. | hub: what a click and the menu do, and the keeper | desktop: the surface, dragging, the alignment rule, the look | One keeper. The native home keeps no state. |
+| The video background | The player: `aresos-video`, a program of its own, with its own surface above the picture | desktop | desktop; the supervisor starts, watches and stops it (aresos) | A video that fails must lose only the video. It costs nothing in the other styles (section 6). |
+| Desktop icons | Kept by the helper. Drawn by the native home over the background: on the picture's surface in the Picture style, on a surface of their own above the video in the Video style. | hub: what a click and the menu do, and the keeper | desktop: the surface, dragging, the alignment rule, the look | One keeper. The native home keeps no state. |
 | The still | The mod makes it; the native home shows it on the picture | hub | | Only the game can draw its own frame without windows on top. |
 | Toasts | The native home: `aresos-toast` | hub for AresOS's lines; desktop for system notifications later | desktop | They must show over apps and in a normal style. |
 | Status icons (Wi-Fi, battery, sound, clock) | The native home, as part of the bar | desktop | desktop | The bar is on every screen and reachable over every app. |
-| The home style | A setting. The supervisor applies its world part. The native home applies its background part. | hub (behaviour), aresos (supervisor) | desktop (the background) | The supervisor alone may stop and start the game. |
+| The home style | A setting. The supervisor applies its world part, and runs the player in the Video style. The native home applies the picture and the icons. | hub (behaviour), aresos (supervisor) | desktop (the background) | The supervisor alone may stop and start the game. |
 | The indicator, the overview | As COMPONENTS.md says | desktop | desktop | Unchanged. |
 
 ### The native home
 
 - **One program, in a scope of its own** (`aresos-home.scope`), started by the supervisor at the session's start,
   from package 3a on. It runs in every home style and in every state of the world, and is never part of readiness.
-  It outlives a supervisor restart; the new supervisor finds it by its unit name and starts no second one.
+  It is the same program, started the same way, in every style. It outlives a supervisor restart; the new
+  supervisor finds it by its unit name and starts no second one.
 - **Its restarts never stop for good.** After it ends: 2, 10 and 30 seconds, then every 60. LAPTOP-HOME.md's "then
   no more in this session" ends, because in a normal style this program is the home.
 - **Why one program.** The laptop home measured 52 MiB with one picture and 61 MiB after a redraw
   (`docs/design/LAPTOP-HOME.md:327-328`). Five such programs would be about 250 MiB at rest. The owner called
-  300 MB "crazy much" for a home screen.
+  300 MB "crazy much" for a home screen. The player is a second program only in the Video style, by the lead's
+  decision: there a fault in the video must not reach the bar.
 - **Why the laptop home.** It already has the view connection with its token, reconnecting, a sandbox for decoding,
   a model with hotbar slots and a finder with seven kinds of hits.
 - **What changes in it.**
   - More than one output; a bar surface apart from the picture; the finder as an overlay; static pictures.
-  - In the normal styles its background surface also holds the icons, and in the Video style a video (section 6).
+  - In the normal styles it also draws the icons (section 6). It never plays a video: that is the player's work.
   - Its own hotbar, typing line, clock and battery leave, each in the package that ships its replacement: the
     typing line with the search (package 6), the rest with the bar (package 4). Until then the old view keeps them.
   - Its own copy of the last home leaves: the helper keeps the home on disk (section 5).
-  - It watches the settings file, so a change of picture, video or style shows at once, whoever made it.
+  - It watches the settings file, so a change of picture or style shows at once, whoever made it.
   - **No fallback window.** Today it falls back to a full-screen window (laptop home `:598-603`). The new program
     draws nothing and exits without the layer library, as the indicator does.
   - Its view is named `home`. The old `laptop-home` view on minor 2 keeps working until it is replaced. The
@@ -216,19 +289,22 @@ fit into.
   picture (laptop home `:36`, `:270`). A still or a picture of his goes through a converter child of the helper's
   kind: ImageMagick in bubblewrap, under an address-space ceiling and a coder policy for PNG, JPEG and WebP. It
   hands back raw pixels at the output's size. The native home only copies pixels. Without the sandbox tools the
-  plain picture shows. A video is the one exception, and only in the Video style (section 6).
+  plain picture shows.
+- **No video is decoded in this program either,** in any style. That is the player's work, in its own process
+  (section 6).
 - **Who owns which code.** The file is split into modules before anything is added (section 10). Surfaces, outputs,
-  the reveal, the look kit, status icons, static pictures, the converter, the video and the icons' layout are the
-  desktop's. The helper connection, the bar model, the finder, menu rows and the town are the hub's. The bar, the
-  search, the menus and the icons name no colour and no layer; the town keeps its own painter (laptop home
-  `:1478-1482`).
+  the reveal, the look kit, status icons, static pictures, the converter and the icons' layout are the desktop's.
+  So is the player, a program of its own. The helper connection, the bar model, the finder, menu rows and the town
+  are the hub's. The bar, the search, the menus and the icons name no colour and no layer; the town keeps its own
+  painter (laptop home `:1478-1482`).
 - **The keyboard.** Two surfaces can take it, and no other.
   - The search takes it while it is open, and only then.
-  - The background takes it in a normal style, and only after he clicks on it. Its keyboard mode is "on demand", as
-    the laptop home's surface has today (laptop home `:610`). It never gets the keyboard by default: not at the
+  - The surface that holds the icons takes it in a normal style, and only after he clicks on it. That is
+    `aresos-picture` in the Picture style and `aresos-icons` in the Video style. Its keyboard mode is "on demand",
+    as the laptop home's surface has today (laptop home `:610`). It never gets the keyboard by default: not at the
     session's start and not when a window closes.
   - In the Minecraft style and under a still, the background never takes it. The bar, the strip, toasts and every
-    menu never take it; the menus are pointer-only popups.
+    menu never take it; the menus are pointer-only popups. The player's surface takes no keys and no clicks.
   - Section 12 says how a hung search is ended.
 
 ---
@@ -239,7 +315,7 @@ fit into.
 |---|---|---|---|
 | Installed programs, their pictures | the helper (desktop entries) | the helper | the mod, the native home |
 | My apps, short names, groups, places, pins, logo cells | the mod (`publish_home`). For pins, while no world runs: the helper, on a view's request (package 11). | the helper, **now also on disk** | the native home (bar, town, search), the overview |
-| Icons on the normal home: which apps, on which screen, where | him, by dragging in the native home | the helper, on disk (package 3I) | the native home |
+| Icons on the normal home: which apps, on which screen, where | him, by dragging in the native home. The first ones: the helper, once (T498). | the helper, on disk (package 3I) | the native home |
 | Windows: whose, active, minimized, on which output, title | labwc | the helper | the mod, the native home, the overview, the supervisor |
 | Outputs: names, the home output, where the world's window is, covered or not, what the bar does | labwc | the helper | the mod, the native home, the supervisor |
 | The world's state: awake, asleep, starting, off; waiting for memory | the supervisor | the helper passes it on in `screens` | the native home |
@@ -278,12 +354,29 @@ One shared file of queries and expected hits, read by both sides' tests, keeps t
   answers with no game running.
 - **Pins without a world** (package 11). Only the mod makes pins today, so a laptop that never ran the world has
   none (helper `:3491-3496`). Two hands write the home document, never at the same time: the mod while a world runs,
-  and the helper on the native home's request while none runs. With no document yet, the helper makes one from the
-  image's starter apps (its reviewed registry, helper `:137`). Pins it made itself carry no block logo.
+  and the helper on the native home's request while none runs.
+  - **A home the helper makes itself.** With no document yet, the helper makes one the first time the home shows in
+    a normal style: `home` is `picture` or `video`, and a view `home` asks for the home. Its rows are the starter
+    apps. Each row has the app's ID, its name and its slot, and no logo cells.
+  - **The starter apps** are the entries of the image's reviewed registry (helper `:137`) that can start, in the
+    order the helper loads them: by file name (helper `:367`). The first nine fill the nine slots in that order.
+  - **More than nine:** the rest are not pinned. The search finds them, and he can pin them.
+  - **None:** the document has no rows. The bar shows nine empty pins. The search still lists every installed
+    program, so a launcher is always there.
+  - **Rows without a logo go only to a view that negotiated `pins`.** Today's reader needs 144 logo cells in every
+    row (laptop home `:291-301`, `:945`). To any other view a home the helper made is no home: `get_home` answers
+    with no revision and no rows, as today.
+  - **The helper says who made the document,** so the `town` picture is never offered for one of its own
+    (section 6).
+  - This revision read one registry entry, `os/config/usr/share/aresos/apps/terminal.json`, and could not list the
+    folder. Package 11's brief reads it. If file-name order is a poor order for him, the brief fixes another with
+    `linux-aresos`.
 - **The icons on disk** (package 3I). The helper keeps his icons' places in one file, `icons.json`, in his AresOS
   config folder beside `settings.json` (`os/config/usr/libexec/aresos-settings:35-39` names that folder). It writes
-  the file whole or not at all, readable by him only. Section 6 has the rules.
-- **Output names.** The helper reads each output's name, so it and the views mean the same screen.
+  the file whole or not at all, readable by him only. It also seeds the first icons, once (T498). Section 6 has the
+  rules.
+- **Output names.** The helper reads each output's name, so it and the views mean the same screen. For the icons it
+  also keeps each screen's make, model and serial number where the output gives them (section 6).
   *To verify:* that labwc 0.9.6 offers `wl_output` version 4.
 - **More window requests.** Bring back (`unset_minimized`) and close, beside activate and minimize. Titles are kept.
   The time each window was last active is kept, per app.
@@ -307,20 +400,23 @@ A side that did not offer a capability gets none of it. The laptop home pins min
 | (existing `shell_focus`) | 6 | reasons `view` and `view_closed` | to the desktop | The search took the keyboard while the world had it, or gave it back. |
 | `notices` | 6 | event `notice` | to views | `{"text": "The world stays on: your home could not be saved."}`. One line for a toast. |
 | `view_alive` | 6 | request `view_alive` | from a view | A view that holds the keyboard sends it once a second, from its drawing loop. After three silent seconds the helper tells the supervisor, which ends the native home's scope. |
-| `settings` | 7 | request `set_setting` | desktop and views | The helper starts `aresos-settings set` off its loop and replies `accepted` at once. A change of style that closes the world can take a minute; the outcome shows in `screens`, and a refusal comes as a `notice`. |
+| `settings` | 7 | request `set_setting` | desktop and views | The helper starts `aresos-settings set` off its loop and replies `accepted` at once. A change of style that closes the world can take a minute; the outcome shows in `screens`, and a refusal comes as a `notice`. It never carries a path: the helper refuses `picture-file` and `video-file` from every client. Those two are set only by the command, run by him or by Claude for him. |
 | `world_power` | 7, 9 | request `wake_world` | views | `{"reason": "anyway"}` from package 7: his "Start anyway" for a pending start. From package 9 also `click`, `pointer` and `home`: a wake. The helper passes it to the supervisor, which decides. |
 | `window_list` | 4 | `list_windows`, `windows_changed`, `activate_window`, `close_window`, `go_home` | views | As COMPONENTS.md 4.5 planned them for the overview. The app menu uses the first four. |
 | `pins` | 11 | request `set_pin` | from the view `home` | `{"app_id": "chrome", "slot": 3}`, or `"slot": null` to unpin. Accepted only while no desktop is connected. With the mod connected it is refused as `invalid_state`: in the world he pins in the world. `home_changed` follows, as after a publish. |
-| `home_icons` | 3I | requests `get_icons`, `place_icons`, `remove_icon`; event `icons_changed` | views; the last two requests from the view `home` only | `get_icons` answers `{"revision": 12, "icons": [{"app_id": "chrome", "screen": "eDP-1", "x": 96, "y": 64}]}`, without icons whose app is gone. `place_icons` carries 1 to 200 such entries and adds or moves each. `remove_icon` names one app. The helper checks each app against the catalogue and each number against a fixed range, writes the file and sends `icons_changed`. It never judges a place against a screen's size. |
+| `pins` | 11 | `"made_by"` and rows without `cells` in `get_home`'s answer | to a view that negotiated `pins` | `"made_by"` is `mod` or `helper`. A row the helper made has no `cells`: it carries no block logo. A view that did not negotiate `pins` never gets such a row or that field. To it a home the helper made is no home, and `get_home` answers with no revision and no rows (helper `:3495-3496`). |
+| `home_icons` | 3I | requests `get_icons`, `place_icons`, `remove_icon`; event `icons_changed` | views; the last two requests from the view `home` only | `get_icons` answers `{"revision": 12, "icons": [{"app_id": "chrome", "screen": "eDP-1", "x": 96, "y": 64}]}`, without icons whose app is gone. `screen` is the output's name as in `screens`. The helper maps it to and from the screen's kept identity (section 6), and lists an icon whose screen is not connected without `screen`. `place_icons` carries 1 to 200 such entries and adds or moves each. `remove_icon` names one app. The helper checks each app against the catalogue and each number against a fixed range, writes the file and sends `icons_changed`. It never judges a place against a screen's size. |
+| `backgrounds` | 3V | request `picture_shown` | from the view `home` | `{"screens": ["eDP-1", "HDMI-A-1"]}`. The outputs whose picture surface is up, sent on each change. The helper passes it to the supervisor with each output's covered state. The supervisor tells the player, which makes its surface for a screen only after that (section 6). |
 | `still` | 8 | event `still_changed`; request `still_shown` | to and from the view `home` | `{"id": 7}`. The view shows that still on the home output's picture and says so with the same number. |
 
 - **Left over from earlier notes.** COMPONENTS.md 4.2 proposed "a field that says which apps have a minimized window"
   and "bring back this app's window". Those are `apps_state` and `activate_app`. `world_clicked` (4.3) is unchanged.
 - **Views in 1.3** may also send `activate_app`, the window requests, `set_setting`, `wake_world`, `still_shown`,
-  `view_alive`, `set_pin` and the icon requests.
+  `view_alive`, `set_pin`, the icon requests and `picture_shown`.
 - **From the search, in COMPONENTS.md 4.5's order** (`docs/design/COMPONENTS.md:1204-1208`): the search closes its
   surface, waits for one round trip to labwc, reports `view_focus` false, and only then sends `activate_app`.
 - **Never sent to the game or a view:** a command, arguments, an environment, a path other than `icon`. As today.
+- **The player is no view.** It never connects to the helper (section 6).
 
 ### Other interfaces
 
@@ -328,9 +424,10 @@ A side that did not offer a capability gets none of it. The laptop home pins min
 |---|---|
 | Lifecycle channel (mod and supervisor), 1.0 to 1.1 | Capability `still` (package 8): `{"op": "still", "id": n}`, answered `still_saved`. The mod writes one frame without its interface to a fixed file, `aresos/home/still.png` in his cache folder, whole or not at all. The supervisor never takes a path from the mod. Capability `sleep` (package 9): `sleep`, `wake` and `resume`, in outline in section 9. Gate 1 fixes their exact form. A mod without `sleep` never sleeps. |
 | Supervisor to helper (status socket) | Packets beside today's `windows`: the live launch's nonce with its keep-foreground flag, and the world's state (package 1); a notice (package 6); a still's number (package 8). Each is acknowledged, and the first two are sent again to every new helper. Super stays SIGUSR1, as 23c plans it. |
-| Helper to supervisor (status socket) | Lines beside today's: `ack`; the outputs with the home output; whether the view `home` is connected and what it negotiated; a view that stopped answering; his "Start anyway"; from package 8 `still_shown`; from package 9 a wake request with its reason. |
-| Supervisor commands | `aresos-desktop world on`, `world off` and `world on --anyway` (package 7), `wake` (package 9), beside 23c's `search`. A normal style is `world off` to the supervisor, whichever of the two it is. |
-| Settings (`aresos-settings`) | `home` = `picture`, `video` or `minecraft`. Its default is `minecraft` until package 12 makes it `picture`; `video` joins with package 3V. `picture` = `plain`, `black`, `file` or `town` (default `plain`). `picture-file` and `video-file`: the program's first values that are not one of a list, each an absolute path to a file he can read, checked when set. `video-battery` = `never`, `20`, `50` or `always`. `icon-align` = `on` or `off` (default `on`). A change of `home` to or from `minecraft` ends in one supervisor request. In which order the file is written and the supervisor is asked, and what a crash between the two leaves, is gate 2's row 4. |
+| Helper to supervisor (status socket) | Lines beside today's: `ack`; the outputs with the home output; whether the view `home` is connected and what it negotiated; a view that stopped answering; his "Start anyway"; from package 8 `still_shown`; from package 9 a wake request with its reason; from package 3V each output's covered state and whether its picture is up. |
+| Supervisor and the player (a pipe pair; package 3V) | To the player: the screens whose picture is up, which of them are covered, and whether a cover or the black screen is up. From the player: the beat (section 6). The exact form is 3V's brief. The player gets no view token, no nonce and no socket of the helper's. |
+| Supervisor commands | `aresos-desktop world on`, `world off` and `world on --anyway` (package 7), `wake` (package 9), beside 23c's `search`. A normal style is `world off` to the supervisor, whichever of the two it is. From package 3V also `video`: the supervisor reads the settings and makes the player match. In the Video style it starts the player afresh and clears its count of ends. In any other style it stops the player. |
+| Settings (`aresos-settings`) | `home` = `picture`, `video` or `minecraft`. Its default is `minecraft` until package 12 makes it `picture`; `video` joins with package 3V. `picture` = `plain`, `black`, `file` or `town` (default `plain`). `picture-file` and `video-file`: the program's first values that are not one of a list, each an absolute path to a file he can read, checked when set. They are set by the command only, never through `set_setting`. `video-battery-pause` = `never`, `below-20`, `below-50` or `always`: when a video pauses on battery (section 6). `icon-align` = `on` or `off` (default `on`). A change of `home` to or from `minecraft` ends in one supervisor request. In which order the file is written and the supervisor is asked, and what a crash between the two leaves, is gate 2's row 4. From package 3V a change between `picture` and `video`, of `video-file` or of `video-battery-pause` ends in `aresos-desktop video`. |
 | `publish_home` | The wire is unchanged. |
 
 ---
@@ -347,14 +444,20 @@ of the laptop.
 | Minecraft world | the world, with its own hotbar | running | gates, the hotbar, `/name`, Super's search |
 
 **Two words for one thing.** To the supervisor, Picture and Video are both "world off", and the Minecraft world is
-"world on". Its states, records, commands and gates keep those words: OFF, `world off`, `world on`. Which normal
-background shows is the native home's business, not the supervisor's. So everything revision 2 decided for the
-world-off switch holds here unchanged, and the reviews' findings still apply to it.
+"world on". Its states, records, commands and gates keep those words: OFF, `world off`, `world on`. Which picture
+shows is the native home's business, not the supervisor's. So everything revision 2 decided for the world-off switch
+holds here unchanged, and the reviews' findings still apply to it.
+
+**One exception: the video's player.** The supervisor starts it in the Video style, watches it and turns it off
+("Video backgrounds" below; `linux-aresos` builds that part of package 3V). It does so as it runs every program of
+the session. It never reads the video, and it starts or stops no world for it. A change between Picture and Video
+is no world change: it ends in `aresos-desktop video` alone.
 
 **The default, and the owner's laptop** (the owner, T493).
 
 - Until package 12 the default is `minecraft`, as today. Package 7 only adds the choice.
-- Package 12 makes the default `picture`. A fresh AresOS then starts on the picture home.
+- Package 12 makes the default `picture`. A fresh AresOS then starts on the picture home. Package 12 waits for
+  package 3I, so that first home has its starter icons (the owner, T498).
 - **A laptop that has a home keeps it.** The settings file holds only what he chose, so a new default would reach
   his laptop too (`os/config/usr/libexec/aresos-settings:4-6`). So the supervisor settles it before it reads the
   style. If the file has no `home` value, and this laptop has had a home, it writes `home = minecraft` once, through
@@ -368,7 +471,7 @@ world-off switch holds here unchanged, and the reviews' findings still apply to 
 | Style | Helper and native home | Minecraft's pins, the Prism instance | Prism and the game | Cover | The session is in |
 |---|---|---|---|---|---|
 | Picture | started first | not read, not made | not started | none | OFF (`off`) |
-| Video | started first; the native home plays the video | not read, not made | not started | none | OFF (`off`) |
+| Video | started first; then the player, once the native home has its picture up | not read, not made | not started | none | OFF (`off`) |
 | Minecraft world | started first | checked, and the instance made if missing, as today | started, after today's checks and admission as today (section 12) | today's start-up cover; from package 8 the still | STARTING, then IN_WORLD |
 
 - **In every style the helper and the native home are up before anything of Minecraft's is touched.** So a boot
@@ -378,7 +481,9 @@ world-off switch holds here unchanged, and the reviews' findings still apply to 
   pin file is a message when he picks the Minecraft world, never a dead desktop. This is gate 2's row 8.
 - **A latch about the world waits.** Today a latch opens the recovery window at boot (supervisor `:1838-1840`). In a
   normal style it opens none. It shows when he picks the Minecraft world, and only `retry` clears it (gate 2, row 7).
-  Gate 2's design step confirms this for each latch.
+  Gate 2's design step confirms this for each latch. A start can also make a latch by itself, before any launch: when
+  it accounts for a game that ended while no supervisor ran, closes a stale stop record, or reads the guard's own
+  record (supervisor `:1828-1830`, `:1769-1777`). The design step names those too.
 - **The shutdown guard is asked only before a game starts** (supervisor `:1967`). A normal style's boot does not
   wait for it, and a shutdown in a normal style has nothing to save: no black screen and no wait.
 - **A boot never begins a first start** (from package 12). While this laptop has no home, a boot starts no world,
@@ -393,12 +498,14 @@ world-off switch holds here unchanged, and the reviews' findings still apply to 
 - Until package 4 ships, the search shows "Home style: Minecraft world" as its first row in a normal style, as
   revision 2 had "Turn the world on".
 - By command: `aresos-settings set home picture`, which Claude can run for him.
-- All end in the same supervisor request. "Video" is offered only once package 3V has shipped.
+- All end in the same supervisor request. "Video" is offered only once package 3V has shipped and the lead has told
+  the owner its measured cost.
 
 **A normal style needs a launcher outside.** The supervisor refuses to turn the world off unless a view `home` is
 connected that negotiated the search and answered its alive beat within the last few seconds. A silent or hung view
 counts as absent. A notice says why. So he never trades the hotbar for nothing. Package 7 needs package 6 and 23c's
-Super key for the same reason (section 10).
+Super key for the same reason (section 10). The native home is the same program in every style, so the check meets
+the program that will hold the home, also on a change to Video.
 
 **Leaving the Minecraft world: the game and Prism are closed.** Not frozen, not swapped.
 
@@ -431,25 +538,29 @@ Super key for the same reason (section 10).
 - With an app window open there is no cover: it must never hide his apps. Until package 8 the loading screens show
   behind his windows. From package 8 the world's window stays minimized until the world is ready.
 - A start takes as long as a start at boot. Board T362 measures that.
+- From the Video style, the player is stopped as soon as the style is the Minecraft world.
 - **The first time, Prism asks him to sign in.** On a laptop with no home yet, the start is today's SETUP (supervisor
   `:1939-1940`). The instance is made, Prism opens without a world and shows its own sign-in, Minecraft downloads,
   and the mod makes his home. Nothing covers it. Today's message window lists the steps (supervisor `:1456-1472`).
-  The picture home, the bar and the search stay usable the whole time.
+  The picture, the bar and the search stay usable the whole time. His icons are hidden from the moment the style is
+  the Minecraft world, and they are back if he backs out.
 - **He can back out of it.** A first start that ends without a home puts the style back to Picture and tells him in
   one line. That holds when he closes the sign-in and when the setup fails; a failure also opens today's message
-  window with the reason. Picking the Minecraft world again starts over.
+  window with the reason. The supervisor learns that he closed the sign-in from Prism's exit, and acts ten seconds
+  after it (supervisor `:196`, `:2478-2480`). Picking the Minecraft world again starts over.
 
 ### The picture
 
 The setting `picture`. The native home shows it on `aresos-picture`, on every output where the awake world is not
-showing. In the Picture style it is the home's background. In the Video style it is what shows when the video cannot.
+showing. In the Picture style it is the home's background. In the Video style it lies under the video, and shows
+whenever the video does not.
 
 | Kind | What |
 |---|---|
 | `plain` | A plain picture that `linux-desktop` draws in the look: A until B's files exist. The default (the owner, T482), and so the background of a fresh AresOS. |
-| `black` | One flat colour, `#0d0d10`, look A's outline colour and the colour 23c plans for the laptop screen (`STATE.md:202`). Nothing sets a background colour today. A surface is still there, so a click never reaches labwc. |
+| `black` | One flat colour, `#0d0d10`, look A's outline colour and the colour 23c plans for the laptop screen (`STATE.md:205`). Nothing sets a background colour today. A surface is still there, so a click never reaches labwc. |
 | `file` | A picture of his, through the converter (section 4). It scales smoothly to cover the output, cropped centred. |
-| `town` | His town from the side, by day, as LAPTOP-HOME.md designs it. Kept as a kind, not the default. It costs nothing extra: its model and painter are on main, and package 3a only places that drawing on the picture surface. It takes no clicks and has no bar, clock or battery of its own. It needs a published home, so it is not offered on a laptop that never ran the world. If placing it shows a cost beyond that, the kind is left out. |
+| `town` | His town from the side, by day, as LAPTOP-HOME.md designs it. Kept as a kind, not the default. It costs nothing extra: its model and painter are on main, and package 3a only places that drawing on the picture surface. It takes no clicks and has no bar, clock or battery of its own. It needs a home the mod published, so it is not offered on a laptop that never ran the world. A home document the helper made itself does not count: it has no town (package 11). If placing it shows a cost beyond that, the kind is left out. |
 
 A left click on an empty picture does nothing. From package 9 a click on a still wakes the world (section 9).
 
@@ -458,6 +569,21 @@ A left click on an empty picture does nothing. From package 9 a click on a still
 The Video style is the Picture style with a moving background. Everything else is the same: his icons, the bar, the
 search, and a closed world.
 
+**A program of its own** (the lead's decision on review 3, finding 9). The video is played by the player, working
+name `aresos-video`. It is not a part of the native home.
+
+- **Its own process.** `aresos-home` never opens, decodes or draws a video, in any style. The bar, the search, the
+  icons and the picture share no loop, no renderer and no driver with the video.
+- **Its own surface.** `aresos-video`, on the background layer, above the picture's surface. It takes no clicks and
+  no keys.
+- **Its own scope.** `aresos-video.scope`, with a hard memory limit: `MemoryMax`, not only `MemoryHigh`. At the
+  limit the kernel ends the player, and only the player.
+- **So a video that stalls, leaks or crashes loses only the video.** The picture lies under it and shows the moment
+  the video's surface is gone. The bar, the search and the icons are untouched.
+- **Only in the Video style.** The supervisor starts the player then and at no other time. In the Minecraft style a
+  second screen shows the picture.
+- **The image ships no video.** The file is his own.
+
 **What it does**
 
 - **Looped.** The video runs from its end back to its start, with no black frame between.
@@ -465,51 +591,97 @@ search, and a closed world.
   headphones are not touched.
 - **Fitted like a picture of his:** scaled smoothly to cover the output, cropped centred.
 - **The picture is under it.** The chosen picture shows until the first frame is there, and whenever the video
-  cannot play: the file is gone, the decoder refuses it, or the player failed. A missing video never leaves a bare
-  screen.
+  cannot play: no file is set, the file is gone, the decoder refuses it, the player failed, or the video was turned
+  off. A missing video never leaves a bare screen.
 - **Paused when nobody sees it.** Paused means decoding stops and the last frame stays. It goes on where it stopped.
   - On an output that is covered (section 7's rule), or under a start-up cover or the black screen.
   - Everywhere while the screens are off or the lid is closed.
-- **Paused on battery below a level.** The setting `video-battery` is that level: `never`, `20`, `50`, or `always`
-  for "whenever on battery". Which one is the default is open. This note starts at `50`. Package 3V measures what a
-  playing video draws, and the lead asks the owner with that number. A machine with no battery never pauses for it.
+- **Paused on battery below a level.** The setting `video-battery-pause` says when: `never` (it plays on battery at
+  any level), `below-50`, `below-20`, or `always` (it never plays on battery). Which one is the default is open.
+  This note starts at `below-50`. Package 3V measures what a playing video draws, and the lead asks the owner with
+  that number. A machine with no battery never pauses for it.
 - **The file** is the setting `video-file`, checked when set as `picture-file` is. A local file only: never an
   address, a stream or a list. Package 3V names the formats the image can decode.
-- **Only in the Video style.** In the Minecraft style a second screen shows the picture.
+
+**The stack on a screen in the Video style,** from the bottom:
+
+| Surface | Whose | Layer | Holds |
+|---|---|---|---|
+| `aresos-picture` | the native home | background | the chosen picture |
+| `aresos-video` | the player | background, made after the picture's surface | the video |
+| `aresos-icons` | the native home | bottom | his icons, and nothing else |
+
+Above these are his windows, and the bar by section 8's rule.
+
+- **The icons get a surface of their own here.** The video lies above the picture, so icons drawn on the picture
+  would be hidden. The bottom layer is above the background layer by the protocol, so the icons are above the video
+  for certain ("Desktop icons" below).
+- **The video's surface is always the newer one.** labwc stacks two surfaces of one layer in the order they were
+  made (to verify, section 12). So the player makes its surface for a screen only after the native home has said
+  its picture is up there (`picture_shown`, section 5). It makes it again whenever the native home has made the
+  picture again: after a restart of the native home, and for a screen that was plugged in.
+- **The safe side.** If the order ever goes wrong, the video is hidden under the picture. Nothing else is.
+
+**How the supervisor runs it** (`linux-aresos`'s part of package 3V; the exception named above).
+
+- **Start.** In the Video style, once the view `home` is connected and has said its picture is up. In its own scope,
+  with the laptop home's pins to Mesa and Intel (`docs/design/LAPTOP-HOME.md:313-318`).
+- **No secrets.** The player gets no view token, no nonce and no socket of the helper's. It can ask the helper for
+  nothing. That matters because it decodes a file outside the picture converter's sandbox.
+- **What it is told.** The supervisor passes on what the helper reports: which screens have their picture up and
+  which of them are covered. It adds when a cover or the black screen is up. The player reads the video's settings
+  and the battery itself.
+- **The beat.** Once a second the player tells the supervisor that its loop runs, whether it plays or is paused, and
+  how many frames it has shown. The beat goes on a pipe from the supervisor. It never passes through the native
+  home or the helper.
+- **A stall is a missed beat.** Three seconds with no beat, or with no new frame while it plays: the supervisor ends
+  the player's scope and turns the video off.
+- **An end.** The player ends by itself, or the kernel ends it at its limit. After the first end the supervisor
+  starts it once more, 2 seconds later. After the second end the video is off. There is no time window: a file that
+  ends the player at every loop, minutes apart, is counted the same.
+- **Off.** The supervisor starts the player no more. The setting stays Video. The picture shows, with his icons, and
+  a toast says: "The video is off. Pick Video again to try it." It stays off for the session, also across a new
+  supervisor.
+- **On again.** He picks Video again or sets a video file, or he logs in again. The count starts at zero then.
+- **What is not an end:** the player stopped for a change of style or of its settings; started afresh after the
+  native home came back; or replaced by a new supervisor, which ends a player it finds and starts its own.
+- **What the supervisor does not do.** It never reads the file, and it starts or stops no world for a video. Gate
+  2's rules for OFF are not touched.
+- Three seconds, 2 seconds and "the second end" are starting values. The beat's exact form is package 3V's brief.
 
 **How it is drawn** (`linux-desktop`, INPUTS-2). The native home draws with Cairo only and loads no GPU driver
-(`docs/design/LAPTOP-HOME.md:297-300`). A video does not fit that as it is. There are two ways, and package 3V's
-first step measures both on the laptop's Intel chip.
+(`docs/design/LAPTOP-HOME.md:297-300`). That stays so in every style. The choice of renderer is the player's alone.
+There are two ways, and package 3V's first step measures both on the laptop's Intel chip.
 
 | Way | What it is | What it costs |
 |---|---|---|
-| GL | The background surface is drawn with GL, and the chip decodes the video (VA-API on the Intel chip). | A GPU driver in the program, and a second way of starting it. |
-| Capped | Cairo stays. The processor decodes the video and the frames are copied in as pictures. | Processor time for every frame. So resolution and frame rate are capped, and the video stops on battery at any level. |
+| GL | The player draws with GL, and the chip decodes the video (VA-API on the Intel chip). | A GPU driver in the player's process. |
+| Capped | The processor decodes the video in the player, and the frames go to the compositor as shared-memory pictures. | Processor time for every frame. So resolution and frame rate are capped, and the video stops on battery at any level. |
 
 These rules hold whichever way wins:
 
-1. **The other styles pay nothing.** In the Picture and Minecraft styles the native home stays as it is: Cairo only,
-   no GPU driver, no decoder loaded. LAPTOP-HOME.md's test that no driver is mapped stays for those styles.
-2. **One surface.** The video frame is the background of `aresos-picture`, and the same program draws the icons over
-   it. A second program's surface on the background layer would have no sure place below the icons.
-3. **On the compositor's chip, never on NVIDIA.** A program that draws on one chip while the compositor draws on the
-   other cost two and a half cores in the study (`docs/design/LAPTOP-HOME.md:350-357`). The laptop home's pins to
-   Mesa and Intel stay (`:313-318`). A background must never wake the NVIDIA card.
+1. **The native home pays nothing, in any style.** Cairo only, no GPU driver, no decoder loaded. LAPTOP-HOME.md's
+   test that no driver is mapped holds for the native home in the Video style too. In the Picture and Minecraft
+   styles no player runs.
+2. **Three surfaces in a sure order** (the stack above). A fault in the video reaches nothing above it and nothing
+   below it.
+3. **GL only on the Intel chip, never on NVIDIA.** A program that draws on one chip while the compositor draws on
+   the other cost two and a half cores in the study (`docs/design/LAPTOP-HOME.md:350-357`). So the GL way is used
+   only when the compositor draws on the Intel chip. If labwc draws on NVIDIA, or the player cannot tell, the GL way
+   is off: the capped way plays, or the picture shows if the capped way did not pass 3V's measurement. A background
+   must never wake the NVIDIA card.
 4. **A ceiling either way.** Never more pixels than the output has, and a ceiling on frames a second. Starting
    values: 30 frames a second with GL; 1280 × 720 at 24 without. Package 3V sets them from its measurement.
-5. **The video is the first thing to stop.** If the native home ends twice within a minute in the Video style, the
-   supervisor starts it without the video. The picture shows, the bar and the search work, the setting stays Video,
-   and a toast says the video is off until he picks it again. The native home's scope keeps a memory ceiling in
-   every style: the laptop home's is `MemoryHigh=640M` today (`docs/design/LAPTOP-HOME.md:319`), and 3V sets the
-   Video style's figure.
-6. **If GL wins, a change to or from Video restarts the native home.** GTK's way of drawing is chosen before GTK
-   loads. The program keeps no state, so nothing is lost; the bar and the search are away for about a second. A
-   change from the Minecraft world to Video first brings the native home up in its video form, and only then asks
-   for the world's stop. So the launcher check meets the program that will hold the home.
+5. **A hard limit.** The player's scope has `MemoryMax`, and swap is closed to it (`MemorySwapMax=0`), so a leak
+   ends the player instead of filling swap. Package 3V sets the figure from its measurement. If its runs show a
+   busy player slowing the bar, the scope also gets a low processor weight. The native home's own ceiling is as in
+   every style: the laptop home's is `MemoryHigh=640M` today (`docs/design/LAPTOP-HOME.md:319`).
+6. **A change of style never restarts the native home.** The bar and the search are there through every change.
 
 **Memory.** One video costs more than the laptop home's 60 MiB (`linux-desktop`). How much is not known. Package 3V
-reports the measured figure on the Intel chip. Video is not offered in the home menu before the lead has told the
-owner that figure.
+reports the measured figures on the Intel chip: the player's own scope, and what the native home gains in the Video
+style, which is the icons' surface. Video is not offered in the home menu before the lead has told the owner those
+figures.
 
 ### Desktop icons
 
@@ -519,9 +691,16 @@ each app, up to 200. Icons are for apps only: no files, folders or web pages.
 **Where they show.** In the Picture and Video styles, on every screen. Not in the Minecraft style: there his apps are
 the world's gates, and a second screen shows the picture and the bar. His places are kept for when he comes back.
 
-**On the background surface** (`linux-desktop`, INPUTS-2). Icons are drawn on `aresos-picture`, the surface that
-holds the picture or the video. Its input region is the whole output, so every click and drag on the home is the
-home's. labwc's own clicks on a bare desktop are already off (`rc.xml:40-44`, package 329).
+**Over the background, on a surface of the native home's** (`linux-desktop`, INPUTS-2; the Video case is new in
+revision 4).
+
+- In the Picture style icons are drawn on `aresos-picture`, the surface that holds the picture.
+- In the Video style the video's surface lies above the picture. So there the native home draws the icons on a
+  second surface of its own, `aresos-icons`, on the bottom layer: above the video and below every window. It is
+  see-through but for the icons.
+- Either way the surface's input region is the whole output, so every click and drag on the home is the home's.
+  labwc's own clicks on a bare desktop are already off (`rc.xml:40-44`, package 329).
+- One drawing routine and one layout serve both.
 
 **What a click does, as on the bar**
 
@@ -530,21 +709,34 @@ home's. labwc's own clicks on a bare desktop are already off (`rc.xml:40-44`, pa
 - **Right click on an icon:** the app's menu, the bar's own (section 8), with one more row: "Remove from home".
 - **Right click on the empty background:** the home menu: the styles, the picture, "Straighten icons", and alignment
   on or off.
-- **How an icon gets there:** "Add to home", a row in the app's menu on a bar slot and on a search hit.
+- **How an icon gets there:** "Add to home", a row in the app's menu on a bar slot and on a search hit. The first
+  icons are seeded (below).
 - An icon carries no open or active mark. The bar shows what is open.
 - **It draws as a bar slot draws:** the block logo where his home document has one, otherwise the app's catalogue
   picture.
 
 **The keyboard comes only by a click.** A click on the background or on an icon gives the home the keyboard, and
-nothing else does (section 4). With it, the arrow keys move a frame from icon to icon, Enter opens, the Menu key
-opens the menu, and Escape drops the frame. No key removes an icon. A click that opens an app hands the keyboard to
-that app's window, as any launch does.
+nothing else does (section 4). With it, the arrow keys move a frame from icon to icon, Enter opens, and Escape drops
+the frame. No key removes an icon, and no key opens a menu: the menus are pointer-only. A click that opens an app
+hands the keyboard to that app's window, as any launch does.
+
+**The first icons** (the owner, T498: "Starter icons column (recommended)").
+
+- A first normal home shows the starter apps as icons in one column at the top left of the home output, in the order
+  of the bar's starter pins (section 5). He removes any of them with a right click.
+- **Seeded once, by the helper.** When the helper makes its own home document (package 11) and no `icons.json`
+  exists, it writes the column in the same step. That is the only moment.
+- **Never on a home already in use.** A laptop with a home document gets none, whether the mod published it or the
+  helper made it before package 3I. Neither does a laptop with an `icons.json`, also an empty one or one moved
+  aside. So the owner's laptop is not touched, and icons he removed never come back.
+- If the column is longer than the icon area, it goes on in a second column to the right.
+- With no starter apps there is no column.
 
 **Free placement, and straightening** (the owner, T494).
 
 - He drops an icon anywhere in the icon area. With `icon-align` off it stays exactly there.
-- With `icon-align` on, the drop is straightened against the icons already on that screen. Only the icon he dropped
-  moves. Icons at rest never jump.
+- With `icon-align` on, the drop is straightened against the icons already on that screen. On a drop only the icon
+  he dropped moves; no icon at rest jumps.
   1. *Shared rows and columns.* If its centre is within half an icon cell of the row through another icon's centre,
      it takes that row. Columns are tested the same way, on their own. Near a crossing it takes both: that is how a
      grid forms.
@@ -557,7 +749,8 @@ that app's window, as any launch does.
   waits at the edge, so no icon ever sits under the bar.
 - **"Straighten icons"** does it for a whole screen at once. Icons that nearly share a row or a column are put on
   one line, and nearly even gaps are made even. It is for icons he placed with the setting off, and it runs once when
-  he turns the setting on. The places from before are kept until his next drag, and the menu offers "Undo".
+  he turns the setting on. It works on the kept places, not on where a smaller screen draws them. The places from
+  before are kept until his next drag, and the menu offers "Undo".
 - **The setting starts on.** He asked for clean lines to be easy. Away from every line a drop is still free.
 - "Half a cell" is a starting value. The icon cell's size comes from the look pack. `linux-desktop` tunes both on the
   laptop.
@@ -566,7 +759,8 @@ that app's window, as any launch does.
 one file that the tests read. They must show:
 
 - With the setting off, places out equal places in.
-- With it on, only the dropped icon moves, and never more than half a cell except to clear another icon or the edge.
+- With it on, only the dropped icon moves, and never more than half a cell on each axis, except to clear another
+  icon or the edge.
 - No two icons overlap, and none is outside the area.
 - A straightened screen is unchanged by straightening it again.
 - "Straighten icons" keeps the order along every row and column, and moves no icon by more than one cell.
@@ -574,7 +768,7 @@ one file that the tests read. They must show:
 **Where the places are kept.** The helper keeps them in `icons.json` (section 5). The native home keeps none, so
 ending it loses nothing.
 
-- One entry for each icon: the app's ID, the screen's name, and its place in logical pixels from the top left of
+- One entry for each icon: the app's ID, the screen's identity, and its place in logical pixels from the top left of
   that screen's icon area.
 - The native home sends a place when he drops, not while he drags.
 - It lives with his settings and not with the supervisor's state, because it is his arrangement. A backup of his
@@ -592,17 +786,22 @@ ending it loses nothing.
 
 **Several screens.**
 
-- An icon belongs to the screen he dropped it on, by that screen's name. A drag across the shared edge moves it to
-  the other screen.
+- An icon belongs to the screen he dropped it on. A drag across the shared edge moves it to the other screen.
+- **A screen is known by its make, model and serial number** where the output gives them, and by its connector name
+  otherwise. So a monitor keeps its icons on another socket or behind a dock.
+  *To verify in package 3I:* where labwc 0.9.6 gives a client those three.
 - **An unplugged screen takes its icons with it.** They are kept and come back with the screen. They do not move to
   the other screen by themselves, because that would wreck both arrangements. "Bring all icons here" in the home
   menu moves them if he wants them. Every app stays reachable from the bar and the search meanwhile.
 - **A screen that comes back smaller, or at another scale, still shows every icon.** One whose place is outside the
   area is drawn at the nearest free place inside. Its kept place is not changed, so it goes back when the screen is
-  big again.
+  big again. "Straighten icons" there works on the kept places too, so a place the small screen only displaced is
+  never saved as his.
 
 **Memory.** A catalogue picture is decoded in the sandboxed child (section 4) and kept at its drawn size only. Kept
-whole, a 512 × 512 picture is 1 MiB, and two hundred would be 200 MiB. Package 3I measures the home with 50 icons.
+whole, a 512 × 512 picture is 1 MiB, and two hundred would be 200 MiB. In the Minecraft style the native home shows
+no icons and drops their pictures. Package 3I measures the home with 50 icons. It also times the first draw of 200:
+each picture is one sandboxed child (laptop home `:214-278`).
 
 ### The supervisor's states
 
@@ -626,11 +825,11 @@ whole, a 512 × 512 picture is 1 MiB, and two hundred would be 200 MiB. Package 
 | the same | the save is not confirmed | back where it was; the style stays Minecraft world |
 | any state with a running game | his own quit, or a plain `stop` | OFF (`quit`), for this session |
 | a boot in a normal style | | OFF (`off`): helper and native home, no Prism |
-| OFF (`off`), OFF (`quit`) | his request (the home menu, a search row, `world on`), admitted | STARTING; on a laptop with no home yet, SETUP |
+| OFF (`off`), OFF (`quit`) | his request (the home menu, a search row, `world on`), admitted | STARTING; from package 12, on a laptop with no home yet, SETUP |
 | the same | his request, not admitted | OFF, with a pending start |
 | OFF with a pending start | a later sample admits it | STARTING |
 | OFF with a pending start | world off, `stop`, `logout`, a shutdown, the session's end | OFF, and the pending start is gone |
-| SETUP, on a laptop with no home yet | it ends without a home | OFF (`off`), and the style is Picture again |
+| SETUP, on a laptop with no home yet (from package 12) | it ends without a home | OFF (`off`), and the style is Picture again |
 
 **OFF starts nothing by itself.**
 
@@ -642,23 +841,24 @@ whole, a 512 × 512 picture is 1 MiB, and two hundred would be 200 MiB. Package 
   (section 12).
 - The first start ever (SETUP, the sign-in) begins only when he picks the Minecraft world. Until package 12 a fresh
   laptop's default is still the Minecraft world, and its first boot is the first start, as today.
+- The video's player is no world. Starting or stopping it is no start in the sense of these rules.
 - **What makes these rules hold across a crash, a new supervisor and an old restart deadline is gate 2.** Package 7
   does not start before it passes.
 
 ### Memory in each style
 
-| Style | The game | Prism | The native home | Source |
-|---|---|---|---|---|
-| Minecraft world, today | about 1,019 MiB (its scope's anonymous memory; soft limit 2,560 MiB) | about 418 MiB while the game runs | not running | The laptop on R28, 2026-11-21 (`docs/HUB-HANDOFF.md:46`) |
-| Minecraft world, this design | the same | the same | about 60 MiB with no picture surface | 53f's measurement of the laptop home; an estimate for the new program |
-| Picture | 0 | 0 | about 60 to 80 MiB, and his icons' pictures at their drawn size | estimate from the same measurement |
-| Video | 0 | 0 | more than Picture; not measured | INPUTS-2; package 3V measures it |
+| Style | The game | Prism | The native home | The player | Source |
+|---|---|---|---|---|---|
+| Minecraft world, today | about 1,019 MiB (its scope's anonymous memory; soft limit 2,560 MiB) | about 418 MiB while the game runs | not running | not running | The laptop on R28, 2026-11-21 (`docs/HUB-HANDOFF.md:54`) |
+| Minecraft world, this design | the same | the same | about 60 MiB with no picture surface | not running | 53f's measurement of the laptop home; an estimate for the new program |
+| Picture | 0 | 0 | about 60 to 80 MiB, and his icons' pictures at their drawn size | not running | estimate from the same measurement |
+| Video | 0 | 0 | as Picture, and one see-through surface for the icons on each screen | its own scope, under a hard limit; not measured | INPUTS-2; package 3V measures both |
 
 - A normal style frees about 1.4 GiB of the laptop's 16.
 - These are single readings of a settled world, not of a start. What a start needs at its peak is not measured;
   gate 3 measures it.
 - A picture costs about 8 MiB for each 1920 × 1080 output. GTK may keep two (`docs/design/LAPTOP-HOME.md:331-335`),
-  and a larger monitor costs more.
+  and a larger monitor costs more. The icons' surface in the Video style costs the same again.
 - The helper and the supervisor are two small Python programs that run in every style. They were not measured.
   Package 7 measures all four on the laptop.
 - The owner's own reading for the visible game is 1.2 to 1.3 GB.
@@ -670,7 +870,7 @@ whole, a 512 × 512 picture is 1 MiB, and two hundred would be 200 MiB. Package 
 **Where the world goes.** To the home output. Package 23c's rule stands: any enabled screen that is not the laptop's
 panel, the larger of two, the first connected on a tie; a closed lid counts as monitor only. 23c plans the move
 itself: at boot the world opens there, plugged in later it moves there, unplugged it returns. Its mechanism is
-still "the lead's first choice, a design step confirms" (`STATE.md:202`). This note relies on the rule, not on the
+still "the lead's first choice, a design step confirms" (`STATE.md:205`). This note relies on the rule, not on the
 mechanism.
 
 **One place for the rule.** The helper works out the home output, because it already binds every output and needs
@@ -686,6 +886,9 @@ normal style there is no window to ask, so the rule cannot hang on the world's w
 | off, in the Minecraft style (closed for this session) | the picture, and the bar | the picture, and the bar |
 | off, in a normal style | the picture or the video, that screen's icons, and the bar | the same, with its own icons |
 
+- **Who builds which part.** In a normal style both screens are the home from package 3b1 on. That needs nothing of
+  23c, because no world window is involved. The icons reach every screen with package 3I and the video with 3V.
+  Beside the world, the second screen is package 3b2's, with 23c.
 - **No screen is ever bare.** An output gets its picture surface the moment it appears. The surface goes away only
   once `screens` says the awake world's window is on that output, and it is back before the world leaves. So during
   a move the monitor shows the picture until the world arrives. This also ends "a monitor plugged in later stays
@@ -693,7 +896,8 @@ normal style there is no window to ask, so the rule cannot hang on the world's w
 - With one screen and the world on, no picture surface exists and no picture memory is spent.
 - **Icons go by their own screen** (section 6). Each screen shows the icons he dropped there.
 - **One video for every screen.** The same video plays on every screen that shows the home, and it is decoded once.
-  Each screen pauses by its own covering. Decoding stops when no screen shows it.
+  The player holds one surface for each screen. Each screen pauses by its own covering. Decoding stops when no
+  screen shows it.
 - **A screen plugged in while the world sleeps** (package 9). The still moves to the new home output at once,
   scaled as a picture of his is. The frozen window is left alone. At the next wake the supervisor moves the window
   first, and the helper shows it after that.
@@ -724,8 +928,9 @@ output is covered (section 8). And a video pauses on an output while it is cover
   output and the world is awake. On the other output the focus stays there. A sleeping world gets a wake request
   instead.
 - A click on the world or on the picture never hides a part-screen app. The world stays below every window, and the
-  picture is below the world. A click on the picture ends on the picture: it never reaches labwc. In a normal style
-  it gives the home the keyboard (section 6), and it still hides no window.
+  picture is below the world. A click on the home's background ends on a surface of the native home's: it never
+  reaches labwc, and never the video. In a normal style it gives the home the keyboard (section 6), and it still
+  hides no window.
 
 ---
 
@@ -736,7 +941,7 @@ output is covered (section 8). And a video pauses on an output while it is cover
 | Slot | Content |
 |---|---|
 | Home | First slot. World awake: a click goes home, and what covers the world goes down by today's rule. Asleep: it wakes the world. In a normal style: it opens the home menu, which lists the three styles with his one marked, and the picture. In the Minecraft style with the world closed for this session: the menu's first row is "Start the Minecraft world". While a start is pending the menu has "Start anyway". |
-| His nine pins | The Live hotbar's nine slots in its order, as `publish_home` gives them. An empty pin is an empty slot. On a laptop that never ran the world they are the helper's own pins (package 11). |
+| His nine pins | The Live hotbar's nine slots in its order, as `publish_home` gives them. An empty pin is an empty slot. On a laptop that never ran the world they are the helper's own pins (package 11): the starter apps, nine at most. |
 | Other open apps | After a gap: every open app that is not pinned, in the order they opened. A slot leaves when its last window closes. |
 | Status icons | The desktop's component. They sit in the bar. |
 
@@ -783,6 +988,8 @@ One bar on every output, the same content on each (the owner, T484). The helper 
 - **No resize loop.** `edge` follows covering, and covering follows the maximized and full-screen states, not
   sizes. A maximized window covers its output whatever the zone is.
 - **A full layout** counts as filling once the covering package ships. That is one condition in the helper.
+- **A video changes nothing here.** The bar is the native home's, and the video is the player's. Whether the video
+  plays, pauses, fails or is off, the screen is row 4.
 
 ### Reveal and hide
 
@@ -834,7 +1041,7 @@ state. The helper takes the first route that holds:
    or when the wake is not admitted, the supervisor opens its message window (section 12's chain, link 3).
 
 **For 23c.** Its plan lets Super do nothing outside IN_WORLD, and signals only a helper whose desktop is connected
-(`STATE.md:204`). Super must pass in every state, and also when only a view is connected.
+(`STATE.md:207`). Super must pass in every state, and also when only a view is connected.
 
 ---
 
@@ -929,7 +1136,8 @@ launcher, the search or the hotbar away, or makes one worse, before its replacem
 how each package shows that.
 
 Sizes: S is one builder step, M two or three, L four or more. The rows are in build order. The numbers are kept
-from the first version of this note. Package 3 is now four parts: 3a, 3b, 3I and 3V. Packages 11 and 12 are new.
+from the first version of this note. Package 3 is now five parts: 3a, 3b1, 3b2, 3I and 3V. Packages 11 and 12 came
+with revision 3.
 
 | # | Package | He sees | Lead | Needs | Size |
 |---|---|---|---|---|---|
@@ -937,22 +1145,24 @@ from the first version of this note. Package 3 is now four parts: 3a, 3b, 3I and
 | 2 | **Open apps and "bring back".** `apps_state` and `activate_app`, with `open_app` kept as the fallback. The mod marks hotbar slots, sends `activate_app` from a left click, gates and `/name`, and adds the right click on a slot. | Open and active marks on the hotbar. A left click brings Chrome back with its tab. A right click opens a new window. | hub | Nothing. Beside 1. | M |
 | 3a | **The picture, one screen.** First the laptop home split into modules: no change in what it does, nothing removed. Then the program started by the supervisor, the view `home`, `aresos-picture` with `plain`, `black` and `file`, the converter, the picture settings, and `screens` from the helper. | The plain picture wherever no world shows, for example behind the sign-in window. | desktop, with hub for `screens` and aresos for the start | 1 | M |
 | 6 | **Search outside.** The finder as `aresos-search`. Super's one route. The alive beat. The recovery key's third action. `notice`, and a first `aresos-toast` in look A. | Super works over any app and minimizes nothing. | hub, with desktop for the surfaces | 2, 3a, 23c's Super step | M |
-| G2 | **Gate 2's step.** OFF, its records and the two doors in the supervisor, and a start that needs nothing of Minecraft's (row 8). Reachable by command only and only in the test rig. The image's command refuses OFF until package 7 ships. | Nothing. | aresos | 1 | M (was S; row 8 is new) |
+| G2 | **Gate 2's step.** OFF, its records and the two doors in the supervisor, and a start that needs nothing of Minecraft's (row 8). Reachable by command only and only in the test rig. The image's command refuses OFF until package 7 ships. | Nothing. | aresos | 1, 3a (row 8's test starts the native home, which the supervisor starts from 3a on) | M (was S; row 8 is new) |
 | 7 | **The home style switch.** The setting `home`, with `minecraft` still the default. The row in the AresOS menu, the search's rows, Prism's scopes, the memory check on the laptop. A normal style shows the chosen picture; no still, no icons and no video yet. | He can pick the picture home, and pick the Minecraft world again. | aresos with hub | 6 (so 1, 2 and 3a), gate 2 | M |
 | 4 | **The bar outside.** `aresos-bar` in look A, slots and marks, the app menu, the home menu, the window requests, and section 8's rule with its zone. | A bar on the picture. Windows stop above it wherever section 8's rule gives it a zone. The home menu on the Home slot and on a right click on the picture. | desktop (surface) with hub (content) | 2, 3a, 6 (toasts) | L |
 | 5 | **The bar at the bottom edge.** The strip, reveal and hide, tested against B321's barrier. | The pointer at the bottom edge brings the bar up over an app. | desktop | 4 | M |
-| 11 | **Pins without the world.** The helper's own home document from the image's starter apps. `set_pin`, and Pin and Unpin in the app's menu while no world runs. | On a laptop that never ran the world, the bar has apps in it, and he can change them. | hub | 4 | M |
-| 12 | **The default flip.** The default of `home` becomes `picture`. The rule that keeps a laptop with a home on `minecraft`. A boot that never begins a first start. The first start from the home menu, and the way back out of it. The install guide's first-start steps (`docs/INSTALL.md`). | A fresh AresOS starts on the picture home. His own laptop does not change. | aresos with hub | 3a, 4, 5, 6, 7 (so gate 2), 11 | S |
-| 3I | **Desktop icons.** The helper's `icons.json` and the icon requests. Icons on the background surface, click and menu, dragging, the alignment rule and its cases, the keyboard by a click, several screens. | Icons on the normal home that he places freely and that straighten themselves. | desktop (surface, dragging, alignment, look) with hub (the keeper, click and menu rows) | 4, 7 | L |
-| 3V | **Video backgrounds.** First one measuring step: both ways of drawing on the Intel chip, with memory, processor and battery, reported to the lead. Then the player: loop, no sound, the pause rules, `video-battery`, the picture under it, and the fall back to the picture. | "Video" in the home menu. | desktop | 3a, 7. The measuring step needs only 3a. | M; L if GL wins and the home needs a second way to start |
-| 3b | **The second screen.** The picture and the bar on the output without the world, and the hotplug rules. | With the monitor in, the laptop screen shows the picture and a bar. | desktop with aresos | 3a, 4, 23c | S |
+| 11 | **Pins without the world.** The helper's own home document from the image's starter apps: nine at most, none if there are none. `set_pin`, and Pin and Unpin in the app's menu while no world runs. Rows without a logo only to a view that negotiated `pins`. | On a laptop that never ran the world, the bar has apps in it, and he can change them. | hub | 4 | M |
+| 3b1 | **Every screen, in a normal style.** A picture surface and a bar on every output while the style is a normal one, made the moment an output appears. No world window is involved, so it needs nothing of 23c. | In a normal style with the monitor in, both screens show the picture and a bar. | desktop | 3a, 4, 7 | S |
+| 3I | **Desktop icons.** The helper's `icons.json` and the icon requests. Icons over the background, click and menu, dragging, the alignment rule and its cases, the keyboard by a click. Each screen's own icons, by the screen's identity. The starter column, seeded once on a first normal home. | Icons on the normal home, on every screen, that he places freely and that straighten themselves. A first normal home starts with the starter apps in a column. | desktop (surface, dragging, alignment, look) with hub (the keeper, the seeding, click and menu rows) | 4, 7, 11, 3b1 | L |
+| 12 | **The default flip.** The default of `home` becomes `picture`. The rule that keeps a laptop with a home on `minecraft`. A boot that never begins a first start. The first start from the home menu, and the way back out of it. The install guide's first-start steps (`docs/INSTALL.md`). | A fresh AresOS starts on the picture home, with its starter pins and icons. His own laptop does not change. | aresos with hub | 3a, 3b1, 3I, 4, 5, 6, 7 (so gate 2), 11 | M (was S; review 3, finding 15) |
+| 3V | **Video backgrounds.** First one measuring step: both ways of drawing on the Intel chip, with memory, processor and battery, reported to the lead. Then the player, `aresos-video`: its own process, surface and scope; loop, no sound, the pause rules, `video-battery-pause`, a surface on every screen. The supervisor's part: start and stop, the hard limit, the beat, and turning the video off. The icons' own surface in the Video style. | "Video" in the home menu, on every screen. | desktop (the player, the surfaces), with aresos (the supervisor's part) and hub (the lines the helper passes on) | 3a, 3b1, 3I, 6, 7. The measuring step needs only 3a. | L (was M; a program of its own and a supervisor part) |
+| 3b2 | **The second screen beside the world.** The picture and the bar on the output without the world, the surface that leaves when the world arrives, and the hotplug rules with a moving world. | With the monitor in and the world on it, the laptop screen shows the picture and a bar. | desktop with aresos | 3a, 4, 3b1, 23c | S |
 | 8 | **Stills and the quiet start.** The lifecycle channel's `still`. A still before every planned stop. The boot path. The world's window minimized until ready. | Boot shows his home at once; it comes alive when ready. | hub (mod) with aresos | 3a, 4 | L |
 | T364 | **The study: gates 1 and 3.** Its rigs and its measurements on the image. | Nothing. | hub with aresos | Nothing. Package 8's stills help its rig. | L |
 | 9 | **The sleeping world.** `sleep`, `wake`, `resume`, the sleeping states, the wake signals. | The world sleeps and wakes. | hub with aresos | 7, 8, gates 1 and 3 | L |
 
-**Packages 1, 2, 3a, 3b, 3I, 3V, 4, 5, 6 and 11 depend on no gate. Package 8 depends on none either:** it adds stills
-and a hidden start, and no sleep, freeze, wake or new start. If its brief grows one of those, gates 1 and 3 apply to
-it. Package 12 depends on gate 2 through package 7.
+**Packages 1, 2, 3a, 4, 5, 6 and 11 depend on no gate. Package 8 depends on none either:** it adds stills and a
+hidden start, and no sleep, freeze, wake or new start. If its brief grows one of those, gates 1 and 3 apply to it.
+Packages 3b1, 3I, 3V, 3b2 and 12 have no gate of their own. Each needs package 7, so each stands behind gate 2 with
+it.
 
 **What must still work after each package**
 
@@ -964,10 +1174,11 @@ it. Package 12 depends on gate 2 through package 7.
 | 6 | Super over an awake world when the native search is absent, silent or hung. | Kill the native home: Super reaches the mod's search. Stop it mid-search: the alive beat ends it within seconds, and then Super does. The recovery key ends it with the supervisor stopped. |
 | 7 | A launcher at every moment, and the way back. | With the native home killed, and again with it stopped (hung), a change to a normal style is refused with one line. In OFF, `world on` from the recovery terminal starts the world. With Minecraft's pin file made unreadable, a boot in a normal style still shows the home. |
 | 4 | The world's own hotbar, untouched. | The mod's tests. The old view's slots, clock and battery leave only in this package. |
-| 11 | The world's own pins, while a world runs. | With the mod connected, `set_pin` is refused and the published pins stand. With no home ever published, the bar shows the starter pins and the search opens every app. |
-| 12 | His laptop as it was, and a fresh laptop without Minecraft. | In a VM. An update over a home that was ready once boots into the world; the file had no `home` value before and has `minecraft` after. A fresh install boots to the picture home with no network and with the pin file unreadable. Picking the Minecraft world shows Prism's sign-in uncovered. Closing it, failing it and rebooting in the middle each leave the picture home, and the next boot opens no sign-in. |
-| 3I | The bar and the search, whatever the icons do. | With a broken `icons.json`: no icons, the bar and the search work, and the file is kept aside. With the helper killed in mid-drag: the icon is back at its last kept place. An app removed and installed again gets its place back. |
-| 3V | The home without the video. | A file that is gone, a file the decoder refuses, and the player killed twice in a minute: each time the picture shows, the bar and the search work, and the setting is not changed. In the Picture style no GPU driver is mapped in the native home. |
+| 11 | The world's own pins, while a world runs. The old view. | With the mod connected, `set_pin` is refused and the published pins stand. With no home ever published, the bar shows the starter pins and the search opens every app. A view on minor 2, or one that did not negotiate `pins`, gets no row without a logo: its `get_home` answers as with no home. With an empty registry: nine empty pins, and the search still opens every installed program. |
+| 3b1 | The home on one screen, and the Minecraft style as it is. | With one screen nothing changes. In a normal style a second output is added and taken away in the rig: the first screen's picture and bar never leave, and the second has both while it is there. In the Minecraft style nothing new is drawn on any output. |
+| 3I | The bar and the search, whatever the icons do. A home already in use. | With a broken `icons.json`: no icons, the bar and the search work, and the file is kept aside. With the helper killed in mid-drag: the icon is back at its last kept place. An app removed and installed again gets its place back. On a laptop with a home document or an `icons.json`: nothing is seeded, and his pins and icons are as they were. On a first normal home the column appears once; after he has removed every icon, a new login brings none back. |
+| 12 | His laptop as it was, and a fresh laptop without Minecraft. | In a VM. An update over a home that was ready once boots into the world; the file had no `home` value before and has `minecraft` after. A fresh install boots to the picture home with no network and with the pin file unreadable. Its first home shows the starter pins and the starter column, and with a second output the picture and a bar on both screens. Picking the Minecraft world shows Prism's sign-in uncovered. Closing it, failing it and rebooting in the middle each leave the picture home, and the next boot opens no sign-in. |
+| 3V | The bar, the search and the icons, whatever the video does. | Five runs in the Video style. A file that is gone, and a file the decoder refuses: the picture shows and the setting is not changed. A decoder that hangs (the player stopped by a signal stands in): the video is off within five seconds, with its toast. A file that ends the player at each loop: the video is off after the second end, however far apart the ends are. A player that grows to its limit: the kernel ends it in its own scope, and no other scope is touched. In every run Super opens the search and a bar click opens an app within one second, during the fault and after it. In every style the native home's process has no GPU driver and no decoder mapped. In the Picture and Minecraft styles no player runs. |
 | 8 | The start-up cover when there is no still, and every recovery window in view. | A first boot shows the cover. A slow start shows `slow_start` over the still. |
 
 **Dropped:** package 10, "One bar". The owner keeps both bars (T483). Both look alike in look B, so one bar stays
@@ -980,8 +1191,10 @@ possible later as a setting if he changes his mind.
 - pins he changed outside carried into the world (hub);
 - look B for the bar, with the desktop's look work;
 - a full layout that counts as filling, with the covering package;
-- a chooser for the picture and the video file, and a settings window outside the game (desktop with hub);
+- a chooser for the picture and the video file, and a settings window outside the game (desktop with hub). A video
+  preview is never decoded in the native home;
 - moving several icons at once, and files or folders on the home (desktop);
+- shut down, restart and log out as rows in the home menu and the AresOS menu (hub with aresos);
 - a "Normal" look, if the owner wants it (question 7; desktop).
 
 **Order notes**
@@ -993,30 +1206,35 @@ possible later as a setting if he changes his mind.
 - **The owner's switch does not wait for the flip.** Package 7 gives him the choice on his laptop. Package 12 only
   changes what a fresh AresOS starts with.
 - **What the flip waits for.** INPUTS-2 names the picture, the bar, the search and the style switch: packages 3a, 4,
-  6 and 7, and gate 2 through 7. This note adds two. Without package 5 a fresh AresOS has no bar over a maximized
-  app. Without package 11 its bar has nine empty slots that he cannot fill. Neither is about harm, because Super's
-  search opens every app either way. So the lead can flip without them.
-- **Package 3 is split, not grown.** Only 3a stands before the switch and the flip, and it stays the size the
-  reviews saw. The video needs a measurement before anyone can offer it. The icons need the bar's menu and a new
-  file in the helper. Either one inside 3a would hold up the owner's switch for things it does not need.
-- **3I before 3V.** The owner described the icons in detail (T494), and they carry no open choice of renderer. 3V's
-  measuring step can run early, beside package 4, because it needs only 3a's surface.
+  6 and 7, and gate 2 through 7. Revision 3 added packages 5 and 11, and review 3 found both needed. Without 5 the
+  first maximized app hides the bar for good, and `rc.xml:47` maximizes the terminal. Without 11 the bar has nine
+  empty slots. The lead's decision on review 3 adds package 3I: the owner chose a first home with starter icons
+  (T498). 3I needs 3b1, so a fresh AresOS with a monitor has its home on both screens.
+- **Package 3 is split, not grown.** Only 3a stands before the switch, and it stays the size the reviews saw. The
+  video needs a measurement before anyone can offer it. The icons need the bar's menu and a new file in the helper.
+  Either one inside 3a would hold up the owner's switch for things it does not need.
+- **3b is split too.** 3b1 is the part a normal style needs: a picture and a bar on every output, with no world
+  window to move. It comes before 3I and 3V, so both are built for every screen from their first day. 3b2 is the
+  part beside the world, and it waits for 23c.
+- **3I before the flip, 3V after it.** The owner described the icons in detail (T494), chose the first ones (T498),
+  and they carry no open choice of renderer. The flip waits for 3I and not for 3V. 3V's measuring step can run
+  early, beside package 4, because it needs only 3a.
 - **What the switch needs from the bar's package has moved forward.** `screens` comes with 3a, and `notice` with a
   first toast comes with 6. So package 7 can say that the world is closed, that a start waits, and why a request was
   refused.
 - **Gate 2's step comes first, and alone.** It builds OFF in the supervisor with no setting, no menu row and no
   caller. Nothing of the switch that he can reach is built before its tests pass.
-- **Only 3b waits for the monitor work.** The search needs 23c's Super step alone: the key binding and
+- **Only 3b2 waits for the monitor work.** The search needs 23c's Super step alone: the key binding and
   `aresos-desktop search`. If 23c is later, `linux-aresos` pulls that step forward. With two screens the search's
   app opens on the home output only once 23c places windows.
-- **Who takes the laptop home over.** It belongs to `linux-laptop-home` today (`docs/HUB-HANDOFF.md:112`). This
+- **Who takes the laptop home over.** It belongs to `linux-laptop-home` today (`docs/HUB-HANDOFF.md:120`). This
   note's choice: `linux-laptop-home` splits the 2,637-line file into modules as its hand-over step, then
   `linux-desktop` leads the program and the hub leads its content modules. The three leads confirm that before
   package 3a's brief. Two leads in one file would be a merge hazard.
 - Package 1 changes when the helper starts, so it touches 23c's plan. `linux-aresos` reads it first.
 - Every `rc.xml` change goes to `linux-aresos` first, as always. This note adds one: the recovery key's third action
   (6). Clicks on a bare desktop are off since package 329.
-- The desktop writes its own briefs for 3a, 3b, 3I, 3V, 4 and 5 once this note is reviewed.
+- The desktop writes its own briefs for 3a, 3b1, 3b2, 3I, 3V, 4 and 5 once this note is reviewed.
 
 ---
 
@@ -1052,6 +1270,11 @@ possible later as a setting if he changes his mind.
    He drags icons freely. A setting, on from the start, recognizes the rows, columns and grids he is making and
    straightens them: shared lines and even spacing. With it off, an icon stays where he drops it (section 6).
 
+8. **What is on a normal home the first time it shows** (T498): "Starter icons column (recommended)".
+   The first normal home shows the picture, the bar with the image's starter apps pinned, and those apps as icons in
+   one column at the top left. Each can be removed with a right click. The icons are seeded once, and never on a
+   home already in use. The flip to the picture home waits for the package that brings them (sections 6 and 10).
+
 ### Answered by his guideline
 
 7. **AresOS can also run as a completely normal OS** (the owner via `mac-capacity`, 2026-11-22, confirmed as a
@@ -1065,12 +1288,9 @@ possible later as a setting if he changes his mind.
    switch would double what must be built and tested. `linux-desktop` draws the Normal look and shows it to him
    before anything is built. Until then a fresh AresOS wears look A. Section 12 has what it covers.
 
-### Open, each with a recommendation
+### Open
 
-8. **What is on a normal home the first time it shows?**
-   *Recommendation:* the picture, the bar with the image's starter apps pinned, and those same apps as icons in one
-   column at the top left. An empty picture gives a new user nothing to click, and the column shows that icons exist
-   and can be moved. He removes any of them with a right click. The other choice is a clean picture with no icons.
+Nothing is open. Question 8 was the last, and T498 answers it.
 
 ### To tell him, not to ask
 
@@ -1081,6 +1301,8 @@ possible later as a setting if he changes his mind.
 - **One click opens an icon,** as on the bar. A drag moves it. A right click opens the app's menu.
 - **The video is silent** and pauses when a window fills the screen and on low battery. It is offered once its cost
   is measured.
+- **A video that fails is turned off, and the picture stays.** The bar and the search are not affected. He picks
+  Video again to try it.
 - **His own picture or video is set by a command for now,** which Claude can run for him. A chooser comes later.
 - **The search keeps its look.** The search outside the game replaces the one over the world that he chose the Bar
   look for (board #382). It is drawn in that same look.
@@ -1133,10 +1355,10 @@ ask how soon the world should sleep, with measured wake times.
 | **A normal home with no way to open an app.** | A change to a normal style is refused while no view `home` with the search is connected (section 6). |
 | **A normal home that dies with Minecraft's files.** | In a normal style the boot reads no pin file, makes no instance and starts no Prism. A fault there shows only when he picks the Minecraft world (gate 2, row 8). |
 | **The update that flips the default takes his home away.** | A laptop that has had a home is set to `minecraft` before the style is read, at every supervisor start (section 6). Package 12's VM test shows it. His world's files are not touched either way. |
-| **A video that takes the bar and the search down with it.** | The video is the first thing to stop: after two ends in a minute the native home starts without it (section 6). The launcher check for leaving the world meets the program in its video form. |
+| **A video that takes the bar and the search down with it.** | The video is not in the program that holds them. It plays in a process, a surface and a scope of its own, under a hard memory limit. A stall, a leak or a crash loses only the video, and the picture shows under it. After a second end or one missed beat the supervisor turns the video off and says so (section 6). Package 3V's tests check the bar and the search during each fault. |
 | **A home that cannot come back.** | A chain, each link independent of the one before: (1) the native home is restarted when it ends, for as long as the session lasts; (2) the world's own hotbar and the mod's search never depend on the native home; (3) in OFF, after the native home's third failed start, and whenever Super finds no view and no awake world, the supervisor opens its message window. It says how to try the bar again (`retry`) and how to start the world (`world on`), and it starts nothing; (4) the same commands work from the recovery terminal; (5) if the world cannot start either, today's recovery window says why. His open apps stay reachable by Alt+Tab throughout. |
 | **A hung search that holds the keyboard.** | Three ways out. The search sends an alive beat from its drawing loop; after three silent seconds the supervisor ends the native home's scope. The recovery key gets a third action, first in line, that kills `aresos-home.scope` through the user manager. It needs no supervisor and no helper, and it is what lets the terminal get the keyboard (`docs/design/COMPONENTS.md:1204-1208`). And Escape or a click outside closes a search that still answers. The program keeps no state of its own, so ending it loses nothing. |
-| **A dead session because a new piece fails.** | The native home is never part of readiness. Its restarts are spaced and never end the session. A click on a bare desktop already does nothing (`rc.xml:40-44`, package 329). |
+| **A dead session because a new piece fails.** | The native home is never part of readiness, and neither is the player. Their restarts are spaced and never end the session. A click on a bare desktop already does nothing (`rc.xml:40-44`, package 329). |
 | **The helper is needed more than before.** | Its restarts never stop for good, and every new helper gets the running launch's nonce, so the world's own hotbar and search open apps again after it (section 5). While it is away the bar shows its last state and "Opening is back in a moment". |
 | **A sleeping world while the helper or the native home is gone.** | Gate 1, row 8. |
 | **Mojang's files in the repo.** | The still and look B's cache stay in his cache folder. They never go into the repo, an image, a backup or a report. Public pictures are look A. |
@@ -1169,8 +1391,9 @@ The home must never kill his work. This note decides the structure. Gate 3 has t
 6. **The awake world is the limit, as today.** If the system kills an awake world, up to five minutes of building
    are lost (`docs/design/HUB.md:59`) and `killed` latches as today. Before package 9 this note lowers that risk in
    one way: he can pick a normal style.
-7. **A video never competes with his apps.** The native home's scope keeps its memory ceiling in the Video style,
-   so a video that grows is throttled and his apps are not (section 6). Package 3V sets the figure.
+7. **A video never competes with his apps.** The player's scope has a hard memory limit and no swap. A video that
+   grows is ended inside its own scope. His apps and the native home are not touched (section 6). Package 3V sets
+   the figure.
 
 What he notices on a full laptop once all of it is built: his apps stay, the home stays usable, and the world comes
 back later.
@@ -1183,8 +1406,8 @@ This is what it covers, and whether the structure stands in its way.
 
 | Piece | AresOS's own form | A normal form | What would switch it | In the way? |
 |---|---|---|---|---|
-| The home | the Minecraft world | Picture or Video, with icons | `home` (section 6) | No. This revision. |
-| The first start | Prism's sign-in | none | follows the home | No. Package 12. |
+| The home | the Minecraft world | Picture or Video, with icons | `home` (section 6) | No. Revision 3. The video is a program of its own, so it switches on and off without touching the rest. |
+| The first start | Prism's sign-in | none; the starter pins and icons instead | follows the home | No. Package 12. |
 | The bar outside | a hotbar: Home, nine slots, marks, in look A, B or C | a taskbar strip | one more look | No, with two cautions below. |
 | The search | the Bar look (board #382) | a plain launcher | the look | No. It names no colour. |
 | Window frames, labwc's menus, Alt+Tab | look A, B or C | a plain frame | the look | One thing: the title font is fixed in `rc.xml` for every look today (COMPONENTS.md 4.2). |
@@ -1192,6 +1415,7 @@ This is what it covers, and whether the structure stands in its way.
 | The hotbar in the world, gates, `/name`, stills, the sleeping world | parts of the Minecraft world | they do not exist in a normal style | follows the home | No. |
 | Recovery and setup windows | a terminal with the reason | none at boot in a normal style (section 6) | follows the home | No. |
 | The settings screen | in the AresOS menu, drawn by the mod (COMPONENTS.md 4.7) | a settings window outside the game | | Not blocked, but missing. In a normal style he uses the home menu or a command until one exists. |
+| Shut down, restart and log out | none: the AresOS menu lists none (`STATE.md:144`). The power button, held about a second, shuts down cleanly (`STATE.md:173`). The rest is a command in a terminal. | rows in the home menu, as any desktop has | not a switch: the same rows serve both forms | Not blocked, but missing in both forms. A fresh user on the picture home meets the gap first. A later package (section 10). |
 | The password windows | look A inside, in every look, on purpose (COMPONENTS.md 4.6) | unchanged | not switched | No. That rule is about safety. |
 
 **Why the structure allows it**
@@ -1244,6 +1468,10 @@ each piece.
   helper's log.
 - **Between packages 7 and 4** a normal home has no bar, and until package 5 none over a maximized app. Super's
   search covers that time.
+- **Between packages 7 and 3b1 a normal home is on one screen.** With a monitor plugged in, the other screen has no
+  picture and no bar, as today. Windows there work, and Super's search and Alt+Tab reach every app. Icons and video
+  are on every screen from their first day, because 3I and 3V come after 3b1. In the Minecraft style the second
+  screen stays as it is today until 3b2 and 23c.
 - **Until 23c places windows,** the search's app opens where labwc puts it when two screens are on. The `screen`
   hint is only recorded.
 - **After Super woke a sleeping world** because no native search was there, the search does not open by itself. He
@@ -1252,6 +1480,11 @@ each piece.
   meanwhile joins My apps when the world next runs. The search finds it at once anyway.
 - **Pins he changed outside are replaced** by the world's own when the world next publishes its home. Carrying them
   into the world is a later hub package.
+- **With more than nine starter apps,** the tenth and later are neither pinned nor seeded as icons. The search finds
+  them, and he can pin them or add them to the home.
+- **The starter icons are seeded once.** A laptop that already had a home, or whose icons he removed, never gets
+  them. He adds icons with "Add to home". A laptop whose home document was lost is seeded as a first home is; he
+  removes what he does not want.
 - **A window nobody owns** has no slot in the bar, and its app starts a new instance on every left click. Ownership
   needs a reviewed identity; a hint fixes a known program.
 - **Two rankers** for the search, one in the mod and one outside, kept in step by shared test cases.
@@ -1276,16 +1509,27 @@ each piece.
 - **A fresh AresOS wears look A.** Look B needs the installed game, which a normal home never downloads.
 - **His own picture and video are set by a command** until a chooser exists. So is every setting but the style and
   the alignment, in a normal style, until a settings window exists outside the game.
-- **The `town` picture needs a published home.** It is not offered on a laptop that never ran the world.
+- **Shut down, restart and log out have no row in any menu yet.** The power button and a command do it until the
+  later package.
+- **The `town` picture needs a home the mod published.** It is not offered on a laptop that never ran the world, and
+  a home document the helper made does not count.
 - **Icons are for apps only,** one at a time. No files or folders on the home, and no moving several icons at once.
 - **Icons under a window** are reached by moving or minimizing it. There is no "show the desktop" yet. The bar and
   the search open the same apps.
-- **An icon he drags is hidden while it passes under a window.** It is drawn on the background.
+- **An icon he drags is hidden while it passes under a window.** It is drawn below every window.
 - **The icons of an unplugged screen wait** until it is back, or until he picks "Bring all icons here".
-- **Two different monitors on one socket share one icon arrangement.** Screens are told apart by connector name.
-- **A video's decoder runs in the native home in the Video style.** Pictures go through the sandboxed converter; a
-  chip's decoder cannot. The file is his own pick and local, as in any video player.
-- **If GL wins,** a change to or from Video leaves him without the bar and the search for about a second.
+- **Two monitors of one make and model that give no serial number** are told apart by their connector name only. On
+  one socket they share one icon arrangement.
+- **The video's decoder is not sandboxed as the picture converter is.** A chip's decoder needs the GPU device. It
+  runs in the player's own process and scope, which hold no view token and no launch secret. The file is his own
+  pick and local, as in any video player.
+- **A stalled video shows its last frame for up to three seconds** before the picture takes its place.
+- **A video that was turned off stays off** until he picks Video again or logs in again. The setting still says
+  Video meanwhile.
+- **After the native home restarts in the Video style,** the video is away for a moment: the player is started
+  afresh so that its surface is the newer one.
+- **In the Video style the icons have a surface of their own,** so one more see-through picture per screen is kept
+  in memory. Package 3V measures it.
 - **While a start waits for memory,** the style is already Minecraft world, so his icons are hidden and the picture
   shows. Picking Picture again brings them back and ends the wait.
 
@@ -1310,11 +1554,21 @@ In a private labwc:
 - For packages 4 and 3I: that a popup of a background-layer surface shows above windows.
 - For package 3I: that a drag begun on the background keeps getting the pointer's movement over windows and across
   to the other screen.
+- For package 3I: where labwc 0.9.6 gives a client a screen's make, model and serial number.
+- For package 3V: that of two background-layer surfaces labwc keeps the one made later on top, and that it stays
+  there. If labwc gives no sure order, 3V's first step reports that to the lead before a player is built.
+- For package 3V: that a surface with an empty input region lets every click through to the surface under it.
+- For package 3V: the three checks listed for package 3I above, for the icons' bottom-layer surface.
 
 In package 1: that the mod tries its hello again after a refusal.
 
-In package 3V: which chip labwc draws on in his session (LAPTOP-HOME.md's laptop trial checks it); that the image
-holds the Intel chip's VA-API driver and a decoder for the formats it names.
+In package 3V:
+
+- Which chip labwc draws on in his session (LAPTOP-HOME.md's laptop trial checks it), and how the player learns it.
+  If it cannot tell, the GL way is off.
+- That the image holds the Intel chip's VA-API driver and a decoder for the formats it names.
+- That `MemoryMax` and closed swap on a scope of his user manager end the player and nothing else.
+- Where "the screens are off" is read from. The image's idle set-up was not read.
 
 Release checks (review 2, finding 6):
 
@@ -1329,24 +1583,34 @@ Not read or not there:
 - The laptop's swap set-up and the image's effective systemd-oomd settings were not read; the T364 study and
   `linux-aresos` own them.
 - 23c's move of the world is a plan. Brief 328 was not in the checkout.
-- The image's video decoding, the content of the helper's registry folder, and the first-start steps in
-  `docs/INSTALL.md` were not read.
+- The image's video decoding and the first-start steps in `docs/INSTALL.md` were not read.
+- The helper's registry folder could not be listed with the tools at hand. One entry was read,
+  `os/config/usr/share/aresos/apps/terminal.json`. How many starter apps the image has is not known here.
 - For revision 3 these were read: the supervisor's start, pin check, instance making, SETUP text and keeper; the
   helper's `get_home`, `publish_home` and catalogue; the laptop home's surface and decoder; `aresos-settings`;
   `rc.xml`; LAPTOP-HOME.md's section 4. Revision 2's other line references were spot-checked in the supervisor and
   the helper and still match. Those of `rc.xml` were corrected.
+- For revision 4 these were read: review 3 and INPUTS-2's last two parts; `aresos-settings` whole; the supervisor's
+  constants, start, keeper, command list, latch and the first lines of its stop request; the helper's registry
+  loader and `get_home`; the laptop home's saved-home reader; `rc.xml`; LAPTOP-HOME.md's section 4; and the lines
+  this note cites in `STATE.md`, `docs/HUB-HANDOFF.md` and COMPONENTS.md. The four stale references review 3 named
+  were corrected.
 
 ### The OS part, from `linux-desktop`
 
 Written by `linux-desktop` on 2026-11-21 (`reviews/332-outside-game-design/INPUTS-1.md`) and folded in here, with
 its point for revision 2 about the zone on the home output and its points for revision 3 on video, icons and memory
-(`reviews/332-outside-game-design/INPUTS-2.md`). The sections above use these names and rules.
+(`reviews/332-outside-game-design/INPUTS-2.md`). The sections above use these names and rules. Revision 4 changed
+the video's and the icons' rows after the lead's decision on review 3. `linux-desktop` confirms them in package 3V's
+brief.
 
 **Layers** (wlr-layer-shell on labwc 0.9.6)
 
 | Surface | Namespace | Layer | Keyboard | Details |
 |---|---|---|---|---|
-| Picture, video and icons | `aresos-picture` | background | on demand in the Picture and Video styles: only a click gives it the keyboard. None in the Minecraft style and under a still. | Anchored on all four edges, exclusive zone -1. Its input region is the whole output, so clicks and drags on the home are the home's and never reach labwc's Root context. Icons are drawn on this same surface. |
+| Picture, and the icons in the Picture style | `aresos-picture` | background | on demand in the Picture style: only a click gives it the keyboard. None in the Video and Minecraft styles and under a still. | Anchored on all four edges, exclusive zone -1. Its input region is the whole output, so clicks and drags on the home are the home's and never reach labwc's Root context. In the Picture style icons are drawn on this same surface. |
+| Video | `aresos-video`, the player's | background, made after the picture's surface, so above it | none | Anchored on all four edges, exclusive zone -1. An empty input region. One for each output that shows the video. Only in the Video style. |
+| Icons in the Video style | `aresos-icons` | bottom: above the video, below every window | on demand: only a click gives it the keyboard | The native home's. See-through but for the icons. Its input region is the whole output, so clicks and drags stay the home's. |
 | Bar | `aresos-bar` | top while `shown`: above windows, below a true full-screen window. Overlay while revealed, by `set_layer` (layer-shell version 2 or later), and back to top when it hides. | none | Anchored bottom, left and right. Exclusive zone: the bar's height while `shown` with `reserve` yes; 0 in every other case. So it is 0 at `edge`, at `none`, while revealed, and on the home output while `world` is not `off` (awake, asleep or starting). So it is the bar's height only while `shown`, on every output except the home output while `world` is not `off`. Its menus are popups on it, pointer only. |
 | Strip | `aresos-bar-edge` | overlay | none | It exists only while that output's bar is `edge`. 1 logical pixel high, full width, exclusive zone -1, a transparent buffer with an input region. |
 | Search | `aresos-search` | overlay | exclusive while open | Esc, a click outside, or the recovery key ends it. |
@@ -1362,15 +1626,21 @@ its point for revision 2 about the zone on the home output and its points for re
 - The native home's renderer is Cairo only. So either the video surface gets GL with hardware decoding (VA-API on
   the Intel chip), or the video is capped in resolution and frame rate and stops on battery. Package 3V's brief
   measures both.
-- A video is paused when covered, and on battery below some level. The level is an open setting (`video-battery`).
+- A video is paused when covered, and on battery below some level. The level is an open setting
+  (`video-battery-pause`).
 - One video costs more than the laptop home's 60 MiB. Package 3V reports the measured figure on the Intel chip
   before the owner picks Video.
+- Revision 4, after the lead's decision on review 3: the video surface belongs to a program of its own, the player.
+  GL, if it wins, is loaded in the player only, and only when the compositor draws on the Intel chip. The native
+  home stays Cairo only in every style.
 
 **Icons** (INPUTS-2)
 
 - Icons sit on the same background-layer surface as the picture, so clicks and drags stay the home's. labwc's Root
   context is already off (package 329).
 - Icons take keyboard focus only by a click, never by default.
+- Revision 4: in the Video style the video's surface lies between the picture and the icons. So there the icons are
+  on a bottom-layer surface of the native home's, with the same input rule and the same keyboard rule.
 
 **Strip and reveal**
 
@@ -1414,8 +1684,9 @@ its point for revision 2 about the zone on the home output and its points for re
 - Nothing else in `rc.xml` for packages 3 to 5. The bar takes no keys, and Super stays 23c's.
 - The recovery key's third action is package 6's, not the desktop's.
 
-**Packages.** 3a, 3b, 3I, 3V, 4 and 5 are `linux-desktop`'s. Each gets its own brief from `linux-desktop` once this
-note is reviewed. Package 5 also tests the 1-pixel strip against B321's barrier in its harness.
+**Packages.** 3a, 3b1, 3b2, 3I, 3V, 4 and 5 are `linux-desktop`'s. Each gets its own brief from `linux-desktop` once
+this note is reviewed. Package 3V also has a part of `linux-aresos`'s: the supervisor runs the player. Package 5
+also tests the 1-pixel strip against B321's barrier in its harness.
 
 ---
 
@@ -1426,8 +1697,9 @@ decides what each gate rests on. The mechanism that passes it is the gate's own 
 
 | Package | Waits for |
 |---|---|
-| 1, 2, 3a, 3b, 3I, 3V, 4, 5, 6, 11 | no gate |
+| 1, 2, 3a, 4, 5, 6, 11 | no gate |
 | 7, the home style switch | gate 2 |
+| 3b1, 3I, 3V, 3b2 | no gate of their own; each needs package 7, so gate 2 through it |
 | 12, the default flip | gate 2, through package 7 |
 | 8, stills and the quiet start | no gate, as long as it adds no sleep, freeze, wake or new start |
 | 9, the sleeping world | gates 1 and 3, and gate 2 through package 7 |
@@ -1481,12 +1753,13 @@ How a test shows it:
 
 ### Gate 2: OFF holds, and a waiting start is one durable record
 
-**Blocks:** package 7, and package 12 through it. Package 9 builds on it for OFF (`asleep`). **Passed by:**
-`linux-aresos`, with a short design step for the supervisor and the step G2 of section 10. **Rests on:** section 6's
-rule that only his request starts a world in OFF, and section 12's rule 2. **From:** review 2, point 2; row 8 is new
-in revision 3.
+**Blocks:** package 7, and through it packages 12, 3b1, 3I, 3V and 3b2. Package 9 builds on it for OFF (`asleep`).
+**Passed by:** `linux-aresos`, with a short design step for the supervisor and the step G2 of section 10. That step
+needs packages 1 and 3a. **Rests on:** section 6's rule that only his request starts a world in OFF, and section
+12's rule 2. **From:** review 2, point 2; row 8 came with revision 3.
 
 "World off" below is the supervisor's word for a normal style, and "world on" for the Minecraft world (section 6).
+The video's player is no world: starting or stopping it is no start in the sense of these rows.
 
 What must be true:
 
@@ -1506,7 +1779,9 @@ What must be true:
    `screens` shows it as `waits`.
 6. **Admission fails closed.** A sample that cannot be read, or an old one, admits nothing. "Start anyway" is his
    act at that moment and is never stored.
-7. **A latch still holds.** Turning the world on does not clear what only `retry` may clear.
+7. **A latch still holds.** Turning the world on does not clear what only `retry` may clear. The design step also
+   names the latches a start can make by itself before any launch (supervisor `:1828-1830`), and says what a normal
+   style does with each.
 8. **A normal style needs nothing of Minecraft's.** A supervisor that starts in OFF (`off`) reads no pin file, makes
    no Prism instance and asks no shutdown guard. With the pin file unreadable or the instance broken, it still starts
    the helper and the native home and stays up. The fault shows only when he asks for the world.
@@ -1521,7 +1796,8 @@ How a test shows it. The supervisor takes its runner and its clock from outside,
 - **The pending start.** It is made only by his request, survives a replacement, starts once on the first clear
   sample, and is gone after each event of row 5. An old or unreadable sample never admits it.
 - **Without Minecraft.** With the pin file removed and no Prism folder: a supervisor in OFF (`off`) starts the helper
-  and the native home and stays up. `world on` then answers with the reason and starts nothing.
+  and the native home and stays up. `world on` then answers with the reason and starts nothing. The supervisor
+  starts the native home only from package 3a on, so this row needs 3a.
 - **On a test image built with gate 2's step and its rig-only command enabled,** one pass in a VM (never the owner's
   laptop before package 7): world off through that command, a reboot, and neither Prism nor Java runs. Then `world on`
   starts the world.
