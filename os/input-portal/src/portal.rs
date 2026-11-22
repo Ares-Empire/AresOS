@@ -54,6 +54,7 @@ const SUPPORTED_CAPABILITIES: u32 = CAP_KEYBOARD | CAP_POINTER;
 const RESPONSE_SUCCESS: u32 = 0;
 
 const PORTAL_PATH: &str = "/org/freedesktop/portal/desktop";
+const DESKFLOW_ID: &str = "org.deskflow.deskflow";
 
 /// Bounds on what one frontend may make the backend hold. Deskflow needs one
 /// session, four barriers per screen and a handful of clipboard types.
@@ -476,6 +477,29 @@ impl State {
 
     fn connection(&self) -> Option<&zbus::Connection> {
         self.conn.get()
+    }
+
+    async fn offer_sharing_window(&self) {
+        let Some(conn) = self.connection() else { return };
+        let Some(runtime) = std::env::var_os("XDG_RUNTIME_DIR") else { return };
+        let Ok(bus) = fdo::DBusProxy::new(conn).await else { return };
+        let Ok(id) = bus.get_id().await else { return };
+        // aresos-session starts a new bus for each login. Use a marker on that
+        // bus so D-Bus activation after a crash cannot show the dialog again.
+        let marker = PathBuf::from(runtime).join(format!("aresos-input-sharing-off-{id}"));
+        if std::fs::OpenOptions::new().write(true).create_new(true).open(marker).is_ok() {
+            match tokio::process::Command::new("/usr/bin/aresos-input-sharing")
+                .stdin(std::process::Stdio::null())
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
+                .spawn()
+            {
+                Ok(mut child) => {
+                    tokio::spawn(async move { let _ = child.wait().await; });
+                }
+                Err(err) => warn!("could not open the sharing window: {err}"),
+            }
+        }
     }
 
     // ---- who may call -----------------------------------------------------
@@ -918,7 +942,7 @@ impl State {
         // session can't be made after an Off that the timer reads a moment later.
         // `authorize` has made the caller the frontend these sessions belong to,
         // closing an earlier owner's first.
-        self.with_sharing("CreateSession", |inner, _| {
+        let result = self.with_sharing("CreateSession", |inner, _| {
             if inner.sessions.contains_key(handle) {
                 return Err(fdo::Error::Failed("this session already exists".into()));
             }
@@ -944,7 +968,12 @@ impl State {
             );
             Ok(())
         })
-        .await?;
+        .await;
+        if app_id == DESKFLOW_ID && matches!(&result, Err(fdo::Error::AccessDenied(_))) {
+            debug!(app_id, "Deskflow requested a session while sharing is off");
+            self.offer_sharing_window().await;
+        }
+        result?;
 
         // The backend owns the impl-side Session object.
         if let Err(err) = self.export_session_object(handle).await {
