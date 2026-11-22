@@ -398,15 +398,60 @@ During a capture Ctrl+Alt+Escape is forwarded like every key; the way out is lab
 - The local logs are under `.work/step1c-review-fixes/`. There are no files over 500 MB in `.work`.
   The finished-image run and the actual recovery terminal remain for the image and VM steps.
 
+## Step 2, the image stage and output gate (2026-11-22, Codex)
+
+- Merged package 329 from `origin/main` in `266b2469`. Its window client still closes by default. Package 321's
+  probe uses `--keep-open` to observe repeated Close actions on the same window. The layer-surface probe and
+  package 329's window options and protocol generation are both retained. The image uses package 329's `rc.xml`.
+- The exact-revision source stage takes the backend's manifests, script, pinned toolchain settings, sources,
+  data and upstream license. The Rust stage builds and tests offline after the pinned fetches. The Fedora
+  image installs its binary, D-Bus service and upstream license. The layer check scans each overlay directory
+  added to the base so that a later deletion cannot hide a copy of the source, toolchain or harness.
+- The throwaway Deskflow layer adds `wlr-randr`, the listen-only client and guest checks. The VM pass uses the
+  standard q35 and virtio-vga setup with a private QEMU display bus and fresh disk overlays for the three
+  client states and three custom-mode controls. It records the DRM connector and labwc state, compositor PID,
+  regular mode cycles, VT switches and backend geometry. The lead's `os/ci/vm.py` was unchanged.
+- The signed Deskflow RPM gate **passed again**. `rpmkeys -Kv` against a separate keyring with Fedora 44's key
+  returned OK for signature, header and payload. `rpm -qp` gave `deskflow-0:1.27.0-1.fc44.x86_64`, SHA-256 was
+  `21a404d8bd0488fdc7ec635ed26447d623b132dc4ae3d12e5f944991ab76484b`, and `readelf --dyn-syms --wide`
+  showed both undefined imports `xdp_session_selection_read` and `xdp_session_selection_write`.
+- The **DRM output gate is pending** in the hosted Deskflow run below. Step 3 waits for its result.
+
+### Verified locally
+
+- Two fresh `os/input-portal/dev/container.sh build` runs, without cache volumes: **98 passed, 0 failed** in
+  each. `cmp` found identical binaries at SHA-256
+  `31bb05de96bad26264d2466e486b82cc95e5b994d0c6a230d63a82568d43b0f4`. The release check requires this pin.
+- A clean rootless `podman build --no-cache --target input-portal` from the pushed revision `bd5082dd`
+  successfully fetched the exact tree, ran all **98** backend tests and printed the same binary hash.
+- Rebuilt the merged client with `os/input-portal/harness/run.sh image` and ran `harness/run.sh run` twice with
+  `localhost/aresos-input-portal-harness:321-step2` and the checked `aresos2` labwc. Both runs returned
+  **129 passed, 0 failed**. Checks for tests 1 through 10 were **18, 8, 9, 8, 3, 8, 15, 16, 5, 26** each time,
+  plus 13 setup, isolation and review checks. The headless control still aborts at `--on` with the listen-only
+  client and with the backend, and survives with no persistent output-manager client. This is the existing
+  custom-mode failure that the hosted DRM gate tests separately.
+- `python3 -m unittest discover -s os/tests -p test_input_portal_layers.py`: **3 passed**. The test confirms
+  that a leaked source or toolchain file is found even when it is hidden by a later layer.
+
+### What the code doesn't show
+
+- The check layer enables geometry logging through the guest session's D-Bus activation environment and saves
+  its compositor output. Step 3 still has to demonstrate activation and routing through the real frontend in
+  the image without that test setup.
+- The upstream MIT license is installed. The linked-crate notices still need a license inventory before
+  release. The build fetches target-specific and build-time crates as well, so the fetch alone does not
+  identify which notices are required for the shipped binary.
+- The physical monitor, lid, suspend and VT behavior need the owner's laptop rehearsal. If the VM cannot
+  verify a second connector, the brief requires the physical hotplug rehearsal before publication.
+
 ## Left, in order
 
-Step 2 (build stage and output check), step 3 (the image: Deskflow, its ID and scope name, the allow-list,
-routing, the release key, the switch's helper, polkit actions, window and desktop entry, image checks), step 4 (VM
-checks 2 to 9), as the brief's "Steps" says. For step 3, from this step: the helper writes the switch as
-`on\n` (the backend accepts `on` with or without one line end) in one rename, mode 0644, root's, in
-`/etc/aresos/input-portal` (0755, root's), and the switch's program runs `aresos-input-portal --revoke` after `off`.
-For step 2: the harness and any check build now need `localhost/aresos-labwc:321c` (or CI's own stage build); the
-old `311e` image is `aresos1` and the harness refuses it.
+1. Finish step 2's hosted `deskflow` and `build` modes and record their results and the DRM gate decision.
+2. When the gate permits, step 3 installs Deskflow, proves its ID and changes its scope name, allow-list and
+   routing, then adds the release key, switch, helper, polkit actions, window, desktop entry and image checks.
+   The helper writes `on\n` atomically, root-owned and mode 0644, in root-owned `/etc/aresos/input-portal` (0755).
+   The switch program runs `aresos-input-portal --revoke` after `off`.
+3. Step 4 runs VM checks 2 to 9 and records the laptop rehearsal, as the brief's "Steps" says.
 
 ### For step 3
 
@@ -444,6 +489,18 @@ The lead sends this list when step 3 ends and at the final head.
 | `os/ci/image-checks.sh` | `0ae53900` | The labwc check: NEVRA `aresos2`, the manifest lock names exactly the two patches in order, and `/usr/bin/labwc` holds the second patch's two strings (`allowWhenInhibited`, `aresos-input-barrier`). |
 | `os/labwc/stage.py` | `5b6c14da` | Reuses the stage's hash check for installed binaries through `check-installed`. |
 | `os/ci/check-image.sh`, `os/ci/image-checks.sh` | `5b6c14da` | Sends the pin checker into the CI container and verifies both binaries against the manifest lock before reporting PASS. |
+| `os/config/usr/share/aresos/labwc/rc.xml`, `os/ci/image-checks.sh` | `266b2469` | Merge package 329's window frame and frame checks while keeping package 321's labwc checks. |
+| `os/build.sh`, `os/tests/test_aresos_desktop.py` | `8ccf806b` | Extract only the backend's build inputs from the exact source revision. |
+| `os/.containerignore` | `5c2d8ae0` | Keep the portal tree out of the layer inherited from the package stage. |
+| `os/manifest/input-portal.sha256` | `ae27ebdf` | Pin the binary from the two byte-identical local builds. |
+| `os/Containerfile` | `d93198bd` | Build the backend on its pinned Rust image, install the binary, service and license, and enforce the release hash. |
+| `os/ci/image-checks.sh` | `1da81ea8` | Verify installed ownership, modes, exact service and license, runtime libraries and recorded binary digest. |
+| `os/ci/check-image.sh`, `os/ci/deskflow/check_layers.py`, `os/tests/test_input_portal_layers.py` | `32baca1f` | Compare the Rust builder to its pin and scan every added image layer, with tests for concealed files. |
+| `os/ci/toolchain.json` | `d01a7d36` | Pin the Ubuntu package carrying QEMU's `ui-dbus.so` at the existing QEMU version. |
+| `os/ci/deskflow/{Containerfile,actions.py,deskflow_vm.py,session}` | `68b42c7a` | Build the isolated check layer and run the six DRM output scenarios in fresh boots. |
+| `os/ci/check-build.sh` | `270aa6f8` | Build the Deskflow test disk and run its dedicated pass. |
+| `.github/workflows/os-image.yml` | `bd5082dd` | Add `check_build=deskflow` to the read-only throwaway build job. |
+| `os/tests/test_aresos_desktop.py` | `663009fb` | Require the locked Rust stage in the image wiring test. |
 
 Not touched in step 1c: `os/Containerfile` (the stage copies the whole `labwc/` folder, so the second patch needs no
 new line; its comment above the stage still says "one upstream fix" and should name both patches when the file is
@@ -477,9 +534,12 @@ What the image gains or changes through this package, for `linux-aresos`'s relea
   New behaviour: bindings are off while the input portal's capture surface holds the keyboard, except keybinds
   marked `allowWhenInhibited="yes"` (a new `rc.xml` attribute; step 3 marks two). Without a capture nothing changes.
   The image check names both patches. Real hardware first at the release's laptop install, as 311's rule says.
-- The Rust build stage and its output (step 2): not built yet.
-- The installed binary `/usr/libexec/aresos-input-portal` and its service file (step 2): not built yet.
-- `os/input-portal/` kept out of the layer the final image inherits (`os/.containerignore`, step 2): not done yet.
+- **Input portal (step 2):** `/usr/libexec/aresos-input-portal` (0755) and
+  `/usr/share/dbus-1/services/org.freedesktop.impl.portal.desktop.aresos-input.service` (0644), owned by root.
+  The image also gains `/usr/share/licenses/aresos-input-portal/LICENSE` and
+  `/usr/share/aresos/manifest/input-portal.sha256`. Release builds require the backend's binary pin.
+- The Rust toolchain and `os/input-portal/` source tree stay in the builder path. The listener, `wlr-randr`
+  and the session log capture are part of the throwaway check layer.
 - Deskflow's start hook in the session (step 4, the owner's answer T455): not built yet.
 
 ## CI dispatches
@@ -490,6 +550,7 @@ None in steps 1 and 1b.
 |---|---|---|---|
 | 1 of 8 | 1c | `44935351683`, on `0b1f9339` (dispatched 2026-11-21 19:24) | `check_build=build` on the step's head: it builds the labwc stage (the pins must hold on the hosted runner too) and the image, and runs the image checks, the labwc one included. **Green** (the lead, 2026-11-21 20:22). |
 | 2 of 8 | 1c review fixes | `44937064135`, on `7d38fa7b` (dispatched by the lead 2026-11-21 19:44) | `check_build=build` after fix 8: image-checks.sh now runs `stage.py check-installed` against the manifest lock, piped in by check-image.sh. **Green** (2026-11-21 21:25). |
+| 3 of 8 | 2 | [45000469287](https://github.com/Ares-Empire/AresOS/actions/runs/45000469287), on `bd5082dd` (2026-11-22 08:56 CET) | `check_build=deskflow`. **Running**. |
 
 ## Podman, after step 1c
 
