@@ -285,9 +285,17 @@ class ShellLog(RotatingFileHandler):
 
     def handleError(self, record):
         # The independent stderr handler already received the record.
-        self.close()
+        error = sys.exception()
         LOG.removeHandler(self)
-        LOG.warning('could not write or rotate shell.log (%s, errno %s)', *exception_type(sys.exception()))
+        self.close()
+        LOG.warning('could not write or rotate shell.log (%s, errno %s)', *exception_type(error))
+
+    def close(self):
+        try:
+            super().close()
+        except Exception:
+            # FileHandler attempts both flush and close, either of which can repeat the write failure.
+            pass
 
 
 def configure_log(environ=None):
@@ -2214,7 +2222,8 @@ class Journal:
     timeout). Its answer is settled when it finished, or when it was handed over to a running app whose windows
     can't be watched; how long that app stays open does not hold the entry. A launch still in progress is never
     forgotten within its client's quota. With no room left, new launches are refused instead. Only the
-    four most recently used view names have replay history; the desktop's history is independent.
+    four view names have replay history, preferring the most recently used and keeping activation retries and
+    outstanding joins safe from eviction. The desktop's history is independent.
     """
 
     def __init__(self, path, instance, clock=time.monotonic):
@@ -2307,8 +2316,11 @@ class Journal:
         waiting.discard(None)
         if joining is not None:
             waiting.add(joining)
+        now = self.clock()
         protected = {client for (client, _), entry in self.entries.items()
                      if entry.get('activation_pending')
+                     or ((entry.get('activation') or entry.get('activation_fallback') or entry.get('joined'))
+                         and now - entry.get('updated', now) < REPLAY_HORIZON)
                      or (entry.get('launch_id') in waiting and not entry.get('settled'))}
         return next((client for client in self.view_clients if client not in protected), None)
 
@@ -2988,10 +3000,19 @@ class ForeignToplevels:
         try:
             data = self.sock.recv(65536)
         except BlockingIOError:
-            return
+            return False
+        except OSError as error:
+            raise WaylandError('lost the compositor connection while reading') from error
         if not data:
             raise WaylandError('the compositor closed the connection')
         self.feed(data)
+        return True
+
+    def drain(self):
+        changed = False
+        while self.readable():
+            changed = True
+        return changed
 
     def feed(self, data):
         self.buffer += data
@@ -3144,7 +3165,7 @@ class Helper:
     def __init__(self, registry_dir, instance, nonce, journal_path, launcher=None, windows=None,
                  activate=None, clock=time.monotonic, executable=None, window_timeout=WINDOW_TIMEOUT, registry=None,
                  watcher=None, status=no_status, keep_foreground=False, catalogue=None, icons=None, minimize=None,
-                 view_token=None, activation_barrier=None):
+                 view_token=None, activation_barrier=None, drain_windows=None):
         self.instance = instance
         self.status = status
         self.keep_foreground = keep_foreground
@@ -3180,6 +3201,7 @@ class Helper:
         self.windows = windows
         self.activate_window = activate
         self.activation_barrier = activation_barrier
+        self.drain_windows = drain_windows
         self.minimize_window = minimize
         self.clock = clock
         self.executable = executable
@@ -3811,45 +3833,27 @@ class Helper:
         if app is None:
             # Every launch that does not start says why here (package 40): a refusal used to leave no line.
             LOG.warning('unknown app ID (%d characters) not opened', len(app_id))
+            if bring_back:
+                unknown['activation_fallback'] = True
             return self.record(key, unknown)
-        if bring_back:
-            window = self.activation_target(app_id)
-            if window is not None:
-                # If the helper restarts before confirmation, the same ID must never fall through to a spawn.
-                refused = self.activation_result(app_id, 'activation_refused')
-                self.record(key, dict(refused, activation_pending=True))
-                if not self.activate_window(window.handle):
-                    return self.record(key, refused)
-                self.cancel_returns()
-                self.returning_until = None
-                barrier = self.activation_barrier() if self.activation_barrier is not None else None
-                self.activating[key] = dict(app_id=app_id, window=window, conns=[conn],
-                                            barrier=barrier, deadline=self.clock() + APP_ACTIVATION_TIMEOUT)
-                return None
-            pending_check = next(((origin, item) for origin, item in self.checking.items()
-                                  if item['app'].id == app_id), None)
-            if pending_check is not None:
-                origin, waiting = pending_check
-                if origin[0] == conn.client and not self.launch_room(conn.client, 1):
-                    raise self.journal_full(request_id, app_id)
-                waiting['requests'][key] = [conn]
-                return None
-            starting = next((item for _, item in self.launch_entries()
-                             if item['app_id'] == app_id and item['state'] in ('launching', 'starting')
-                             and not item.get('settled')), None)
-            if starting is not None:
-                return self.record_join(key, starting)
+        requests = {key: [conn]}
+        if bring_back and self.bring_back(app_id, requests):
+            return None
         # Whether its program is still there is checked off the loop (review 2, FIX 1).
         check = self.checks.start(app, launch_check, app, self.executable, self.launcher.working_directory,
                                   from_view=conn.client != DESKTOP)
         if check is None:
             LOG.warning('%s not opened: no launch check slot available for this client', app.id)
-            return self.launch(key, app, None, None, 'checks_busy', screen)
+            return self.launch(key, app, None, None, 'checks_busy', screen, activation_fallback=bring_back)
+        waiting = dict(app=app, check=check, requests=requests, screen=screen, bring_back=bring_back)
         if check.done.wait(CHECK_WAIT):
-            return self.launch(key, app, *check.result, screen)
+            if not bring_back:
+                return self.launch(key, app, *check.result, screen)
+            self.finish_check(key, waiting, check.result)
+            return None
         # A resend while the check runs joins this one; the first request's screen stays with the launch.
-        self.checking[key] = dict(app=app, check=check, deadline=self.clock() + CHECK_SECONDS, requests={key: [conn]},
-                                  screen=screen)
+        waiting['deadline'] = self.clock() + CHECK_SECONDS
+        self.checking[key] = waiting
         return None
 
     def launch_room(self, client, reserved=0):
@@ -3860,6 +3864,52 @@ class Helper:
     def activation_target(self, app_id):
         # Layout restoration can select a group here once layouts exist.
         return max(self.catalogue_windows.of(app_id), key=lambda w: (w.last_active, w.mapped), default=None)
+
+    def bring_back(self, app_id, requests):
+        window = self.activation_target(app_id)
+        if window is not None:
+            self.restore_window(window, requests)
+            return True
+        for origin, waiting in self.checking.items():
+            if waiting['app'].id == app_id:
+                for key, conns in requests.items():
+                    if not self.launch_room(key[0], int(key[0] == origin[0])):
+                        self.reply_waiters(key, conns, self.journal_full_reply(key, app_id))
+                    else:
+                        waiting['requests'][key] = conns
+                return True
+        starting = next((entry for _, entry in self.launch_entries()
+                         if entry['app_id'] == app_id and entry['state'] in ('launching', 'starting')
+                         and not entry.get('settled')), None)
+        if starting is None:
+            return False
+        for key, conns in requests.items():
+            self.reply_waiters(key, conns, self.record_join(key, starting))
+        return True
+
+    def restore_window(self, window, requests):
+        app_id = window.owner
+        refused = self.activation_result(app_id, 'activation_refused')
+        pending = {}
+        for key, conns in requests.items():
+            if not self.launch_room(key[0]):
+                self.reply_waiters(key, conns, self.journal_full_reply(key, app_id))
+                continue
+            # Journal each ID before asking the compositor, so even a restart cannot turn a retry into a spawn.
+            self.record(key, dict(refused, activation_pending=True))
+            pending[key] = conns
+        if not pending:
+            return
+        if not self.activate_window(window.handle):
+            for key, conns in pending.items():
+                self.reply_waiters(key, conns, self.record(key, dict(refused)))
+            return
+        self.cancel_returns()
+        self.returning_until = None
+        barrier = self.activation_barrier() if self.activation_barrier is not None else None
+        deadline = self.clock() + APP_ACTIVATION_TIMEOUT
+        for key, conns in pending.items():
+            self.activating[key] = dict(app_id=app_id, window=window, conns=conns, barrier=barrier, deadline=deadline)
 
     @staticmethod
     def activation_result(app_id, error=None):
@@ -3910,11 +3960,14 @@ class Helper:
         return Failure('journal_full', 'too many launches in the last few minutes; try again shortly',
                        request_id=request_id, app_id=app_id, state='failed')
 
+    def journal_full_reply(self, key, app_id):
+        failure = self.journal_full(key[1], app_id)
+        return dict(ok=False, error=failure.code, message=failure.message, **failure.fields)
+
     def checks_answered(self):
         """Go on with launches whose check has answered; fail those whose check is overdue as unavailable."""
         now = self.clock()
         for key, waiting in list(self.checking.items()):
-            client, request_id = key
             app, check = waiting['app'], waiting['check']
             if check.done.is_set():
                 result = check.result
@@ -3924,18 +3977,27 @@ class Helper:
             else:
                 continue
             del self.checking[key]
-            requests = waiting['requests']
-            try:
-                if not self.launch_room(client, sum(other != key and other[0] == client for other in requests)):
-                    raise self.journal_full(request_id, app.id)
-                answer = self.launch(key, app, *result, waiting['screen'])
-            except Failure as failure:
-                answer = dict(ok=False, error=failure.code, message=failure.message, **failure.fields)
-            self.reply_waiters(key, requests[key], answer)
-            origin = self.journal.entries.get(key, dict(answer, app_id=app.id))
-            for joined, conns in requests.items():
-                if joined != key:
-                    self.reply_waiters(joined, conns, self.record_join(joined, origin))
+            self.finish_check(key, waiting, result)
+
+    def finish_check(self, key, waiting, result):
+        app, requests = waiting['app'], waiting['requests']
+        bring_back = waiting['bring_back']
+        if bring_back:
+            # The check may have waited while a window mapped or a deliberate open started a process.
+            if self.drain_windows is not None and self.drain_windows():
+                self.windows_changed()
+            if self.bring_back(app.id, requests):
+                return
+        reserved = sum(other != key and other[0] == key[0] for other in requests)
+        if self.launch_room(key[0], reserved):
+            answer = self.launch(key, app, *result, waiting['screen'], activation_fallback=bring_back)
+        else:
+            answer = self.journal_full_reply(key, app.id)
+        self.reply_waiters(key, requests[key], answer)
+        origin = self.journal.entries.get(key, dict(answer, app_id=app.id))
+        for joined, conns in requests.items():
+            if joined != key:
+                self.reply_waiters(joined, conns, self.record_join(joined, origin))
 
     def record_join(self, key, origin):
         entry = dict(app_id=origin['app_id'], launch_id=origin.get('launch_id'), joined=True)
@@ -3944,8 +4006,7 @@ class Helper:
         self.update_join(entry, origin)
         joining = entry['launch_id'] if not entry.get('settled') else None
         if not self.journal.room(key[0], joining=joining):
-            failure = self.journal_full(key[1], entry['app_id'])
-            return dict(ok=False, error=failure.code, message=failure.message, **failure.fields)
+            return self.journal_full_reply(key, entry['app_id'])
         return self.record(key, entry)
 
     def update_join(self, entry, origin):
@@ -3957,7 +4018,7 @@ class Helper:
             entry['settled'] = True
         self.journal.touch(entry)
 
-    def launch(self, key, app, argv, directory, reason, screen=None):
+    def launch(self, key, app, argv, directory, reason, screen=None, *, activation_fallback=False):
         """Start app once its check has answered, or record why it could not start.
 
         screen is open_app's hint (package 53d). It is kept in the launch's journal entry, so a duplicate request and a
@@ -3965,6 +4026,8 @@ class Helper:
         """
         app_id = app.id
         hint = {'screen': screen} if screen is not None else {}
+        if activation_fallback:
+            hint['activation_fallback'] = True
         if reason is not None:
             LOG.warning('%s not opened: %s', app_id, reason)
             return self.record(key, {'app_id': app_id, 'launch_id': None, 'state': 'failed',
@@ -4913,6 +4976,8 @@ class Server:
         elif not peer.closing:
             try:
                 self.helper.receive(peer, data)
+            except WaylandError:
+                raise
             except Exception:
                 log_unexpected('unexpected error while handling a request; dropping that connection')
                 peer.close()
@@ -4959,7 +5024,8 @@ def build(registry_dir, instance, nonce, journal_path, environ=None, launcher=No
                     clock=clock, registry=registry, status=status,
                     keep_foreground=keep_foreground, catalogue=catalogue, icons=IconCache(environ=environ),
                     minimize=wayland.minimize if wayland else None, view_token=environ.get('ARESOS_VIEW_TOKEN'),
-                    activation_barrier=wayland.activation_barrier if wayland else None)
+                    activation_barrier=wayland.activation_barrier if wayland else None,
+                    drain_windows=wayland.drain if wayland else None)
     helper.watcher.watch(helper.watched_units())
     helper.watcher.start()
     return helper, wayland

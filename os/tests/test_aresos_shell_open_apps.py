@@ -4,12 +4,13 @@ import io
 import json
 import logging
 from pathlib import Path
+import socket
 import stat
 import threading
 import types
 from unittest import mock
 
-from test_aresos_shell import ALL, Conn, INSTANCE, NONCE, ROOT, shell
+from test_aresos_shell import ALL, Conn, INSTANCE, NONCE, ROOT, shell, wire_toplevel
 from test_aresos_shell_views import GAME, NOTEPAD, TOKEN, ViewBase
 
 WIRE = 'aresos-shell/1.3'
@@ -236,6 +237,74 @@ class OpenAppsTest(ViewBase):
         self.assertEqual(self.activations, [])
         self.assertEqual(self.popen.call_count, 1)
 
+    def test_a_window_queued_during_the_executable_check_is_restored_without_spawning(self):
+        for deferred in (False, True):
+            with self.subTest(deferred=deferred):
+                Path(self.journal).unlink(missing_ok=True)
+                self.activations.clear()
+                helper = self.start(tracked=True)
+                desktop, _ = self.hello13(helper)
+                view, _ = self.hello13(helper, view='another-view')
+                display, compositor = socket.socketpair()
+                with display, compositor:
+                    wayland = shell.ForeignToplevels(display, helper.windows)
+                    wayland.manager = 50
+                    wayland.kinds[50] = 'manager'
+                    display.setblocking(False)
+                    helper.drain_windows = wayland.drain
+                    check = shell.LaunchCheck()
+
+                    def complete_check():
+                        compositor.sendall(wire_toplevel(30, BROWSER, active=True))
+                        check.result = (['/usr/bin/unused'], '~', None)
+                        check.done.set()
+
+                    def wait_for_check(_):
+                        if not deferred:
+                            complete_check()
+                        return check.done.is_set()
+
+                    with mock.patch.object(helper.checks, 'start', return_value=check) as checks, \
+                            mock.patch.object(check.done, 'wait', side_effect=wait_for_check):
+                        self.assertIsNone(self.ask(helper, desktop, 'restore'))
+                        if deferred:
+                            self.assertIsNone(self.ask(helper, view, 'joined-restore'))
+                            complete_check()
+                        checks.assert_called_once()
+                        helper.tick()
+                self.assertEqual(self.activations, [30])
+                replies = [(desktop, 'restore')]
+                if deferred:
+                    replies.append((view, 'joined-restore'))
+                for conn, request_id in replies:
+                    reply = next(m for m in conn.sent if m['id'] == request_id)
+                    self.assertEqual(reply, dict(protocol=WIRE, id=request_id, ok=True, state='activated'))
+                self.assertEqual(self.popen.call_count, 0)
+
+    def test_fallback_recheck_joins_a_deliberate_open_that_started_during_the_check(self):
+        helper = self.start(tracked=True)
+        desktop, _ = self.hello13(helper)
+        view, _ = self.hello13(helper, view='new-view')
+        check = shell.LaunchCheck()
+        with mock.patch.object(shell, 'CHECK_WAIT', 0), mock.patch.object(helper.checks, 'start', return_value=check):
+            self.assertIsNone(self.ask(helper, desktop, 'restore'))
+            check.result = (['/usr/bin/unused'], '~', None)
+            check.done.set()
+            deliberate = self.call(helper, view, 'open_app', 'new-window', app_id='browser')
+            self.assertEqual(deliberate['state'], 'starting')
+            helper.tick()
+        reply = next(m for m in desktop.sent if m['id'] == 'restore')
+        self.assertEqual((reply['request_id'], reply['state'], reply['launch_id']),
+                         ('restore', 'starting', deliberate['launch_id']))
+        self.assertEqual(self.popen.call_count, 1)
+
+    def churn_view_history(self, helper):
+        for number in range(shell.MAX_VIEWS):
+            view = self.view(helper, f'temporary-{number}')
+            reply = self.call(helper, view, 'open_app', f'unknown-{number}', app_id='fixture-unknown')
+            self.assertEqual(reply['error'], 'unknown_app')
+            helper.disconnected(view)
+
     def test_view_history_churn_preserves_a_join_until_its_outcome(self):
         helper = self.start(tracked=True)
         laptop = self.view(helper)
@@ -244,15 +313,41 @@ class OpenAppsTest(ViewBase):
         joined = self.ask(helper, desktop, 'joined')
         self.assertEqual(joined['launch_id'], origin['launch_id'])
         helper.disconnected(laptop)
-        for number in range(shell.MAX_VIEWS):
-            view = self.view(helper, f'temporary-{number}')
-            self.call(helper, view, 'open_app', 'unknown', app_id='fixture-unknown')
-            helper.disconnected(view)
+        self.churn_view_history(helper)
         self.assertIn((laptop.client, 'origin'), helper.journal.entries)
         self.show(helper.windows, 30, BROWSER, active=True)
         helper.windows_changed()
         event = desktop.events('app_state')[-1]
         self.assertEqual((event['request_id'], event['state']), ('joined', 'focused'))
+        self.assertEqual(self.popen.call_count, 1)
+
+    def test_refused_activation_replays_after_view_churn_and_window_close(self):
+        helper = self.start(tracked=True)
+        original, _ = self.hello13(helper, view='original-view')
+        self.show(helper.windows, 30, BROWSER)
+        helper.windows_changed()
+        helper.activate_window = mock.Mock(return_value=False)
+        refused = self.ask(helper, original, 'refused')
+        self.assertEqual(refused['error'], 'activation_refused')
+        helper.activate_window.assert_called_once_with(30)
+        helper.disconnected(original)
+        self.churn_view_history(helper)
+        helper.windows.gone(30)
+        helper.windows_changed()
+        for current in (helper, self.start(tracked=True)):
+            reconnected, _ = self.hello13(current, view='original-view')
+            self.assertEqual(self.ask(current, reconnected, 'refused'), refused)
+        self.assertEqual(self.popen.call_count, 0)
+
+    def test_unjoined_fallback_launch_remains_starting_after_view_churn(self):
+        helper = self.start(tracked=True)
+        original, _ = self.hello13(helper, view='original-view')
+        starting = self.ask(helper, original, 'fallback')
+        self.assertEqual(starting['state'], 'starting')
+        helper.disconnected(original)
+        self.churn_view_history(helper)
+        reconnected, _ = self.hello13(helper, view='original-view')
+        self.assertEqual(self.ask(helper, reconnected, 'fallback'), starting)
         self.assertEqual(self.popen.call_count, 1)
 
 
@@ -348,3 +443,29 @@ class LoggingTest(ViewBase):
         shell.LOG.warning('still serving after the unwritable log')
         self.assertIn('could not open shell.log', stderr.getvalue())
         self.assertIn('still serving after the unwritable log', stderr.getvalue())
+
+    def test_log_detaches_before_cleanup_when_flush_and_close_fail(self):
+        stderr = self.capture_log(Path(self.folder.name) / 'state')
+        handler = next(handler for handler in shell.LOG.handlers if isinstance(handler, shell.ShellLog))
+        handler.stream.close()
+        handler.maxBytes = 0
+        stream = mock.Mock()
+        stream.flush.side_effect = OSError(errno.ENOSPC, 'synthetic flush failure')
+        attached_at_close = []
+
+        def close():
+            attached_at_close.append(handler in shell.LOG.handlers)
+            raise OSError(errno.EIO, 'synthetic close failure')
+
+        stream.close.side_effect = close
+        handler.stream = stream
+        shell.LOG.warning('record whose file flush fails')
+        shell.LOG.warning('record after the file handler detached')
+        self.assertNotIn(handler, shell.LOG.handlers)
+        self.assertIsNone(handler.stream)
+        self.assertEqual(stream.flush.call_count, 2)
+        stream.close.assert_called_once_with()
+        self.assertEqual(attached_at_close, [False])
+        self.assertIn('record whose file flush fails', stderr.getvalue())
+        self.assertIn(f'could not write or rotate shell.log (OSError, errno {errno.ENOSPC})', stderr.getvalue())
+        self.assertIn('record after the file handler detached', stderr.getvalue())
