@@ -1,4 +1,4 @@
-"""Run the output gate on six fresh overlays of the CI-only disk."""
+"""Run the DRM controls and the daily Deskflow checks on the CI-only disk."""
 import contextlib
 import json
 import os
@@ -11,6 +11,7 @@ import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 from channel import Frames, frame  # noqa: E402
+from daily_vm import Checks, bindings_match_image, run as daily_run  # noqa: E402
 from qmp import QMP  # noqa: E402
 
 PRIMARY = 'Virtual-1'
@@ -90,12 +91,14 @@ class Boot:
 
 
 @contextlib.contextmanager
-def boot(disk, work, evidence):
+def boot(disk, work, evidence, state=None):
     work.mkdir()
     evidence.mkdir()
-    overlay = work / 'disk.qcow2'
-    subprocess.run(['qemu-img', 'create', '-f', 'qcow2', '-F', 'raw', '-b', str(disk), str(overlay)], check=True)
-    shutil.copyfile('/usr/share/OVMF/OVMF_VARS_4M.fd', work / 'vars.fd')
+    state = work if state is None else state
+    overlay = state / 'disk.qcow2'
+    if not overlay.exists():
+        subprocess.run(['qemu-img', 'create', '-f', 'qcow2', '-F', 'raw', '-b', str(disk), str(overlay)], check=True)
+        shutil.copyfile('/usr/share/OVMF/OVMF_VARS_4M.fd', state / 'vars.fd')
     # Never contact the runner's session bus. Use an address owned by this boot.
     address = f'unix:path={work / "display.sock"}'
     accel = (['-accel', 'kvm', '-cpu', 'host'] if os.access('/dev/kvm', os.R_OK | os.W_OK)
@@ -110,7 +113,7 @@ def boot(disk, work, evidence):
             'qemu-system-x86_64', '-machine', 'q35', *accel,
             '-smp', str(min(4, len(os.sched_getaffinity(0)))), '-m', '6144',
             '-drive', 'if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE_4M.fd',
-            '-drive', f'if=pflash,format=raw,file={work / "vars.fd"}',
+            '-drive', f'if=pflash,format=raw,file={state / "vars.fd"}',
             '-drive', f'file={overlay},format=qcow2,if=virtio',
             '-device', 'virtio-vga,max_outputs=2', '-device', 'qemu-xhci',
             '-device', 'usb-kbd', '-device', 'usb-tablet',
@@ -122,7 +125,8 @@ def boot(disk, work, evidence):
             '-chardev', f'socket,id=checks,path={work / "checks.sock"},server=on,wait=off',
             '-device', 'virtserialport,chardev=checks,name=org.aresos.ci', '-no-reboot',
         ], env=dict(os.environ, DBUS_SESSION_BUS_ADDRESS=address), stdout=log, stderr=subprocess.STDOUT)
-        stack.callback(overlay.unlink)
+        if state == work:
+            stack.callback(overlay.unlink)
         stack.callback(stop, process)
         monitor = QMP(stack.enter_context(connect(work / 'qmp.sock', process)))
         monitor.command('qmp_capabilities')
@@ -134,10 +138,11 @@ def boot(disk, work, evidence):
             yield guest
         finally:
             (evidence / 'qmp-events.json').write_text(json.dumps(monitor.events, indent=2) + '\n')
-            try:
-                guest.request('diagnostics')
-            except (OSError, EOFError, GuestFailure):
-                pass
+            if process.poll() is None and not any(event.get('event') == 'SHUTDOWN' for event in monitor.events):
+                try:
+                    guest.request('diagnostics')
+                except (OSError, EOFError, GuestFailure):
+                    pass
 
 
 def mode_size(mode):
@@ -315,6 +320,46 @@ def custom(guest, ready):
     return dict(status='passed', transitions=transitions)
 
 
+def wait_poweroff(guest):
+    deadline = time.monotonic() + 100
+    while time.monotonic() < deadline:
+        if any(event.get('event') == 'SHUTDOWN' and event.get('data', {}).get('guest')
+               for event in guest.qmp.events):
+            return
+        time.sleep(0.25)
+    raise TimeoutError('daily-use guest did not complete shutdown')
+
+
+def daily(disk, work, evidence):
+    bindings_match_image('os/config/usr/share/aresos/labwc/rc.xml')
+    state = work / 'daily-disk'
+    state.mkdir()
+    try:
+        with boot(disk, work / 'daily-use', evidence / 'daily-use', state) as guest:
+            failures = daily_run(guest, evidence / 'daily-use')
+            wait_poweroff(guest)
+        for expected in ('on', 'off'):
+            name = f'reboot-{expected}'
+            with boot(disk, work / name, evidence / name, state) as guest:
+                checks = Checks(guest, evidence / name)
+                proof = checks.ask('prepare', mode='reboot')
+                assert proof['switch'] == expected, proof
+                if expected == 'on':
+                    scope = checks.ask('server', op='armed', monitor=False)
+                    checks.dialog('pair', absent=True)
+                    checks.check(7, 'On survived reboot and login started one guarded server', **scope)
+                    checks.switch('off', status='off')
+                    checks.server('off')
+                else:
+                    checks.proof('login-off')
+                    checks.check(7, 'Off survived reboot and login left Deskflow stopped', **proof)
+                checks.proof('poweroff')
+                wait_poweroff(guest)
+        return failures
+    finally:
+        shutil.rmtree(state)
+
+
 def main():
     vm_work = pathlib.Path('vm-work').resolve()
     disk, = (vm_work / 'output').rglob('disk.raw')
@@ -336,16 +381,24 @@ def main():
             except Exception as error:
                 results[name] = dict(status='failed', phase=phase, detail=str(error)[-4000:])
             print(f'DESKFLOW_VM {name} {json.dumps(results[name])}', flush=True)
-    passed = all(results[f'regular-{state}']['status'] == 'passed' for state in STATES)
+    output_passed = all(results[f'regular-{state}']['status'] == 'passed' for state in STATES)
     incomplete = {name: result for name, result in results.items()
                   if name.startswith('custom-') and result['status'] not in ('passed', 'compositor-assertion')}
     if incomplete:
         print(f'DESKFLOW_CUSTOM_EVIDENCE_INCOMPLETE {json.dumps(incomplete)}', flush=True)
+    try:
+        failures = daily(disk, work, evidence)
+        daily_result = dict(status='failed' if failures else 'passed', failed_checks=failures)
+    except Exception as error:
+        daily_result = dict(status='failed', detail=str(error)[-4000:])
+    print(f'DESKFLOW_VM daily {json.dumps(daily_result)}', flush=True)
+    passed = output_passed and not incomplete and daily_result['status'] == 'passed'
     (evidence / 'result.json').write_text(json.dumps(
-        dict(gate='passed' if passed else 'failed', boots=results, custom_incomplete=incomplete), indent=2) + '\n')
+        dict(gate='passed' if passed else 'failed', boots=results, custom_incomplete=incomplete,
+             daily=daily_result), indent=2) + '\n')
     if not passed:
-        raise SystemExit('DESKFLOW_OUTPUT_GATE_FAILED')
-    print('DESKFLOW_OUTPUT_GATE_PASSED', flush=True)
+        raise SystemExit('DESKFLOW_VM_GATE_FAILED')
+    print('DESKFLOW_VM_GATE_PASSED', flush=True)
 
 
 if __name__ == '__main__':
