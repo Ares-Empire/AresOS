@@ -107,12 +107,25 @@ public final class ClickToLook {
         LOOK.frame(mouse.isMouseGrabbed(), now);
         if (LOOK.looking()) {
             if (held(client)) LOOK.moved(now);
-            // Stillness, or a capture look mode did not start (vanilla's at world join, before the helper connected).
-            if (LOOK.due(now)) mouse.releaseMouse();
         } else if (LOOK.clickWaiting(now) && client.isWindowActive() && client.gui.screen() == null
                 && !HomeScreen.appInFront()) {
             start(client, false);
         }
+    }
+
+    /**
+     * Return of {@code RenderSystem.pollEvents}: every motion that waited in the queue has been counted, so stillness is
+     * judged here, never on a frame that has not read its input yet. After a long frame (a hitch, or a test that holds
+     * the game while it moves the mouse) the motion queued meanwhile keeps look mode on.
+     */
+    public static void afterPollEvents() {
+        if (!LOOK.looking()) return;
+        var client = Minecraft.getInstance();
+        if (!on(client) || !client.mouseHandler.isMouseGrabbed()) return;
+        long now = Util.getMillis();
+        if (held(client)) LOOK.moved(now);
+        // Stillness, or a capture look mode did not start (vanilla's at world join, before the helper connected).
+        if (LOOK.due(now)) client.mouseHandler.releaseMouse();
     }
 
     /** A movement key (walk, jump or fly up, sneak or fly down) or a mouse button is held. */

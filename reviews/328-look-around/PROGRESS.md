@@ -79,6 +79,10 @@ Dead-key restoration also remains unverified. No mod or rig files changed in thi
   for its own call, and 328a's `WorldCapture.allowed` (the safe fallback) still decides. Capture and release stay 328a's.
   The mod adds no GLFW cursor call and no second release path. `returnToCentre` only changes the point that
   `WorldCapture.finish` restores.
+- **Stillness is judged right after the event poll** (`ClickToLook.afterPollEvents`, from `RenderSystemCaptureMixin`),
+  never on a frame that has not read its input yet. The second full client run caught the first version: the test
+  held the game for more than 800 ms while it sent 20 mouse moves, and the next frame let go before it read them
+  (camera turned 0.0). A real hitch, such as a slow frame or a save, would do the same to a moving hand.
 - **Package 56 decides the press.** Because the pointer is free, `HomePointer.button` handles a press first: a primary
   click on an app slot opens the app. Anything else (open world, an empty slot, a right click) starts look mode. The
   press and its release are swallowed, so the starting click never attacks, uses or breaks.
