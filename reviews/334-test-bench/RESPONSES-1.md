@@ -37,3 +37,28 @@ No finding is declined outright. One part of review 2's should-fix 11 is decline
 | R2 known limit 2 (another rig injects input) | Moved to section 10 | Listed beside the mod's rig, as the review asked. |
 | R2 known limit 3 (desk shows real battery) | Fixed in design | The launcher passes a fixed reading, as `fixture_main` does (539–540). A note on battery tests is in section 9. |
 | R2 known limits 4–9 | Moved to known limits | Section 9. Limit 8 (`/dev/kvm`) is also step 3's probe. |
+
+# Responses to review 3
+
+| Finding | Result | Where revision 3 addresses it |
+|---|---|---|
+| Earlier R1.1 (native tests) | Addressed in design | Section 2 keeps the native list empty. Module names grant no approval. Changed code and imports run only in the desk, VM or hosted route. |
+| Earlier R1.2 (RAM, swap and disk) | Addressed in design | Section 3 shares the lock across the bench and all three heavy dev scripts. Disk phases have enforced peaks and are refused before writes. Step 6 measures memory behavior. |
+| Earlier R1.3 (shipped layers and release dispatch) | Kept and tightened | Section 3 and the step 1 brief require a distinct bench tag, an exclusive dispatch and a planted-file check of the plain image's raw layers. |
+| Earlier R1.4 (private evidence) | Kept and tightened | Section 5 preserves the fixed projection and adds validation, fixed error reasons and tests for both output streams. |
+| Earlier R1.5 (open-app example) | Kept | Section 2 still uses the headless output override and reads `apps_running` from its own watching view. |
+| Earlier R1.6 (hosted layer, credentials and gate) | Kept and tightened | Section 3 keeps the minimal layer and password-free disk recipe. The step 1 brief adds authenticated health checks and bounds on retained evidence. |
+| Earlier R1.7 (first disk and offline updates) | Addressed in design | Step 4's egress gate precedes the local build. Step 7's brief specifies the offline source, writable paths and input staging. Step 8 uses that source to switch. |
+| Earlier R2.1 (laptop home on test outputs) | Kept | Sections 2 and 3 retain the desk output override and the wait for 23c with the VM output override. |
+| Earlier R2.2 (memory victim and timing) | Addressed in design | Sections 3, 8 and 9 describe the early stop and its limits. Step 6 reports measured detection and termination delays before the route opens. |
+| Blocking 1 (internet boundary) | Addressed in design | Section 6 keeps real internet hosted until step 4 verifies fail-closed egress from every path, including fetch and build. Controlled endpoints cover laptop addresses, home routes and the reflected public address. Each `podman exec` uses the verified unprivileged user without `CAP_NET_ADMIN`. Profiles, credentials, proxy and DNS start clean. |
+| Blocking 2 (watcher) | Addressed in design | Step 6 checks the shared lock, concurrent-build refusal, cgroup membership and watcher loss. It measures the early-stop threshold, swap growth and game responsiveness with a stand-in. The laptop VM stays disabled until the checks pass. |
+| Blocking 3 (disk and cleanup) | Addressed in design | Section 3 accounts for every write and enforces the phase peak and free-space reserve before writing. Step 2 settles the store location under `AGENTS.md` and proves cleanup after interruption and refusal while active. Run, expiry and `bench clean` share a lock outside the store. |
+| Blocking 4 (native execution and desk evidence) | Addressed in design | Section 2 keeps changed code off the native laptop. The bounded extractor accepts regular files at fixed member paths and validates sizes before writing. It rejects links, devices and `..`. The review's `grep -qv` pipeline is excluded. |
+| Blocking 5 (hosted acceptance) | Carried into step 1 | Require explicit no-NIC boot, active auto-login and authenticated read-only helper health before and after a new boot ID. Keep launch credentials in the guest. The negative commit preserves import and `--list`. The brief also records dispatch exclusivity, the distinct tag, the raw-layer planted-file test, the image-input scope and the evidence and job-log gates. |
+| Blocking 6 (build order and `tree`) | Addressed in design | Step 4 comes before the local build. Step 7's brief records the offline source and input staging. Step 6 adds `tree` to the full worked example. |
+| Should fix 1 (lid and sleep evidence) | Addressed in design | Section 5 and the step 10 brief use read-only sleep-unit state and activation times. Logind supplies the lid events. A missing source gives `unverified`. |
+| Should fix 2 (recorder errors and private observations) | Addressed in design | Section 5 and the step 10 brief require tests for success and failure, in-memory stdout and stderr, type and vocabulary checks, and a fixed `unverified` reason. Approved real-screen captures and free-text observations stay outside automated evidence. |
+| Known limit 1 (memory test coverage) | Added | Section 9 limits the result to the load and timing exercised. Sudden allocation or a stalled watcher can beat shutdown. Owner-facing times come from measurements. |
+| Known limit 2 (public address, DNS and sign-in) | Added | Section 9 says what public destinations and the resolver can see. Sign-in tests use clean profiles, synthetic accounts and fixtures. |
+| Known limit 3 (hardware readings) | Added | Section 9 leaves connectivity, panel recovery and audio recovery to the owner. |
