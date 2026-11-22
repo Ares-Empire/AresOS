@@ -23,7 +23,7 @@ case $mode in
         # Package 23: the mod jar must build to the same bytes twice.
         bash os/ci/build-mod.sh --twice
         ;;
-    control|build)
+    control|deskflow|build)
         # check_build=control (package 18c, B2) builds and checks the same image,
         # then puts the Control test layer on top of the CI layer and makes its
         # disk; the workflow's next step boots it (control-pass, below). Its
@@ -70,6 +70,10 @@ case $mode in
         if [[ $mode == control ]]; then
             bash os/ci/control/runner.sh layer
             disk_image=localhost/aresos:control
+        elif [[ $mode == deskflow ]]; then
+            sudo podman build --format=oci --tag localhost/aresos:deskflow --file os/ci/deskflow/Containerfile . \
+                2>&1 | tee evidence/deskflow-layer.log
+            disk_image=localhost/aresos:deskflow
         fi
         python3 os/ci/prepare-disk.py
         mkdir -p vm-work/output
@@ -82,6 +86,8 @@ case $mode in
         sudo chmod -R a+rX vm-work/output
         if [[ $mode == control ]]; then
             echo CHECK_BUILD_CONTROL_DISK_READY
+        elif [[ $mode == deskflow ]]; then
+            echo CHECK_BUILD_DESKFLOW_DISK_READY
         else
             sudo -E env ARESOS_VM_PASS=1 python3 os/ci/vm.py
             grep -q ARESOS_ACTIVE_SESSION_POLKIT_PASSED evidence/vm-pass-1/policy-result.json
@@ -99,8 +105,13 @@ case $mode in
         sudo -E env "ARESOS_REVISION=$revision" python3 os/ci/control/control_vm.py
         echo CHECK_BUILD_CONTROL_PASSED
         ;;
+    deskflow-pass)
+        test -d vm-work/output
+        sudo -E python3 -B os/ci/deskflow/deskflow_vm.py
+        echo CHECK_BUILD_DESKFLOW_PASSED
+        ;;
     *)
-        echo "Unknown check-build mode: '$mode' (expected resolve, build, control or control-pass)" >&2
+        echo "Unknown check-build mode: '$mode' (expected resolve, build, control, control-pass, deskflow or deskflow-pass)" >&2
         exit 2
         ;;
 esac
