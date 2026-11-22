@@ -25,8 +25,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * definition, so the Linux mod never runs a command itself. One background thread connects, says hello, lists apps
  * and then reads replies and events, reconnecting with backoff when the helper is missing or restarts.
  *
- * The client offers minor 2. Minor 1 adds catalogue details, paging and refresh. Minor 2 lets the desktop send
- * its town to helpers that offer home_state, hear Super's shell_search and name the world's screen in open_app.
+ * Minor 1 adds catalogue details, paging and refresh. Minor 2 adds home_state, shell_search and the world screen
+ * hint. Minor 3 adds the running-window snapshot and activation of existing app windows.
  * Listeners only ever get a complete app list.
  */
 public final class ShellClient implements AutoCloseable {

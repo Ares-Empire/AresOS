@@ -17,11 +17,13 @@ import java.util.function.Function;
 
 /**
  * A scripted aresos-shell helper on a real Unix socket. It never starts anything; it counts launches. It speaks 1.0
- * by default. Minor 1 adds catalogue details, paging and apps_changed. Minor 2 also accepts publish_home.
+ * by default. Minor 1 adds catalogue details, paging and apps_changed. Minor 2 accepts publish_home and
+ * minor 3 can offer the app window state and activation capabilities.
  *
  * It lives in its own source folder because the unit tests and the client game tests both use it (build.gradle).
  */
 public final class FakeHelper implements AutoCloseable {
+    private static final Gson JSON = new Gson();
     public static final String INSTANCE = "desk-test";
     public static final String NONCE = "nonce-for-tests-0123456789";
     public final Path path;
@@ -279,7 +281,7 @@ public final class FakeHelper implements AutoCloseable {
         var message = new JsonObject();
         message.addProperty("id", "e-" + UUID.randomUUID());
         message.addProperty("event", event);
-        fields.forEach((key, value) -> message.add(key, new Gson().toJsonTree(value)));
+        fields.forEach((key, value) -> message.add(key, JSON.toJsonTree(value)));
         send(current, message);
     }
 
