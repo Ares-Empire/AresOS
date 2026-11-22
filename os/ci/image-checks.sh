@@ -703,6 +703,31 @@ test "$(/usr/bin/aresos-input-sharing status)" = off
 test -x /usr/bin/kdialog
 test "$(rpm -q --qf '%{NAME}-%{EPOCHNUM}:%{VERSION}-%{RELEASE}.%{ARCH}' deskflow)" = deskflow-0:1.27.0-1.fc44.x86_64
 test "$(rpm -qf --qf '%{NAME}\n' /usr/bin/deskflow-core /usr/share/applications/org.deskflow.deskflow.desktop | sort -u)" = deskflow
+# Every way of opening Deskflow by its desktop ID runs the guarded launcher (step 3 review, finding 2). The ID has
+# one entry, the image's; Fedora's copy was never installed (net shared), so rpm -V deskflow stays clean.
+deskflow_entry=/usr/share/applications/org.deskflow.deskflow.desktop
+test "$(stat -c '%u:%g:%a:%F' "$deskflow_entry")" = '0:0:644:regular file'
+cmp "$sharing_source/applications/org.deskflow.deskflow.desktop" "$deskflow_entry"
+test -z "$(rpm -V deskflow)"
+test "$(rpm -q --qf '[%{FILESTATES:fstate}|%{FILENAMES}\n]' deskflow | grep -c '^net shared|')" = 1
+rpm -q --qf '[%{FILESTATES:fstate}|%{FILENAMES}\n]' deskflow | grep -Fxq "net shared|$deskflow_entry"
+test "$(find /usr /etc /var -name org.deskflow.deskflow.desktop 2>/dev/null)" = "$deskflow_entry"
+python3 -I - "$deskflow_entry" <<'PY'
+from configparser import ConfigParser
+import sys
+entry = ConfigParser(interpolation=None)
+entry.optionxform = str
+assert entry.read(sys.argv[1]) == [sys.argv[1]]
+launcher = '/usr/libexec/aresos-deskflow'
+main = entry['Desktop Entry']
+assert main['Type'] == 'Application' and main['Exec'] == launcher, dict(main)
+assert main.get('TryExec', launcher) == launcher and main.get('DBusActivatable', 'false') != 'true', dict(main)
+# Actions included: no command in the entry but the guarded launcher.
+assert all(entry[section].get('Exec', launcher) == launcher for section in entry.sections()), entry.sections()
+print(f'DESKFLOW_ENTRY_GUARDED {sys.argv[1]} Exec={launcher}')
+PY
+# The launcher makes a server certificate for a profile that has none (pairing from an empty profile).
+test -x /usr/bin/openssl
 python3 -I - "$routes" <<'PY'
 from configparser import ConfigParser
 from pathlib import Path
