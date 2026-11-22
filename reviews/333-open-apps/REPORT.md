@@ -14,8 +14,27 @@
 - Step B lets a live launch answer for its origin's request ID after the reply is gone.
 - Step C checks the live launch table before spawning and caps new starts at 32 live launches across views and 256 for the desktop. The cap uses the existing `journal_full` reply.
 - Step D starts a tray-resident app again after its last window closes. A second bring-back joins the new start while it waits for a window.
+- The live caps count a launch's own process or scope. A handoff with an ended process and a gone scope can still follow the shared window for its saved replies. Once it has no replies to update, the helper drops that tracker from memory and the saved journal.
+- When a view's quota blocks a launch at check completion, a joined desktop request reuses the check under the desktop's quota. The view receives `journal_full`. The desktop keeps its own request ID and screen hint and can still restore a window that appeared during the check.
 
 ## Verified
+
+### Fourth fix (RECHECK-3)
+
+Each command used `python3 reviews/333-open-apps/headless.py <filename>` with a private home, runtime, state directory, headless labwc compositor and D-Bus session.
+
+| Filename | Output |
+|---|---|
+| `test_aresos_shell_views.py` | `Ran 33 tests in 1.098s`, `OK` |
+| `test_aresos_shell_open_apps.py` | `Ran 23 tests in 3.189s`, `OK` |
+| `test_aresos_shell.py` | `Ran 76 tests in 21.110s`, `OK` |
+
+- The handoff test opens one discovered single-instance app 33 times across two view names, with all handoffs attached to one window. The laptop home's 1.2 connection then opens another app. The two names leave room in each name's replay journal. The test also checks that ended handoffs are removed after their view's history gives way.
+- The joined-check test fills the live view quota, starts a slow executable check from a different view, and joins from the desktop. The view gets `journal_full`. The desktop launches once with its own screen hint and receives the subsequent focus event under its own request ID. Both regression tests failed on the previous helper.
+- The desktop test keeps 256 processes alive after their window waits and replay records expire, verifies that just one unrelated record remains, and checks that a new launch is refused until a live process exits. In the same private runner, overriding `Helper.spawn_room` to allow every desktop launch and selecting this test with `pattern='test_aresos_shell.py'` printed `Ran 1 test in 3.495s` and `FAILED (failures=1)`. The failure showed the 257th launch returned `starting`.
+- `test_aresos_shell.py` printed its existing unclosed-socket `ResourceWarning` messages. `git diff --check` passed. The worktree's `.work/` had zero files over 500 MB.
+
+`gh workflow run 'OS image' --ref pkg/333-open-apps -f checks_only=true` dispatched the hosted checks on `a3421bfb`. `gh run watch 45067857449 --exit-status --interval 60` exited 0. All three new tests passed. The regression job printed `Ran 2517 tests in 1744.817s` and `OK (skipped=24)`. The system manager check reported 434 unit files and 421 unit names. The ways-back job passed its source-change check and skipped the full model. [Hosted OS checks](https://github.com/Ares-Empire/AresOS/actions/runs/45067857449)
 
 ### Third fix (analysis steps A through D)
 
@@ -142,7 +161,7 @@ After both passes, `git checkout -- reviews/` restored 66 tracked screenshots an
 ## PLAN-GAP
 
 - The examples in HOME-OUTSIDE section 5 use `chrome`. The shipped catalogue names the app `browser`, with `/chrome` as a short name. The new fixtures use `browser`.
-- The live caps govern new spawns. Restart reconciliation can recover more than 32 view-started launches from a pre-fix journal. Those launches count toward the cap while they remain live. The loader considers up to 288 entries from the old `active_launches` list alongside recoverable replay records. The restart test covers a journal written at the new cap.
+- The live caps govern new spawns. Restart reconciliation can recover more than 32 view-started launches from a pre-fix journal. Those launches count toward the cap while they remain live. The loader allows space for 288 live launches and up to 512 other launch trackers with saved replies. The restart test covers a journal written at the live cap.
 
 ## Known limits
 
@@ -160,6 +179,8 @@ After both passes, `git checkout -- reviews/` restored 66 tracked screenshots an
 - When a launch outlives its saved reply, that request stops getting `app_state` events. A resend of the origin ID returns the launch's current state.
 - The desktop can start up to 256 live launches. A live launch counts even after its reply expires.
 - A tray-resident app that ignores a second start can leave the launch waiting for a window. The helper reports `no_window` after 30 seconds.
+- Restore traffic can grow helper memory while labwc is stalled and the whole session is already stalled. Growth stops when labwc answers.
+- In the half second after a tray app's last window closes, a click can report success without opening a window. A second click opens it.
 
 ## Open questions
 
