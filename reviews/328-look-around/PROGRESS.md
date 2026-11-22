@@ -51,7 +51,7 @@ Dead-key restoration also remains unverified. No mod or rig files changed in thi
 
 - **The setting:** `mod/src/main/java/dev/aresos/config/LookMode.java` reads one line in `config/aresos/settings.properties`
   in the game's config folder: `look = click`. No file, no line or an empty value means `classic`. An unknown value
-  (also `edge`, until 328c adds it) logs a warning and stays classic. The game reads the file once at start. 328d
+  logs a warning and stays classic. The game reads the file once at start (328c moved the reading to `LookSetting`). 328d
   documents the line in `mod/README.md`; for `hub-try` the folder is the try checkout's `mod/run/config/aresos/`.
 - **The rules without the game:** `mod/src/main/java/dev/aresos/focus/ClickLook.java` holds the stillness timer, the short
   grace for a click that arrives before GLFW's focus, when the pointer is free, and which key starts look mode.
@@ -134,8 +134,121 @@ Gradle running at each start):
 - The tracked screenshots the runs rewrote were put back (`git checkout -- reviews/`). The 25 untracked ones written
   under new numbers were deleted.
 
-**Left:** 328c (prototype B, edge turning; add `EDGE` to `LookMode`), then 328d (the README line, `run-hub.sh --outputs 2`,
-the report and the PR).
+**Left:** 328c (done, below), then 328d.
+
+## 328c: prototype B, "edge turning"
+
+**Done** (branch `pkg/328b-click-to-look`, on top of 328b). The product keeps classic as the default.
+
+- **The setting:** `look = edge` in the same file (`LookMode.EDGE`). The reading moved out of `ClickToLook` into
+  `mod/src/client/java/dev/aresos/client/LookSetting.java`, which both prototypes ask. `LookSetting.forTests` replaces
+  `ClickToLook.forTests`.
+- **The rules without the game:** `mod/src/main/java/dev/aresos/focus/EdgeTurn.java` holds the bands and the speed, which
+  stretches of an edge another output shares, the arrow keys and the cap on a long frame.
+- **The glue:** `mod/src/client/java/dev/aresos/client/EdgeLook.java`, once a frame from `HomeScreen.frame`, with small
+  hooks: `HomeScreen.freePointer` is true with edge, and the new `HomeScreen.ignoresMouse` is package 56's old "the world
+  ignores the mouse" rule; `HomePointer.button` and `enterWorld`; `PointerRules.click` takes a fourth argument;
+  `MinecraftAppInputMixin` (the attack and use gates ask `ignoresMouse`, and the held attack); `MouseAppInputMixin.onMove`
+  (a cursor position has arrived).
+- **Tests:** `EdgeTurnTest` (unit), additions to `LookModeTest` and `PointerRulesTest`, and `EdgeTurnClientGameTest`, last
+  in the client suite, with the test mixin `EdgeClickTestMixin` (what a click reached in Minecraft).
+
+**The tunables**, each one named constant:
+
+| Constant | Value | What it does |
+| --- | --- | --- |
+| `EdgeTurn.EDGE_PX` | 48 | The band along the world's left, right and top edges in which the view turns. |
+| `EdgeTurn.EDGE_TURN_DEG_PER_S` | 120 | The top speed: on the edge's last pixel, and for a held arrow key. Within the band it falls in a straight line to nothing at its inner end. |
+| `EdgeTurn.LONGEST_FRAME_S` | 0.1 | A longer frame (a hitch, a save) turns as if it took this long, so the view never swings round. |
+| `EdgeLook.LAYOUT_REFRESH_NS` | 500 ms | How often the world window's place and the outputs are read again. |
+
+**What the code doesn't show:**
+
+- **No capture and no new release.** With edge, `HomeScreen.freePointer` is true in a session's connected desktop world, so
+  the existing head of `grabMouse` refuses every grab: vanilla's at a click and when a screen closes, the helper's, GLFW's
+  focus regrab. A capture from before the world was active (vanilla's at world join) is let go by the existing
+  `releaseMouse` in `HomeScreen.frame`, the call that already lets go when an app comes in front, so through 328a's
+  `WorldCapture`. The mod adds no GLFW cursor-mode or cursor-position call. `EdgeLook` reads Minecraft's own cursor
+  position, and at most every 500 ms the window's position and size and the monitors (`glfwGetWindowPos`,
+  `glfwGetWindowSize`, `glfwGetMonitors`, `glfwGetMonitorPos`, `glfwGetVideoMode`).
+- **The click path that doesn't grab.** With no screen open, vanilla's `MouseHandler.onButton` calls `grabMouse` first and
+  then sets the key mapping either way. The grab is refused, and the press goes on to Minecraft's attack and use, which act
+  on what the crosshair aims at. Package 56's gates on `startAttack`, `continueAttack` and `startUseItem` now ask
+  `ignoresMouse` (an app in front, or click mode outside look mode); with edge and the world in front they let the click
+  through. Vanilla counts a held attack (breaking a block in survival) only while the mouse is captured:
+  `Minecraft.handleKeybinds` passes `isMouseGrabbed()` to `continueAttack`. A `@ModifyExpressionValue` makes it true with
+  edge and the world in front (`EdgeLook.clicksAct`).
+- **Package 56 decides first.** A primary click on an app slot opens the app. While an app is in front, or the helper's
+  desktop activation still waits for its press, a press on the world only brings the world to the front and is swallowed
+  with its release. The world then ignores the mouse, and the edges and arrows turn nothing.
+- **The shared edge** comes from GLFW's monitors (under Xwayland the X server's RandR view of labwc's outputs) and the
+  world window's position and size. An output whose far side lies on the window's left, right or top edge shares the
+  stretch where they overlap; elsewhere that edge turns. The game logs what it read whenever it changes, for the owner's
+  trial. In the session rig: `window Box[x=0, y=0, width=1280, height=720], outputs [Box[x=0, y=0, width=1280,
+  height=720], Box[x=1280, y=0, width=1280, height=720]], shared Shared[left=[], right=[Range[from=0, to=720]], top=[]]`.
+- **The pointer's leave event.** Once the pointer has left the world (onto the other output, or onto an app's window over
+  the world), X sends the game no more motion, so Minecraft's last cursor position stays at the edge. Within a band,
+  `EdgeLook` asks GLFW's hover test (`WorldCapture.pointerOverWorld`, which X's leave event clears) before it turns;
+  outside a band it asks nothing. The native test leaves the top band beside the second output and checks that the
+  turning stops.
+- **A real position first.** The edges turn only after a cursor position has reached Minecraft (`EdgeLook.moved`):
+  Minecraft's starting value, 0,0, is the top left corner.
+- **The arrows** are read once a frame with `InputConstants.isKeyDown` (GLFW's key state). Nothing turns while a screen
+  or an overlay is open (chat, the search, the inventory) or while an app is in front. Q and E are untouched and the client
+  test checks that they still drop and open the inventory.
+- **No arrow clash in the home.** Vanilla 26.2 binds no arrow key in the world (`Options` has no default on codes 262 or
+  263, and `KeyboardHandler`, `Minecraft` and `Gui` don't use them). The home ships only Fabric API and the AresOS mod
+  (`os/minecraft/desktop.lock.json`). The AresOS mod binds G and H. The image's `options.txt` (`game_options` in
+  `aresos-desktop`) sets no key, and labwc's `rc.xml` binds no plain arrow. The client test checks every key mapping of
+  the running game. The owner's own `options.txt` in his real home was not read (out of bounds here): an arrow he bound
+  himself would both act and turn.
+- **Not tried:** the owner's real mouse, his laptop and monitor (scaled outputs included), Chrome and the installed helper.
+  The feel of 48 px and 120 degrees a second is his to judge in `hub-try`.
+
+**Known limits (328c):**
+
+- Clicks act on the crosshair in the middle of the screen, not on what the cursor points at. Picking from the cursor's
+  position is out of scope (brief).
+- Mouse motion away from the edges never turns the view; only the edges and the arrows do.
+- The cursor turns the view anywhere in a band that isn't shared, also when he only rests it there to reach something.
+- Where a part-screen app stands over the world's edge, the cursor over the app turns nothing; the world's visible part
+  of that edge still turns.
+- The layout is read at most every half second: right after an output is plugged in or moved, an edge can turn or let
+  through wrongly for that long.
+- An output the X server reports a pixel off (a scaled layout, untested) leaves an edge turning that should let the
+  cursor through. The log line shows what the game read.
+- The band is measured from the world window's edge, which labwc keeps on its output's edge (maximized, no frame). A
+  panel with an exclusive zone would move it in.
+- While the free pointer rests on the world, the wheel selects hotbar slots (as in package 56 and 328b).
+
+**How the owner turns it on:** put the line `look = edge` in `config/aresos/settings.properties` inside the game's folder,
+then start the game (it reads the file once at start). For `hub-try` that file is
+`~/AresOS-try/mod/run/config/aresos/settings.properties` in the try checkout. Remove the line, or write
+`look = classic`, to get today's behaviour back. In edge mode the cursor is always a normal pointer. Rest it near the
+left, right or top edge of the world to turn that way, faster the nearer it is; hold the left or right arrow to turn.
+Where the edge touches the other screen the cursor simply goes across. A click acts on what the crosshair in the middle
+aims at.
+
+**Verified** (on `37f23912`, through the dev scripts with no `--force`, no exit-75 refusal, at least 6 GiB available and
+no other worktree's Gradle running at each start):
+
+- Before the passes, a focused `mod/dev/client-test.sh --session` with a local Gradle init script that kept only
+  `EdgeTurnClientGameTest` passed twice (the second after the taskbar and walking checks were added).
+- Pass 1: `mod/dev/build.sh` BUILD SUCCESSFUL in 2m 38s: 360 unit tests, 0 failures, 6 Windows-only skips; all 106
+  server game tests passed. `mod/dev/client-test.sh --session` BUILD SUCCESSFUL in 16m 25s, exit 0: the whole client
+  suite. 328a ("camera turned 46.836567 degrees", probe `[1, 0, 2, 0]` unchanged, "world-keeps-pointer checks passed"),
+  328b ("stillness (898 ms)"; native "camera turned 22.817814 degrees; still 1859 ms") and 328c: "edges, pass-through,
+  leave, arrows, Q and E, clicks and an app in front passed"; native "left edge turned -45.340153 degrees; the edge beside
+  output 2 let the cursor through".
+- Pass 2: `mod/dev/build.sh --rerun-tasks` BUILD SUCCESSFUL in 2m 50s with the same counts.
+  `mod/dev/client-test.sh --session` BUILD SUCCESSFUL in 16m 26s, exit 0, with the same 328a and 328b lines (stillness
+  899 ms; native still 1863 ms) and the 328c lines (native "left edge turned -45.20522 degrees").
+- Classic and click are unchanged by construction: without edge, `ignoresMouse` equals the old `freePointer`, `clicksAct`
+  is false and `EdgeLook.on` is false, so every changed gate answers as before. Their tests passed in both runs.
+- `git checkout -- reviews/` put back the tracked screenshots the runs rewrote. The 25 untracked ones written under new
+  numbers were deleted. No file over 500 MB in `.work/`.
+
+**Left:** 328d (the README line for both settings, `run-hub.sh --outputs 2`, the report and the PR).
 
 ## Done
 
@@ -254,10 +367,9 @@ and live session remain unverified.
 
 ## Left, in order
 
-1. **328c:** prototype B, "edge turning" (`look = edge`).
-2. **328d:** the README line for the `look` setting, `run-hub.sh --outputs 2`, the report and the PR.
+1. **328d:** the README line for the `look` setting, `run-hub.sh --outputs 2`, the report and the PR.
 
-328b is done (above).
+328b and 328c are done (above).
 
 ## The proven cause of the click leak (owner's finding 4)
 
