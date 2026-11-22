@@ -28,10 +28,24 @@ class Checks:
         self.guest = guest
         self.evidence = evidence
         self.failures = []
+        self.last_diagnosed_error = None
 
     def ask(self, action, **kwargs):
-        result = self.guest.request('daily-' + action, **kwargs)
+        try:
+            result = self.guest.request('daily-' + action, **kwargs)
+        except Exception as error:
+            self.diagnose(error)
+            raise
         return {key: value for key, value in result.items() if key not in ('id', 'returncode')}
+
+    def diagnose(self, error):
+        if error is self.last_diagnosed_error:
+            return
+        self.last_diagnosed_error = error
+        try:
+            self.guest.request('diagnostics')
+        except Exception as diagnostic_error:
+            print(f'DESKFLOW_DAILY diagnostics unavailable: {type(diagnostic_error).__name__}', flush=True)
 
     def check(self, case, check, **details):
         self.record(case, check, 'passed', **details)
@@ -46,6 +60,7 @@ class Checks:
         try:
             operation()
         except Exception as error:
+            self.diagnose(error)
             self.failures.append(label)
             self.record(case, label, 'failed', detail=str(error)[-1800:])
             return False

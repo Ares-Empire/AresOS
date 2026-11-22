@@ -11,6 +11,7 @@ from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / 'ci/deskflow'))
 import actions  # noqa: E402
+import daily_vm as daily  # noqa: E402
 import deskflow_vm as vm  # noqa: E402
 
 
@@ -26,6 +27,54 @@ class DeskflowVMTest(unittest.TestCase):
                'DEBUG aresos_input_portal::portal: Deskflow requested a session while sharing is off'
                ' app_id="org.aresos.other"\n')
         self.assertEqual(actions.off_refusals(log), 1)
+
+    def test_daily_diagnostics_keep_only_current_server_and_redact_session_tail(self):
+        log = 'old line\n' * 40 + (
+            'WARN refused: the caller is not the portal frontend method="Enable"\n'
+            'WARN refused: the application has no ID\n'
+            'WARN refused: the application has no ID\n'
+            'DEBUG keycode=15\n'
+            'Traceback\n'
+        )
+        with (
+            patch.object(actions, 'session', {'daily': True, 'home': pathlib.Path('/fixture')}),
+            patch.object(actions, 'daily_state', {'processes': {}}),
+            patch.object(actions, 'session_log', return_value=log),
+            patch.object(actions, 'probe_log', return_value='Could not start Deskflow') as probe,
+            patch.object(actions, 'core_pids', return_value=[]),
+            patch.object(actions, 'backend_connections', return_value=0),
+            patch.object(actions, 'guest_command', return_value=Mock(stdout='no sessions\n', returncode=0)),
+        ):
+            evidence = actions.diagnostics({})
+            probe.assert_not_called()
+            self.assertFalse(evidence['could_not_start'])
+            self.assertTrue(evidence['traceback'])
+            self.assertEqual(evidence['refusals'], {
+                'the caller is not the portal frontend': 1, 'the application has no ID': 2,
+            })
+            self.assertEqual(evidence['status'], 'no sessions\n')
+            tail = evidence['session_log_tail'].splitlines()
+            self.assertEqual(len(tail), 40)
+            self.assertEqual(tail[-2:], ['', 'Traceback'])
+            actions.daily_state['processes']['server'] = Mock()
+            self.assertTrue(actions.diagnostics({})['could_not_start'])
+            probe.assert_called_once_with('server')
+
+    def test_failed_daily_request_records_diagnostics_once_and_keeps_original_failure(self):
+        guest = Mock()
+        guest.request.side_effect = [vm.GuestFailure('failed step'), OSError('diagnostics unavailable')]
+        with tempfile.TemporaryDirectory() as folder, contextlib.redirect_stdout(io.StringIO()):
+            evidence = pathlib.Path(folder)
+            checks = daily.Checks(guest, evidence)
+            self.assertFalse(checks.attempt(2, 'example', lambda: checks.ask('prepare', mode='initial')))
+            result = json.loads((evidence / 'daily-checks.jsonl').read_text())
+        self.assertEqual(result, dict(case=2, check='example', status='failed', detail='failed step'))
+        self.assertEqual([call.args for call in guest.request.call_args_list], [('daily-prepare',), ('diagnostics',)])
+
+    def test_kdialog_matching_accepts_a_title_suffix(self):
+        named = [1, 'Mouse and keyboard sharing — KDialog', True]
+        with patch.object(actions, 'windows', return_value=[named, [2, 'Other window', False]]):
+            self.assertEqual(actions.windows_with(actions.SHARING_TITLE), [named])
 
     def test_hotplug_fails_if_drm_moves_without_labwc(self):
         for connected in (True, False):

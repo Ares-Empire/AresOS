@@ -1,4 +1,5 @@
 """Guest actions for the DRM output gate. The virtio layer is the only caller."""
+from collections import Counter
 import contextlib
 from configparser import ConfigParser
 import ctypes
@@ -221,9 +222,9 @@ def ready_backend(proof):
         pid = backend_pid(backend_owner())
         os.kill(pid, signal.SIGTERM)
         wait_for(lambda: not backend_running(), 'the login-activated backend stopped', timeout=10)
-    # Set the log level for this activation alone. Use the socket of the real session.
+    # Set only the log level. The socket and desktop must come from the real login.
     require(guest_command('env', 'ARESOS_INPUT_PORTAL_LOG=debug', 'dbus-update-activation-environment',
-                          'ARESOS_INPUT_PORTAL_LOG', 'WAYLAND_DISPLAY', 'XDG_CURRENT_DESKTOP'))
+                          'ARESOS_INPUT_PORTAL_LOG'))
     require(subprocess.run([HELPER, 'on'], capture_output=True, text=True, timeout=10))
     assert require(guest_command(PORTAL, '--status')).strip() == 'no sessions'
     owner = backend_owner()
@@ -447,8 +448,10 @@ def identity(_request):
 
 
 def diagnostics(request):
-    if session is None or session.get('daily'):
+    if session is None:
         return dict(returncode=0, daily=True)
+    if session.get('daily'):
+        return dict(returncode=0, daily=True, **startup_diagnostics())
     return dict(returncode=0, labwc_pid=labwc_pid(session['uid']), connectors=drm_connectors(),
                 session_log=session_log()[-20000:])
 
@@ -516,7 +519,7 @@ def trace_backend():
     if backend_running():
         stop_pid(backend_pid(backend_owner()))
     require(guest_command('env', 'ARESOS_INPUT_PORTAL_LOG=trace', 'dbus-update-activation-environment',
-                          'ARESOS_INPUT_PORTAL_LOG', 'WAYLAND_DISPLAY', 'XDG_CURRENT_DESKTOP'))
+                          'ARESOS_INPUT_PORTAL_LOG'))
     assert status() == 'no sessions'
     pid = backend_pid(backend_owner())
     assert environ(pid)['ARESOS_INPUT_PORTAL_LOG'] == 'trace'
@@ -531,7 +534,7 @@ def windows():
 
 
 def windows_with(title):
-    return [window for window in windows() if window[1] == title]
+    return [window for window in windows() if window[1].startswith(title)]
 
 
 def core_pids():
@@ -554,17 +557,37 @@ def off_refusals(log):
 
 
 def startup_diagnostics():
-    log = session_log()
-    core = log + probe_log('server')
-    return dict(
-        core_pids=core_pids(), source_profile=(daily_state['source'] / 'Deskflow.conf').is_file(),
-        backend_connections=backend_connections(), created=log.count('session created'),
+    try:
+        log = session_log()
+    except FileNotFoundError:
+        log = ''
+    # The state directory persists across reboots, including the previous boot's server.log.
+    core = log + '\n' + (probe_log('server') if 'server' in daily_state.get('processes', {}) else '')
+    lines = log.splitlines()
+    safe_lines = [line for line in lines if not LOG_DATA.search(line)]
+    evidence = dict(
+        core_pids=core_pids(), source_profile=(session['home'] / '.config/Deskflow/Deskflow.conf').is_file(),
+        created=log.count('session created'),
         off_refusals=off_refusals(log), worker_started='Wayland worker started' in log,
         worker_failed='could not start the Wayland worker' in log,
+        refusals=Counter(reasons.group(1) for line in safe_lines
+                         if (reasons := re.search(r'\brefused: (.*?)(?:\s+\w+=|$)', line))),
         core_selected_wayland='detected wayland platform' in core,
         scope_error='Failed to start transient scope unit' in core,
         configuration_error='failed to load config' in core,
+        traceback='Traceback' in core,
+        could_not_start='Could not start Deskflow' in core,
+        session_log_tail=''.join(('' if LOG_DATA.search(line) else line) + '\n' for line in lines[-40:]),
     )
+    # Keep the log even if the bus is down or the backend is stopped in a test.
+    try:
+        evidence['backend_connections'] = backend_connections()
+        result = guest_command(PORTAL, '--status')
+        evidence['status'] = result.stdout
+        evidence['status_returncode'] = result.returncode
+    except (AssertionError, OSError, subprocess.TimeoutExpired) as error:
+        evidence['status_error'] = type(error).__name__
+    return evidence
 
 
 def start_probe(name, argv, *, display=False, pipe=False):
@@ -676,8 +699,12 @@ def daily_prepare(request):
         require(subprocess.run(['chpasswd'], input=f'{session["name"]}:{PASSWORD}\n',
                                capture_output=True, text=True, timeout=10))
         trace_backend()
+    owner = current_owner(BUS_NAME)
+    pid = backend_pid(owner) if owner else None
     return dict(returncode=0, switch=require(guest_command(SWITCH_UI, 'status')).strip(),
-                backend_connections=backend_connections(), labwc_pid=session['pid'])
+                backend_connections=wayland_connections(pid) if pid is not None else None,
+                backend_has_wayland_display='WAYLAND_DISPLAY' in environ(pid) if pid is not None else None,
+                labwc_pid=session['pid'])
 
 
 def daily_server(request):
@@ -698,10 +725,7 @@ def daily_server(request):
                  'server and guarded profile stopped')
         wait_for(lambda: status() == 'no sessions', 'portal session closed after server stop')
     elif action == 'armed':
-        try:
-            path = wait_for(backend_session, 'one armed Deskflow session')
-        except TimeoutError as error:
-            raise TimeoutError(f'{error}. Startup evidence: {startup_diagnostics()}') from None
+        path = wait_for(backend_session, 'one armed Deskflow session')
         pid, = core_pids()
         scope = (PROC / str(pid) / 'cgroup').read_text().strip().split('/')[-1]
         assert re.fullmatch(r'app-aresos-org\.deskflow\.deskflow-[0-9a-f]{16}\.scope', scope), scope
@@ -840,7 +864,7 @@ def daily_dialog(request):
     else:
         seen = wait_for(lambda: windows_with(title), f'{request["name"]} mapped')
         if request.get('new'):
-            before = [window for window in daily_state['window_mark'] if window[1] == title]
+            before = [window for window in daily_state['window_mark'] if window[1].startswith(title)]
             wait_for(lambda: len(windows_with(title)) == len(before) + 1, 'new recovery terminal')
         else:
             assert len(seen) == 1, f'{request["name"]} opened more than one window'
@@ -1161,11 +1185,8 @@ def daily_proof(request):
     if op == 'off-launch':
         before = off_refusals(session_log())
         daily_server({'op': 'hub'})
-        try:
-            wait_for(lambda: off_refusals(session_log()) > before,
-                     'real portal declined the scoped Deskflow server while Off')
-        except TimeoutError as error:
-            raise TimeoutError(f'{error}. Startup evidence: {startup_diagnostics()}') from None
+        wait_for(lambda: off_refusals(session_log()) > before,
+                 'real portal declined the scoped Deskflow server while Off')
         wait_for(lambda: not core_pids(), 'refused core exited')
         assert status() == 'no sessions' and not backend_connections()
     elif op == 'off-time':
