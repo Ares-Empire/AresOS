@@ -500,8 +500,10 @@ public final class WorldKeepsPointerClientGameTest implements FabricClientGameTe
         }
 
         void captureAt(int x, int y) {
+            int[] box = windowBox();
             input("abs " + x + " " + y);
-            context.waitFor(WorldCapture::pointerOverWorld);
+            context.waitFor(client -> WorldCapture.pointerOverWorld(client)
+                    && atPosition(cursorPosition(client), x - box[0], y - box[1]));
             input("click left");
             context.waitFor(WorldKeepsPointerClientGameTest::captured);
         }
@@ -521,11 +523,6 @@ public final class WorldKeepsPointerClientGameTest implements FabricClientGameTe
 
         void restoreFocus() {
             context.runOnClient(client -> X11.focus(client.getWindow().handle(), Focus.BACK));
-        }
-
-        void moveOffWorld(int[] box) {
-            input("abs " + (box[0] + box[2] + 90) + " " + (box[1] + 70));
-            context.waitFor(client -> !WorldCapture.pointerOverWorld(client));
         }
 
         void races() {
@@ -584,35 +581,63 @@ public final class WorldKeepsPointerClientGameTest implements FabricClientGameTe
         void clean(String label) {
             context.waitFor(client -> released(client) && WorldCapture.settled());
             int[] box = windowBox();
-            // Restoring keyboard focus with the pointer on the other output avoids a fresh capture through HomeScreen.
-            if (!context.computeOnClient(WorldKeepsPointerClientGameTest::xFocused)) moveOffWorld(box);
             context.runOnClient(client -> {
                 check(seamRun == null, label + ": the release never reached its seam");
+                // Restoring focus for measurement must not start HomeScreen's separate capture-on-return path.
+                // GLFW still sees real X focus and input, including a stale grab if the release left one behind.
+                WorldCapture.forTests(false, true);
                 X11.focus(client.getWindow().handle(), Focus.BACK);
             });
             context.waitTicks(3);
             context.runOnClient(client -> {
+                WorldCapture.forTests(null, true);
                 check(released(client) && WorldCapture.settled(), label + ": release did not settle");
                 check(client.isWindowActive(), label + ": Minecraft lost focus after X focus returned");
                 X11.checkCursorShown(client.getWindow().handle());
             });
-            check(command("bash", rigFile("state.sh"), root.toString()).contains("X pointer grab: free"),
-                    label + ": an X client still holds the pointer");
+            // labwc may already be at the capture's starting point (90,70) while X still has its last warp there.
+            // Use a distinct point first so the observations require two actual pointer moves.
+            moveTo(box, 70, 50, label);
             for (int[] point : new int[][] {{90, 70}, {140, 110}}) {
-                input("abs " + (box[0] + point[0]) + " " + (box[1] + point[1]));
+                moveTo(box, point[0], point[1], label);
                 context.waitTicks(3);
                 checkPosition(point[0], point[1], label);
+            }
+            // Probing with another client's XGrabPointer can change routing, so do it after the motion checks.
+            check(command("bash", rigFile("state.sh"), root.toString()).contains("X pointer grab: free"),
+                    label + ": an X client still holds the pointer");
+        }
+
+        void moveTo(int[] box, int x, int y, String label) {
+            input("abs " + (box[0] + x) + " " + (box[1] + y));
+            try {
+                context.waitFor(client -> atPosition(cursorPosition(client), x, y));
+            } catch (AssertionError error) {
+                var actual = context.computeOnClient(Rig::cursorPosition);
+                throw new AssertionError(label + ": Xwayland did not deliver the move to " + x + "," + y
+                        + ", pointer at " + actual[0] + "," + actual[1], error);
             }
         }
 
         void checkPosition(int x, int y, String label) {
             context.runOnClient(client -> {
-                double[] actualX = new double[1], actualY = new double[1];
-                GLFW.glfwGetCursorPos(client.getWindow().handle(), actualX, actualY);
-                check(Math.abs(actualX[0] - x) <= 2 && Math.abs(actualY[0] - y) <= 2,
-                        label + ": expected the free pointer at " + x + "," + y
-                                + ", got " + actualX[0] + "," + actualY[0]);
+                var actual = cursorPosition(client);
+                check(atPosition(actual, x, y), label + ": expected the free pointer at " + x + "," + y
+                        + ", got " + actual[0] + "," + actual[1]);
             });
+        }
+
+        private static double[] cursorPosition(Minecraft client) {
+            try (var stack = MemoryStack.stackPush()) {
+                var x = stack.mallocDouble(1);
+                var y = stack.mallocDouble(1);
+                GLFW.glfwGetCursorPos(client.getWindow().handle(), x, y);
+                return new double[] {x.get(0), y.get(0)};
+            }
+        }
+
+        private static boolean atPosition(double[] actual, int x, int y) {
+            return Math.abs(actual[0] - x) <= 2 && Math.abs(actual[1] - y) <= 2;
         }
 
         void prepareWorldExit() {
