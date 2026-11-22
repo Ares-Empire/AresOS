@@ -34,12 +34,12 @@ MODEL_STEP = 'Run the full ways-back model'
 ACCOUNTING_POLICY = '14zz-job-interval-ordered-span-full-bound-v1'
 OWNER_QUALIFICATION_BOUND = 240
 # Packages whose ledger counts every dispatch by its run title.
-TITLED_PACKAGES = ('13', '14', '16', '27', '22c', '22d', '42')
+TITLED_PACKAGES = ('13', '14', '16', '27', '22c', '22d', '42', '331')
 # Packages whose every VM mode proves its native step in its own run and, when the full
 # ways-back model's sources changed, needs that model passed on the same head first.
 OWN_RUN_PACKAGES = ('22c', '22d')
 # The dispatch kinds whose job may publish an image (each once: publish_cap).
-PUBLISH_KINDS = ('release-13', 'release-27', 'publish-28')
+PUBLISH_KINDS = ('release-13', 'release-27', 'publish-28', 'publish-29')
 
 
 def configure(package):
@@ -388,7 +388,7 @@ def budget(reserve, current=None):
         bound = None
         if PACKAGE in ('14','16') and run['event']=='workflow_dispatch':
             bound = 72 if run['display_title']==SETTINGS['titles']['probe'] else OWNER_QUALIFICATION_BOUND
-        if PACKAGE in ('27', '42') + OWN_RUN_PACKAGES and run['event'] == 'workflow_dispatch':
+        if 'job_bounds' in SETTINGS and run['event'] == 'workflow_dispatch':
             # Each kind's own job timeout bounds a job GitHub cannot account.
             bound = SETTINGS['job_bounds'][kind]
         accounts = [job_accounting(job, bound) for job in jobs]
@@ -400,12 +400,18 @@ def budget(reserve, current=None):
     assert full <= FULL_CAP, 'STOP: full-run allowance exhausted'
     assert part_b <= PART_B_CAP, 'STOP: Part B qualification allowance exhausted'
     for kind, count in counts.items():
+        if PACKAGE == '331' and kind == 'publish-29':
+            # R29 closes the publish gate after use. Keep the historical charge
+            # and enforce the gate when authorizing another publish dispatch.
+            continue
         assert count <= SETTINGS['dispatch_caps'][kind], 'STOP: ' + kind + ' dispatch allowance exhausted'
     if 'vm_dispatch_cap' in SETTINGS:
         # Packages 22c and 22d: one allowance for all VM modes together (every kind but the checks).
         assert sum(count for kind, count in counts.items() if kind != 'checks') <= SETTINGS['vm_dispatch_cap'], \
             'STOP: VM dispatch allowance exhausted'
-    assert len(publishes) <= SETTINGS.get('publish_cap', 0), 'STOP: publish allowance exceeded'
+    if PACKAGE != '331':
+        # The R29 upload count stays in history when the current gate is closed.
+        assert len(publishes) <= SETTINGS.get('publish_cap', 0), 'STOP: publish allowance exceeded'
     return dict(allowance=PACKAGE, start=start, cap=MINUTE_CAP, full_cap=FULL_CAP, full_dispatched=full,
                 part_b_cap=PART_B_CAP, part_b_dispatched=part_b,
                 dispatch_caps=SETTINGS.get('dispatch_caps', {}), dispatch_counts=counts,
@@ -516,6 +522,11 @@ def main():
         assert os.environ.get('GITHUB_REF_NAME', BRANCH) == BRANCH, 'STOP: wrong package branch'
     if ci and PACKAGE == '42':
         assert os.environ.get('GITHUB_REF', '').startswith('refs/heads/'), 'STOP: a branch ref is required'
+    if ci and PACKAGE == '331':
+        assert os.environ.get('GITHUB_REF') == 'refs/heads/' + BRANCH, 'STOP: wrong package 331 branch ref'
+        assert os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch', 'STOP: workflow dispatch required'
+        assert os.environ.get('GITHUB_REPOSITORY') == REPOSITORY, 'STOP: wrong repository'
+        assert current and current.isdigit(), 'STOP: missing current dispatch ID'
     result = budget(reserve, current)
     if plan is not None:
         result['reservation_plan']=plan
@@ -535,10 +546,19 @@ def main():
             assert run['head_branch'] == BRANCH and run['head_sha'] == os.environ['GITHUB_SHA']
             assert run['display_title'] == SETTINGS['titles'][kind] and run['event'] == 'workflow_dispatch'
             assert result['dispatch_counts'][kind] >= 1, 'STOP: current dispatch is missing from complete history'
+            if PACKAGE == '331':
+                assert int(current) in history['run_ids'], 'STOP: current dispatch is missing from complete history'
+                assert run['path'] == '.github/workflows/os-image.yml' and run['run_attempt'] == 1, \
+                    'STOP: OS image dispatch on its first attempt required'
+                if kind == 'publish-29':
+                    assert result['dispatch_counts'][kind] <= SETTINGS['dispatch_caps'][kind], \
+                        'STOP: publish-29 dispatch allowance exhausted'
         else:
             assert result['dispatch_counts'][kind] < SETTINGS['dispatch_caps'][kind], 'STOP: no dispatch remains'
         if kind in PUBLISH_KINDS:
             assert not result['publish_attempts'], 'STOP: a prior attempt reached publishing; no further image/publish attempt'
+        if kind == 'publish-29':
+            assert SETTINGS['publish_cap'] > 0, 'STOP: the ledger allows no publish'
         if mode == 'publish-ci':
             # Package 42's dry run (dry-run-28) is not a publishing kind: it has no publish step, and this refuses one.
             assert kind in PUBLISH_KINDS and os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch'
@@ -622,7 +642,7 @@ def main():
     (directory / suffix).write_text(json.dumps(result, indent=2) + '\n')
     if PACKAGE == '13' and mode != 'publish-ci':
         (directory / '13-dispatch-authorization.json').write_text(json.dumps(result, indent=2) + '\n')
-    if PACKAGE in ('14','16','27','42') + OWN_RUN_PACKAGES:
+    if PACKAGE in ('14','16','27','42','331') + OWN_RUN_PACKAGES:
         (directory / (PACKAGE+'-dispatch-authorization.json')).write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(result, indent=2))
 

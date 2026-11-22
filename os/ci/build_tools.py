@@ -87,17 +87,21 @@ def build(tools):
 RELEASE_BUILDS = {
     '27': dict(branch='pkg/27-first-update-release', modes=('release-27',), previous='os/manifest/releases/13.json'),
     '28': dict(branch='pkg/42-release-28', modes=('publish-28', 'dry-run-28'), previous='os/manifest/releases/27.json'),
+    '29': dict(branch='pkg/331-release-29', modes=('publish-29', 'dry-run-29'), previous='os/manifest/releases/28.json'),
 }
 RELEASE_MODES = {mode: release for release, build in RELEASE_BUILDS.items() for mode in build['modes']}
 
 
 def build_release(tools, release):
-    """Packages 27 and 42: verify and pull the previous release with the job token, then diff it."""
+    """Verify and pull the previous release with the job token, then diff it."""
     tools = validate(tools)
     build = RELEASE_BUILDS[release]
     assert os.environ['GITHUB_REPOSITORY'] == 'Ares-Empire/AresOS'
     assert os.environ['GITHUB_REF_NAME'] == build['branch']
     assert os.environ['REHEARSAL_MODE'] in build['modes']
+    if release == '29':
+        assert os.environ.get('GITHUB_REF') == 'refs/heads/' + build['branch'], 'STOP: wrong R29 branch ref'
+        assert os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch', 'STOP: workflow dispatch required'
     assert 'GHCR_READ_TOKEN' not in os.environ, 'The previous release is read with the job token; no owner secret'
     previous = json.loads(pathlib.Path(build['previous']).read_text())
     from registry_auth import auth_file

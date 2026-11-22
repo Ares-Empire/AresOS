@@ -15,6 +15,7 @@ sys.path.insert(0,str(ROOT/'os/ci'))
 import build_tools
 import image_diff
 import rehearsal_auth
+import registry_auth
 
 
 class BuildToolsTest(unittest.TestCase):
@@ -83,6 +84,27 @@ class BuildToolsTest(unittest.TestCase):
         resolve,= [i for i,s in enumerate(steps) if s.get('run')=='python3 os/ci/build_tools.py resolve evidence/build-tools.json']
         auth,=[i for i,s in enumerate(steps) if s.get('run')=='sudo -E python3 os/ci/rehearsal_auth.py create']
         self.assertLess(resolve,auth)
+
+    def test_r29_build_modes_require_the_exact_dispatch_branch_before_registry_access(self):
+        branch = 'pkg/331-release-29'
+        env = dict(GITHUB_REPOSITORY='Ares-Empire/AresOS', GITHUB_REF_NAME=branch,
+                   GITHUB_REF='refs/heads/' + branch, GITHUB_EVENT_NAME='workflow_dispatch')
+        with tempfile.TemporaryDirectory(dir=ROOT/'os/tests') as directory:
+            tools = self.fixture(pathlib.Path(directory))
+            for mode in ('dry-run-29', 'publish-29'):
+                self.assertEqual(build_tools.RELEASE_MODES[mode], '29')
+                with patch.dict(os.environ, env | {'REHEARSAL_MODE': mode}, clear=True), \
+                        patch.object(registry_auth, 'auth_file', side_effect=RuntimeError('fixture registry boundary')) as auth:
+                    with self.assertRaisesRegex(RuntimeError, 'fixture registry boundary'):
+                        build_tools.build_release(tools, '29')
+                    auth.assert_called_once_with()
+                for wrong in ({'GITHUB_REF': 'refs/tags/' + branch}, {'GITHUB_REF': 'refs/heads/main'},
+                              {'GITHUB_EVENT_NAME': 'push'}, {'REHEARSAL_MODE': 'release-29'}):
+                    with self.subTest(mode=mode, wrong=wrong), patch.object(registry_auth, 'auth_file') as auth, \
+                            patch.dict(os.environ, env | {'REHEARSAL_MODE': mode} | wrong, clear=True):
+                        with self.assertRaises(AssertionError):
+                            build_tools.build_release(tools, '29')
+                        auth.assert_not_called()
 
 
 if __name__=='__main__':

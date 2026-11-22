@@ -2005,7 +2005,7 @@ class Guard42Test(unittest.TestCase):
         with patch.dict(guard.PACKAGES['42']['dispatch_caps'], {'publish-28': 1}), \
                 self.assertRaisesRegex(AssertionError, 'STOP: the ledger allows no publish'):
             self.run_main('publish-ci', 'publish-28', today)
-        self.assertEqual(guard.PUBLISH_KINDS, ('release-13', 'release-27', 'publish-28'))
+        self.assertEqual(guard.PUBLISH_KINDS, ('release-13', 'release-27', 'publish-28', 'publish-29'))
 
     def test_the_opened_gate_passes_one_publish_and_only_the_publishing_kind(self):
         # Step 5 raised both caps to 1 (board #388): the release_28 dispatch passes its job's guard and publish.sh's.
@@ -2057,7 +2057,8 @@ class ReleaseBuildGateTest(unittest.TestCase):
                        GITHUB_EVENT_NAME='workflow_dispatch')
 
     def test_both_kinds_build_release_28_against_release_27(self):
-        self.assertEqual(build_tools.RELEASE_MODES, {'release-27': '27', 'publish-28': '28', 'dry-run-28': '28'})
+        self.assertEqual(build_tools.RELEASE_MODES, {'release-27': '27', 'publish-28': '28', 'dry-run-28': '28',
+                                                     'publish-29': '29', 'dry-run-29': '29'})
         self.assertEqual(build_tools.RELEASE_BUILDS['28']['previous'], rd.PREVIOUS_28)
         self.assertEqual(build_tools.RELEASE_BUILDS['27']['previous'], rd.PREVIOUS)
         tools = {name: sys.executable for name in build_tools.NAMES}

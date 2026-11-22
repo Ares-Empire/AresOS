@@ -23,12 +23,13 @@
     "18c-b Chrome start diagnostics: failed Chrome actions return their start log and launch result",
     "331 step 4: merge main through 18c-b and retain both sets of pending notes.",
     "331 step 4: bind qualifying session, Chrome first-use and rollback probes and preserve the historical route scans.",
-    "331 REVIEW-7: follow Wants in the login graph and require every host walk source row."
+    "331 REVIEW-7: follow Wants in the login graph and require every host walk source row.",
+    "331 step 5 first slice: bind the guarded R29 selectors and closed publish and rehearsal caps."
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
     {
-      "sha256": "196114e4b16317f8795bd7e08da9a660c49bd9e4d8d1aeeee20e79d85a906ed4",
+      "sha256": "35a1450a5f4c0ebd7626fa2c82a8cbd3ad9b458ee5601b88f41572f7084b027b",
       "path": ".github/workflows/os-image.yml"
     },
     {
@@ -50,6 +51,14 @@
     {
       "sha256": "3ced8263d5dbb4255e26dffba5738933377c26bf9190d76587bd073cc445de01",
       "path": "os/ci/registry_auth.py"
+    },
+    {
+      "sha256": "8bc10f54b962a45cb99b4ec5261903f1f7c8aae24255d83735e7627fbba5560d",
+      "path": "os/ci/rehearsal-packages.json"
+    },
+    {
+      "sha256": "e42e58c0e8a73da0d4f0d5398c0d28c1f15ae5dcf713daae3f2421c36948e05f",
+      "path": "os/ci/rehearsal_guard.py"
     },
     {
       "sha256": "485f6b46b1856e31320b7039767b61e8003eb2c039641d719fe54578a89146b9",
@@ -80,8 +89,20 @@
       "path": "os/tests/test_owner_path.py"
     },
     {
+      "sha256": "cf1122fa5fb65611ba4a79c292782ed5caf11ba9df3d07194ff15f96f8435839",
+      "path": "os/tests/test_owner_staged_release.py"
+    },
+    {
       "sha256": "77ae2abf2285df0f0e5a222535b5bb3608afe8293fe8bb1d6f597a082a284c3e",
       "path": "os/tests/test_owner_walk.py"
+    },
+    {
+      "sha256": "51948c13d225f3f3fae9ee9874ba87696e7b1e367c07ae6f75528d0b68b17e2f",
+      "path": "os/tests/test_rehearsal_budget.py"
+    },
+    {
+      "sha256": "8bf96befdf4e2526742ee284fbf68f3f20aa4803b5c1cad588b4f0855c9b5dec",
+      "path": "os/tests/test_release28_rehearsal.py"
     }
   ],
   "unwalked_commands": [],

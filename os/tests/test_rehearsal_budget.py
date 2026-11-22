@@ -36,7 +36,8 @@ class BudgetTest(unittest.TestCase):
         self.assertEqual(guard_step['env']['REHEARSAL_MODE'], 'checks')
         self.assertEqual(job['timeout-minutes'], '60')
         self.assertEqual(guard_step['run'], 'python3 os/ci/rehearsal_guard.py ci ${{ ' +
-                         branch + ' && ' + job['timeout-minutes'] + ' || 15 }}')
+                         '(' + branch + " || github.ref == 'refs/heads/pkg/331-release-29') && " +
+                         job['timeout-minutes'] + ' || 15 }}')
 
     def test_part_b_reservation_keeps_legacy_limits_and_covers_owner_limits(self):
         workflow = yaml.load((pathlib.Path(__file__).resolve().parents[2] /

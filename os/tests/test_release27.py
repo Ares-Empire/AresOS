@@ -601,6 +601,7 @@ UPDATE_GITHUB = dict(GITHUB_REF_NAME=UPDATE_REF, GITHUB_REF='refs/heads/' + UPDA
 UPDATE_INPUTS = {'github.ref_name': UPDATE_REF, 'github.event_name': 'workflow_dispatch', 'inputs.rehearsal': 'update',
                  'inputs.checks_only': False, 'inputs.release_13': False, 'inputs.release_27': False,
                  'inputs.release_28': False, 'inputs.dry_run_28': False,
+                 'inputs.release_29': False, 'inputs.dry_run_29': False, 'inputs.full_model': False,
                  'inputs.check_build': '', 'inputs.switch_from_run': '', 'inputs.probe_run': ''}
 UNKNOWN = object()
 
@@ -608,7 +609,10 @@ UNKNOWN = object()
 def workflow_expression(expression, inputs=None):
     """A workflow expression's value for a dispatch (by default the update one on the package 27 branch)."""
     expression = re.sub(r'\bsecrets\.\w+', repr('secret'), expression)
-    for name, value in (UPDATE_INPUTS if inputs is None else inputs).items():
+    values = dict(UPDATE_INPUTS if inputs is None else inputs)
+    values.setdefault('github.ref', 'refs/heads/' + values['github.ref_name'])
+    values.setdefault('github.repository', 'Ares-Empire/AresOS')
+    for name, value in values.items():
         expression = expression.replace(name, repr(value))
     for call, value in (('always()', 'True'), ('success()', 'True'), ('cancelled()', 'False'), ('failure()', 'False')):
         expression = expression.replace(call, value)
