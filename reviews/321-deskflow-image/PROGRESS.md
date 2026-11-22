@@ -486,15 +486,131 @@ See [REVIEW-2.md](REVIEW-2.md) for the lead's record.
   reached the client after waiting for the shared lock and timed out before completing the suite.
   Screenshots from both full passes are in `.work/step2-review-fixes/mod-client-complete-{1,2}/`.
 
+## Step 3
+
+- The initial pull confirmed that `origin/main` at `c2e94551` was already an ancestor. Main gained package
+  328a (`92cf365a`) during dispatch 7. Step 4 starts with that merge and retests the combined branch.
+- Saved the lead's read-only recheck verbatim in `REVIEW-2-RECHECK.md`. Before the image edits, the VM gate
+  began treating loss of a previously connected DRM status node as a DRM transition, and layer scanning began
+  rejecting relocated Cargo proc-macros, hashed executables and build scripts. Both have regression coverage.
+- The Fedora lock adds only `deskflow-0:1.27.0-1.fc44.x86_64` and `libportal-0.10.0-1.fc44.x86_64`.
+  The gate's Deskflow SHA-256, `21a404d8bd0488fdc7ec635ed26447d623b132dc4ae3d12e5f944991ab76484b`, is
+  checked before install. While the exact RPM is absent from stable, throwaway resolve and build allow that
+  NEVRA alone from `updates-testing`. Release mode resolves against Fedora and updates.
+- The RPM's desktop ID is `org.deskflow.deskflow`. The allow-list has that one line. The guarded native
+  hub entry uses `app-aresos-org.deskflow.deskflow-<launch_id>.scope` and continues to send
+  `org-deskflow-deskflow` in the hub protocol. The single hosted dispatch records the native core's real
+  `CreateSession2` caller, scope and the backend's observed ID, plus the terminal control, if the proof runs.
+- The sharing window, desktop entry, root helper and two per-verb polkit actions are installed. The helper
+  checks the root-owned path, writes `on\n` atomically with mode 0644 and removes that file for Off. The
+  user entry follows Off with `--revoke`. The backend can offer the window once per session bus after an
+  authorized request from the listed ID while Off. The image contains no switch file.
+- A local regression after dispatch showed that a reader's advisory lock on the switch directory could stall
+  Off. Commit `938a4deb` removes the dependency on a lock. Atomic replacement and removal still order concurrent
+  changes in the root-owned directory. The test failed with a timeout before the fix and passed after it.
+- The two image bindings marked `allowWhenInhibited="yes"` are Super+Shift+Escape and Super+Ctrl+Escape.
+  The recovery command waits for release and starts the terminal, with its existing separate hide-cover action.
+  Package 329's theme, window switcher, title-bar scrolls and Root actions are present.
+
+### Portal routing
+
+The real Fedora 44 `xdg-desktop-portal-1.22.1` ran in a private `dbus-run-session` on the pinned base plus
+the locked portal packages, using `XDG_CURRENT_DESKTOP=AresOS`. Before, both new files were absent. After,
+the verbose log loaded `/usr/share/xdg-desktop-portal/aresos-portals.conf` for `aresos` and selected
+`aresos-input.portal` for both new interfaces. The table records frontend selection. The headless routing
+probe had no display, so backend operation through the real AresOS session is checked separately in the VM.
+The raw observations are in `.work/step3/rootless-image-inputs.log`.
+
+| Interface | Before | After |
+|---|---|---|
+| Access | gtk | gtk |
+| Account | gtk | gtk |
+| AppChooser | gtk | gtk |
+| Background | none | none |
+| Clipboard | none | aresos-input |
+| DynamicLauncher | gtk | gtk |
+| Email | gtk | gtk |
+| FileChooser | gtk | gtk |
+| GlobalShortcuts | none | none |
+| Inhibit | gtk | gtk |
+| InputCapture | none | aresos-input |
+| Lockdown | none | none |
+| Notification | gtk | gtk |
+| Print | gtk | gtk |
+| RemoteDesktop | none | none |
+| ScreenCast | none | none |
+| Screenshot | none | none |
+| Secret | none | none |
+| Settings | gtk | gtk |
+| Usb | none | none |
+| Wallpaper | none | none |
+
+### Verified locally
+
+- The pinned base downloaded and compared all 32 RPMs against the reviewed lock. Signature checks held when
+  installing just Deskflow, libportal, grim and xdg-desktop-portal-wlr in the throwaway container.
+  Both new packages were absent from the base. The existing `UPGRADES-BASE` candidates are libblkid (both
+  architectures), libfdisk, liblastlog2, libmount (both), libsmartcols, libuuid (both), util-linux and
+  util-linux-core, all from 2.41.5-1.fc44 to 2.41.6-1.fc44.
+- The gated `deskflow-core` imports `xdp_portal_create_input_capture_session2_sync`,
+  `xdp_session_selection_read` and `xdp_session_selection_write`. The check layer adds `wlr-randr` and the
+  existing Wayland listener. Step 4's client and clipboard fixtures still need to demonstrate the traffic path.
+- Two clean, rootless `os/input-portal/dev/container.sh build` runs each passed 98 backend tests and produced
+  byte-identical binaries with SHA-256 `931b3dc54e1797209b08980eca8e256bfe9599b9de32c80890468547f8ea1247`.
+  Two sequential `os/input-portal/harness/run.sh run` runs on the existing `321-step2` harness image
+  each reported `SUMMARY 129 passed, 0 failed, exit 0`. Tests 1 through 10 passed 18, 8, 9, 8, 3, 8,
+  15, 16, 5 and 26 checks, plus 13 isolation, setup and review checks.
+- `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s os/tests -p <file>` ran once per module at
+  the dispatched code. `test_deskflow_vm.py` passed 6, `test_input_portal_layers.py` 3, `test_input_sharing.py` 4,
+  `test_shell_assertions.py` 9, `test_everyday_account.py` 36, `test_aresos_shell.py` 76,
+  `test_aresos_shell_discovery.py` 37, `test_aresos_shell_icons.py` 43, and
+  `test_aresos_shell_protocol.py` 21. `test_aresos_desktop.py` ran 189 and passed 188, with one skip
+  because the environment supplied no reachable user systemd manager. After `938a4deb`,
+  `test_input_sharing.py` passed 5 and `test_shell_assertions.py` passed 9. No `__pycache__` under `os/config/`.
+- A temporary profile built with `QSettings` showed TLS and peer checking enabled despite both source
+  values saying false. It kept one valid fingerprint and refused a second. `mod/dev/build.sh` reported
+  `BUILD SUCCESSFUL` and all 106 required server game tests passed.
+- Two full runs of `mod/dev/client-test.sh --keep-screenshots <evidence-dir> build` completed
+  `runClientGameTest` and passed all 106 required server game tests each. Both returned 0 and printed
+  `BUILD SUCCESSFUL` (15m 58s and 16m 29s). Each evidence directory under
+  `.work/step3/mod-client-{1,2}/` holds 105 screenshots. The worktree's generated snapshots were cleaned up.
+- The extracted Fedora image rules with the new policy passed `polkit-check.js` in a rootless throwaway
+  container (403 actions). Replacing Off's `exec.argv1` with `on` failed the same check.
+- The final switch helper ran at its installed path inside the rootless harness. It wrote root:root 0644
+  in a root:root 0755 directory. Off finished while an unprivileged fixture still held an advisory lock on
+  that directory. Both verbs refused a symlink and a writable parent. The fixture printed
+  `INPUT_SHARING_REAL_PATH_PASSED`.
+
+### Judgment call
+
+The hub runs the native server core with a private runtime copy of the Deskflow profile. It uses Qt's
+`QSettings` from the pinned base, sets TLS and peer checking in the copy and refuses a trust list with
+multiple or malformed fingerprints. An empty list leaves the server with no trusted peer. The normal
+Deskflow GUI can edit the source profile and configure the server layout. The guarded hub launch uses the
+saved layout and certificate. The other approach was a check when launching the GUI, where the security
+checkboxes could still change before the GUI starts its core. A guarded GUI would need an explicit server
+launch hook or a change to Deskflow itself.
+
+### What the code doesn't show
+
+- The owner must compare and enrol the Mac's fingerprint. The launch code can enforce the count and syntax
+  of trusted fingerprints. The laptop rehearsal verifies which peer the one fingerprint belongs to.
+- The start hook, end-to-end password prompts, real input and clipboard transfers, capture and release keys,
+  restart behaviour, Flatpak control, logging and TLS negative controls are step 4's real-session evidence.
+- The upstream MIT license is in the image. The linked Rust crates' notice inventory is open before
+  publication.
+
 ## Left, in order
 
-1. The standard `check_build=build` result is still outstanding after dispatch 4 was cancelled. Dispatch 6
-   verified the installed backend hash, the shipped layers and the DRM output gate in `deskflow` mode.
-2. When the gate permits, step 3 installs Deskflow, proves its ID and changes its scope name, allow-list and
-   routing, then adds the release key, switch, helper, polkit actions, window, desktop entry and image checks.
-   The helper writes `on\n` atomically, root-owned and mode 0644, in root-owned `/etc/aresos/input-portal` (0755).
-   The switch program runs `aresos-input-portal --revoke` after `off`.
-3. Step 4 runs VM checks 2 to 9 and records the laptop rehearsal, as the brief's "Steps" says.
+1. Step 4 merges current main, adds the sharing-on login hook and reuses the guarded Deskflow server and desktop-ID scope.
+   Prove `CreateSession2` from that hook too. Run VM checks 2 to 9, including all bindings, prompt and revoke
+   checks, TLS and stale-fingerprint cases, the other-ID Flatpak and log redaction. Dispatch 8 is reserved for
+   this work.
+2. Finish the linked-crate notice inventory, the bindings table, known limits and the final review. Send
+   the refreshed file and commit lists to `linux-aresos` and `linux-hub`. The standalone `check_build=build`
+   dispatch was cancelled in step 2. Deskflow mode runs the same image checks before booting its VM.
+3. Prepare the exact laptop rehearsal for the lead. The owner gives direct approval, saves work, and
+   verifies monitor and session behaviour, the Mac fingerprint, input, clipboard and release keys on hardware.
 
 ### For step 3
 
@@ -549,6 +665,27 @@ The lead sends this list when step 3 ends and at the final head.
 | `os/ci/deskflow/{actions.py,deskflow_vm.py}`, `os/tests/test_deskflow_vm.py` | `db4d0b14` | Check DRM transitions, output-client liveness, and each custom-mode operation. |
 | `os/ci/deskflow/check_layers.py`, `os/tests/test_input_portal_layers.py` | `f4c52a3c` | Reject relocated Rust material in every shipped layer. |
 
+| `os/ci/deskflow/deskflow_vm.py`, `os/tests/test_deskflow_vm.py` | `4e04191c` | Count loss of a connected DRM status node as a transition. |
+| `os/ci/deskflow/check_layers.py`, `os/tests/test_input_portal_layers.py` | `99b0929a` | Reject relocated Cargo artifacts by filename in every shipped layer. |
+| `os/packages.lock.json` | `ff8c842e` | Lock the gated Deskflow RPM and its one new dependency, libportal. |
+| `os/build.sh`, `os/deskflow-rpm.sh` | `0d73c4ef` | Limit testing to the exact Deskflow RPM in throwaway builds and check the NEVRA and SHA-256. |
+| `os/ci/check-resolve.sh` | `ff2865b5` | Resolve the exact Deskflow candidate and fail on a different RPM. |
+| `os/Containerfile` | `193f2109` | Pass the build kind to package resolution and install the portal and allow-list. |
+| `os/manifest/input-portal.sha256` | `8b16cf82` | Pin both byte-identical builds of the backend with the sharing-window prompt. |
+| `os/config/usr/share/xdg-desktop-portal/aresos-portals.conf` | `7a09287f` | Preserve each existing route and add InputCapture and Clipboard. |
+| `os/config/usr/libexec/aresos-shell` | `d5ea344f` | Deskflow scope only. See the `linux-hub` review below. |
+| `os/config/usr/libexec/aresos-deskflow`, `os/config/usr/share/aresos/apps/org-deskflow-deskflow.json` | `dfee4a41` | Guard the image's native Deskflow launch with a TLS and peer-checking profile. |
+| `os/config/usr/{bin/aresos-input-sharing,libexec/aresos-input-sharing-set,share/applications/org.aresos.InputSharing.desktop,share/polkit-1/actions/org.aresos.input-sharing.policy}`, `os/tests/test_input_sharing.py` | `8059f338` | Add and test the switch, GUI and per-verb policy. |
+| `os/ci/polkit-review.json` | `673736cf` | Review executable, verb and each session's decision for both sharing actions. |
+| `os/ci/polkit-check.js` | `7e1ff13d` | Audit both exec annotations and detect unreviewed actions for the helper. |
+| `os/config/usr/share/aresos/labwc/rc.xml` | `378224cb` | Mark the two release bindings and keep the recovery terminal and cover actions. |
+| `os/ci/owner_vm.py` | `fe4e8191` | Accept the Deskflow registry alongside the historical registry when auditing an update. |
+| `os/ci/check-image.sh` | `54ceedb8` | Supply the reviewed definitions for image ownership and content checks. |
+| `os/ci/image-checks.sh` | `c0020bc6` | Verify package, routes, sharing files, policy, TLS profile and bindings in the image. |
+| `os/ci/deskflow/{actions.py,deskflow_vm.py}` | `fd1a979d` | Prove the real frontend route, Deskflow caller and stable session in the regular backend VM. |
+| `os/tests/test_aresos_desktop.py`, `os/tests/test_everyday_account.py`, `os/tests/test_aresos_shell{,_discovery,_icons,_protocol}.py` | `dccb0f1d` | Update release-mode, recovery and registry assertions, including the scope regression. |
+| `os/config/usr/libexec/aresos-input-sharing-set`, `os/tests/test_input_sharing.py` | `938a4deb` | Keep Off independent of an advisory lock any reader could hold. Locally verified after dispatch 7. |
+
 Not touched in step 1c: `os/Containerfile` (the stage copies the whole `labwc/` folder, so the second patch needs no
 new line; its comment above the stage still says "one upstream fix" and should name both patches when the file is
 next changed), `os/ci/vm.py`, `os/packages.lock.json`, the image's `rc.xml`. **For `linux-aresos`'s release rule:** the
@@ -560,6 +697,7 @@ re-aimed at `aresos2`: R29 carries this package (release plan, 2026-11-21) and g
 | File | Commit | Why |
 |---|---|---|
 | (none in steps 1 and 1b) | | |
+| `os/config/usr/libexec/aresos-shell` | `d5ea344f` | Only the image Deskflow entry gets the native ID as its scope component. The launch suffix and hub protocol ID keep their existing form. |
 
 ## Rules from `linux-aresos` for the later steps (2026-11-21)
 
@@ -570,7 +708,7 @@ re-aimed at `aresos2`: R29 carries this package (release plan, 2026-11-21) and g
   `pending-rebind.json` first.
 - Keep the list "Image differences" below complete as the image work lands.
 
-## Image differences (for later steps to complete)
+## Image differences through step 3
 
 What the image gains or changes through this package, for `linux-aresos`'s release notes and checks.
 
@@ -579,7 +717,7 @@ What the image gains or changes through this package, for `linux-aresos`'s relea
   Changed files: `/usr/bin/labwc` (the patch; pins in step 1c above), `/usr/bin/labnag` (only the NEVRA in its
   `.note.package`), and so the two `.build-id` links. Same 64 paths; every other file is Fedora's, byte for byte.
   New behaviour: bindings are off while the input portal's capture surface holds the keyboard, except keybinds
-  marked `allowWhenInhibited="yes"` (a new `rc.xml` attribute; step 3 marks two). Without a capture nothing changes.
+  marked `allowWhenInhibited="yes"`. Step 3 marks only Super+Shift+Escape and Super+Ctrl+Escape.
   The image check names both patches. Real hardware first at the release's laptop install, as 311's rule says.
 - **Input portal (step 2):** `/usr/libexec/aresos-input-portal` (0755) and
   `/usr/share/dbus-1/services/org.freedesktop.impl.portal.desktop.aresos-input.service` (0644), owned by root.
@@ -587,7 +725,20 @@ What the image gains or changes through this package, for `linux-aresos`'s relea
   `/usr/share/aresos/manifest/input-portal.sha256`. Release builds require the backend's binary pin.
 - The Rust toolchain and `os/input-portal/` source tree stay in the builder path. The listener, `wlr-randr`
   and the session log capture are part of the throwaway check layer.
-- Deskflow's start hook in the session (step 4, the owner's answer T455): not built yet.
+- **Deskflow (step 3):** Fedora's reviewed Deskflow 1.27.0 RPM and libportal are added. The vendor
+  desktop entry supplies metadata and the application ID. The hub runs `/usr/libexec/aresos-deskflow`
+  (0755) from the reviewed registry under the native ID scope. Its private runtime profile enables TLS and
+  peer checking. The updated backend hash is pinned again.
+- **Routing and switch (step 3):** `aresos-input.portal`, `aresos-portals.conf`, the one-ID `allowed-apps`,
+  `org.aresos.InputSharing.desktop` and `org.aresos.input-sharing.policy` are root-owned, mode 0644.
+  `/usr/bin/aresos-input-sharing` and `/usr/libexec/aresos-input-sharing-set` are root-owned, mode 0755.
+  The image and its defaults carry no sharing file. The owner's release key and the combined release and
+  recovery binding are in `rc.xml`.
+- Deskflow's sharing-on start hook belongs to step 4 (the owner's answer T455).
+
+**Summary for the owner.** The image adds Deskflow and a Mouse and keyboard sharing switch that starts Off.
+Turning it on asks for the owner's password. Super+Shift+Escape brings the pointer back, and Super+Ctrl+Escape
+also opens the recovery terminal.
 
 ## CI dispatches
 
@@ -601,6 +752,7 @@ None in steps 1 and 1b.
 | 4 of 8 | 2 | [45000755789](https://github.com/Ares-Empire/AresOS/actions/runs/45000755789), on `a04a693c` (2026-11-22 09:00 CET) | `check_build=build`. **Cancelled before any workflow steps** after run 3's external failure. `gh run watch 45000755789 --exit-status --interval 60` returned 1 and GitHub reports `cancelled`. |
 | 5 of 8 | 2 | [45001307065](https://github.com/Ares-Empire/AresOS/actions/runs/45001307065), on `0c948087` (dispatched by the lead 2026-11-22 09:07 CET) | `check_build=deskflow` on step 2's final head. **Green** (2026-11-22 09:31): image build and checks, then the DRM output gate. Regular runs (a) to (d) **passed in all three states** (`regular-none`, `regular-listener`, `regular-backend`), the second screen's hotplug by `SetUIInfo`. Custom mode (e): `custom-none` passed; `custom-listener` and `custom-backend` hit the compositor assertion (`head_send_state`), as 316's analysis expected. **The gate passes** (brief item 2's rule): step 3 may start, and (e) is the known limit "no custom mode while the backend runs". |
 | 6 of 8 | 2 review fixes | [45004171828](https://github.com/Ares-Empire/AresOS/actions/runs/45004171828), verified at `f4c52a3ca122ee75798c32f9505920c0c03d7d60` (2026-11-22 09:43 CET) | `check_build=deskflow`. **Passed** (10:10 CET). `gh run watch 45004171828 --exit-status --interval 60` returned 0. The image checks passed, the layer scan passed on 9 added layers, and the installed backend SHA-256 matched the pin. The DRM gate passed with the six case results below. |
+| 7 of 8 | 3 | [45009968432](https://github.com/Ares-Empire/AresOS/actions/runs/45009968432), verified at `dccb0f1da264fff6b092f77238ee6ff20c49917b` (2026-11-22 10:56 CET) | `check_build=deskflow`. Watching at 60-second intervals. |
 
 | Run 45004171828 VM case | Result |
 |---|---|
@@ -612,6 +764,13 @@ None in steps 1 and 1b.
 | `custom-backend` | Initial custom mode and off passed. Re-enable hit the expected `head_send_state` assertion. |
 
 The evidence's `deskflow/result.json` recorded `gate: passed` and an empty `custom_incomplete` result.
+
+## Podman, after step 3
+
+The locked-base RPM/routing and polkit checks, two backend builds and two counted harness runs used
+throwaway rootless containers, sequentially. The additional switch-helper fixture used the same cached
+harness with networking disabled. This step built or removed no Podman images. No file under `.work/`
+exceeds 500 MB.
 
 ## Podman, after step 2
 

@@ -107,3 +107,15 @@ entry there is the record of how it was.
   running. A custom mode requires a manual command. The brief's alternative (the backend reads screens from
   `wl_output` and `xdg-output` and never binds the protocol) removes the backend's share of it; the compositor's
   fault for other clients is to be reported upstream (an outward step, for the owner's OK).
+
+## Deskflow in the image (step 3)
+
+- **Flathub's Deskflow shares the native ID.** The portal sees `org.deskflow.deskflow` for both. A caller
+  with that ID can request capture once the owner has turned sharing On. The lead accepted the collision
+  on 2026-11-21 because sharing starts Off and the matching Flathub entry is the same application.
+- **The trusted-peer list depends on enrolment.** The image launch refuses multiple fingerprints and forces
+  TLS and peer checking in the running server's profile. The owner must compare the single fingerprint with
+  the one displayed on the Mac. Edits to the original profile or its trust list take effect on the next
+  guarded Deskflow launch.
+- **Rust dependency notices are pending.** The backend's own MIT license ships. The exact notice and license
+  texts for its linked Rust crates still need to be collected and reviewed before publication.
