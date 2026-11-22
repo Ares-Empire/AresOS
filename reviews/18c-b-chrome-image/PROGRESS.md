@@ -3,6 +3,72 @@
 Brief: `briefs/18c-b-chrome-image.md` (on `main` since PR #73).
 Branch `pkg/18c-b-chrome`, one builder at a time. Each step is a fresh agent; this file is the handoff.
 
+## Chrome start diagnostics
+
+Diagnosis `705ce259` preserves the [read-only diagnosis](DIAG-CHROME-START.md) byte for byte.
+Harness and tests are in `f7cc4e03`.
+
+The initial probe wait in `settle` reports the launcher's exit status on the next poll if the greeting
+has yet to arrive. The timeout path keeps the same deadline. A failed guest Chrome action returns
+evidence under `evidence/control/chrome/failures/<action>/`. Each recorded launch contributes
+`chrome-<label>.txt`, a launch JSON with argv, PID, exit status or live executable and cgroup,
+session and Wayland socket details, the profile's extension IDs, a scoped journal tail for this boot,
+and the probe-host log for the launch. The guest-only probe host now records when it starts and
+logs socket connection errors. Capture precedes browser cleanup when an action unwinds. An action
+that fails before any browser start has a launch record with an empty list. The runner lists the
+saved artifact paths in the failed action's result JSON.
+
+**Scope exception.** `linux-tools` approved forwarding failure files in the shared 18c guest reply
+on 2026-11-21. The changes are confined to the CI harness, its tests and the rebind record.
+
+### Changed files under `os/` for `linux-aresos`
+
+- `os/ci/control/chrome_actions.py` polls during startup and gathers per-launch evidence on failure.
+- `os/ci/control/chrome_layer.py` adds startup and connection-error records to the guest-only probe host.
+- `os/ci/control/control_vm.py` records the saved artifact paths in failed Chrome results.
+- `os/ci/overlay/checks.py` forwards failure files in the guest's error reply.
+- `os/manifest/ci/16/pending-rebind.json` holds the requested rebind note.
+- `os/tests/test_control_vm.py` exercises early exit, timeout, guest reply and runner artifact handling.
+
+### Local verification
+
+Five focused tests passed with `python3 -B -m unittest -v` and `PYTHONPATH=os/tests`.
+They covered exit 23 with stderr before any retry sleep, a live process at the probe deadline,
+probe-host startup logging when the socket is missing, an action's existing evidence on a returned
+failure, and the runner's saved files and PASS lines after a failed action.
+
+| `python3 -B -m unittest discover -s os/tests -p` pattern | Result |
+|---|---|
+| `test_control_vm.py` | `Ran 102 tests in 2.717s`, `OK` |
+| `test_control_image.py` | `Ran 49 tests in 6.371s`, `OK` |
+| `test_checkout_sources.py` | `Ran 10 tests in 0.880s`, `OK` |
+| `test_release28.py` | `Ran 94 tests in 32.597s`, `OK` |
+
+`git diff --check` was clean. The requested `rebind.py pending` command printed
+`pending: 8 bound files differ from the active bindings, 0 removed`. The shared reply file
+appears in historical records. The eight active pending file rows stayed the same.
+
+Each mutation ran one test on a disposable import from `.work/18c-b-chrome-start/` and printed
+`FAILED (failures=1)` with exit 1.
+
+| Mutation | Assertion that failed |
+|---|---|
+| Restore the greeting-only wait | The early-exit test got the probe timeout instead of status 23. |
+| Restore the traceback-only guest reply | The live-timeout test found all four expected evidence files missing. |
+| Remove capture before bundle cleanup | The live-timeout test got exit status `-15` from cleanup in place of a live process. |
+
+**JUDGMENT-CALL.** Evidence is grouped by action and launch. A shared boot-wide log could
+mix a failed start with its recovery start. Each log tail is capped at 32 KiB, with at most 80
+entries from the scope journal, to fit the shared result channel. The limits and layout can
+be changed in the harness.
+
+**PLAN-GAP.** A runner-side failure that receives no guest reply can supply only its runner evidence.
+The reused-profile startup cause is still open. No VM, container or browser ran locally.
+There were no files over 500 MB in this worktree's `.work/`.
+
+**Left:** `linux-tools` watches the hosted control runs and inspects the failed-start evidence if the
+intermittent timeout recurs.
+
 ## Recheck 1 and the round's CI (2026-11-21, the lead, `linux-tools`)
 
 The lead's CI for the fix head, all green (**run**, logs read 2026-11-21):
