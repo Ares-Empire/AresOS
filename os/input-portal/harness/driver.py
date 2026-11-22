@@ -14,11 +14,13 @@ Every check prints one PASS or FAIL line; all of them, with the logs, land in /e
 check passed, 1 when one failed, 2 when the setup itself could not be used (nothing was tested). Every wait
 has a time limit, and at the end only the processes started here are stopped.
 """
+import ctypes
 import json
 import os
 import re
 import select
 import signal
+import socket
 import stat
 import subprocess
 import sys
@@ -682,8 +684,14 @@ def control_output_cycle():
     fresh_labwc()
     start_bus()
     backend = start_backend(Bus("stranger-3"))
-    info(f"control: the backend is connected; off, on, off, on: {cycle()}; "
+    # The backend binds the output manager only while a session needs its worker.
+    frontend = Bus("frontend-control")
+    frontend.own_frontend()
+    session = Session(frontend, "control").open(armed=False)
+    bound = wayland_connections(procs[backend].pid)
+    info(f"control: the backend is connected ({bound} Wayland connection, a session open); off, on, off, on: {cycle()}; "
          f"the backend saw {log_of(backend).count('retired a mode')} mode(s) and {log_of(backend).count('retired a head')} head(s) retired")
+    stop(session.receiver)
     stop(backend, signal.SIGINT)
 
 
@@ -1069,6 +1077,44 @@ def status_of():
     return tool([BACKEND, "--status"]).stdout.strip()
 
 
+SYS_PIDFD_GETFD = 438  # the same number on every architecture
+libc = ctypes.CDLL(None, use_errno=True)
+
+
+def wayland_connections(pid):
+    """How many of process `pid`'s sockets are connected to labwc's Wayland socket. Read from the outside, not
+    from the backend's word: each socket descriptor is copied here with pidfd_getfd(2) and asked for its peer."""
+    display = f"{RUNTIME}/{DISPLAY_NAME}"
+    count = 0
+    pidfd = os.pidfd_open(pid)
+    try:
+        for name in os.listdir(f"/proc/{pid}/fd"):
+            try:
+                if not os.readlink(f"/proc/{pid}/fd/{name}").startswith("socket:"):
+                    continue
+            except OSError:
+                continue  # closed meanwhile
+            fd = libc.syscall(SYS_PIDFD_GETFD, pidfd, int(name), 0)
+            if fd < 0:
+                if ctypes.get_errno() == 9:  # EBADF: closed meanwhile
+                    continue
+                raise OSError(ctypes.get_errno(), f"pidfd_getfd of descriptor {name} of {pid}")
+            try:
+                sock = socket.socket(fileno=fd)
+            except OSError:
+                os.close(fd)
+                continue
+            with sock:  # closes this copy only
+                try:
+                    if sock.family == socket.AF_UNIX and sock.getpeername() == display:
+                        count += 1
+                except OSError:
+                    pass  # not connected
+    finally:
+        os.close(pidfd)
+    return count
+
+
 def paste_now():
     """What a local paste gets right now, or why it got nothing."""
     try:
@@ -1081,6 +1127,9 @@ def paste_now():
 def test8_switch(fe, admin):
     T = "test8"
     backend = start_backend(admin)
+    pid = procs[backend].pid
+    pump(0.3)
+    idle_connections = wayland_connections(pid)
     folder = os.path.dirname(SWITCH)
     real = f"{folder}/real-switch"
 
@@ -1111,9 +1160,14 @@ def test8_switch(fe, admin):
             check(T, f"with {what}, the listed app_id is refused (sharing is off), and no file descriptor comes back",
                   reply.error == DENIED and "sharing is off" in reply.message and reply.nfds == 0, f"{reply.error} {reply.message}")
         check(T, "none of them left a session behind", status_of() == "no sessions")
+        off_connections = wayland_connections(pid)
+        check(T, "the backend holds no Wayland connection with the switch on and no session (nothing needs its worker), "
+                 "nor while Off after four refused requests", idle_connections == 0 and off_connections == 0,
+              f"{idle_connections} with no session, {off_connections} while Off")
 
         # The switch removed while input is flowing, and nobody calls --revoke.
         session = Session(fe, "off-while-typing").open()
+        on_connections = wayland_connections(pid)
         activated = capture(session)
         burst()
         flowing = wait_for(lambda: "KEY 48 0" in session.eis(), 2)
@@ -1139,12 +1193,16 @@ def test8_switch(fe, admin):
         check(T, "its EIS receiver is disconnected and --status says no sessions", "DISCONNECT" in session.eis() and status_of() == "no sessions", f"{session.eis()[-2:]}")
         check(T, "the pointer and the keyboard are local again, and the next crossing stays local", local_motion() and local_key() and stays_local(fe, backend))
         check(T, "the compositor confirmed the end of the capture: the backend is still running", procs[backend].poll() is None)
+        stopped = wait_for(lambda: wayland_connections(pid) == 0, 1.0)
+        check(T, "an authorized session while On starts the Wayland worker (one connection); the switch removed, the worker stops: "
+                 "the backend holds no Wayland connection", on_connections == 1 and stopped, f"{on_connections} while On, then {wayland_connections(pid)}")
         stop(session.receiver)
 
         # The same with a clipboard read in flight: the read is on its way to a backend that is stopped for the
         # moment, and the switch goes off before it gets there.
         set_switch("on\n")
         session = Session(fe, "off-while-reading").open(armed=False)
+        again_connections = wayland_connections(pid)
         mark = len(fe.signals)
         copy("aresos-321 a clipboard read in flight 3d7e")
         offered = wait_for(lambda: fe.sig("SelectionOwnerChanged", session.path, mark), 3)
@@ -1162,6 +1220,9 @@ def test8_switch(fe, admin):
         closed = wait_for(lambda: fe.sig("Closed", session.path, mark), 3)
         check(T, "the same with a clipboard read in flight: no file descriptor comes back, and the session is closed",
               offered and got and not got.ok and got.nfds == 0 and closed, f"offered {bool(offered)}, reply {got and (got.ok, got.error, got.nfds)}, Closed {bool(closed)}")
+        stopped = wait_for(lambda: wayland_connections(pid) == 0, 1.0)
+        check(T, "On again: the next session starts a new worker (one connection), and Off stops it again (none)",
+              again_connections == 1 and stopped, f"{again_connections} while On, then {wayland_connections(pid)}")
         stop(session.receiver)
 
         # After Off no new clipboard transfer starts, either way.
