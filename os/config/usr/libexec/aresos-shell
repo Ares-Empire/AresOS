@@ -3889,6 +3889,9 @@ class Helper:
             pending['conns'].append(conn)
             return None
         entry = self.journal.entries.get(key)
+        if entry is None:
+            # The launch table outlives a reply: an ID whose launch still runs never starts a second one.
+            entry = next((launch.entry for launch in self.launch_entries() if launch.origin == key), None)
         if entry is not None:
             if entry['app_id'] != app_id:
                 raise Failure('request_id_reused', 'this request ID already opened another app')
@@ -4211,7 +4214,7 @@ class Helper:
     def sync_launch_reply(self, launch):
         entry = launch.entry
         reply = self.journal.entries.get(launch.origin)
-        # A view can reuse its request ID after eviction while the first process is still alive.
+        # A reply can be gone (expired, or its view name gave way) while its process is still alive.
         if reply is None or reply.get('launch_id') != entry['launch_id'] or reply.get('joined'):
             return False
         reply.clear()

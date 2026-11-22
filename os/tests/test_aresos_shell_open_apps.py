@@ -428,6 +428,30 @@ class OpenAppsTest(ViewBase):
             self.assertEqual(reply['error'], 'unknown_app')
             helper.disconnected(view)
 
+    def test_a_resent_deliberate_open_never_starts_a_second_instance(self):
+        helper = self.start(tracked=True)
+        origin = self.view(helper, 'origin')
+        first = self.call(helper, origin, 'open_app', 'same', app_id='terminal')
+        self.assertEqual(first['state'], 'starting')
+        helper.disconnected(origin)
+        # RECHECK-2's sequence: four more view names record requests, then the first reconnects and resends.
+        self.churn_view_history(helper)
+        for reconnect in (lambda: self.view(helper, 'origin'), lambda: self.hello13(helper, view='origin')[0]):
+            origin = reconnect()
+            again = self.call(helper, origin, 'open_app', 'same', app_id='terminal')
+            self.assertEqual((again['launch_id'], again['state']), (first['launch_id'], 'starting'))
+        # Whatever the journal holds: with the reply gone, the live launch still answers for its ID.
+        del helper.journal.entries['view:origin', 'same']
+        helper.save_launches()
+        self.active_units = {launch.entry['unit'] for launch in helper.launch_entries()}
+        for current in (helper, self.start(tracked=True)):
+            origin = self.view(current, 'origin')
+            again = self.call(current, origin, 'open_app', 'same', app_id='terminal')
+            self.assertEqual((again['launch_id'], again['state']), (first['launch_id'], 'starting'))
+            self.assertEqual(self.call(current, origin, 'open_app', 'same', app_id='notepad')['error'],
+                             'request_id_reused')
+        self.assertEqual(self.popen.call_count, 1)
+
     def test_view_history_churn_preserves_a_join_until_its_outcome(self):
         helper = self.start(tracked=True)
         laptop = self.view(helper)
