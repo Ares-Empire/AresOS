@@ -103,7 +103,7 @@ case $mode in
         fi
         ;;
     bench-pass)
-        if [[ -c /dev/kvm && ! -w /dev/kvm ]]; then
+        if [[ ! -w /dev/kvm && -c /dev/kvm ]]; then
             sudo chgrp "$(id -g)" /dev/kvm
             sudo chmod g+rw /dev/kvm
         fi
