@@ -1034,14 +1034,16 @@ def daily_input(request):
         wait_for(lambda: portal_events()['Deactivated'] > daily_state['event_mark']['Deactivated'],
                  'real frontend forwarded Deactivated')
         if request.get('modifiers'):
-            text = input_since(daily_state['input_mark'], 'x11-input')
-            for name in ('Super_L', 'Shift_L'):
-                press, release = (sum(re.search(x_key(name), event) is not None for event in
-                                      re.findall(rf'(?ms)^{kind} event,.*?(?=\n\n|\Z)', text))
-                                  for kind in ('KeyPress', 'KeyRelease'))
-                assert press == release, f'{name} was left held in the client'
-        if request.get('focus'):
-            local_focus()
+            def neutral():
+                text = input_since(daily_state['input_mark'], 'x11-input')
+                for name in ('Super_L', 'Shift_L'):
+                    press, release = (sum(re.search(x_key(name), event) is not None for event in
+                                          re.findall(rf'(?ms)^{kind} event,.*?(?=\n\n|\Z)', text))
+                                      for kind in ('KeyPress', 'KeyRelease'))
+                    if not press or release != press:
+                        return False
+                return True
+            wait_for(neutral, 'the client got both modifier releases while the QEMU keys were held')
         return dict(returncode=0, deactivated=True)
     elif op == 'local-key':
         wait_for(lambda: re.search(r'(?m)^KEY \d+ 1$', input_since(daily_state['input_mark'], 'local-input')),

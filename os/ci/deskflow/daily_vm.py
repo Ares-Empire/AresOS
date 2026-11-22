@@ -61,6 +61,11 @@ class Checks:
         for key in text:
             self.keys({' ': 'spc', '\n': 'ret'}.get(key, key))
 
+    def key_state(self, keys, down):
+        self.guest.qmp.command('input-send-event', {'events': [
+            {'type': 'key', 'data': {'down': down, 'key': {'type': 'qcode', 'data': key}}} for key in keys
+        ]})
+
     def server(self, op):
         return self.ask('server', op=op)
 
@@ -165,9 +170,17 @@ class Checks:
 
     def release(self, *, modifiers=False, local=True):
         self.input('mark')
-        self.keys(*RELEASE)
-        self.input('released', modifiers=modifiers, focus=local)
+        if modifiers:
+            self.key_state(RELEASE, True)
+            try:
+                self.input('released', modifiers=True)
+            finally:
+                self.key_state(reversed(RELEASE), False)
+        else:
+            self.keys(*RELEASE)
+            self.input('released')
         if local:
+            self.input('focus')
             self.keys('b')
             self.input('local-key')
 
@@ -203,14 +216,12 @@ class Checks:
             self.input('mark')
             alt = binding.startswith('Alt+')
             if alt:
-                self.guest.qmp.command('input-send-event', {'events': [
-                    {'type': 'key', 'data': {'down': True, 'key': {'type': 'qcode', 'data': 'alt'}}}]})
+                self.key_state(('alt',), True)
             try:
                 self.input('virtual-mouse', commands=mouse)
             finally:
                 if alt:
-                    self.guest.qmp.command('input-send-event', {'events': [
-                        {'type': 'key', 'data': {'down': False, 'key': {'type': 'qcode', 'data': 'alt'}}}]})
+                    self.key_state(('alt',), False)
             self.keys('b')
             self.attempt(8, binding, lambda: self.check(8, binding, **self.input('binding', mouse=pattern)))
         self.release(modifiers=True)
