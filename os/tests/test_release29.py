@@ -254,6 +254,8 @@ class ImageDiffTest(unittest.TestCase):
             self.roots[side].mkdir()
             for path, raw in mask.items():
                 self.write(side, path, raw)
+            # Both images inherit polkit's action directory and the base policy.
+            self.write(side, 'usr/share/polkit-1/actions/org.fedoraproject.FirewallD1.policy', b'base policy')
             self.write(side, rd.MANIFEST + 'packages.txt', '\n'.join(sorted(self.rpms[side])) + '\n')
             raw = released('28', 'os/packages.lock.json') if side == 'old' else lock29()
             self.write(side, rd.MANIFEST + 'packages.lock.json', json.dumps(json.loads(raw), indent=2) + '\n')
@@ -775,7 +777,7 @@ class ImageDiffTest(unittest.TestCase):
         self.assertIn('labwc new: missing or different non-ghost RPM file: /' + LABWC, result['labwc']['error'])
 
     def test_labwc_rejects_a_valid_but_stale_installed_lock(self):
-        stale = rd.git_bytes(MAIN, rd.LABWC_LOCK_29)
+        stale = REAL_GIT('show', f'{MAIN}:{rd.LABWC_LOCK_29}')
         self.assertNotEqual(stale, self.labwc_lock_bytes())
         self.write('new', rd.LABWC_RECORD, stale)
         _, result = self.diff()
