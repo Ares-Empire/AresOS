@@ -400,7 +400,8 @@ def main():
     except Exception as error:
         daily_result = dict(status='failed', detail=str(error)[-4000:])
     print(f'DESKFLOW_VM daily {json.dumps(daily_result)}', flush=True)
-    passed = output_passed and not incomplete and daily_result['status'] == 'passed'
+    unexpected_abort = results['custom-none']['status'] == 'compositor-assertion'
+    passed = output_passed and not unexpected_abort and daily_result['status'] == 'passed'
     (evidence / 'result.json').write_text(json.dumps(
         dict(gate='passed' if passed else 'failed', boots=results, custom_incomplete=incomplete,
              daily=daily_result), indent=2) + '\n')

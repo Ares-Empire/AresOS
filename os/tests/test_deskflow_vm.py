@@ -187,6 +187,7 @@ class DeskflowVMTest(unittest.TestCase):
         @contextlib.contextmanager
         def boot(_disk, work, _evidence):
             guest = Mock()
+            guest.request.return_value = {'first_boot_backend': 0, 'worker_connections': 1}
             if work.name == 'custom-none':
                 guest.request.side_effect = vm.GuestFailure('not ready')
             yield guest
@@ -200,6 +201,7 @@ class DeskflowVMTest(unittest.TestCase):
                 patch.object(vm, 'boot', boot),
                 patch.object(vm, 'regular', return_value={'status': 'passed'}) as regular,
                 patch.object(vm, 'custom', side_effect=[{'status': 'unverified'}, {'status': 'compositor-assertion'}]) as custom,
+                patch.object(vm, 'daily', return_value=[]),
                 contextlib.redirect_stdout(log),
             ):
                 regular.__name__ = 'regular'
@@ -210,3 +212,29 @@ class DeskflowVMTest(unittest.TestCase):
         self.assertEqual(set(result['custom_incomplete']), {'custom-none', 'custom-listener'})
         self.assertEqual(result['custom_incomplete']['custom-none']['phase'], 'readiness')
         self.assertIn('DESKFLOW_CUSTOM_EVIDENCE_INCOMPLETE', log.getvalue())
+
+    def test_daily_failure_fails_the_check_build_after_the_drm_runs(self):
+        @contextlib.contextmanager
+        def boot(_disk, _work, _evidence):
+            guest = Mock()
+            guest.request.return_value = {'first_boot_backend': 0, 'worker_connections': 1}
+            yield guest
+
+        with tempfile.TemporaryDirectory() as directory, contextlib.chdir(directory):
+            disk = pathlib.Path('vm-work/output/disk.raw')
+            disk.parent.mkdir(parents=True)
+            disk.touch()
+            with (
+                patch.object(vm, 'boot', boot),
+                patch.object(vm, 'regular', side_effect=lambda *_: {'status': 'passed'}) as regular,
+                patch.object(vm, 'custom', side_effect=lambda *_: {'status': 'passed'}) as custom,
+                patch.object(vm, 'daily', return_value=['log privacy']),
+                contextlib.redirect_stdout(io.StringIO()),
+            ):
+                regular.__name__ = 'regular'
+                custom.__name__ = 'custom'
+                with self.assertRaisesRegex(SystemExit, 'DESKFLOW_VM_GATE_FAILED'):
+                    vm.main()
+            result = json.loads(pathlib.Path('evidence/deskflow/result.json').read_text())
+        self.assertEqual(len(result['boots']), 6)
+        self.assertEqual(result['daily'], {'status': 'failed', 'failed_checks': ['log privacy']})
