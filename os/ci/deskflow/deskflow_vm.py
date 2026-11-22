@@ -141,7 +141,9 @@ def mode_size(mode):
 
 
 def mode_arg(mode):
-    return f'{mode["width"]}x{mode["height"]}'
+    size = f'{mode["width"]}x{mode["height"]}'
+    refresh = mode.get('refresh')
+    return f'{size}@{refresh:.3f}Hz' if refresh else size
 
 
 def set_mode(guest, name, mode, *, custom=False):
@@ -157,6 +159,8 @@ def verify_mode(guest, name, mode):
     if mode is not None:
         current, = [listed for listed in output['modes'] if listed['current']]
         assert mode_size(current) == mode_size(mode), output
+        if 'refresh' in mode:
+            assert round(current['refresh'], 3) == round(mode['refresh'], 3), output
 
 
 def wait_connector(guest, connected, original=None):
@@ -184,7 +188,11 @@ def wait_connector(guest, connected, original=None):
 
 def hotplug(guest):
     base = guest.request('snapshot')
-    if guest.ui_info(True) and wait_connector(guest, True) and guest.ui_info(False) and wait_connector(guest, False):
+    plugged = guest.ui_info(True)
+    appeared = plugged and wait_connector(guest, True)
+    unplugged = plugged and guest.ui_info(False)
+    vanished = unplugged and wait_connector(guest, False)
+    if appeared and vanished:
         def toggle(connected):
             assert guest.ui_info(connected), 'SetUIInfo rejected'
             assert wait_connector(guest, connected), f'no DRM/labwc transition for connected={connected}'
@@ -233,6 +241,8 @@ def regular(guest, ready):
     modes = ready['outputs'][PRIMARY]['modes']
     preferred, = [mode for mode in modes if mode['preferred']]
     alternate = next(mode for mode in modes if mode_size(mode) != mode_size(preferred))
+    if not preferred['current']:
+        set_mode(guest, PRIMARY, preferred)
     verify_mode(guest, PRIMARY, preferred)
     for mode in (preferred, alternate):
         for _ in range(3):
