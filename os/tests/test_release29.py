@@ -13,8 +13,8 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+import audit
 import test_release28 as r28
-from audit import PATTERN
 from test_release27 import lock_nevras, name_of, released
 
 import build_tools
@@ -129,7 +129,7 @@ class CurrentMainTest(unittest.TestCase):
         self.assertIn('ToggleAlwaysOnTop', black)
         unit = rd.git_bytes(MAIN, 'os/config/' + rd.GUARDIAN_UNIT).decode()
         self.assertEqual(rd.GUARDIAN_AUDIT['commands'], [line for line in unit.splitlines() if line.startswith('Exec')])
-        self.assertFalse(PATTERN.search(unit))
+        self.assertFalse(audit.PATTERN.search(unit))
         self.assertIn('WantedBy=graphical.target', unit)
 
     def test_control_build_python_and_nonprivileged_help_have_the_reviewed_flags(self):
@@ -211,14 +211,13 @@ class ImageDiffTest(unittest.TestCase):
                 'shadow': f'aresos-tools:!*:{20111 if side == "old" else 20112}::::::\n',
             }.items():
                 self.write(side, 'etc/' + name, raw, 0o600 if name == 'shadow' else 0o644)
-            rows = [rd.CONSOLE_KEYMAP_AUDIT, rd.CONTROL_AUDIT]
-            if side == 'new':
-                rows.insert(1, rd.GUARDIAN_AUDIT)
-            self.write(side, rd.UPDATERS, json.dumps(rows, indent=2) + '\n')
+            self.write(side, rd.CONSOLE_KEYMAP_UNIT, rd.git_bytes(version, 'os/config/' + rd.CONSOLE_KEYMAP_UNIT))
             self.write(side, rd.RPM_DATABASE, side)
             self.write(side, LABWC, side, 0o755)
             (self.roots[side] / pathlib.PurePosixPath(TYPELIB).parent).mkdir(parents=True)
         self.link('new', rd.GUARDIAN_LINK)
+        for side in self.versions:
+            self.write_audit(side)
         self.write('new', rd.LABWC_RECORD, rd.git_bytes(MAIN, 'os/labwc/labwc.lock.json'))
         self.write('new', GTK, b'library')
         self.write('new', TYPELIB, b'typelib')
@@ -244,6 +243,31 @@ class ImageDiffTest(unittest.TestCase):
         self.enterContext(patch.dict(os.environ, GITHUB_SHA=HEAD))
         self.enterContext(patch.object(rd, 'main_merge_base', return_value=MAIN))
         self.commands = self.enterContext(patch.object(image_diff, 'command', side_effect=self.command))
+
+    def write_audit(self, side):
+        root = self.roots[side]
+        output = root / rd.UPDATERS
+        inventory, read_text = audit.inventory, pathlib.Path.read_text
+
+        def read_fixture(path, *args, **kwargs):
+            if path == pathlib.Path('/usr/share/aresos/policy/updater-allowlist.json'):
+                return '{}'
+            return read_text(path, *args, **kwargs)
+
+        def unit_files(args, *, text):
+            self.assertIn(f'--root={root}', args)
+            self.assertEqual(args[-1], 'list-unit-files')
+            if '--global' in args:
+                return ''
+            return ''.join(f'{path.name} enabled\n' for path in (root / 'usr/lib/systemd/system').glob('*.service'))
+
+        with patch.object(sys, 'argv', ['audit.py', '--output', str(output)]), \
+                patch.object(audit, 'inventory', side_effect=lambda *, live: inventory(root, live=live)), \
+                patch.object(audit.subprocess, 'check_output', side_effect=unit_files), \
+                patch.object(pathlib.Path, 'read_text', read_fixture), patch.object(audit, 'print', create=True):
+            audit.main()
+        # The offline image audit runs at /, so its source paths have no fixture root prefix.
+        self.write(side, rd.UPDATERS, output.read_bytes().replace(os.fsencode(root) + b'/', b'/'))
 
     def install_alternatives(self, side, groups):
         for group, data in groups.items():
@@ -335,6 +359,26 @@ class ImageDiffTest(unittest.TestCase):
         self.assertEqual(files[GTK]['rule'], 'package')
         self.assertEqual(files[rd.LABWC_RECORD]['rule'], 'manifest')
 
+    def test_guardian_audit_requires_exact_fields_types_and_row_order(self):
+        raw = (self.roots['new'] / rd.UPDATERS).read_text()
+        console, guardian, control = json.loads(raw)
+        cases = {
+            'extra-field': [console, dict(guardian, extra=None), control],
+            'missing-field': [console, {key: value for key, value in guardian.items() if key != 'sub_state'}, control],
+            'guardian-type': [console, dict(guardian, suspicious=0), control],
+            'existing-type': [dict(console, suspicious=0), guardian, control],
+            'command-order': [console, dict(guardian, commands=guardian['commands'][::-1]), control],
+            'row-order': [guardian, console, control],
+        }
+        payloads = {name: json.dumps(rows, sort_keys=True) for name, rows in cases.items()}
+        payloads['duplicate-field'] = raw.replace('"sub_state": null', '"sub_state": "running", "sub_state": null', 1)
+        for name, payload in payloads.items():
+            with self.subTest(name=name):
+                self.write('new', rd.UPDATERS, payload)
+                _, result = self.diff(name)
+                self.assertIn(rd.UPDATERS, result['unexplained'])
+                self.assertIn('guardian updater audit row missing or different, or existing rows changed', result['problems'])
+
     def test_missing_paths_and_near_misses_stop_even_without_a_diff(self):
         for side in ('old', 'new'):
             for rel in (rd.GUARDIAN_LINK[0], rd.GUARDIAN_DROPIN, rd.PRISM + '/launcher', rd.UPDATERS,
@@ -404,3 +448,28 @@ class ImageDiffTest(unittest.TestCase):
                 _, result = self.diff(f'evidence-{index}')
                 self.assertIn(expected, result['problems'][0])
                 self.commands.assert_not_called()
+
+    def test_ignored_file_in_local_build_input_stops_before_mounting(self):
+        real_git = rd.git
+        checkout = self.work / 'checkout'
+        checkout.mkdir()
+        real_git('-C', checkout, 'init', '--quiet')
+        (checkout / '.gitignore').write_bytes(rd.git_bytes(HEAD, '.gitignore'))
+        local = 'os/config/var/log/dnf5.log'
+        for rel in (local, 'mod/dnf5.log'):
+            path = checkout / rel
+            path.parent.mkdir(parents=True)
+            path.write_text('ignored fixture log\n')
+            real_git('-C', checkout, 'check-ignore', '--quiet', '--', rel)
+
+        def git(*args, **kwargs):
+            if args[0] == 'ls-files':
+                return real_git('-C', checkout, *args, **kwargs)
+            return real_git(*args, **kwargs)
+
+        with patch.object(rd, 'git', side_effect=git):
+            _, result = self.diff()
+            self.assertEqual(result['problems'], ['image sources differ from HEAD in the checkout: ' + local])
+            self.commands.assert_not_called()
+            (checkout / local).unlink()
+            self.assertEqual(rd.verify_source29(R28, MAIN)[1], [])

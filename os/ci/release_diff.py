@@ -1790,6 +1790,10 @@ def verify_source29(previous, main_base):
         problems.append('image sources missing from HEAD: ' + ', '.join(missing))
     dirty = git('diff', '--name-only', 'HEAD', '--', *IMAGE_SOURCES_29, text=True).splitlines()
     dirty += git('ls-files', '--others', '--exclude-standard', '--', *IMAGE_SOURCES_29, text=True).splitlines()
+    # The OS build context includes local files even when Git ignores them. The mod and Control come from a Git archive.
+    local_inputs = [path for path in IMAGE_SOURCES_29 if path.startswith('os/')]
+    ignored = git('ls-files', '-z', '--others', '--ignored', '--exclude-standard', '--', *local_inputs, text=True)
+    dirty.extend(path for path in ignored.split('\0') if path)
     if dirty:
         problems.append('image sources differ from HEAD in the checkout: ' + ', '.join(sorted(set(dirty))))
     if os.environ.get('GITHUB_SHA') != git('rev-parse', 'HEAD', text=True).strip():
@@ -1914,16 +1918,25 @@ class Classifier29(Classifier28):
         return self.control
 
     def audit_rows(self):
+        def unique_fields(pairs):
+            fields = dict(pairs)
+            if len(fields) != len(pairs):
+                raise ValueError('duplicate updater audit field')
+            return fields
+
         old, new = (self.read(side, UPDATERS) for side in ('old', 'new'))
         # The image audit enumerates unit-specific drop-ins. The session-.scope prefix is a systemd
         # ordering rule, but its path does not appear in the offline audit's source rows.
         rows = audit_changes(old, new, lambda *_: False, GUARDIAN_AUDIT)
         if rows:
-            before = json.loads(old)
+            try:
+                before, after = (json.loads(raw, object_pairs_hook=unique_fields) for raw in (old, new))
+            except ValueError:
+                return None
             expected = sorted([*before, GUARDIAN_AUDIT], key=lambda row: (row['scope'], row['name']))
             prior_rows = {json.dumps(row, sort_keys=True) for row in before}
             if all(json.dumps(row, sort_keys=True) in prior_rows for row in (CONTROL_AUDIT, CONSOLE_KEYMAP_AUDIT)) \
-                    and new == (json.dumps(expected, indent=2) + '\n').encode():
+                    and json.dumps(after, sort_keys=True) == json.dumps(expected, sort_keys=True):
                 return [dict(rows[0], reason=CONFIG_REASONS_29[GUARDIAN_UNIT])]
         return None
 

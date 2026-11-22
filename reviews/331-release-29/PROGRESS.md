@@ -38,6 +38,24 @@ classified every change except the labwc payload and wrote a stopped result. Reg
 cover missing files and RPM records, incorrect metadata, missing alternatives links and
 groups, a missing unit audit, unmasking, source omissions and a changed merge resolution.
 
+## Done · step 1 review fixes · 2026-11-22
+
+REVIEW-1 (`1767cf17`) requested two fixes. R29 now compares canonical updater-audit JSON and
+requires exact fields, types and row order. The fixture runs `os/tests/audit.py` against
+disposable roots with stand-in unit listings. Near misses cover duplicate, extra and missing
+fields, type changes, and reordered commands and rows.
+
+The source guard now includes Git-ignored files under the local OS build inputs. The regression
+plants an ignored `os/config/var/log/dnf5.log` in a fixture checkout and verifies that the diff
+stops before mounting. An ignored log under `mod/` passes the source guard because the build
+reads `mod/` from the committed source.
+
+| Command | Result |
+| --- | --- |
+| `python3 -m unittest discover -s os/tests -p test_release29.py` | `Ran 14 tests in 9.883s`, `OK` |
+| `python3 -m unittest discover -s os/tests -p test_release28.py` | `Ran 94 tests in 38.838s`, `OK` |
+| `python3 -m unittest discover -s os/tests -p test_release27.py` | `Ran 41 tests in 7.642s`, `OK` |
+
 ## Sources and runs
 
 - Approved starting head `1b2b27c790bcd402926dff3a659ee071f3ad5dfa`. Main base
@@ -54,7 +72,7 @@ groups, a missing unit audit, unmasking, source omissions and a changed merge re
 
 ## Left in order
 
-1. Lead review of the step 1 classifier at the draft PR head.
+1. Lead recheck of the step 1 fixes at the draft PR head.
 2. Step 2 compares both labwc RPM inventories and the normalized and loaded bytes.
 3. Steps 3–5 add the walk, guest and Control checks, and hosted wiring.
 4. Step 6 takes the named main cut and the reviewed handoffs for 18c-b, B330, B329
@@ -73,12 +91,8 @@ downloads over 500 MB in `.work/`.
 ## Paused 2026-11-21 evening (the lead)
 
 - **Why:** mac-capacity asked all leads to slow Codex down until Monday. R29's cut waits for Deskflow (c) anyway, about 28 Nov.
-- **Step 1's review:** REVIEW-1 (fresh Codex `gpt-6.2-sol` high, at `1767cf17`) is CHANGES-NEEDED.
-  - Must-fix 1: the guardian audit row is compared as raw JSON bytes, in a different key order than the audit writer emits. Compare canonical JSON, keep fields, types and row order exact, and add a fixture from the audit writer.
-  - Should-fix 2: the source guard skips Git-ignored files that the build copies from `os/config`.
-  - Fix both in a fresh turn before step 2, then run a targeted recheck.
 - **Step 2:** stopped partway, with nothing committed. The partial diff is kept outside the repo at `~/AresOS-331-step2-partial.patch` (764 lines); a fresh step 2 turn may read it or start over.
-- **Next, in order:** step 1's fixes and recheck; step 2; steps 3 to 5.
+- **Next, in order:** step 2, then steps 3 to 5.
 - **Late-package notes (2026-11-21):**
   - B329 (PR143): the lead's os/ read is clean. Its image-difference list is in its PROGRESS.md under "For linux-aresos". R29's guest walk expects the AresOS theme.
   - For R29's Known limits: after Alt+Tab then Escape, the world keeps its pointer lock but gets no keys until you switch away and back. Main's rc.xml does the same; the frame isn't the cause (linux-desktop).
