@@ -33,6 +33,22 @@
   ],
   "reviewed_passwordless_wheel": {},
   "probe_actions": [],
+  "expected_exec": {
+    "org.aresos.input-sharing.on": {
+      "path": "/usr/libexec/aresos-input-sharing-set",
+      "argv1": "on",
+      "remote": "no",
+      "inactive": "no",
+      "active": "auth_admin"
+    },
+    "org.aresos.input-sharing.off": {
+      "path": "/usr/libexec/aresos-input-sharing-set",
+      "argv1": "off",
+      "remote": "auth_admin",
+      "inactive": "auth_admin",
+      "active": "yes"
+    }
+  },
   "expected": {
     "org.freedesktop.Flatpak.app-install": {
       "rule": "auth_admin",
@@ -122,6 +138,7 @@
     }
   },
   "passwordless": {
+    "org.aresos.input-sharing.off": "Any program in the active local session may stop mouse and keyboard sharing.",
     "com.redhat.tuned.active_profile": "TuneD read-only query (profiles, state, plugin docs, verification); profile changes are denied.",
     "com.redhat.tuned.get_all_plugins": "TuneD read-only query (profiles, state, plugin docs, verification); profile changes are denied.",
     "com.redhat.tuned.get_instances": "TuneD read-only query (profiles, state, plugin docs, verification); profile changes are denied.",
