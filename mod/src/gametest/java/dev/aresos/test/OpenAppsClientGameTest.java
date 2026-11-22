@@ -110,7 +110,7 @@ public final class OpenAppsClientGameTest implements FabricClientGameTest {
                     context.takeScreenshot(TestScreenshotOptions.of("333-hotbar-app-marks")
                             .withDestinationDir(Path.of(System.getProperty("aresos.openAppsReviewDir"))));
 
-                    background(helper, nativeApps);
+                    background(context, nativeApps);
                     context.waitFor(HomeScreen::freePointer);
                     context.runOnClient(client -> {
                         pointAtSlot(client, 0);
@@ -120,7 +120,7 @@ public final class OpenAppsClientGameTest implements FabricClientGameTest {
 
                     for (boolean focusFirst : new boolean[]{true, false}) {
                         int count = focusFirst ? 1 : 2;
-                        background(helper, nativeApps);
+                        background(context, nativeApps);
                         context.waitFor(HomeScreen::freePointer);
                         if (nativeApps.enabled) {
                             nativeApps.pointAtSlot(1);
@@ -130,8 +130,9 @@ public final class OpenAppsClientGameTest implements FabricClientGameTest {
                             expect(context, helper, "open_app", count, "notepad");
                             context.runOnClient(client -> {
                                 nativeApps.beforeRightPress = ignored -> { };
+                                checkPointer(client, focusFirst, "press");
                                 if (!focusFirst) foreground(client);
-                                check(!client.options.keyUse.isDown(), "Right press leaked into item use");
+                                checkPointer(client, focusFirst, "focus handoff");
                             });
                             nativeApps.input("button right up");
                         } else {
@@ -146,12 +147,14 @@ public final class OpenAppsClientGameTest implements FabricClientGameTest {
                         var request = helper.received("open_app").getLast();
                         helper.event("app_state", Map.of("request_id", request.get("id").getAsString(), "state", "focused"));
                         context.waitTicks(4);
-                        context.runOnClient(client -> check(HomeScreen.freePointer(client)
-                                && !client.mouseHandler.isMouseGrabbed() && !client.options.keyUse.isDown(),
-                                "Right press or release captured the world or leaked into item use"));
+                        context.runOnClient(client -> checkPointer(client, focusFirst, "release"));
                         check(helper.received("open_app").size() == count && helper.received("activate_app").size() == 1,
                                 "Right click triggered more than one request");
                     }
+                    world.getConnection().waitForServerboundPackets();
+                    check(world.getServer().computeOnServer(server ->
+                            world.getConnection().getServerPlayer().getInventory().getItem(3).getCount()) == 8,
+                            "An app-slot click used the held stack");
 
                     command(context, world, "chrome");
                     expect(context, helper, "activate_app", 2, "browser");
@@ -184,6 +187,8 @@ public final class OpenAppsClientGameTest implements FabricClientGameTest {
                     context.waitTicks(8);
                     check(helper.received("activate_app").size() == 5 && helper.launches.get() == 2,
                             "An app gesture sent an extra request");
+                } finally {
+                    context.runOnClient(client -> shell.close());
                 }
             }
             AresOs.LOGGER.info("333 open app checks passed: hotbar marks, free pointer clicks, slash name, world search and walk-in gate");
@@ -202,13 +207,23 @@ public final class OpenAppsClientGameTest implements FabricClientGameTest {
         }
     }
 
-    private static void background(FakeHelper helper, FreePointerClientGameTest.NativeApps nativeApps) throws IOException {
+    private static void background(ClientGameTestContext context, FreePointerClientGameTest.NativeApps nativeApps) {
         nativeApps.activate("notepad");
-        helper.event("shell_focus", Map.of("focus", "background", "reason", "app_activated", "app_id", "notepad"));
+        // Apply the starting focus before moving the pointer, so a queued event cannot reset the click under test.
+        context.runOnClient(client -> ShellFocusClient.apply(client,
+                new ShellClient.Focus(false, "app_activated", "notepad", false)));
     }
 
     private static void foreground(Minecraft client) {
         ShellFocusClient.apply(client, new ShellClient.Focus(true, "desktop_activated", null, false));
+    }
+
+    private static void checkPointer(Minecraft client, boolean focusFirst, String action) {
+        boolean free = HomeScreen.freePointer(client);
+        boolean grabbed = client.mouseHandler.isMouseGrabbed();
+        boolean use = client.options.keyUse.isDown();
+        check(free && !grabbed && !use, "Right " + action + " with focus first=" + focusFirst
+                + ": free=" + free + ", grabbed=" + grabbed + ", use=" + use);
     }
 
     private static void expect(ClientGameTestContext context, FakeHelper helper, String op, int count, String app) {
