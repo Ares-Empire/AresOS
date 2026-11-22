@@ -4324,10 +4324,8 @@ class Helper:
         return None, {}
 
     def launch_alive(self, launch):
-        # A window timeout can finish the reply while its process is still alive.
-        if launch.process is not None and launch.process.poll() is None:
-            return True
-        return launch.scope in (ACTIVE, UNKNOWN)
+        # Keep the slot until tick hands liveness from the process to the scope watcher.
+        return launch.process is not None or launch.scope in (ACTIVE, UNKNOWN)
 
     def prune_launches(self):
         referenced = self.referenced_launches()
@@ -4344,21 +4342,9 @@ class Helper:
         return removed
 
     def watched_launches(self):
-        """Watch scopes that still inform a launch's lifecycle or liveness.
-
-        Without window tracking that includes every unresolved launch. With tracking, a scope can still
-        represent a resident or inherited process after the window or the reply has gone.
-        """
-        watched = {}
-        for launch in self.launch_entries():
-            entry = launch.entry
-            unit = entry['unit']
-            unresolved = entry['state'] not in FINAL and not entry.get('settled')
-            if (launch.scope in (ACTIVE, UNKNOWN)
-                    or (unresolved and (self.windows is None
-                                        or (entry['state'] == 'starting' and launch.process is None)))):
-                watched[unit] = launch
-        return watched
+        """Watch live or unconfirmed scopes, even after the window or reply has gone."""
+        return {launch.entry['unit']: launch for launch in self.launch_entries()
+                if launch.scope in (ACTIVE, UNKNOWN)}
 
     def watched_units(self):
         return {unit: launch.origin for unit, launch in self.watched_launches().items()}
@@ -4380,6 +4366,7 @@ class Helper:
                 # A launch result with its own process is ended by that process, never by the list.
                 if state != GONE or launch.process is not None:
                     continue
+                del watched[unit]  # A later queued failure cannot make this scope live again.
                 if entry['state'] in FINAL or entry.get('settled'):
                     continue
                 state_after, fields = self.end_of_scope(entry)
@@ -4404,6 +4391,9 @@ class Helper:
             if code is None:
                 continue
             launch.process = None
+            if launch.scope is None:
+                # A child can keep the scope alive after the launcher exits, regardless of the reply state.
+                launch.scope = UNKNOWN
             entry = launch.entry
             if entry['state'] != 'starting':
                 continue

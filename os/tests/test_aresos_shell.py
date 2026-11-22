@@ -630,6 +630,7 @@ class LaunchTest(Base):
         self.assertEqual(self.popen.call_count, shell.JOURNAL_LIMIT)
         next(helper.launch_entries()).process.code = 0
         helper.tick()
+        self.scope_pass(helper)
         retry = self.request(helper, conn, 'open_app', 'next', app_id='notepad')
         self.assertEqual(retry.get('state'), 'starting', retry)
         self.assertEqual(self.popen.call_count, shell.JOURNAL_LIMIT + 1)
@@ -692,6 +693,7 @@ class LaunchTest(Base):
             self.assertEqual(reply['state'], 'starting', f'launch {number} was refused: {reply}')
             launched[-1].code = 0
             helper.tick()
+            self.scope_pass(helper)
             self.now[0] += step
         self.assertEqual(len(launched), shell.JOURNAL_LIMIT * 2)
         self.assertLessEqual(len(helper.journal.entries), shell.JOURNAL_LIMIT)

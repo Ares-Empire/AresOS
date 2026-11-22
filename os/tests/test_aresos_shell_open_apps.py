@@ -474,6 +474,7 @@ class OpenAppsTest(ViewBase):
         self.assertEqual(self.popen.call_count, 1)
         self.launch_for(helper, laptop.client, 'slow-window').process.code = 0
         helper.tick()
+        self.scope_pass(helper)
         self.assertEqual(self.ask(helper, desktop, 'after-exit', app='terminal')['state'], 'starting')
         self.assertEqual(self.popen.call_count, 2)
 

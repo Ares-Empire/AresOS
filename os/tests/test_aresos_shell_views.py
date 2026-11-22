@@ -319,10 +319,57 @@ class LaunchIsolationTest(ViewBase):
         self.assertEqual((refusal['ok'], refusal['error'], refusal['message']),
                          (False, 'journal_full', 'too many launches in the last few minutes; try again shortly'))
         self.assertEqual(self.popen.call_count, shell.MAX_VIEW_LAUNCHES + 1)
-        next(launch for launch in helper.launch_entries() if launch.origin[0] != shell.DESKTOP).process.code = 0
+        ended = next(launch for launch in helper.launch_entries() if launch.origin[0] != shell.DESKTOP)
+        ended.process.code = 0
+        self.active_units.remove(ended.entry['unit'])
         helper.tick()
+        self.scope_pass(helper)
         late = self.view(helper, 'rotating-1')
         self.assertEqual(self.call(helper, late, 'open_app', 'late', app_id='terminal')['state'], 'starting')
+
+    def test_a_reviewed_launch_holds_a_view_slot_after_its_launcher_exits(self):
+        helper = self.start(tracked=True)
+        laptop, other = self.view(helper), self.view(helper, 'another-view')
+        reply = self.call(helper, laptop, 'open_app', 'launcher', app_id='terminal')
+        self.assertEqual(reply.get('state'), 'starting', reply)
+        launch = self.launch_for(helper, laptop.client, 'launcher')
+        unit = launch.entry['unit']
+
+        # The launcher's child maps a window and stays in the launcher's scope.
+        self.active_units.add(unit)
+        self.show(helper.windows, 3, TERMINAL, active=True)
+        helper.windows_changed()
+        self.assertEqual((launch.entry['state'], launch.handles), ('focused', {3}))
+
+        for number in range(shell.MAX_VIEW_LAUNCHES - 1):
+            reply = self.call(helper, laptop, 'open_app', f'filler-{number}', app_id='notepad')
+            self.assertEqual(reply.get('state'), 'starting', reply)
+        launch.process.code = 0
+        helper.tick()
+        self.assertIsNone(launch.process)
+
+        # The second view has room in its replay table, so only the shared live cap can refuse it.
+        for status, answer in ((shell.ACTIVE, None), (shell.UNKNOWN, (1, ''))):
+            with self.subTest(scope=status):
+                self.scope_answer = answer
+                helper.watcher.check()
+                helper.tick()
+                reply = self.call(helper, other, 'open_app', 'next', app_id='notepad')
+                self.assertEqual((reply['ok'], reply.get('error'), reply.get('message')),
+                                 (False, 'journal_full', 'too many launches in the last few minutes; try again shortly'))
+                self.assertEqual(launch.scope, status)
+                self.assertEqual(self.popen.call_count, shell.MAX_VIEW_LAUNCHES)
+
+        self.scope_answer = None
+        self.active_units.remove(unit)
+        helper.windows.gone(3)
+        helper.windows_changed()
+        self.scope_pass(helper)
+        self.assertEqual(launch.scope, shell.GONE)
+        self.assertNotIn(unit, helper.watched_units())
+        reply = self.call(helper, other, 'open_app', 'next', app_id='notepad')
+        self.assertEqual(reply.get('state'), 'starting', reply)
+        self.assertEqual(self.popen.call_count, shell.MAX_VIEW_LAUNCHES + 1)
 
     def test_ended_single_instance_handoffs_leave_room_for_laptop_home(self):
         helper = self.start(tracked=True)
