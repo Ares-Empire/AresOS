@@ -11,7 +11,7 @@ import types
 from unittest import mock
 
 from test_aresos_shell import ALL, Conn, INSTANCE, NONCE, ROOT, shell, wire_toplevel
-from test_aresos_shell_views import GAME, NOTEPAD, TOKEN, ViewBase
+from test_aresos_shell_views import GAME, NOTEPAD, TOKEN, WEB, ViewBase
 
 WIRE = 'aresos-shell/1.3'
 NEW = ['apps_state', 'activate_app']
@@ -405,6 +405,28 @@ class OpenAppsTest(ViewBase):
                 self.assertEqual(self.ask(current, view, 'refused', app='notepad'), original)
                 current.disconnected(view)
         self.assertEqual(self.popen.call_count, 1)
+
+    def test_a_tray_resident_app_is_started_again_not_answered_closed(self):
+        helper = self.start(tracked=True)
+        desktop, _ = self.hello13(helper)
+        first = self.call(helper, desktop, 'open_app', 'first', app_id=WEB.id)
+        self.show(helper.windows, 2, WEB.app_ids[0], active=True)
+        helper.windows_changed()
+        helper.windows.gone(2)
+        helper.windows_changed()
+        self.now[0] += shell.HANDOFF + 0.01
+        helper.tick()
+        launch = helper.app_launches[WEB.id].running[first['launch_id']]
+        self.assertEqual(launch.entry['state'], 'closed')
+        self.assertIsNone(launch.process.poll())  # it stays in the tray
+        again = self.ask(helper, desktop, 'bring-back', app=WEB.id)
+        self.assertEqual(again['state'], 'starting')
+        self.assertNotEqual(again['launch_id'], first['launch_id'])
+        self.assertEqual(self.popen.call_count, 2)
+        # While that second start waits for its window, another bring-back joins it.
+        joined = self.ask(helper, desktop, 'again', app=WEB.id)
+        self.assertEqual((joined['launch_id'], joined['state']), (again['launch_id'], 'starting'))
+        self.assertEqual(self.popen.call_count, 2)
 
     def test_a_live_process_without_a_window_still_counts_after_the_start_timeout(self):
         helper = self.start(tracked=True)

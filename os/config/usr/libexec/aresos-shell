@@ -3970,7 +3970,10 @@ class Helper:
                 else:
                     waiting['requests'][key] = conns
             return True
-        starting = next((launch.entry for launch in group.running.values() if not launch.handles
+        # A start to join has shown no window yet. One whose windows all closed is over, though its process may
+        # stay (a tray): for it the app is started again, as open_app does, and the running instance shows itself.
+        starting = next((launch.entry for launch in group.running.values()
+                         if not launch.handles and launch.entry['state'] != 'closed'
                          and ((launch.entry['state'] in ('launching', 'starting') and not launch.entry.get('settled'))
                               or self.launch_alive(launch))), None)
         if starting is None:
