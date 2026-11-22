@@ -1340,6 +1340,29 @@ def test9_way_out(fe, admin):
     # The backend stopped: the chord's --release gets no answer and kills it through its pidfd.
     backend = start_backend(admin)
     session = Session(fe, "chord-backend-stopped").open()
+    guard = spawn("deskflow-guard", ["/usr/libexec/aresos-deskflow"], CLIENT_ENV)
+    unrelated = spawn("unregistered-core", ["/usr/bin/deskflow-core", "45"], CLIENT_ENV)
+    record = f"{RUNTIME}/aresos-deskflow.pid"
+    if not wait_for(lambda: os.path.isfile(record), 3):
+        raise RuntimeError("the Deskflow stand-in did not register")
+    with open(record) as stream:
+        _, core = stream.read().splitlines()
+    with os.fdopen(os.pidfd_open(int(core.split()[0])), 'rb') as core_fd:
+        released = tool([BACKEND, "--release"])
+        check(T, "a confirmed --release leaves guarded Deskflow running",
+              released.returncode == 0 and guard.poll() is None and not select.select([core_fd], [], [], 0)[0])
+        _stopped_backend_chord(T, chord, backend, session)
+        check(T, "the fallback stops the guarded launcher and its core, leaving sharing On and an unrelated core alive",
+              guard.poll() == 0 and select.select([core_fd], [], [], 0)[0]
+              and unrelated.poll() is None and open(SWITCH).read().strip() == 'on')
+    stop("deskflow-guard")
+    stop("unregistered-core")
+
+    # labwc stopped, so no confirmation can come: --release run by hand ends the backend.
+    _stopped_compositor_release(T, fe, admin)
+
+
+def _stopped_backend_chord(T, chord, backend, session):
     activated = capture(session)
     os.kill(procs[backend].pid, signal.SIGSTOP)
     began = time.monotonic()
@@ -1354,7 +1377,8 @@ def test9_way_out(fe, admin):
     stop(session.receiver)
     stop(backend)
 
-    # labwc stopped, so no confirmation can come: --release run by hand ends the backend.
+
+def _stopped_compositor_release(T, fe, admin):
     backend = start_backend(admin)
     session = Session(fe, "release-labwc-stopped").open()
     activated = capture(session)

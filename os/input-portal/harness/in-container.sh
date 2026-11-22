@@ -101,6 +101,32 @@ chmod 0755 /harness/binding
 
 # The backend and its allow-list, where the image will have them: in this container's own /usr.
 install -D -m 0755 /harness/backend/aresos-input-portal /usr/libexec/aresos-input-portal
+# These stand-ins are installed only in the isolated harness. The unguarded control uses the same executable.
+install -m 0755 /usr/bin/sleep /usr/bin/deskflow-core
+cat > /usr/libexec/aresos-deskflow <<'PY'
+#!/usr/bin/python3 -I
+import fcntl
+import os
+from pathlib import Path
+import subprocess
+
+def identity(pid):
+    fields = Path(f'/proc/{pid}/stat').read_text().rpartition(') ')[2].split()
+    return f'{pid} {fields[19]}\n'
+
+root = Path(os.environ['XDG_RUNTIME_DIR'])
+with (root / 'aresos-deskflow.lock').open('w') as lock:
+    fcntl.flock(lock, fcntl.LOCK_EX)
+    record = root / 'aresos-deskflow.pid'
+    pending = record.with_suffix('.tmp')
+    os.umask(0o077)
+    with subprocess.Popen(['/usr/bin/deskflow-core', '45']) as core:
+        pending.write_text(identity(os.getpid()) + identity(core.pid))
+        pending.replace(record)
+        core.wait()
+    record.unlink()
+PY
+chmod 0755 /usr/libexec/aresos-deskflow
 install -D -m 0644 -t "$XDG_DATA_HOME/dbus-1/services" /harness/backend/*.service
 install -d -m 0755 /usr/share/aresos/input-portal
 printf '# the harness\norg.aresos.harness\n' > /usr/share/aresos/input-portal/allowed-apps

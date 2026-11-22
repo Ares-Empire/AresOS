@@ -20,6 +20,9 @@ pub const INSTALLED: &str = "/usr/libexec/aresos-input-portal";
 /// How long the backend has to give a confirmed answer before it is killed.
 pub const DEADLINE: Duration = Duration::from_secs(2);
 
+const DESKFLOW_LAUNCHER: &str = "/usr/libexec/aresos-deskflow";
+const DESKFLOW_CORE: &str = "/usr/bin/deskflow-core";
+
 /// One process, held by a pidfd, and its PID as this process sees it.
 pub struct Pinned {
     pidfd: OwnedFd,
@@ -53,10 +56,14 @@ impl Pinned {
     /// Whether the pinned process is still running. A pidfd turns readable when
     /// its process has ended, and stays so even if the PID is taken again.
     pub fn alive(&self) -> bool {
+        !self.exited_within(0).unwrap_or(true)
+    }
+
+    fn exited_within(&self, milliseconds: i64) -> rustix::io::Result<bool> {
         use rustix::event::{poll, PollFd, PollFlags, Timespec};
         let mut fds = [PollFd::new(&self.pidfd, PollFlags::IN)];
-        let now = Timespec { tv_sec: 0, tv_nsec: 0 };
-        matches!(poll(&mut fds, Some(&now)), Ok(0))
+        let timeout = Timespec { tv_sec: 0, tv_nsec: milliseconds * 1_000_000 };
+        poll(&mut fds, Some(&timeout)).map(|ready| ready > 0)
     }
 
     /// The pinned process runs `installed` as the user `uid`, or this fails.
@@ -90,6 +97,69 @@ impl Pinned {
             Err(err) => bail!("could not kill pid {}: {err}", self.pid),
         }
     }
+}
+
+fn process_start(stat: &str) -> Option<u64> {
+    // Field 22 of /proc/PID/stat. The comm in parentheses can contain spaces and ')' itself.
+    stat.rsplit_once(") ")?.1.split_whitespace().nth(19)?.parse().ok()
+}
+
+fn deskflow_process(record: &str, uid: u32, matches_program: impl FnOnce(&Path) -> bool) -> Option<Pinned> {
+    use std::os::unix::fs::MetadataExt;
+    let (pid, start) = record.split_once(' ')?;
+    let pinned = Pinned::open(pid.parse().ok()?).ok()?;
+    let proc = std::path::PathBuf::from(format!("/proc/{}", pinned.pid));
+    let actual_start = process_start(&std::fs::read_to_string(proc.join("stat")).ok()?)?;
+    (actual_start == start.parse::<u64>().ok()?
+        && proc.metadata().ok()?.uid() == uid
+        && matches_program(&proc)
+        && pinned.alive()).then_some(pinned)
+}
+
+fn stop_guarded_deskflow() -> Result<()> {
+    use std::io::Read;
+    use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
+
+    let Some(runtime) = std::env::var_os("XDG_RUNTIME_DIR") else { return Ok(()) };
+    let runtime = Path::new(&runtime);
+    let uid = rustix::process::getuid().as_raw();
+    let dir = runtime.symlink_metadata()?;
+    ensure!(runtime.is_absolute() && dir.is_dir() && dir.uid() == uid && dir.mode() & 0o077 == 0,
+            "Deskflow's runtime directory is not private");
+    let record = match std::fs::OpenOptions::new().read(true)
+        .custom_flags(rustix::fs::OFlags::NOFOLLOW.bits() as i32 | rustix::fs::OFlags::NONBLOCK.bits() as i32)
+        .open(runtime.join("aresos-deskflow.pid")) {
+        Ok(file) => file,
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(err) => return Err(err.into()),
+    };
+    let meta = record.metadata()?;
+    ensure!(meta.is_file() && meta.uid() == uid && meta.mode() & 0o077 == 0 && meta.len() <= 128,
+            "Deskflow's process record is not private");
+    let mut text = String::new();
+    record.take(129).read_to_string(&mut text)?;
+    let mut records = text.lines();
+    let launcher = records.next().and_then(|line| deskflow_process(line, uid, |proc| {
+        std::fs::read(proc.join("cmdline")).is_ok_and(|argv| {
+            let argv: Vec<_> = argv.split(|byte| *byte == 0).collect();
+            argv.get(..3) == Some(&[b"/usr/bin/python3".as_slice(), b"-I", DESKFLOW_LAUNCHER.as_bytes()])
+        })
+    }));
+    let core = records.next().and_then(|line| deskflow_process(line, uid, |proc| {
+        std::fs::read_link(proc.join("exe")).is_ok_and(|path| path == Path::new(DESKFLOW_CORE))
+    }));
+    if let Some(core) = &core {
+        core.kill().context("stop the guarded Deskflow core")?;
+    }
+    if let Some(launcher) = &launcher {
+        // Give the guard time to reap the core and remove its private profile. If the guard is
+        // stuck, stop it too. When no core has started, killing the guard closes the startup pipe.
+        if core.is_none() || !launcher.exited_within(200).unwrap_or(false) {
+            launcher.kill().context("stop the guarded Deskflow launcher")?;
+        }
+        eprintln!("aresos-input-portal --release: stopped guarded Deskflow");
+    }
+    Ok(())
 }
 
 /// The `Pid:` of a pidfd's fdinfo: absent, or -1 once the process has ended,
@@ -147,6 +217,13 @@ pub async fn run(bus_name: &str, path: &str, interface: &str) -> Result<()> {
         "aresos-input-portal --release: no confirmed release ({why}); killing pid {} through its pidfd",
         pinned.pid
     );
+    // Deskflow reconnects on loss of the backend. Stop the core before dropping the grab so a
+    // fresh activation cannot immediately take the keyboard and pointer again.
+    if pinned.alive() {
+        if let Err(err) = stop_guarded_deskflow() {
+            eprintln!("aresos-input-portal --release: could not stop guarded Deskflow: {err:#}");
+        }
+    }
     match pinned.kill()? {
         Killed::Now => println!("killed the backend (pid {}): the compositor drops its grab", pinned.pid),
         Killed::AlreadyGone => println!("the pinned backend (pid {}) had already ended", pinned.pid),
@@ -279,5 +356,20 @@ mod tests {
         assert!(newcomer.try_wait().unwrap().is_none(), "the newcomer was not touched");
         newcomer.kill().unwrap();
         newcomer.wait().unwrap();
+    }
+
+    #[test]
+    fn deskflow_record_must_match_the_current_process_start_and_program() {
+        let mut child = sleeper();
+        let pid = child.id();
+        let stat = std::fs::read_to_string(format!("/proc/{pid}/stat")).unwrap();
+        let start = process_start(&stat).unwrap();
+        let uid = rustix::process::getuid().as_raw();
+        let sleep = |proc: &Path| std::fs::read_link(proc.join("exe")).unwrap() == Path::new("/usr/bin/sleep");
+        assert!(deskflow_process(&format!("{pid} {start}"), uid, sleep).is_some());
+        assert!(deskflow_process(&format!("{pid} {}", start.wrapping_add(1)), uid, sleep).is_none());
+        assert!(deskflow_process(&format!("{pid} {start}"), uid, |_| false).is_none());
+        child.kill().unwrap();
+        child.wait().unwrap();
     }
 }
