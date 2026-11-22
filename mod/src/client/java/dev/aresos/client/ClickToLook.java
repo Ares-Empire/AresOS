@@ -1,17 +1,12 @@
 package dev.aresos.client;
 
-import dev.aresos.AresOs;
 import dev.aresos.config.LookMode;
 import dev.aresos.focus.ClickLook;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.util.Util;
 import org.lwjgl.glfw.GLFW;
-
-import java.io.IOException;
-import java.nio.file.Path;
 
 /**
  * Package 328b, prototype A ("click to look"), with {@code look = click} in {@link LookMode#FILE}. In a session's
@@ -29,38 +24,18 @@ import java.nio.file.Path;
 public final class ClickToLook {
     // Client thread only.
     private static final ClickLook LOOK = new ClickLook();
-    private static LookMode mode, modeForTests;
     private static boolean starting;
 
     private ClickToLook() { }
 
-    /** The setting, read once from the config folder. */
-    public static LookMode mode() {
-        if (modeForTests != null) return modeForTests;
-        if (mode == null) mode = load();
-        return mode;
-    }
-
-    private static LookMode load() {
-        Path file = FabricLoader.getInstance().getConfigDir().resolve(LookMode.FILE);
-        try {
-            var read = LookMode.read(file);
-            if (read != LookMode.CLASSIC) AresOs.LOGGER.info("AresOS: look = {} ({})", read.value(), file);
-            return read;
-        } catch (IOException | IllegalArgumentException error) {
-            AresOs.LOGGER.warn("AresOS: {}: {}; the world looks around as before (classic)", file, error.getMessage());
-            return LookMode.CLASSIC;
-        }
-    }
-
     /** The click setting in a session's connected desktop world. */
     public static boolean on(Minecraft client) {
-        return mode() == LookMode.CLICK && HomeScreen.active(client);
+        return LookSetting.mode() == LookMode.CLICK && HomeScreen.active(client);
     }
 
     /** Not in look mode: the pointer is free over the world ({@link HomeScreen#freePointer} adds the other gates). */
     static boolean idle(Minecraft client) {
-        return ClickLook.idle(mode() == LookMode.CLICK, starting, client.mouseHandler.isMouseGrabbed());
+        return ClickLook.idle(LookSetting.mode() == LookMode.CLICK, starting, client.mouseHandler.isMouseGrabbed());
     }
 
     /** A press on the world that package 56 did not send to an app slot. The press itself does nothing else. */
@@ -146,9 +121,8 @@ public final class ClickToLook {
                 options.keyShift};
     }
 
-    /** Client game tests: the setting to use (null: the file's). Look mode starts over. */
-    public static void forTests(LookMode look) {
-        modeForTests = look;
+    /** Look mode starts over ({@link LookSetting#forTests}). */
+    static void reset() {
         starting = false;
         LOOK.reset();
     }

@@ -1,9 +1,9 @@
 package dev.aresos.test;
 
 import dev.aresos.AresOs;
-import dev.aresos.client.ClickToLook;
 import dev.aresos.client.HomePointer;
 import dev.aresos.client.HomeScreen;
+import dev.aresos.client.LookSetting;
 import dev.aresos.client.ShellFocusClient;
 import dev.aresos.client.WorldCapture;
 import dev.aresos.config.LookMode;
@@ -59,7 +59,7 @@ public final class ClickToLookClientGameTest implements FabricClientGameTest {
                 context.runOnClient(client -> {
                     AppsTestAccess.aresos$setShell(shell);
                     HomeScreen.forTests(true, null);
-                    ClickToLook.forTests(LookMode.CLICK);
+                    LookSetting.forTests(LookMode.CLICK);
                 });
                 shell.start();
                 shell.awaitApps(Duration.ofSeconds(10));

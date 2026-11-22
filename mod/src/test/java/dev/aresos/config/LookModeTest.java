@@ -35,12 +35,21 @@ class LookModeTest {
         Path file = dir.resolve("settings.properties");
         Files.writeString(file, "look = sideways\n");
         var error = assertThrows(IllegalArgumentException.class, () -> LookMode.read(file));
-        assertTrue(error.getMessage().contains("sideways") && error.getMessage().contains("classic, click"),
+        assertTrue(error.getMessage().contains("sideways") && error.getMessage().contains("classic, click, edge"),
                 error.getMessage());
+    }
+
+    @Test void theOwnersLineTurnsOnEdgeTurning() throws IOException {
+        Path file = dir.resolve("settings.properties");
+        for (String line : new String[] {"look = edge", "look=EDGE", "  look = Edge  "}) {
+            Files.writeString(file, line + "\n");
+            assertEquals(LookMode.EDGE, LookMode.read(file), line);
+        }
     }
 
     @Test void eachModeIsItsOwnWord() {
         for (var mode : LookMode.values()) assertEquals(mode, LookMode.parse(mode.value()));
         assertEquals("click", LookMode.CLICK.value());
+        assertEquals("edge", LookMode.EDGE.value());
     }
 }

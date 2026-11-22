@@ -9,15 +9,16 @@ import java.util.Properties;
 
 /**
  * Package 328: how the world lets him look around in a session's desktop world. It is a test switch until the owner
- * picks one, so there is no menu button: one line in {@code config/aresos/settings.properties}, {@code look = click}.
- * No file, no line or an empty value is {@link #CLASSIC}. The game reads it once at start.
+ * picks one, so there is no menu button: one line in {@code config/aresos/settings.properties}, {@code look = click}
+ * or {@code look = edge}. No file, no line or an empty value is {@link #CLASSIC}. The game reads it once at start.
  */
 public enum LookMode {
     /** Today's: the world holds the mouse and steers the camera whenever it has the focus and no app is in front. */
     CLASSIC,
     /** Prototype A (328b): the cursor is free; a click on the world or a movement key looks around until stillness. */
-    CLICK;
-    // 328c adds EDGE, prototype B.
+    CLICK,
+    /** Prototype B (328c): the cursor is always free; the view turns at the world's edges and with the arrow keys. */
+    EDGE;
 
     /** The settings file, relative to the game's config folder. */
     public static final String FILE = "aresos/settings.properties";

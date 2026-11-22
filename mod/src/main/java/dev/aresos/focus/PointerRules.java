@@ -18,8 +18,17 @@ public final class PointerRules {
     }
 
     public static Click click(boolean free, boolean primary, boolean appSlot) {
+        return click(free, primary, appSlot, false);
+    }
+
+    /**
+     * {@code worldActs}: package 328c's edge turning with the world in front, where the free pointer's clicks act on what
+     * the crosshair aims at. A primary click on an app slot still opens the app; any other click is Minecraft's.
+     */
+    public static Click click(boolean free, boolean primary, boolean appSlot, boolean worldActs) {
         if (!free) return Click.VANILLA;
-        return primary && appSlot ? Click.OPEN_APP : Click.ENTER_WORLD;
+        if (primary && appSlot) return Click.OPEN_APP;
+        return worldActs ? Click.VANILLA : Click.ENTER_WORLD;
     }
 
     /**

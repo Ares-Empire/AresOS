@@ -5,6 +5,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.platform.Window;
 import dev.aresos.client.AppInput;
 import dev.aresos.client.ClickToLook;
+import dev.aresos.client.EdgeLook;
 import dev.aresos.client.ModeSwitchClient;
 import dev.aresos.client.HomePointer;
 import dev.aresos.client.HomeScreen;
@@ -51,11 +52,13 @@ public abstract class MouseAppInputMixin {
     }
 
     // Package 328b: real motion keeps look mode on (not the capture's own first move, not an unchanged position).
+    // Package 328c: edge turning trusts the cursor position once one has arrived.
     @Inject(method = "onMove", at = @At("HEAD"))
     private void aresos$lookMoved(long handle, double x, double y, CallbackInfo ci) {
         var client = Minecraft.getInstance();
-        if (handle == client.getWindow().handle() && !ignoreFirstMove && (x != xpos || y != ypos))
-            ClickToLook.input(client);
+        if (handle != client.getWindow().handle()) return;
+        EdgeLook.moved();
+        if (!ignoreFirstMove && (x != xpos || y != ypos)) ClickToLook.input(client);
     }
 
     @Inject(method = "grabMouse", at = @At("HEAD"), cancellable = true)

@@ -34,10 +34,13 @@ public final class HomePointer {
             return true;
         }
         if (!HomeScreen.freePointer(client) || client.gui.screen() != null || client.gui.overlay() != null) return false;
-        if (action != GLFW.GLFW_PRESS) return true;
-        swallowedButtons |= bit;
+        // Package 328c: with look = edge and the world in front, the free pointer's clicks go on to Minecraft.
+        boolean worldActs = !HomeScreen.ignoresMouse(client);
+        if (action != GLFW.GLFW_PRESS) return !worldActs;
         int slot = hoveredSlot(client);
-        var click = PointerRules.click(true, button == GLFW.GLFW_MOUSE_BUTTON_LEFT, slot >= 0);
+        var click = PointerRules.click(true, button == GLFW.GLFW_MOUSE_BUTTON_LEFT, slot >= 0, worldActs);
+        if (click == PointerRules.Click.VANILLA) return false;
+        swallowedButtons |= bit;
         if (click == PointerRules.Click.OPEN_APP) {
             // labwc activates the desktop on mouse-down. Its helper event can arrive on either side of this callback.
             appClick = foregroundFrames == 0;
@@ -91,7 +94,8 @@ public final class HomePointer {
         if (ClickToLook.on(client)) {
             // Package 328b: only a press starts look mode; an activation without one leaves the cursor free.
             if (pressed) ClickToLook.click(client);
-        } else if (client.gui.screen() == null && client.isWindowActive()) {
+        } else if (!EdgeLook.on(client) && client.gui.screen() == null && client.isWindowActive()) {
+            // Package 328c: with look = edge the world never takes the mouse; the press only brought it to the front.
             client.mouseHandler.grabMouse();
         }
         AresOsClient.returnedFromApp();
