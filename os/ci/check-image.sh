@@ -23,7 +23,8 @@ sudo python3 -B os/ci/deskflow/check_layers.py "$out/base-inspect.json" "$out/im
 # podman need their PAM session and user namespaces, hence --privileged.
 # Send the checkout's labwc pin checker with the script so the image needn't ship it.
 tar -cf - -C os ci/image-checks.sh labwc/stage.py labwc/loaded_image.py input-portal/LICENSE \
-    input-portal/data/org.freedesktop.impl.portal.desktop.aresos-input.service |
+    input-portal/data config/usr/share/polkit-1/actions/org.aresos.input-sharing.policy \
+    config/usr/share/applications/org.aresos.InputSharing.desktop |
     sudo podman run --rm -i --privileged --network=none --entrypoint /usr/bin/bash "$image" -ec '
         check_dir=$(mktemp -d)
         tar -xf - -C "$check_dir"
