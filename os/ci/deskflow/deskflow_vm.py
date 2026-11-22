@@ -170,7 +170,7 @@ def verify_mode(guest, name, mode):
             assert round(current['refresh'], 3) == round(mode['refresh'], 3), output
 
 
-def wait_connector(guest, connected, original=None):
+def wait_connector(guest, connected, original=None, *, secondary_before=()):
     drm_seen = False
     deadline = time.monotonic() + 12
     while time.monotonic() < deadline:
@@ -180,7 +180,9 @@ def wait_connector(guest, connected, original=None):
         if original is None:
             drm = [path for path in connectors if path.endswith(f'-{SECONDARY}')]
             status = 'connected' if connected else 'disconnected'
-            drm_match = any(connectors[path] == status for path in drm)
+            drm_match = any(connectors[path] == status for path in drm) or (
+                not connected and any(path not in connectors for path in secondary_before)
+            )
             labwc_match = (SECONDARY in outputs) == connected
             names = {SECONDARY} if connected else set()
         else:
@@ -204,8 +206,13 @@ def hotplug(guest):
     initially_connected = any(path.endswith(f'-{SECONDARY}') for path in original)
 
     def ui(connected):
+        secondary_before = set()
+        if not connected:
+            before = guest.request('snapshot')['connectors']
+            secondary_before = {path for path, state in before.items()
+                                if state == 'connected' and path.endswith(f'-{SECONDARY}')}
         accepted = guest.ui_info(connected)
-        observed = wait_connector(guest, connected)
+        observed = wait_connector(guest, connected, secondary_before=secondary_before)
         if observed:
             assert accepted, f'SetUIInfo rejected connected={connected}'
         return observed

@@ -46,6 +46,19 @@ class DeskflowVMTest(unittest.TestCase):
         self.assertEqual(result['hotplug'], 'unverified')
         self.assertIn("the owner's direct OK", result['publication_requires'])
 
+    def test_hotplug_fails_if_a_connected_status_node_disappears_but_labwc_keeps_output(self):
+        guest = Mock()
+        outputs = {vm.PRIMARY: PRIMARY, vm.SECONDARY: PRIMARY}
+        primary = {'card1-Virtual-1': 'connected'}
+        before = dict(outputs=outputs, connectors={**primary, 'card1-Virtual-2': 'connected'})
+        after = dict(outputs=outputs, connectors=primary)
+        guest.request.side_effect = (before, before, after)
+        with patch.object(vm.time, 'monotonic', side_effect=(0, 1, 13)), patch.object(vm.time, 'sleep'):
+            with self.assertRaisesRegex(AssertionError, 'labwc did not reflect'):
+                vm.hotplug(guest)
+        guest.ui_info.assert_called_once_with(False)
+        guest.qmp.command.assert_not_called()
+
     def test_vt_checks_the_original_bus_owner_and_listener(self):
         for vt in ('tty3', 'tty1'):
             with (
