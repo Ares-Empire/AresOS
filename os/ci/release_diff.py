@@ -1768,6 +1768,28 @@ JAR_REASON_29 = '56 (#117) and 53d (#121): rebuilt mod with free-pointer and hot
 NEW_EXECUTABLES_29 = {'usr/libexec/' + name for name in ('aresos-level', 'aresos-indicator', 'aresos-settings', 'aresos-laptop-home')}
 
 
+def ignored_build_files29():
+    """Git-ignored paths that COPY . can take from the local os/ context."""
+    ignored = git('ls-files', '-z', '--others', '--ignored', '--exclude-standard', '--', 'os', text=True)
+    paths = {path for path in ignored.split('\0') if path}
+    if not paths:
+        return []
+    exclusions = []
+    for line in git_bytes('HEAD', 'os/.containerignore').decode('utf-8-sig').splitlines():
+        rule = line.strip()
+        if not rule or line.startswith('#'):
+            continue
+        # The reviewed ignore file uses literal paths. Until other patterns are reviewed,
+        # assume any ignored file could be copied if the rules use globbing or negation.
+        if any(char in rule for char in '*?[]!\\'):
+            return sorted(paths)
+        path = posixpath.normpath(rule.lstrip('/'))
+        if path != '.':
+            exclusions.append('os/' + path)
+    return sorted(path for path in paths if not any(path == rule or path.startswith(rule + '/')
+                                                    for rule in exclusions))
+
+
 def verify_source29(previous, main_base):
     """Bind R28's historical inputs and R29's checkout to the source commits used by the two builds."""
     allowed, differing = source_changes(main_base, sources=IMAGE_SOURCES_29, exceptions=BRANCH_SOURCE_CHANGES_29)
@@ -1790,12 +1812,13 @@ def verify_source29(previous, main_base):
         problems.append('image sources missing from HEAD: ' + ', '.join(missing))
     dirty = git('diff', '--name-only', 'HEAD', '--', *IMAGE_SOURCES_29, text=True).splitlines()
     dirty += git('ls-files', '--others', '--exclude-standard', '--', *IMAGE_SOURCES_29, text=True).splitlines()
-    # The OS build context includes local files even when Git ignores them. The mod and Control come from a Git archive.
-    local_inputs = [path for path in IMAGE_SOURCES_29 if path.startswith('os/')]
-    ignored = git('ls-files', '-z', '--others', '--ignored', '--exclude-standard', '--', *local_inputs, text=True)
-    dirty.extend(path for path in ignored.split('\0') if path)
     if dirty:
         problems.append('image sources differ from HEAD in the checkout: ' + ', '.join(sorted(set(dirty))))
+    # The mod and Control come from a Git archive. COPY . reads the local os/ directory.
+    ignored = ignored_build_files29() if 'os/.containerignore' not in missing else []
+    if ignored:
+        problems.append('Git-ignored files in the os/ build context. Move or remove these paths before rebuilding: '
+                        + ', '.join(ignored))
     if os.environ.get('GITHUB_SHA') != git('rev-parse', 'HEAD', text=True).strip():
         problems.append('the run source revision is not this checkout')
     return main, problems

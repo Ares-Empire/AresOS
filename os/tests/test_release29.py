@@ -56,7 +56,7 @@ class CurrentMainTest(unittest.TestCase):
         self.assertIn('os/build.sh', rd.BRANCH_SOURCE_CHANGES)
         self.assertEqual(rd.source_changes(MAIN, HEAD, sources=rd.IMAGE_SOURCES_29,
                                            exceptions=rd.BRANCH_SOURCE_CHANGES_29), ({}, []))
-        with patch.dict(os.environ, GITHUB_SHA=HEAD):
+        with patch.dict(os.environ, GITHUB_SHA=HEAD), patch.object(rd, 'ignored_build_files29', return_value=[]):
             self.assertEqual(rd.verify_source29(R28, MAIN)[1], [])
             damaged = dict(R28, source_trees=R28['source_trees'][1:])
             self.assertIn('does not match', rd.verify_source29(damaged, MAIN)[1][0])
@@ -163,7 +163,7 @@ class ImageDiffTest(unittest.TestCase):
     maxDiff = None
 
     def setUp(self):
-        self.work = pathlib.Path(self.enterContext(tempfile.TemporaryDirectory(dir=ROOT / 'os/tests')))
+        self.work = pathlib.Path(self.enterContext(tempfile.TemporaryDirectory(dir=ROOT)))
         self.roots = {name: self.work / name for name in ('old', 'new', 'base')}
         self.rpms = dict(zip(('old', 'new'), package_inputs()[:2]))
         self.mounts = {R28['reference']: 'old', rd.NEW: 'new', R28['base']: 'base'}
@@ -242,6 +242,8 @@ class ImageDiffTest(unittest.TestCase):
         self.enterContext(patch.dict(rd.PRISM_FILE_LISTS, {prism_pin: inventory[rd.PRISM_FILES]['sha256']}))
         self.enterContext(patch.dict(os.environ, GITHUB_SHA=HEAD))
         self.enterContext(patch.object(rd, 'main_merge_base', return_value=MAIN))
+        self.scan_ignored = rd.ignored_build_files29
+        self.enterContext(patch.object(rd, 'ignored_build_files29', return_value=[]))
         self.commands = self.enterContext(patch.object(image_diff, 'command', side_effect=self.command))
 
     def write_audit(self, side):
@@ -449,14 +451,14 @@ class ImageDiffTest(unittest.TestCase):
                 self.assertIn(expected, result['problems'][0])
                 self.commands.assert_not_called()
 
-    def test_ignored_file_in_local_build_input_stops_before_mounting(self):
+    def test_ignored_files_copied_from_os_stop_before_mounting(self):
         real_git = rd.git
         checkout = self.work / 'checkout'
         checkout.mkdir()
         real_git('-C', checkout, 'init', '--quiet')
-        (checkout / '.gitignore').write_bytes(rd.git_bytes(HEAD, '.gitignore'))
-        local = 'os/config/var/log/dnf5.log'
-        for rel in (local, 'mod/dnf5.log'):
+        (checkout / '.gitignore').write_bytes(rd.git_bytes(HEAD, '.gitignore') + b'\n.env\n')
+        copied = ('os/.env', 'os/config/var/log/dnf5.log', 'os/tests/ci/.env')
+        for rel in (*copied, 'os/ci/.env', 'os/manifest/ci/.env', 'mod/.env'):
             path = checkout / rel
             path.parent.mkdir(parents=True)
             path.write_text('ignored fixture log\n')
@@ -467,9 +469,12 @@ class ImageDiffTest(unittest.TestCase):
                 return real_git('-C', checkout, *args, **kwargs)
             return real_git(*args, **kwargs)
 
-        with patch.object(rd, 'git', side_effect=git):
+        with patch.object(rd, 'git', side_effect=git), patch.object(rd, 'ignored_build_files29', self.scan_ignored):
             _, result = self.diff()
-            self.assertEqual(result['problems'], ['image sources differ from HEAD in the checkout: ' + local])
+            self.assertEqual(result['problems'], [
+                'Git-ignored files in the os/ build context. Move or remove these paths before rebuilding: '
+                + ', '.join(copied)])
             self.commands.assert_not_called()
-            (checkout / local).unlink()
+            for rel in copied:
+                (checkout / rel).unlink()
             self.assertEqual(rd.verify_source29(R28, MAIN)[1], [])
