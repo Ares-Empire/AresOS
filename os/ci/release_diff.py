@@ -1817,6 +1817,15 @@ LOOK_FILES_29 = {'usr/share/aresos/look/look.json'} | {
         'microphone-off-unavailable', 'microphone-off', 'microphone-unavailable', 'microphone', 'plate', 'slot',
         'speaker-muted-unavailable', 'speaker-muted', 'speaker-unavailable', 'speaker', 'step-limit',
         'step-lit', 'step-muted', 'step-part', 'step-unlit', 'sun-unavailable', 'sun')}
+LOOK_29 = 'usr/share/aresos/look'
+FRAME_CELLS_29 = {f'{button}{hover}-{state}.png'
+                  for button in ('menu', 'iconify', 'max', 'max_toggled', 'close', 'shade', 'shade_toggled', 'desk', 'desk_toggled')
+                  for hover in ('', '_hover') for state in ('active', 'inactive')}
+FRAME_THEME_29 = 'usr/share/themes/AresOS/labwc'
+FRAME_SPRITES_29 = LOOK_29 + '/sprites/frame'
+# B329 at b720da42 pins these complete file sets in os/ci/image-checks.sh.
+FRAME_THEME_PIN_29 = '1edd49859255bde9a1c8f4ba779d92010ad38bde0f591507a3b29bbee17d916e'
+LOOK_PIN_29 = 'f4c4a0f201d30e5cafddd278eb8f69d0f40d61e1efa12ede8a7bb7f5735baabd'
 FONT_REASONS_29 = {
     'Jersey10-Regular.ttf': 'B320 (#131): Jersey 10 indicator font',
     'OFL-Jersey10.txt': 'B320 (#131): licence for the Jersey 10 font',
@@ -1832,17 +1841,28 @@ CONFIG_REASONS_29 = {
     'usr/libexec/aresos-shell': '25, 56, 53c, 53d and #134: planned-stop and view IPC, focus and search, stale cursor invalidation and bounded view launch checks',
     'usr/libexec/aresos-laptop-home': '53c and 53f (#114 and #120): native GTK 4 and Cairo laptop-home executable, awaiting 23c launch wiring',
     'usr/share/aresos/desktop-view.bashrc': '25 (#125): offer the supervisor restart command in the desktop message window',
-    RC_XML: 'B320 (#131): six media and brightness bindings use aresos-level. 25 (#125): borderless always-on-top black save cover',
+    RC_XML: ('B320 (#131): six media and brightness bindings use aresos-level. 25 (#125): borderless always-on-top black save cover. '
+             'B329 (#143): AresOS theme, focused-output switcher, Shift+Alt+Tab reverse, title-bar scroll no-ops '
+             'and default mouse bindings with three Root press no-ops'),
     'usr/libexec/aresos-level': 'B320 (#131): volume up also unmutes and brightness down stops at 1% of the backlight maximum',
     'usr/libexec/aresos-indicator': 'B320 (#131): displays brightness, volume and microphone state using a non-focusing layer shell',
     'usr/libexec/aresos-settings': 'B320 (#131): reads the indicator settings and look pack',
     **dict.fromkeys(LOOK_FILES_29, 'B320 (#131): indicator look pack (layout, colours and sprites)'),
+    LOOK_29 + '/look.json': 'B320 (#131) and B329 (#143): Look A indicator layout and colours with the frame layout and cell map',
+    FRAME_THEME_29 + '/themerc': 'B329 (#143): labwc Look A frame, title and switcher colours and metrics',
+    **{f'{FRAME_THEME_29}/{cell}': f'B329 (#143): Look A labwc window button {cell} at 48 × 40'
+       for cell in FRAME_CELLS_29},
+    **{f'{FRAME_SPRITES_29}/{cell}': f'B329 (#143): Look A source window button {cell} at 24 × 20'
+       for cell in FRAME_CELLS_29},
     **{'usr/share/fonts/aresos/' + name: reason for name, reason in FONT_REASONS_29.items()},
 }
 CONFIG_DIRECTORIES_29 = {
     'usr/share/aresos/look': 'B320 (#131): parent directory of the indicator look pack',
     'usr/share/aresos/look/sprites': 'B320 (#131): directory of indicator sprites',
     'usr/lib/systemd/system/session-.scope.d': '25 (#125): parent directory for the login-scope ordering drop-in',
+    'usr/share/themes/AresOS': 'B329 (#143): AresOS theme directory selected by labwc rc.xml',
+    FRAME_THEME_29: 'B329 (#143): AresOS labwc theme directory with themerc and window buttons',
+    FRAME_SPRITES_29: 'B329 (#143): Look A native frame cells referenced by look.json',
 }
 JAR_REASON_29 = '56 (#117) and 53d (#121): rebuilt mod with free-pointer and hotbar behaviour, faster flight and world search IPC'
 NEW_EXECUTABLES_29 = {'usr/libexec/' + name for name in ('aresos-level', 'aresos-indicator', 'aresos-settings', 'aresos-laptop-home')}
@@ -1944,6 +1964,10 @@ def config_tree(commit):
 
 def plain_file(value, mode):
     return value is not None and value['kind'] == stat.S_IFREG and root_owned(value, mode) and not value['xattrs']
+
+
+def plain_directory(value):
+    return value is not None and value['kind'] == stat.S_IFDIR and root_owned(value, 0o755) and not value['xattrs']
 
 
 def exact_link(value, target):
@@ -2099,10 +2123,26 @@ class Classifier29(Classifier28):
             if reason and after is not None and self.matching_config('old', rel, before) \
                     and self.matching_config('new', rel, after):
                 return 'config', reason
-        elif before is None and rel in CONFIG_DIRECTORIES_29 and after is not None \
-                and after['kind'] == stat.S_IFDIR and root_owned(after, 0o755) and not after['xattrs']:
+        elif before is None and rel in CONFIG_DIRECTORIES_29 and plain_directory(after):
             return 'config', CONFIG_DIRECTORIES_29[rel]
         return None
+
+    def frame_evidence(self):
+        inventory = self.policy['inventory']
+        evidence = {}
+        for label, directory, paths, dirs, pin in (
+            ('look', LOOK_29, LOOK_FILES_29 | {f'{FRAME_SPRITES_29}/{cell}' for cell in FRAME_CELLS_29},
+             {LOOK_29, LOOK_29 + '/sprites', FRAME_SPRITES_29}, LOOK_PIN_29),
+            ('frame', FRAME_THEME_29, {f'{FRAME_THEME_29}/{name}' for name in FRAME_CELLS_29 | {'themerc'}},
+             {FRAME_THEME_29}, FRAME_THEME_PIN_29),
+        ):
+            present = {path for path in inventory if path == directory or path.startswith(directory + '/')}
+            exact = present == paths | dirs and all(plain_directory(inventory[path]) for path in dirs) \
+                and all(plain_file(inventory[path], 0o644) for path in paths)
+            rows = (f"{inventory[path]['sha256']}  {path.removeprefix(directory + '/')}" for path in sorted(paths))
+            digest = hashlib.sha256('\n'.join(rows).encode()).hexdigest() if exact else None
+            evidence[label] = dict(image=digest, image_checks=pin, equal=digest == pin)
+        return evidence
 
     def alternatives(self):
         return super().alternatives(existing=True)
@@ -2282,6 +2322,9 @@ class Classifier29(Classifier28):
             if rel not in self.config or rel not in CONFIG_REASONS_29 or not all(
                     self.matching_config(side, rel, inv.get(rel)) for side, inv in (('old', old), ('new', new))):
                 problems.append('missing, retained or different os/config input: ' + rel)
+        for rel in CONFIG_DIRECTORIES_29:
+            if rel in old or not plain_directory(new.get(rel)):
+                problems.append('new config directory missing or different: ' + rel)
         for rel in self.MANIFEST_REASONS:
             if not all(self.manifest_matches(side, rel, inv.get(rel)) for side, inv in (('old', old), ('new', new))):
                 problems.append('pinned input or image record missing or different: ' + rel)
@@ -2316,6 +2359,9 @@ class Classifier29(Classifier28):
         pin = crown_pin()
         if crown != pin:
             problems.append('the Ares-Crown theme differs from its image-checks.sh pin')
+        frame = self.frame_evidence()
+        if not all(row['equal'] for row in frame.values()):
+            problems.append('B329 frame or look pack differs from its image-checks.sh inventory and pin')
         font_dir = '/usr/share/fonts/aresos'
         digest = hashlib.md5(font_dir.encode(), usedforsecurity=False).hexdigest()
         if any(not self.image_folder(font_dir[1:], root=root)
@@ -2341,7 +2387,7 @@ class Classifier29(Classifier28):
                     schema_rebuild=self.rebuilt_schemas(),
                     font_caches=sorted(self.font_caches, key=lambda row: row['path']), updaters=rows,
                     alternatives={name: dict(sorted(targets.items())) for name, (_, targets) in sorted(self.alternatives().items())},
-                    theme=dict(image=crown, image_checks=pin, equal=crown == pin), rc_xml=rc, labwc=labwc), problems
+                    theme=dict(image=crown, image_checks=pin, equal=crown == pin, **frame), rc_xml=rc, labwc=labwc), problems
 
 
 RELEASES = {
