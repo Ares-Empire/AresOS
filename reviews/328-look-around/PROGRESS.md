@@ -106,6 +106,34 @@ Dead-key restoration also remains unverified. No mod or rig files changed in thi
 - While the free pointer rests on the world, Minecraft still selects hotbar slots with the wheel (vanilla's scroll
   needs no capture). That is the same as behind an app in package 56.
 
+**How the owner turns it on:** put the line `look = click` in `config/aresos/settings.properties` inside the game's
+folder, then start the game (it reads the file once at start). For `hub-try` that file is
+`~/AresOS-try/mod/run/config/aresos/settings.properties` in the try checkout. Remove the line, or write
+`look = classic`, to get today's behaviour back. In click mode the cursor is free over the world. A click on open world
+(or on an empty hotbar slot) or any movement key starts looking around. Looking ends after 0.8 s with the mouse and
+movement keys still, on Esc, or when an app takes the focus.
+
+**Verified** (on `ac48a3a1`, through the dev scripts with no `--force`, no exit-75 refusal, and no other worktree's
+Gradle running at each start):
+
+- A check against the brief by a fresh agent found no gaps. Look mode starts and ends only through 328a's
+  `grabMouse`/`releaseMouse` and `WorldCapture`. Every GLFW cursor call is still in `WorldCapture`.
+  `LOOK_RELEASE_MS = 800` is one constant in `ClickLook`. With `classic`, every new hook is a no-op (`ClickToLook.on`
+  and `idle` are false), so `enterWorld` grabs as before.
+- Pass 1: `mod/dev/build.sh` BUILD SUCCESSFUL in 1m 49s; all 106 server game tests passed. Unit tests were up to
+  date from the previous builder's run on the same code (352, 0 failures, 6 Windows-only skips).
+  `mod/dev/client-test.sh --session` BUILD SUCCESSFUL in 16m 6s, exit 0: the whole client suite. 328a's native check
+  ("camera turned 46.8 degrees", probe unchanged). "328b: click and key starts, stillness (849 ms), Esc, app focus and
+  regrabs passed". "328b native: camera turned 22.8 degrees; still 1940 ms; pointer back at the click, then on output
+  2". "328b native: a key start returned the pointer to the centre of the world's output".
+- Pass 2: `mod/dev/build.sh` BUILD SUCCESSFUL in 1m 50s, all 106 server game tests passed.
+  `mod/dev/client-test.sh --session` BUILD SUCCESSFUL in 16m 4s, exit 0, with the same 328a and 328b lines
+  (stillness 849 ms; native still 1860 ms).
+- The unit tests were rerun fresh (`mod/dev/build.sh test --rerun`): BUILD SUCCESSFUL, 352 tests, 0 failures, 6
+  Windows-only skips, including `ClickLookTest` and `LookModeTest`.
+- The tracked screenshots the runs rewrote were put back (`git checkout -- reviews/`). The 25 untracked ones written
+  under new numbers were deleted.
+
 **Left:** 328c (prototype B, edge turning; add `EDGE` to `LookMode`), then 328d (the README line, `run-hub.sh --outputs 2`,
 the report and the PR).
 
