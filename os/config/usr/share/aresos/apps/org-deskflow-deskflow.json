@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "id": "org-deskflow-deskflow",
+  "name": "Deskflow",
+  "argv": ["/usr/libexec/aresos-deskflow"],
+  "replaces": ["org.deskflow.deskflow.desktop"],
+  "window": {"app_ids": ["org.deskflow.deskflow"], "instance": "single"}
+}

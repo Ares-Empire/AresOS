@@ -1,0 +1,79 @@
+#!/usr/bin/python3 -I
+"""Run the native Deskflow server with a private snapshot of its pairing."""
+import os
+from pathlib import Path
+import re
+import shutil
+import signal
+import socket
+import subprocess
+import sys
+import tempfile
+
+from PySide6.QtCore import QSettings
+
+CORE = '/usr/bin/deskflow-core'
+FINGERPRINT = re.compile(r'v2:sha256:[0-9a-fA-F]{64}')
+
+
+def prepare_profile(source, target):
+    configured = QSettings(str(source / 'Deskflow.conf'), QSettings.Format.IniFormat)
+    keys = configured.allKeys()
+    if configured.status() != QSettings.Status.NoError:
+        raise ValueError('The Deskflow settings could not be read.')
+
+    tls = target / 'tls'
+    tls.mkdir(parents=True)
+    trusted = source / 'tls/trusted-clients'
+    entries = [line for line in trusted.read_text().splitlines() if line] if trusted.exists() else []
+    if len(entries) > 1 or any(not FINGERPRINT.fullmatch(line) for line in entries):
+        raise ValueError('Deskflow needs a trust list with only the verified Mac fingerprint.')
+    if entries:
+        (tls / 'trusted-clients').write_text(entries[0] + '\n')
+
+    certificate = source / 'tls/deskflow.pem'
+    certificate = Path(configured.value('security/certificate', str(certificate), type=str))
+    if certificate.exists():
+        shutil.copyfile(certificate, tls / 'deskflow.pem')
+    layout = source / 'deskflow-server.conf'
+    if layout.exists():
+        shutil.copyfile(layout, target / layout.name)
+
+    profile = QSettings(str(target / 'Deskflow.conf'), QSettings.Format.IniFormat)
+    for key in keys:
+        if not key.startswith('security/'):
+            profile.setValue(key, configured.value(key))
+    if not layout.exists() and not profile.value('server/externalConfig', False, type=bool):
+        # A fresh profile can ask for sharing before the owner adds the Mac.
+        name = profile.value('core/computerName', socket.gethostname(), type=str)
+        name = re.sub(r'[^A-Za-z0-9_.-]', '', name.replace(' ', '_'))[:255].strip('_.-') or 'aresos'
+        profile.setValue('core/computerName', name)
+        (target / layout.name).write_text(f'section: screens\n    {name}:\nend\n')
+    profile.setValue('security/tlsEnabled', True)
+    profile.setValue('security/checkPeerFingerprints', True)
+    profile.sync()
+    if profile.status() != QSettings.Status.NoError:
+        raise OSError('Could not write the protected Deskflow settings.')
+
+
+def main():
+    config = Path(os.environ.get('XDG_CONFIG_HOME') or Path.home() / '.config')
+    source = config / 'Deskflow'
+    with tempfile.TemporaryDirectory(prefix='aresos-deskflow-', dir=os.environ['XDG_RUNTIME_DIR']) as runtime:
+        prepare_profile(source, Path(runtime) / 'Deskflow')
+        # Do not let an XWayland fallback bypass the input portal.
+        env = dict(os.environ, XDG_CONFIG_HOME=runtime, QT_QPA_PLATFORM='wayland', XDG_SESSION_TYPE='wayland')
+        env.pop('DISPLAY', None)
+        with subprocess.Popen([CORE, 'server'], env=env) as core:
+            signal.signal(signal.SIGTERM, lambda *_: core.terminate())
+            return core.wait()
+
+
+if __name__ == '__main__':
+    try:
+        sys.exit(main())
+    except (OSError, ValueError) as error:
+        message = f'Could not start Deskflow. {error}'
+        print(message, file=sys.stderr)
+        subprocess.run(['/usr/bin/kdialog', '--title', 'Deskflow', '--error', message])
+        sys.exit(1)
