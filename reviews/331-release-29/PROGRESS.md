@@ -888,3 +888,165 @@ unverified.
 - **Historical baseline preflight:** run 45073317069 at `1ac63562`, attempt 1, PASSED in about 2 h. Its artifacts are `release-29-baseline-receipt` and `release-29-baseline-evidence` (about 22 MB). The receipt must be checked with `release29_walk.py check-receipt` before the private upload, and redone if a bound baseline input changes.
 - **Ledger:** checks 2 of 2 and release-29-baseline 1 of 1 are spent, within the minute cap of 545. The publish caps stay 0.
 - **Next:** late-package slices for what is already on main (18c-b, B329, B330, the mod changes 327, 328a and 328), then the cut once B321 meets its conditions.
+
+## Step 6 · late packages through 328 · 2026-11-23
+
+Started at `c01a5660` on draft PR144. Merged `origin/main` at
+`17211fb1203a53d64653e49429a7fdecee39a69b` in `a78a6574`. The previous
+merge `a5dbff3f` already contained 18c-b, B329, B330, 327 and 328a. The new
+main commits carried no pending-rebind edits, so the clean merge preserved
+all earlier notes. Recomputed the pending file list with `rebind.py pending`.
+Package 334's design and review files also arrived in this merge.
+
+### Image profile
+
+- **18c-b · `d37ea134`.** Replays each side's `control-tree` install
+  map and wheel lock from that image's committed inputs. The two images
+  have the same wheel and vendor records, and the classifier checks every
+  recorded file, directory, and link in both installs. The reviewed
+  runtime delta is `aresos_control/chrome/exclusions.py` for the new
+  first-boot gate, computed `chrome/build-id.json`, the two native relay
+  files, the polkit action and the tmpfiles rule. The shared `control.json`
+  binds the source revision, Chrome build, bundle and gh fields, and
+  the two additional links. The bundle check holds the directory to four
+  files, verifies the CRX signature and committed payload, and compares
+  policy, update XML and native-host metadata with the rendered
+  templates and signed extension ID. The image has two root policy and
+  host links under `/etc/opt/chrome`. The guest checker compares them with
+  the deployed copies under `/usr/etc`. The sites list is created in
+  guest state on first boot. [Control proof 44936830501](https://github.com/Ares-Empire/AresOS/actions/runs/44936830501)
+- **18c-b gh.** Binds `os/gh.lock.json` and its signing-key file and mode
+  to the source. The build verifies the signature, RPM SHA-256 and all
+  240 RPM payload paths. The profile requires the binary, the licence and
+  the installed byte-for-byte lock. It refuses another RPM payload file
+  or an installed gh RPM, including when present on both sides. Both R29
+  confirming boots require the pinned gh version in the Control result.
+  C6 still observes the closed first-use gate before the synthetic list
+  is installed. [18c-b handoff](../18c-b-chrome-image/PROGRESS.md#for-linux-aresoss-release-brief)
+- **B329 · `b720da42`.** Checks the 37 new files in
+  `/usr/share/themes/AresOS/labwc/`, the 36 native look pack frame cells,
+  their directories and the expanded look manifest. Compares both
+  complete inventories with the image-check pins. The B329 XML delta
+  replaces the theme and switcher rows and adds `A-S-Tab` and three
+  mouse rows. The mouse rows retain `<default />` first, disable both
+  TitleBar scroll directions and clear the Left, Right and Middle Root
+  presses. The diff compares exact XML bytes and keeps the Crown pin.
+  The guest uses AresOS on both R29 boots and Ares-Crown on both R28 boots.
+  [B329 handoff](../329-window-frame/PROGRESS.md#for-linux-aresos) ·
+  [Hosted build 44942183654](https://github.com/Ares-Empire/AresOS/actions/runs/44942183654)
+- **B330 · `a7fb7cfe`.** Checks the hidden
+  `org.prismlauncher.PrismLauncher.desktop` entry and the Prism scheme
+  default in `aresos-mimeapps.list` against the source files. The
+  classifier has no MIME cache exception for B330. The two R29 guest
+  boots query the scheme as the daily account with the AresOS session
+  environment. Live Microsoft sign-in is open. [B330 report](../330-prism-handler/REPORT.md) ·
+  [Hosted build 44938296580](https://github.com/Ares-Empire/AresOS/actions/runs/44938296580)
+- **Mod · `4dd5288b`, `92cf365a`, `17211fb1`.** 327 adds home
+  onboarding, Live protection, menu access, New home and Terminal artwork.
+  328a keeps the pointer in the active world and prevents clicks reaching
+  apps beneath it. 328 adds click-to-look and edge-turn prototypes. The
+  image carries these through the existing jar and its records. The
+  desktop lock still has its previous jar pin. Renew only that pin when
+  two clean hosted builds reproduce the final cut's jar. B332, B334 and
+  the intervening brief and status commits have no mounted image delta.
+  The 18c-b static CI hostname and B329's frame harness are test inputs.
+
+The context guard now checks ordinary untracked files, Git-ignored files
+and tracked edits anywhere under the local `os/` context, including
+staged edits. It honors literal root exclusions from `os/.containerignore`.
+Fixtures cover copied files with names containing spaces, exclusions,
+nested look-alike paths and an ignored file outside `os/`. The classifier
+also exercises reordered XML, missing and wrong-mode frame files, an
+unhidden Prism entry, a wrong default and a cache change, a forged CRX
+signature, a wrong Chrome link, vendor drift, preplanted guest state, and
+changed gh bytes and extra RPM payload.
+
+### Summary for the owner
+
+- Chrome shows the AresOS extension's A button and a managed-browser notice.
+  Chrome tools stay off until the owner writes the never-list.
+- Windows use the new pixel frame. Shift+Alt+Tab cycles backward, and
+  scrolling on the title bar no longer shades or unshades a window.
+- The browser can send Prism's Microsoft sign-in callback to Prism Launcher.
+
+### Historical baseline and next cut
+
+Downloaded the receipt artifact from run 45073317069 and compared its 73
+input hashes against Git blobs at `1ac63562` and at merge `a78a6574`.
+All 73 matched at both commits. The merge by itself changed zero
+baseline-bound inputs. This slice changes `os/ci/release29_probes.py`,
+`os/ci/release29_walk.py` and the local receipt
+`os/manifest/ci/331/host-walk.json`, which the hosted baseline also binds.
+**The lead must rerun the historical baseline preflight before the private
+upload.** [Run 45073317069](https://github.com/Ares-Empire/AresOS/actions/runs/45073317069)
+
+The final cut, Deskflow decision, reproducible jar evidence, hosted checks
+and dry run remain open. Live OAuth and the owner's world and hardware
+checks remain open. The existing Alt+Tab then Escape issue persists in
+both frame configurations. Switching away and back restores keys to the
+world. This slice used zero dispatches and zero uploads.
+
+
+### Verified locally
+
+Ran `python3 -m unittest discover -s os/tests -p <module>.py` from the
+repository root, one module at a time, with `TMPDIR` in `.work/tmp` and
+`PYTHONDONTWRITEBYTECODE=1`. The final results total 712 tests over
+31 modules, including the separately listed filters.
+
+| Module | Result |
+| --- | --- |
+| `test_release29.py` | `Ran 35 tests in 59.128s`, `OK` |
+| `test_release28.py` | `Ran 94 tests in 63.927s`, `OK` |
+| `test_release27.py` | `Ran 41 tests in 7.029s`, `OK` |
+| `test_owner_walk.py` | `Ran 40 tests in 622.476s`, `OK` |
+| `test_release29_rehearsal.py` | `Ran 26 tests in 32.418s`, `OK` |
+| `test_release29_workflow.py` | `Ran 15 tests in 0.131s`, `OK` |
+| `test_checkout_sources.py` | `Ran 10 tests in 1.064s`, `OK` |
+| `test_release28_rehearsal.py` | `Ran 44 tests in 34.731s`, `OK` |
+| `test_two_disk_vm.py` | `Ran 32 tests in 0.177s`, `OK` |
+| `test_rehearsal_auth.py` | `Ran 9 tests in 0.093s`, `OK` |
+| `test_installer_webui.py` | `Ran 9 tests in 0.004s`, `OK` |
+| `test_owner_media.py` | `Ran 6 tests in 0.195s`, `OK` |
+| `test_ci_api_permissions.py` | `Ran 4 tests in 4.101s`, `OK` |
+| `test_tools_local_wiring.py` | `Ran 42 tests in 57.467s`, `OK` |
+| `test_build_tools.py` | `Ran 6 tests in 0.139s`, `OK` |
+| `test_rehearsal_budget.py` | `Ran 6 tests in 0.084s`, `OK` |
+| `test_owner_staged_release.py` | `Ran 7 tests in 0.059s`, `OK` |
+| `test_ci_step_environment.py` | `Ran 4 tests in 20.641s`, `OK` |
+| `test_owner_capabilities.py` | `Ran 6 tests in 0.177s`, `OK` |
+| `test_owner_devices_native.py` | `Ran 14 tests in 1.779s`, `OK` |
+| `test_owner_counter_flush.py` | `Ran 7 tests in 0.051s`, `OK` |
+| `test_owner_reset.py` | `Ran 5 tests in 0.013s`, `OK` |
+| `test_stock_image.py` | `Ran 29 tests in 0.118s`, `OK` |
+| `test_aresos_labwc_rc.py` | `Ran 2 tests in 0.005s`, `OK` |
+| `test_aresos_labwc_theme.py` | `Ran 3 tests in 0.093s`, `OK` |
+| `test_aresos_look_pack.py` | `Ran 1 test in 0.098s`, `OK` |
+| `test_aresos_shell_discovery.py` | `Ran 37 tests in 0.114s`, `OK` |
+| `test_everyday_account.py` | `Ran 36 tests in 0.113s`, `OK` |
+| `test_control_vm.py` | `Ran 103 tests in 2.705s`, `OK` |
+| `test_control_image.py` with `-k InstallMapTest -k ChromeImageTest -k ChromePrivateScanTest -k GhImageTest` | `Ran 38 tests in 2.555s`, `OK` |
+| `test_ways_back_model.py` with `-k test_hosted_checks_explore_the_slice_and_a_parallel_job_the_full_model_when_selected` | `Ran 1 test in 0.042s`, `OK` |
+
+The first merged-profile run found that its R28 fixture omitted the
+existing polkit action directories and that its stale labwc test was
+reading the patched fixture hash. Corrected the fixture to include the
+base policy on both sides and read the unpatched lock from Git. The final
+fixture run printed `IMAGE_DIFF_PASSED` for 160, 160, 157 and 162 changed
+paths. The historical walk printed `PASS historical R29 baseline through
+confirmed R28 with tools v5`. The R29 rehearsal printed the three
+Chrome first-use and reboot PASS markers.
+
+`python3 reviews/331-release-29/walk-host.py` printed
+`PASS package 331 synthetic baseline and candidate host walk with 319 sources`.
+All 319 rows matched the raw checkout SHA-256 and Git checkout replay.
+The diagnostics retain 38 passing observations and 15 refusals. The
+pending table has 24 changed rows and zero removals. The branch's source
+guard passed on the exact main merge base after 54 generated Python
+cache files were moved aside to `.work/331-context-cache/`.
+
+`python3 -B os/ci/release29_walk.py check-receipt .work/331-baseline/release-29-baseline.json`
+exited 1 with `STOP: rerun the historical R29 baseline preflight on the current inputs`.
+The incoming B334 design note has a whitespace-only line. The post-merge
+slice passed `git diff --check a78a6574`. The cap file matches
+`1ac63562` byte for byte. There are no files over 500 MB in `.work/`.
