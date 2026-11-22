@@ -17,6 +17,9 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'os/ci'))
 
 import owner_media
+import owner_capabilities
+import owner_counter_kernel
+import owner_devices
 import owner_vm as vm
 import registry_auth as auth
 import release29_walk as walk
@@ -26,7 +29,7 @@ from test_owner_walk import Release28Local, Release28Session, laptop_rows
 
 ENV = dict(GITHUB_ACTIONS='true', GITHUB_EVENT_NAME='workflow_dispatch', GITHUB_REPOSITORY='Ares-Empire/AresOS',
            GITHUB_REF_NAME=auth.BASELINE_BRANCH, GITHUB_REF='refs/heads/' + auth.BASELINE_BRANCH,
-           REHEARSAL_PACKAGE='331', REHEARSAL_MODE='release-29', GITHUB_SHA='ab' * 20, GITHUB_RUN_ID='331',
+           REHEARSAL_PACKAGE='331', REHEARSAL_MODE='release-29-baseline', GITHUB_SHA='ab' * 20, GITHUB_RUN_ID='331',
            GITHUB_RUN_ATTEMPT='1', GITHUB_ACTOR='fixture-runner', GH_TOKEN='fixture-job-token')
 
 TERMINAL_FAILURES = {
@@ -77,6 +80,46 @@ def prepare_fixture(root, stack):
 
 
 class RegistryTest(unittest.TestCase):
+    def test_r29_native_runner_tools_require_the_exact_hosted_walk(self):
+        for mode in auth.R29_WALK_MODES:
+            with self.subTest(mode=mode), patch.dict(os.environ, ENV | {'REHEARSAL_MODE': mode}, clear=True), \
+                    patch('builtins.print'), \
+                    patch.object(owner_capabilities.shutil, 'which', return_value=None), \
+                    patch.object(owner_devices.os, 'geteuid', return_value=0), \
+                    patch.object(owner_devices, 'Observations'), patch.object(owner_devices, 'prove') as devices, \
+                    patch.object(pathlib.Path, 'exists', return_value=False), patch.object(pathlib.Path, 'write_text'):
+                with self.assertRaisesRegex(AssertionError, 'missing host capability tool'):
+                    owner_capabilities.main()
+                owner_devices.main()
+                devices.assert_called_once()
+                owner_counter_kernel.native()
+        for changed in ({'GITHUB_REF': 'refs/tags/' + auth.BASELINE_BRANCH}, {'REHEARSAL_MODE': 'publish-29'}):
+            with self.subTest(changed=changed), patch.dict(os.environ, ENV | changed, clear=True), \
+                    patch.object(owner_devices, 'Observations'), patch.object(owner_devices, 'prove') as devices, \
+                    patch.object(owner_capabilities.shutil, 'which') as tool, patch.object(owner_counter_kernel, 'prove') as counter:
+                for script in (owner_capabilities.main, owner_devices.main, owner_counter_kernel.native):
+                    with self.assertRaisesRegex(AssertionError, 'R29 dispatch'):
+                        script()
+                tool.assert_not_called()
+                devices.assert_not_called()
+                counter.assert_not_called()
+
+    def test_vm_refuses_a_receipt_from_another_run_or_walk_before_host_access(self):
+        dispatch = dict(mode=ENV['REHEARSAL_MODE'], commit=ENV['GITHUB_SHA'],
+                        run_id=ENV['GITHUB_RUN_ID'], attempt=ENV['GITHUB_RUN_ATTEMPT'])
+        checks = dict(status='passed', sha=ENV['GITHUB_SHA'], run=13)
+        for changed in ({'dispatch': dispatch | {'run_id': '442'}},
+                        {'dispatch': dispatch | {'mode': 'release-29'}},
+                        {'model': checks | {'run': 14}}):
+            receipt = dict(allowance='331', native=checks, model=checks, dispatch=dispatch) | changed
+            with self.subTest(changed=changed), patch.dict(os.environ, ENV, clear=True), \
+                    patch.object(sys, 'argv', ['owner_vm.py', 'release-29']), \
+                    patch.object(pathlib.Path, 'read_text', return_value=json.dumps(receipt)) as read, \
+                    patch.object(vm, 'Media') as media, self.assertRaisesRegex(AssertionError, 'R29 .*receipt'):
+                vm.main()
+            read.assert_called_once()
+            media.assert_not_called()
+
     def test_installed_guest_audits_a_login_stall_after_closing(self):
         guest = object.__new__(vm.Guest)
         guest.mode = 'installed'
@@ -126,22 +169,25 @@ class RegistryTest(unittest.TestCase):
                 call('set_link', {'name': 'owner-net', 'up': False}), call('cont')])
 
     def test_branch_allowlist_rejects_other_ref_types_and_modes(self):
-        with patch.dict(os.environ, ENV, clear=True):
-            auth.require_baseline_dispatch()
-            owner_media.require_runner()
+        for mode in auth.R29_WALK_MODES:
+            with patch.dict(os.environ, ENV | {'REHEARSAL_MODE': mode}, clear=True):
+                auth.require_baseline_dispatch()
+                owner_media.require_runner()
         for key, value in [('GITHUB_ACTIONS', 'false'), ('GITHUB_EVENT_NAME', 'push'),
                            ('GITHUB_REF_NAME', 'main'), ('GITHUB_REF', 'refs/tags/' + auth.BASELINE_BRANCH),
                            ('GITHUB_REPOSITORY', 'fork/AresOS'), ('REHEARSAL_PACKAGE', '42'),
-                           ('REHEARSAL_MODE', 'release-28')]:
+                           ('GITHUB_REF', 'refs/heads/pkg/331-Release-29'),
+                           ('REHEARSAL_MODE', 'release-28'), ('REHEARSAL_MODE', 'publish-29'),
+                           ('GHCR_READ_TOKEN', 'fixture')]:
             with self.subTest(key=key), patch.dict(os.environ, ENV | {key: value}, clear=True), \
-                    patch.object(auth, 'write_auth') as create, self.assertRaisesRegex(AssertionError, 'unauthorized'):
+                    patch.object(auth, 'write_auth') as create, self.assertRaises(AssertionError):
                 auth.baseline_preflight('/unused')
             create.assert_not_called()
 
     def test_preflight_reads_and_checks_the_exact_three_signatures_with_job_credentials(self):
         records = {version: json.loads(raw) for version, raw in auth.historical_records().items()}
         references = {record['reference']: record for record in records.values()}
-        for fail in (None, 'token', 'read', 'signature'):
+        for fail in (None, 'token', 'read', 'signature', 'empty-signature'):
             with self.subTest(fail=fail), tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as tmp, contextlib.ExitStack() as stack:
                 root = pathlib.Path(tmp)
                 temporary = root / 'runner'
@@ -151,6 +197,8 @@ class RegistryTest(unittest.TestCase):
                     env['GH_TOKEN'] = ''
                 stack.enter_context(patch.dict(os.environ, env, clear=True))
                 stack.enter_context(patch.object(auth, 'BASELINE_REGISTRY', root / 'result.json'))
+                stack.enter_context(patch.object(auth, 'CANDIDATE_REGISTRY', root / 'candidate.json'))
+                candidate = stack.enter_context(patch.object(auth, 'r29_candidate', side_effect=AssertionError('baseline must never read R29')))
                 auth.BASELINE_REGISTRY.write_text('stale proof')
                 tool = root / 'cosign'
                 tool.touch(mode=0o700)
@@ -174,7 +222,7 @@ class RegistryTest(unittest.TestCase):
                     self.assertEqual((auth.directory() / 'config.json').readlink(), pathlib.Path('auth.json'))
                     signatures.append(argv[-1])
                     return subprocess.CompletedProcess(argv, int(fail == 'signature' and len(signatures) == 2),
-                                                       stdout=b'fixture signature', stderr=b'fixture-job-token')
+                        stdout=b'' if fail == 'empty-signature' else b'fixture signature', stderr=b'fixture-job-token')
 
                 stack.enter_context(patch.object(auth.subprocess, 'run', side_effect=run))
                 stack.enter_context(patch.object(auth, 'job_auth_file', return_value=auth.directory() / 'auth.json'))
@@ -191,6 +239,20 @@ class RegistryTest(unittest.TestCase):
                     self.assertEqual(signatures, reads)
                     self.assertNotIn(ENV['GH_TOKEN'], auth.BASELINE_REGISTRY.read_text())
                 self.assertFalse(auth.directory().exists())
+                candidate.assert_not_called()
+                self.assertFalse(auth.CANDIDATE_REGISTRY.exists())
+
+    def test_candidate_registry_proof_binds_the_exact_reference_and_current_run(self):
+        release = dict(reference='ghcr.io/ares-empire/aresos@sha256:' + '29' * 32, source_commit='bc' * 20,
+                       signature=dict(identity=walk.IDENTITY, issuer='https://token.actions.githubusercontent.com'))
+        with patch.dict(os.environ, ENV, clear=True):
+            run = auth.baseline_run()
+        proof = dict(status='passed', **run, visibility='private', auth_kind='job-token', owner_token_used=False,
+                     **auth.candidate_row(release), signature_sha256='ab' * 32)
+        auth.check_candidate_registry(proof, release, run)
+        for field in ('reference', 'identity', 'issuer', 'source_commit', 'attempt', 'run_id', 'commit', 'signature_sha256'):
+            with self.subTest(field=field), self.assertRaisesRegex(AssertionError, 'same-run R29'):
+                auth.check_candidate_registry(proof | {field: 'wrong'}, release, run)
 
     def test_all_records_are_bound_and_live_installer_uses_historical_r13(self):
         with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as tmp, contextlib.ExitStack() as stack:

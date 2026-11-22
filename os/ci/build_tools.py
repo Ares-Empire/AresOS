@@ -99,12 +99,12 @@ def build_release(tools, release):
     assert os.environ['GITHUB_REPOSITORY'] == 'Ares-Empire/AresOS'
     assert os.environ['GITHUB_REF_NAME'] == build['branch']
     assert os.environ['REHEARSAL_MODE'] in build['modes']
-    if release == '29':
-        assert os.environ.get('GITHUB_REF') == 'refs/heads/' + build['branch'], 'STOP: wrong R29 branch ref'
-        assert os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch', 'STOP: workflow dispatch required'
     assert 'GHCR_READ_TOKEN' not in os.environ, 'The previous release is read with the job token; no owner secret'
-    previous = json.loads(pathlib.Path(build['previous']).read_text())
-    from registry_auth import auth_file
+    from registry_auth import auth_file, r29_previous
+    if release == '29':
+        previous = r29_previous()
+    else:
+        previous = json.loads(pathlib.Path(build['previous']).read_text())
     auth = auth_file()
     registry = pathlib.Path(os.environ['RUNNER_TEMP']) / f'aresos-{release}-previous-cosign'
     registry.mkdir(mode=0o700)

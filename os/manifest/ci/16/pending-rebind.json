@@ -25,12 +25,13 @@
     "331 step 4: bind qualifying session, Chrome first-use and rollback probes and preserve the historical route scans.",
     "331 REVIEW-7: follow Wants in the login graph and require every host walk source row.",
     "331 step 5 first slice: bind the guarded R29 selectors and closed publish and rehearsal caps.",
-    "331 REVIEW-8: bind the split publish authorization, combined checks reservation, rejected titles and opt-in Wants traversal."
+    "331 REVIEW-8: bind the split publish authorization, combined checks reservation, rejected titles and opt-in Wants traversal.",
+    "331 step 5 second slice: bind the reviewed hosted R29 runner, registry and ledger sources."
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
     {
-      "sha256": "d94347112132cb73942ed63737dd5ff3b541d7513ec8b483d2a1567c71e897e0",
+      "sha256": "f02469da1aa3cecda1f4a2d8fcf8f2939e7169a62f44deef6139ef77a5a1db7e",
       "path": ".github/workflows/os-image.yml"
     },
     {
@@ -42,23 +43,35 @@
       "path": "os/ci/installer_webui.py"
     },
     {
+      "sha256": "db293141b5271f8cdb968fe450db53436f9066c5c14fd1c4725ee20f61ccdb72",
+      "path": "os/ci/owner_capabilities.py"
+    },
+    {
+      "sha256": "62db855cb2c72f3f1e858eaab1a33f281ed7a81df6e15ff15f2c47890fcc3468",
+      "path": "os/ci/owner_counter_kernel.py"
+    },
+    {
+      "sha256": "9abfd0a7f2e49ae72c64c8893b73f26bc780b466c2be18e899cb9b930bbc6fc6",
+      "path": "os/ci/owner_devices.py"
+    },
+    {
       "sha256": "0a9de4a59d1faca09ab5d620ac5645c3fde082075543180566c45236ee05073d",
       "path": "os/ci/owner_media.py"
     },
     {
-      "sha256": "fcbb01b02256b7c5ed8b2b3b71a91e719a5cdf29cfcab7cd9620b6522427a1a4",
+      "sha256": "52d4d02fda1a11d775954eba5a58b93d2f76e48753ad7f08a9d92acf65411e64",
       "path": "os/ci/owner_vm.py"
     },
     {
-      "sha256": "3ced8263d5dbb4255e26dffba5738933377c26bf9190d76587bd073cc445de01",
+      "sha256": "6cec088531d59fb60d78d779417755c12ac2e90a2b3eabd98d7bbd6029c73efc",
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "8bc10f54b962a45cb99b4ec5261903f1f7c8aae24255d83735e7627fbba5560d",
+      "sha256": "e04207eed18463f0ab3e2fe06332aec15e75a506b304d29dec17a3b2cb0bc455",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
-      "sha256": "26f25310a75df01c8026be7f21dc0316cbb952a4c97e86ee11d0ba01dbeda3b0",
+      "sha256": "e08363f9a06308de25dde78d922c77878875672ec5755f01b95d781175f8b816",
       "path": "os/ci/rehearsal_guard.py"
     },
     {
@@ -74,12 +87,20 @@
       "path": "os/ci/two_disk_vm.py"
     },
     {
+      "sha256": "a5725546f1e51f1fbeb32c433e49796b7d561c45ffb7b16d02c27f05db781fba",
+      "path": "os/ci/verify_release.py"
+    },
+    {
       "sha256": "b9af8f7a4fe4a43db15f2d27b181ed442a9f86a90b47c0577a6183efb48117c4",
       "path": "os/ci/vm.py"
     },
     {
       "sha256": "d44e4d93daf623bd90b480b9a7a46b1bda9e3779a931a430afb6cb4cb3bee213",
       "path": "os/config/usr/libexec/aresos-desktop"
+    },
+    {
+      "sha256": "7172613c5998a2f53f2632cb66586e8db514f079a0e2205912336b71371bebbe",
+      "path": "os/tests/test_ci_step_environment.py"
     },
     {
       "sha256": "23c4da91d08619ef8b1c37ca8f25c16f7dd9ba82e8135dd6c754f561c62050a4",

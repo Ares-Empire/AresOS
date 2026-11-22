@@ -23,6 +23,40 @@ BASELINE_RECORDS = {
     '28': '1738474f8541468854804c02cb02a7ffcbeb5a3b27914ae7b6ceefcd7816b15a',
 }
 BASELINE_REGISTRY = pathlib.Path('evidence/release-29-baseline-registry.json')
+CANDIDATE_REGISTRY = pathlib.Path('evidence/release-29-candidate-registry.json')
+R29_BUILD_MODES = ('dry-run-29', 'publish-29')
+R29_WALK_MODES = ('release-29-baseline', 'release-29')
+R29_IDENTITY = 'https://github.com/Ares-Empire/AresOS/.github/workflows/os-image.yml@refs/heads/' + BASELINE_BRANCH
+
+
+def require_r29_dispatch(modes):
+    expected = dict(GITHUB_ACTIONS='true', GITHUB_EVENT_NAME='workflow_dispatch',
+        GITHUB_REPOSITORY='Ares-Empire/AresOS', GITHUB_REF_NAME=BASELINE_BRANCH,
+        GITHUB_REF='refs/heads/' + BASELINE_BRANCH)
+    assert os.environ.get('REHEARSAL_PACKAGE') == '331' and \
+        all(os.environ.get(key) == value for key, value in expected.items()) and \
+        os.environ.get('REHEARSAL_MODE') in modes, 'STOP: unauthorized R29 dispatch'
+    assert 'GHCR_READ_TOKEN' not in os.environ, 'STOP: R29 only uses the job token'
+
+
+def r29_context():
+    return (os.environ.get('GITHUB_REF_NAME') == BASELINE_BRANCH or os.environ.get('REHEARSAL_PACKAGE') == '331'
+            or os.environ.get('REHEARSAL_MODE') in R29_BUILD_MODES + R29_WALK_MODES)
+
+
+def r29_previous():
+    require_r29_dispatch(R29_BUILD_MODES)
+    return json.loads(historical_records()['28'])
+
+
+def r29_candidate():
+    require_r29_dispatch(('release-29',))
+    candidate = json.loads(pathlib.Path('os/manifest/releases/29.json').read_bytes())
+    assert re.fullmatch(re.escape(BASELINE_IMAGE) + r'@sha256:[0-9a-f]{64}', candidate['reference'])
+    assert candidate['visibility'] == 'private'
+    assert candidate['signature'] == dict(method='cosign keyless', identity=R29_IDENTITY,
+                                          issuer='https://token.actions.githubusercontent.com')
+    return candidate
 
 
 def org_release():
@@ -30,6 +64,9 @@ def org_release():
 
 
 def require_dispatch():
+    if r29_context():
+        require_r29_dispatch(R29_BUILD_MODES)
+        return
     assert os.environ['GITHUB_EVENT_NAME'] == 'workflow_dispatch'
     assert os.environ['GITHUB_REPOSITORY'] == 'Ares-Empire/AresOS'
     branch = os.environ['GITHUB_REF_NAME']
@@ -59,6 +96,9 @@ def directory():
 
 
 def auth_file():
+    if r29_context():
+        require_r29_dispatch(R29_BUILD_MODES)
+        return job_auth_file()
     if not org_release():
         return legacy.auth_file()
     require_dispatch()
@@ -74,6 +114,11 @@ def job_auth_file():
 
 
 def create():
+    if r29_context():
+        previous = r29_previous()
+        write_auth(previous['reference'].split('@')[0])
+        print('R29 previous-release job-token auth prepared outside workspace')
+        return
     if not org_release():
         return legacy.create()
     require_dispatch()
@@ -99,6 +144,11 @@ def require_private_package():
 
 
 def preflight():
+    if r29_context():
+        previous = r29_previous()
+        require_private_package()
+        inspect_digest(previous['reference'])
+        return
     if not org_release():
         return legacy.preflight()
     require_dispatch()
@@ -114,6 +164,7 @@ def preflight():
 
 
 def pull():
+    assert not r29_context(), 'STOP: R29 pulls its previous release through build_tools'
     if not org_release():
         return legacy.pull()
     require_dispatch()
@@ -131,7 +182,9 @@ def pull():
 
 
 def cleanup():
-    if not org_release():
+    if r29_context():
+        require_r29_dispatch(R29_BUILD_MODES)
+    elif not org_release():
         return legacy.cleanup()
     remove_auth()
     pathlib.Path('evidence').mkdir(exist_ok=True)
@@ -186,10 +239,7 @@ def signature(cosign):
 
 
 def require_baseline_dispatch():
-    expected = dict(GITHUB_ACTIONS='true', GITHUB_EVENT_NAME='workflow_dispatch',
-        GITHUB_REPOSITORY='Ares-Empire/AresOS', GITHUB_REF_NAME=BASELINE_BRANCH,
-        GITHUB_REF='refs/heads/' + BASELINE_BRANCH, REHEARSAL_PACKAGE='331', REHEARSAL_MODE='release-29')
-    assert all(os.environ.get(key) == value for key, value in expected.items()), 'STOP: unauthorized R29 baseline'
+    require_r29_dispatch(R29_WALK_MODES)
 
 
 def baseline_run():
@@ -199,7 +249,7 @@ def baseline_run():
 
 def check_baseline_run(run):
     assert re.fullmatch('[0-9a-f]{40}', run['commit']), 'STOP: invalid baseline head'
-    assert all(re.fullmatch('[1-9][0-9]*', run[key]) for key in ('run_id', 'attempt')), 'STOP: invalid baseline run'
+    assert re.fullmatch('[1-9][0-9]*', run['run_id']) and run['attempt'] == '1', 'STOP: invalid baseline run'
 
 
 def historical_records():
@@ -217,34 +267,59 @@ def historical_row(version, release):
                 issuer=release['signature']['issuer'], registry_digest=release['reference'].split('@')[1])
 
 
+def inspect_digest(reference):
+    digest = reference.split('@')[1]
+    read = subprocess.run(['skopeo', 'inspect', '--authfile', str(job_auth_file()), '--format', '{{.Digest}}',
+                           'docker://' + reference], capture_output=True, text=True, timeout=90)
+    assert read.returncode == 0 and read.stdout.strip() == digest, 'STOP: job token cannot read exact digest ' + reference
+
+
+def signed_digest(tool, release):
+    inspect_digest(release['reference'])
+    signature = verify_signature(tool, release)
+    assert signature, 'STOP: no signature output for ' + release['reference']
+    return hashlib.sha256(signature).hexdigest()
+
+
+def candidate_row(release):
+    return dict(reference=release['reference'], source_commit=release['source_commit'],
+                identity=release['signature']['identity'], issuer=release['signature']['issuer'])
+
+
 def baseline_preflight(cosign):
     require_baseline_dispatch()
     BASELINE_REGISTRY.unlink(missing_ok=True)
+    CANDIDATE_REGISTRY.unlink(missing_ok=True)
     run, tool = baseline_run(), cosign_path(cosign)
     check_baseline_run(run)
     records = historical_records()
     assert not directory().exists(), 'STOP: the baseline requires a fresh job-token directory'
     rows = []
+    candidate = r29_candidate() if os.environ['REHEARSAL_MODE'] == 'release-29' else None
     try:
         write_auth(BASELINE_IMAGE)
         require_private_package()
         job_auth_file().with_name('config.json').symlink_to('auth.json')
         for version, raw in records.items():
             release = json.loads(raw)
-            row = historical_row(version, release)
-            read = subprocess.run(['skopeo', 'inspect', '--authfile', str(job_auth_file()), '--format', '{{.Digest}}',
-                                   'docker://' + row['reference']], capture_output=True, text=True, timeout=90)
-            assert read.returncode == 0 and read.stdout.strip() == row['registry_digest'], \
-                f'STOP: job token cannot read the exact R{version} digest'
-            signature_bytes = verify_signature(tool, release)
-            assert signature_bytes, f'STOP: no signature output for R{version}'
-            row['signature_sha256'] = hashlib.sha256(signature_bytes).hexdigest()
-            rows.append(row)
+            rows.append(dict(historical_row(version, release), signature_sha256=signed_digest(tool, release)))
+        if candidate is not None:
+            candidate_proof = dict(candidate_row(candidate), signature_sha256=signed_digest(tool, candidate))
     finally:
         remove_auth()
     BASELINE_REGISTRY.parent.mkdir(exist_ok=True)
-    BASELINE_REGISTRY.write_text(json.dumps(dict(status='passed', **run, visibility='private',
-        auth_kind='job-token', owner_token_used=False, targets=rows), indent=2) + '\n')
+    common = dict(status='passed', **run, visibility='private', auth_kind='job-token', owner_token_used=False)
+    BASELINE_REGISTRY.write_text(json.dumps(dict(common, targets=rows), indent=2) + '\n')
+    if candidate is not None:
+        CANDIDATE_REGISTRY.write_text(json.dumps(dict(common, **candidate_proof), indent=2) + '\n')
+
+
+def check_candidate_registry(proof, release, run):
+    check_baseline_run(run)
+    signed = proof['signature_sha256']
+    assert re.fullmatch('[0-9a-f]{64}', signed) and proof == dict(status='passed', **run, visibility='private',
+        auth_kind='job-token', owner_token_used=False, **candidate_row(release), signature_sha256=signed), \
+        'STOP: missing same-run R29 candidate registry proof'
 
 
 def check_baseline_registry(proof, records, run):

@@ -36,16 +36,55 @@ def api(suffix):
 
 run = api('')
 assert run['head_sha'] == source and run['path'] == '.github/workflows/os-image.yml', 'Original release run identity differs'
+if os.environ.get('REHEARSAL_PACKAGE') == '331':
+    assert org and run['head_branch'] == 'pkg/331-release-29', 'STOP: package 331 requires its own candidate publish'
 job_listing = api('/jobs?per_page=100')
 assert job_listing['total_count'] == len(job_listing['jobs']) <= 100, 'Incomplete release job listing'
 jobs = job_listing['jobs']
 # Package 27 built and published in its own reviewed job (release_27).
 RELEASE27 = 'Package 27 release build, image diff, VM and publish'
 RELEASE28 = 'Package 28 release build, image diff, VM and publish'
-job_name = (RELEASE28 if run.get('head_branch') == 'pkg/42-release-28' else
+RELEASE29 = 'release-29'
+job_name = (RELEASE29 if run.get('head_branch') == 'pkg/331-release-29' else
+            RELEASE28 if run.get('head_branch') == 'pkg/42-release-28' else
             RELEASE27 if run.get('head_branch') == 'pkg/27-first-update-release' else 'image')
 qualified = [job for job in jobs if job['name'] == job_name and job['conclusion'] == 'success']
 assert len(qualified) == 1, 'Original image build/two-VM/publish job must have succeeded'
+if run.get('head_branch') == 'pkg/331-release-29':
+    from registry_auth import historical_records, r29_candidate
+    from release_diff import IMAGE_SOURCES_29
+    assert repository == release_repository == 'Ares-Empire/AresOS'
+    assert r29_candidate() == release, 'STOP: verified artifact differs from the R29 record'
+    assert run['event'] == 'workflow_dispatch' and run['display_title'] == 'Package 29 image release'
+    assert run['run_attempt'] == 1 and run['status'] == 'completed' and run['conclusion'] == 'success'
+    job, = qualified
+    assert job['head_sha'] == source
+    step, = [step for step in job['steps']
+             if step['name'] == 'Publish the tested private release and sign with GitHub OIDC']
+    assert step['status'] == 'completed' and step['conclusion'] == 'success', 'STOP: R29 publish did not pass'
+    assert release['tag'] == '29-' + source and release['daily_wheel'] is True
+    diff = release['image_diff']
+    previous = json.loads(historical_records()['28'])
+    assert diff['status'] == 'passed' and diff['unexplained'] == diff['problems'] == []
+    assert diff['unexplained_count'] == 0 and diff['base_ancestry_verified'] is True
+    assert diff['previous'] == previous['reference'] and diff['previous_source'] == previous['source_commit']
+    assert diff['pinned_base'] == release['base']
+    read = release['job_token_read']
+    assert read == dict(status='passed', reference=release['reference'], secret='GITHUB_TOKEN',
+                        owner_token_used=False, visibility='private', manifest_read=True)
+    control = release['control']
+    assert set(control) == {'source_revision', 'chrome_build'}
+    assert control['source_revision'] == source and re.fullmatch('[0-9a-f]{64}', control['chrome_build'])
+    trees = release['source_trees']
+    assert sorted(row['path'] for row in trees) == sorted(IMAGE_SOURCES_29), 'STOP: R29 image source paths differ'
+    if subprocess.run(['git', 'cat-file', '-e', source + '^{commit}'], capture_output=True).returncode != 0:
+        subprocess.run(['git', 'fetch', '--no-tags', 'origin', source], check=True)
+    for row in trees:
+        assert set(row) == {'tree', 'path'} and re.fullmatch('[0-9a-f]{40}', row['tree'])
+        actual = subprocess.check_output(['git', 'rev-parse', source + ':' + row['path']]).decode().strip()
+        assert actual == row['tree'], 'STOP: R29 recorded source differs at ' + row['path']
+    print(f'Qualified R29 private publish {source}; testing {release["reference"]}')
+    sys.exit(0)
 if org and run['head_branch'] == 'pkg/42-release-28':
     from release_diff import IMAGE_SOURCES
     assert repository == 'Ares-Empire/AresOS'

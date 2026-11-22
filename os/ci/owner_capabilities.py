@@ -146,7 +146,8 @@ def main():
     assert os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch'
     # owner_media.require_runner() allows update only for package 27's branch,
     # reorder-probe and ways-back only for package 22c's, tools-local only for package 22d's, release-28 only for 42's.
-    assert os.environ.get('REHEARSAL_MODE') in ('probe', 'owner-tools', 'update', 'reorder-probe', 'ways-back', 'tools-local', 'release-28')
+    assert os.environ.get('REHEARSAL_MODE') in ('probe', 'owner-tools', 'update', 'reorder-probe', 'ways-back',
+        'tools-local', 'release-28', 'release-29-baseline', 'release-29')
     base = pathlib.Path('.work').resolve()
     directory = base / '14-host-capabilities'
     assert directory.parent == base and not directory.exists(), 'STOP: fresh capability directory required'

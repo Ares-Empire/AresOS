@@ -213,24 +213,40 @@
   "331": {
     "branch": "pkg/331-release-29",
     "start": "first-dispatch",
-    "minute_cap": 0,
-    "full_cap": 0,
-    "part_b_cap": 0,
-    "dispatch_caps": {
-      "dry-run-29": 0,
-      "publish-29": 0,
-      "resolve": 0,
-      "checks": 0,
-      "release-29": 0
+    "caps_file": "rehearsal-331-caps.json",
+    "initial_dispatch_limits": {
+      "dry-run-29": 2,
+      "publish-29": 1,
+      "release-29": 3
     },
-    "publish_cap": 0,
+    "reservations": {
+      "dry-run-29": 180,
+      "publish-29": 185,
+      "resolve": 120,
+      "checks": 100,
+      "release-29-baseline": 345,
+      "release-29": 345
+    },
+    "job_bounds": {
+      "checks-29-authorize": 5,
+      "Regression checks only (no image build or VM)": 60,
+      "Full ways-back model when its sources changed (no image build or VM)": 35,
+      "Throwaway image build and checks (never pushed, signed or published)": 120,
+      "release-29-authorize": 5,
+      "release-29": 180,
+      "release-29-dry-run": 180,
+      "Historical R29 baseline preflight": 345,
+      "R29 qualifying rehearsal": 345
+    },
+    "unknown_job_bound": 360,
     "titles": {
       "dry-run-29": "Package 29 image dry run (never published)",
       "publish-29": "Package 29 image release",
       "resolve": "OS image check build (resolve, never published)",
       "checks": "OS regressions only (no VM)",
+      "release-29-baseline": "Two-disk rehearsal (release-29-baseline)",
       "release-29": "Two-disk rehearsal (release-29)"
     },
-    "budget": "briefs/331-release-29.md, step 5: closed pending reviewed budgets. Both publish caps and the qualifying rehearsal cap start at zero. The ledger retains spent publish dispatches and upload attempts after the lead closes the publish caps."
+    "budget": "briefs/331-release-29.md, Decided: two dry runs, one publish, up to three qualifying rehearsals. The lead reviews and opens baseline, same-head checks, resolve and retry allowances separately. Start the VM jobs at 345 minutes each and measure the longer route before setting a VM step limit. The ledger retains spent publish dispatches and upload attempts after the lead closes the publish caps."
   }
 }

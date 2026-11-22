@@ -2323,6 +2323,13 @@ def main():
     authorization = json.loads(pathlib.Path('evidence/'+package+'-dispatch-authorization.json').read_text())
     assert authorization['allowance'] == package and authorization['native']['status'] == 'passed'
     assert authorization['native']['sha'] == os.environ['GITHUB_SHA']
+    if package == '331':
+        import registry_auth
+        dispatch = dict(mode=os.environ['REHEARSAL_MODE'], **registry_auth.baseline_run())
+        assert authorization['dispatch'] == dispatch, 'STOP: stale R29 dispatch receipt'
+        model = authorization['model']
+        assert model['status'] == 'passed' and model['sha'] == os.environ['GITHUB_SHA'] and \
+            model['run'] == authorization['native']['run'], 'STOP: R29 same-head model receipt differs'
     from owner_capabilities import CHECKS
     capabilities = json.loads(pathlib.Path('evidence/14-host-capabilities.json').read_text())
     assert capabilities['status'] == 'passed' and capabilities['sha'] == os.environ['GITHUB_SHA']
@@ -2361,11 +2368,13 @@ def main():
         # Package 42's rehearsal rebinds package 22d's tables (its record step, after a pass).
         td.save('42-bound-sources', bound_sources(walk['sources'], '42', '22d'))
     if mode == 'release-29':
-        phase = os.environ.get('RELEASE29_PHASE', 'baseline')
-        assert phase in ('baseline', 'qualify'), 'STOP: unknown R29 walk phase'
-        baseline = release29_walk.prepare(sys.modules[__name__], qualifying=phase == 'qualify')
+        qualifying = os.environ['REHEARSAL_MODE'] == 'release-29'
+        baseline = release29_walk.prepare(sys.modules[__name__], qualifying=qualifying)
         candidate = None
-        if phase == 'qualify':
+        if qualifying:
+            release = registry_auth.r29_candidate()
+            candidate_proof = release29_walk.read_json(registry_auth.CANDIDATE_REGISTRY)
+            registry_auth.check_candidate_registry(candidate_proof, release, registry_auth.baseline_run())
             candidate = release29_walk.prepare_candidate(sys.modules[__name__], baseline, os.environ['GITHUB_SHA'])
     sw.WORK, sw.EVIDENCE = td.WORK, td.EVIDENCE
     td.Guest = sw.Guest = Guest
@@ -2451,6 +2460,15 @@ def main():
             try:
                 release29_walk.rehearsal(sys.modules[__name__], audit, media, password, hashed, daily_password,
                     laptop_payload(td.WORK / 'tools-version-2', TOOLS_V2_COMMIT, TOOLS_V2), baseline, qualifying=candidate)
+                if candidate is not None:
+                    deployment = release29_walk.read_json(td.EVIDENCE / 'release-29-deployment-walk.json')
+                    digest = release['reference'].split('@')[1]
+                    assert deployment['status'] == 'passed' and deployment['first_booted'] == deployment['booted'] == digest
+                    assert deployment['protected_disk_audits'] is True
+                    td.save('331-bound-sources', bound_sources(walk['sources'], '331', '42'))
+                    td.save('release-29-qualification', dict(status='passed', **registry_auth.baseline_run(),
+                        registry=candidate_proof, historical_registry=baseline.registry, equality=candidate.equality,
+                        checks=authorization['model'], deployment=deployment))
             finally:
                 del daily_password
         else:

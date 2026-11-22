@@ -5,6 +5,8 @@ import io
 import json
 import os
 import pathlib
+import runpy
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -14,6 +16,8 @@ from test_owner_staged_release import condition
 from test_release27 import workflow_expression
 from test_release28 import WORKFLOW, inputs, run_name
 import rehearsal_guard as guard
+import registry_auth
+from release_diff import IMAGE_SOURCES_29
 
 
 BRANCH = 'pkg/331-release-29'
@@ -26,6 +30,7 @@ PUBLISH_AUTH = 'release-29-authorize'
 SELECTORS = {
     'publish-29': (PUBLISH_AUTH, '', {'inputs.release_29': True}),
     'dry-run-29': ('release-29-dry-run', '', {'inputs.dry_run_29': True}),
+    'release-29-baseline': ('release-29-rehearsal', 'release-29-baseline', {}),
     'release-29': ('release-29-rehearsal', 'release-29', {}),
 }
 
@@ -41,7 +46,7 @@ class WorkflowTest(unittest.TestCase):
         dispatch = WORKFLOW['on']['workflow_dispatch']['inputs']
         for flag in ('release_29', 'dry_run_29'):
             self.assertEqual((dispatch[flag]['type'], dispatch[flag]['default']), ('boolean', 'false'))
-        self.assertIn('release-29', dispatch['rehearsal']['options'])
+        self.assertTrue(set(guard.R29_WALKS) <= set(dispatch['rehearsal']['options']))
         for kind, (job, mode, flags) in SELECTORS.items():
             with self.subTest(kind=kind):
                 self.assertEqual(selected(mode, **flags), {job})
@@ -68,7 +73,7 @@ class WorkflowTest(unittest.TestCase):
                     with self.subTest(kind=kind, collision=key):
                         self.assertEqual(selected(mode, **(flags | {key: value})), set())
             if not mode:
-                for other in ('probe', 'release-28', 'release-29'):
+                for other in ('probe', 'release-28', *guard.R29_WALKS):
                     self.assertEqual(selected(other, **flags), set())
         checks = {'inputs.checks_only': True, 'inputs.full_model': True}
         resolve = {'inputs.check_build': 'resolve'}
@@ -113,12 +118,14 @@ class WorkflowTest(unittest.TestCase):
                 self.assertEqual(job['permissions'], permissions)
                 checkout, authorize, *remaining = job['steps']
                 self.assertTrue(checkout['uses'].startswith('actions/checkout@'))
-                self.assertEqual(checkout['with'], {'persist-credentials': 'false'})
-                self.assertEqual(authorize['env'], {'GH_TOKEN': '${{ secrets.GITHUB_TOKEN }}', 'REHEARSAL_MODE': kind})
-                self.assertEqual(authorize['run'], 'python3 os/ci/rehearsal_guard.py ci 0')
+                walk = kind in guard.R29_WALKS
+                self.assertEqual(checkout['with'], {'persist-credentials': 'false'} | ({'fetch-depth': '0'} if walk else {}))
+                self.assertEqual(authorize['env'], {'GH_TOKEN': '${{ secrets.GITHUB_TOKEN }}',
+                                 'REHEARSAL_MODE': '${{ inputs.rehearsal }}' if walk else kind})
+                self.assertEqual(authorize['run'], f"python3 os/ci/rehearsal_guard.py ci {LEDGER['reservations'][kind]}")
                 if kind == 'publish-29':
                     self.assertEqual(remaining, [])
-                else:
+                elif kind == 'dry-run-29':
                     stop, = remaining
                     self.assertIn('exit 1', stop['run'])
         job = WORKFLOW['jobs']['check-build']
@@ -131,12 +138,13 @@ class WorkflowTest(unittest.TestCase):
         jobs = WORKFLOW['jobs']
         workers = {'regressions', 'model'}
         self.assertEqual(jobs[CHECKS_AUTH]['permissions'], {'contents': 'read', 'actions': 'read', 'packages': 'read'})
-        checkout, reserve = jobs[CHECKS_AUTH]['steps']
+        checkout, reserve, receipt = jobs[CHECKS_AUTH]['steps']
         self.assertEqual(checkout['with'], {'persist-credentials': 'false'})
         self.assertEqual(reserve['env'], {'GH_TOKEN': '${{ secrets.GITHUB_TOKEN }}', 'REHEARSAL_MODE': 'checks'})
-        minutes = sum(int(jobs[name]['timeout-minutes']) for name in workers)
-        self.assertEqual(minutes, 95)
+        minutes = sum(int(jobs[name]['timeout-minutes']) for name in workers | {CHECKS_AUTH})
+        self.assertEqual(minutes, 100)
         self.assertEqual(reserve['run'], f'python3 os/ci/rehearsal_guard.py ci {minutes}')
+        self.assertEqual(receipt['with']['path'], 'evidence/331-dispatch-authorization.json')
         for name in workers:
             self.assertEqual(jobs[name]['needs'], CHECKS_AUTH)
             for step in jobs[name]['steps']:
@@ -153,9 +161,37 @@ class WorkflowTest(unittest.TestCase):
         reservation = r28_guard['run'].split('${{', 1)[1].removesuffix('}}')
         self.assertEqual(workflow_expression(reservation, inputs()), 60)
 
+    def test_r29_vm_steps_and_artifacts_keep_baseline_and_qualification_distinct(self):
+        job = WORKFLOW['jobs']['release-29-rehearsal']
+        self.assertEqual(job['timeout-minutes'], '345')
+        steps = job['steps']
+        registry, = [i for i, step in enumerate(steps) if 'registry_auth.py baseline' in step.get('run', '')]
+        iso, = [i for i, step in enumerate(steps) if 'installer_inspect.py' in step.get('run', '')]
+        vm, = [i for i, step in enumerate(steps) if 'owner_vm.py release-29' in step.get('run', '')]
+        self.assertLess(registry, iso)
+        self.assertLess(iso, vm)
+        self.assertNotIn('timeout-minutes', steps[vm])
+        self.assertNotIn('GHCR_READ_TOKEN', json.dumps(job))
+        self.assertNotIn('publish.sh', json.dumps(job))
+        for mode in guard.R29_WALKS:
+            with self.subTest(mode=mode):
+                name = workflow_expression(job['name'].removeprefix('${{').removesuffix('}}'),
+                                           inputs() | {'inputs.rehearsal': mode})
+                self.assertEqual(LEDGER['job_bounds'][name], 345)
+                eligible = [s for s in steps if not s.get('if') or condition(s['if'], mode=mode,
+                            **{'steps.evidence.outputs.safe': 'true'})]
+                verify = [s for s in eligible if 'verify_release.py' in s.get('run', '')]
+                self.assertEqual(len(verify), int(mode == 'release-29'))
+                receipts = [s['with']['name'] for s in eligible if 'receipt' in s.get('with', {}).get('name', '')]
+                self.assertEqual(receipts, ['release-29-baseline-receipt' if mode.endswith('baseline')
+                                            else 'release-29-qualifying-receipt'])
+
 
 class LedgerTest(unittest.TestCase):
     def setUp(self):
+        # Lead-approved allowances must not change the guard fixtures.
+        self.enterContext(patch.dict(LEDGER, minute_cap=0, full_cap=0, part_b_cap=0, publish_cap=0,
+                                    dispatch_caps=dict.fromkeys(LEDGER['reservations'], 0)))
         guard.configure('331')
         self.addCleanup(guard.configure, '11c')
         self.runs = []
@@ -183,7 +219,7 @@ class LedgerTest(unittest.TestCase):
 
     def authorize(self, kind, mode='ci', reserve=None, **context):
         if reserve is None:
-            reserve = 95 if kind == 'checks' else 0
+            reserve = 0 if mode == 'publish-ci' else LEDGER['reservations'][kind]
         self.runs.append(self.run_row(kind, self.current, None))
         try:
             with tempfile.TemporaryDirectory() as tmp, contextlib.chdir(tmp), contextlib.redirect_stdout(io.StringIO()), \
@@ -195,21 +231,31 @@ class LedgerTest(unittest.TestCase):
         finally:
             self.runs.pop()
 
+    def completed_checks(self, run_id=2):
+        self.runs.append(self.run_row('checks', run_id, 'success'))
+        start, end = '2026-11-22T00:00:05Z', '2026-11-22T00:01:05Z'
+        self.jobs[run_id] = [
+            dict(name=name, head_sha=SHA, conclusion='success', started_at=start, completed_at=end, steps=[
+                dict(name=step, status='completed', conclusion='success', started_at=start, completed_at=end)])
+            for name, step in ((guard.REGRESSIONS_JOB, 'Run regression and syntax checks'), (guard.MODEL_JOB, guard.MODEL_STEP))
+        ]
+
     def test_zero_caps_and_a_same_named_tag_stop_the_current_job(self):
         self.assertEqual(LEDGER['dispatch_caps']['publish-29'], 0)
         self.assertEqual(LEDGER['publish_cap'], 0)
         self.assertEqual(LEDGER['dispatch_caps']['release-29'], 0)
-        with self.assertRaisesRegex(AssertionError, 'publish-29 dispatch allowance exhausted'):
-            self.authorize('publish-29')
-        with self.assertRaisesRegex(AssertionError, 'release-29 dispatch allowance exhausted'):
-            self.authorize('release-29')
+        with patch.dict(LEDGER, minute_cap=345):
+            with self.assertRaisesRegex(AssertionError, 'publish-29 dispatch allowance exhausted'):
+                self.authorize('publish-29')
+            with self.assertRaisesRegex(AssertionError, 'release-29 dispatch allowance exhausted'):
+                self.authorize('release-29')
         with self.assertRaisesRegex(AssertionError, 'wrong package 331 branch ref'):
             self.authorize('publish-29', GITHUB_REF='refs/tags/' + BRANCH)
         with self.assertRaisesRegex(AssertionError, 'wrong package 331 branch ref'):
             self.authorize('publish-29', GITHUB_REF=REF.upper())
 
     def test_the_publish_job_requires_both_caps_open(self):
-        with patch.dict(LEDGER, publish_cap=1):
+        with patch.dict(LEDGER, publish_cap=1, minute_cap=185):
             with self.assertRaisesRegex(AssertionError, 'publish-29 dispatch allowance exhausted'):
                 self.authorize('publish-29')
             with patch.dict(LEDGER['dispatch_caps'], {'publish-29': 1}):
@@ -218,7 +264,7 @@ class LedgerTest(unittest.TestCase):
                 # GitHub's selector accepts this case variant. A successful guard is still required.
                 with self.assertRaisesRegex(AssertionError, 'wrong package 331 branch ref'):
                     self.authorize('publish-29', GITHUB_REF='refs/heads/pkg/331-Release-29')
-        with patch.dict(LEDGER['dispatch_caps'], {'publish-29': 1}):
+        with patch.dict(LEDGER['dispatch_caps'], {'publish-29': 1}), patch.dict(LEDGER, minute_cap=185):
             with self.assertRaisesRegex(AssertionError, 'ledger allows no publish'):
                 self.authorize('publish-29')
 
@@ -229,16 +275,20 @@ class LedgerTest(unittest.TestCase):
                              steps=[dict(name=guard.PUBLISH_STEP, conclusion='success', status='completed',
                                          started_at='2026-11-22T00:00:05Z', completed_at='2026-11-22T00:00:55Z')])]
         # Simulate the later lead-approved read-only allowances, with both publish caps closed.
-        with patch.dict(LEDGER['dispatch_caps'], {'checks': 1, 'release-29': 1}), patch.dict(LEDGER, minute_cap=120):
+        with patch.dict(LEDGER['dispatch_caps'], {'checks': 1, 'release-29': 1}), patch.dict(LEDGER, minute_cap=348):
             guard.configure('331')
-            for kind in ('checks', 'release-29'):
-                ledger = self.authorize(kind)
+            checks = self.authorize('checks')
+            self.completed_checks()
+            rehearsal = self.authorize('release-29')
+            for ledger in (checks, rehearsal):
                 self.assertEqual(ledger['dispatch_caps']['publish-29'], 0)
                 self.assertEqual(ledger['publish_cap'], 0)
                 self.assertEqual(ledger['dispatch_counts']['publish-29'], 1)
-                self.assertEqual(ledger['dispatch_counts'][kind], 1)
+                self.assertEqual(ledger['dispatch_counts']['checks'], 1)
                 self.assertEqual(ledger['publish_attempts'], [dict(run=1, conclusion='success')])
-                self.assertEqual(ledger['consumed_minutes'], 1)
+            self.assertEqual(checks['consumed_minutes'], 1)
+            self.assertEqual(rehearsal['consumed_minutes'], 3)
+            self.assertEqual(rehearsal['dispatch_counts']['release-29'], 1)
             with self.assertRaisesRegex(AssertionError, 'publish-29 dispatch allowance exhausted'):
                 self.authorize('publish-29')
             with patch.dict(LEDGER['dispatch_caps'], {'publish-29': 2}), patch.dict(LEDGER, publish_cap=1):
@@ -250,7 +300,7 @@ class LedgerTest(unittest.TestCase):
             for conclusion in ('failure', 'cancelled'):
                 with self.subTest(kind=kind, conclusion=conclusion):
                     self.runs[:] = [self.run_row(kind, 1, conclusion)]
-                    with patch.dict(LEDGER['dispatch_caps'], {kind: 1}), patch.dict(LEDGER, minute_cap=95):
+                    with patch.dict(LEDGER['dispatch_caps'], {kind: 1}), patch.dict(LEDGER, minute_cap=345):
                         guard.configure('331')
                         with patch.object(guard, 'api', side_effect=self.api):
                             ledger = guard.budget(0)
@@ -260,17 +310,17 @@ class LedgerTest(unittest.TestCase):
                         with self.assertRaisesRegex(AssertionError, kind + ' dispatch allowance exhausted'):
                             self.authorize(kind)
 
-    def test_checks_refuse_with_60_minutes_and_pass_with_95(self):
+    def test_checks_reserve_both_workers_and_the_authorization_job(self):
         with patch.dict(LEDGER['dispatch_caps'], checks=1):
-            with patch.dict(LEDGER, minute_cap=60):
-                with self.assertRaisesRegex(AssertionError, r'0 \+ 95 reserved exceeds 60 minutes'):
-                    self.authorize('checks')
-                for reserve in (60, 35):
-                    with self.assertRaisesRegex(AssertionError, 'combined 95-minute reservation'):
-                        self.authorize('checks', reserve=reserve)
             with patch.dict(LEDGER, minute_cap=95):
+                with self.assertRaisesRegex(AssertionError, r'0 \+ 100 reserved exceeds 95 minutes'):
+                    self.authorize('checks')
+                for reserve in (60, 35, 95):
+                    with self.assertRaisesRegex(AssertionError, '100-minute reservation'):
+                        self.authorize('checks', reserve=reserve)
+            with patch.dict(LEDGER, minute_cap=100):
                 ledger = self.authorize('checks')
-                self.assertEqual(ledger['reserved_minutes'], 95)
+                self.assertEqual(ledger['reserved_minutes'], 100)
                 self.assertEqual(ledger['dispatch_counts']['checks'], 1)
 
     def test_rejected_titles_count_and_keep_any_timed_cost(self):
@@ -286,21 +336,111 @@ class LedgerTest(unittest.TestCase):
         start, end = '2026-11-22T00:00:05Z', '2026-11-22T00:01:05Z'
         self.jobs[2] = [dict(name='early failure', conclusion='failure', started_at=start, completed_at=end,
                              steps=[dict(name='Set up job', conclusion='failure', started_at=start, completed_at=end)])]
-        with patch.dict(LEDGER['dispatch_caps'], checks=1, **{'release-29': 1}), patch.dict(LEDGER, minute_cap=96):
-            for kind in ('checks', 'release-29'):
-                ledger = self.authorize(kind)
-                self.assertEqual(ledger['dispatch_counts']['rejected'], 3)
-                self.assertEqual(ledger['dispatch_counts']['publish-29'], 1)
-                self.assertEqual(ledger['consumed_minutes'], 1)
-                self.assertEqual(ledger['publish_attempts'], [])
+        with patch.dict(LEDGER['dispatch_caps'], checks=1), patch.dict(LEDGER, minute_cap=101):
+            ledger = self.authorize('checks')
+            self.assertEqual(ledger['dispatch_counts']['rejected'], 3)
+            self.assertEqual(ledger['dispatch_counts']['publish-29'], 1)
+            self.assertEqual(ledger['consumed_minutes'], 1)
+            self.assertEqual(ledger['publish_attempts'], [])
 
-    def test_an_untimed_cancelled_job_keeps_the_dispatch_and_charges_its_bound(self):
+    def test_untimed_failed_and_cancelled_jobs_charge_committed_bounds(self):
         kind = 'publish-29'
         self.runs.append(self.run_row(kind, 1, 'cancelled'))
-        self.jobs[1] = [dict(name='release-29', conclusion='cancelled', steps=[])]
-        with patch.dict(LEDGER, minute_cap=120, job_bounds={kind: 10}), patch.object(guard, 'api', side_effect=self.api):
-            guard.configure('331')
-            ledger = guard.budget(0)
+        self.jobs[1] = [dict(name='release-29-authorize', conclusion='failure', steps=None),
+                        dict(name='release-29', conclusion='cancelled', steps=[
+                            dict(name='Set up job', started_at='2026-11-22T00:00:00Z',
+                                 completed_at='2026-11-22T00:00:35Z')]),
+                        dict(name='image', conclusion='failure', steps=[])]
+        with patch.dict(LEDGER['dispatch_caps'], checks=1), patch.dict(LEDGER, minute_cap=645):
+            ledger = self.authorize('checks')
         self.assertEqual(ledger['dispatch_counts'][kind], 1)
-        self.assertEqual(ledger['consumed_minutes'], 10)
+        self.assertEqual(ledger['consumed_minutes'], 545)
+        self.assertEqual([job['rule'] for job in ledger['runs'][0]['jobs']], ['full-bound'] * 3)
         self.assertEqual(ledger['publish_attempts'], [])
+
+    def test_separate_baseline_budget_and_same_head_checks(self):
+        baseline, qualify = guard.R29_WALKS
+        self.assertEqual(LEDGER['initial_dispatch_limits'], {'dry-run-29': 2, 'publish-29': 1, qualify: 3})
+        with patch.dict(LEDGER['dispatch_caps'], {'checks': 1, baseline: 1}), patch.dict(LEDGER, minute_cap=447):
+            with self.assertRaisesRegex(AssertionError, 'same-head regressions'):
+                self.authorize(baseline)
+            self.completed_checks()
+            self.jobs[2][1]['steps'][0]['conclusion'] = 'skipped'
+            with self.assertRaisesRegex(AssertionError, 'same-head regressions'):
+                self.authorize(baseline)
+            self.jobs[2][1]['steps'][0]['conclusion'] = 'success'
+            self.runs[-1]['head_sha'] = 'b' * 40
+            with self.assertRaisesRegex(AssertionError, 'same-head regressions'):
+                self.authorize(baseline)
+            self.runs[-1]['head_sha'] = SHA
+            ledger = self.authorize(baseline)
+            self.assertEqual(ledger['dispatch_counts'][baseline], 1)
+            self.assertEqual(ledger['dispatch_counts'][qualify], 0)
+            self.assertEqual(ledger['dispatch'], dict(mode=baseline, commit=SHA, run_id='50', attempt='1'))
+            self.assertEqual(ledger['native']['run'], ledger['model']['run'])
+            self.assertEqual(ledger['reserved_minutes'], 345)
+            with self.assertRaisesRegex(AssertionError, 'release-29 dispatch allowance exhausted'):
+                self.authorize(qualify)
+
+
+class VerifyReleaseTest(unittest.TestCase):
+    def test_r29_verification_binds_the_publish_job_and_recorded_source(self):
+        source = 'b' * 40
+        reference = 'ghcr.io/ares-empire/aresos@sha256:' + '29' * 32
+        base = json.loads(pathlib.Path('os/manifest/base.json').read_text())['reference']
+        previous = json.loads(registry_auth.historical_records()['28'])
+        record = dict(reference=reference, base=base, source_commit=source, visibility='private',
+                      run='https://github.com/Ares-Empire/AresOS/actions/runs/29', tag='29-' + source,
+                      daily_wheel=True, image_diff=dict(status='passed', unexplained=[], problems=[],
+                          unexplained_count=0, base_ancestry_verified=True, pinned_base=base,
+                          previous=previous['reference'], previous_source=previous['source_commit']),
+                      signature=dict(method='cosign keyless', identity=registry_auth.R29_IDENTITY,
+                                     issuer='https://token.actions.githubusercontent.com'),
+                      job_token_read=dict(status='passed', reference=reference, secret='GITHUB_TOKEN',
+                                          owner_token_used=False, visibility='private', manifest_read=True),
+                      control=dict(source_revision=source, chrome_build='c' * 64),
+                      source_trees=[dict(tree='d' * 40, path=path) for path in IMAGE_SOURCES_29])
+        run = dict(head_branch=BRANCH, head_sha=source, path=PATH, event='workflow_dispatch',
+                   display_title=LEDGER['titles']['publish-29'], run_attempt=1, status='completed', conclusion='success')
+        step = dict(name=guard.PUBLISH_STEP, status='completed', conclusion='success')
+        job = dict(name='release-29', head_sha=source, conclusion='success', steps=[step])
+        env = dict(GITHUB_ACTIONS='true', GITHUB_EVENT_NAME='workflow_dispatch', GITHUB_REPOSITORY=guard.REPOSITORY,
+                   GITHUB_REF=REF, GITHUB_REF_NAME=BRANCH, REHEARSAL_PACKAGE='331', REHEARSAL_MODE='release-29')
+        original_text, original_bytes = pathlib.Path.read_text, pathlib.Path.read_bytes
+        for near_miss in (None, 'baseline', 'tag', 'artifact', 'publish-step', 'attempt', 'source', 'old-run'):
+            def output(argv):
+                if argv[:2] == ['gh', 'api']:
+                    if argv[-1].endswith('/jobs?per_page=100'):
+                        changed = job | {'steps': [step | {'conclusion': 'skipped'}]} if near_miss == 'publish-step' else job
+                        return json.dumps(dict(total_count=1, jobs=[changed])).encode()
+                    changed = {'run_attempt': 2} if near_miss == 'attempt' else {}
+                    if near_miss == 'old-run':
+                        changed = {'head_branch': 'pkg/42-release-28'}
+                    return json.dumps(run | changed).encode()
+                if argv == ['git', 'rev-parse', '--is-shallow-repository']:
+                    return b'false\n'
+                self.assertIn(argv, [['git', 'rev-parse', source + ':' + path] for path in IMAGE_SOURCES_29])
+                return (('e' if near_miss == 'source' else 'd') * 40 + '\n').encode()
+
+            def read_text(path, *args, **kwargs):
+                if path == pathlib.Path('evidence/release.json'):
+                    return json.dumps(record | ({'tag': 'unrelated'} if near_miss == 'artifact' else {}))
+                return original_text(path, *args, **kwargs)
+
+            def read_bytes(path):
+                if path == pathlib.Path('os/manifest/releases/29.json'):
+                    return json.dumps(record).encode()
+                return original_bytes(path)
+
+            context = {'REHEARSAL_MODE': 'release-29-baseline'} if near_miss == 'baseline' else (
+                       {'GITHUB_REF': 'refs/tags/' + BRANCH} if near_miss == 'tag' else {})
+            expected = AssertionError if near_miss else SystemExit
+            with self.subTest(near_miss=near_miss), patch.dict(os.environ, env | context, clear=True), \
+                    patch.object(sys, 'argv', ['verify_release.py', '29']), \
+                    patch.object(pathlib.Path, 'read_text', read_text), patch.object(pathlib.Path, 'read_bytes', read_bytes), \
+                    patch.object(subprocess, 'check_output', side_effect=output), \
+                    patch.object(subprocess, 'run', return_value=subprocess.CompletedProcess([], 0)), \
+                    contextlib.redirect_stdout(io.StringIO()) as printed, self.assertRaises(expected):
+                runpy.run_path('os/ci/verify_release.py', run_name='__main__')
+            if near_miss is None:
+                self.assertIn('Qualified R29 private publish', printed.getvalue())

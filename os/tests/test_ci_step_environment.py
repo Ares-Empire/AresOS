@@ -57,9 +57,12 @@ class CiStepEnvironmentTest(unittest.TestCase):
         self.assertTrue({'os/ci/owner_devices.py', 'os/ci/owner_capabilities.py',
                          'os/ci/rehearsal_guard.py', 'os/ci/registry_auth.py',
                          'os/ci/rehearsal_auth.py', 'os/ci/build_tools.py'} <= seen)
-        native, = [step for _, step, paths in checked if 'os/ci/owner_devices.py' in paths]
-        self.assertEqual(native['env'][MODE], '${{ inputs.rehearsal }}')
-        self.assertIn('sudo -E env -u GH_TOKEN python3 os/ci/owner_devices.py', native['run'])
+        native = {job: step for job, step, paths in checked if 'os/ci/owner_devices.py' in paths}
+        self.assertEqual(set(native), {'rehearsal', 'release-29-rehearsal'})
+        for job, step in native.items():
+            with self.subTest(job=job):
+                self.assertEqual(step['env'][MODE], '${{ inputs.rehearsal }}')
+                self.assertIn('sudo -E env -u GH_TOKEN python3 os/ci/owner_devices.py', step['run'])
 
     def test_removing_any_callers_binding_refuses_even_with_job_or_global_env(self):
         checked = audit(self.workflow, self.sources)

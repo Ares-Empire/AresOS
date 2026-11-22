@@ -27,7 +27,7 @@ HOST_WALK_RECEIPT = 'os/manifest/ci/331/host-walk.json'
 PARENT_HOST_WALK = 'os/manifest/ci/42/host-walk.json'
 PAYLOAD = 'os/owner-tools/payload'
 RECORD = 'os/manifest/releases/29.json'
-IDENTITY = 'https://github.com/Ares-Empire/AresOS/.github/workflows/os-image.yml@refs/heads/pkg/331-release-29'
+IDENTITY = registry_auth.R29_IDENTITY
 # This tracks the historical route's checkout inputs. Image sources, released tools and
 # old release records are checked at their pinned Git objects or against their record hashes.
 BASELINE_PATHS = (
@@ -55,6 +55,17 @@ def sha256(raw):
 
 def read_json(path):
     return json.loads(pathlib.Path(path).read_bytes())
+
+
+def fetch_historical_sources(vm):
+    records = registry_auth.historical_records()
+    commits = [json.loads(raw)['source_commit'] for raw in records.values()]
+    commits.extend((R13_SQUASH, vm.RELEASE_13_SCRIPTS, vm.LAPTOP_TOOLS_COMMIT, vm.TOOLS_V2_COMMIT,
+                    r28.V4_COMMIT, TOOLS_V5_COMMIT))
+    for commit in commits:
+        if subprocess.run(['git', 'cat-file', '-e', commit + '^{commit}'], capture_output=True).returncode != 0:
+            r28.git('fetch', '--no-tags', 'origin', commit)
+    historical_tools(vm, records)
 
 
 def historical_tools(vm, records):

@@ -15,6 +15,12 @@ import zipfile
 
 REPOSITORY = 'Ares-Empire/AresOS'
 PACKAGES = json.loads(pathlib.Path(__file__).with_name('rehearsal-packages.json').read_text())
+# Opening an allowance must not change the bytes bound by the baseline walk.
+R29 = PACKAGES['331']
+R29_CAPS = json.loads(pathlib.Path(__file__).with_name(R29['caps_file']).read_text())
+assert set(R29_CAPS) == {'minute_cap', 'full_cap', 'part_b_cap', 'publish_cap', 'dispatch_caps'}
+assert set(R29_CAPS['dispatch_caps']) == set(R29['reservations']) == set(R29['titles'])
+R29.update(R29_CAPS)
 PACKAGE = '11c'
 SETTINGS = PACKAGES[PACKAGE]
 BRANCH = SETTINGS['branch']
@@ -31,6 +37,8 @@ NATIVE_STEP = 'Qualify tools, regressions, rewritten release identity and privat
 # Package 22c: the job and step of a checks-only dispatch that explore the full ways-back model.
 MODEL_JOB = 'Full ways-back model when its sources changed (no image build or VM)'
 MODEL_STEP = 'Run the full ways-back model'
+REGRESSIONS_JOB = 'Regression checks only (no image build or VM)'
+R29_WALKS = ('release-29-baseline', 'release-29')
 ACCOUNTING_POLICY = '14zz-job-interval-ordered-span-full-bound-v1'
 OWNER_QUALIFICATION_BOUND = 240
 # Packages whose ledger counts every dispatch by its run title.
@@ -158,7 +166,7 @@ def run_history():
     raise AssertionError('STOP: history page limit reached before completeness')
 
 
-def job_accounting(job, full_bound=None):
+def job_accounting(job, full_bound=None, *, require_interval=False):
     """Use an enclosing interval, an ordered supported span, or the full bound."""
     evidence = dict(job=job.get('id'), name=job.get('name'),
         response_sha256=hashlib.sha256(json.dumps(job, sort_keys=True).encode()).hexdigest())
@@ -197,6 +205,8 @@ def job_accounting(job, full_bound=None):
     seconds = (last-first).total_seconds()
     assert seconds >= 0, 'STOP: inconsistent selected accounting interval'
     minutes = math.ceil(seconds / 60)
+    if require_interval and not normal and minutes <= full_bound:
+        return bound('incomplete failed or cancelled job interval')
     # A valid zero-second job still consumes GitHub's minimum billed minute.
     return dict(evidence, minutes=minutes if minutes else 1, rule=rule,
         selected_start=first.isoformat(), selected_completion=last.isoformat(),
@@ -362,7 +372,7 @@ def budget(reserve, current=None):
             continue
         if PACKAGE in TITLED_PACKAGES and run['event'] == 'workflow_dispatch':
             kinds = [kind for kind, title in SETTINGS['titles'].items() if title == run['display_title']]
-            if PACKAGE == '331' and not kinds:
+            if PACKAGE == '331' and (not kinds or run.get('path') != '.github/workflows/os-image.yml'):
                 kind = 'rejected'
             else:
                 assert len(kinds) == 1, (f"STOP: run {run['id']} is titled {run['display_title']!r}, which package {PACKAGE}'s "
@@ -384,8 +394,10 @@ def budget(reserve, current=None):
             assert response.get('total_count') == len(jobs) <= 100, 'STOP: incomplete job listing'
             for job in jobs:
                 steps = job.get('steps', [])
+                if PACKAGE == '331':
+                    steps = [s for s in (steps or []) if isinstance(s, dict) and 'name' in s]
                 assert isinstance(steps, list), 'STOP: malformed job steps'
-                if job.get('name') == 'image' and job['conclusion'] != 'skipped':
+                if PACKAGE != '331' and job.get('name') == 'image' and job['conclusion'] != 'skipped':
                     assert len([s for s in steps if s['name'] == PUBLISH_STEP]) == 1, 'STOP: image publish boundary missing or duplicated'
                 for step in steps:
                     if step['name'] == PUBLISH_STEP and step['conclusion'] != 'skipped':
@@ -394,13 +406,19 @@ def budget(reserve, current=None):
         bound = None
         if PACKAGE in ('14','16') and run['event']=='workflow_dispatch':
             bound = 72 if run['display_title']==SETTINGS['titles']['probe'] else OWNER_QUALIFICATION_BOUND
-        if 'job_bounds' in SETTINGS and run['event'] == 'workflow_dispatch' and kind != 'rejected':
-            # Each kind's own job timeout bounds a job GitHub cannot account.
-            bound = SETTINGS['job_bounds'][kind]
-        accounts = [job_accounting(job, bound) for job in jobs]
+        if PACKAGE == '331':
+            known = SETTINGS['job_bounds'] if run.get('path') == '.github/workflows/os-image.yml' else {}
+            accounts = [job_accounting(job, known.get(job.get('name'), SETTINGS['unknown_job_bound']),
+                        require_interval=job.get('conclusion') in ('failure', 'cancelled', 'timed_out')) for job in jobs]
+        else:
+            if 'job_bounds' in SETTINGS and run['event'] == 'workflow_dispatch':
+                bound = SETTINGS['job_bounds'][kind]
+            accounts = [job_accounting(job, bound) for job in jobs]
         records.append(dict(run=run['id'], title=run['display_title'], sha=run['head_sha'],
                             conclusion=run['conclusion'], minutes=sum(row['minutes'] for row in accounts),
                             jobs=accounts))
+        if PACKAGE == '331':
+            records[-1]['kind'] = kind if run['event'] == 'workflow_dispatch' else None
     consumed = sum(record['minutes'] for record in records)
     assert consumed + reserve <= MINUTE_CAP, f'STOP: {consumed} + {reserve} reserved exceeds {MINUTE_CAP} minutes'
     assert full <= FULL_CAP, 'STOP: full-run allowance exhausted'
@@ -489,21 +507,31 @@ def model_gate(result, sha):
     did not change (scope `slice`), nothing is required. Uncertain counts as changed (model_scope).
     """
     import model_scope
-    scope, reasons = model_scope.decide()
+    scope, reasons = ('full', ['package 331 requires same-head checks and full model']) if PACKAGE == '331' else model_scope.decide()
     if scope != 'full':
         return dict(status='not-needed', scope=scope, reasons=reasons)
     checks = [r for r in result['runs'] if r['title'] == SETTINGS['titles']['checks']
-              and r['sha'] == sha and r['conclusion'] == 'success']
+              and r['sha'] == sha and r['conclusion'] == 'success'
+              and (PACKAGE != '331' or r['kind'] == 'checks')]
     for record in checks:
         response = api(f'actions/runs/{record["run"]}/jobs?per_page=100')
         assert response['total_count'] == len(response['jobs']) <= 100, 'STOP: incomplete model job listing'
+        if PACKAGE == '331':
+            regressions = [job for job in response['jobs'] if job['name'] == REGRESSIONS_JOB
+                           and job['head_sha'] == sha and job['conclusion'] == 'success']
+            if len(regressions) != 1:
+                continue
         for job in response['jobs']:
             if job['name'] != MODEL_JOB or job['head_sha'] != sha:
+                continue
+            if PACKAGE == '331' and job['conclusion'] != 'success':
                 continue
             steps = [s for s in job['steps'] if s['name'] == MODEL_STEP]
             if len(steps) == 1 and steps[0]['status'] == 'completed' and steps[0]['conclusion'] == 'success':
                 return dict(status='passed', scope='full', sha=sha, run=record['run'], job=MODEL_JOB, step=MODEL_STEP,
                             reasons=reasons, source='GitHub completed full-model step of a checks-only dispatch')
+    if PACKAGE == '331':
+        raise AssertionError('STOP: package 331 requires passing same-head regressions and the full ways-back model')
     raise AssertionError('STOP: the full ways-back model has not passed on this head, and its sources changed ('
                          + str(len(reasons)) + ' paths, first ' + reasons[0] + '); dispatch checks_only on this head first')
 
@@ -535,8 +563,11 @@ def main():
         assert os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch', 'STOP: workflow dispatch required'
         assert os.environ.get('GITHUB_REPOSITORY') == REPOSITORY, 'STOP: wrong repository'
         assert current and current.isdigit(), 'STOP: missing current dispatch ID'
-        if os.environ.get('REHEARSAL_MODE') == 'checks':
-            assert reserve == 95, 'STOP: package 331 checks require the combined 95-minute reservation'
+    if PACKAGE == '331':
+        kind = os.environ['REHEARSAL_MODE'] if ci else mode
+        assert kind in SETTINGS['reservations'], 'STOP: mode is not authorized for package 331'
+        expected = 0 if mode == 'publish-ci' else SETTINGS['reservations'][kind]
+        assert reserve == expected, f'STOP: package 331 {kind} requires the {expected}-minute reservation'
     result = budget(reserve, current)
     if plan is not None:
         result['reservation_plan']=plan
@@ -560,6 +591,7 @@ def main():
                 assert int(current) in history['run_ids'], 'STOP: current dispatch is missing from complete history'
                 assert run['path'] == '.github/workflows/os-image.yml' and run['run_attempt'] == 1, \
                     'STOP: OS image dispatch on its first attempt required'
+                result['dispatch'] = dict(mode=kind, commit=run['head_sha'], run_id=current, attempt='1')
                 if kind == 'publish-29':
                     assert result['dispatch_counts'][kind] <= SETTINGS['dispatch_caps'][kind], \
                         'STOP: publish-29 dispatch allowance exhausted'
@@ -568,7 +600,10 @@ def main():
         if kind in PUBLISH_KINDS:
             assert not result['publish_attempts'], 'STOP: a prior attempt reached publishing; no further image/publish attempt'
         if kind == 'publish-29':
-            assert SETTINGS['publish_cap'] > 0, 'STOP: the ledger allows no publish'
+            assert SETTINGS['publish_cap'] == 1, 'STOP: the ledger allows no publish'
+        if PACKAGE == '331' and kind in SETTINGS['initial_dispatch_limits']:
+            limit = SETTINGS['initial_dispatch_limits'][kind]
+            assert result['dispatch_counts'][kind] + (not ci) <= limit, 'STOP: reviewed ' + kind + ' limit exceeded'
         if mode == 'publish-ci':
             # Package 42's dry run (dry-run-28) is not a publishing kind: it has no publish step, and this refuses one.
             assert kind in PUBLISH_KINDS and os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch'
@@ -581,6 +616,10 @@ def main():
             if (PACKAGE in OWN_RUN_PACKAGES or PACKAGE == '42') and own_native(kind):
                 # Checked at the budget step already, so a dispatch without it stops before its minutes.
                 result['model']=model_gate(result,sha)
+        if PACKAGE == '331' and kind in R29_WALKS:
+            sha = os.environ['GITHUB_SHA'] if ci else subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+            result['model'] = model_gate(result, sha)
+            result['native'] = dict(status='passed', sha=sha, run=result['model']['run'], source='same-head checks-only dispatch')
     if mode == 'part-b':
         assert result['part_b_dispatched'] < PART_B_CAP, 'STOP: no Part B qualification dispatch remains'
     if (mode == 'ci' and os.environ.get('REHEARSAL_MODE') in ('part-b', 'keyboard', 'owner-tools') or

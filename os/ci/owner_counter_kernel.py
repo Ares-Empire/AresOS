@@ -94,6 +94,9 @@ def guest_source():
 
 
 def native():
+    if os.environ.get('REHEARSAL_PACKAGE') == '331':
+        from owner_media import require_runner
+        require_runner()
     # Missing uinput defers the mandatory proof, never skips it. The live guest
     # must resolve this receipt before the first physical/hidden typing.
     result = (dict(status='guest-required', reason='native /dev/uinput absent', skipped=False)

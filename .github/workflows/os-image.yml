@@ -9,7 +9,7 @@ run-name: >-
   !inputs.checks_only && !inputs.full_model &&
   (inputs.dry_run_29 && !inputs.rehearsal && inputs.check_build == '' && 'Package 29 image dry run (never published)' ||
   !inputs.dry_run_29 &&
-  (inputs.rehearsal == 'release-29' && inputs.check_build == '' && 'Two-disk rehearsal (release-29)' ||
+  ((inputs.rehearsal == 'release-29' || inputs.rehearsal == 'release-29-baseline') && inputs.check_build == '' && format('Two-disk rehearsal ({0})', inputs.rehearsal) ||
   !inputs.rehearsal && inputs.check_build == 'resolve' && 'OS image check build (resolve, never published)')))) || 'OS image') ||
   inputs.dry_run_29 && 'Package 29 image dry run (never published)' ||
   inputs.rehearsal && format('Two-disk rehearsal ({0})', inputs.rehearsal) ||
@@ -25,7 +25,7 @@ on:
       rehearsal:
         description: 'Package 11: inspect pinned ISO or rehearse installation; never build/publish'
         type: choice
-        options: ['', inspect, fixture, probe, part-b, keyboard, owner-tools, update, reorder-probe, ways-back, tools-local, release-28, release-29]
+        options: ['', inspect, fixture, probe, part-b, keyboard, owner-tools, update, reorder-probe, ways-back, tools-local, release-28, release-29-baseline, release-29]
         default: ''
       release_13:
         description: 'One private org keyboard release; package 13 branch only'
@@ -84,7 +84,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Reserve once before either of the two parallel checks jobs starts.
+  # Reserve the authorization job and both parallel checks jobs together.
   checks-29-authorize:
     if: >-
       github.event_name == 'workflow_dispatch' && github.repository == 'Ares-Empire/AresOS' &&
@@ -106,7 +106,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REHEARSAL_MODE: checks
-        run: python3 os/ci/rehearsal_guard.py ci 95
+        run: python3 os/ci/rehearsal_guard.py ci 100
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: 331-checks-authorization
+          path: evidence/331-dispatch-authorization.json
+          retention-days: 3
+          if-no-files-found: error
   regressions:
     name: Regression checks only (no image build or VM)
     needs: checks-29-authorize
@@ -819,6 +825,7 @@ jobs:
       !inputs.release_13 && !inputs.release_27 && !inputs.release_28 && !inputs.dry_run_28 &&
       !inputs.checks_only && inputs.check_build == '' && !inputs.switch_from_run && !inputs.probe_run && !inputs.full_model
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     permissions:
       contents: read
       packages: read
@@ -831,13 +838,14 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REHEARSAL_MODE: publish-29
-        run: python3 os/ci/rehearsal_guard.py ci 0
+        run: python3 os/ci/rehearsal_guard.py ci 185
   release-29:
     needs: release-29-authorize
     if: >-
       github.ref == 'refs/heads/pkg/331-release-29' && inputs.release_29 &&
       needs.release-29-authorize.result == 'success'
     runs-on: ubuntu-24.04
+    timeout-minutes: 180
     permissions:
       contents: read
     # This job can receive package write and OIDC permissions when publishing is wired.
@@ -855,6 +863,7 @@ jobs:
       !inputs.release_13 && !inputs.release_27 && !inputs.release_28 && !inputs.dry_run_28 &&
       !inputs.checks_only && inputs.check_build == '' && !inputs.switch_from_run && !inputs.probe_run && !inputs.full_model
     runs-on: ubuntu-24.04
+    timeout-minutes: 180
     permissions:
       contents: read
       packages: read
@@ -867,20 +876,23 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REHEARSAL_MODE: dry-run-29
-        run: python3 os/ci/rehearsal_guard.py ci 0
+        run: python3 os/ci/rehearsal_guard.py ci 180
       # Keep the staged route closed until its job steps and budgets are reviewed.
       - name: Require completed R29 workflow wiring
         run: |
           echo 'STOP: R29 workflow wiring is incomplete'
           exit 1
   release-29-rehearsal:
+    name: ${{ inputs.rehearsal == 'release-29-baseline' && 'Historical R29 baseline preflight' || 'R29 qualifying rehearsal' }}
     if: >-
       github.event_name == 'workflow_dispatch' && github.repository == 'Ares-Empire/AresOS' &&
       github.ref == 'refs/heads/pkg/331-release-29' &&
-      inputs.rehearsal == 'release-29' && !inputs.release_29 && !inputs.dry_run_29 &&
+      (inputs.rehearsal == 'release-29-baseline' || inputs.rehearsal == 'release-29') &&
+      !inputs.release_29 && !inputs.dry_run_29 &&
       !inputs.release_13 && !inputs.release_27 && !inputs.release_28 && !inputs.dry_run_28 &&
       !inputs.checks_only && inputs.check_build == '' && !inputs.switch_from_run && !inputs.probe_run && !inputs.full_model
     runs-on: ubuntu-24.04
+    timeout-minutes: 345
     permissions:
       contents: read
       packages: read
@@ -888,17 +900,115 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
+          fetch-depth: 0
           persist-credentials: false
-      - name: Authorize R29 release-29 dispatch
+      - name: Authorize the R29 walk and require same-head checks and full model
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REHEARSAL_MODE: ${{ inputs.rehearsal }}
+        run: python3 os/ci/rehearsal_guard.py ci 345
+      - name: Fetch any missing pinned historical source commits
+        run: |
+          set -euo pipefail
+          PYTHONPATH=os/ci python3 - <<'PY'
+          import owner_vm
+          import release29_walk
+          release29_walk.fetch_historical_sources(owner_vm)
+          PY
+      - name: Verify the recorded R29 publish before the qualifying walk
+        if: inputs.rehearsal == 'release-29'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REHEARSAL_MODE: release-29
-        run: python3 os/ci/rehearsal_guard.py ci 0
-      # Keep the staged route closed until its job steps and budgets are reviewed.
-      - name: Require completed R29 workflow wiring
         run: |
-          echo 'STOP: R29 workflow wiring is incomplete'
-          exit 1
+          set -euo pipefail
+          cp os/manifest/releases/29.json evidence/release.json
+          python3 os/ci/verify_release.py "$(jq -r .run evidence/release.json | sed 's|.*/||')"
+      - uses: ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6
+        with:
+          extra-squeeze: 'true'
+      - name: Install pinned rehearsal tools on disposable runner
+        timeout-minutes: 40
+        env:
+          ARESOS_APT_RETRIES: '5'
+          ARESOS_APT_TIMEOUT: '60'
+        run: |
+          set -euo pipefail
+          mkdir -p evidence .work/installer
+          bash os/ci/install-tools.sh
+          sudo apt-get -o Acquire::Retries=3 install -y --no-install-recommends libarchive-tools squashfs-tools gnu-efi ntfs-3g dosfstools exfatprogs exfat-fuse gdisk mtools psmisc tesseract-ocr python3-venv python3-pil
+          python3 -m venv --system-site-packages .work/browser-env
+          .work/browser-env/bin/pip --retries 5 --timeout 60 install playwright==1.58.0
+          export PLAYWRIGHT_BROWSERS_PATH="$PWD/.work/browsers"
+          printf 'Acquire::Retries "3";\n' | sudo tee /etc/apt/apt.conf.d/80ares-playwright-retries >/dev/null
+          .work/browser-env/bin/playwright install --with-deps chromium
+          .work/browser-env/bin/python -c 'import crypt, PIL, playwright.sync_api'
+          dpkg-query -W > evidence/rehearsal-host-packages.txt
+      - name: Prove disposable runner capabilities and device safeguards
+        timeout-minutes: 10
+        env:
+          REHEARSAL_MODE: ${{ inputs.rehearsal }}
+        run: |
+          set -euo pipefail
+          sudo -E env -u GH_TOKEN python3 os/ci/owner_capabilities.py
+          sudo -E env -u GH_TOKEN python3 os/ci/owner_devices.py
+          sudo -E env -u GH_TOKEN python3 os/ci/owner_counter_kernel.py
+      - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
+        with:
+          cosign-release: v2.6.1
+      - name: Verify job-token reads and exact private signatures
+        timeout-minutes: 20
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REHEARSAL_MODE: ${{ inputs.rehearsal }}
+        run: sudo -E python3 os/ci/registry_auth.py baseline "$(command -v cosign)"
+      - name: Inspect the exact pinned live ISO
+        timeout-minutes: 20
+        run: python3 os/ci/installer_inspect.py
+      - name: Walk the pinned releases on disposable file disks
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REHEARSAL_MODE: ${{ inputs.rehearsal }}
+        run: |
+          set -euo pipefail
+          export PLAYWRIGHT_BROWSERS_PATH="$PWD/.work/browsers"
+          sudo python3 os/ci/prepare_two_disks.py
+          sudo -E .work/browser-env/bin/python os/ci/owner_vm.py release-29
+      - name: Bound retained evidence
+        id: evidence
+        if: always()
+        run: |
+          set -euo pipefail
+          test -f evidence/331-dispatch-authorization.json
+          sudo chown -R "$(id -u):$(id -g)" evidence
+          test "$(du -sb evidence | cut -f1)" -lt 450000000
+          echo 'safe=true' >> "$GITHUB_OUTPUT"
+      - name: Validate the passing baseline receipt
+        if: inputs.rehearsal == 'release-29-baseline'
+        run: python3 os/ci/release29_walk.py check-receipt evidence/release-29-baseline.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: inputs.rehearsal == 'release-29-baseline'
+        with:
+          name: release-29-baseline-receipt
+          path: evidence/release-29-baseline.json
+          retention-days: 30
+          if-no-files-found: error
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: inputs.rehearsal == 'release-29'
+        with:
+          name: release-29-qualifying-receipt
+          path: |
+            evidence/two-disk/release-29-qualification.json
+            evidence/two-disk/331-bound-sources.json
+          retention-days: 30
+          if-no-files-found: error
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always() && steps.evidence.outputs.safe == 'true'
+        with:
+          name: ${{ inputs.rehearsal }}-evidence
+          path: evidence/
+          retention-days: 3
+          if-no-files-found: error
   switch:
     name: Published-image switch and rollback
     needs: image
@@ -969,7 +1079,7 @@ jobs:
           if-no-files-found: error
   rehearsal:
     name: Pinned live ISO inspection and two-disk rehearsal
-    if: github.event_name == 'workflow_dispatch' && inputs.rehearsal != '' && (github.ref_name != 'pkg/16-staged-release' || (inputs.rehearsal == 'probe' && !inputs.release_13 && !inputs.checks_only && !inputs.switch_from_run && !inputs.probe_run)) && (inputs.rehearsal == 'update') == (github.ref_name == 'pkg/27-first-update-release') && (github.ref_name == 'pkg/27-first-update-release' && !inputs.release_13 && !inputs.release_27 && !inputs.checks_only && !inputs.switch_from_run && !inputs.probe_run || github.ref_name != 'pkg/27-first-update-release') && (inputs.rehearsal == 'reorder-probe' || inputs.rehearsal == 'ways-back') == (github.ref_name == 'pkg/22c-ways-back-after-update') && (inputs.rehearsal == 'tools-local') == (github.ref_name == 'pkg/22d-tools-without-stick') && (inputs.rehearsal == 'release-28') == (github.ref_name == 'pkg/42-release-28') && (github.ref_name != 'pkg/42-release-28' || !inputs.release_13 && !inputs.release_27 && !inputs.release_28 && !inputs.dry_run_28 && !inputs.checks_only && !inputs.switch_from_run && !inputs.probe_run && inputs.check_build == '') && (github.ref_name != 'pkg/22c-ways-back-after-update' && github.ref_name != 'pkg/22d-tools-without-stick' || !inputs.release_13 && !inputs.release_27 && !inputs.checks_only && !inputs.switch_from_run && !inputs.probe_run && inputs.check_build == '') && !inputs.release_29 && !inputs.dry_run_29 && github.ref_name != 'pkg/331-release-29' && inputs.rehearsal != 'release-29'
+    if: github.event_name == 'workflow_dispatch' && inputs.rehearsal != '' && (github.ref_name != 'pkg/16-staged-release' || (inputs.rehearsal == 'probe' && !inputs.release_13 && !inputs.checks_only && !inputs.switch_from_run && !inputs.probe_run)) && (inputs.rehearsal == 'update') == (github.ref_name == 'pkg/27-first-update-release') && (github.ref_name == 'pkg/27-first-update-release' && !inputs.release_13 && !inputs.release_27 && !inputs.checks_only && !inputs.switch_from_run && !inputs.probe_run || github.ref_name != 'pkg/27-first-update-release') && (inputs.rehearsal == 'reorder-probe' || inputs.rehearsal == 'ways-back') == (github.ref_name == 'pkg/22c-ways-back-after-update') && (inputs.rehearsal == 'tools-local') == (github.ref_name == 'pkg/22d-tools-without-stick') && (inputs.rehearsal == 'release-28') == (github.ref_name == 'pkg/42-release-28') && (github.ref_name != 'pkg/42-release-28' || !inputs.release_13 && !inputs.release_27 && !inputs.release_28 && !inputs.dry_run_28 && !inputs.checks_only && !inputs.switch_from_run && !inputs.probe_run && inputs.check_build == '') && (github.ref_name != 'pkg/22c-ways-back-after-update' && github.ref_name != 'pkg/22d-tools-without-stick' || !inputs.release_13 && !inputs.release_27 && !inputs.checks_only && !inputs.switch_from_run && !inputs.probe_run && inputs.check_build == '') && !inputs.release_29 && !inputs.dry_run_29 && github.ref_name != 'pkg/331-release-29' && inputs.rehearsal != 'release-29' && inputs.rehearsal != 'release-29-baseline'
     runs-on: ubuntu-24.04
     timeout-minutes: ${{ (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick' || github.ref_name == 'pkg/42-release-28' && inputs.rehearsal == 'release-28') && 345 || inputs.rehearsal == 'update' && 300 || inputs.rehearsal == 'owner-tools' && 240 || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') && inputs.rehearsal == 'probe' && 70 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 130 || 40 }}
     permissions:

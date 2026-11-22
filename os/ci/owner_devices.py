@@ -358,7 +358,8 @@ def main():
         observations.check(os.geteuid()==0 and os.environ.get('GITHUB_EVENT_NAME')=='workflow_dispatch','STOP: privileged dispatch fixture only')
         # owner_media.require_runner() allows update only for package 27's branch, tools-local only for package 22d's,
         # release-28 only for package 42's.
-        observations.check(os.environ.get('REHEARSAL_MODE') in ('probe','owner-tools','update','reorder-probe','ways-back','tools-local','release-28'),'STOP: unauthorized fixture mode')
+        observations.check(os.environ.get('REHEARSAL_MODE') in ('probe', 'owner-tools', 'update', 'reorder-probe',
+            'ways-back', 'tools-local', 'release-28', 'release-29-baseline', 'release-29'), 'STOP: unauthorized fixture mode')
         prove(WORK/'14-native-owner-devices',observations)
     except BaseException as error:
         observations.failed(error)
