@@ -10,7 +10,7 @@ class Exclusions(unittest.TestCase):
     def test_owner_entries_are_protected_runtime_setting_and_empty_is_allowed(self):
         with patch('aresos_control.chrome.exclusions.Boundary.read', return_value={'format':1,'hosts':[]}) as read:
             self.assertEqual(owner_hosts(), [])
-            self.assertEqual(read.call_args.args[1], '/etc/aresos/control/chrome-excluded-sites.json')
+            self.assertEqual(read.call_args.args[1], '/var/lib/aresos-control/chrome-excluded-sites.json')
         with patch('aresos_control.chrome.exclusions.Boundary.read', return_value={'format':1,'hosts':['approval.test']}):
             for address in ['https://approval.test/', 'http://sub.approval.test/', 'https://approval.test./', 'https://sub.approval.test./', 'https://approval\uff0etest/']:
                 with self.assertRaises(Refused):

@@ -1,0 +1,9 @@
+{
+  "manifest_version": 3,
+  "name": "AresOS install probe (test only)",
+  "version": "1.0.0",
+  "description": "Answers the install checks' questions about Chrome's extensions. Never part of a release.",
+  "permissions": ["management", "nativeMessaging"],
+  "background": {"service_worker": "background.js"},
+  "update_url": "http://localhost:18766/probe/update.xml"
+}
