@@ -100,3 +100,10 @@ entry there is the record of how it was.
 - **A binding's key held when the capture starts never reaches the Mac.** Its press was labwc's (the binding ran
   before the capture), so labwc keeps the release too and runs neither a release action nor repeats. The Mac sees
   neither event, so nothing sticks there.
+- **No custom display mode while the backend runs** (step 2's DRM gate, run 45001307065). Setting a mode that is not in the
+  output's list (`wlr-randr --custom-mode`) makes labwc abort in wlroots' `wlr_output_management_v1.c`
+  (`head_send_state`) whenever any client is bound to `zwlr_output_manager_v1`: the backend, or the listen-only
+  client alone. Listed modes, off and on, hotplug and VT switches all keep labwc running. Nothing in AresOS sets a
+  custom mode; the owner would have to run it by hand. The brief's alternative (the backend reads screens from
+  `wl_output` and `xdg-output` and never binds the protocol) removes the backend's share of it; the compositor's
+  fault for other clients is to be reported upstream (an outward step, for the owner's OK).
