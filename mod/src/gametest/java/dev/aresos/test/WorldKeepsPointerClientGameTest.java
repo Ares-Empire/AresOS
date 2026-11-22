@@ -294,11 +294,11 @@ public final class WorldKeepsPointerClientGameTest implements FabricClientGameTe
         AresOs.LOGGER.info("328a: helper background and SIGKILL freed the cursor with X focus leaving before NORMAL");
     }
 
-    private static boolean captured(Minecraft client) {
+    static boolean captured(Minecraft client) {
         return client.mouseHandler.isMouseGrabbed() && cursorMode(client) == GLFW.GLFW_CURSOR_DISABLED;
     }
 
-    private static boolean released(Minecraft client) {
+    static boolean released(Minecraft client) {
         return !client.mouseHandler.isMouseGrabbed() && cursorMode(client) == GLFW.GLFW_CURSOR_NORMAL;
     }
 
@@ -310,7 +310,7 @@ public final class WorldKeepsPointerClientGameTest implements FabricClientGameTe
         return GLFW.glfwGetWindowAttrib(client.getWindow().handle(), GLFW.GLFW_FOCUSED) == GLFW.GLFW_TRUE;
     }
 
-    private static MouseTestAccess mouse(Minecraft client) { return (MouseTestAccess)(Object)client.mouseHandler; }
+    static MouseTestAccess mouse(Minecraft client) { return (MouseTestAccess)(Object)client.mouseHandler; }
 
     private static void check(boolean ok, String message) { if (!ok) throw new AssertionError(message); }
 
@@ -437,7 +437,7 @@ public final class WorldKeepsPointerClientGameTest implements FabricClientGameTe
     }
 
     /** The rig of reviews/328-look-around/rig on the session's own headless compositor: probe, virtual input, tl.py. */
-    private static final class Rig implements AutoCloseable {
+    static final class Rig implements AutoCloseable {
         final boolean enabled = Boolean.getBoolean("aresos.pointerSession");
         final ClientGameTestContext context;
         Path root, repo;

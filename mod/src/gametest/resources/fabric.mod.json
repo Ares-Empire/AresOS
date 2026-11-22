@@ -49,7 +49,8 @@
       "dev.aresos.test.FreePointerClientGameTest",
       "dev.aresos.test.WorldSearchClientGameTest",
       "dev.aresos.test.HomeTryoutClientGameTest",
-      "dev.aresos.test.WorldKeepsPointerClientGameTest"
+      "dev.aresos.test.WorldKeepsPointerClientGameTest",
+      "dev.aresos.test.ClickToLookClientGameTest"
     ]
   },
   "mixins": [
