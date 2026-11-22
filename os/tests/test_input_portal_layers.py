@@ -24,6 +24,7 @@ class InputPortalLayersTest(unittest.TestCase):
             installed = image / 'usr/libexec/aresos-input-portal'
             installed.parent.mkdir(parents=True)
             installed.touch()
+            (image / 'usr/libexec/config.d').mkdir()
             layers = added_layers(inspect(base), inspect(image, base))
             self.assertEqual(layers, [image])
             scan(layers)
@@ -35,12 +36,22 @@ class InputPortalLayersTest(unittest.TestCase):
             for path in (base, intermediate, final):
                 path.mkdir()
             layers = added_layers(inspect(base), inspect(final, intermediate, base))
-            for leak in ('tmp/aresos/input-portal', 'usr/local/bin/rustc', 'opt/crates/Cargo.lock'):
+            for leak in ('tmp/aresos/input-portal', 'usr/local/bin/rustc', 'opt/crates/Cargo.lock',
+                         'usr/share/aresos/input-portal/main.rs', 'opt/project/Cargo.toml',
+                         'opt/build/libportal.rlib', 'opt/build/libportal.rmeta', 'opt/build/portal.d',
+                         'opt/project/target/portal'):
                 with self.subTest(leak=leak):
                     path = intermediate / leak
                     path.parent.mkdir(parents=True, exist_ok=True)
                     path.touch()
-                    with self.assertRaisesRegex(ValueError, leak):
+                    if path.name == 'main.rs':
+                        # The final overlay's opaque directory hides the relocated source.
+                        hidden = final / path.parent.relative_to(intermediate)
+                        hidden.mkdir(parents=True)
+                        (hidden / '.wh..wh..opq').touch()
+                    scan([final])
+                    rejected = 'opt/project/target' if 'target' in path.parts else leak
+                    with self.assertRaisesRegex(ValueError, rejected):
                         scan(layers)
                     path.unlink()
 

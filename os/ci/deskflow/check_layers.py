@@ -7,6 +7,7 @@ import sys
 EXCLUDED_COMPONENTS = frozenset({'.cargo', '.rustup', 'Cargo.lock', 'Cargo.toml',
                                  'cargo', 'rustc', 'rustup', 'wl-harness'})
 BUILDER_PATHS = {'src', 'out', 'source/os/input-portal', 'tmp/aresos/input-portal'}
+RUST_FILE_SUFFIXES = ('.rs', '.rlib', '.rmeta', '.d')
 
 
 def added_layers(base, image):
@@ -28,9 +29,12 @@ def scan(layers):
     for layer in layers:
         assert layer.is_dir(), layer
         for directory, dirs, files in os.walk(layer, onerror=fail):
+            excluded = EXCLUDED_COMPONENTS | {name for name in files if name.endswith(RUST_FILE_SUFFIXES)}
+            if 'target' in dirs:
+                excluded |= {'target'}
             for name in dirs + files:
                 path = (pathlib.Path(directory) / name).relative_to(layer)
-                if name in EXCLUDED_COMPONENTS or path.as_posix() in BUILDER_PATHS:
+                if name in excluded or path.as_posix() in BUILDER_PATHS:
                     raise ValueError(f'Input portal build or harness material in {layer.parent.name}: {path}')
 
 
