@@ -3,6 +3,7 @@
 # inherited state packages 21 and 23 change and resolves exact inputs for review:
 # the Fedora package lock and the Google Chrome pin. It writes only /evidence.
 set -uo pipefail
+source /tmp/aresos/deskflow-rpm.sh
 out=/evidence/resolve
 mkdir -p "$out"
 section() { printf '\n===== %s\n' "$*"; }
@@ -174,6 +175,10 @@ PY
     : > /tmp/lock-requests.txt
     python3 -c 'import json; [print(p["nevra"]) for p in json.load(open("/tmp/aresos/packages.lock.json"))["packages"]]' |
         while read -r nevra; do
+            if [[ $nevra == deskflow-* ]]; then
+                printf 'Deskflow uses its exact gate pin below: %s\n' "$deskflow_nevra"
+                continue
+            fi
             if dnf5 --disable-repo='*' --enable-repo=fedora --enable-repo=updates repoquery -q "$nevra" | grep -q .; then
                 printf 'available %s\n' "$nevra"
                 printf '%s\n' "$nevra" >> /tmp/lock-requests.txt
@@ -233,14 +238,19 @@ names=()
 while read -r spec; do names+=("$spec"); done < /tmp/lock-requests.txt
 names+=(java-25-openjdk-headless)
 names+=(gtk4-layer-shell.x86_64)
+names+=("$deskflow_nevra")
 {
     printf 'Requested: %s\n' "${names[*]}"
     rm -rf /tmp/ares-rpms
     mkdir -p /tmp/ares-rpms
-    dnf5 --disable-repo='*' --enable-repo=fedora --enable-repo=updates \
-        --setopt=install_weak_deps=False --setopt=skip_if_unavailable=False --setopt=gpgcheck=True \
-        download --resolve --destdir=/tmp/ares-rpms "${names[@]}"
-    echo "download exit=$?"
+    if deskflow_repos throwaway &&
+       dnf5 "${fedora_repos[@]}" download --resolve --destdir=/tmp/ares-rpms "${names[@]}" &&
+       check_deskflow_rpm /tmp/ares-rpms; then
+        echo "Resolved the reviewed Deskflow RPM: $deskflow_nevra"
+    else
+        echo "Resolution did not produce the reviewed Deskflow RPM: $deskflow_nevra"
+        exit 1
+    fi
     python3 - <<'PY'
 import hashlib, json, pathlib, subprocess
 packages = []
