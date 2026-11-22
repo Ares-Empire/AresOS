@@ -27,7 +27,9 @@ import release_diff as rd
 ROOT = r28.ROOT
 R28 = json.loads((ROOT / rd.PREVIOUS_29).read_text())
 MAIN = 'a9863055b2987127cd1cd684182deed9ece24ce0'
-HEAD = r28.git('rev-parse', 'HEAD').strip()
+# Exercise the reviewed step 1 and 2 cut until the late-package profile is built.
+PROFILE_HEAD = '028cc3158404035c1155da33048155eb7654b6cc'
+REAL_GIT = rd.git
 FONT_64 = rd.FONT_CACHES + '50471fd4bd417ff5c0731b6a17aa3708-le64.cache-9'
 FONT_32 = FONT_64.replace('le64', 'le32d4')
 GTK = 'usr/lib64/libgtk4-layer-shell.so.0.0.0'
@@ -50,6 +52,15 @@ def lock29():
     return rd.git_bytes(MAIN, 'os/packages.lock.json')
 
 
+def profile_git(*args, **kwargs):
+    # Pin Git's committed lookups for the fixture, while retaining real checkout
+    # dirtiness checks and allowing individual tests to inject bad Git results.
+    pinned = args[0] in ('ls-tree', 'rev-parse') or args[:4] == ('diff', '-z', '--name-only', '--no-renames')
+    if pinned:
+        args = tuple(PROFILE_HEAD if word == 'HEAD' else word for word in args)
+    return REAL_GIT(*args, **kwargs)
+
+
 def package_inputs():
     chrome = json.loads(released('28', 'os/google-chrome.lock.json'))['nevra']
     old_lock = lock_nevras(released('28', 'os/packages.lock.json')) + [chrome]
@@ -66,9 +77,10 @@ class CurrentMainTest(unittest.TestCase):
         self.assertEqual(rd.IMAGE_SOURCES_29, rd.IMAGE_SOURCES + ('os/labwc',))
         self.assertEqual(set(rd.BRANCH_SOURCE_CHANGES_29), {'os/minecraft/desktop.lock.json'})
         self.assertIn('os/build.sh', rd.BRANCH_SOURCE_CHANGES)
-        self.assertEqual(rd.source_changes(MAIN, HEAD, sources=rd.IMAGE_SOURCES_29,
+        self.assertEqual(rd.source_changes(MAIN, PROFILE_HEAD, sources=rd.IMAGE_SOURCES_29,
                                            exceptions=rd.BRANCH_SOURCE_CHANGES_29), ({}, []))
-        with patch.dict(os.environ, GITHUB_SHA=HEAD), patch.object(rd, 'ignored_build_files29', return_value=[]):
+        with patch.dict(os.environ, GITHUB_SHA=PROFILE_HEAD), patch.object(rd, 'ignored_build_files29', return_value=[]), \
+                patch.object(rd, 'git', side_effect=profile_git):
             self.assertEqual(rd.verify_source29(R28, MAIN)[1], [])
             damaged = dict(R28, source_trees=R28['source_trees'][1:])
             self.assertIn('does not match', rd.verify_source29(damaged, MAIN)[1][0])
@@ -198,7 +210,7 @@ class ImageDiffTest(unittest.TestCase):
         self.roots = {name: self.work / name for name in ('old', 'new', 'base')}
         self.rpms = dict(zip(('old', 'new'), package_inputs()[:2]))
         self.mounts = {R28['reference']: 'old', rd.NEW: 'new', R28['base']: 'base'}
-        self.versions = dict(old=R28['source_commit'], new=HEAD)
+        self.versions = dict(old=R28['source_commit'], new=PROFILE_HEAD)
         mask = {'usr/share/aresos/policy/' + name: rd.git_bytes(R28['source_commit'], 'os/policy/' + name)
                 for name in ('masked-system-units.txt', 'masked-user-units.txt')}
         self.jar = {}
@@ -275,11 +287,12 @@ class ImageDiffTest(unittest.TestCase):
             rel: row for rel, row in inventory.items() if rel == rd.PRISM or rel.startswith(rd.PRISM + '/')}))
         prism_pin = json.loads(rd.git_bytes(R28['source_commit'], 'os/minecraft/desktop.lock.json'))['prism']['sha256']
         self.enterContext(patch.dict(rd.PRISM_FILE_LISTS, {prism_pin: inventory[rd.PRISM_FILES]['sha256']}))
-        self.enterContext(patch.dict(os.environ, GITHUB_SHA=HEAD))
+        self.enterContext(patch.dict(os.environ, GITHUB_SHA=PROFILE_HEAD))
         self.enterContext(patch.object(rd, 'main_merge_base', return_value=MAIN))
+        self.enterContext(patch.object(rd, 'git', side_effect=profile_git))
         real_git_bytes = rd.git_bytes
         self.enterContext(patch.object(rd, 'git_bytes', side_effect=lambda version, rel:
-                                       self.labwc_lock_bytes() if (version, rel) == (HEAD, rd.LABWC_LOCK_29)
+                                       self.labwc_lock_bytes() if (version, rel) == (PROFILE_HEAD, rd.LABWC_LOCK_29)
                                        else real_git_bytes(version, rel)))
         self.scan_ignored = rd.ignored_build_files29
         self.enterContext(patch.object(rd, 'ignored_build_files29', return_value=[]))
@@ -298,8 +311,9 @@ class ImageDiffTest(unittest.TestCase):
             path.chmod(0o755)
         paths = set(FIXED_311)
         for rel, build_id in ids.items():
+            text = b'\x90' if side == 'old' else b'\xcc'
             raw = r311.elf_file(_note_gnu_build_id=struct.pack('<III', 4, 20, 3) + b'GNU\0' + bytes.fromhex(build_id),
-                                _text=(b'\x90' if side == 'old' else b'\xcc') * 32 + b'\xc3')
+                                _text=text * 31 + (b'\x91' if rel == LABWC else b'\x92') + b'\xc3')
             self.write(side, rel, raw, 0o755)
             folder = 'usr/lib/.build-id/' + build_id[:2]
             link = folder + '/' + build_id[2:]
@@ -615,6 +629,40 @@ class ImageDiffTest(unittest.TestCase):
                     self.assertIn(kind + ' differs from the lock', result['labwc']['error'])
                     self.labwc_lock['result'][kind][path] = original
 
+    def test_labwc_refuses_swapped_executables_even_with_the_expected_build_ids(self):
+        raw = {rel: (self.roots['new'] / rel).read_bytes() for rel in REBUILT_IDS}
+        for target, source in ((LABWC, LABNAG), (LABNAG, LABWC)):
+            swapped = raw[source].replace(bytes.fromhex(REBUILT_IDS[source]), bytes.fromhex(REBUILT_IDS[target]))
+            self.write('new', target, swapped, 0o755)
+            self.labwc_records['new'][target] = self.rpm_record('new', target)
+        _, result = self.diff()
+        self.assertIn('normalized_sha256 differs from the lock', result['labwc']['error'])
+        for kind in ('normalized_sha256', 'loaded_sha256'):
+            pins = self.labwc_lock['result'][kind]
+            self.assertNotEqual(pins['/' + LABWC], pins['/' + LABNAG])
+            self.assertEqual(result['labwc'][kind], {'/' + LABWC: pins['/' + LABNAG], '/' + LABNAG: pins['/' + LABWC]})
+
+    def test_labwc_rejects_an_extra_rpm_path(self):
+        rel = 'usr/share/doc/labwc/extra'
+        self.write('new', rel, b'extra RPM payload')
+        self.labwc_lists['new'].append(rel)
+        self.labwc_records['new'][rel] = self.rpm_record('new', rel)
+        _, result = self.diff()
+        self.assertIn('labwc new: RPM file list differs from the reviewed', result['labwc']['error'])
+
+    def test_labwc_rejects_a_duplicate_rpm_record(self):
+        self.labwc_records['new']['duplicate'] = self.labwc_records['new'][LABWC]
+        _, result = self.diff()
+        self.assertIn('labwc new: missing or different non-ghost RPM file: /' + LABWC, result['labwc']['error'])
+
+    def test_labwc_rejects_a_valid_but_stale_installed_lock(self):
+        stale = rd.git_bytes(MAIN, rd.LABWC_LOCK_29)
+        self.assertNotEqual(stale, self.labwc_lock_bytes())
+        self.write('new', rd.LABWC_RECORD, stale)
+        _, result = self.diff()
+        self.assertNotIn('error', result['labwc'])
+        self.assertIn(rd.LABWC_RECORD, result['unexplained'])
+
     def test_labwc_accepts_reviewed_debug_variation_and_rejects_loaded_padding_changes(self):
         path = self.roots['new'] / LABWC
         raw = path.read_bytes()
@@ -644,22 +692,22 @@ class ImageDiffTest(unittest.TestCase):
         next(row for row in raw['packages'] if row['nevra'] == FEDORA)['sha256'] = '0' * 64
         git_bytes = rd.git_bytes
         with patch.object(rd, 'git_bytes', side_effect=lambda rev, path:
-                          json.dumps(raw).encode() if (rev, path) == (HEAD, 'os/packages.lock.json') else git_bytes(rev, path)):
+                          json.dumps(raw).encode() if (rev, path) == (PROFILE_HEAD, 'os/packages.lock.json') else git_bytes(rev, path)):
             _, result = self.diff()
         self.assertEqual(result['problems'], ['R29 download lock changes existing RPM pins'])
 
     def test_renewed_mod_pin_binds_jar_lock_and_record_in_both_images(self):
         lock_path = 'os/minecraft/desktop.lock.json'
         real_git_bytes = rd.git_bytes
-        lock = json.loads(real_git_bytes(HEAD, lock_path))
+        lock = json.loads(real_git_bytes(PROFILE_HEAD, lock_path))
         jar = next(mod for mod in lock['mods'] if mod['file'] == 'aresos.jar')
         jar['sha256'] = self.jar['new'] = 'c' * 64
         raw = (json.dumps(lock, indent=2) + '\n').encode()
         self.write('new', rd.DESKTOP_LOCK, raw)
-        self.write('new', rd.MOD_RECORD, json.dumps(dict(sha256=jar['sha256'], source_revision=HEAD,
+        self.write('new', rd.MOD_RECORD, json.dumps(dict(sha256=jar['sha256'], source_revision=PROFILE_HEAD,
                                                         pinned_sha256=jar['sha256']), indent=2) + '\n')
         def git_bytes(revision, path):
-            return raw if (revision, path) == (HEAD, lock_path) else real_git_bytes(revision, path)
+            return raw if (revision, path) == (PROFILE_HEAD, lock_path) else real_git_bytes(revision, path)
         with patch.object(rd, 'git_bytes', side_effect=git_bytes):
             evidence, result = self.diff(status='passed')
             self.assertEqual(result['unexplained'], [])
@@ -708,7 +756,7 @@ class ImageDiffTest(unittest.TestCase):
         checkout = self.work / 'checkout'
         checkout.mkdir()
         real_git('-C', checkout, 'init', '--quiet')
-        (checkout / '.gitignore').write_bytes(rd.git_bytes(HEAD, '.gitignore') + b'\n.env\n')
+        (checkout / '.gitignore').write_bytes(rd.git_bytes(PROFILE_HEAD, '.gitignore') + b'\n.env\n')
         copied = ('os/.env', 'os/config/var/log/dnf5.log', 'os/tests/ci/.env')
         for rel in (*copied, 'os/ci/.env', 'os/manifest/ci/.env', 'mod/.env'):
             path = checkout / rel

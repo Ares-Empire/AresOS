@@ -474,7 +474,7 @@ def live_inventory(guest, stage):
     else:
         release = json.loads(pathlib.Path('os/manifest/release.json').read_text())
         assert release['reference'] == REFERENCE
-    if package in ('14', '16', '27', '22c', '22d', '42'):
+    if os.environ.get('REHEARSAL_PACKAGE') in ('14', '16', '27', '22c', '22d', '42'):
         # The unchanged cryptographic check runs natively before the offline VM.
         # A guest cosign pull here would violate the link-down installer route.
         proof = json.loads(pathlib.Path('evidence/private-release-signature-proof.json').read_text())
