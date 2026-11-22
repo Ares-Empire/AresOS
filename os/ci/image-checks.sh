@@ -852,7 +852,8 @@ print('MOD_JAR_RECORDED', jar, 'from', record['source_revision'],
 PY
 pass 'the mod jar in the image is the one its manifest records (aresos-mod.json: SHA-256 and source commit)'
 lines=$(grep -Ev '^[[:space:]]*(#|$)' /usr/share/aresos/labwc/autostart)
-test "$lines" = '/usr/libexec/kf6/polkit-kde-authentication-agent-1 &
+test "$lines" = '/usr/bin/dbus-update-activation-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP
+/usr/libexec/kf6/polkit-kde-authentication-agent-1 &
 /usr/libexec/aresos-deskflow-login &
 /usr/libexec/aresos-desktop session &'
 test "$(readlink /usr/bin/aresos-desktop)" = ../libexec/aresos-desktop

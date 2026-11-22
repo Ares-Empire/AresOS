@@ -1,3 +1,5 @@
+# labwc updates the private bus asynchronously. The agent and Deskflow can activate portals immediately.
+/usr/bin/dbus-update-activation-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP
 # Asks for the everyday account's password when an app needs admin rights.
 /usr/libexec/kf6/polkit-kde-authentication-agent-1 &
 # Sharing persists across logins. The hook checks the switch before starting Deskflow.

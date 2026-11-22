@@ -441,7 +441,8 @@ class DesktopDefaultsTest(unittest.TestCase):
     def test_polkit_agent_starts_before_the_desktop(self):
         lines = [l for l in (CONFIG / 'usr/share/aresos/labwc/autostart').read_text().splitlines()
                  if l and not l.startswith('#')]
-        self.assertEqual(lines, ['/usr/libexec/kf6/polkit-kde-authentication-agent-1 &',
+        self.assertEqual(lines, ['/usr/bin/dbus-update-activation-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP',
+                                 '/usr/libexec/kf6/polkit-kde-authentication-agent-1 &',
                                  '/usr/libexec/aresos-deskflow-login &',
                                  '/usr/libexec/aresos-desktop session &'])
 
