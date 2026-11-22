@@ -1,0 +1,18 @@
+### Blocking findings
+
+1. **View churn can bypass the launch quota and grow the helper’s saved state without bound.** The 32-entry limit counts request history. A single view client can rotate through five names and keep opening terminals while earlier processes stay alive. Eviction frees admission slots, and every live launch stays in memory and is serialized into `active_launches` on each save. This permits a launch storm even while the journal shows only four ordinary view histories. `os/config/usr/libexec/aresos-shell:2304`, `os/config/usr/libexec/aresos-shell:2356`, `os/config/usr/libexec/aresos-shell:2382`, `os/config/usr/libexec/aresos-shell:4116`, `os/config/usr/libexec/aresos-shell:4290`
+2. **Retrying an evicted deliberate open can spawn a second instance.** If a 1.2 or 1.3 view reconnects and resends the same terminal `open_app` ID while its original launch is still starting, the journal lookup misses. The deliberate-open path then spawns again, even though the helper still tracks the original launch. The eviction test reuses the ID for a different app and leaves the same-app retry uncovered. `os/config/usr/libexec/aresos-shell:3889`, `os/config/usr/libexec/aresos-shell:3912`, `os/config/usr/libexec/aresos-shell:3921`, `os/tests/test_aresos_shell_views.py:266`
+3. **One view client can starve other views of activation.** The shared view token accepts client-chosen names. Five sequential names can fill the 160 protected entries with 32 activation replies each. An unrelated 1.3 view then gets `journal_full` even when it only wants to restore a visible window. The fifth-view test confirms that the 1.2 laptop’s ordinary open still succeeds at a full reserve. `os/config/usr/libexec/aresos-shell:136`, `os/config/usr/libexec/aresos-shell:2356`, `os/config/usr/libexec/aresos-shell:3625`, `os/config/usr/libexec/aresos-shell:3900`, `os/tests/test_aresos_shell_open_apps.py:348`
+
+### Checks that passed by inspection
+
+4. **The original activation race is fixed.** Eviction removes replay records while leaving the per-app launch and its process intact. The activation recheck reads that state. The regression test holds the activation check, deliberately opens from 1.2, asserts the history is gone and no window exists, then verifies one spawn and a later focus event under the activation ID. `os/config/usr/libexec/aresos-shell:2296`, `os/config/usr/libexec/aresos-shell:3329`, `os/config/usr/libexec/aresos-shell:3957`, `os/config/usr/libexec/aresos-shell:4058`, `os/tests/test_aresos_shell_open_apps.py:301`
+5. **REVIEW-1’s three fixes still hold.** The tests queue Wayland messages through a socket for both immediate and deferred check completion, replay a refusal after eviction, window close and restart, replay an unjoined fallback after eviction, and inject both flush and close failures while verifying continued stderr logging. `os/tests/test_aresos_shell_open_apps.py:240`, `os/tests/test_aresos_shell_open_apps.py:402`, `os/tests/test_aresos_shell_open_apps.py:420`, `os/tests/test_aresos_shell_open_apps.py:525`
+
+### Known limits / nits
+
+6. **A tray-resident app can answer activation with `closed`.** After Discord closes its last window, its scope can stay alive. The activation path can join that closed launch and return its state without reopening a window. An explicit `open_app` still works. `os/config/usr/libexec/aresos-shell:3957`, `os/tests/test_aresos_shell_windows.py:190`
+
+Read-only inspection of `568c892a`. No files changed and no builds or tests ran.
+
+NOT SAFE
