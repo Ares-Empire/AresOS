@@ -692,9 +692,10 @@ def daily_prepare(request):
     if mode == 'initial':
         assert not SWITCH.exists() and not core_pids()
         require(guest_command('mkdir', '-p', str(source)))
-        fixture_file(source / 'Deskflow.conf', '[core]\ncomputerName=fixture-host\ninterface=127.0.0.1\n')
-        fixture_file(source / 'deskflow-server.conf', 'section: screens\n    fixture-host:\n    fixture-mac:\nend\n'
-                     'section: links\n    fixture-host:\n        right = fixture-mac\n'
+        # Deskflow 1.27 reads screen names from the main profile before parsing the layout links.
+        fixture_file(source / 'Deskflow.conf', '[core]\ncomputerName=fixture-host\ninterface=127.0.0.1\n'
+                     '[computer_fixture-host]\nname=fixture-host\n[computer_fixture-mac]\nname=fixture-mac\n')
+        fixture_file(source / 'deskflow-server.conf', 'section: links\n    fixture-host:\n        right = fixture-mac\n'
                      '    fixture-mac:\n        left = fixture-host\nend\n')
         require(subprocess.run(['chpasswd'], input=f'{session["name"]}:{PASSWORD}\n',
                                capture_output=True, text=True, timeout=10))
