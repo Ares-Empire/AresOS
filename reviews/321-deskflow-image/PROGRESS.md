@@ -870,6 +870,12 @@ After the final review and release, get the owner's direct OK and have the owner
    laptop's AresOS address and check the laptop's displayed fingerprint on the Mac if prompted. Compare the
    fingerprint in the AresOS pairing window with the Mac's own fingerprint. Select **It matches** only after the
    comparison. Confirm the saved list holds that one entry.
+
+   Before step 4, save work again and keep sharing On. Run `aresos-input-portal --status` and confirm that it
+   lists one armed Deskflow session (`enabled=true` and at least one barrier), so the Wayland worker has bound
+   the output manager. Record labwc's PID and repeat all of step 1's display, replug, lid, suspend and VT
+   operations with the worker bound. Confirm that each operation keeps the same labwc PID and the outputs
+   recover before continuing to steps 4 through 10.
 4. Cross to the Mac and back with and without the external display. Check where the laptop pointer lands.
 5. Type on the Mac, including Cmd shortcuts. Press Super+Shift+Escape and verify that input is back on the
    laptop and no modifier is still held on the Mac.
@@ -885,7 +891,8 @@ After the final review and release, get the owner's direct OK and have the owner
 
 ## Left, in order
 
-1. A fresh Fable final review of the whole package, the local fixes and the missing hosted daily-use evidence.
+1. The fresh Fable final review is in `REVIEW-4-FABLE.md`. The hosted daily-use gate and binding table are tracked
+   under “CI dispatches”.
 2. The lead sends the final heads for `linux-aresos` and `linux-hub` to read. Both give their read verdicts.
 3. Merge the PR after both reads and resolution of the outstanding hosted VM evidence and review findings.
 4. `linux-aresos` prepares the release after R29.
@@ -996,6 +1003,7 @@ The lead sends this list when step 3 ends and at the final head.
 | `os/manifest/input-portal.sha256` | `bcea0dad` | Pin the two byte-identical builds with explicit key-up events on release. |
 | `os/config/usr/share/aresos/labwc/autostart`, `os/ci/image-checks.sh`, `os/tests/test_{everyday_account,aresos_desktop}.py` | `a5836aa6` | Publish the compositor environment to the private bus before either login app can activate the portal. |
 | `os/ci/deskflow/actions.py`, `os/tests/test_deskflow_vm.py` | `147a61f5` | Observe the actual app-ID-specific Off log and record safe facts about failed startup. |
+| `os/ci/deskflow/{actions.py,daily_vm.py}`, `os/tests/test_deskflow_vm.py` | `d63029cd` | Observe the image's own activation variables and collect redacted diagnostics for failed daily checks. |
 
 Not touched in step 1c: `os/Containerfile` (the stage copies the whole `labwc/` folder, so the second patch needs no
 new line; its comment above the stage still says "one upstream fix" and should name both patches when the file is
@@ -1048,9 +1056,10 @@ What the image gains or changes through this package, for `linux-aresos`'s relea
   (or `--enroll`) it pairs: a dialog shows the connecting peer's fingerprint and saves it only when the owner
   confirms. It makes a server certificate with `openssl` for a profile that has none, and keeps the core's IPC socket
   in its private runtime folder.
-- **Input portal behaviour (review fixes):** the backend runs on the bus without a Wayland connection; its worker
-  connects only for an authorized session while sharing is On and disconnects at Off or when no session is left.
-  The backend's pin is `ef3d09781e34e82fcd2a3db2cb025a8d9fef3f295eea6f177813a26479da23df`.
+- **Input portal behaviour (review fixes):** the backend runs on the bus without a Wayland connection. Its worker
+  connects only for an authorized session while sharing is On. The backend process exits at Off or when no
+  session is left. Its pin in `os/manifest/input-portal.sha256` is
+  `00e8ff021c7978c6ed7548e050f23734d4e198bcbcebebe8d51157545d28cb57`.
 - **Routing and switch (step 3):** `aresos-input.portal`, `aresos-portals.conf`, the one-ID `allowed-apps`,
   `org.aresos.InputSharing.desktop` and `org.aresos.input-sharing.policy` are root-owned, mode 0644.
   `/usr/bin/aresos-input-sharing` and `/usr/libexec/aresos-input-sharing-set` are root-owned, mode 0755.
@@ -1073,7 +1082,10 @@ laptop trusts it only after the owner confirms it matches what the Mac's Deskflo
 
 ## CI dispatches
 
-None in steps 1 and 1b or the step 3 review fixes. Step 4 used dispatch 8 of 8.
+None in steps 1 and 1b or the step 3 review fixes. Step 4 used dispatch 8 of the original 8.
+After the final Fable review, the lead raised the package budget from 8 to 12 because the daily-use gate
+had never been reached, the cause of VM 7's timeout was unknown and needed logging, and the reviewed head
+had never been built. Dispatch 12 is reserved for the lead.
 
 | # | Step | Run | What |
 |---|---|---|---|
@@ -1084,7 +1096,7 @@ None in steps 1 and 1b or the step 3 review fixes. Step 4 used dispatch 8 of 8.
 | 5 of 8 | 2 | [45001307065](https://github.com/Ares-Empire/AresOS/actions/runs/45001307065), on `0c948087` (dispatched by the lead 2026-11-22 09:07 CET) | `check_build=deskflow` on step 2's final head. **Green** (2026-11-22 09:31): image build and checks, then the DRM output gate. Regular runs (a) to (d) **passed in all three states** (`regular-none`, `regular-listener`, `regular-backend`), the second screen's hotplug by `SetUIInfo`. Custom mode (e): `custom-none` passed; `custom-listener` and `custom-backend` hit the compositor assertion (`head_send_state`), as 316's analysis expected. **The gate passes** (brief item 2's rule): step 3 may start, and (e) is the known limit "no custom mode while the backend runs". |
 | 6 of 8 | 2 review fixes | [45004171828](https://github.com/Ares-Empire/AresOS/actions/runs/45004171828), verified at `f4c52a3ca122ee75798c32f9505920c0c03d7d60` (2026-11-22 09:43 CET) | `check_build=deskflow`. **Passed** (10:10 CET). `gh run watch 45004171828 --exit-status --interval 60` returned 0. The image checks passed, the layer scan passed on 9 added layers, and the installed backend SHA-256 matched the pin. The DRM gate passed with the six case results below. |
 | 7 of 8 | 3 | [45009968432](https://github.com/Ares-Empire/AresOS/actions/runs/45009968432), verified at `dccb0f1da264fff6b092f77238ee6ff20c49917b` (2026-11-22 10:56 CET) | `check_build=deskflow`. **GitHub passed** at 12:11 CET and `gh run watch 45009968432 --exit-status --interval 60` returned 0. Image and polkit checks passed, all 11 added layers passed, and the installed backend SHA-256 matched the pin. The real frontend proved the native ID. The table below accounts for unexpected backend activation in the DRM controls. |
-| 8 of 8 | 4 | [45025378331](https://github.com/Ares-Empire/AresOS/actions/runs/45025378331), verified at `bcea0dadb2fc143ae6bd06c73776615da459e725` (2026-11-22 14:02 CET) | `check_build=deskflow`. **Failed in the daily-use VM** at 14:28 CET. The image build and checks passed. The six DRM boots finished with the expected results. The daily-use boot proved the initial Off state, then the scoped refusal assertion timed out. The reboot-On boot read the persisted On setting and timed out waiting for an armed server. The first `gh run watch 45025378331 --exit-status --interval 60` lost its GitHub API connection, and reattaching returned 1 with the completed failure. This was the final dispatch. |
+| 8 of 8 | 4 | [45025378331](https://github.com/Ares-Empire/AresOS/actions/runs/45025378331), verified at `bcea0dadb2fc143ae6bd06c73776615da459e725` (2026-11-22 14:02 CET) | `check_build=deskflow`. **Failed in the daily-use VM** at 14:28 CET. The image build and checks passed. The six DRM boots finished with the expected results. The daily-use boot proved the initial Off state, then the scoped refusal assertion timed out. The reboot-On boot read the persisted On setting and timed out waiting for an armed server. The first `gh run watch 45025378331 --exit-status --interval 60` lost its GitHub API connection, and reattaching returned 1 with the completed failure. |
 
 The hosted job checked out `bcea0dadb2fc143ae6bd06c73776615da459e725`. See
 [run 45025378331 and its check-build-evidence artifact](https://github.com/Ares-Empire/AresOS/actions/runs/45025378331#artifacts).

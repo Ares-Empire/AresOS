@@ -156,6 +156,21 @@ entry there is the record of how it was.
   profile. It removes coordinates from the pinned RPM's crossing and disconnect messages and relays logs
   through one stream. Higher Deskflow levels can include keys, buttons and other positions. The guarded
   profile disables Deskflow's direct log file option so it cannot bypass coordinate filtering.
+- An error in the login hook leaves Deskflow stopped and shows no message. This includes the hub's
+  catalogue scan taking more than two seconds. Open Deskflow from the hub to start it manually.
+- When Deskflow is opened while sharing is Off, the core has about five seconds to ask the portal before
+  the launcher stops it. A slower core leaves no sharing window.
+- **Turn on** in the sharing window enables sharing. Deskflow still needs to be opened from the hub, and
+  the window gives no reminder.
+- A session requested while the backend is exiting after its last session may receive a sharing-Off
+  refusal and open the sharing window even while sharing is On. Open Deskflow again.
+- Forced release sends key-up events. A mouse button held at the chord can stay held on the Mac until
+  Deskflow leaves the screen.
+- While sharing is On and no Mac is paired, each login starts the pairing server. Anyone who can reach
+  the port can open a fingerprint dialog. The dialog defaults to rejection.
+- A program running as the same user can delete the once-per-login marker and open the sharing window again.
+- If the launcher exits unexpectedly, its lock is released while the Deskflow core may still be running.
+  A subsequent launch can then start a second core.
 - Hosted run 45025378331 proved the DRM controls, the initial Off login and the installed image checks.
   It stopped before the live capture cases. The On file survived a reboot and the test timed out before a
   fully armed server was observed. The follow-up verified the Off log predicate in the confined harness and
