@@ -1,7 +1,7 @@
 #!/usr/bin/bash
 # From the plain, locally built image to a disposable disk on the hosted runner.
 set -euo pipefail
-test "${GITHUB_ACTIONS-}/${GITHUB_JOB-}" = true/check-build
+test "${GITHUB_ACTIONS-}/${RUNNER_ENVIRONMENT-}/${GITHUB_JOB-}" = true/github-hosted/check-build
 plain=localhost/aresos:check
 bench=localhost/aresos:bench
 planted=localhost/aresos:bench-layer-fixture

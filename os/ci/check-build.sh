@@ -4,6 +4,12 @@
 # permission or credentials; nothing is pushed, signed or published.
 set -euo pipefail
 mode=${1-}
+if [[ $mode == bench || $mode == bench-pass ]]; then
+    if [[ ${GITHUB_ACTIONS-}/${RUNNER_ENVIRONMENT-}/${GITHUB_JOB-} != true/github-hosted/check-build ]]; then
+        echo 'Bench requires the hosted check-build job' >&2
+        exit 2
+    fi
+fi
 base=$(jq -r .reference os/manifest/base.json)
 mkdir -p evidence
 case $mode in
@@ -97,7 +103,6 @@ case $mode in
         fi
         ;;
     bench-pass)
-        test "${GITHUB_ACTIONS-}/${GITHUB_JOB-}" = true/check-build
         if [[ -c /dev/kvm && ! -w /dev/kvm ]]; then
             sudo chgrp "$(id -g)" /dev/kvm
             sudo chmod g+rw /dev/kvm

@@ -82,7 +82,8 @@ def load(repo, sha, name):
 
 
 def dispatch():
-    if os.environ.get('GITHUB_ACTIONS') != 'true' or os.environ.get('GITHUB_EVENT_NAME') != 'workflow_dispatch':
+    if (os.environ.get('GITHUB_ACTIONS') != 'true' or os.environ.get('GITHUB_EVENT_NAME') != 'workflow_dispatch'
+            or os.environ.get('RUNNER_ENVIRONMENT') != 'github-hosted' or os.environ.get('GITHUB_JOB') != 'check-build'):
         raise ValueError('Bench runs only in hosted dispatches')
     event = json.loads(pathlib.Path(os.environ['GITHUB_EVENT_PATH']).read_bytes())
     validate_dispatch(event, 'bench')
