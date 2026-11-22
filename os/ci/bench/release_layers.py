@@ -4,13 +4,13 @@ import pathlib
 import stat
 import sys
 
-BENCH_PATHS = (
-    'tmp/aresos/ci/bench',
-    'tmp/aresos/bench',
+INSTALLED_PATHS = (
     'usr/libexec/aresos-bench',
     'usr/lib/systemd/system/aresos-bench.service',
     'usr/lib/systemd/system/multi-user.target.wants/aresos-bench.service',
 )
+BENCH_PATHS = (*INSTALLED_PATHS, 'tmp/aresos/ci/bench', 'tmp/aresos/bench',
+               'tmp/aresos/tests/test_bench_*', 'tmp/aresos/tests/__pycache__/test_bench_*')
 
 
 class BenchFile(Exception):
@@ -39,6 +39,10 @@ def scan(image):
             path = root
             parts = pathlib.PurePosixPath(name).parts
             for index, part in enumerate(parts):
+                if part.endswith('*'):
+                    if any(path.glob(part)):
+                        raise BenchFile(name)
+                    break
                 path = path / part
                 try:
                     mode = path.lstat().st_mode

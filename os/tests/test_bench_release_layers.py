@@ -7,7 +7,7 @@ import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'os/ci/bench'))
-from release_layers import BENCH_PATHS, BenchFile, scan
+from release_layers import BENCH_PATHS, INSTALLED_PATHS, BenchFile, scan
 
 
 class BenchLayerTest(unittest.TestCase):
@@ -20,7 +20,7 @@ class BenchLayerTest(unittest.TestCase):
                      'RootFS': {'Layers': ['sha256:one', 'sha256:two']}}
             self.assertEqual(scan(image), 2)
             for name in BENCH_PATHS:
-                planted = old / name
+                planted = old / name.replace('*', 'planted')
                 planted.parent.mkdir(parents=True, exist_ok=True)
                 planted.touch()
                 with self.subTest(name=name), self.assertRaises(BenchFile):
@@ -35,12 +35,14 @@ class BenchLayerTest(unittest.TestCase):
         for name in names:
             if not name.startswith(('os/ci/', 'os/tests/')):
                 self.assertNotRegex(name.lower(), r'(?:^|[/_-])bench(?:[/_.-]|$)')
-        self.assertIn('ci/', (ROOT / 'os/.containerignore').read_text().splitlines())
+        ignore = (ROOT / 'os/.containerignore').read_text().splitlines()
+        for pattern in ('ci/', 'tests/test_bench_*', 'tests/__pycache__/'):
+            self.assertIn(pattern, ignore)
         self.assertIn('test ! -e /tmp/aresos/ci', (ROOT / 'os/Containerfile').read_text())
         workflow = (ROOT / '.github/workflows/os-image.yml').read_text()
         blocks = list(re.finditer(r"(?ms)^          sudo podman run [^\n]+ -ec '\n(.*?)^          '", workflow))
         isolation = [block.group(1) for block in blocks if 'test ! -e /usr/libexec/aresos-ci' in block.group(1)]
         self.assertGreaterEqual(len(isolation), 4)
         for block in isolation:
-            for name in BENCH_PATHS[2:]:
+            for name in INSTALLED_PATHS:
                 self.assertIn(f'test ! -e /{name}', block)

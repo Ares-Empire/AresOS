@@ -17,6 +17,7 @@ trap cleanup EXIT
 
 test -z "$(git ls-files os | awk 'tolower($0) ~ /(^|[\/_-])bench([\/_.-]|$)/ && $0 !~ /^os\/(ci|tests)\//')"
 grep -Fxq 'ci/' os/.containerignore
+grep -Fxq 'tests/test_bench_*' os/.containerignore
 grep -Fq 'test ! -e /tmp/aresos/ci' os/Containerfile
 
 scan() {
