@@ -28,6 +28,12 @@ class BenchDispatchTest(unittest.TestCase):
             self.assertEqual(result.returncode, 2)
             self.assertEqual(result.stderr, b'Bench requires the hosted check-build job\n')
 
+    def test_unusable_driver_setup_exits_two(self):
+        result = subprocess.run([sys.executable, '-B', ROOT / 'os/ci/bench/driver.py'], cwd=ROOT,
+                                capture_output=True, env={})
+        self.assertEqual(result.returncode, 2)
+        self.assertEqual(result.stderr, b'Bench VM unusable during setup or cleanup\n')
+
     def test_workflow_routes_competing_jobs_away_from_bench(self):
         workflow = (ROOT / '.github/workflows/os-image.yml').read_text()
         conditions = dict(re.findall(r'^  ([a-z][a-z0-9-]*):\n(?:    [^\n]*\n)*?    if: ([^\n]+)', workflow, re.M))

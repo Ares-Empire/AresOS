@@ -225,4 +225,5 @@ if __name__ == '__main__':
     try:
         sys.exit(main())
     except Exception:
-        raise SystemExit('Bench VM unusable during setup or cleanup') from None
+        print('Bench VM unusable during setup or cleanup', file=sys.stderr)
+        sys.exit(2)
