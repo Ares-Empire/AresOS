@@ -708,7 +708,7 @@ test "$(rpm -qf --qf '%{NAME}\n' /usr/bin/deskflow-core /usr/share/applications/
 deskflow_entry=/usr/share/applications/org.deskflow.deskflow.desktop
 test "$(stat -c '%u:%g:%a:%F' "$deskflow_entry")" = '0:0:644:regular file'
 cmp "$sharing_source/applications/org.deskflow.deskflow.desktop" "$deskflow_entry"
-test -z "$(rpm -V deskflow)"
+rpm -V deskflow
 test "$(rpm -q --qf '[%{FILESTATES:fstate}|%{FILENAMES}\n]' deskflow | grep -c '^net shared|')" = 1
 rpm -q --qf '[%{FILESTATES:fstate}|%{FILENAMES}\n]' deskflow | grep -Fxq "net shared|$deskflow_entry"
 test "$(find /usr /etc /var -name org.deskflow.deskflow.desktop 2>/dev/null)" = "$deskflow_entry"
