@@ -5,7 +5,7 @@ code doesn't show. The last step turns it into the report text.
 
 ## 328a second review fix stopped at step 1
 
-**Lead ruling (2026-11-22 08:15):** F2 applies to capture bookkeeping only. The unfocused cursor-image update is harmless because XFixes shows the cursor right after it. Resume design A at step 2 and stop at step 3 if either race control fails to reproduce stale capture.
+**The lead ruled on 2026-11-22 at 08:15** that F2 applies to capture bookkeeping only. The unfocused cursor-image update is harmless because XFixes shows the cursor right after it. Resume design A at step 2 and stop at step 3 if either race control fails to reproduce stale capture.
 
 **Status remains NOT SAFE.** The step 1 source check in [Analysis 1](ANALYSIS-1.md#26-order-of-work-for-the-builder)
 failed on F2. The release path still has the risk described in [Recheck 1](RECHECK-1.md).
@@ -46,6 +46,102 @@ pointer placement, stalled-helper behavior, vanilla fallbacks and 64-bit Linux e
 Dead-key restoration also remains unverified. No mod or rig files changed in this round.
 
 ## Done
+
+### 328a design A after the lead ruling
+
+- The **step 2 call-site check** scanned every class in both Loom-remapped Minecraft 26.2 JARs for `grabOrReleaseMouse`. Only
+  `InputConstants.class` and `MouseHandler.class` contain the name. Java 25 `javap -p -c` found calls only in
+  `MouseHandler.grabMouse` and `releaseMouse`. Both already pass through the mod.
+- For **step 3**, Java 25 compiled the rig's `GlfwProbe.java` against the cached LWJGL 3.4.1 JARs. The probe ran under
+  `rig.sh` and `in-rig.sh` with the shared client-test lock. In both controls, moving the virtual pointer to
+  90,70 and 140,110 returned 640,360 in cursor mode `34001`. `state.sh` printed
+  `X pointer grab: held by another client` for both controls before any lever trial. The control with an intervening
+  poll logged both the real FocusOut and the pointer FocusIn before `normal`.
+
+| GLFW release | Sequence after capture | Observation |
+| --- | --- | --- |
+| Control, focus left unseen | `away;normal` | Both moves snapped to the centre. Grab held. |
+| Control, real events handled | `away`, poll, `normal` | Both moves snapped to the centre. Grab held. |
+| Lever, focused | `lever` | Both requested positions held. Grab free. |
+| Lever, focus left unseen | `away;lever` | Both requested positions held. Grab free. |
+| Lever, real events handled | `away`, poll, `lever` | Both requested positions held. Grab free. |
+| Lever, focus moves inside the callback | `lever away`, `lever root`, `away;lever back` on fresh captures | Both positions held in all three trials. Grab free. |
+| Lever from stale mode | `lever` after each control | Both requested positions held. Grab free. |
+
+**Design implemented.** The existing capture still hides through XFixes before Minecraft moves the cursor. A covered
+release records `letGo`. Before the next event poll, the mod puts a FocusOut at the head of GLFW's Xlib queue.
+GLFW releases its capture, and the mod's focus hook sets NORMAL, restores the pointer position where possible, and
+pairs its XFixes hide with a show. The hook also queues a FocusIn if Minecraft still records focus. Minecraft
+does not receive either of these two events. This covers vanilla captures inside `HomeScreen.session()` and
+refuses capture while a release is pending. There is no deferred recapture.
+
+The early focused client runs exposed a test harness dependency. A queue trace showed the correct FocusOut at
+the head and a native GLFW focus callback, but Fabric's test mixin cancelled `Window.onFocus` first, leaving
+the mod's hook uncalled. The native 328a fixture enables the actual focus callback for its own run. The other
+client tests keep Fabric's focus suppression. This required no adjustment to the release code from Design A.
+The probe checks run before the cleanup instrument moves or grabs the pointer.
+
+**Minecraft race matrix.** The focused `mod/dev/client-test.sh --session` run with a local Gradle init script
+selecting only `WorldKeepsPointerClientGameTest` ended with `BUILD SUCCESSFUL in 2m 1s` after the fixture
+adjustment below. Each cell ran the five focus moves `away`, `root`, `back`, `away,back` and `back,away`.
+
+| Focus at release | `asked` | `queued` | `normal` | `show` | `polled` |
+| --- | --- | --- | --- | --- | --- |
+| Focused | 5 | 5 | 5 | 5 | 5 |
+| Away, real events queued | 5 | 5 | 5 | 5 | 5 |
+| Away, real FocusOut and pointer FocusIn handled | 5 | 5 | 5 | 5 | 5 |
+
+All 75 cycles settled in NORMAL with the XFixes cursor shown and the X grab free. The pointer stayed at both
+test positions and the next real click recaptured. Capture was refused during the pending release. Escape,
+helper background, helper SIGKILL and world exit each released with a focus move before NORMAL. World exit
+started with a vanilla capture in the session after helper death and ended on the title screen. The game log
+contained no `did not hand back` line. The captured click and scroll reached Minecraft, and camera motion turned
+46.836567 degrees with probe counters steady at `[1, 0, 2, 0]`.
+
+The first full client attempt exited 1 after 14m 54s. In `AWAY_QUEUED / polled / back`, the first position
+check read 427,240 after the release had settled and the X grab check had passed. That is the centre of the
+Fabric fixture's virtual screen, which Minecraft uses for its capture warp. labwc can already be at the
+capture's starting point, so asking it for that same position need not send Xwayland a motion. The rig now moves
+to a distinct point before 90,70 and 140,110, confirms delivery of each move, and still checks that both positions
+hold through three ticks. It probes the X grab after the motion checks.
+
+The next full pair passed its first session in 15m 41s. The second session exited 1 after the pointer failed
+to enter the Wayland probe following the second Escape case. The test now uses `rig/xside.py`, an inert X11
+window on the second output. The second X11 surface lets Xwayland observe motion outside the game even when
+the eventual destination is a native Wayland window. The test confirms that Minecraft has keyboard focus,
+GLFW sees the X pointer outside the game, and the Wayland probe sees the pointer inside it before closing the
+menu. For the matrix, the same surface keeps the pointer outside the game during focus restoration so
+HomeScreen's ordinary focus-return capture does not interfere with the release measurements.
+The last four client entrypoints also passed in suite order with a local init script
+(`BUILD SUCCESSFUL in 3m 35s`). Both focused runs passed the 75 cycles and all four release causes.
+
+**Full verification on `edff64d5`.** Both builds ran 339 unit test cases with 333 passing and six Windows-only
+skips. Each printed `All 106 required tests passed :)`. Both sessions ran all 30 client entrypoints with headless
+labwc, two outputs and the NVIDIA renderer. Each passed all 75 race cycles, all four release causes, and the
+next-click recapture check. Both game logs were free of `did not hand back`.
+
+| Pass | Command | Result |
+| --- | --- | --- |
+| 1 | `mod/dev/build.sh --rerun-tasks` | `BUILD SUCCESSFUL in 2m 46s`, exit 0 |
+| 1 | `mod/dev/client-test.sh --session` | `BUILD SUCCESSFUL in 15m 51s`, exit 0 after 15m 52s |
+| 2 | `mod/dev/build.sh --rerun-tasks` | `BUILD SUCCESSFUL in 2m 51s`, exit 0 |
+| 2 | `mod/dev/client-test.sh --session` | `BUILD SUCCESSFUL in 15m 56s`, exit 0 after 15m 57s |
+
+Each command started with at least 6 GiB available and no other worktree's Gradle build running. The second
+client run waited about 32 minutes for those conditions. The four verification commands needed no exit-75 retries.
+`git checkout -- reviews/` restored 65 tracked screenshots, and cleanup removed 35 generated untracked screenshots.
+There were no files over 500 MB in `.work/`. The source check under the lead's F2 ruling and the failing standalone
+controls both cleared the stop rule.
+
+**Known limits.** GLFW releases held keys and buttons on the injected FocusOut. A still-held movement key needs
+a fresh press after the menu closes. In the standalone rig, holding Esc for 1.5 seconds across the previous
+focused release sequence produced one press, repeats, and a release. Across the lever it produced a synthetic
+release and an extra press on the first repeat. The cursor can remain hidden until the next poll, and a capture
+in that interval waits for a new click. With X focus on another window, the pointer reappears where labwc left
+it. A live helper that stops sending focus events can leave the hide in place until the normal frame check
+detects the loss. The native release uses the 64-bit Linux X event layout. Systems without X11 or libXfixes
+and games outside an AresOS session use the vanilla cursor path. Dead-key restoration and the owner's hardware
+and live session remain unverified.
 
 ### 328a: the world keeps the pointer (step 1 of 4)
 
