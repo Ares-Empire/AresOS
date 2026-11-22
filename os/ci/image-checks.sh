@@ -681,7 +681,8 @@ routes=/usr/share/xdg-desktop-portal/aresos-portals.conf
 action=/usr/share/polkit-1/actions/org.aresos.input-sharing.policy
 desktop=/usr/share/applications/org.aresos.InputSharing.desktop
 test "$(stat -c '%u:%g:%a:%F' "$portal")" = '0:0:755:regular file'
-for file in /usr/bin/aresos-input-sharing /usr/libexec/aresos-input-sharing-set /usr/libexec/aresos-deskflow; do
+for file in /usr/bin/aresos-input-sharing /usr/libexec/aresos-input-sharing-set \
+    /usr/libexec/aresos-deskflow /usr/libexec/aresos-deskflow-login; do
     test "$(stat -c '%u:%g:%a:%F' "$file")" = '0:0:755:regular file'
 done
 for file in "/usr/share/dbus-1/services/$portal_service" "$portal_license" "$portal_definition" \
@@ -852,6 +853,7 @@ PY
 pass 'the mod jar in the image is the one its manifest records (aresos-mod.json: SHA-256 and source commit)'
 lines=$(grep -Ev '^[[:space:]]*(#|$)' /usr/share/aresos/labwc/autostart)
 test "$lines" = '/usr/libexec/kf6/polkit-kde-authentication-agent-1 &
+/usr/libexec/aresos-deskflow-login &
 /usr/libexec/aresos-desktop session &'
 test "$(readlink /usr/bin/aresos-desktop)" = ../libexec/aresos-desktop
 grep -q '<windowRule identifier="aresos-desktop" serverDecoration="no"><action name="Maximize" /></windowRule>' \
