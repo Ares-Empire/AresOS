@@ -60,6 +60,11 @@ case $mode in
         date +%s > evidence/build-end-time.txt
         sudo podman image inspect localhost/aresos:check > evidence/image-inspect.json
         bash os/ci/check-image.sh localhost/aresos:check "$kind"
+        if [[ $mode == deskflow ]]; then
+            read -r portal_pin _ < os/manifest/input-portal.sha256
+            grep -Fx "INPUT_PORTAL_INSTALLED $portal_pin" evidence/image/checks.txt
+            echo "DESKFLOW_BACKEND_PIN_MATCHED $portal_pin"
+        fi
         # Boot both guardian scenarios on fresh overlays of the same disk. The
         # guest policy checks polkit for the daily account's real active
         # session (os/tests/guest.sh), then recovery login and the power key.
