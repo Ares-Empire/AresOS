@@ -167,6 +167,21 @@ class OpenAppsTest(ViewBase):
                 self.assertEqual(self.ask(helper, reconnected, 'restore'), reply)
                 self.assertEqual(self.popen.call_count, 0)
 
+    def test_already_active_window_waits_for_the_compositor_round_trip(self):
+        helper = self.start(tracked=True)
+        conn, _ = self.hello13(helper)
+        dispatched = threading.Event()
+        helper.activation_barrier = lambda: dispatched.is_set
+        self.show(helper.windows, 1, BROWSER, active=True)
+        helper.windows_changed()
+        self.assertIsNone(self.ask(helper, conn, 'restore'))
+        helper.tick()
+        self.assertFalse(any(m['id'] == 'restore' for m in conn.sent))
+        dispatched.set()
+        helper.tick()
+        self.assertEqual(conn.sent[-1]['state'], 'activated')
+        self.assertEqual(self.popen.call_count, 0)
+
     def test_joins_pending_and_started_launches_under_each_clients_own_id(self):
         helper = self.start(tracked=True)
         laptop = self.view(helper)

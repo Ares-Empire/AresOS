@@ -2973,6 +2973,10 @@ class ForeignToplevels:
         self._send(handle, 4, struct.pack('=I', self.seat))
         return True
 
+    def activation_barrier(self):
+        callback = self.sync()
+        return lambda: callback not in self.callbacks
+
     def minimize(self, handle):
         if self.kinds.get(handle) != 'toplevel':
             return False
@@ -3139,7 +3143,7 @@ class Helper:
     def __init__(self, registry_dir, instance, nonce, journal_path, launcher=None, windows=None,
                  activate=None, clock=time.monotonic, executable=None, window_timeout=WINDOW_TIMEOUT, registry=None,
                  watcher=None, status=no_status, keep_foreground=False, catalogue=None, icons=None, minimize=None,
-                 view_token=None):
+                 view_token=None, activation_barrier=None):
         self.instance = instance
         self.status = status
         self.keep_foreground = keep_foreground
@@ -3174,6 +3178,7 @@ class Helper:
         self.watcher = watcher or ScopeWatcher(run=self.launcher.run)
         self.windows = windows
         self.activate_window = activate
+        self.activation_barrier = activation_barrier
         self.minimize_window = minimize
         self.clock = clock
         self.executable = executable
@@ -3813,8 +3818,11 @@ class Helper:
                 self.record(key, dict(refused, activation_pending=True))
                 if not self.activate_window(window.handle):
                     return self.record(key, refused)
+                self.cancel_returns()
+                self.returning_until = None
+                barrier = self.activation_barrier() if self.activation_barrier is not None else None
                 self.activating[key] = dict(app_id=app_id, window=window, conns=[conn],
-                                            deadline=self.clock() + APP_ACTIVATION_TIMEOUT)
+                                            barrier=barrier, deadline=self.clock() + APP_ACTIVATION_TIMEOUT)
                 return None
             pending_check = next(((origin, item) for origin, item in self.checking.items()
                                   if item['app'].id == app_id), None)
@@ -3866,9 +3874,10 @@ class Helper:
         for key, pending in list(self.activating.items()):
             target = pending['window']
             app_id = pending['app_id']
+            barrier = pending['barrier']
             if windows.get(target.handle) is not target or target.owner != app_id or app_id not in self.catalogue_apps:
                 error = 'activation_refused'
-            elif any(self.activation_landed(w, target, windows) for w in active):
+            elif (barrier is None or barrier()) and any(self.activation_landed(w, target, windows) for w in active):
                 error = None
             elif now >= pending['deadline']:
                 error = 'activation_timeout'
@@ -4947,7 +4956,8 @@ def build(registry_dir, instance, nonce, journal_path, environ=None, launcher=No
                     activate=wayland.activate if wayland and wayland.seat is not None else None,
                     clock=clock, registry=registry, status=status,
                     keep_foreground=keep_foreground, catalogue=catalogue, icons=IconCache(environ=environ),
-                    minimize=wayland.minimize if wayland else None, view_token=environ.get('ARESOS_VIEW_TOKEN'))
+                    minimize=wayland.minimize if wayland else None, view_token=environ.get('ARESOS_VIEW_TOKEN'),
+                    activation_barrier=wayland.activation_barrier if wayland else None)
     helper.watcher.watch(helper.watched_units())
     helper.watcher.start()
     return helper, wayland
