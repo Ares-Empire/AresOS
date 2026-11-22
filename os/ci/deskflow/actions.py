@@ -1,11 +1,13 @@
 """Guest actions for the DRM output gate. The virtio layer is the only caller."""
 import contextlib
 import ctypes
+import errno
 import json
 import os
 import pathlib
 import pwd
 import re
+import select
 import signal
 import socket
 import subprocess
@@ -105,7 +107,7 @@ def check_compositor():
         assert backend_owner() == session['backend_owner'], 'original backend lost its bus name'
         if session.get('worker'):
             assert backend_connections() == 1, 'the backend Wayland worker stopped during the run'
-    elif session.get('state') in ('none', 'listener'):
+    elif session.get('state') in ('none', 'listener') or session.get('worker') is False:
         # Normal activation: the frontend may start the backend, but with sharing off it holds no Wayland
         # connection, so nobody but the listener is on the output manager.
         assert not backend_connections(), 'input portal held a Wayland connection during a DRM control case'
@@ -141,21 +143,27 @@ def wayland_connections(pid):
             try:
                 if not os.readlink(PROC / str(pid) / 'fd' / name).startswith('socket:'):
                     continue
-            except OSError:
+            except FileNotFoundError:
                 continue
             fd = libc.syscall(SYS_PIDFD_GETFD, pidfd, int(name), 0)
             if fd < 0:
-                continue
+                error = ctypes.get_errno()
+                if error == errno.EBADF:  # The target closed the descriptor after readlink.
+                    continue
+                raise OSError(error, f'pidfd_getfd of descriptor {name} of process {pid}')
             try:
                 sock = socket.socket(fileno=fd)
-            except OSError:
+            except OSError as error:
                 os.close(fd)
-                continue
+                if error.errno == errno.ENOTSOCK:  # The descriptor was closed and reused.
+                    continue
+                raise
             with sock:
                 try:
                     count += sock.family == socket.AF_UNIX and sock.getpeername() == display
-                except OSError:
-                    pass
+                except OSError as error:
+                    if error.errno != errno.ENOTCONN:
+                        raise
     finally:
         os.close(pidfd)
     return count
@@ -398,17 +406,24 @@ def identity(_request):
     time.sleep(1)
     kept = require(guest_command(PORTAL, '--status')).splitlines()
     assert len(kept) == 1 and kept[0].split(': app=', 1)[0] == first[0].split(': app=', 1)[0], kept
-    assert wayland_connections(backend_pid(session['backend_owner'])) == 1
-    # Back to Off while Deskflow still holds its session: the session closes, the worker stops and the
-    # backend, still running on its bus name, holds no Wayland connection.
+    owner = session['backend_owner']
+    pid = backend_pid(owner)
+    assert wayland_connections(pid) == 1
+    # Off must end the original process, including its Wayland connection.
+    pidfd = os.pidfd_open(pid)
+    try:
+        require(subprocess.run([HELPER, 'off'], capture_output=True, text=True, timeout=10))
+        # The watch can win the race and exit before --revoke reaches the bus.
+        revoked = require(guest_command(PORTAL, '--revoke')).strip()
+        assert revoked.startswith(('sharing is off', 'no backend is running')), revoked
+        assert select.select([pidfd], [], [], 3)[0], 'the original backend did not exit after Off'
+    finally:
+        os.close(pidfd)
+    del session['backend_owner']
     session['worker'] = False
-    require(subprocess.run([HELPER, 'off'], capture_output=True, text=True, timeout=10))
-    revoked = require(guest_command(PORTAL, '--revoke')).strip()
-    assert revoked.startswith('sharing is off'), revoked
-    off = wait_for(lambda: wayland_connections(backend_pid(session['backend_owner'])) == 0 or None,
-                   'the Wayland worker stopped after Off', timeout=3)
     assert require(guest_command(PORTAL, '--status')).strip() == 'no sessions'
-    assert backend_owner() == session['backend_owner']
+    fresh = backend_owner()
+    assert fresh != owner and wayland_connections(backend_pid(fresh)) == 0
     guest_command('systemctl', '--user', 'stop', UNIT)
     # The same guarded executable, started from outside the hub scope.
     root = session['identity_root']
@@ -418,7 +433,7 @@ def identity(_request):
                  'terminal launch refused with no app ID')
     check_compositor()
     return dict(returncode=0, app_id=DESKTOP_ID, hub_id=HUB_ID, terminal='empty ID refused',
-                off=dict(revoke=revoked, worker_connections=0, stopped=bool(off)), **proof)
+                off=dict(revoke=revoked, worker_connections=0, stopped=True, fresh_owner=fresh), **proof)
 
 
 def diagnostics(request):

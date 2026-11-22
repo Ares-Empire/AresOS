@@ -1,5 +1,6 @@
 """Regressions in the Deskflow output gate without a QEMU boot."""
 import contextlib
+import errno
 import io
 import json
 import pathlib
@@ -116,8 +117,32 @@ class DeskflowVMTest(unittest.TestCase):
             with patch.object(actions, 'backend_connections', return_value=0):
                 with self.assertRaisesRegex(AssertionError, 'Wayland worker stopped during the run'):
                     actions.check_compositor()
+                del session['backend_owner']
                 session['worker'] = False
                 actions.check_compositor()
+
+    def test_only_a_closed_descriptor_can_be_ignored_by_pidfd_getfd(self):
+        for error in (errno.EBADF, errno.EPERM, errno.ESRCH, errno.ENOSYS):
+            def failed_getfd(*_):
+                actions.ctypes.set_errno(error)
+                return -1
+
+            with (
+                self.subTest(error=error),
+                patch.object(actions, 'session', {'runtime': pathlib.Path('/fixture'), 'wayland': 'wayland-1'}),
+                patch.object(actions.os, 'pidfd_open', return_value=10),
+                patch.object(actions.os, 'listdir', return_value=['7']),
+                patch.object(actions.os, 'readlink', return_value='socket:[1]'),
+                patch.object(actions.os, 'close') as close,
+                patch.object(actions.ctypes, 'CDLL', return_value=Mock(syscall=failed_getfd)),
+            ):
+                if error == errno.EBADF:
+                    self.assertEqual(actions.wayland_connections(42), 0)
+                else:
+                    with self.assertRaises(OSError) as failed:
+                        actions.wayland_connections(42)
+                    self.assertEqual(failed.exception.errno, error)
+                close.assert_called_once_with(10)
 
     def test_wayland_connections_are_read_from_the_outside(self):
         import socket
