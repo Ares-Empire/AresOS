@@ -230,6 +230,10 @@ public final class ClickToLookClientGameTest implements FabricClientGameTest {
         context.waitFor(WorldKeepsPointerClientGameTest::captured);
         for (int move = 0; move < 20; move++) rig.input("rel 12 0");
         long lastMove = System.nanoTime();
+        // A hitch longer than the stillness: the game is held between ticks while the moves wait in its queue. It must
+        // read them before it judges the stillness (the second full run once let go here first).
+        try { Thread.sleep(ClickLook.LOOK_RELEASE_MS + 200); }
+        catch (InterruptedException error) { Thread.currentThread().interrupt(); throw new RuntimeException(error); }
         context.waitTicks(2);
         float turned = context.computeOnClient(client -> client.player.getYRot()) - yaw;
         check(Math.abs(turned) > 1, "Look mode did not steer the camera (turned " + turned + ")");
