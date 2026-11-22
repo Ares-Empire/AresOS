@@ -2989,10 +2989,13 @@ class ImageBuildTest(unittest.TestCase):
         stages = [line.split() for line in containerfile.splitlines() if line.startswith('FROM ')]
         base = json.loads((ROOT / 'os/manifest/base.json').read_text())['reference']
         labwc_base = json.loads((ROOT / 'os/labwc/labwc.lock.json').read_text())['base']['reference']
+        portal_toolchain = (ROOT / 'os/input-portal/toolchain.env').read_text()
+        portal_builder, = re.findall(r'^BUILDER_IMAGE=(\S+)$', portal_toolchain, re.M)
         # The workflow checks the first FROM against the pinned base; it stays first.
         self.assertEqual(stages, [['FROM', base, 'AS', 'source'],
                                   ['FROM', self.BUILDER, 'AS', 'mod'], ['FROM', base, 'AS', 'labwc-inputs'],
-                                  ['FROM', labwc_base, 'AS', 'labwc'], ['FROM', base, 'AS', 'packages'],
+                                  ['FROM', labwc_base, 'AS', 'labwc'],
+                                  ['FROM', portal_builder, 'AS', 'input-portal'], ['FROM', base, 'AS', 'packages'],
                                   ['FROM', 'packages', 'AS', 'aresos']])
         source_stage = containerfile.split(' AS source\n', 1)[1].split('\nFROM ', 1)[0]
         self.assertIn('RUN bash /tmp/aresos-mod/build.sh source "$ARESOS_SOURCE_REVISION" /source', source_stage)
@@ -3002,6 +3005,9 @@ class ImageBuildTest(unittest.TestCase):
                          ['COPY build.sh /tmp/aresos-mod/build.sh',
                           'COPY --from=source /source/mod /tmp/aresos-mod/mod',
                           'RUN bash /tmp/aresos-mod/build.sh mod /tmp/aresos-mod/mod /out "$ARESOS_SOURCE_REVISION"'])
+        portal_stage = containerfile.split(' AS input-portal\n', 1)[1].split('\nFROM ', 1)[0]
+        self.assertEqual(portal_stage.splitlines(),
+                         ['COPY --from=source /source/os/input-portal/ /src/', 'RUN bash /src/build.sh /src /out'])
         final = containerfile.split('FROM packages AS aresos', 1)[1]
         copy = final.index('COPY --from=mod /out/aresos.jar /tmp/aresos/minecraft/aresos.jar')
         self.assertLess(copy, final.index('build.sh configure'))
