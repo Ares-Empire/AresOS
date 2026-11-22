@@ -33,7 +33,7 @@ class BenchLayerTest(unittest.TestCase):
     def test_release_build_inputs_and_isolation_blocks(self):
         names = subprocess.check_output(['git', 'ls-files', 'os'], cwd=ROOT, text=True).splitlines()
         for name in names:
-            if not name.startswith(('os/ci/', 'os/tests/')):
+            if not name.startswith('os/ci/') and not re.fullmatch(r'os/tests/test_bench_[a-z0-9_]+\.py', name):
                 self.assertNotRegex(name.lower(), r'(?:^|[/_-])bench(?:[/_.-]|$)')
         ignore = (ROOT / 'os/.containerignore').read_text().splitlines()
         for pattern in ('ci/', 'tests/test_bench_*', 'tests/__pycache__/'):
