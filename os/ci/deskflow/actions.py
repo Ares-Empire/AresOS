@@ -1105,9 +1105,12 @@ def daily_clip(request):
         assert pid == backend_pid(current_owner(FRONTEND))
         before = daily_state['clip_before']
         counts = {member: portal_events()[member] - before[member] for member in ('SelectionRead', 'SelectionWrite')}
-        after = len(os.listdir(PROC / str(pid) / 'fd'))
-        assert all(value >= 20 for value in counts.values()) and after <= daily_state['clip_fds'], (
-            counts, daily_state['clip_fds'], after)
+        def stable_fd_count():
+            count = len(os.listdir(PROC / str(pid) / 'fd'))
+            return (count,) if count <= daily_state['clip_fds'] else None
+
+        after, = wait_for(stable_fd_count, 'frontend returned to its original descriptor count', timeout=5)
+        assert all(value >= 20 for value in counts.values()), counts
         return dict(returncode=0, portal_calls=counts, frontend_fds=[daily_state['clip_fds'], after])
     elif op == 'no-read':
         # Each attempted copy remained on its origin after shutdown.
@@ -1232,17 +1235,22 @@ def remote_switch_denied():
     """Ask from a real PAM SSH login on guest loopback, with only throwaway keys."""
     import tempfile
     with tempfile.TemporaryDirectory(prefix='deskflow-ssh-') as directory:
-        root = pathlib.Path(directory)
-        os.chmod(root, 0o755)
-        key = root / 'id'
+        work = pathlib.Path(directory)
+        key = work / 'id'
         require(subprocess.run(['ssh-keygen', '-q', '-t', 'ed25519', '-N', '', '-f', str(key)],
                                capture_output=True, text=True, timeout=10))
-        config = root / 'sshd.conf'
-        config.write_text(f'ListenAddress 127.0.0.1\nPort 22\nHostKey {key}\nUsePAM yes\n'
-                          f'AuthorizedKeysFile {key}.pub\nStrictModes no\nPasswordAuthentication no\n'
-                          'PermitRootLogin no\nUseDNS no\n')
-        with (root / 'sshd.log').open('w') as log:
-            process = subprocess.Popen(['/usr/sbin/sshd', '-D', '-e', '-f', str(config)], stdout=log, stderr=log)
+        keys = session['home'] / '.ssh'
+        require(guest_command('install', '-d', '-m', '0700', str(keys)))
+        authorized = keys / 'deskflow-ci-authorized'
+        fixture_file(authorized, key.with_suffix('.pub').read_text())
+        authorized.chmod(0o600)
+        require(subprocess.run(['ssh-keygen', '-A'], capture_output=True, text=True, timeout=12))
+        require(subprocess.run(['restorecon', '-R', str(keys), '/etc/ssh'], capture_output=True, text=True, timeout=12))
+        command = ['/usr/sbin/sshd', '-D', '-e', '-o', 'ListenAddress=127.0.0.1', '-o', 'UsePAM=yes',
+                   '-o', 'AuthorizedKeysFile=.ssh/deskflow-ci-authorized', '-o', 'PasswordAuthentication=no',
+                   '-o', 'PermitRootLogin=no', '-o', 'UseDNS=no']
+        with (work / 'sshd.log').open('w') as log:
+            process = subprocess.Popen(command, stdout=log, stderr=log)
             try:
                 def listening():
                     assert process.poll() is None, 'the isolated sshd exited before starting'
@@ -1269,3 +1277,4 @@ def remote_switch_denied():
                 if process.poll() is None:
                     process.terminate()
                     process.wait(timeout=5)
+                authorized.unlink(missing_ok=True)

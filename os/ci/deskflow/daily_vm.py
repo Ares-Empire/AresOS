@@ -198,6 +198,7 @@ class Checks:
             ('Alt+left drag', ['btn 272 1', 'rel 15 13', 'btn 272 0'], '1'),
             ('Alt+right drag', ['btn 273 1', 'rel 15 13', 'btn 273 0'], '3'),
             ('Alt+middle', ['btn 274 1', 'btn 274 0'], '2'),
+            ('Alt+scroll', ['axis -1'], '4'),
         ):
             self.input('mark')
             alt = binding.startswith('Alt+')
