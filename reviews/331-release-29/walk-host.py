@@ -14,7 +14,7 @@ sys.path.insert(0, str(ROOT / 'os/tests'))
 
 from test_owner_walk import walk as historical_walk
 from test_release29_rehearsal import CONTROL_FAILURES, TERMINAL_FAILURES, CandidateRouteTest
-from release29_walk import HOST_WALK_RECEIPT, baseline_inputs, probes, r28
+from release29_walk import HOST_WALK_RECEIPT, PARENT_HOST_WALK, check_host_receipt, host_walk_paths, probes
 import checkout_sources
 
 
@@ -67,25 +67,15 @@ def main():
     historical = historical_walk(route='release-29')
     historical['session'].close()
     candidate, evidence = diagnostics()
-    parent = 'os/manifest/ci/42/host-walk.json'
-    inherited = {row['path'] for row in json.loads((ROOT / parent).read_bytes())['sources']}
-    gone = sorted(path for path in inherited if not (ROOT / path).is_file())
-    tracked_chrome = r28.git('ls-files', '-z', '--', 'control/chrome/extension', 'control/chrome/packaging')
-    paths = (inherited - set(gone)) | {row['path'] for row in baseline_inputs()} | {
-        parent, probes.CONTROL_CHECKER, probes.CHROME_FIRST_USE, probes.POLKIT_REVIEW,
-        'os/config/usr/share/aresos/apps/browser.json', 'os/config/usr/share/aresos/apps/terminal.json',
-        'os/tests/test_release29_rehearsal.py', 'reviews/331-release-29/walk-host.py',
-        *tracked_chrome.decode().split('\0')[:-1],
-    }
-    paths.discard(HOST_WALK_RECEIPT)
+    paths, gone = host_walk_paths()
     result = dict(status='passed', kind='local synthetic R29 host walk', stick_across_reboot=False,
                   probe_settings=probes.receipt_settings(),
                   baseline=dict(stages=historical['stages'], markers=historical['markers'],
                                 checks=len(historical['checks']), command_count=len(historical['commands']),
                                 typed_count=len(historical['typed']), result=historical['result']['status']),
-                  candidate=candidate, inherited_from=parent, no_longer_bound=gone,
-                  sources=checkout_sources.records(ROOT, sorted(paths)))
-    probes.check_receipt(result)
+                  candidate=candidate, inherited_from=PARENT_HOST_WALK, no_longer_bound=gone,
+                  sources=checkout_sources.records(ROOT, paths))
+    check_host_receipt(result)
     save(ROOT / HOST_WALK_RECEIPT, result)
     save(ROOT / 'reviews/331-release-29/diagnostics/step4-probes.json', evidence)
     print(f'PASS package 331 synthetic baseline and candidate host walk with {len(paths)} sources')

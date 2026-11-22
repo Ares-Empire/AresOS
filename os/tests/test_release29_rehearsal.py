@@ -44,6 +44,7 @@ CONTROL_FAILURES = {
     'gate-reached-page': ('first-use gate failed', 'release-29', 'release-29-chrome-first-use'),
     'masked-requirement': ('requires masked', 'release-28', 'r29-starting-28-control-login'),
     'masked-control': ('Control service delays login', 'release-28', 'r29-starting-28-control-login'),
+    'wanted-control': ('Control service delays login', 'release-28', 'r29-starting-28-control-login'),
 }
 
 
@@ -552,6 +553,9 @@ class Release29Session(Release28Session):
             kw['stdout'].write(b'err: no monitors available\n')
         else:
             done = super().run(argv, **kw)
+            if self.fault == 'wanted-control' and words[:2] == ['systemctl', 'show'] \
+                    and words[-1] == 'greetd.service' and 'Wants' in words[2:-1]:
+                done.stdout += 'Wants=aresos-toold.service\n'
             if words[0] == 'setsid':
                 self.write('/proc/50/cwd', '')
             if words[0] == 'pgrep' and words[-1] == 'foot' and done.stdout and self.launches and self.fault == 'replacement-pid':
@@ -981,16 +985,16 @@ class CandidateRouteTest(unittest.TestCase):
                 model.run_route()
             self.assertFalse(model.saved['final-29-game-scope']['in_scope'])
 
-    def test_host_receipt_rejects_changed_settings_or_omitted_probe_sources(self):
-        settings = probes.receipt_settings()
-        receipt = dict(probe_settings=settings, sources=[dict(path=path) for path in
-                       (probes.CONTROL_CHECKER, probes.CHROME_FIRST_USE, probes.POLKIT_REVIEW, 'os/ci/release29_probes.py')])
-        probes.check_receipt(receipt)
-        with self.assertRaisesRegex(AssertionError, 'missing probe sources'):
-            probes.check_receipt(dict(receipt, sources=receipt['sources'][1:]))
-        wrong = dict(settings, control_checks={'28': list(probes.SERVICE_CHECKS)})
+    def test_host_receipt_rejects_changed_settings_or_each_omitted_source(self):
+        receipt = walk.read_json(ROOT / walk.HOST_WALK_RECEIPT)
+        walk.check_host_receipt(receipt)
+        self.assertIn('os/ci/release29_walk.py', {row['path'] for row in receipt['sources']})
+        for index, row in enumerate(receipt['sources']):
+            with self.subTest(path=row['path']), self.assertRaisesRegex(AssertionError, 'missing sources: ' + row['path']):
+                walk.check_host_receipt(dict(receipt, sources=receipt['sources'][:index] + receipt['sources'][index + 1:]))
+        wrong = dict(receipt['probe_settings'], control_checks={'28': list(probes.SERVICE_CHECKS)})
         with self.assertRaisesRegex(AssertionError, 'probe settings differ'):
-            probes.check_receipt(dict(receipt, probe_settings=wrong))
+            walk.check_host_receipt(dict(receipt, probe_settings=wrong))
 
     def test_failed_start_may_retry_once_after_the_r28_save_gate(self):
         with self.model('recovery') as model:

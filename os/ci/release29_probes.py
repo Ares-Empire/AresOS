@@ -34,14 +34,6 @@ def receipt_settings():
         game_memory_high=r28.MEMORY_HIGH)
 
 
-def check_receipt(receipt):
-    settings = receipt_settings()
-    assert receipt.get('probe_settings') == settings, 'STOP: R29 host walk probe settings differ'
-    sources = {row['path'] for row in receipt['sources']}
-    assert {settings['control_checker'], settings['chrome_first_use'], settings['polkit_review'],
-            'os/ci/release29_probes.py'} <= sources, 'STOP: R29 host walk is missing probe sources'
-
-
 def capture(guest, stage, vm, source):
     value = guest.capture_json(stage, vm.sw.framed('python3 -c ' + shlex.quote(source)))
     vm.td.save(stage, value)

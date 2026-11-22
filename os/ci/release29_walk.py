@@ -24,6 +24,7 @@ R13_IMAGE_PATHS = ('os/Containerfile.keyboard', 'os/.containerignore', 'os/packa
                    'os/config', 'os/policy', 'os/manifest/base.json', 'os/keys', 'os/tests/audit.py')
 BASELINE_RECEIPT = pathlib.Path('evidence/release-29-baseline.json')
 HOST_WALK_RECEIPT = 'os/manifest/ci/331/host-walk.json'
+PARENT_HOST_WALK = 'os/manifest/ci/42/host-walk.json'
 PAYLOAD = 'os/owner-tools/payload'
 RECORD = 'os/manifest/releases/29.json'
 IDENTITY = 'https://github.com/Ares-Empire/AresOS/.github/workflows/os-image.yml@refs/heads/pkg/331-release-29'
@@ -90,14 +91,43 @@ def historical_tools(vm, records):
     return tools, commands
 
 
-def baseline_inputs():
+def baseline_paths():
     tracked = r28.git('ls-files', '-z', '--', *INPUT_PATHSPECS).decode().split('\0')[:-1]
     paths = set(BASELINE_PATHS) | set(tracked)
     paths.update(f'os/manifest/releases/{version}.json' for version in registry_auth.BASELINE_RECORDS)
+    return paths
+
+
+def baseline_inputs():
+    paths = baseline_paths()
     # Step 4 adds the host walk receipt that the hosted owner route requires.
     if pathlib.Path(HOST_WALK_RECEIPT).exists():
         paths.add(HOST_WALK_RECEIPT)
     return [dict(sha256=sha256(pathlib.Path(path).read_bytes()), path=path) for path in sorted(paths)]
+
+
+def host_walk_paths():
+    inherited = {row['path'] for row in read_json(PARENT_HOST_WALK)['sources']}
+    gone = {path for path in inherited if not pathlib.Path(path).is_file()}
+    tracked = r28.git('ls-files', '-z', '--', 'control/chrome/extension', 'control/chrome/packaging')
+    paths = (inherited - gone) | baseline_paths() | {
+        PARENT_HOST_WALK, probes.CONTROL_CHECKER, probes.CHROME_FIRST_USE, probes.POLKIT_REVIEW,
+        'os/config/usr/share/aresos/apps/browser.json', 'os/config/usr/share/aresos/apps/terminal.json',
+        'os/tests/test_release29_rehearsal.py', 'reviews/331-release-29/walk-host.py',
+        *tracked.decode().split('\0')[:-1],
+    }
+    return sorted(paths), sorted(gone)
+
+
+def check_host_receipt(receipt):
+    assert receipt.get('probe_settings') == probes.receipt_settings(), 'STOP: R29 host walk probe settings differ'
+    paths, gone = host_walk_paths()
+    assert receipt.get('inherited_from') == PARENT_HOST_WALK and receipt.get('no_longer_bound') == gone, \
+        'STOP: R29 host walk inheritance differs'
+    sources = [row['path'] for row in receipt['sources']]
+    missing = set(paths) - set(sources)
+    assert not missing, 'STOP: R29 host walk is missing sources: ' + ', '.join(sorted(missing))
+    assert sorted(sources) == paths, 'STOP: R29 host walk has duplicate or unexpected sources'
 
 
 def installer_download(live, evidence=installer_inspect.EVIDENCE):

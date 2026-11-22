@@ -22,7 +22,8 @@
     "18c-b review round: main merged after R29's image package (B323) and T475; both sides' notes kept, the waiting files recomputed from the merged checkout.",
     "18c-b Chrome start diagnostics: failed Chrome actions return their start log and launch result",
     "331 step 4: merge main through 18c-b and retain both sets of pending notes.",
-    "331 step 4: bind qualifying session, Chrome first-use and rollback probes and preserve the historical route scans."
+    "331 step 4: bind qualifying session, Chrome first-use and rollback probes and preserve the historical route scans.",
+    "331 REVIEW-7: follow Wants in the login graph and require every host walk source row."
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -43,7 +44,7 @@
       "path": "os/ci/owner_media.py"
     },
     {
-      "sha256": "49e64dbdfe82d2e68070e9a7794300e9c857f9d73cc935f2fd2469b257f10689",
+      "sha256": "fcbb01b02256b7c5ed8b2b3b71a91e719a5cdf29cfcab7cd9620b6522427a1a4",
       "path": "os/ci/owner_vm.py"
     },
     {
@@ -51,7 +52,7 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "4200687cf4638cbb51dec1bc4c80ad70ab751d1c54d6252642a37b7507dae1c7",
+      "sha256": "485f6b46b1856e31320b7039767b61e8003eb2c039641d719fe54578a89146b9",
       "path": "os/ci/release28_walk.py"
     },
     {

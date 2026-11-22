@@ -307,7 +307,7 @@
       "path": "os/ci/owner_read_diagnostics.py"
     },
     {
-      "sha256": "49e64dbdfe82d2e68070e9a7794300e9c857f9d73cc935f2fd2469b257f10689",
+      "sha256": "fcbb01b02256b7c5ed8b2b3b71a91e719a5cdf29cfcab7cd9620b6522427a1a4",
       "path": "os/ci/owner_vm.py"
     },
     {
@@ -343,7 +343,7 @@
       "path": "os/ci/rehearsal_guard.py"
     },
     {
-      "sha256": "4200687cf4638cbb51dec1bc4c80ad70ab751d1c54d6252642a37b7507dae1c7",
+      "sha256": "485f6b46b1856e31320b7039767b61e8003eb2c039641d719fe54578a89146b9",
       "path": "os/ci/release28_walk.py"
     },
     {
@@ -351,11 +351,11 @@
       "path": "os/ci/release29_chrome_probe.py"
     },
     {
-      "sha256": "e0093ef06060f881aa6e556c1e090bd8f84c2d8eb7d6f412f8baf87ab1fbce51",
+      "sha256": "232e8e8ef25c37c8647f5aeb80fb6ac5d1f977c2dc3924fa8ffd3fc7607cf3c7",
       "path": "os/ci/release29_probes.py"
     },
     {
-      "sha256": "042a8c45a4dd162390806db62c736ba6f15fad7ec97e544e1decdcb1ad0a92a6",
+      "sha256": "51fe64ff5e11d6c79108ede08b0122236855b5c746e23fe1d092ab71a33f9271",
       "path": "os/ci/release29_walk.py"
     },
     {
@@ -1283,7 +1283,7 @@
       "path": "os/tests/test_release28_rehearsal.py"
     },
     {
-      "sha256": "188fd344e0135027d87cade67d3f62c0ae93dd0589c32bd51e44632a8fd23de1",
+      "sha256": "cfff78bb452b2ac6a0d97de87509446f6ea7e899538dda510cf014b5cf9d90a3",
       "path": "os/tests/test_release29_rehearsal.py"
     },
     {
@@ -1343,7 +1343,7 @@
       "path": "reviews/27-first-update-release/walk-host.py"
     },
     {
-      "sha256": "edc0f91dd7030d8717ffc1d636254e02651e335b9e8e00fa29c55373c80c3706",
+      "sha256": "0f487a044325eca6fc986e713fd7172133052f2302336c0275d22a0f56169758",
       "path": "reviews/331-release-29/walk-host.py"
     },
     {

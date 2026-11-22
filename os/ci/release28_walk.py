@@ -548,18 +548,21 @@ def receipt_setting(receipt):
         'STOP: host walk Control setting differs from the VM driver'
 
 
-LOGIN_GRAPH = '''
+LOGIN_REQUIREMENTS = ('Requires', 'Requisite', 'BindsTo')
+LOGIN_DEPENDENCIES = ('After', 'Wants', *LOGIN_REQUIREMENTS)
+LOGIN_GRAPH = 'edges=' + repr(LOGIN_DEPENDENCIES) + '''
 roots=['greetd.service','systemd-user-sessions.service']
 graph={}
 pending=list(roots)
+properties=[arg for key in ('Id','LoadState',*edges) for arg in ('-p',key)]
 while pending:
     name=pending.pop(0)
     if name in graph: continue
     assert len(graph)<1024, 'login dependency graph too large'
-    shown=subprocess.run(['systemctl','show','-p','Id','-p','LoadState','-p','After','-p','Requires','-p','Requisite','-p','BindsTo','--',name],capture_output=True,text=True,timeout=30)
+    shown=subprocess.run(['systemctl','show',*properties,'--',name],capture_output=True,text=True,timeout=30)
     row=dict(line.split('=',1) for line in shown.stdout.splitlines() if '=' in line)
     graph[name]=dict(status=shown.returncode,properties=row,stderr=shown.stderr)
-    pending.extend(dep for key in ('After','Requires','Requisite','BindsTo') for dep in row.get(key,'').split() if dep not in graph)
+    pending.extend(dep for key in edges for dep in row.get(key,'').split() if dep not in graph)
 login=dict(roots=roots,graph=graph)
 '''
 
@@ -626,18 +629,18 @@ def validate_login(login, *, strict_requirements=False):
         row = graph[name]
         properties = row['properties']
         assert properties.get('Id') and properties['Id'] != 'aresos-toold.service', 'STOP: login dependency query failed or names Control'
-        dependencies = [dep for key in ('After', 'Requires', 'Requisite', 'BindsTo') for dep in properties.get(key, '').split()]
-        # Optional After= units (for example home.mount on an Atomic image) can be absent. They cannot delay
+        dependencies = [dep for key in LOGIN_DEPENDENCIES for dep in properties.get(key, '').split()]
+        # Optional After= or Wants= units can be absent. They cannot delay
         # login; a missing root or an unreadable graph still stops the walk.
         absent = properties.get('LoadState') == 'not-found' and name not in login['roots'] and not dependencies
-        # A masked unit never starts, so as an ordering-only reference it cannot delay login: the stock base
+        # A masked unit never starts, so a soft reference to it cannot delay login: the stock base
         # masks systemd-remount-fs.service (rehearsal 4, run 44729393652; the laptop's release 27 too). Its own
         # ordering is still followed, so Control behind it still stops the walk; a masked login root, or a
         # masked unit another login unit requires (which would keep that unit from starting), stops it.
         masked = properties.get('LoadState') == 'masked' and name not in login['roots']
         if masked:
             masked_units.add(name)
-        required.update(dep for key in ('Requires', 'Requisite', 'BindsTo') for dep in properties.get(key, '').split())
+        required.update(dep for key in LOGIN_REQUIREMENTS for dep in properties.get(key, '').split())
         assert (row['status'] == 0 and (properties.get('LoadState') == 'loaded' or masked)) \
             or (absent and row['status'] in (0, 1)), 'STOP: login dependency query failed: ' + name
         pending.extend(dependencies)

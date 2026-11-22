@@ -2340,6 +2340,8 @@ def main():
     assert walk['status'] == 'passed' and walk['stick_across_reboot'] is False
     assert isinstance(walk['sources'], list) and walk['sources']
     assert len({row['path'] for row in walk['sources']}) == len(walk['sources']), 'Duplicate host source'
+    if mode == 'release-29':
+        release29_walk.check_host_receipt(walk)
     for row in walk['sources']:
         assert list(row) == ['sha256', 'path'], 'Host source must put hash before path'
         assert hashlib.sha256(pathlib.Path(row['path']).read_bytes()).hexdigest() == row['sha256'], 'Host walk is stale'
@@ -2359,7 +2361,6 @@ def main():
         # Package 42's rehearsal rebinds package 22d's tables (its record step, after a pass).
         td.save('42-bound-sources', bound_sources(walk['sources'], '42', '22d'))
     if mode == 'release-29':
-        release29_walk.probes.check_receipt(walk)
         phase = os.environ.get('RELEASE29_PHASE', 'baseline')
         assert phase in ('baseline', 'qualify'), 'STOP: unknown R29 walk phase'
         baseline = release29_walk.prepare(sys.modules[__name__], qualifying=phase == 'qualify')
