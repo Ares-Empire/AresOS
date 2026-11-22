@@ -1,0 +1,202 @@
+"""Pairing a Mac through the guarded Deskflow launcher (brief 321, step 3 review, finding 3).
+
+A stand-in plays deskflow-core: it opens the core's IPC socket in the TMPDIR it is given, answers a hello the way
+Deskflow 1.27 does (its own version on a mismatch, then the messages it queued), reports peers' fingerprints as
+the real core does for every TLS peer, and writes down what the running server trusts. A stand-in dialog answers
+for the owner. The real openssl makes the certificate. Nothing outside a temporary folder is touched.
+"""
+import json
+import os
+from pathlib import Path
+import runpy
+import signal
+import stat
+import tempfile
+import unittest
+from unittest.mock import patch
+
+CONFIG = Path(__file__).resolve().parents[1] / 'config'
+LAUNCHER = CONFIG / 'usr/libexec/aresos-deskflow'
+MAC = 'AB' * 32
+STRANGER = 'CD' * 32
+OLD = 'v2:sha256:' + 'ef' * 32
+
+CORE = r'''#!/usr/bin/python3 -I
+import json, os, socket, sys, time
+from pathlib import Path
+plan = json.loads(Path(os.environ['STANDIN_PLAN']).read_text())
+profile = Path(os.environ['XDG_CONFIG_HOME']) / 'Deskflow'
+trusted = profile / 'tls/trusted-clients'
+report = {'argv': sys.argv[1:], 'tmpdir': os.environ['TMPDIR'], 'config': os.environ['XDG_CONFIG_HOME'],
+          'platform': os.environ.get('QT_QPA_PLATFORM'), 'display': os.environ.get('DISPLAY'),
+          'settings': (profile / 'Deskflow.conf').read_text(),
+          'certificate': (profile / 'tls/deskflow.pem').exists(),
+          'trust_at_start': trusted.read_text() if trusted.exists() else None, 'client': False}
+server = socket.socket(socket.AF_UNIX)
+server.bind(os.path.join(os.environ['TMPDIR'], 'deskflow-core'))
+server.listen(1)
+server.settimeout(plan['accept_within'])
+try:
+    conn, _ = server.accept()
+except TimeoutError:
+    conn = None
+if conn is not None:
+    report['client'] = True
+    reader = conn.makefile('r')
+    version = '1.27.0+'
+    while True:
+        line = reader.readline().strip()
+        if not line:
+            break
+        if line == f'hello={version}':
+            conn.sendall(f'hello={version}\n'.encode())
+            break
+        conn.sendall(f'versionMismatch={version}\n'.encode())
+    for message in ['connectionState=Listening'] + [f'peerFingerprint={peer}' for peer in plan['peers']]:
+        try:
+            conn.sendall((message + '\n').encode())
+        except OSError:
+            break  # the launcher is done with the channel once the owner accepted a Mac
+        time.sleep(0.05)
+    deadline = time.monotonic() + 5
+    while plan['wait_for_trust'] and not trusted.exists() and time.monotonic() < deadline:
+        time.sleep(0.05)
+    conn.close()
+report['trust_at_end'] = trusted.read_text() if trusted.exists() else None
+Path(os.environ['STANDIN_REPORT']).write_text(json.dumps(report))
+'''
+
+DIALOG = r'''#!/usr/bin/python3 -I
+import json, os, sys
+from pathlib import Path
+plan = json.loads(Path(os.environ['STANDIN_PLAN']).read_text())
+text = sys.argv[sys.argv.index('--yesno') + 1]
+with open(os.environ['STANDIN_ASKED'], 'a') as log:
+    log.write(json.dumps(sys.argv[1:]) + '\n')
+sys.exit(0 if any(line in text for line in plan['accept']) else 1)
+'''
+
+
+class PairingTest(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+        self.runtime = self.root / 'run'
+        self.runtime.mkdir(mode=0o700)
+        self.source = self.root / 'config/Deskflow'
+        self.source.mkdir(parents=True)
+        # Whatever the user's settings say, the launch makes TLS and the peer check effective.
+        (self.source / 'Deskflow.conf').write_text('[security]\ntlsEnabled=false\ncheckPeerFingerprints=false\n')
+        self.core, self.dialog = self.root / 'deskflow-core', self.root / 'kdialog'
+        for path, text in ((self.core, CORE), (self.dialog, DIALOG)):
+            path.write_text(text)
+            path.chmod(0o755)
+        self.plan, self.report, self.asked = self.root / 'plan.json', self.root / 'report.json', self.root / 'asked'
+        self.launcher = runpy.run_path(str(LAUNCHER))
+        self.enterContext(patch.dict(os.environ, {
+            'XDG_CONFIG_HOME': str(self.root / 'config'), 'XDG_RUNTIME_DIR': str(self.runtime),
+            'STANDIN_PLAN': str(self.plan), 'STANDIN_REPORT': str(self.report), 'STANDIN_ASKED': str(self.asked),
+            'DISPLAY': ':9'}))
+        previous = signal.getsignal(signal.SIGTERM)
+        self.addCleanup(signal.signal, signal.SIGTERM, previous)
+
+    def launch(self, argv=(), peers=(), accept=(), wait_for_trust=False, accept_within=10.0):
+        first_lines = [self.launcher['columns'](peer).splitlines()[0] for peer in accept]
+        self.plan.write_text(json.dumps(dict(peers=list(peers), accept=first_lines, wait_for_trust=wait_for_trust,
+                                             accept_within=accept_within)))
+        code = self.launcher['main'](list(argv), core=str(self.core), dialog=str(self.dialog))
+        self.assertEqual(code, 0)
+        return json.loads(self.report.read_text())
+
+    def questions(self):
+        if not self.asked.exists():
+            return []
+        return [json.loads(line) for line in self.asked.read_text().splitlines()]
+
+    def saved(self):
+        trusted = self.source / 'tls/trusted-clients'
+        return trusted.read_text() if trusted.exists() else None
+
+    def test_an_empty_profile_pairs_only_the_mac_the_owner_confirms(self):
+        report = self.launch(peers=[MAC, MAC, STRANGER], accept=[MAC], wait_for_trust=True)
+        mac_line = f'v2:sha256:{MAC.lower()}\n'
+        self.assertEqual(self.saved(), mac_line, 'the one fingerprint the owner confirmed, and nothing else')
+        self.assertEqual(stat.S_IMODE((self.source / 'tls/trusted-clients').stat().st_mode), 0o600)
+        self.assertEqual(report['trust_at_start'], None, 'the server trusted nobody before the owner answered')
+        self.assertEqual(report['trust_at_end'], mac_line, "the running server trusts it too: the Mac's next try gets in")
+        # Asked once: not again for the same Mac, and not at all for the stranger after the Mac was accepted.
+        questions = self.questions()
+        self.assertEqual(len(questions), 1)
+        text = questions[0][questions[0].index('--yesno') + 1]
+        self.assertIn(self.launcher['columns'](MAC), text)
+        self.assertNotIn(self.launcher['columns'](STRANGER), text)
+        # A profile that never ran Deskflow's window gets a server certificate, and the dialog shows its
+        # fingerprint for the Mac to check.
+        certificate = self.source / 'tls/deskflow.pem'
+        self.assertEqual(stat.S_IMODE(certificate.stat().st_mode), 0o600)
+        pem = certificate.read_text()
+        self.assertIn('PRIVATE KEY-----', pem)
+        self.assertIn('BEGIN CERTIFICATE-----', pem)
+        own = self.launcher['own_fingerprint'](certificate)
+        self.assertRegex(own, r'^[0-9A-F]{64}$')
+        self.assertIn("This laptop's fingerprint", text)
+        self.assertIn(self.launcher['columns'](own), text)
+        self.assertTrue(report['certificate'])
+        # TLS and the peer check on in the copy the core ran with; its IPC socket in that private folder;
+        # Wayland only.
+        self.assertEqual(report['argv'], ['server'])
+        self.assertIn('tlsEnabled=true', report['settings'])
+        self.assertIn('checkPeerFingerprints=true', report['settings'])
+        self.assertEqual(report['tmpdir'], report['config'])
+        self.assertEqual(Path(report['tmpdir']).parent, self.runtime)
+        self.assertEqual((report['platform'], report['display']), ('wayland', None))
+        self.assertTrue(report['client'])
+
+    def test_nothing_is_trusted_unless_the_owner_confirms(self):
+        report = self.launch(peers=[MAC, STRANGER, MAC, 'not-a-fingerprint'], accept=[])
+        self.assertIsNone(self.saved())
+        self.assertIsNone(report['trust_at_end'])
+        texts = [question[question.index('--yesno') + 1] for question in self.questions()]
+        self.assertEqual(len(texts), 2, 'each peer asked about once')
+        self.assertIn(self.launcher['columns'](MAC), texts[0])
+        self.assertIn(self.launcher['columns'](STRANGER), texts[1])
+
+    def test_enroll_replaces_the_saved_mac_only_when_the_owner_confirms(self):
+        (self.source / 'tls').mkdir()
+        (self.source / 'tls/trusted-clients').write_text(OLD + '\n')
+        report = self.launch(['--enroll'], peers=[STRANGER], accept=[])
+        self.assertEqual(self.saved(), OLD + '\n', 'refused: the saved Mac stays')
+        self.assertIsNone(report['trust_at_start'], 'while pairing the server trusts nobody, not even the saved Mac')
+        report = self.launch(['--enroll'], peers=[MAC], accept=[MAC], wait_for_trust=True)
+        self.assertEqual(self.saved(), f'v2:sha256:{MAC.lower()}\n')
+        self.assertEqual(report['trust_at_end'], f'v2:sha256:{MAC.lower()}\n')
+
+    def test_a_paired_mac_starts_the_server_without_asking(self):
+        (self.source / 'tls').mkdir()
+        (self.source / 'tls/trusted-clients').write_text(OLD + '\n')
+        report = self.launch(peers=[MAC], accept=[MAC], accept_within=1.0)
+        self.assertFalse(report['client'], 'no pairing channel is opened')
+        self.assertEqual(report['trust_at_start'], OLD + '\n')
+        self.assertEqual(self.questions(), [])
+        self.assertEqual(self.saved(), OLD + '\n')
+
+    def test_a_trust_list_with_two_entries_is_refused_and_points_to_enroll(self):
+        (self.source / 'tls').mkdir()
+        (self.source / 'tls/trusted-clients').write_text(f'{OLD}\nv2:sha256:{MAC.lower()}\n')
+        with self.assertRaisesRegex(ValueError, '--enroll'):
+            self.launch(peers=[], accept_within=1.0)
+        self.assertFalse(self.report.exists(), 'the core was never started')
+
+    def test_a_core_without_its_pairing_channel_is_stopped(self):
+        pid_file = self.root / 'core.pid'
+        self.core.write_text('#!/usr/bin/python3 -I\nimport os, time\n'
+                             f'open({str(pid_file)!r}, "w").write(str(os.getpid()))\ntime.sleep(60)\n')
+        with self.assertRaisesRegex(OSError, 'pairing channel'):
+            self.launcher['main']([], core=str(self.core), dialog=str(self.dialog), pairing_within=1.0)
+        with self.assertRaises(ProcessLookupError):
+            os.kill(int(pid_file.read_text()), 0)
+        self.assertIsNone(self.saved())
+
+if __name__ == '__main__':
+    unittest.main()

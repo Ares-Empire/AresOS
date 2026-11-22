@@ -1,22 +1,102 @@
 #!/usr/bin/python3 -I
-"""Run the native Deskflow server with a private snapshot of its pairing."""
+"""Run the native Deskflow server with a private snapshot of its pairing.
+
+  aresos-deskflow            the server; with no trusted Mac yet, it pairs one first
+  aresos-deskflow --enroll   the server, pairing a Mac again (the saved one is replaced only when the owner accepts)
+
+TLS and the peer check are on whatever the user's settings say, and the server trusts at most one fingerprint:
+the one the owner accepted after comparing it with what the Mac's Deskflow shows (brief 321, laptop test 3).
+"""
 import os
 from pathlib import Path
 import re
+import select
 import shutil
 import signal
 import socket
 import subprocess
 import sys
 import tempfile
+import time
 
 from PySide6.QtCore import QSettings
 
 CORE = '/usr/bin/deskflow-core'
+KDIALOG = '/usr/bin/kdialog'
+OPENSSL = '/usr/bin/openssl'
 FINGERPRINT = re.compile(r'v2:sha256:[0-9a-fA-F]{64}')
+# What the core reports for each peer that completes the TLS handshake, before it checks the trust list:
+# the SHA-256 of the peer's certificate, in upper-case hex (Deskflow 1.27, SecureSocket::verifyCertFingerprint).
+PEER = re.compile(r'peerFingerprint=([0-9A-F]{64})')
+# The core's local IPC server (Deskflow's kCoreIpcName): a socket of this name in the core's TMPDIR.
+IPC_NAME = 'deskflow-core'
 
 
-def prepare_profile(source, target):
+def trust_line(hex_digest):
+    return f'v2:sha256:{hex_digest.lower()}'
+
+
+def columns(hex_digest):
+    """A SHA-256 as Deskflow's own window shows it: upper-case byte pairs with colons, eight to a line."""
+    pairs = [hex_digest[i:i + 2].upper() for i in range(0, len(hex_digest), 2)]
+    return '\n'.join(':'.join(pairs[i:i + 8]) for i in range(0, len(pairs), 8))
+
+
+def saved_trust(source):
+    """The saved trust list's entries, refusing anything but at most one well-formed fingerprint."""
+    trusted = source / 'tls/trusted-clients'
+    entries = [line for line in trusted.read_text().splitlines() if line] if trusted.exists() else []
+    if len(entries) > 1 or any(not FINGERPRINT.fullmatch(line) for line in entries):
+        raise ValueError('Deskflow needs a trust list with only the verified Mac fingerprint. '
+                         'Run aresos-deskflow --enroll to pair the Mac again.')
+    return entries
+
+
+def write_private(path, text):
+    """Replace `path` in one rename, readable by its owner only."""
+    path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(prefix=f'.{path.name}.', dir=path.parent)
+    try:
+        with os.fdopen(fd, 'w') as stream:
+            stream.write(text)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    except BaseException:
+        os.unlink(temporary)
+        raise
+
+
+def ensure_certificate(source, openssl=OPENSSL):
+    """A profile that never ran Deskflow's window has no server certificate, and only that window makes one.
+    Make it the way Deskflow does (RSA 2048, self-signed, CN=Deskflow, a year; key and certificate in one PEM)
+    at Deskflow's default path. A certificate set somewhere else in the settings is left to the user."""
+    configured = QSettings(str(source / 'Deskflow.conf'), QSettings.Format.IniFormat)
+    if configured.contains('security/certificate'):
+        return
+    certificate = source / 'tls/deskflow.pem'
+    if certificate.exists():
+        return
+    certificate.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=certificate.parent) as work:
+        key, cert = Path(work) / 'key.pem', Path(work) / 'cert.pem'
+        subprocess.run([openssl, 'req', '-x509', '-newkey', 'rsa:2048', '-noenc', '-sha256', '-days', '365',
+                        '-subj', '/CN=Deskflow', '-keyout', str(key), '-out', str(cert)],
+                       check=True, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        write_private(certificate, key.read_text() + cert.read_text())
+
+
+def own_fingerprint(certificate, openssl=OPENSSL):
+    """This laptop's fingerprint, for the owner to compare on the Mac; None when it can't be read."""
+    result = subprocess.run([openssl, 'x509', '-in', str(certificate), '-noout', '-fingerprint', '-sha256'],
+                            capture_output=True, text=True, stdin=subprocess.DEVNULL)
+    match = re.search(r'=((?:[0-9A-F]{2}:){31}[0-9A-F]{2})$', result.stdout.strip())
+    return match[1].replace(':', '') if result.returncode == 0 and match else None
+
+
+def prepare_profile(source, target, enroll=False):
+    """Copy the profile into `target` with TLS and the peer check on. Enrolling, no trust entry is copied: the
+    server trusts nobody until the owner accepts a fingerprint."""
     configured = QSettings(str(source / 'Deskflow.conf'), QSettings.Format.IniFormat)
     keys = configured.allKeys()
     if configured.status() != QSettings.Status.NoError:
@@ -24,12 +104,10 @@ def prepare_profile(source, target):
 
     tls = target / 'tls'
     tls.mkdir(parents=True)
-    trusted = source / 'tls/trusted-clients'
-    entries = [line for line in trusted.read_text().splitlines() if line] if trusted.exists() else []
-    if len(entries) > 1 or any(not FINGERPRINT.fullmatch(line) for line in entries):
-        raise ValueError('Deskflow needs a trust list with only the verified Mac fingerprint.')
-    if entries:
-        (tls / 'trusted-clients').write_text(entries[0] + '\n')
+    if not enroll:
+        entries = saved_trust(source)
+        if entries:
+            (tls / 'trusted-clients').write_text(entries[0] + '\n')
 
     certificate = source / 'tls/deskflow.pem'
     certificate = Path(configured.value('security/certificate', str(certificate), type=str))
@@ -56,24 +134,130 @@ def prepare_profile(source, target):
         raise OSError('Could not write the protected Deskflow settings.')
 
 
-def main():
+def ask(dialog, peer, own):
+    """Whether the owner confirms that `peer` is the fingerprint the Mac's Deskflow shows."""
+    text = ('A computer is asking to use this laptop\'s mouse, keyboard and clipboard through Deskflow.\n\n'
+            f'Its fingerprint:\n\n{columns(peer)}\n\n'
+            'On the Mac, open Deskflow and find its own fingerprint. Accept only if every character matches. '
+            'If it does not match, or you did not just connect the Mac, choose "It doesn\'t match".')
+    if own:
+        text += f'\n\nThis laptop\'s fingerprint, for the Mac to check:\n\n{columns(own)}'
+    try:
+        answer = subprocess.run([dialog, '--title', 'Pair a Mac with Deskflow', '--yes-label', 'It matches',
+                                 '--no-label', "It doesn't match", '--yesno', text],
+                                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except OSError:
+        return False
+    return answer.returncode == 0
+
+
+class CoreIpc:
+    """A client of the core's IPC server: it reports each peer's fingerprint there (`peerFingerprint=`)."""
+
+    def __init__(self, path, core, within=10.0):
+        self.buffer = b''
+        deadline = time.monotonic() + within
+        while True:
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            try:
+                sock.connect(str(path))
+                break
+            except OSError:
+                sock.close()
+                if core.poll() is not None or time.monotonic() > deadline:
+                    raise OSError('Deskflow did not start its pairing channel.') from None
+                time.sleep(0.1)
+        self.sock = sock
+        # The core answers a hello with another version with its own, and replays what it queued for a
+        # client (a peer that connected first) only after a hello with exactly that version.
+        self.send('hello=aresos')
+        for line in self.lines(within):
+            if line.startswith('versionMismatch='):
+                version = line.split('=', 1)[1]
+                self.send(f'hello={version}')
+            elif line.startswith('hello='):
+                return
+        raise OSError('Deskflow did not answer on its pairing channel.')
+
+    def send(self, line):
+        self.sock.sendall(line.encode() + b'\n')
+
+    def lines(self, within=None):
+        """Lines as they come; ends when the core closes the channel, or after `within` seconds of silence."""
+        while True:
+            while b'\n' in self.buffer:
+                line, self.buffer = self.buffer.split(b'\n', 1)
+                yield line.decode(errors='replace')
+            ready, _, _ = select.select([self.sock], [], [], within)
+            if not ready:
+                return
+            data = self.sock.recv(4096)
+            if not data:
+                return
+            self.buffer += data
+
+    def close(self):
+        self.sock.close()
+
+
+def enroll(ipc, source, runtime_profile, dialog, own):
+    """Ask about each new peer until the owner accepts one: then its fingerprint is the one trusted entry, saved
+    in the user's profile and in the running server's copy (the core reads that copy at every connection, so the
+    Mac's next try gets in). Returns the accepted fingerprint, or None when the core went away first."""
+    refused = set()
+    for line in ipc.lines():
+        match = PEER.fullmatch(line)
+        if not match or match[1] in refused:
+            continue
+        peer = match[1]
+        if not ask(dialog, peer, own):
+            refused.add(peer)
+            continue
+        entry = trust_line(peer) + '\n'
+        write_private(source / 'tls/trusted-clients', entry)
+        write_private(runtime_profile / 'tls/trusted-clients', entry)
+        return peer
+    return None
+
+
+def main(argv=None, core=CORE, dialog=KDIALOG, openssl=OPENSSL, pairing_within=10.0):
+    argv = sys.argv[1:] if argv is None else argv
+    if argv not in ([], ['--enroll']):
+        raise ValueError('Usage: aresos-deskflow [--enroll]')
     config = Path(os.environ.get('XDG_CONFIG_HOME') or Path.home() / '.config')
     source = config / 'Deskflow'
+    pairing = argv == ['--enroll'] or not saved_trust(source)
+    if pairing:
+        ensure_certificate(source, openssl)
     with tempfile.TemporaryDirectory(prefix='aresos-deskflow-', dir=os.environ['XDG_RUNTIME_DIR']) as runtime:
-        prepare_profile(source, Path(runtime) / 'Deskflow')
-        # Do not let an XWayland fallback bypass the input portal.
-        env = dict(os.environ, XDG_CONFIG_HOME=runtime, QT_QPA_PLATFORM='wayland', XDG_SESSION_TYPE='wayland')
+        profile = Path(runtime) / 'Deskflow'
+        prepare_profile(source, profile, enroll=pairing)
+        # Do not let an XWayland fallback bypass the input portal. TMPDIR keeps the core's IPC socket, which
+        # Deskflow opens to everyone, in this folder that only the owner can enter.
+        env = dict(os.environ, XDG_CONFIG_HOME=runtime, QT_QPA_PLATFORM='wayland', XDG_SESSION_TYPE='wayland',
+                   TMPDIR=runtime)
         env.pop('DISPLAY', None)
-        with subprocess.Popen([CORE, 'server'], env=env) as core:
-            signal.signal(signal.SIGTERM, lambda *_: core.terminate())
-            return core.wait()
+        with subprocess.Popen([core, 'server'], env=env) as process:
+            signal.signal(signal.SIGTERM, lambda *_: process.terminate())
+            if pairing:
+                try:
+                    ipc = CoreIpc(Path(runtime) / IPC_NAME, process, pairing_within)
+                    try:
+                        enroll(ipc, source, profile, dialog, own_fingerprint(profile / 'tls/deskflow.pem', openssl))
+                    finally:
+                        ipc.close()
+                except BaseException:
+                    # No pairing channel: a server that can trust nobody is no use; don't leave it running.
+                    process.terminate()
+                    raise
+            return process.wait()
 
 
 if __name__ == '__main__':
     try:
         sys.exit(main())
-    except (OSError, ValueError) as error:
+    except (OSError, ValueError, subprocess.CalledProcessError) as error:
         message = f'Could not start Deskflow. {error}'
         print(message, file=sys.stderr)
-        subprocess.run(['/usr/bin/kdialog', '--title', 'Deskflow', '--error', message])
+        subprocess.run([KDIALOG, '--title', 'Deskflow', '--error', message])
         sys.exit(1)
