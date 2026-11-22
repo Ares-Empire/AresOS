@@ -244,8 +244,8 @@ class ProtocolTest(Base):
         helper.connected(conn)
         reply = self.request(helper, conn, 'hello', 'h-1', major=1, minor=7, capabilities=ALL,
                              requires=['open_app'], instance=INSTANCE, nonce=NONCE, future_field={'x': 1})
-        self.assertEqual(reply['protocol'], 'aresos-shell/1.2')
-        self.assertEqual((reply['id'], reply['ok'], reply['major'], reply['minor']), ('h-1', True, 1, 2))
+        self.assertEqual(reply['protocol'], 'aresos-shell/1.3')
+        self.assertEqual((reply['id'], reply['ok'], reply['major'], reply['minor']), ('h-1', True, 1, 3))
         # Without a compositor there is no window tracking, so no shell_focus.
         self.assertEqual(set(reply['capabilities']), {'list_apps', 'open_app', 'app_state', 'world_ready', 'heartbeat',
                                                     'app_details', 'apps_changed', 'list_paging', 'views',

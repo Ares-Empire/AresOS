@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""AresOS app helper: the OS side of the aresos-shell/1.2 interface.
+"""AresOS app helper: the OS side of the aresos-shell/1.3 interface.
 
 Design: docs/design/OS-BASE.md Appendix B1 (mod and OS interface v1) and B2
 (supervision and focus). The desktop mod connects over a private Unix socket
@@ -8,12 +8,12 @@ definition or a discovered desktop entry in its own systemd user scope,
 watches the app's windows and tells the mod when focus moves.
 
 Wire format: one UTF-8 JSON object per line, at most 64 KiB per line.
-  request  {"protocol": "aresos-shell/1.2", "id": <request id>, "op": <operation>, ...}
+  request  {"protocol": "aresos-shell/1.3", "id": <request id>, "op": <operation>, ...}
   reply    {"protocol": ..., "id": <request id>, "ok": true, ...}
            {"protocol": ..., "id": <request id or null>, "ok": false, "error": <code>, "message": <text>}
   event    {"protocol": ..., "id": <event id>, "event": "app_state" | "shell_focus" | "apps_changed"
                                                  | "shell_covered" | "home_changed" | "apps_running"
-                                                 | "shell_search", ...}
+                                                 | "shell_search" | "apps_state", ...}
 
 Minor 1 adds app_details, list_paging and apps_changed. list_apps returns an
 ID-ordered page with revision and optional next; cursor requests the next page.
@@ -44,6 +44,10 @@ the supervisor's `aresos-desktop search` (package 23c) signals this helper with
 SIGUSR1, and the serving loop gives the world's window the keyboard first. A
 minor-2 desktop's open_app may carry "screen": "world" (the app opens on the
 screen that shows the world); the hint stays with the launch's journal entry.
+
+Minor 3 adds apps_state and activate_app for desktops and views that ask for
+them, when the compositor can activate windows. See HOME-OUTSIDE.md section 5
+and mod/src/test/resources/shell-1.3/.
 
 Desktop operations (B1): hello, list_apps, open_app, world_ready, heartbeat,
 and publish_home in 1.2. Other desktop operations return unknown_operation.
@@ -90,6 +94,7 @@ import hashlib
 import hmac
 import json
 import logging
+from logging.handlers import RotatingFileHandler
 import os
 import posixpath
 import re
@@ -113,7 +118,7 @@ LOG = logging.getLogger('aresos-shell')
 
 NAME = 'aresos-shell'
 MAJOR = 1
-MINOR = 2
+MINOR = 3
 MAX_MESSAGE = 64 * 1024
 MAX_OUTGOING = 1024 * 1024
 MAX_CONNECTIONS = 8
@@ -168,6 +173,8 @@ DETAIL_CAPABILITIES = frozenset({'app_details', 'apps_changed', 'list_paging'})
 VIEW_CAPABILITIES = frozenset({'views', 'home_state', 'apps_running'})
 VIEW_OPERATIONS = frozenset({'hello', 'list_apps', 'open_app', 'get_home', 'view_focus'})
 VIEW_EVENTS = frozenset({'app_state', 'apps_changed', 'home_changed', 'apps_running'})
+APP_WINDOW_CAPABILITIES = frozenset({'apps_state', 'activate_app'})
+APP_ACTIVATION_TIMEOUT = 1.0
 MAX_HOME_PARTS = 16
 MAX_HOME_APPS = 200
 MAX_HOME_COLOURS = 64
@@ -231,6 +238,79 @@ def protocol(minor=MINOR):
 # This file, run again as the SVG pre-check's own process (review 2, FIX 2). Taken from the code itself: a module
 # that a test loads has no __file__.
 HELPER_FILE = os.path.abspath(protocol.__code__.co_filename)
+
+
+def exception_type(error):
+    return type(error).__name__, error.errno if isinstance(error, OSError) else None
+
+
+def log_unexpected(message):
+    error = sys.exception()
+    trace = error.__traceback__
+    line = None
+    while trace is not None:
+        if trace.tb_frame.f_code.co_filename == protocol.__code__.co_filename:
+            line = trace.tb_lineno
+        trace = trace.tb_next
+    LOG.error('%s (%s at aresos-shell:%s)', message, type(error).__name__, line)
+
+
+class ShellLog(RotatingFileHandler):
+    """Keep the current log and its backup private, including pre-existing files."""
+
+    @staticmethod
+    def private_file(path, flags):
+        fd = os.open(path, flags | os.O_NOFOLLOW | os.O_NONBLOCK, 0o600)
+        try:
+            info = os.fstat(fd)
+            if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or info.st_nlink != 1:
+                raise PermissionError('unsafe log file')
+            os.fchmod(fd, 0o600)
+        except BaseException:
+            os.close(fd)
+            raise
+        return fd
+
+    def _open(self):
+        fd = self.private_file(self.baseFilename, os.O_WRONLY | os.O_CREAT | os.O_APPEND)
+        return os.fdopen(fd, 'a', encoding='utf-8')
+
+    def doRollover(self):
+        # Also check a backup created by a previous helper before replacing it.
+        try:
+            os.close(self.private_file(self.baseFilename + '.1', os.O_RDONLY))
+        except FileNotFoundError:
+            pass
+        super().doRollover()
+
+    def handleError(self, record):
+        # The independent stderr handler already received the record.
+        self.close()
+        LOG.removeHandler(self)
+        LOG.warning('could not write or rotate shell.log (%s, errno %s)', *exception_type(sys.exception()))
+
+
+def configure_log(environ=None):
+    environ = os.environ if environ is None else environ
+    state = environ.get('XDG_STATE_HOME')
+    if not state or not os.path.isabs(state):
+        state = os.path.join(environ.get('HOME') or os.path.expanduser('~'), '.local', 'state')
+    folder = os.path.join(state, 'aresos')
+    try:
+        os.makedirs(folder, mode=0o700, exist_ok=True)
+        handler = ShellLog(os.path.join(folder, 'shell.log'), maxBytes=512 * 1024, backupCount=1)
+        try:
+            os.close(handler.private_file(handler.baseFilename + '.1', os.O_RDONLY))
+        except FileNotFoundError:
+            pass
+        except OSError:
+            handler.close()
+            raise
+    except OSError as error:
+        LOG.warning('could not open shell.log (%s, errno %s)', *exception_type(error))
+        return
+    handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
+    LOG.addHandler(handler)
 
 
 class StatusPipe:
@@ -377,12 +457,12 @@ def load_registry(directory):
                 raise ValueError('entry is too large')
             data = json.loads(raw.decode('utf-8'), parse_constant=_reject_constant)
         except (OSError, ValueError, RecursionError) as error:
-            LOG.error('registry entry %s is unreadable: %s', path, error)
+            LOG.error('registry entry unreadable (%s, errno %s)', *exception_type(error))
             continue
         try:
             app = parse_entry(data)
         except ValueError as error:
-            LOG.error('registry entry %s is invalid: %s', path, error)
+            LOG.error('registry entry invalid (%s)', type(error).__name__)
             app_id, name = (data.get('id'), data.get('name')) if isinstance(data, dict) else (None, None)
             if isinstance(app_id, str) and APP_ID.match(app_id):
                 app = App(app_id, name if isinstance(name, str) and name.strip() and len(name) <= 64 else app_id,
@@ -398,7 +478,7 @@ def load_registry(directory):
     # One window identity must lead to exactly one app, or focus return would guess.
     for window_id, ids in owners.items():
         if len(ids) > 1:
-            LOG.error('window app_id %s is claimed by %s; those entries are unavailable', window_id, sorted(ids))
+            LOG.error('window identity claimed by %s; those entries are unavailable', sorted(ids))
             for app_id in ids:
                 apps[app_id] = dataclasses.replace(apps[app_id], invalid='duplicate_window_identity')
     return apps, digest.hexdigest()[:16]
@@ -502,19 +582,19 @@ def load_hints(folder):
             hint = parse_hint(json.loads(raw.decode('utf-8'), parse_constant=_reject_constant,
                                          object_pairs_hook=_unique_keys))
         except (OSError, ValueError, RecursionError) as error:
-            LOG.error('window hint %s is invalid: %s', path, error)
+            LOG.error('window hint invalid (%s, errno %s)', *exception_type(error))
             continue
         found.setdefault(hint.desktop_id, []).append(hint)
     hints = {}
     for desktop_id, candidates in found.items():
         if len(candidates) > 1:
-            LOG.error('window hints for %s are defined twice; both are refused', desktop_id)
+            LOG.error('window identity hints are defined twice; both are refused')
         else:
             hints[desktop_id] = candidates[0]
     clashing = {hint.desktop_id for hint in hints.values() for other in hints.values()
                 if other is not hint and _hints_clash(hint, other)}
     for desktop_id in sorted(clashing):
-        LOG.error('window hints for %s could claim another hinted program\'s windows; refused', desktop_id)
+        LOG.error('window identity hint could claim another hinted program’s windows; refused')
         del hints[desktop_id]
     return hints
 
@@ -543,7 +623,7 @@ def resolve(app, executable=None, entry_dirs=DESKTOP_ENTRY_DIRS):
         try:
             argv, directory = desktop_exec(path)
         except (OSError, ValueError) as error:
-            LOG.error('desktop entry %s cannot be used: %s', path, error)
+            LOG.error('desktop entry for %s cannot be used (%s, errno %s)', app.id, *exception_type(error))
             return None, None, 'invalid_entry'
         if not posixpath.isabs(argv[0]):
             found = shutil.which(argv[0], path=EXEC_PATH)
@@ -1092,7 +1172,7 @@ def load_catalogue(registry_dir, environ=None, entry_dirs=None, executable=None,
                 apps[key] = dataclasses.replace(app, **desktop_details(desktop_id, values))
                 break
             except (OSError, ValueError) as error:
-                LOG.warning('desktop entry %r skipped: %r', entries[desktop_id], error)
+                LOG.warning('desktop entry skipped (%s, errno %s)', *exception_type(error))
     for desktop_id, path in entries.items():
         if desktop_id in replaced:
             continue
@@ -1111,12 +1191,12 @@ def load_catalogue(registry_dir, environ=None, entry_dirs=None, executable=None,
                         dependencies.update(os.path.join(folder, word) for folder in EXEC_PATH.split(':'))
             app = discovered_app(desktop_id, path, values, executable)
         except (OSError, ValueError) as error:
-            LOG.warning('desktop entry %r skipped: %r', path, error)
+            LOG.warning('desktop entry skipped (%s, errno %s)', *exception_type(error))
             continue
         if app is None:
             continue
         if app.id in apps:
-            LOG.warning('desktop entry %r loses app ID %s to an earlier or registry entry', path, app.id)
+            LOG.warning('desktop entry loses app ID %s to an earlier or registry entry', app.id)
             continue
         if len(apps) >= MAX_APPS:
             LOG.warning('catalogue cut at MAX_APPS=%d', MAX_APPS)
@@ -1295,7 +1375,7 @@ class Discovery:
             try:
                 changed = self.catalogue.scan()
             except Exception:
-                LOG.exception('discovery scan failed; the last good catalogue stays')
+                log_unexpected('discovery scan failed; the last good catalogue stays')
                 changed = False
             with self.lock:
                 self.started = None
@@ -1526,7 +1606,7 @@ class IconLookup:
                             ICON_LOOKUP_ENTRIES)
                 self.entries = ICON_LOOKUP_ENTRIES
             except ValueError as error:
-                LOG.debug('icon folder %s skipped: %s', path, error)
+                LOG.debug('icon folder skipped (%s, errno %s)', *exception_type(error))
             except OSError:
                 pass
         self.entries += len(names)
@@ -1547,7 +1627,7 @@ class IconLookup:
                     # A pass that runs again for another reason does not repeat it (review 4, FIX 1).
                     if self.warned.get(path) != self.seen[path]:
                         self.warned[path] = self.seen[path]
-                        LOG.warning('icon theme index %s not used, %s keeps the fixed layout: %s', path, theme, error)
+                        LOG.warning('icon theme index skipped; using the fixed layout (%s, errno %s)', *exception_type(error))
                 break
         folders = []
         for position, folder in enumerate(self.directories):
@@ -1863,7 +1943,7 @@ class IconCache:
                     # A named icon is read only from inside its folders; an absolute Icon path as written.
                     path = self.convert(source) if os.path.isabs(app.icon_name) else self.convert(source, roots)
             except (OSError, ValueError, subprocess.SubprocessError) as error:
-                LOG.debug('icon for %s skipped: %s', app.id, error)
+                LOG.debug('icon for %s skipped (%s, errno %s)', app.id, *exception_type(error))
             if path:
                 pictures.add(os.path.basename(path))
                 # The made picture too: a cleared cache is made again, as the pass on every request used to.
@@ -2152,7 +2232,7 @@ class Journal:
         except FileNotFoundError:
             return
         except (OSError, ValueError, RecursionError) as error:
-            LOG.error('launch journal unreadable, starting empty: %s', error)
+            LOG.error('launch journal unreadable, starting empty (%s, errno %s)', *exception_type(error))
             return
         if not isinstance(data, dict) or data.get('instance') != self.instance:
             LOG.info('launch journal belongs to another desktop instance; starting empty')
@@ -2189,7 +2269,8 @@ class Journal:
         entries = self.client_entries(client)
         removed = self.expired(entries) if len(entries) >= self.limit(client) else []
         if client != DESKTOP and client not in self.view_clients and len(self.view_clients) >= MAX_VIEWS:
-            oldest = next(iter(self.view_clients))
+            joining = entry.get('launch_id') if entry.get('joined') and not entry.get('settled') else None
+            oldest = self.evictable_view(joining)
             del self.view_clients[oldest]
             removed.extend(self.client_entries(oldest))
         for old_key in removed:
@@ -2219,11 +2300,25 @@ class Journal:
         return [key for key, entry in entries.items() if (entry['state'] in FINAL or entry.get('settled'))
                 and now - entry.get('updated', now) >= REPLAY_HORIZON]
 
-    def room(self, client):
+    def evictable_view(self, joining):
+        # A departing view can still owe an outcome to a different, connected client.
+        waiting = {entry['launch_id'] for entry in self.entries.values()
+                   if entry.get('joined') and not entry.get('settled')}
+        if joining is not None:
+            waiting.add(joining)
+        protected = {client for (client, _), entry in self.entries.items()
+                     if entry.get('activation_pending')
+                     or (entry.get('launch_id') in waiting and not entry.get('settled'))}
+        return next((client for client in self.view_clients if client not in protected), None)
+
+    def room(self, client, reserved=0, joining=None):
         """True when a new request can be recorded without dropping any still-replayable entry for this client."""
+        if (client != DESKTOP and client not in self.view_clients and len(self.view_clients) >= MAX_VIEWS
+                and self.evictable_view(joining) is None):
+            return False
         entries = self.client_entries(client)
         limit = self.limit(client)
-        return len(entries) < limit or len(entries) - len(self.expired(entries)) < limit
+        return len(entries) + reserved < limit or len(entries) + reserved - len(self.expired(entries)) < limit
 
     def save(self):
         clients = {client: {} for client in (DESKTOP, *self.view_clients)}
@@ -2343,7 +2438,7 @@ class LaunchChecks:
             threading.Thread(target=self.run, args=(key, check, function, arguments), name='aresos-launch-check',
                              daemon=True).start()
         except RuntimeError as error:
-            LOG.error('could not start a launch check: %s', error)
+            LOG.error('could not start a launch check (%s, errno %s)', *exception_type(error))
             with self.lock:
                 del self.running[key]
             return None
@@ -2353,7 +2448,7 @@ class LaunchChecks:
         try:
             check.result = function(*arguments)
         except Exception:
-            LOG.exception('a launch check failed')
+            log_unexpected('a launch check failed')
             check.result = (None, None, 'invalid_entry')
         finally:
             with self.lock:
@@ -2445,7 +2540,7 @@ class ScopeWatcher:
             try:
                 self.check()
             except Exception:
-                LOG.exception('scope check failed; trying again next pass')
+                log_unexpected('scope check failed; trying again next pass')
 
     def check(self):
         """One pass; tests call it directly instead of running the thread."""
@@ -2496,6 +2591,8 @@ class Toplevel:
     # The compositor's outputs (our wl_output object IDs) the window is on; empty until it says.
     outputs: frozenset = frozenset()
     ready: bool = False
+    mapped: int = 0
+    last_active: int = 0
     owner: str = None
     # The owner a dialog took from a discovered parent; it keeps it after the parent closes.
     launch_owner: str = None
@@ -2520,6 +2617,7 @@ class Windows:
         self.candidates = {}
         self.reserved_ids = set(DESKTOP_APP_IDS)
         self.observer = None
+        self.commit_order = 0
 
     def observe_catalogue(self, apps):
         """Give views their own ownership of the same compositor windows."""
@@ -2527,6 +2625,7 @@ class Windows:
         self.observer.toplevels = {
             handle: dataclasses.replace(toplevel, owner=None, launch_owner=None, pending={})
             for handle, toplevel in self.toplevels.items()}
+        self.observer.commit_order = self.commit_order
         self.observer.set_registry(apps)
         return self.observer
 
@@ -2601,11 +2700,16 @@ class Windows:
             self.observer.toplevels[handle].pending.update(toplevel.pending)
             self.observer.done(handle)
         previous_id = toplevel.app_id
+        was_active = toplevel.activated
         for key, value in toplevel.pending.items():
             setattr(toplevel, key, value)
         toplevel.pending.clear()
+        self.commit_order += 1
+        if toplevel.activated and not was_active:
+            toplevel.last_active = self.commit_order
         if not toplevel.ready:
             toplevel.ready = True
+            toplevel.mapped = self.commit_order
             toplevel.owner = self._owner(toplevel, set())
             self.opened.append(toplevel)
         else:
@@ -3098,6 +3202,7 @@ class Helper:
         self.checks = LaunchChecks()
         # (client, request ID) -> a launch waiting for its check and who to answer.
         self.checking = {}
+        self.activating = {}
         self.processes = {}
         self.reaping = []
         self.deadlines = {}
@@ -3142,7 +3247,7 @@ class Helper:
                       or (self.is_discovered(entry) and entry['state'] != 'failed'))}
         states = query_scopes(units, self.watcher.run, self.watcher.timeout) if units else {}
         changed = False
-        for key, entry in self.journal.entries.items():
+        for key, entry in self.launch_entries():
             scope = states.get(entry.get('unit'), GONE)
             if self.is_discovered(entry) and scope != GONE:
                 self.discovered_scopes[entry['unit']] = dict(app_id=entry['app_id'], state=scope,
@@ -3181,8 +3286,22 @@ class Helper:
                 if state is not None:
                     self.journal.touch(entry)
                     changed = True
+        # Joined requests have their own replay record and no process or window ownership.
+        origins = {entry['launch_id']: entry for _, entry in self.launch_entries() if entry.get('launch_id')}
+        for entry in self.journal.entries.values():
+            if entry.pop('activation_pending', None):
+                changed = True
+            if entry.get('joined') and entry['state'] not in FINAL:
+                origin = origins.get(entry.get('launch_id'))
+                if origin is not None and entry['state'] != origin['state']:
+                    self.update_join(entry, origin)
+                    changed = True
         if changed:
             self.journal.save()
+
+    def launch_entries(self):
+        return ((key, entry) for key, entry in self.journal.entries.items()
+                if not entry.get('joined') and not entry.get('activation'))
 
     def adopt_windows(self):
         """After a restart, give launches that had windows the app's current windows, or close them."""
@@ -3220,6 +3339,7 @@ class Helper:
         conn.client = None
         conn.event_number = 0
         conn.running_apps = None
+        conn.app_windows = None
         conn.focused = False
         # What this connection was last told about covering; both sides start a connection uncovered.
         conn.covered = False
@@ -3283,7 +3403,7 @@ class Helper:
             # Before negotiation, legacy clients still receive the pre-1.2 error envelope.
             conn.minor = min(MINOR, max(1, int(version[2])))
         if version is None or int(version.group(1)) != MAJOR:
-            self.error(conn, request_id, Failure('incompatible_version', f'this helper speaks {protocol()}',
+            self.error(conn, request_id, Failure('incompatible_version', f'this helper speaks {protocol(conn.minor)}',
                                                  close=not conn.authenticated))
             return
         operation = message.get('op')
@@ -3291,7 +3411,8 @@ class Helper:
             # Check the type before the lookup: a list or object is not even hashable.
             if not isinstance(operation, str):
                 raise Failure('malformed', 'op must be a string')
-            if conn.authenticated and conn.client != DESKTOP and operation not in VIEW_OPERATIONS:
+            activation = operation == 'activate_app' and self.app_window_capable(conn, operation)
+            if conn.authenticated and conn.client != DESKTOP and operation not in VIEW_OPERATIONS and not activation:
                 raise Failure('invalid_state', 'operation is not available to a view')
             if operation in ('publish_home', 'get_home') and conn.authenticated and conn.minor < 2:
                 raise Failure('unknown_operation', f'unknown operation {operation!r}')
@@ -3299,6 +3420,8 @@ class Helper:
                        'world_ready': self.world_ready, 'heartbeat': self.heartbeat,
                        'publish_home': self.publish_home, 'get_home': self.get_home,
                        'view_focus': self.view_focus}.get(operation)
+            if activation:
+                handler = self.activate_app
             if handler is None:
                 raise Failure('unknown_operation', f'unknown operation {operation[:64]!r}')
             if not conn.authenticated and operation != 'hello':
@@ -3310,8 +3433,10 @@ class Helper:
         # None: the answer comes later (a launch whose check is still running).
         if result is not None:
             self.reply(conn, request_id, result)
-            if operation == 'hello' and conn.client != DESKTOP:
-                self.report_running(conn)
+            if operation == 'hello':
+                if conn.client != DESKTOP:
+                    self.report_running(conn)
+                self.report_app_windows((conn,))
 
     def reply(self, conn, request_id, result):
         ok = result.pop('ok', True)
@@ -3336,6 +3461,8 @@ class Helper:
     def emit_to(self, conn, event, **fields):
         if conn is None or conn.closing:
             return
+        if event in APP_WINDOW_CAPABILITIES and not self.app_window_capable(conn, event):
+            return
         if conn.client == DESKTOP:
             if (event not in conn.capabilities or (event in LATER_CAPABILITIES and conn.minor < 1)
                     or (event in SEARCH_CAPABILITIES and conn.minor < 2)):
@@ -3343,7 +3470,7 @@ class Helper:
             self.events += 1
             serial = self.events
         else:
-            if event not in VIEW_EVENTS:
+            if event not in VIEW_EVENTS and event != 'apps_state':
                 return
             conn.event_number += 1
             serial = conn.event_number
@@ -3362,6 +3489,26 @@ class Helper:
             if view.running_apps != running:
                 view.running_apps = running
                 self.emit_to(view, 'apps_running', apps=running)
+
+    def app_window_capable(self, conn, capability):
+        return (self.catalogue_windows is not None and self.activate_window is not None
+                and conn.minor >= 3 and capability in conn.capabilities)
+
+    def report_app_windows(self, connections):
+        listeners = [conn for conn in connections if conn.authenticated
+                     and self.app_window_capable(conn, 'apps_state')]
+        if not listeners:
+            return
+        groups = {}
+        for window in self.catalogue_windows.toplevels.values():
+            if window.ready and window.owner in self.catalogue_apps:
+                groups.setdefault(window.owner, []).append(window)
+        snapshot = [dict(id=app, windows=len(windows), active=any(w.activated for w in windows),
+                         hidden=all(w.minimized for w in windows)) for app, windows in sorted(groups.items())]
+        for conn in listeners:
+            if conn.app_windows != snapshot:
+                conn.app_windows = snapshot
+                self.emit_to(conn, 'apps_state', apps=snapshot)
 
     def authorized(self, message):
         instance, nonce = message.get('instance'), message.get('nonce')
@@ -3402,7 +3549,7 @@ class Helper:
         if type(major) is not int or type(minor) is not int or minor < 0:
             raise Failure('malformed', 'major and minor must be integers', close=True)
         if major != MAJOR:
-            raise Failure('incompatible_version', f'this helper speaks {protocol()}', close=True)
+            raise Failure('incompatible_version', f'this helper speaks {protocol(conn.minor)}', close=True)
         capabilities = names(message.get('capabilities', []))
         required = names(message.get('requires', []))
         client = self.hello_client(message)
@@ -3417,6 +3564,8 @@ class Helper:
             offered = (offered - WINDOW_CAPABILITIES - SEARCH_CAPABILITIES) - {'world_ready', 'heartbeat'}
             if client not in self.views and len(self.views) >= MAX_VIEWS:
                 raise Failure('busy', 'all view connections are in use', close=True)
+        if minor >= 3 and self.catalogue_windows is not None and self.activate_window is not None:
+            offered |= APP_WINDOW_CAPABILITIES & capabilities
         missing = sorted(required - offered)
         if missing:
             raise Failure('incompatible_version', 'missing capabilities: ' + ', '.join(missing), close=True,
@@ -3528,7 +3677,8 @@ class Helper:
     def filter_published_home(self):
         unknown = sorted(self.home.apps.keys() - self.catalogue_apps.keys())
         if unknown:
-            LOG.warning('omitted unknown apps from a published home: %s', ', '.join(unknown))
+            lengths = ', '.join(f'unknown app ID ({len(app_id)} characters)' for app_id in unknown)
+            LOG.warning('omitted from a published home: %s', lengths)
             for app_id in unknown:
                 del self.home.apps[app_id]
         self.home_awaits_catalogue = False
@@ -3579,7 +3729,7 @@ class Helper:
 
     def retain_launch_definitions(self):
         """Keep uninstalled definitions while in use, with view-only retention outside desktop ownership."""
-        in_use = [(client, entry['app_id']) for (client, _), entry in self.journal.entries.items()
+        in_use = [(client, entry['app_id']) for (client, _), entry in self.launch_entries()
                   if entry['state'] not in FINAL]
         in_use.extend((scope['launch_key'][0], scope['app_id']) for scope in self.discovered_scopes.values())
         desktop = {app_id for client, app_id in in_use if client == DESKTOP}
@@ -3597,6 +3747,12 @@ class Helper:
         self.apps = dict(retained, **self.catalogue_apps)
 
     def open_app(self, conn, request_id, message):
+        return self.open_or_activate(conn, request_id, message, bring_back=False)
+
+    def activate_app(self, conn, request_id, message):
+        return self.open_or_activate(conn, request_id, message, bring_back=True)
+
+    def open_or_activate(self, conn, request_id, message, bring_back):
         app_id = message.get('app_id')
         if not isinstance(app_id, str) or len(app_id) > 128:
             raise Failure('malformed', 'app_id must be a string')
@@ -3604,7 +3760,8 @@ class Helper:
         if 'screen' in message:
             # Package 53d: only the search over the world names a screen, and only a 1.2 desktop has that search.
             if conn.client != DESKTOP or conn.minor < 2:
-                raise Failure('malformed', 'screen is a hint of an aresos-shell/1.2 desktop')
+                version = protocol(max(2, conn.minor))
+                raise Failure('malformed', f'screen is a hint of an {version} desktop')
             if not isinstance(screen, str) or screen not in SCREENS:
                 raise Failure('malformed', 'screen must be "world"')
         unknown = {'app_id': app_id, 'launch_id': None, 'state': 'failed',
@@ -3612,14 +3769,21 @@ class Helper:
         if screen is not None:
             unknown['screen'] = screen
         key = (conn.client, request_id)
-        waiting = self.checking.get(key)
-        if waiting is not None:
+        for waiting in self.checking.values():
+            if key not in waiting['requests']:
+                continue
             # Resent while its check runs: answered with the same launch once there is an answer, never a second one.
             if waiting['app'].id != app_id:
                 raise Failure('request_id_reused', 'this request ID already opened another app')
             if conn.minor == 0 and waiting['app'].discovered:
                 return self.launch_result(request_id, unknown)
-            waiting['conns'].append(conn)
+            waiting['requests'][key].append(conn)
+            return None
+        pending = self.activating.get(key)
+        if pending is not None:
+            if pending['app_id'] != app_id:
+                raise Failure('request_id_reused', 'this request ID already opened another app')
+            pending['conns'].append(conn)
             return None
         entry = self.journal.entries.get(key)
         if entry is not None:
@@ -3632,15 +3796,39 @@ class Helper:
             if self.journal.use_client(conn.client):
                 self.journal.save()
             return self.launch_result(request_id, entry)
-        if not self.journal.room(conn.client):
+        if not self.launch_room(conn.client):
             raise self.journal_full(request_id, app_id)
         # A 1.0 client knows only the reviewed registry: for it, a discovered ID is an unknown one, answered and
         # journaled exactly as before package 30 (review 1, finding 3).
         app = self.catalogue_apps.get(app_id) if conn.minor >= 1 or app_id in self.legacy_apps else None
         if app is None:
             # Every launch that does not start says why here (package 40): a refusal used to leave no line.
-            LOG.warning('%r not opened: no such app', app_id[:64])
+            LOG.warning('unknown app ID (%d characters) not opened', len(app_id))
             return self.record(key, unknown)
+        if bring_back:
+            window = self.activation_target(app_id)
+            if window is not None:
+                # If the helper restarts before confirmation, the same ID must never fall through to a spawn.
+                refused = self.activation_result(app_id, 'activation_refused')
+                self.record(key, dict(refused, activation_pending=True))
+                if not self.activate_window(window.handle):
+                    return self.record(key, refused)
+                self.activating[key] = dict(app_id=app_id, window=window, conns=[conn],
+                                            deadline=self.clock() + APP_ACTIVATION_TIMEOUT)
+                return None
+            pending_check = next(((origin, item) for origin, item in self.checking.items()
+                                  if item['app'].id == app_id), None)
+            if pending_check is not None:
+                origin, waiting = pending_check
+                if origin[0] == conn.client and not self.launch_room(conn.client, 1):
+                    raise self.journal_full(request_id, app_id)
+                waiting['requests'][key] = [conn]
+                return None
+            starting = next((item for _, item in self.launch_entries()
+                             if item['app_id'] == app_id and item['state'] in ('launching', 'starting')
+                             and not item.get('settled')), None)
+            if starting is not None:
+                return self.record_join(key, starting)
         # Whether its program is still there is checked off the loop (review 2, FIX 1).
         check = self.checks.start(app, launch_check, app, self.executable, self.launcher.working_directory,
                                   from_view=conn.client != DESKTOP)
@@ -3650,9 +3838,60 @@ class Helper:
         if check.done.wait(CHECK_WAIT):
             return self.launch(key, app, *check.result, screen)
         # A resend while the check runs joins this one; the first request's screen stays with the launch.
-        self.checking[key] = dict(app=app, check=check, deadline=self.clock() + CHECK_SECONDS, conns=[conn],
+        self.checking[key] = dict(app=app, check=check, deadline=self.clock() + CHECK_SECONDS, requests={key: [conn]},
                                   screen=screen)
         return None
+
+    def launch_room(self, client, reserved=0):
+        reserved += sum(key[0] == client for origin, waiting in self.checking.items()
+                        for key in waiting['requests'] if key != origin)
+        return self.journal.room(client, reserved)
+
+    def activation_target(self, app_id):
+        # Layout restoration can select a group here once layouts exist.
+        return max(self.catalogue_windows.of(app_id), key=lambda w: (w.last_active, w.mapped), default=None)
+
+    @staticmethod
+    def activation_result(app_id, error=None):
+        entry = dict(app_id=app_id, activation=True, state='activated' if error is None else 'failed', settled=True)
+        if error is not None:
+            entry.update(error=error, message='the compositor did not activate the app window')
+        return entry
+
+    def activations_answered(self, now):
+        if not self.activating:
+            return
+        windows = self.catalogue_windows.toplevels
+        active = [w for w in windows.values() if w.ready and w.activated and not w.minimized]
+        for key, pending in list(self.activating.items()):
+            target = pending['window']
+            app_id = pending['app_id']
+            if windows.get(target.handle) is not target or target.owner != app_id or app_id not in self.catalogue_apps:
+                error = 'activation_refused'
+            elif any(self.activation_landed(w, target, windows) for w in active):
+                error = None
+            elif now >= pending['deadline']:
+                error = 'activation_timeout'
+            else:
+                continue
+            del self.activating[key]
+            answer = self.record(key, self.activation_result(app_id, error))
+            self.reply_waiters(key, pending['conns'], answer)
+
+    @staticmethod
+    def activation_landed(window, target, windows):
+        seen = set()
+        while window is not None and window.handle not in seen:
+            if window is target:
+                return True
+            seen.add(window.handle)
+            window = windows.get(window.parent)
+        return False
+
+    def reply_waiters(self, key, conns, answer):
+        for conn in conns:
+            if conn in self.connections and not conn.closing:
+                self.reply(conn, key[1], dict(answer))
 
     @staticmethod
     def journal_full(request_id, app_id):
@@ -3674,17 +3913,38 @@ class Helper:
             else:
                 continue
             del self.checking[key]
-            conns = [conn for conn in waiting['conns'] if conn in self.connections and not conn.closing]
+            requests = waiting['requests']
             try:
-                if not self.journal.room(client):
+                if not self.launch_room(client, sum(other != key and other[0] == client for other in requests)):
                     raise self.journal_full(request_id, app.id)
                 answer = self.launch(key, app, *result, waiting['screen'])
             except Failure as failure:
-                for conn in conns:
-                    self.error(conn, request_id, failure)
-                continue
-            for conn in conns:
-                self.reply(conn, request_id, dict(answer))
+                answer = dict(ok=False, error=failure.code, message=failure.message, **failure.fields)
+            self.reply_waiters(key, requests[key], answer)
+            origin = self.journal.entries.get(key, dict(answer, app_id=app.id))
+            for joined, conns in requests.items():
+                if joined != key:
+                    self.reply_waiters(joined, conns, self.record_join(joined, origin))
+
+    def record_join(self, key, origin):
+        entry = dict(app_id=origin['app_id'], launch_id=origin.get('launch_id'), joined=True)
+        if origin.get('discovered'):
+            entry['discovered'] = True
+        self.update_join(entry, origin)
+        joining = entry['launch_id'] if not entry.get('settled') else None
+        if not self.journal.room(key[0], joining=joining):
+            failure = self.journal_full(key[1], entry['app_id'])
+            return dict(ok=False, error=failure.code, message=failure.message, **failure.fields)
+        return self.record(key, entry)
+
+    def update_join(self, entry, origin):
+        entry.update(state=origin['state'])
+        for field in ('error', 'message', 'reason'):
+            if field in origin:
+                entry[field] = origin[field]
+        if entry['state'] not in ('launching', 'starting') or origin.get('settled'):
+            entry['settled'] = True
+        self.journal.touch(entry)
 
     def launch(self, key, app, argv, directory, reason, screen=None):
         """Start app once its check has answered, or record why it could not start.
@@ -3709,12 +3969,12 @@ class Helper:
         try:
             process = self.launcher.spawn(app, argv, directory, launch_id)
         except (OSError, ValueError, subprocess.SubprocessError) as error:
-            LOG.error('could not start %s: %s', app.id, error)
+            LOG.error('could not start %s (%s, errno %s)', app.id, *exception_type(error))
             entry.update(state='failed', error='launch_failed', message='could not start the app')
             self.journal.touch(entry)
             self.journal.save()
             return self.launch_result(key[1], entry)
-        LOG.info('started %s in %s', app.id, unit)
+        LOG.info('started %s', app.id)
         entry['state'] = 'starting'
         self.journal.touch(entry)
         self.journal.save()
@@ -3747,6 +4007,10 @@ class Helper:
 
     @staticmethod
     def launch_result(request_id, entry):
+        if entry.get('activation'):
+            if entry['state'] == 'activated':
+                return {'state': 'activated'}
+            return dict(ok=False, state='failed', error=entry['error'], message=entry['message'])
         state = 'starting' if entry['state'] == 'launching' else entry['state']
         result = {'ok': state != 'failed', 'request_id': request_id, 'launch_id': entry.get('launch_id'),
                   'app_id': entry['app_id'], 'state': state}
@@ -3806,6 +4070,11 @@ class Helper:
         if state in ('focused', 'background'):
             entry.pop('uncertain', None)  # a window confirms the app started
         self.journal.touch(entry)
+        joined = [other for other, record in self.journal.entries.items()
+                  if entry.get('launch_id') and record.get('joined') and record['launch_id'] == entry['launch_id']
+                  and record['state'] not in FINAL]
+        for other in joined:
+            self.update_join(self.journal.entries[other], entry)
         self.journal.save()
         if state in FINAL or state in ('focused', 'background'):
             self.deadlines.pop(key, None)
@@ -3813,12 +4082,12 @@ class Helper:
             self.started.pop(key, None)
             self.view_closing.pop(key, None)
             self.ambiguous_adoptions.discard(key)
-        client, request_id = key
-        event = {'request_id': request_id, 'launch_id': entry.get('launch_id'), 'app_id': entry['app_id'],
-                 'state': state}
-        event.update(fields)
-        conn = self.desktop if client == DESKTOP else self.views.get(client)
-        self.emit_to(conn, 'app_state', **event)
+        for client, request_id in (key, *joined):
+            event = {'request_id': request_id, 'launch_id': entry.get('launch_id'), 'app_id': entry['app_id'],
+                     'state': state}
+            event.update(fields)
+            conn = self.desktop if client == DESKTOP else self.views.get(client)
+            self.emit_to(conn, 'app_state', **event)
 
     def settle(self, key):
         """This request's answer can no longer change, though the app may still run: replay retention may end."""
@@ -3948,7 +4217,10 @@ class Helper:
         self.scopes_answered()
         if self.windows is not None and (self.discovered_closing or self.view_closing or self.windows_pending):
             self.windows_changed()
+        self.activations_answered(now)
         self.report_running()
+        self.report_app_windows((self.desktop, *self.views.values()) if self.desktop is not None
+                                else self.views.values())
         self.report_windows()  # again here, for a line the full pipe dropped
 
     def windows_changed(self):
@@ -3959,6 +4231,7 @@ class Helper:
         and the outcome is the same however the bytes were split.
         """
         self.follow_windows()
+        self.activations_answered(self.clock())
         # A new desktop connection missed any focus change before hello. Tell it after the reply, even when the
         # compositor has kept the same app in front throughout (including keep_foreground on a game restart).
         if self.desktop is not None and not self.desktop.focus_reported and self.shell == 'background':
@@ -4036,7 +4309,7 @@ class Helper:
         for toplevel in opened:
             if toplevel.owner in (None, Windows.SHELL) or any(toplevel.handle in h for h in self.handles.values()):
                 continue
-            waiting = [key for key, entry in self.journal.entries.items()
+            waiting = [key for key, entry in self.launch_entries()
                        if entry['state'] == 'starting' and entry['app_id'] == toplevel.owner
                        and (key[0] == DESKTOP or not self.is_discovered(entry))
                        and self.started.get(key, float('inf')) <= toplevel.seen]
@@ -4173,7 +4446,7 @@ class Helper:
     def match_discovered(self, windows, closed, closing, now):
         # All of a discovered app's windows belong to its launches, even when a resident process shows them.
         closed_apps = {t.owner for t in closed}
-        for key, entry in self.journal.entries.items():
+        for key, entry in self.launch_entries():
             if (key[0] != DESKTOP or not self.is_discovered(entry)
                     or entry['state'] in FINAL or entry.get('settled')):
                 continue
@@ -4191,7 +4464,7 @@ class Helper:
     def follow_view_launches(self, closed, now):
         # View launches use the full catalogue even when the desktop's rules treat these windows as unowned.
         closed_apps = {t.owner for t in closed}
-        for key, entry in self.journal.entries.items():
+        for key, entry in self.launch_entries():
             if key[0] == DESKTOP or not self.is_discovered(entry) or entry['state'] in FINAL or entry.get('settled'):
                 continue
             app = entry['app_id']
@@ -4209,7 +4482,7 @@ class Helper:
                 self.set_state(key, 'closed')
 
     def close_discovered_launches(self, app):
-        for key, entry in self.journal.entries.items():
+        for key, entry in self.launch_entries():
             if key[0] == DESKTOP and entry['app_id'] == app and entry['state'] not in FINAL:
                 self.set_state(key, 'closed')
 
@@ -4630,7 +4903,7 @@ class Server:
             try:
                 self.helper.receive(peer, data)
             except Exception:
-                LOG.exception('unexpected error while handling a request; dropping that connection')
+                log_unexpected('unexpected error while handling a request; dropping that connection')
                 peer.close()
 
     def run(self):
@@ -4668,10 +4941,11 @@ def build(registry_dir, instance, nonce, journal_path, environ=None, launcher=No
     try:
         wayland = (connect or ForeignToplevels.connect)(windows, environ)
     except (OSError, WaylandError, struct.error) as error:
-        LOG.warning('window tracking is off, apps report starting only: %s', error)
+        LOG.warning('window tracking is off, apps report starting only (%s, errno %s)', *exception_type(error))
         wayland, windows = None, None
     helper = Helper(registry_dir, instance, nonce, journal_path, launcher=launcher, windows=windows,
-                    activate=wayland.activate if wayland else None, clock=clock, registry=registry, status=status,
+                    activate=wayland.activate if wayland and wayland.seat is not None else None,
+                    clock=clock, registry=registry, status=status,
                     keep_foreground=keep_foreground, catalogue=catalogue, icons=IconCache(environ=environ),
                     minimize=wayland.minimize if wayland else None, view_token=environ.get('ARESOS_VIEW_TOKEN'))
     helper.watcher.watch(helper.watched_units())
@@ -4715,6 +4989,7 @@ def main(argv=None):
             parser.error('ARESOS_SHELL_STATUS_FD must be a file descriptor number')
         status = StatusPipe(int(status_fd))
     path = args.socket or os.environ.get('ARESOS_SHELL_SOCKET') or os.path.join(runtime, 'aresos', 'shell.sock')
+    configure_log()
     prepare_socket(path)
     helper, wayland = build(args.registry, instance, nonce, os.path.join(os.path.dirname(path), 'shell-journal.json'),
                             status=status, keep_foreground=os.environ.get('ARESOS_SHELL_KEEP_FOREGROUND') == '1')
@@ -4726,12 +5001,12 @@ def main(argv=None):
 
     signal.signal(signal.SIGTERM, stop)
     signal.signal(signal.SIGINT, stop)
-    LOG.info('serving %s on %s (%d apps)', protocol(), path, len(helper.apps))
+    LOG.info('serving %s (%d apps)', protocol(), len(helper.apps))
     try:
         server.run()
     except WaylandError as error:
         # Window tracking is part of the negotiated contract; restart rather than silently lose it.
-        LOG.error('lost the compositor: %s', error)
+        LOG.error('lost the compositor (%s)', type(error).__name__)
         status(event='windows', count=None, names=[])  # nobody tracks the app windows now (package 25)
         server.close()
         return 1
@@ -4739,4 +5014,8 @@ def main(argv=None):
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except Exception:
+        log_unexpected('unexpected helper error')
+        sys.exit(1)

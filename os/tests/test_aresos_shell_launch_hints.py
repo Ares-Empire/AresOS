@@ -105,7 +105,8 @@ class HintFormatTest(DiscoveryBase):
                 with self.assertLogs(shell.LOG, level='ERROR') as logs:
                     self.assertEqual(self.load(), {})  # its window identity goes too
                 self.assertEqual(len(logs.output), 1, logs.output)
-                self.assertIn('broken.json is invalid', logs.output[0])
+                self.assertIn('window hint invalid (', logs.output[0])
+                self.assertNotIn('broken.json', logs.output[0])
 
     def test_a_hint_with_start_settings_only(self):
         # Fails without the change.

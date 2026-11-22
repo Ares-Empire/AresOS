@@ -443,7 +443,8 @@ class HomeTest(ViewBase):
         with mock.patch.object(shell.LOG, 'disabled', False), self.assertLogs(shell.LOG, level='WARNING') as logs:
             self.assertEqual(self.call(helper, view, 'get_home')['apps'], [house(), house(WEB.id)])
         self.assertEqual(len(logs.output), 1)
-        self.assertIn('not-installed', logs.output[0])
+        self.assertIn('unknown app ID (13 characters)', logs.output[0])
+        self.assertNotIn('not-installed', logs.output[0])
         self.assertEqual(view.events('apps_changed')[-1]['revision'], 'complete')
         with mock.patch.object(shell.LOG, 'disabled', False), self.assertLogs(shell.LOG, level='WARNING') as logs:
             self.assertTrue(self.publish(helper, desktop, apps + [house('not-installed-2')], revision='18')['ok'])
