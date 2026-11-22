@@ -784,31 +784,112 @@ wording and make the decision independent of KDialog's button ordering. [KDialog
   fingerprint IPC, launcher, dialog and trust-file writes were real.
 - Removed the throwaway pairing image. There were no files over 500 MB in this worktree's `.work/`.
 
+## Step 4 — Login, daily-use VM checks and handoff (2026-11-22, Codex)
+
+- Merged `origin/main` at `92cf365a` into the package branch as `6bb9f0d2`. Preserved the round-2 review verbatim in
+  `REVIEW-3-RECHECK-2.md`. Harness test8 pins the reactivated process before Off and waits for pidfd readability.
+  Its revoke result records completed teardown.
+- labwc's login hook reads the root-owned switch and uses the hub's `ScopeLauncher` for the image catalogue's
+  Deskflow entry. The scope is `app-aresos-org.deskflow.deskflow-<hex>.scope` and runs the guarded server without
+  opening Deskflow's settings window. Both launch paths share the same single-server lock. A live core normally
+  stops on portal Closed, with a watchdog for Off when the signal cannot arrive.
+- The guarded core still uses Deskflow's default Info level. Deskflow 1.27's Info messages for a crossing and an
+  active peer disconnect include coordinates. The launcher removes those coordinates before relaying the messages
+  and disables direct file logging in the private snapshot so the same messages cannot bypass the filter.
+- The backend sends releases for keys it has forwarded and still holds when emulation ends while sharing is On.
+  The recovery chord takes the keyboard back before physical key-up events, and Deskflow 1.27 ignores EIS
+  StopEmulating for keyboard state. The new frame is sent before StopEmulating. Off closes the existing forwarding
+  gate and the EIS connection.
+- `check_build=deskflow` retains all six DRM controls. The daily-use pass uses the real greetd session,
+  xdg-desktop-portal, polkit and guarded Deskflow server plus a loopback TLS Deskflow client under Xvfb. It records
+  each completed check and binding in `daily-checks.jsonl`, and retains only summaries from the input recorders
+  and privacy scanner. Two further boots reuse the throwaway disk to check persistence.
+- **Judgment call.** The login hook follows T455 at login. A switch change to On in an existing login takes effect
+  on the next hub launch or login. Using a persistent autostart supervisor would add a process that relaunches apps
+  during the login; this version can adopt that later through the same scoped entry.
+- **Plan gap.** The brief expected default Info to omit input coordinates. The pinned RPM emits them on both
+  crossing and disconnect, so the guard filters those messages. Keep the format review with future RPM changes.
+  [Deskflow 1.27 server source](https://github.com/deskflow/deskflow/blob/v1.27.0/src/lib/server/Server.cpp)
+
+### Verified locally
+
+- Ran each package-touched Python module with `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s os/tests -p <file>`.
+  The final summaries total 574 tests across 12 modules, with one existing user-systemd skip.
+
+  | Module | Tests | Result |
+  |---|---:|---|
+  | `test_aresos_deskflow.py` | 12 | OK |
+  | `test_aresos_desktop.py` | 189 | OK, 1 skip |
+  | `test_aresos_shell.py` | 76 | OK |
+  | `test_aresos_shell_discovery.py` | 37 | OK |
+  | `test_aresos_shell_icons.py` | 43 | OK |
+  | `test_aresos_shell_protocol.py` | 21 | OK |
+  | `test_deskflow_vm.py` | 11 | OK |
+  | `test_everyday_account.py` | 36 | OK |
+  | `test_input_portal_layers.py` | 3 | OK |
+  | `test_input_sharing.py` | 5 | OK |
+  | `test_labwc_stage.py` | 131 | OK |
+  | `test_shell_assertions.py` | 10 | OK |
+
+  The first layer run carried a rejected directory into later subtests. Each artifact now has a fresh layer.
+  The labwc stage test still expected the pre-Deskflow package invocation. It now also requires the current build
+  kind and the absence of the Rust source in the installed stage. No `__pycache__` directories under `os/config`.
+- Two clean rootless builds with `os/input-portal/dev/container.sh build` printed `102 passed; 0 failed` each.
+  `cmp` confirmed both binaries were byte-identical. The digest is
+  `00e8ff021c7978c6ed7548e050f23734d4e198bcbcebebe8d51157545d28cb57`.
+- Before the EIS fix, the previous pinned binary ran the new test10 and printed `SUMMARY 134 passed, 1 failed, exit 1`.
+  The one failing check had both modifier presses followed by StopEmulating and no key-up events.
+- `mod/dev/build.sh` passed in 2m 43s and 1m 55s. Gradle recorded 339 unit tests (333 passed, 6 platform
+  skips) and both builds printed `All 106 required tests passed`. The full 30-entry `mod/dev/client-test.sh`
+  passed in 14m 15s and 14m 11s. The two native pointer checks have a separate headless-labwc run below.
+- `bash -n`, Python syntax checks and `git diff --check` passed. The round-2 recheck body matches the lead's
+  original file byte for byte.
+
+- With the previous backend before the EIS change, the repaired 133-check harness passed twice. With the final
+  backend, `HARNESS_IMAGE=localhost/aresos-input-portal-harness:321-step2 os/input-portal/harness/run.sh run`
+  printed `SUMMARY 135 passed, 0 failed, exit 0` twice. Tests 1 to 10 passed 18, 8, 9, 8, 3, 8, 15, 20, 5 and 28
+  checks per run, with 13 setup, isolation and review checks. Both runs reproduced the known custom-mode
+  compositor limit with a listener or worker attached.
+- Two focused `mod/dev/client-test.sh --session --keep-screenshots … -I …` passes selected the merged
+  Free Pointer and World Keeps Pointer entrypoints under the native headless labwc fixture. Both passed
+  (2m 39s and 2m 48s), including the native pointer probe and actual Escape/focus transitions. Their
+  screenshots are saved in `.work/step4/native-1/` and `.work/step4/native-2/`. Generated changes to the
+  other reviews' screenshots and the standalone native test's bytecode were cleared from the worktree.
+
+### Laptop test for the owner
+
+After the final review and release, get the owner's direct OK and have the owner save work before the first test.
+
+1. Start with sharing Off. Record labwc's PID. With the portal available for discovery, switch the external
+   display off and on in a listed mode. Unplug and replug it three times, close and open the lid, suspend and
+   resume, and switch to a VT and back. Confirm the same labwc PID and that the displayed outputs recover.
+2. Find **Mouse and keyboard sharing** in the hub. Turn it On using the password prompt. Open Deskflow from the
+   hub for this login. A subsequent login while On should start the guarded server by itself.
+3. Configure the server layout with the Mac's exact Deskflow screen name if the setup has no layout yet. Leave
+   TLS enabled on both ends. Clear the server's saved client list for the first pairing. Point the Mac at the
+   laptop's AresOS address and check the laptop's displayed fingerprint on the Mac if prompted. Compare the
+   fingerprint in the AresOS pairing window with the Mac's own fingerprint. Select **It matches** only after the
+   comparison. Confirm the saved list holds that one entry.
+4. Cross to the Mac and back with and without the external display. Check where the laptop pointer lands.
+5. Type on the Mac, including Cmd shortcuts. Press Super+Shift+Escape and verify that input is back on the
+   laptop and no modifier is still held on the Mac.
+6. Copy and paste text both ways.
+7. Stay on the Mac without input for at least 20 seconds. Verify the next key still goes to the Mac.
+8. While captured, try Alt+Tab, Alt+F4, a lone Super, volume, mute and brightness. Confirm no laptop window
+   action, that the keys reach the Mac, and that Super+Ctrl+Escape releases and opens a usable recovery terminal.
+9. Try the Minecraft world and another game with the game holding the pointer. Check that the pointer stays in
+   the game, then record what happens in the menus.
+10. Turn sharing Off while the Mac is connected. Verify local input, no crossing and no new clipboard transfer.
+    Turning On again must ask for the password. Restart once with On and once with Off to confirm persistence and
+    the corresponding login behavior.
+
 ## Left, in order
 
-1. **Step 4 merges current `origin/main` first** (package 328a, `92cf365a`, and anything newer) and retests the
-   combined branch (backend tests, harness twice, the touched `os/tests` modules). Ask the lead on any conflict in
-   `linux-aresos`'s files.
-2. Step 4 adds the sharing-on login hook (the owner's answer T455), launching Deskflow the hub's scoped way
-   (`app-aresos-org.deskflow.deskflow-<id>.scope`, argv `/usr/libexec/aresos-deskflow`); turning sharing Off stops
-   it. Finish any linked-crate notice changes before building the last check image.
-3. VM checks 2 to 9 with a Deskflow client under Xvfb in the guest, on boots with normal frontend activation.
-   Repeat the local pairing check through the image's Wayland session and frontend. From an empty trust list, the
-   real client's first try should bring its fingerprint to the pairing dialog. Verify the reject default, accept
-   the verified fingerprint deliberately, check the saved list holds only it, and check that a different
-   certificate is refused (VM test 9).
-4. **Dispatch 8 of 8**, `check_build=deskflow`, must show: the corrected DRM controls with normal activation (no
-   backend on Wayland in `regular-none`/`regular-listener` and the custom controls; `first_boot_backend` none or 0 in
-   every boot); the backend state's worker (`worker_connections` 1 through the DRM runs) and its return to Off (`off`
-   in the identity result: original process exited, fresh bus owner with no Wayland connection); the image
-   check's effective Deskflow entry (`DESKFLOW_ENTRY_GUARDED`, successful `rpm -V deskflow`) and backend pin
-   `0c609b6a…`; pairing; VM checks
-   2 to 9. If the identity step fails at readiness, read `deskflow-ci-identity/core.log` in the evidence first (see
-   "Step 3 review fixes", finding 1). Then the bindings table, `KNOWN-LIMITS.md` and the final review. Send the
-   refreshed "For linux-aresos" and "For linux-hub" lists.
-5. Prepare the exact laptop rehearsal for the lead. The owner gives direct approval, saves work, and verifies
-   monitor and session behaviour (laptop item 1 now means the backend's bus side only: no Wayland connection while
-   Off), the Mac fingerprint through the pairing dialog, input, clipboard and release keys on hardware.
+1. A fresh Fable final review of the whole package, the local fixes and the missing hosted daily-use evidence.
+2. The lead sends the final heads for `linux-aresos` and `linux-hub` to read. Both give their read verdicts.
+3. Merge the PR after both reads and resolution of the outstanding hosted VM evidence and review findings.
+4. `linux-aresos` prepares the release after R29.
+5. The owner approves and runs the laptop test above.
 
 ### For step 3 (done in step 3)
 
@@ -862,7 +943,6 @@ The lead sends this list when step 3 ends and at the final head.
 | `os/ci/deskflow/deskflow_vm.py` | `e4668391` | Verify the mode's advertised refresh rate and restore the virtual connector before falling back to PCI. |
 | `os/ci/deskflow/{actions.py,deskflow_vm.py}`, `os/tests/test_deskflow_vm.py` | `db4d0b14` | Check DRM transitions, output-client liveness, and each custom-mode operation. |
 | `os/ci/deskflow/check_layers.py`, `os/tests/test_input_portal_layers.py` | `f4c52a3c` | Reject relocated Rust material in every shipped layer. |
-
 | `os/ci/deskflow/deskflow_vm.py`, `os/tests/test_deskflow_vm.py` | `4e04191c` | Count loss of a connected DRM status node as a transition. |
 | `os/ci/deskflow/check_layers.py`, `os/tests/test_input_portal_layers.py` | `99b0929a` | Reject relocated Cargo artifacts by filename in every shipped layer. |
 | `os/packages.lock.json` | `ff8c842e` | Lock the gated Deskflow RPM and its one new dependency, libportal. |
@@ -894,6 +974,28 @@ The lead sends this list when step 3 ends and at the final head.
 | `os/ci/image-checks.sh`, `os/tests/test_shell_assertions.py` | `a7fadb4e` | Round 2: require `rpm -V deskflow` to exit 0, including when RPM prints nothing. |
 | `os/config/usr/libexec/aresos-deskflow`, `os/tests/test_aresos_deskflow.py` | `ece7b993` | Round 2: set an explicit reject default in the pairing dialog and drive it with Qt Test. |
 | `os/manifest/input-portal.sha256` | `ca6be85f` | Round 2: pin the backend that exits after teardown, from two byte-identical clean builds. |
+| `os/Containerfile`, `os/ci/{check-resolve.sh,guardian_host.py,image-checks.sh}`, `os/labwc/stage.py`, `os/packages.lock.json`, `os/config/usr/{libexec/aresos-shell,share/fonts/aresos/}`, `os/tests` | `73f72d23` | Earlier integration of R29 from main. |
+| `os/config/usr/libexec/{aresos-deskflow,aresos-deskflow-login}`, `os/tests/test_aresos_deskflow.py` | `4fca2753` | Reuse the hub's guarded scope and stop the guarded server on Off. |
+| `os/config/usr/share/aresos/labwc/autostart`, `os/tests/test_{everyday_account,aresos_desktop}.py` | `f5f6e195` | Invoke the gated hook in the real labwc login. |
+| `os/ci/image-checks.sh` | `86991324` | Verify the installed hook and exact autostart line. |
+| `os/config/usr/libexec/aresos-deskflow`, `os/tests/test_aresos_deskflow.py` | `69610c4f` | Redact Info-level crossing coordinates at the guard and route output through the filter. |
+| `os/config/usr/libexec/aresos-deskflow`, `os/tests/test_aresos_deskflow.py` | `54c9203c` | Give deliberate fingerprint acceptance a keyboard mnemonic. |
+| `os/config/usr/libexec/aresos-deskflow`, `os/tests/test_aresos_deskflow.py` | `d9ab0526` | Close the modal timer cleanly, filter disconnect coordinates and test the login and log behavior. |
+| `os/ci/deskflow/{Containerfile,actions.py,session,session-agent,window-state.py}` | `641fe941` | Add disposable VM-only polkit, clipboard, TLS and input probes. |
+| `os/ci/deskflow/{daily_vm.py,deskflow_vm.py}` | `75840989` | Run the daily-use and persistence checks and report each completed check. |
+| `os/ci/check-build.sh` | `7cf8854c` | Require the installed backend to match the source pin in this check build. |
+| `os/ci/deskflow/{actions.py,daily_vm.py}` | `4f625db6` | Use a read-only sandbox fixture and prove input started reaching the client before Off. |
+| `os/ci/deskflow/{actions.py,daily_vm.py}` | `3bd08acf` | Wait for the frontend's descriptors to settle and check On from a real remote PAM session. |
+| `os/config/usr/libexec/{aresos-deskflow,aresos-deskflow-login}`, `os/tests/test_aresos_deskflow.py` | `99d57cbb` | Run explicit fingerprint re-enrollment in the same native scope. |
+| `os/ci/deskflow/{actions.py,daily_vm.py}` | `a77df9de` | Check the client receives its modifier releases before QEMU sends physical key-up. |
+| `os/ci/deskflow/deskflow_vm.py` | `e6b54d0d` | Record Off and On Wayland worker counts for every output boot. |
+| `os/ci/deskflow/deskflow_vm.py`, `os/tests/test_deskflow_vm.py` | `ce22c034` | Keep separate custom-mode and daily-use results and test gate failure. |
+| `os/tests/test_input_portal_layers.py` | `58a1bb5e` | Give every leak probe a fresh layer so an earlier forbidden directory cannot mask the one under test. |
+| `os/tests/test_labwc_stage.py` | `550efbbc` | Verify the guarded package installation invocation after the merged build changes. |
+| `os/ci/deskflow/actions.py` | `cf07d7ea` | Drive the clipboard round trip through the real Deskflow return crossing. |
+| `os/manifest/input-portal.sha256` | `bcea0dad` | Pin the two byte-identical builds with explicit key-up events on release. |
+| `os/config/usr/share/aresos/labwc/autostart`, `os/ci/image-checks.sh`, `os/tests/test_{everyday_account,aresos_desktop}.py` | `a5836aa6` | Publish the compositor environment to the private bus before either login app can activate the portal. |
+| `os/ci/deskflow/actions.py`, `os/tests/test_deskflow_vm.py` | `147a61f5` | Observe the actual app-ID-specific Off log and record safe facts about failed startup. |
 
 Not touched in step 1c: `os/Containerfile` (the stage copies the whole `labwc/` folder, so the second patch needs no
 new line; its comment above the stage still says "one upstream fix" and should name both patches when the file is
@@ -907,7 +1009,10 @@ re-aimed at `aresos2`: R29 carries this package (release plan, 2026-11-21) and g
 |---|---|---|
 | (none in steps 1 and 1b) | | |
 | `os/config/usr/libexec/aresos-shell` | `d5ea344f` | Only the image Deskflow entry gets the native ID as its scope component. The launch suffix and hub protocol ID keep their existing form. |
-| (none in the step 3 review fixes) | | `aresos-shell` is unchanged; the hub's catalogue entry keeps its argv, so a hub launch with no saved Mac pairs by itself. |
+| `os/config/usr/libexec/aresos-shell` | `73f72d23` | Earlier integration of R29 from main. |
+| `os/config/usr/libexec/aresos-deskflow-login` | `4fca2753` | The login hook reads the same image catalogue and uses `ScopeLauncher.command` and `environment`. The only package change to `aresos-shell` itself is `d5ea344f`. |
+| `os/tests/test_aresos_deskflow.py` | `d9ab0526` | Exercise the login hook's call to the hub launcher and its exact argv. |
+| `os/config/usr/libexec/aresos-deskflow-login` | `99d57cbb` | An explicit re-enrollment uses the guarded command in the same scope. |
 
 ## Rules from `linux-aresos` for the later steps (2026-11-21)
 
@@ -918,7 +1023,7 @@ re-aimed at `aresos2`: R29 carries this package (release plan, 2026-11-21) and g
   `pending-rebind.json` first.
 - Keep the list "Image differences" below complete as the image work lands.
 
-## Image differences through step 3
+## Image differences
 
 What the image gains or changes through this package, for `linux-aresos`'s release notes and checks.
 
@@ -951,16 +1056,24 @@ What the image gains or changes through this package, for `linux-aresos`'s relea
   `/usr/bin/aresos-input-sharing` and `/usr/libexec/aresos-input-sharing-set` are root-owned, mode 0755.
   The image and its defaults carry no sharing file. The owner's release key and the combined release and
   recovery binding are in `rc.xml`.
-- Deskflow's sharing-on start hook belongs to step 4 (the owner's answer T455).
+- **Login and logging (step 4):** the labwc autostart runs `/usr/libexec/aresos-deskflow-login` (root, 0755).
+  Autostart publishes the Wayland and desktop variables to the private bus before portal-activating apps.
+  The hook starts the hub's guarded Deskflow server at login while sharing is On (T455). The guard lets one
+  server hold the runtime profile, shuts it down on Off and relays default Info logs with crossing and disconnect
+  coordinates removed. The core's direct file logging is disabled in the private profile.
+- The daily-use test layer's Xvfb client, input probes, clipboard tools and loopback SSH test stay on the
+  check-build path. The shipped image includes the native Deskflow RPM, guarded desktop entry, launcher and
+  polkit switch across steps 2 to 4.
 
 **Summary for the owner.** The image adds Deskflow and a Mouse and keyboard sharing switch that starts Off.
-Turning it on asks for the owner's password. Super+Shift+Escape brings the pointer back, and Super+Ctrl+Escape
+Turning it on asks for the owner's password. While sharing is On, Deskflow starts by itself at login.
+Super+Shift+Escape brings the pointer back, and Super+Ctrl+Escape
 also opens the recovery terminal. The first time the Mac connects, a window shows its fingerprint, and the
 laptop trusts it only after the owner confirms it matches what the Mac's Deskflow shows.
 
 ## CI dispatches
 
-None in steps 1 and 1b, and none in the step 3 review fixes (7 of 8 used; step 4 has the last).
+None in steps 1 and 1b or the step 3 review fixes. Step 4 used dispatch 8 of 8.
 
 | # | Step | Run | What |
 |---|---|---|---|
@@ -971,6 +1084,90 @@ None in steps 1 and 1b, and none in the step 3 review fixes (7 of 8 used; step 4
 | 5 of 8 | 2 | [45001307065](https://github.com/Ares-Empire/AresOS/actions/runs/45001307065), on `0c948087` (dispatched by the lead 2026-11-22 09:07 CET) | `check_build=deskflow` on step 2's final head. **Green** (2026-11-22 09:31): image build and checks, then the DRM output gate. Regular runs (a) to (d) **passed in all three states** (`regular-none`, `regular-listener`, `regular-backend`), the second screen's hotplug by `SetUIInfo`. Custom mode (e): `custom-none` passed; `custom-listener` and `custom-backend` hit the compositor assertion (`head_send_state`), as 316's analysis expected. **The gate passes** (brief item 2's rule): step 3 may start, and (e) is the known limit "no custom mode while the backend runs". |
 | 6 of 8 | 2 review fixes | [45004171828](https://github.com/Ares-Empire/AresOS/actions/runs/45004171828), verified at `f4c52a3ca122ee75798c32f9505920c0c03d7d60` (2026-11-22 09:43 CET) | `check_build=deskflow`. **Passed** (10:10 CET). `gh run watch 45004171828 --exit-status --interval 60` returned 0. The image checks passed, the layer scan passed on 9 added layers, and the installed backend SHA-256 matched the pin. The DRM gate passed with the six case results below. |
 | 7 of 8 | 3 | [45009968432](https://github.com/Ares-Empire/AresOS/actions/runs/45009968432), verified at `dccb0f1da264fff6b092f77238ee6ff20c49917b` (2026-11-22 10:56 CET) | `check_build=deskflow`. **GitHub passed** at 12:11 CET and `gh run watch 45009968432 --exit-status --interval 60` returned 0. Image and polkit checks passed, all 11 added layers passed, and the installed backend SHA-256 matched the pin. The real frontend proved the native ID. The table below accounts for unexpected backend activation in the DRM controls. |
+| 8 of 8 | 4 | [45025378331](https://github.com/Ares-Empire/AresOS/actions/runs/45025378331), verified at `bcea0dadb2fc143ae6bd06c73776615da459e725` (2026-11-22 14:02 CET) | `check_build=deskflow`. **Failed in the daily-use VM** at 14:28 CET. The image build and checks passed. The six DRM boots finished with the expected results. The daily-use boot proved the initial Off state, then the scoped refusal assertion timed out. The reboot-On boot read the persisted On setting and timed out waiting for an armed server. The first `gh run watch 45025378331 --exit-status --interval 60` lost its GitHub API connection, and reattaching returned 1 with the completed failure. This was the final dispatch. |
+
+The hosted job checked out `bcea0dadb2fc143ae6bd06c73776615da459e725`. See
+[run 45025378331 and its check-build-evidence artifact](https://github.com/Ares-Empire/AresOS/actions/runs/45025378331#artifacts).
+The detailed records are `image/checks.txt`, `image/polkit.txt`, `image/input-portal-layers.txt`,
+`deskflow/result.json`, each boot's `operations.jsonl`, and `deskflow/daily-use/daily-checks.jsonl`.
+
+| Run 45025378331 image or DRM check | Result |
+|---|---|
+| Effective Deskflow desktop entry | **Passed.** `DESKFLOW_ENTRY_GUARDED` named the installed entry and `Exec=/usr/libexec/aresos-deskflow`. The required `rpm -V deskflow` exited 0. |
+| Image, input portal layers and polkit rules | **Passed.** `IMAGE_CHECKS_PASSED`, 11 added layers passed, `POLKIT_CHECK_PASSED`. |
+| Input portal pin | **Passed.** Build and installed binary matched `00e8ff021c7978c6ed7548e050f23734d4e198bcbcebebe8d51157545d28cb57`. |
+| `regular-none` | **Passed.** Initial backend absent. No backend held a Wayland connection during the control. Three preferred and alternate-mode cycles, both VT transitions and SetUIInfo hotplug passed. |
+| `regular-listener` | **Passed.** Initial backend absent. The listener kept its connection, and no backend reached Wayland. The same listed modes, VT transitions and SetUIInfo checks passed. |
+| `regular-backend` | **Passed.** Initial backend absent. The real native caller `org.deskflow.deskflow` held one worker through the listed modes, VT transitions and SetUIInfo. Geometry and the original bus owner held. Off closed one session, the original pidfd became readable, and fresh owner `:1.376` held zero Wayland connections. The terminal launch was refused with an empty ID. |
+| `custom-none` | **Passed.** Initial backend absent. Custom mode, disable and re-enable passed. |
+| `custom-listener` | **Known limit reproduced.** Initial backend had zero Wayland connections. Setting the custom mode and disabling passed. Re-enable hit `head_send_state` with the listener bound. |
+| `custom-backend` | **Known limit reproduced.** Initial backend absent. The On worker had one Wayland connection. Setting the custom mode and disabling passed. Re-enable hit the same compositor assertion. |
+
+| Run 45025378331 brief check | Hosted result |
+|---|---|
+| 2. First login while Off | **Passed.** The switch was Off, Deskflow was absent and the backend had zero Wayland connections. |
+| 2. Refused scoped launch, one window and local crossing | **Failed at the assertion.** The test waited 30 s for a later-method log message after the CreateSession request. No dialog count or crossing result was recorded. |
+| 2. Password, cancellation, passwordless Off, invalid arguments, inactive/remote subjects and unsafe switch paths | **Not reached.** The image's static polkit decisions passed. The interactive decisions and switch assertions were pending when the daily boot stopped. |
+| 3. Real-client motion, buttons, wheel, keys and frontend signals | **Not reached.** |
+| 3. 20 clipboard transfers each way, portal read/write counts and frontend fd count | **Not reached.** |
+| 4. Both modifiers released at the client after Super+Shift+Escape | **Not reached.** The local EIS harness proved the release sequence. |
+| 5. A 60-second idle capture and release against a stopped backend | **Not reached.** The stopped-backend fallback passed in each local harness run. |
+| 6. Backend death, frontend restart and logout/login while sharing is On | **Not reached.** The separate DRM boot proved a fresh bus-only activation after Off. |
+| 7. Off while typing, manual file removal within two seconds, and password required to re-enable | **Not reached.** The DRM identity check proved Off tore down an armed session. |
+| 7. Persistence across reboot | **Partial.** The test seeded On and the next boot read On. It timed out waiting for an armed scoped server with zero worker connections at readiness. Off reboot was not reached. |
+| 8. Bindings, Flatpak refusal and trace/log privacy | **Not reached.** The image verified both marked bindings. The hosted run recorded no live binding, sandbox or log privacy results. |
+| 9. Real Wayland-session pairing, different certificate and plaintext refusal, stale and disabled peer-check settings | **Not reached.** |
+
+#### Binding table for the installed capture
+
+The hosted boot stopped before entering a capture. Window/focus action, capture state and the next key's
+destination are unobserved for each row below. The local harness has separate compositor checks.
+
+| Binding | Laptop windows and focus | Capture | Next key |
+|---|---|---|---|
+| Alt+F4 | Unobserved | Unobserved | Unobserved |
+| Alt+Tab | Unobserved | Unobserved | Unobserved |
+| Alt+Shift+Tab | Unobserved | Unobserved | Unobserved |
+| Brightness up | Unobserved | Unobserved | Unobserved |
+| Brightness down | Unobserved | Unobserved | Unobserved |
+| Volume up | Unobserved | Unobserved | Unobserved |
+| Volume down | Unobserved | Unobserved | Unobserved |
+| Audio mute | Unobserved | Unobserved | Unobserved |
+| Microphone mute | Unobserved | Unobserved | Unobserved |
+| Ctrl+Alt+Escape | Unobserved | Unobserved | Unobserved |
+| Lone Super | Unobserved | Unobserved | Unobserved |
+| Left button | Unobserved | Unobserved | Unobserved |
+| Middle button | Unobserved | Unobserved | Unobserved |
+| Right button | Unobserved | Unobserved | Unobserved |
+| Scroll up | Unobserved | Unobserved | Unobserved |
+| Scroll down | Unobserved | Unobserved | Unobserved |
+| Alt+left drag | Unobserved | Unobserved | Unobserved |
+| Alt+right drag | Unobserved | Unobserved | Unobserved |
+| Alt+middle | Unobserved | Unobserved | Unobserved |
+| Alt+scroll | Unobserved | Unobserved | Unobserved |
+| Super+Shift+Escape | Unobserved | Unobserved | Unobserved |
+| Super+Ctrl+Escape | Unobserved | Unobserved | Unobserved |
+
+### Local follow-up after dispatch 8
+
+- `147a61f5` observes the backend's actual app-ID-specific CreateSession denial. The generic
+  `refused: sharing is off` log belongs to later methods. A confined rootless extension of the harness used
+  the installed backend binary, an allow-listed Deskflow ID from the harness frontend, and the VM's exact
+  matcher. It printed `SUMMARY 8 passed, 0 failed, exit 0` including AccessDenied, the matching log, no sessions
+  and no Wayland connection. The VM now reports safe startup facts if it cannot reach the server.
+- `a5836aa6` publishes the Wayland socket and desktop synchronously on the private session bus before the
+  authentication agent or Deskflow can trigger normal activation. labwc starts its own activation-environment
+  updater asynchronously. A private `dbus-run-session` test exercised the autostart command and an immediately
+  activated fixture service received both variables. The hosted artifact does not contain the reboot's startup
+  diagnosis, so it cannot establish which component caused its timeout or prove the new login ordering in the image.
+- Reran discovery on `test_deskflow_vm.py` (12 passed), `test_everyday_account.py` (36 passed),
+  `test_shell_assertions.py` (10 passed), and `test_aresos_desktop.py` (189 including one existing skip).
+  With the prior module results, the current count is 575 tests, 574 passed and one skipped. The post-fix
+  Bash syntax and whitespace checks passed.
+- An additional isolated reproduction of the paired profile could not install its Fedora test dependencies.
+  DNF exhausted the mirror list on DNS timeouts before Deskflow ran. The earlier step 3 loopback pairing
+  and the current Qt launcher tests remain the available local evidence. No file larger than 500 MB
+  remained in `.work/`.
 
 | Run 45009968432 VM case | Result |
 |---|---|
@@ -981,9 +1178,7 @@ None in steps 1 and 1b, and none in the step 3 review fixes (7 of 8 used; step 4
 | `custom-listener` | Initial custom mode and off passed. Re-enable hit the expected `head_send_state` assertion. The frontend requested backend activation, which failed during compositor teardown. |
 | `custom-backend` | Initial custom mode and off passed. Re-enable hit the expected `head_send_state` assertion. |
 
-The artifact reported `gate: passed` with an empty `custom_incomplete`. The two regular controls still need
-hosted evidence on `0ce12ae3`, because the original assertions missed the additional client. Dispatch 8 stays
-with step 4. The raw checks and operation traces are in the
+The artifact reported `gate: passed` with an empty `custom_incomplete`. Dispatch 8 used normal activation and verified from outside that no backend worker joined the controls. The raw checks and operation traces are in the
 [check-build-evidence artifact](https://github.com/Ares-Empire/AresOS/actions/runs/45009968432/artifacts/14752141095).
 
 | Run 45004171828 VM case | Result |

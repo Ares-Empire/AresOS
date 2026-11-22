@@ -117,7 +117,7 @@ entry there is the record of how it was.
   last session closing starts teardown and exits the process. D-Bus can then activate a fresh backend, which
   answers discovery while Off without reaching Wayland. The custom-mode compositor limit above applies during
   worker startup, live sessions and the short teardown. Harness test8 checks the exit and fresh activation from
-  outside. The hosted VM gate is pending.
+  outside. The final hosted result is in `PROGRESS.md` under “CI dispatches”.
 - **Flathub's Deskflow shares the native ID.** The portal sees `org.deskflow.deskflow` for both. A caller
   with that ID can request capture once the owner has turned sharing On. The lead accepted the collision
   on 2026-11-21 because sharing starts Off and the matching Flathub entry is the same application.
@@ -127,8 +127,9 @@ entry there is the record of how it was.
   and Enter selects rejection. The owner still has to compare the fingerprints before selecting “It matches.”
   The brief's laptop test 3 is exactly this comparison. The launcher
   refuses a saved list with more than one or a malformed entry and points to `--enroll`. Edits to the original
-  profile or its trust list take effect on the next guarded launch. `--enroll` is a terminal command; the hub
-  starts pairing by itself only while no Mac is saved.
+  profile or its trust list take effect on the next guarded launch. With sharing On and the old server stopped,
+  `/usr/libexec/aresos-deskflow-login --enroll` opens the guarded pairing path in the correct scope. The hub
+  starts pairing by itself when no Mac is saved.
 - **Deskflow's own window, run by hand, keeps its own settings.** The desktop ID's one entry in the image opens
   the guarded launcher (finding 2), so the hub, a desktop launcher or `gtk-launch` all get it. `deskflow` typed
   in a terminal still opens the stock window with the user's TLS settings; its core then has the terminal's scope,
@@ -140,3 +141,23 @@ entry there is the record of how it was.
   guarded entry. Ordinary image updates repeat the exclusion.
 - **Rust dependency notices are pending.** The backend's own MIT license ships. The exact notice and license
   texts for its linked Rust crates still need to be collected and reviewed before publication.
+
+## Login, release and logging (step 4)
+
+- The autostart hook runs once at login. After switching On during a running login, open Deskflow from the
+  hub. After switching Off, the guarded core exits. The launcher serializes launches, so stop the existing
+  server before replacing a paired Mac.
+- Deskflow's saved screen layout still needs the configured Mac's exact screen name. Trusting a certificate
+  authorizes the peer. The layout controls where a crossing can go.
+- Forced release with sharing On sends key-up events for previously forwarded keys before StopEmulating.
+  Off closes the forwarding gate and tears down the session. A prior network delivery is already outside the
+  backend, and client behavior after losing the connection is Deskflow's.
+- The guarded launcher uses Deskflow's ordinary Info level unless the owner raises it in the saved
+  profile. It removes coordinates from the pinned RPM's crossing and disconnect messages and relays logs
+  through one stream. Higher Deskflow levels can include keys, buttons and other positions. The guarded
+  profile disables Deskflow's direct log file option so it cannot bypass coordinate filtering.
+- Hosted run 45025378331 proved the DRM controls, the initial Off login and the installed image checks.
+  It stopped before the live capture cases. The On file survived a reboot and the test timed out before a
+  fully armed server was observed. The follow-up verified the Off log predicate in the confined harness and
+  the startup environment order on a private bus. Login On and the remaining real-client cases still need
+  end-to-end evidence.
