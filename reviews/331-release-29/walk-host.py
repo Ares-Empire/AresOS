@@ -49,7 +49,9 @@ def diagnostics():
                     assert re.search(message, str(error)), (fault, str(error))
                 else:
                     raise AssertionError('The fixture accepted ' + fault)
-                negative[fault] = model.saved[name]
+                # The mapped FileNotFoundError can name the host's temporary
+                # fixture root. Keep the guest path in the public diagnostic.
+                negative[fault] = json.loads(json.dumps(model.saved[name]).replace(str(model.session.root), ''))
         with test.model('late-monitor') as model:
             model.run_route()
             successful['late-monitor-terminal'] = model.saved['release-28-terminal']
