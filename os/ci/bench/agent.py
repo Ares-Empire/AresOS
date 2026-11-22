@@ -155,7 +155,9 @@ def action(request):
         code, output = captured(['journalctl', '-b', '-u', 'greetd.service', '-n', '80', '--no-pager', '-o', 'cat'])
         return dict(code=code, output=output)
     if verb == 'reboot':
-        code, _ = captured(['systemctl', '--no-block', 'reboot'])
+        # Leave time to acknowledge the request over virtio before systemd stops us.
+        code, _ = captured(['systemd-run', '--quiet', '--on-active=2s', '--timer-property=AccuracySec=100ms',
+                            '--unit=aresos-bench-reboot', '/usr/bin/systemctl', '--no-block', 'reboot'])
         return dict(scheduled=code == 0)
     raise ValueError('Unknown guest action')
 
