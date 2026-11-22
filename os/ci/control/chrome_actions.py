@@ -36,6 +36,7 @@ import sys
 import threading
 import time
 import types
+from functools import wraps
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlsplit
 
@@ -80,6 +81,8 @@ CHANGE = 'polkit probe of brief 18c-b: allow editing on probe.invalid'
 # The unit's [Service] lines that are not its sandbox; every other line is passed to systemd-run as a property.
 NOT_SANDBOX = {'Type', 'ExecStart', 'Restart', 'RestartSec'}
 LOG_LIMIT = 200_000
+FAILURE_LOG_LIMIT = 32 * 1024
+PROBE_LOG = 'probe.jsonl'
 STATE = {}
 
 
@@ -262,7 +265,7 @@ def prepare_run():
         return
     uid, gid, _ = owner_ids()
     RUN.mkdir(mode=0o755)
-    log = RUN / 'probe.jsonl'
+    log = RUN / PROBE_LOG
     log.touch()
     os.chown(log, uid, gid)
 
@@ -316,13 +319,133 @@ def launch(identity, name, argv, log_name, pass_fds=()):
     """One start through the shell's line, as `ares`; the scope execs argv, so the process is argv's own."""
     launcher, helper = shell_launcher()
     uid, gid, groups = owner_ids()
-    command = launcher.command(app(identity, name), argv, secrets.token_hex(8))
-    log = open(RUN / log_name, 'wb')
-    process = subprocess.Popen(command, env=launcher.environment(app(identity, name)), cwd=pwd.getpwnam(OWNER).pw_dir,
-                               user=uid, group=gid, extra_groups=groups, pass_fds=pass_fds, stdin=subprocess.DEVNULL,
-                               stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
-    log.close()
-    return process, dict(command=command, helper=helper, log=log_name)
+    application = app(identity, name)
+    command = launcher.command(application, argv, secrets.token_hex(8))
+    environment = launcher.environment(application)
+    launched = dict(command=command, helper=helper, log=log_name)
+    if identity == 'browser':
+        remember_browser_launch(launched, argv, environment)
+    with (RUN / log_name).open('wb') as log:
+        process = subprocess.Popen(command, env=environment, cwd=pwd.getpwnam(OWNER).pw_dir,
+                                   user=uid, group=gid, extra_groups=groups, pass_fds=pass_fds, stdin=subprocess.DEVNULL,
+                                   stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+    if identity == 'browser':
+        launched['process'] = process
+    return process, launched
+
+
+def optional(read):
+    try:
+        return read()
+    except OSError:
+        return None
+
+
+def remember_browser_launch(launched, argv, environment):
+    session = {key: environment[key] for key in ('XDG_SESSION_ID', 'XDG_SESSION_TYPE', 'XDG_SEAT',
+                                                  'XDG_RUNTIME_DIR', 'WAYLAND_DISPLAY') if key in environment}
+    helper = pathlib.Path('/proc') / str(launched['helper'])
+    session['helper_cgroup'] = optional((helper / 'cgroup').read_text)
+    wayland = pathlib.Path(environment['XDG_RUNTIME_DIR']) / environment['WAYLAND_DISPLAY']
+    profile = next((pathlib.Path(arg.split('=', 1)[1]) for arg in argv if arg.startswith('--user-data-dir=')), None)
+    if profile is None:
+        profile = profile_folder()
+    probe_offset = probe_log_size() or 0
+    launched.update(session=session, wayland=dict(path=str(wayland), socket_at_launch=optional(wayland.is_socket)),
+                    profile=profile, probe_offset=probe_offset)
+    if 'chrome_action' in STATE:
+        STATE['chrome_action']['launches'][launched['log']] = launched
+
+
+def probe_log_size():
+    return optional(lambda: (RUN / PROBE_LOG).stat().st_size)
+
+
+def log_tail(path, start=0, limit=None):
+    with path.open('rb') as stream:
+        end = stream.seek(0, os.SEEK_END)
+        if limit is not None:
+            end = min(end, limit)
+        beginning = min(end, max(start, end - FAILURE_LOG_LIMIT))
+        stream.seek(beginning)
+        return stream.read(end - beginning)
+
+
+def browser_diagnostics(launched):
+    process, command = launched.get('process'), launched['command']
+    pid = process.pid if process is not None else None
+    status = process.poll() if process is not None else None
+    scope = next((arg.removeprefix('--unit=') for arg in command if arg.startswith('--unit=')), None)
+    result = dict(argv=command, pid=pid, exit_status=status, scope=scope)
+    if pid is not None and status is None:
+        proc = pathlib.Path('/proc') / str(pid)
+        result.update(executable=optional(lambda: os.readlink(proc / 'exe')),
+                      cgroup=optional((proc / 'cgroup').read_text))
+    wayland = launched['wayland']
+    result.update(helper_pid=launched['helper'], session=launched['session'],
+                  wayland=dict(wayland, socket_at_failure=optional(pathlib.Path(wayland['path']).is_socket)),
+                  profile=str(launched['profile']), extensions=extension_folders(launched['profile']))
+    return result
+
+
+def scope_journal(scope):
+    if scope is None:
+        return b'No scope was specified by the launcher.\n'
+    # Match both the processes in the user scope and the user manager's messages about it.
+    journal = control().run(['journalctl', '--boot', '--no-pager', '--output=cat', '--lines=80',
+                             f'_SYSTEMD_USER_UNIT={scope}', '+', f'USER_UNIT={scope}'], timeout=5)
+    return (journal['stdout'] + journal['stderr']).encode()[-FAILURE_LOG_LIMIT:]
+
+
+def capture_browser_failure():
+    state = STATE.get('chrome_action')
+    if state is None:
+        return
+    for name, launched in state['launches'].items():
+        if name in state['captured']:
+            continue
+        state['captured'].add(name)
+        prefix = f'{state["folder"]}/{pathlib.Path(name).stem}'
+        files = state['files']
+        probe = optional(lambda: log_tail(RUN / PROBE_LOG, launched['probe_offset'], launched.get('probe_end')))
+        files[f'{prefix}.txt'] = optional(lambda: log_tail(RUN / name)) or b''
+        files[f'{prefix}-probe.jsonl'] = probe or b''
+        try:
+            result = browser_diagnostics(launched)
+            result['probe_host_started'] = bool(probe) if probe is not None else None
+            files[f'{prefix}-launch.json'] = result
+            files[f'{prefix}-journal.txt'] = scope_journal(result['scope'])
+        except (OSError, ValueError, subprocess.TimeoutExpired) as error:
+            files[f'{prefix}-diagnostic-error.txt'] = f'{type(error).__name__}: {error}\n'
+
+
+def checked_action(name, action):
+    @wraps(action)
+    def checked(request):
+        folder = f'chrome/failures/{name}'
+        state = dict(folder=folder, launches={}, captured=set(), files={})
+        if 'chrome' in STATE:
+            launched = STATE['chrome'].launch
+            state['launches'][launched['log']] = launched
+        STATE['chrome_action'] = state
+
+        def failure_files():
+            capture_browser_failure()
+            if not state['files']:
+                state['files'][f'{folder}/launch.json'] = {'launches': []}
+            return control().files_out(state['files'])
+
+        try:
+            result = action(request)
+            if result.get('returncode') != 0:
+                result.setdefault('files', {}).update(failure_files())
+            return result
+        except Exception as error:
+            error.files = failure_files()
+            raise
+        finally:
+            del STATE['chrome_action']
+    return checked
 
 
 def browser_argv(extra=()):
@@ -503,6 +626,7 @@ class Chrome:
             self.devtools.close()
         eventually(lambda: link.hello() is None and not host_processes() and not chrome_processes(),
                    'Chrome and the native hosts end', 60)
+        self.launch['probe_end'] = probe_log_size()
 
 
 def installed(link, identity):
@@ -512,7 +636,9 @@ def installed(link, identity):
 
 def settle(chrome, link, ours, timeout=120):
     """Probe connected, ours installed and enabled, one host on chrome.sock. Seconds after Chrome's start."""
-    hello = eventually(link.hello, 'the probe installs from its file: address and connects through its host', timeout)
+    hello = eventually(lambda: (link.hello() or chrome.process.poll() is not None),
+                       'the probe installs from its file: address and connects through its host', timeout)
+    expect(hello is not True, f'Chrome exited before the probe greeting: status {chrome.process.returncode}')
     times = {'probe_connected': chrome.since()}
 
     def enabled():
@@ -752,6 +878,9 @@ def hand_loaded(request):
         host = one_host(chrome)
         summary = dict(asked=True, install_type=own[1], set_enabled_false=answer, ours_after=after, times=times,
                        host=host, probe=hello['id'])
+    except Exception:
+        capture_browser_failure()
+        raise
     finally:
         log = chrome_log(chrome)
         chrome.stop(link)
@@ -815,6 +944,7 @@ def hand_over(url, label):
         code = second.wait(60)
     except subprocess.TimeoutExpired:
         code = None
+    launched['probe_end'] = probe_log_size()
     expect(STATE['chrome'].process.poll() is None, 'his Chrome still runs')
     return dict(exit=code, launch=launched['command'])
 
@@ -1453,6 +1583,9 @@ def bind_bundle(source, link):
     actions.ok(actions.run(['mount', '--bind', str(source), str(BUNDLE)]))
     try:
         yield
+    except Exception:
+        capture_browser_failure()
+        raise
     finally:
         try:
             stop_browser(link)
@@ -1643,6 +1776,9 @@ def store_log(label, link, pages, ours, probe, with_policy):
             eventually(lambda: count() > before, f'update check {number} reaches the probe server', 60)
             asked.append(chrome.since())
             time.sleep(3)
+    except Exception:
+        capture_browser_failure()
+        raise
     finally:
         stop_browser(link)
     data = record.read_bytes()
@@ -1968,7 +2104,7 @@ def selinux(request):
     summary = dict(getenforce=actions.run(['getenforce'])['stdout'].strip(), avc_denials_in_boot=len(every),
                    naming_ours=len(set(ours) | set(named)))
     expect(summary['getenforce'] == 'Enforcing' and not ours and not named, dict(summary, lines=ours + named))
-    probe_log = (RUN / 'probe.jsonl').read_bytes()[-LOG_LIMIT:] if (RUN / 'probe.jsonl').exists() else b''
+    probe_log = (RUN / PROBE_LOG).read_bytes()[-LOG_LIMIT:] if (RUN / PROBE_LOG).exists() else b''
     return dict(returncode=0, summary=summary, files=actions.files_out({
         'chrome/selinux.txt': json.dumps(summary, indent=2) + '\n' + '\n'.join(every[-200:]) + '\n',
         'chrome/probe.jsonl': probe_log}))
@@ -1985,3 +2121,4 @@ ACTIONS = {'chrome-session': session, 'chrome-polkit-start': polkit_start, 'chro
            'chrome-edit-again-cancelled': lambda request: edit_result(False), 'chrome-edit-finish': edit_finish,
            'chrome-ask-form': ask_form,
            'chrome-selinux': selinux}
+ACTIONS.update({name: checked_action(name, action) for name, action in ACTIONS.items()})

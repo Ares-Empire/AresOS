@@ -295,11 +295,14 @@ class Guest:
 
 
 def keep_files(result, evidence):
+    saved = []
     for name, value in (result.pop('files', None) or {}).items():
         path = (evidence / name.removeprefix('control/')).resolve()
         assert path.is_relative_to(evidence), name
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(import_bytes(value))
+        saved.append(name)
+    return saved
 
 
 def main():
@@ -553,7 +556,7 @@ def chrome_main():
                 print(f'CONTROL_CHECK_FAILED {label} (runner side)\n{traceback.format_exc()[-4000:]}', flush=True)
             timings[label] = round(time.monotonic() - began, 1)
             if result is not None:
-                keep_files(result, evidence)
+                saved = keep_files(result, evidence)
                 if argument in attempts:
                     try:
                         if result.get('returncode') == 0:
@@ -568,6 +571,8 @@ def chrome_main():
                     except Exception:
                         result.update(returncode=1, stderr=traceback.format_exc())
                 results[argument] = result
+                if result.get('returncode') != 0 and saved:
+                    result['evidence_files'] = saved
                 (vm_evidence / f'{argument}-result.json').write_text(json.dumps(result, indent=2) + '\n')
                 summaries[argument] = json.dumps(result.get('summary', {}), sort_keys=True)
                 if result.get('returncode') == 0:

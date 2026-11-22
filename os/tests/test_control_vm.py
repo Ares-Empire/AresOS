@@ -19,6 +19,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import time
 import types
 import unittest
 from unittest import mock
@@ -184,6 +185,155 @@ class ChromePassTest(unittest.TestCase):
             layer.probe_host(broken)
         self.assertEqual(self.actions().RUN, pathlib.Path(layer.RUN))
 
+    def test_the_probe_host_logs_startup_even_when_the_socket_is_missing(self):
+        layer = load(CONTROL_CI / 'chrome_layer.py', 'chrome_layer_for_startup_test')
+        source = ROOT / 'control/chrome/ci/install/probe_host.py'
+        host = {}
+        exec(compile(layer.probe_host(source), str(source), 'exec'), host)
+        logfile = self.folder / 'probe.jsonl'
+        with logfile.open('a', buffering=1) as stream:
+            host.update(open=mock.Mock(return_value=stream), SOCKET=str(self.folder / 'missing.sock'))
+            with self.assertRaises(FileNotFoundError):
+                host['main']()
+        started, failed = [json.loads(line) for line in logfile.read_text().splitlines()]
+        self.assertIs(started['started'], True)
+        self.assertIn('No such file', failed['connect_error'])
+        self.assertEqual(started['host'], failed['host'])
+
+    def run_start_failure(self, exits):
+        chrome = self.actions()
+        runner = load(CONTROL_CI / 'control_vm.py', 'control_vm_for_start_failure')
+        with mock.patch.object(sys, 'path', [str(ROOT / 'os/ci/overlay'), *sys.path]):
+            checks = load(ROOT / 'os/ci/overlay/checks.py', 'checks_for_chrome_start_failure')
+        profile = self.folder / 'profile'
+        (profile / 'Default/Extensions' / ('a' * 32)).mkdir(parents=True)
+        (profile / 'Default/Extensions' / 'unrelated').mkdir()
+        log = self.folder / 'chrome-stand-in.txt'
+        probe = self.folder / 'probe.jsonl'
+        probe.write_text('{"previous_start":true}\n')
+        scope = 'app-aresos-browser-stand-in.scope'
+        script = ("import pathlib, sys, time\n"
+                  "if sys.argv[2] == 'False':\n"
+                  "    with pathlib.Path(sys.argv[1]).open('a') as probe:\n"
+                  "        print('{\"started\":true}', file=probe)\n"
+                  "print('stand-in stderr', file=sys.stderr, flush=True)\n"
+                  "if sys.argv[2] == 'True':\n"
+                  "    sys.exit(23)\n"
+                  "time.sleep(30)\n")
+        argv = [sys.executable, '-c', script, str(probe), str(exits), f'--user-data-dir={profile}']
+        command = ['systemd-run', f'--unit={scope}', '--', *argv]
+        env = {'XDG_RUNTIME_DIR': str(self.folder), 'WAYLAND_DISPLAY': 'wayland-test',
+               'XDG_SESSION_ID': 'stand-in-session'}
+        launcher = mock.Mock()
+        launcher.command.return_value = command
+        launcher.environment.return_value = env
+        helper = os.getpid()
+        popen = subprocess.Popen
+        children, sleeps = [], []
+
+        def start(received, **kwargs):
+            self.assertEqual(received, command)
+            for key in ('user', 'group', 'extra_groups'):
+                kwargs.pop(key)
+            child = popen(argv, **kwargs)
+            children.append(child)
+            if exits:
+                self.assertEqual(child.wait(5), 23)
+            else:
+                deadline = time.monotonic() + 5
+                while log.stat().st_size == 0 and time.monotonic() < deadline:
+                    time.sleep(0.01)
+                self.assertNotEqual(log.stat().st_size, 0)
+            return child
+
+        actions = layer(self.folder)[0]
+        actions.run = mock.Mock(return_value=dict(returncode=0, stdout='stand-in scope journal\n', stderr=''))
+        link = types.SimpleNamespace(hello=lambda: None)
+
+        def action(request):
+            # This cleanup stops the process and would hide whether it was alive at the timeout.
+            with chrome.bind_bundle(self.folder, link):
+                browser = chrome.start_browser('stand-in')
+                chrome.settle(browser, link, 'a' * 32, timeout=1)
+
+        action_name = 'chrome-stand-in'
+        with contextlib.ExitStack() as patches:
+            replacements = dict(RUN=self.folder, control=lambda: actions, wait_session=lambda: {},
+                                shell_launcher=lambda: (launcher, helper), owner_ids=lambda: (0, 0, []),
+                                browser_argv=lambda extra: (argv, {}), host_processes=lambda: [],
+                                chrome_processes=lambda: [],
+                                time=types.SimpleNamespace(monotonic=lambda: sum(sleeps), sleep=sleeps.append))
+            for name, value in replacements.items():
+                patches.enter_context(mock.patch.object(chrome, name, value))
+            patches.enter_context(mock.patch.object(chrome.pwd, 'getpwnam',
+                                                    return_value=types.SimpleNamespace(pw_dir=str(self.folder))))
+            patches.enter_context(mock.patch.object(chrome.subprocess, 'Popen', side_effect=start))
+            patches.enter_context(mock.patch.object(checks, 'layer_actions',
+                                                    return_value={action_name: chrome.checked_action(action_name, action)}))
+            try:
+                reply = checks.reply({'action': action_name, 'id': 7})
+            finally:
+                for child in children:
+                    if child.poll() is None:
+                        child.kill()
+                    child.wait()
+
+        self.assertEqual(reply['id'], 7)
+        self.assertEqual(reply['returncode'], 1)
+        if exits:
+            self.assertIn('Chrome exited before the probe greeting: status 23', reply['stderr'])
+            self.assertEqual(sleeps, [])
+        else:
+            self.assertIn('connects through its host: not within 1s', reply['stderr'])
+            self.assertGreater(sum(sleeps), 1)
+        names = ('chrome-stand-in.txt', 'chrome-stand-in-launch.json',
+                 'chrome-stand-in-journal.txt', 'chrome-stand-in-probe.jsonl')
+        folder = f'chrome/failures/{action_name}'
+        self.assertEqual(set(reply.get('files', {})), {f'control/{folder}/{name}' for name in names})
+        evidence = self.folder / 'evidence'
+        runner.keep_files(reply, evidence)
+        saved = evidence / folder
+        self.assertEqual((saved / names[0]).read_text(), 'stand-in stderr\n')
+        result = json.loads((saved / names[1]).read_text())
+        self.assertEqual(result['argv'], command)
+        self.assertEqual(result['pid'], children[0].pid)
+        self.assertEqual(result['exit_status'], 23 if exits else None)
+        if not exits:
+            self.assertEqual(result['executable'], os.path.realpath(sys.executable))
+            self.assertTrue(result['cgroup'].strip())
+            self.assertLess(children[0].returncode, 0)
+        self.assertEqual(result['scope'], scope)
+        self.assertEqual(result['session']['XDG_SESSION_ID'], 'stand-in-session')
+        self.assertEqual(result['wayland']['path'], str(self.folder / 'wayland-test'))
+        self.assertEqual(result['extensions'], ['a' * 32])
+        self.assertEqual(result['probe_host_started'], not exits)
+        self.assertEqual((saved / names[2]).read_text(), 'stand-in scope journal\n')
+        self.assertEqual((saved / names[3]).read_text(), '' if exits else '{"started":true}\n')
+        journal = actions.run.call_args_list[1].args[0]
+        self.assertEqual(journal[0], 'journalctl')
+        self.assertIn('--boot', journal)
+        self.assertIn('--lines=80', journal)
+        self.assertIn(f'_SYSTEMD_USER_UNIT={scope}', journal)
+
+    def test_early_chrome_exit_reports_status_and_returns_start_evidence(self):
+        self.run_start_failure(exits=True)
+
+    def test_live_chrome_probe_timeout_returns_evidence_before_cleanup(self):
+        self.run_start_failure(exits=False)
+
+    def test_failed_chrome_action_keeps_its_evidence_even_without_a_browser_start(self):
+        chrome = self.actions()
+        actions = layer(self.folder)[0]
+        name = 'chrome-returned-failure'
+        existing = actions.files_out({'chrome/existing.txt': 'already collected'})
+        action = chrome.checked_action(name, lambda _: dict(returncode=1, stderr='failed check', files=existing))
+        with mock.patch.object(chrome, 'control', return_value=actions):
+            reply = action({})
+        self.assertEqual(reply['returncode'], 1)
+        self.assertEqual(reply['stderr'], 'failed check')
+        self.assertEqual(set(reply['files']), {'control/chrome/existing.txt',
+                                              f'control/chrome/failures/{name}/launch.json'})
+
     def run_pass(self, failing=()):
         """chrome_main against a stand-in guest: every action answers, except those named, which fail."""
         runner = load(CONTROL_CI / 'control_vm.py', f'control_vm_pass_{id(self)}_{len(failing)}')
@@ -204,7 +354,10 @@ class ChromePassTest(unittest.TestCase):
                 # decide.
                 summary = dict(list={'sha256': 'x'}, host={'pid': 1}, extension_id='a' * 32)
                 if request['action'] in failing:
-                    return dict(returncode=1, stderr='made to fail', summary=summary)
+                    from channel import export_bytes
+                    name = f'control/chrome/failures/{request["action"]}/chrome-stand-in.txt'
+                    return dict(returncode=1, stderr='made to fail', summary=summary,
+                                files={name: export_bytes(b'made to fail\n')})
                 return dict(returncode=0, summary=summary)
 
             create = poweroff = close = keys = click = screenshot = lambda *arguments: None
@@ -251,6 +404,11 @@ class ChromePassTest(unittest.TestCase):
         self.assertIn('chrome-hand-loaded', asked)
         self.assertNotIn('CONTROL_CHROME_INSTALL_PASS', printed)
         self.assertIn('CONTROL_CHECK_FAILED', printed)
+        evidence = self.folder / 'pass-chrome-hand-loaded/evidence'
+        name = 'control/chrome/failures/chrome-hand-loaded/chrome-stand-in.txt'
+        result = json.loads((evidence / 'control/chrome/vm/chrome-hand-loaded-result.json').read_text())
+        self.assertEqual(result['evidence_files'], [name])
+        self.assertEqual((evidence / name).read_bytes(), b'made to fail\n')
         for line in ('CONTROL_CHROME_FILES_PASS', 'CONTROL_CHROME_SITES_FIRST_USE_PASS', 'CONTROL_CHROME_SELINUX_PASS'):
             self.assertIn(line, printed)
 

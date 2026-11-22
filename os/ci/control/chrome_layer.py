@@ -42,9 +42,17 @@ def write(path, data, mode=0o644):
 
 
 def probe_host(source):
-    """The install proof's probe host with its two paths moved; each line must be there exactly once."""
+    """Move the proof host's paths and record startup before the guest socket can fail."""
     text = source.read_text()
-    for old, new in HOST_PATHS.items():
+    connect = '        connection.connect(SOCKET)'
+    starts = {
+        '    with socket.socket': "    note('started', 'true')\n    with socket.socket",
+        connect: ('        try:\n' + '    ' + connect + '\n'
+                  "        except OSError as error:\n"
+                  "            note('connect_error', json.dumps(str(error)))\n"
+                  '            raise'),
+    }
+    for old, new in {**HOST_PATHS, **starts}.items():
         assert text.count(old) == 1, f'probe_host.py must hold {old!r} exactly once'
         text = text.replace(old, new)
     return text
