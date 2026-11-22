@@ -878,11 +878,16 @@ After the final review and release, get the owner's direct OK and have the owner
    the outputs have recovered and the session is still armed before continuing to steps 4 through 10.
 4. Cross to the Mac and back with and without the external display. Check where the laptop pointer lands.
 5. Type on the Mac, including Cmd shortcuts. Press Super+Shift+Escape and verify that input is back on the
-   laptop and no modifier is still held on the Mac.
+   laptop and no modifier is still held on the Mac. For the supervised fallback rehearsal, save work and
+   capture again. The lead stops the identified backend instance in the approved test session. Press the same
+   chord and type once in the local probe. The key must be local, the switch must still show On, and crossing
+   must stay local until the owner opens Deskflow from the hub or logs in again. Confirm a fresh crossing
+   and key reach the Mac after opening Deskflow.
 6. Copy and paste text both ways.
 7. Stay on the Mac without input for at least 20 seconds. Verify the next key still goes to the Mac.
 8. While captured, try Alt+Tab, Alt+F4, a lone Super, volume, mute and brightness. Confirm no laptop window
-   action, that the keys reach the Mac, and that Super+Ctrl+Escape releases and opens a usable recovery terminal.
+   action, that these keys reach the Mac, and that Super+Ctrl+Escape releases and opens a usable recovery
+   terminal. The microphone-mute key is a Deskflow 1.27 limit and has no effect on either computer while captured.
 9. Try the Minecraft world and another game with the game holding the pointer. Check that the pointer stays in
    the game, then record what happens in the menus.
 10. Turn sharing Off while the Mac is connected. Verify local input, no crossing and no new clipboard transfer.
@@ -891,9 +896,8 @@ After the final review and release, get the owner's direct OK and have the owner
 
 ## Left, in order
 
-1. Resolve the remaining hosted findings from dispatch 11, including the pinned Deskflow microphone-mute
-   mapping and the stopped-backend re-capture, and get the daily-use gate and binding table green. The lead
-   holds dispatch 12. The final Fable review is in `REVIEW-4-FABLE.md`.
+1. Verify the emergency release, remote polkit, sandbox ID refusal and TLS controls in the daily-use VM.
+   The lead holds dispatch 16. The final Fable review is in `REVIEW-4-FABLE.md`.
 2. The lead sends the final heads for `linux-aresos` and `linux-hub` to read. Both give their read verdicts.
 3. Merge the PR after both reads and resolution of the outstanding hosted VM evidence and review findings.
 4. `linux-aresos` prepares the release after R29.
@@ -1007,6 +1011,9 @@ The lead sends this list when step 3 ends and at the final head.
 | `os/ci/deskflow/{actions.py,daily_vm.py}`, `os/tests/test_deskflow_vm.py` | `d63029cd` | Observe the image's own activation variables and collect redacted diagnostics for failed daily checks. |
 | `os/ci/deskflow/actions.py` | `a8c2ee30` | Give the daily VM fixture the screen names and layout links Deskflow 1.27 expects. |
 | `os/ci/deskflow/actions.py`, `os/tests/test_deskflow_vm.py` | `64c6661c` | Wait for logind's seat transition, isolate the PAM SSH probe and recenter the fixture pointer before pairing. |
+| `os/config/usr/libexec/aresos-deskflow`, `os/tests/test_aresos_deskflow.py` | `24b83634` | Publish the launcher and core identities in a private runtime record before the core can request capture. |
+| `os/manifest/input-portal.sha256` | `c5f1515b` | Pin the backend that stops guarded Deskflow during a pidfd fallback. |
+| `os/ci/deskflow/{actions.py,daily_vm.py}` | `233fa378` | Prove local recovery and explicit restart, use the system manager for remote PAM, retain the sandbox reply, and verify TLS refusal and the microphone-mute limit. |
 
 Not touched in step 1c: `os/Containerfile` (the stage copies the whole `labwc/` folder, so the second patch needs no
 new line; its comment above the stage still says "one upstream fix" and should name both patches when the file is
@@ -1088,7 +1095,8 @@ laptop trusts it only after the owner confirms it matches what the Mac's Deskflo
 None in steps 1 and 1b or the step 3 review fixes. Step 4 used dispatch 8 of the original 8.
 After the final Fable review, the lead raised the package budget from 8 to 12 because the daily-use gate
 had never been reached, the cause of VM 7's timeout was unknown and needed logging, and the reviewed head
-had never been built. Dispatch 12 is reserved for the lead.
+had never been built. After run 11 the lead raised the budget from 12 to 16 because it left one product fix
+and three test fixtures unverified. Dispatch 16 is reserved for the lead.
 
 | # | Step | Run | What |
 |---|---|---|---|
@@ -1136,8 +1144,7 @@ or removed. No file larger than 500 MB remained in `.work/`.
 The pinned Deskflow 1.27 source maps `XF86AudioMicMute` (`0x1008ffb2`) to zero in
 `XDGKeyUtil::s_map1008FF`, reached by its Wayland EIS key conversion. A local source check used
 `xkb_keysym_from_name` to verify that entry and the neighboring audio-mute control. This dependency
-failure leaves the binding gate open. The stopped-backend re-capture also leaves the recovery guarantee
-open. Both failures are tracked here with the other unresolved VM checks. Dispatch 12 was left unused.
+behavior is a known limit. The stopped-backend re-capture was the remaining product fix.
 
 ### Dispatch 10 evidence
 
@@ -1241,7 +1248,7 @@ The window and focus assertion comes after the keysym check, so that field remai
 | Volume up | Unchanged | Held | Client |
 | Volume down | Unchanged | Held | Client |
 | Audio mute | Unchanged | Held | Client |
-| Microphone mute | Unobserved | Held | Client. The mute keysym itself failed to arrive. |
+| Microphone mute | Unobserved in dispatch 11 | Held | Client. Deskflow 1.27 drops the microphone-mute key, which has no effect on either computer during capture. |
 | Ctrl+Alt+Escape | Unchanged | Held | Client |
 | Lone Super | Unchanged | Held | Client |
 | Left button | Unchanged | Held | Client |

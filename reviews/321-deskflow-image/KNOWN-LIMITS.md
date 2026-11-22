@@ -166,6 +166,9 @@ entry there is the record of how it was.
   refusal and open the sharing window even while sharing is On. Open Deskflow again.
 - Forced release sends key-up events. A mouse button held at the chord can stay held on the Mac until
   Deskflow leaves the screen.
+- While captured, the microphone-mute key does nothing on either computer. labwc leaves it to the capture,
+  and Deskflow 1.27 maps `XF86AudioMicMute` (`0x1008ffb2`) to zero in `XDGKeyUtil::s_map1008FF` when converting
+  EIS keys. The next ordinary key still goes to the client. Release the capture to mute the laptop microphone.
 - While sharing is On and no Mac is paired, each login starts the pairing server. Anyone who can reach
   the port can open a fingerprint dialog. The dialog defaults to rejection.
 - A program running as the same user can delete the once-per-login marker and open the sharing window again.
