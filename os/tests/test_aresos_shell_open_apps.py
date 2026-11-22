@@ -266,6 +266,40 @@ class OpenAppsTest(ViewBase):
         self.assertEqual(self.activations, [])
         self.assertEqual(self.popen.call_count, 2)
 
+    def test_desktop_join_can_start_when_the_view_live_cap_is_full(self):
+        helper = self.start(tracked=True)
+        filler, laptop = self.view(helper, 'filler'), self.view(helper)
+        desktop, _ = self.hello13(helper)
+        for number in range(shell.MAX_VIEW_LAUNCHES):
+            reply = self.call(helper, filler, 'open_app', f'fill-{number}', app_id='terminal')
+            self.assertEqual(reply.get('state'), 'starting', reply)
+
+        check = shell.LaunchCheck(from_view=True)
+        with mock.patch.object(helper.checks, 'start', return_value=check) as checks, \
+                mock.patch.object(shell, 'CHECK_WAIT', 0):
+            self.assertIsNone(self.call(helper, laptop, 'open_app', 'view-open', app_id='browser'))
+            self.assertIsNone(self.ask(helper, desktop, 'desktop-open', screen='world'))
+            checks.assert_called_once()
+            self.assertTrue(checks.call_args.kwargs['from_view'])
+            check.result = (['/usr/bin/unused'], '~', None)
+            check.done.set()
+            helper.tick()
+
+        view_reply = next(m for m in laptop.sent if m['id'] == 'view-open')
+        desktop_reply = next(m for m in desktop.sent if m['id'] == 'desktop-open')
+        self.assertEqual(view_reply.get('error'), 'journal_full')
+        self.assertEqual((desktop_reply.get('request_id'), desktop_reply.get('state')), ('desktop-open', 'starting'))
+        launch = self.launch_for(helper, shell.DESKTOP, 'desktop-open')
+        self.assertEqual(launch.origin, (shell.DESKTOP, 'desktop-open'))
+        self.assertEqual(launch.entry['screen'], 'world')
+        self.assertEqual(self.popen.call_count, shell.MAX_VIEW_LAUNCHES + 1)
+        self.show(helper.windows, 10, BROWSER, active=True)
+        helper.windows_changed()
+        event = desktop.events('app_state')[-1]
+        self.assertEqual((event['request_id'], event['state'], event['launch_id']),
+                         ('desktop-open', 'focused', desktop_reply['launch_id']))
+        self.assertEqual(laptop.events('app_state'), [])
+
     def test_launch_fallback_keeps_screen_and_replays_when_a_window_appears(self):
         helper = self.start(tracked=True)
         conn, _ = self.hello13(helper)

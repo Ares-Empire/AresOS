@@ -2274,8 +2274,10 @@ class Journal:
                     self.load_client(client, records, now)
         launches = data.get('active_launches')
         if isinstance(launches, list):
-            # No more than the launch table can hold (Helper.spawn_room).
-            for item in launches[:JOURNAL_LIMIT + MAX_VIEW_LAUNCHES]:
+            # Each saved launch is live or still has a replay record that follows its outcome.
+            live_limit = JOURNAL_LIMIT + MAX_VIEW_LAUNCHES
+            replay_limit = JOURNAL_LIMIT + MAX_VIEW_NAMES * VIEW_JOURNAL_LIMIT
+            for item in launches[:live_limit + replay_limit]:
                 if not isinstance(item, list) or len(item) != 3:
                     continue
                 client, request_id, entry = item
@@ -3320,7 +3322,12 @@ class Helper:
         return entries
 
     def save_launches(self):
-        self.journal.save(list(self.launch_entries()))
+        referenced = self.referenced_launches()
+        self.journal.save([launch for launch in self.launch_entries()
+                           if launch.entry['launch_id'] in referenced or self.launch_alive(launch)])
+
+    def referenced_launches(self):
+        return {entry.get('launch_id') for entry in self.journal.entries.values()}
 
     def add_launch(self, launch):
         entry = launch.entry
@@ -3909,7 +3916,7 @@ class Helper:
         requests = {key: [conn]}
         # Bringing a window back takes a receipt, not a launch record, and a join asks for its own room where it
         # joins. So this comes before the launch table is asked: a full one never refuses a visible window.
-        if bring_back and app is not None and self.bring_back(app_id, requests):
+        if bring_back and app is not None and self.bring_back(app_id, requests, screen):
             return None
         if not self.launch_room(conn.client):
             raise self.journal_full(request_id, app_id)
@@ -3943,18 +3950,18 @@ class Helper:
         return self.journal.room(client, reserved)
 
     def spawn_room(self, client):
-        """The launch table's own bound, whatever the replay records say: JOURNAL_LIMIT live launches that the
-        desktop started and MAX_VIEW_LAUNCHES that views started, under any names. Only launch() spawns."""
-        views = sum(launch.origin[0] != DESKTOP for launch in self.launch_entries())
-        if client != DESKTOP:
-            return views < MAX_VIEW_LAUNCHES
-        return sum(1 for _ in self.launch_entries()) - views < JOURNAL_LIMIT
+        """Count live processes and scopes for this role, even after their replies have expired."""
+        desktop = client == DESKTOP
+        limit = JOURNAL_LIMIT if desktop else MAX_VIEW_LAUNCHES
+        live = sum(self.launch_alive(launch) for launch in self.launch_entries()
+                   if (launch.origin[0] == DESKTOP) == desktop)
+        return live < limit
 
     def activation_target(self, app_id):
         # Layout restoration can select a group here once layouts exist.
         return max(self.catalogue_windows.of(app_id), key=lambda w: (w.last_active, w.mapped), default=None)
 
-    def bring_back(self, app_id, requests):
+    def bring_back(self, app_id, requests, screen):
         window = self.activation_target(app_id)
         if window is not None:
             self.restore_window(window, requests)
@@ -3969,6 +3976,8 @@ class Helper:
                     self.reply_waiters(key, conns, self.journal_full_reply(key, app_id))
                 else:
                     waiting['requests'][key] = conns
+                    if key[0] == DESKTOP and origin[0] != DESKTOP:
+                        waiting.setdefault('desktop_screen', screen)
             return True
         # A start to join has shown no window yet. One whose windows all closed is over, though its process may
         # stay (a tray): for it the app is started again, as open_app does, and the running instance shows itself.
@@ -4078,22 +4087,31 @@ class Helper:
     def finish_check(self, key, waiting, result):
         app, requests = waiting['app'], waiting['requests']
         bring_back = waiting['bring_back']
+        desktop_screen = waiting['screen'] if key[0] == DESKTOP else waiting.get('desktop_screen')
         if bring_back:
             # The check may have waited while a window mapped or a deliberate open started a process.
             if self.drain_windows is not None and self.drain_windows():
                 self.windows_changed()
-            if self.bring_back(app.id, requests):
+            if self.bring_back(app.id, requests, desktop_screen):
                 return
         reserved = sum(other != key and other[0] == key[0] for other in requests)
         if self.launch_room(key[0], reserved):
             answer = self.launch(key, app, *result, waiting['screen'], activation_fallback=bring_back)
         else:
             answer = self.journal_full_reply(key, app.id)
+        # A view's refusal only settles the view requests. The desktop can still use the completed check.
+        desktop_requests = {}
+        if key[0] != DESKTOP and answer.get('error') == 'journal_full':
+            desktop_requests = {joined: conns for joined, conns in requests.items() if joined[0] == DESKTOP}
         self.reply_waiters(key, requests[key], answer)
         origin = self.journal.entries.get(key, dict(answer, app_id=app.id))
         for joined, conns in requests.items():
-            if joined != key:
+            if joined != key and joined not in desktop_requests:
                 self.reply_waiters(joined, conns, self.record_join(joined, origin))
+        if desktop_requests:
+            self.finish_check(next(iter(desktop_requests)),
+                              dict(waiting, requests=desktop_requests, screen=desktop_screen, bring_back=True),
+                              result)
 
     def record_join(self, key, origin):
         entry = dict(app_id=origin['app_id'], launch_id=origin.get('launch_id'), joined=True)
@@ -4312,12 +4330,13 @@ class Helper:
         return launch.scope in (ACTIVE, UNKNOWN)
 
     def prune_launches(self):
+        referenced = self.referenced_launches()
         removed = False
         for app_id, group in list(self.app_launches.items()):
             for launch_id, launch in list(group.running.items()):
                 entry = launch.entry
-                if ((entry['state'] in FINAL or entry.get('settled')) and launch.process is None
-                        and not self.launch_alive(launch)):
+                if (launch.process is None and not self.launch_alive(launch)
+                        and (entry['state'] in FINAL or entry.get('settled') or launch_id not in referenced)):
                     del group.running[launch_id]
                     removed = True
             if not group.running and not group.checking:

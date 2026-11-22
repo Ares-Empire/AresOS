@@ -609,6 +609,31 @@ class LaunchTest(Base):
             self.assertEqual((again['launch_id'], again['state']), (first['launch_id'], 'starting'))
         self.assertEqual(self.popen.call_count, shell.JOURNAL_LIMIT)
 
+    def test_desktop_live_cap_refuses_a_launch_when_the_replay_journal_has_room(self):
+        helper = self.helper(tracked=True)
+        conn = self.connect(helper)
+        for number in range(shell.JOURNAL_LIMIT):
+            reply = self.request(helper, conn, 'open_app', f'live-{number}', app_id='terminal')
+            self.assertEqual(reply.get('state'), 'starting', reply)
+
+        # The window waits time out and their replies expire while the processes keep running.
+        self.now[0] += shell.WINDOW_TIMEOUT + 1
+        helper.tick()
+        self.now[0] += shell.REPLAY_HORIZON + 1
+        reply = self.request(helper, conn, 'open_app', 'unknown', app_id='unknown')
+        self.assertEqual(reply.get('error'), 'unknown_app', reply)
+        self.assertEqual(list(helper.journal.entries), [(shell.DESKTOP, 'unknown')])
+        self.assertEqual(len(list(helper.launch_entries())), shell.JOURNAL_LIMIT)
+
+        refused = self.request(helper, conn, 'open_app', 'next', app_id='notepad')
+        self.assertEqual(refused.get('error'), 'journal_full', refused)
+        self.assertEqual(self.popen.call_count, shell.JOURNAL_LIMIT)
+        next(helper.launch_entries()).process.code = 0
+        helper.tick()
+        retry = self.request(helper, conn, 'open_app', 'next', app_id='notepad')
+        self.assertEqual(retry.get('state'), 'starting', retry)
+        self.assertEqual(self.popen.call_count, shell.JOURNAL_LIMIT + 1)
+
     def test_a_launch_interrupted_by_a_crash_is_reconciled_not_retried(self):
         units = {'o-dead': 'app-aresos-terminal-dead.scope', 'o-alive': 'app-aresos-notepad-alive.scope'}
         with open(self.journal, 'w') as handle:

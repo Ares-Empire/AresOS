@@ -12,7 +12,7 @@ from test_aresos_shell import (ALL, Base, Conn, FakeCompositor, INSTANCE, NONCE,
 EXAMPLES = ROOT / 'mod/src/test/resources/shell-1.2'
 TOKEN = 'A' * 43
 WIRE = 'aresos-shell/1.2'
-WEB = shell.App('test-web', 'Test Web', argv=('/usr/bin/test-web',), discovered=True,
+WEB = shell.App('test-web', 'Test Web', argv=('/usr/bin/test-web',), discovered=True, instance='single',
                 app_ids=('org.test.Web',))
 GAME = 'aresos-desktop'
 NOTEPAD = 'org.kde.kwrite'
@@ -323,6 +323,42 @@ class LaunchIsolationTest(ViewBase):
         helper.tick()
         late = self.view(helper, 'rotating-1')
         self.assertEqual(self.call(helper, late, 'open_app', 'late', app_id='terminal')['state'], 'starting')
+
+    def test_ended_single_instance_handoffs_leave_room_for_laptop_home(self):
+        helper = self.start(tracked=True)
+        laptop, other = self.view(helper), self.view(helper, 'another-view')
+        self.show(helper.windows, 3, WEB.app_ids[0], active=True)
+        helper.windows_changed()
+
+        # Use two view names so the 32-entry replay table for either name still has room.
+        for number in range(shell.MAX_VIEW_LAUNCHES + 1):
+            view = laptop if number % 2 == 0 else other
+            request_id = f'handoff-{number}'
+            reply = self.call(helper, view, 'open_app', request_id, app_id=WEB.id)
+            self.assertEqual(reply.get('state'), 'starting', reply)
+            launch = self.launch_for(helper, view.client, request_id)
+            launch.process.code = 0
+            self.scope_pass(helper)
+            self.assertIsNone(launch.process)
+            self.assertEqual(launch.scope, shell.GONE)
+            self.assertEqual(launch.handles, {3})
+            self.assertIn(launch.entry['state'], ('focused', 'background'))
+
+        next_open = self.call(helper, laptop, 'open_app', 'another-app', app_id='terminal')
+        self.assertEqual(next_open.get('state'), 'starting', next_open)
+        self.assertEqual(self.popen.call_count, shell.MAX_VIEW_LAUNCHES + 2)
+        self.assertEqual(self.call(helper, laptop, 'open_app', 'handoff-0', app_id=WEB.id)['state'], 'focused')
+
+        # When the other view's history gives way, its ended handoffs have no replies left to update.
+        helper.disconnected(other)
+        self.now[0] += shell.REPLAY_HORIZON
+        for number in range(shell.MAX_VIEW_NAMES - 1):
+            helper.disconnected(self.view(helper, f'new-{number}'))
+        helper.tick()
+        self.assertNotIn(other.client, helper.journal.view_clients)
+        self.assertNotIn(other.client, {launch.origin[0] for launch in helper.launch_entries()})
+        with pathlib.Path(self.journal).open() as handle:
+            self.assertNotIn(other.client, {client for client, _, _ in json.load(handle)['active_launches']})
 
     def test_view_cannot_fill_desktop_journal(self):
         helper = self.start()
