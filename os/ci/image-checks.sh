@@ -469,7 +469,9 @@ runuser -u ares -- env -i HOME=/var/home/ares PATH="$shadow:/usr/local/bin:/usr/
     /usr/bin/python3 - /tmp/helper-list.json <<'PY'
 import importlib.machinery, importlib.util, json, os, sys
 listed = json.load(open(sys.argv[1]))
-assert {row['id']: row['available'] for row in listed['apps']} == {'browser': True, 'notepad': True, 'terminal': True}, listed
+assert {row['id']: row['available'] for row in listed['apps']} == {
+    name: True for name in ('browser', 'notepad', 'org-deskflow-deskflow', 'terminal')
+}, listed
 loader = importlib.machinery.SourceFileLoader('aresos_shell', '/usr/libexec/aresos-shell')
 spec = importlib.util.spec_from_loader('aresos_shell', loader)
 shell = importlib.util.module_from_spec(spec)
@@ -489,7 +491,7 @@ assert shell.LIST_SCOPES[0] == '/usr/bin/systemctl' and os.access(shell.LIST_SCO
 PY
 test ! -s "$shadow/ran"
 rm -rf "$shadow"
-pass 'the app helper resolves browser, notepad and terminal and launches by absolute paths under the system PATH with shadows first'
+pass 'the app helper resolves Chrome, Deskflow, Notepad and Terminal and launches by absolute paths with shadows first'
 # Package 30 review fixes: the reviewed window hints ship in the image and pass the helper's own strict check.
 runuser -u ares -- env -i HOME=/var/home/ares PATH=/usr/bin /usr/bin/python3 - <<'PY'
 import importlib.machinery, importlib.util
@@ -597,7 +599,7 @@ for key, action in actions.items():
     assert b'\0' + key.encode() + b'\0' in library, f'{key} is not a keysym name libxkbcommon knows'
     print(key, '->', binds[key])
 assert os.access('/usr/libexec/aresos-level', os.X_OK)
-assert binds['W-C-Escape'] == '/usr/bin/aresos-terminal --recovery'
+assert binds['W-C-Escape'] == "/usr/bin/sh -c '/usr/libexec/aresos-input-portal --release; exec /usr/bin/aresos-terminal --recovery'"
 PY
 for program in /usr/libexec/aresos-level /usr/libexec/aresos-settings /usr/libexec/aresos-indicator; do
     test "$(stat -c '%U:%G %a' "$program")" = 'root:root 755'
@@ -672,14 +674,77 @@ portal=/usr/libexec/aresos-input-portal
 portal_service=org.freedesktop.impl.portal.desktop.aresos-input.service
 portal_license=/usr/share/licenses/aresos-input-portal/LICENSE
 portal_source=$(dirname -- "$0")/../input-portal
+sharing_source=$(dirname -- "$0")/../config/usr/share
+portal_definition=/usr/share/xdg-desktop-portal/portals/aresos-input.portal
+allowed=/usr/share/aresos/input-portal/allowed-apps
+routes=/usr/share/xdg-desktop-portal/aresos-portals.conf
+action=/usr/share/polkit-1/actions/org.aresos.input-sharing.policy
+desktop=/usr/share/applications/org.aresos.InputSharing.desktop
 test "$(stat -c '%u:%g:%a:%F' "$portal")" = '0:0:755:regular file'
-for file in "/usr/share/dbus-1/services/$portal_service" "$portal_license"; do
+for file in /usr/bin/aresos-input-sharing /usr/libexec/aresos-input-sharing-set /usr/libexec/aresos-deskflow; do
+    test "$(stat -c '%u:%g:%a:%F' "$file")" = '0:0:755:regular file'
+done
+for file in "/usr/share/dbus-1/services/$portal_service" "$portal_license" "$portal_definition" \
+    "$allowed" "$routes" "$action" "$desktop"; do
     test "$(stat -c '%u:%g:%a:%F' "$file")" = '0:0:644:regular file'
 done
 cmp "$portal_source/data/$portal_service" "/usr/share/dbus-1/services/$portal_service"
 grep -qx "Exec=$portal" "/usr/share/dbus-1/services/$portal_service"
+grep -Fx "DBusName=${portal_service%.service}" "$portal_definition"
+cmp "$portal_source/data/aresos-input.portal" "$portal_definition"
+cmp "$sharing_source/polkit-1/actions/org.aresos.input-sharing.policy" "$action"
+cmp "$sharing_source/applications/org.aresos.InputSharing.desktop" "$desktop"
+printf 'org.deskflow.deskflow\n' | cmp - "$allowed"
 cmp "$portal_source/LICENSE" "$portal_license"
-test ! -e /etc/aresos/input-portal/sharing && test ! -L /etc/aresos/input-portal/sharing
+for switch in /etc/aresos/input-portal/sharing /usr/etc/aresos/input-portal/sharing; do
+    test ! -e "$switch" && test ! -L "$switch"
+done
+test "$(/usr/bin/aresos-input-sharing status)" = off
+test -x /usr/bin/kdialog
+test "$(rpm -q --qf '%{NAME}-%{EPOCHNUM}:%{VERSION}-%{RELEASE}.%{ARCH}' deskflow)" = deskflow-0:1.27.0-1.fc44.x86_64
+test "$(rpm -qf --qf '%{NAME}\n' /usr/bin/deskflow-core /usr/share/applications/org.deskflow.deskflow.desktop | sort -u)" = deskflow
+python3 -I - "$routes" <<'PY'
+from configparser import ConfigParser
+from pathlib import Path
+import json, runpy, sys, tempfile
+from PySide6.QtCore import QSettings
+
+config = ConfigParser(interpolation=None)
+config.optionxform = str
+assert config.read(sys.argv[1]) == [sys.argv[1]]
+assert config.sections() == ['preferred']
+expected = {'default': 'none'}
+for backend, interfaces in {
+    'gtk': 'Access Account AppChooser DynamicLauncher Email FileChooser Inhibit Notification Print Settings',
+    'none': 'Background GlobalShortcuts Lockdown RemoteDesktop ScreenCast Screenshot Secret Usb Wallpaper',
+    'aresos-input': 'Clipboard InputCapture',
+}.items():
+    expected.update({f'org.freedesktop.impl.portal.{interface}': backend for interface in interfaces.split()})
+assert dict(config['preferred']) == expected
+for path in (Path('/etc/Deskflow/Deskflow.conf'), Path('/usr/etc/Deskflow/Deskflow.conf'),
+             *Path('/var/home').glob('*/.config/Deskflow/Deskflow.conf')):
+    assert not path.exists() and not path.is_symlink(), path
+lock = json.loads(Path('/usr/share/aresos/manifest/packages.lock.json').read_text())
+assert next(row['sha256'] for row in lock['packages'] if row['nevra'] == 'deskflow-1.27.0-1.fc44.x86_64') == (
+    '21a404d8bd0488fdc7ec635ed26447d623b132dc4ae3d12e5f944991ab76484b')
+prepare = runpy.run_path('/usr/libexec/aresos-deskflow')['prepare_profile']
+with tempfile.TemporaryDirectory() as temporary:
+    source, target = Path(temporary) / 'source', Path(temporary) / 'target'
+    source.mkdir()
+    (source / 'Deskflow.conf').write_text('[security]\ntlsEnabled=false\ncheckPeerFingerprints=false\n')
+    prepare(source, target)
+    settings = QSettings(str(target / 'Deskflow.conf'), QSettings.Format.IniFormat)
+    assert settings.value('security/tlsEnabled', type=bool)
+    assert settings.value('security/checkPeerFingerprints', type=bool)
+    (source / 'tls').mkdir()
+    (source / 'tls/trusted-clients').write_text('v2:sha256:' + 'a' * 64 + '\nv2:sha256:' + 'b' * 64 + '\n')
+    try:
+        prepare(source, target.with_name('stale'))
+    except ValueError as error:
+        assert 'only the verified Mac fingerprint' in str(error)
+    else:
+        raise AssertionError('Deskflow launch accepted two trusted peers')
+PY
 ldd "$portal" > /tmp/input-portal-ldd.txt
 if grep 'not found' /tmp/input-portal-ldd.txt; then
     exit 1
@@ -954,8 +1019,16 @@ import xml.etree.ElementTree as ET
 root = ET.parse('/usr/share/aresos/labwc/rc.xml').getroot()
 binds = [bind for bind in root.iter('keybind') if bind.get('key') == 'W-C-Escape']
 assert len(binds) == 1, binds
+marked = [bind.get('key') for bind in root.iter('keybind') if 'allowWhenInhibited' in bind.attrib]
+assert sorted(marked) == ['W-C-Escape', 'W-S-Escape'], marked
+for bind in root.iter('keybind'):
+    if bind.get('key') in marked:
+        assert bind.get('allowWhenInhibited') == 'yes', bind.attrib
+release = [bind for bind in root.iter('keybind') if bind.get('key') == 'W-S-Escape']
+assert len(release) == 1 and len(release[0]) == 1
+assert release[0][0].attrib == {'name': 'Execute', 'command': '/usr/libexec/aresos-input-portal --release'}
 actions = [(action.get('name'), action.get('command')) for action in binds[0]]
-assert actions == [('Execute', '/usr/bin/aresos-terminal --recovery'),
+assert actions == [('Execute', "/usr/bin/sh -c '/usr/libexec/aresos-input-portal --release; exec /usr/bin/aresos-terminal --recovery'"),
                    ('Execute', '/usr/libexec/aresos-desktop hide-cover')], actions
 PY
 install -d -o ares -g ares -m 0700 /tmp/pkg23b-run
