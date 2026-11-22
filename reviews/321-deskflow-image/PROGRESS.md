@@ -896,8 +896,9 @@ After the final review and release, get the owner's direct OK and have the owner
 
 ## Left, in order
 
-1. Verify the emergency release, remote polkit, sandbox ID refusal and TLS controls in the daily-use VM.
-   The lead holds dispatch 16. The final Fable review is in `REVIEW-4-FABLE.md`.
+1. Close the TLS recipient and live Off checks in the daily-use VM. Dispatch 12 passed the emergency release,
+   restart sequence, remote polkit, sandbox ID refusal, and the binding table. The lead holds dispatch 16.
+   The final Fable review is in `REVIEW-4-FABLE.md`.
 2. The lead sends the final heads for `linux-aresos` and `linux-hub` to read. Both give their read verdicts.
 3. Merge the PR after both reads and resolution of the outstanding hosted VM evidence and review findings.
 4. `linux-aresos` prepares the release after R29.
@@ -1014,6 +1015,7 @@ The lead sends this list when step 3 ends and at the final head.
 | `os/config/usr/libexec/aresos-deskflow`, `os/tests/test_aresos_deskflow.py` | `24b83634` | Publish the launcher and core identities in a private runtime record before the core can request capture. |
 | `os/manifest/input-portal.sha256` | `c5f1515b` | Pin the backend that stops guarded Deskflow during a pidfd fallback. |
 | `os/ci/deskflow/{actions.py,daily_vm.py}` | `233fa378` | Prove local recovery and explicit restart, use the system manager for remote PAM, retain the sandbox reply, and verify TLS refusal and the microphone-mute limit. |
+| `os/ci/deskflow/{actions.py,daily_vm.py}`, `os/tests/test_deskflow_vm.py` | `e071b38e` | Check the rejected recipient's clipboard directly, distinguish the stale-profile dialog from the input recorder, and dismiss the once-per-login sharing dialog after the live Off check. |
 
 Not touched in step 1c: `os/Containerfile` (the stage copies the whole `labwc/` folder, so the second patch needs no
 new line; its comment above the stage still says "one upstream fix" and should name both patches when the file is
@@ -1111,6 +1113,52 @@ and three test fixtures unverified. Dispatch 16 is reserved for the lead.
 | 9 of 12 | Final review | [45052405509](https://github.com/Ares-Empire/AresOS/actions/runs/45052405509), verified at `7f29cd91dfaf85cc68fbd8e6798b0b93cc3c17dc` (2026-11-22 18:58 CET) | `check_build=deskflow`. **`DESKFLOW_VM_GATE_FAILED`** at 20:08 CET. The image and six DRM boots gave their expected results. Deskflow rejected the daily fixture's legacy screen layout on the Off and reboot-On boots. The watch returned 1. |
 | 10 of 12 | Final review, layout fix | [45059202351](https://github.com/Ares-Empire/AresOS/actions/runs/45059202351), verified at `a8c2ee301c35bcb4c8f132674c1027c5e5556e30` (2026-11-22 20:10 CET) | `check_build=deskflow`. **`DESKFLOW_VM_GATE_FAILED`** at 21:16 CET. The image, DRM cases and reboot persistence passed. Inactive polkit, the SSH PAM check and pairing failed. The watch returned 1. |
 | 11 of 12 | Final review, seat and pairing fixes | [45065781890](https://github.com/Ares-Empire/AresOS/actions/runs/45065781890), verified at `64c6661c233c4f72bb933f21858a4ebc083ad81d` (2026-11-22 21:19 CET) | `check_build=deskflow`. **`DESKFLOW_VM_GATE_FAILED`** at 22:29 CET. The image and DRM cases passed their gates. Remote polkit, microphone mute, sandbox refusal, the TLS negative controls, and stopped-backend recovery/restarts remained open. The watch returned 1. |
+| 12 of 16 | Emergency release and VM fixtures | [45074035634](https://github.com/Ares-Empire/AresOS/actions/runs/45074035634), verified at `39e0d6cd14be97431bf8345bf934c94cdf8c383f` | `check_build=deskflow`. **`DESKFLOW_VM_GATE_FAILED`**. The two initial TLS controls failed an assertion about local portal clipboard calls. After a fresh login, the sharing dialog took focus from the Off fixture. The watch returned 1. |
+| 13 of 16 | TLS clipboard and Off fixtures | [45082274952](https://github.com/Ares-Empire/AresOS/actions/runs/45082274952), verified at `e071b38e8913ce37c089cf840d9fe0bce02ec859` | `check_build=deskflow`. In progress. The 18 tests in `test_deskflow_vm.py` passed by discovery. |
+
+### Local verification for dispatch 12
+
+- `python3 -m unittest discover -s os/tests -p 'test_aresos_deskflow.py'` ran 13 tests, `OK`.
+  The first attempt used a nested work directory whose absolute path exceeded the Unix socket limit. A shorter
+  temporary directory under `.work/` allowed the real offscreen pairing tests to run.
+- `python3 -m unittest discover -s os/tests -p 'test_deskflow_vm.py'` ran 16 tests, `OK`.
+  Both discovery commands set `PYTHONDONTWRITEBYTECODE=1`. No `__pycache__` directories appeared under `os/config`.
+- Two clean `os/input-portal/dev/container.sh build` runs printed `103 passed; 0 failed` each. `cmp` verified
+  both binaries, with digest `d0a7de0bf09f29b43a563bf3769c9e116f735a41bb8d3cfcdfdae8705cc08ab1`.
+- The cached harness image had the earlier `wl-harness` CLI and could not map the probe window. The harness image
+  rebuilt from this worktree passed twice with `SUMMARY 137 passed, 0 failed, exit 0`. Both runs covered local
+  input, the guarded pair stopping while sharing stayed On, and an unrelated core surviving. The normal reply
+  left the guard running. The known custom-mode compositor assertion reproduced in both control cases.
+- Two `mod/dev/build.sh --rerun-tasks` runs printed `BUILD SUCCESSFUL` in 2m 45s and 2m 56s and
+  `All 106 required tests passed` in each run. The mod unit results had 339 tests, 6 platform skips and zero
+  failures. Two full `mod/dev/client-test.sh --keep-screenshots` runs exited 0 after 14m 8s and 14m 4s.
+  Both saved 105 screenshots to `.work/321-final/mod-verification/`. The review screenshot paths were restored
+  after the copies were verified.
+
+### Dispatch 12 evidence
+
+The image checks, guarded desktop entry, `rpm -V deskflow`, polkit, all 11 added layers and the installed
+backend digest passed. [Check-build evidence](https://github.com/Ares-Empire/AresOS/actions/runs/45074035634#artifacts)
+
+| VM case or brief check | Result |
+|---|---|
+| Check 1, `regular-none` and `regular-listener` | Passed listed-mode cycles, VT changes and SetUIInfo hotplug. No backend Wayland connection. The original listener stayed up in its boot. |
+| Check 1, `regular-backend` | Passed modes, VT, geometry, hotplug, scoped native ID and empty-ID terminal refusal. Off closed the session and the original backend exited. |
+| Check 1, `custom-none`, `custom-listener`, `custom-backend` | The no-listener boot passed. With a listener or worker, the custom mode set and disabled, and re-enable reproduced the expected `head_send_state` assertion. |
+| Check 2, switch and polkit | Initial Off, two scoped refusals, one dialog, local crossing, active and inactive local decisions, cancellation, invalid arguments, unsafe switch paths, authenticated On and one armed native session all passed. The real SSH session ran with `Remote=yes` using the systemd-managed daemon in `sshd_t`. The shell executed and `pkexec` refused On with status 127. |
+| Check 3, input and clipboard | Crossing and forwarded motion, buttons, scroll and keys passed. All 20 transfers in each direction passed. The frontend held 23 descriptors before and after, with 20 SelectionRead and 39 SelectionWrite calls. |
+| Check 4, normal release | The client received both modifier releases before QEMU sent physical key-up. |
+| Check 5, emergency release | Capture held after 60 seconds idle. The chord stopped the frozen backend, guard and core. Sharing stayed On, the next key was local, and an explicit hub launch restored crossing. |
+| Check 6, restart sequence | Passed all three. The same core re-armed through D-Bus after the ordinary backend kill. A fresh frontend and relogin each allowed a new capture. |
+| Check 7, live Off | The passwordless call succeeded, the backend confirmed release, the frontend sent Closed, and the core stopped. The once-per-login sharing dialog from the core's reconnect was mapped in the fresh login. The fixture could not focus its recorder, so the next key, clipboard, authenticated On and manual removal were unverified. The later repair attempt tried to arm while Off and timed out. |
+| Check 7, reboot On and Off | Both real login paths passed. The fixture seeded On after the live Off check stopped early. On armed a guarded server, and Off left Deskflow and its worker stopped. |
+| Check 8, bindings, sandbox and log privacy | All 22 binding rows passed with the microphone-mute limit. The evidence carries bwrap's child PID and namespace record, the D-Bus AccessDenied reply, and the backend refusal naming `org.aresos.UnlistedFixture`. The trace and Info log scan passed. |
+| Check 9, pairing and TLS | Deliberate pairing and default rejection passed. The stranger reached TLS and the server logged its fingerprint mismatch. The plaintext peer reached TCP and the server rejected the handshake. Both initial controls saw local input and no clipboard marker at the client, then failed on additional local portal clipboard calls. The approved peer worked afterward. Stale trust refused both launch paths, and both guarded launches with user checks disabled refused the stranger and accepted the approved peer. The stale dialog matcher has since been tightened because the recorder shares its title prefix. |
+
+Run 11's `/bin/bash` denial followed public-key authentication under the direct fixture daemon. Its evidence
+contains no PAM or audit denial to identify the precise cause. Run 12 used the image's SSH configuration and
+ordinary systemd/SELinux service path with a loopback-only test instance. The same guest account's shell ran
+under that path, and the policy refused the remote action.
 
 ### Dispatch 11 evidence
 
@@ -1236,7 +1284,7 @@ The detailed records are `image/checks.txt`, `image/polkit.txt`, `image/input-po
 
 Dispatch 11 recorded 21 passing rows for the installed image. The microphone-mute probe verified the next
 key at the client before timing out on the mute keysym. Its follow-up status showed the capture still held.
-The window and focus assertion comes after the keysym check, so that field remains unobserved.
+Dispatch 12 recorded all 22 rows below, including unchanged windows and focus for microphone mute.
 
 | Binding | Laptop windows and focus | Capture | Next key |
 |---|---|---|---|
@@ -1248,7 +1296,7 @@ The window and focus assertion comes after the keysym check, so that field remai
 | Volume up | Unchanged | Held | Client |
 | Volume down | Unchanged | Held | Client |
 | Audio mute | Unchanged | Held | Client |
-| Microphone mute | Unobserved in dispatch 11 | Held | Client. Deskflow 1.27 drops the microphone-mute key, which has no effect on either computer during capture. |
+| Microphone mute | Unchanged | Held | Client. Deskflow 1.27 drops the microphone-mute key, which has no effect on either computer during capture. |
 | Ctrl+Alt+Escape | Unchanged | Held | Client |
 | Lone Super | Unchanged | Held | Client |
 | Left button | Unchanged | Held | Client |
