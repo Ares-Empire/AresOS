@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the installed look A indicator pack from the component study (needs Pillow)."""
+"""Generate the installed look A pack from the component study (needs Pillow)."""
 import argparse
 import json
 from pathlib import Path
@@ -9,8 +9,39 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[2]
 PACK = ROOT / 'os/config/usr/share/aresos/look'
+FONT = ROOT / 'os/config/usr/share/fonts/aresos/Jersey10-Regular.ttf'
 sys.path.insert(0, str(ROOT / 'reviews/312-component-study/tools'))
-from look import A_SPRITES, A_STEPS, PALETTE, P, LookA, a_step
+from look import A_SPRITES, A_STEPS, FRAME_BUTTONS, FRAME_STATES, PALETTE, P, LookA, a_step, labwc_file
+
+
+def hex_colour(rgba):
+    return '#' + bytes(rgba if rgba[3] < 255 else rgba[:3]).hex()
+
+
+def add_frame(pack, sprites):
+    look = LookA(FONT)
+    frame = sprites / 'frame'
+    frame.mkdir(parents=True, exist_ok=True)
+    pack['frame_sprites'] = {}
+    for button in FRAME_BUTTONS:
+        for state in FRAME_STATES:
+            name = labwc_file(button, state)
+            look.title_button(button, state).save(frame / name)
+            pack['frame_sprites'][name] = f'sprites/frame/{name}'
+
+    active = dict(look.frame_colours(True), shadow=(0, 0, 0, 140))
+    inactive = dict(look.frame_colours(False), shadow=(0, 0, 0, 90))
+    switcher = look.switcher_colours()
+    outline = switcher.pop('outline')
+    snap = look.snap_colours()
+    lines = snap.pop('lines')
+    pack['frame_colours'] = {
+        group: {role: hex_colour(colour) for role, colour in colours.items()}
+        for group, colours in (('active', active), ('inactive', inactive), ('menu', look.menu_colours()),
+                               ('switcher', switcher), ('snap', snap))
+    }
+    pack['frame_colours']['switcher']['outline'] = [hex_colour(colour) for colour in outline]
+    pack['frame_colours']['snap']['lines'] = [hex_colour(colour) for colour in lines]
 
 
 def generate(destination):
@@ -45,7 +76,9 @@ def generate(destination):
         unavailable.putalpha(icon.getchannel('A'))
         sprite(grey, unavailable)
 
-    (destination / 'look.json').write_text(json.dumps(pack, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+    add_frame(pack, sprites)
+    (destination / 'look.json').write_text(json.dumps(pack, indent=2, sort_keys=True) + '\n',
+                                          encoding='utf-8', newline='\n')
 
 
 if __name__ == '__main__':

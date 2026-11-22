@@ -17,12 +17,14 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.level.GameType;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.WeakHashMap;
+import java.util.function.Supplier;
 
 public final class WalkInZones {
     private record Pending(long visit, AppZone zone) { }
@@ -53,7 +55,12 @@ public final class WalkInZones {
         });
         PlayerBlockBreakEvents.BEFORE.register((level, player, pos, block, entity) -> {
             if (!(player instanceof ServerPlayer host)) return true;
-            String refusal = isProtected(host, pos) ? "Auto-built logo protected. Press G for Build mode." : HubData.protection(host, pos);
+            var server = host.level().getServer();
+            String refusal = miningRefusal(DesktopWorld.isEnabled(server), host.gameMode.getGameModeForPlayer(), () -> {
+                if (ownsBlock(host, pos)) return "Auto-built logo protected. Press G for Build mode.";
+                var hub = HubData.get(server);
+                return hub == null ? null : hub.refusal(host.level(), pos);
+            });
             if (refusal == null) return true;
             host.sendSystemMessage(Component.literal(refusal), true);
             return false;
@@ -61,8 +68,18 @@ public final class WalkInZones {
     }
 
     public static boolean isProtected(ServerPlayer player, net.minecraft.core.BlockPos pos) {
-        return LiveMode.isLive(player) && ZoneData.get(player.level().getServer()).zones().stream()
+        return LiveMode.isLive(player) && ownsBlock(player, pos);
+    }
+
+    private static boolean ownsBlock(ServerPlayer player, net.minecraft.core.BlockPos pos) {
+        return ZoneData.get(player.level().getServer()).zones().stream()
                 .anyMatch(zone -> zone.dimension().equals(player.level().dimension()) && zone.blocks().contains(pos));
+    }
+
+    static String miningRefusal(boolean desktopWorld, GameType mode, Supplier<String> ownedRefusal) {
+        if (!LiveMode.isLive(desktopWorld, mode)) return null;
+        String refusal = ownedRefusal.get();
+        return refusal != null ? refusal : "The home is protected. Press G or use Build mode in the menu to change it.";
     }
 
     /**

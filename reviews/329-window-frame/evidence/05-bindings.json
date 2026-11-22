@@ -1,0 +1,619 @@
+{
+  "merge_base": "a7fb7cfe0e8ae7797adc2ab5cd3baf88aa09ec56",
+  "baseline": {
+    "scroll down-unshaded (+1)": {
+      "before": {
+        "focus": [
+          "editor"
+        ],
+        "client": [
+          670,
+          428,
+          1250,
+          688
+        ],
+        "shaded": false,
+        "visible_bounds": [
+          669,
+          391,
+          1251,
+          689
+        ],
+        "configure": "CONFIGURED 580 260 states=activated"
+      },
+      "after": {
+        "focus": [
+          "editor"
+        ],
+        "client": [
+          670,
+          428,
+          1250,
+          688
+        ],
+        "shaded": false,
+        "visible_bounds": [
+          669,
+          391,
+          1251,
+          689
+        ],
+        "configure": "CONFIGURED 580 260 states=activated"
+      },
+      "same_pixels": true
+    },
+    "scroll up-unshaded (-1)": {
+      "before": {
+        "focus": [
+          "editor"
+        ],
+        "client": [
+          670,
+          428,
+          1250,
+          688
+        ],
+        "shaded": false,
+        "visible_bounds": [
+          669,
+          391,
+          1251,
+          689
+        ],
+        "configure": "CONFIGURED 580 260 states=activated"
+      },
+      "after": {
+        "focus": [],
+        "client": null,
+        "shaded": true,
+        "visible_bounds": [
+          669,
+          391,
+          1251,
+          429
+        ],
+        "configure": "CONFIGURED 580 260 states="
+      },
+      "same_pixels": false
+    },
+    "scroll up-shaded (-1)": {
+      "before": {
+        "focus": [
+          "other"
+        ],
+        "client": null,
+        "shaded": true,
+        "visible_bounds": [
+          669,
+          391,
+          1251,
+          429
+        ],
+        "configure": "CONFIGURED 580 260 states="
+      },
+      "after": {
+        "focus": [],
+        "client": null,
+        "shaded": true,
+        "visible_bounds": [
+          669,
+          391,
+          1251,
+          429
+        ],
+        "configure": "CONFIGURED 580 260 states="
+      },
+      "same_pixels": true
+    },
+    "scroll down-shaded (+1)": {
+      "before": {
+        "focus": [
+          "other"
+        ],
+        "client": null,
+        "shaded": true,
+        "visible_bounds": [
+          669,
+          391,
+          1251,
+          429
+        ],
+        "configure": "CONFIGURED 580 260 states="
+      },
+      "after": {
+        "focus": [
+          "editor"
+        ],
+        "client": [
+          670,
+          428,
+          1250,
+          688
+        ],
+        "shaded": false,
+        "visible_bounds": [
+          669,
+          391,
+          1251,
+          689
+        ],
+        "configure": "CONFIGURED 580 260 states=activated"
+      },
+      "same_pixels": false
+    },
+    "title drag": {
+      "before": [
+        670,
+        428,
+        1250,
+        688
+      ],
+      "after": [
+        830,
+        518,
+        1410,
+        778
+      ],
+      "result": "moved with unchanged size",
+      "delta": [
+        160,
+        90,
+        160,
+        90
+      ]
+    },
+    "top-edge maximize": {
+      "before": [
+        830,
+        518,
+        1410,
+        778
+      ],
+      "after": [
+        0,
+        36,
+        1920,
+        1080
+      ],
+      "result": "top-edge maximize"
+    },
+    "left snap": {
+      "before": [
+        830,
+        518,
+        1410,
+        778
+      ],
+      "after": [
+        1,
+        37,
+        959,
+        1079
+      ],
+      "result": "left snap"
+    },
+    "right snap": {
+      "before": [
+        1,
+        37,
+        959,
+        1079
+      ],
+      "after": [
+        961,
+        37,
+        1919,
+        1079
+      ],
+      "result": "right snap"
+    },
+    "border resize": {
+      "before": [
+        713,
+        338,
+        1293,
+        598
+      ],
+      "after": [
+        713,
+        338,
+        1423,
+        673
+      ],
+      "result": "bottom-right grew with stable top-left",
+      "delta": [
+        0,
+        0,
+        130,
+        75
+      ]
+    },
+    "Super+right resize": {
+      "before": [
+        713,
+        338,
+        1423,
+        673
+      ],
+      "after": [
+        713,
+        338,
+        1553,
+        748
+      ],
+      "result": "bottom-right grew with stable top-left",
+      "delta": [
+        0,
+        0,
+        130,
+        75
+      ]
+    },
+    "Super+left move": {
+      "before": [
+        713,
+        338,
+        1553,
+        748
+      ],
+      "after": [
+        873,
+        428,
+        1713,
+        838
+      ],
+      "result": "moved with unchanged size",
+      "delta": [
+        160,
+        90,
+        160,
+        90
+      ]
+    },
+    "middle maximize": {
+      "before": [
+        873,
+        428,
+        1713,
+        838
+      ],
+      "after": [
+        873,
+        37,
+        1713,
+        1079
+      ],
+      "result": "vertical maximize only"
+    },
+    "minimize": {
+      "before": [
+        873,
+        428,
+        1713,
+        838
+      ],
+      "after": null,
+      "result": "hidden and minimized"
+    },
+    "Alt+F4": {
+      "before": [
+        873,
+        428,
+        1713,
+        838
+      ],
+      "after": null,
+      "result": "close event and exit 0"
+    }
+  },
+  "branch": {
+    "scroll down-unshaded (+1)": {
+      "before": {
+        "focus": [
+          "editor"
+        ],
+        "client": [
+          670,
+          430,
+          1250,
+          690
+        ],
+        "shaded": false,
+        "visible_bounds": [
+          668,
+          388,
+          1252,
+          692
+        ],
+        "configure": "CONFIGURED 580 260 states=activated"
+      },
+      "after": {
+        "focus": [
+          "editor"
+        ],
+        "client": [
+          670,
+          430,
+          1250,
+          690
+        ],
+        "shaded": false,
+        "visible_bounds": [
+          668,
+          388,
+          1252,
+          692
+        ],
+        "configure": "CONFIGURED 580 260 states=activated"
+      },
+      "same_pixels": true
+    },
+    "scroll up-unshaded (-1)": {
+      "before": {
+        "focus": [
+          "editor"
+        ],
+        "client": [
+          670,
+          430,
+          1250,
+          690
+        ],
+        "shaded": false,
+        "visible_bounds": [
+          668,
+          388,
+          1252,
+          692
+        ],
+        "configure": "CONFIGURED 580 260 states=activated"
+      },
+      "after": {
+        "focus": [
+          "editor"
+        ],
+        "client": [
+          670,
+          430,
+          1250,
+          690
+        ],
+        "shaded": false,
+        "visible_bounds": [
+          668,
+          388,
+          1252,
+          692
+        ],
+        "configure": "CONFIGURED 580 260 states=activated"
+      },
+      "same_pixels": true
+    },
+    "scroll up-shaded (-1)": {
+      "before": {
+        "focus": [
+          "other"
+        ],
+        "client": null,
+        "shaded": true,
+        "visible_bounds": [
+          668,
+          388,
+          1252,
+          432
+        ],
+        "configure": "CONFIGURED 580 260 states="
+      },
+      "after": {
+        "focus": [
+          "other"
+        ],
+        "client": null,
+        "shaded": true,
+        "visible_bounds": [
+          668,
+          388,
+          1252,
+          432
+        ],
+        "configure": "CONFIGURED 580 260 states="
+      },
+      "same_pixels": true
+    },
+    "scroll down-shaded (+1)": {
+      "before": {
+        "focus": [
+          "other"
+        ],
+        "client": null,
+        "shaded": true,
+        "visible_bounds": [
+          668,
+          388,
+          1252,
+          432
+        ],
+        "configure": "CONFIGURED 580 260 states="
+      },
+      "after": {
+        "focus": [
+          "other"
+        ],
+        "client": null,
+        "shaded": true,
+        "visible_bounds": [
+          668,
+          388,
+          1252,
+          432
+        ],
+        "configure": "CONFIGURED 580 260 states="
+      },
+      "same_pixels": true
+    },
+    "title drag": {
+      "before": [
+        670,
+        430,
+        1250,
+        690
+      ],
+      "after": [
+        830,
+        520,
+        1410,
+        780
+      ],
+      "result": "moved with unchanged size",
+      "delta": [
+        160,
+        90,
+        160,
+        90
+      ]
+    },
+    "top-edge maximize": {
+      "before": [
+        830,
+        520,
+        1410,
+        780
+      ],
+      "after": [
+        0,
+        40,
+        1920,
+        1080
+      ],
+      "result": "top-edge maximize"
+    },
+    "left snap": {
+      "before": [
+        830,
+        520,
+        1410,
+        780
+      ],
+      "after": [
+        2,
+        42,
+        958,
+        1078
+      ],
+      "result": "left snap"
+    },
+    "right snap": {
+      "before": [
+        2,
+        42,
+        958,
+        1078
+      ],
+      "after": [
+        962,
+        42,
+        1918,
+        1078
+      ],
+      "result": "right snap"
+    },
+    "border resize": {
+      "before": [
+        713,
+        340,
+        1293,
+        600
+      ],
+      "after": [
+        713,
+        340,
+        1423,
+        675
+      ],
+      "result": "bottom-right grew with stable top-left",
+      "delta": [
+        0,
+        0,
+        130,
+        75
+      ]
+    },
+    "Super+right resize": {
+      "before": [
+        713,
+        340,
+        1423,
+        675
+      ],
+      "after": [
+        713,
+        340,
+        1553,
+        750
+      ],
+      "result": "bottom-right grew with stable top-left",
+      "delta": [
+        0,
+        0,
+        130,
+        75
+      ]
+    },
+    "Super+left move": {
+      "before": [
+        713,
+        340,
+        1553,
+        750
+      ],
+      "after": [
+        873,
+        430,
+        1713,
+        840
+      ],
+      "result": "moved with unchanged size",
+      "delta": [
+        160,
+        90,
+        160,
+        90
+      ]
+    },
+    "middle maximize": {
+      "before": [
+        873,
+        430,
+        1713,
+        840
+      ],
+      "after": [
+        873,
+        42,
+        1713,
+        1078
+      ],
+      "result": "vertical maximize only"
+    },
+    "minimize": {
+      "before": [
+        873,
+        430,
+        1713,
+        840
+      ],
+      "after": null,
+      "result": "hidden and minimized"
+    },
+    "Alt+F4": {
+      "before": [
+        873,
+        430,
+        1713,
+        840
+      ],
+      "after": null,
+      "result": "close event and exit 0"
+    }
+  }
+}

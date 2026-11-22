@@ -410,11 +410,32 @@ grep -qx 'repo_add_once="false"' /etc/default/google-chrome
 pass 'no Google repository, cron job or trusted key in the image'
 test -f /usr/share/applications/google-chrome.desktop
 grep -q '^Exec=/usr/bin/google-chrome-stable' /usr/share/applications/google-chrome.desktop
-handler=$(runuser -u ares -- env HOME=/var/home/ares XDG_CURRENT_DESKTOP=AresOS xdg-mime query default x-scheme-handler/https)
-test "$handler" = google-chrome.desktop
-handler=$(runuser -u ares -- env HOME=/var/home/ares XDG_CURRENT_DESKTOP=AresOS xdg-mime query default x-scheme-handler/http)
-test "$handler" = google-chrome.desktop
-pass 'xdg-open sends http and https links to Chrome in the AresOS session'
+session_mime=(runuser -u ares -- env XDG_CURRENT_DESKTOP=AresOS LC_ALL=C)
+for mime in x-scheme-handler/http x-scheme-handler/https text/html application/xhtml+xml; do
+    handler=$("${session_mime[@]}" xdg-mime query default "$mime")
+    test "$handler" = google-chrome.desktop
+done
+pass 'Chrome is the default for http, https, HTML and XHTML in the AresOS session'
+
+prism_entry=/usr/share/applications/org.prismlauncher.PrismLauncher.desktop
+test -f "$prism_entry"
+validation=$(desktop-file-validate "$prism_entry" 2>&1)
+test -z "$validation"
+grep -Fxq 'Type=Application' "$prism_entry"
+grep -Fxq 'Name=Prism Launcher' "$prism_entry"
+grep -Fxq 'NoDisplay=true' "$prism_entry"
+grep -Fxq 'Exec=/usr/bin/prismlauncher %U' "$prism_entry"
+grep -Fxq 'MimeType=x-scheme-handler/prismlauncher;' "$prism_entry"
+pass 'the hidden Prism Launcher sign-in desktop entry passes validation'
+handler=$("${session_mime[@]}" xdg-mime query default x-scheme-handler/prismlauncher)
+test "$handler" = org.prismlauncher.PrismLauncher.desktop
+pass 'xdg-mime resolves the Prism Launcher sign-in handler in the AresOS session'
+if command -v gio >/dev/null; then
+    handler=$("${session_mime[@]}" gio mime x-scheme-handler/prismlauncher)
+    grep -Eq '^Default application for .*: org\.prismlauncher\.PrismLauncher\.desktop$' <<< "$handler"
+    pass 'gio resolves the Prism Launcher sign-in handler in the AresOS session'
+fi
+
 # The folder is now installed, not made and removed by the check. The reader
 # verifies its exact contents, both links, the signed payload and key disposal.
 chrome_scan_root=$(mktemp -d)
@@ -849,18 +870,22 @@ pack = share / 'aresos/look'
 icons = ('sun', 'speaker', 'speaker-muted', 'microphone', 'microphone-off')
 names = {'plate', 'slot', *icons, *(f'{icon}-unavailable' for icon in icons),
          *(f'step-{kind}' for kind in ('lit', 'unlit', 'muted', 'part', 'limit'))}
-expected = {'look.json', 'sprites', *(f'sprites/{name}.png' for name in names)}
+buttons = ('menu', 'iconify', 'max', 'max_toggled', 'close', 'shade', 'shade_toggled', 'desk', 'desk_toggled')
+frame = {f'sprites/frame/{button}{hover}-{state}.png' for button in buttons
+         for hover in ('', '_hover') for state in ('active', 'inactive')}
+directories = {'sprites', 'sprites/frame'}
+expected = {'look.json', *directories, *(f'sprites/{name}.png' for name in names), *frame}
 paths = {path.relative_to(pack).as_posix() for path in pack.rglob('*')}
 assert paths == expected, f'look A file list differs: {paths ^ expected}'
-files = sorted(paths - {'sprites'})
+files = sorted(paths - directories)
 tree = '\n'.join(f'{hashlib.sha256((pack / name).read_bytes()).hexdigest()}  {name}' for name in files)
 digest = hashlib.sha256(tree.encode()).hexdigest()
-assert digest == '386d46534f4c38d5b0d53688628095e47a707bb60be2f902e0b861b447617ede', f'look A differs: {digest}'
+assert digest == 'f4c4a0f201d30e5cafddd278eb8f69d0f40d61e1efa12ede8a7bb7f5735baabd', f'look A differs: {digest}'
 PY
 font=$(runuser -u ares -- env -i HOME=/nonexistent PATH=/usr/bin /usr/bin/fc-match --format '%{file}' 'Jersey 10')
 test "$font" = /usr/share/fonts/aresos/Jersey10-Regular.ttf
 test -x /usr/bin/pw-dump
-pass "Jersey 10 and its licence are installed ($font); the look A indicator pack matches its pin"
+pass "Jersey 10 and its licence are installed ($font); the look A pack matches its pin"
 layer=/usr/lib64/libgtk4-layer-shell.so.0
 if [[ ! -r $layer ]]; then
     echo 'The indicator requires gtk4-layer-shell from the R29 image package' >&2
@@ -1136,7 +1161,6 @@ license = (font.parent / 'OFL-SpaceGrotesk.txt').read_text()
 assert 'Copyright 2020 The Space Grotesk Project Authors' in license
 assert 'SIL OPEN FONT LICENSE Version 1.1' in license
 rc = ET.parse(share / 'aresos/labwc/rc.xml').getroot()
-assert rc.findtext('theme/name') == 'Ares-Crown'
 assert rc.findtext('theme/titlebar/layout') == 'menu:iconify,max,close'
 assert rc.find('windowSwitcher/osd').get('style') == 'thumbnail'
 override = share / 'glib-2.0/schemas/zz-aresos.gschema.override'
@@ -1152,7 +1176,67 @@ layout=$(runuser -u ares -- env -i HOME=/tmp/pkg31-home PATH=/usr/bin:/usr/sbin 
 rm -rf /tmp/pkg31-home
 printf '%s\n' "$layout"
 test "$layout" = "'appmenu:minimize,maximize,close'"
-pass 'Ares-Crown files installed; compiled AresOS default gives apps all three buttons'
+pass 'Ares-Crown files kept unused; compiled AresOS default gives apps all three buttons'
+
+# --- Package 329: look A's window frame.
+python3 - <<'PY'
+import hashlib
+from pathlib import Path
+import struct
+import xml.etree.ElementTree as ET
+
+share = Path('/usr/share')
+theme = share / 'themes/AresOS/labwc'
+buttons = ('menu', 'iconify', 'max', 'max_toggled', 'close', 'shade', 'shade_toggled', 'desk', 'desk_toggled')
+names = {f'{button}{hover}-{state}.png' for button in buttons
+         for hover in ('', '_hover') for state in ('active', 'inactive')}
+files = sorted(theme.iterdir(), key=lambda path: path.name)
+expected = {'themerc', *names}
+actual = {path.name for path in files}
+assert actual == expected, f'AresOS theme file list differs: {actual ^ expected}'
+tree = []
+for path in files:
+    data = path.read_bytes()
+    if path.name in names:
+        assert data[:16] == b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR', path
+        assert struct.unpack('>IIBB', data[16:26]) == (48, 40, 8, 6), path
+    tree.append(f'{hashlib.sha256(data).hexdigest()}  {path.name}')
+aresos_theme = hashlib.sha256('\n'.join(tree).encode()).hexdigest()
+assert aresos_theme == '1edd49859255bde9a1c8f4ba779d92010ad38bde0f591507a3b29bbee17d916e', f'AresOS theme differs: {aresos_theme}'
+
+labwc = share / 'aresos/labwc'
+assert 'themerc-override' not in {path.name for path in labwc.iterdir()}
+rc = ET.parse(labwc / 'rc.xml').getroot()
+
+def expect(path, xml):
+    elements = rc.findall(path)
+    assert len(elements) == 1, path
+    assert ET.canonicalize(ET.tostring(elements[0]), strip_text=True) == ET.canonicalize(xml, strip_text=True), path
+
+expect('theme/name', '<name>AresOS</name>')
+expect('theme/cornerRadius', '<cornerRadius>0</cornerRadius>')
+places = ('ActiveWindow', 'InactiveWindow', 'MenuHeader', 'MenuItem', 'OnScreenDisplay')
+assert len(rc.findall('theme/font')) == len(places)
+for place in places:
+    expect(f'theme/font[@place="{place}"]', f'<font place="{place}"><name>Jersey 10</name><size>28</size></font>')
+expect('windowSwitcher', '''<windowSwitcher preview="yes" outlines="yes" order="focus">
+    <osd show="yes" style="thumbnail" output="focused" thumbnailLabelFormat="%T" />
+    </windowSwitcher>''')
+expect('keyboard/keybind[@key="A-S-Tab"]', '<keybind key="A-S-Tab"><action name="PreviousWindow" /></keybind>')
+expect('mouse', '''<mouse>
+    <default />
+    <context name="TitleBar">
+      <mousebind direction="Up" action="Scroll"><action name="None" /></mousebind>
+      <mousebind direction="Down" action="Scroll"><action name="None" /></mousebind>
+    </context>
+    <context name="Root">
+      <mousebind button="Left" action="Press"><action name="None" /></mousebind>
+      <mousebind button="Right" action="Press"><action name="None" /></mousebind>
+      <mousebind button="Middle" action="Press"><action name="None" /></mousebind>
+    </context>
+    </mouse>''')
+PY
+pass 'the pinned AresOS theme has 36 RGBA buttons, and labwc selects it with the frame, switcher and mouse settings'
 
 # --- Package 18c: the Control tools (the tool service, its commands, Claude
 # Code's managed files). Every path the image records in control.json is here

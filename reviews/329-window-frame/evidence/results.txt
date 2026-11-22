@@ -1,0 +1,20 @@
+PASS private dbus-run-session bus in the scratch runtime
+PASS 1.1 GTK 4 also negotiated a 40px server bar and kept its 620x300 client area
+PASS 1.2 inactive title 40px crop: 3664 text pixels, 0 intermediate pixels
+PASS 1.3 active title 40px crop: 1928 text pixels, 0 intermediate pixels
+PASS 1.4 two 40px bars, four buttons each at 1:1, exact 2px edges and complete client areas
+PASS 2.1 all eight hover cells, slide-off cancelled close, and click closed with exit 0
+PASS 2.2 a floating --lock client also logged CLOSE and exited zero
+PASS group 1: 4 checks
+PASS group 2: 2 checks
+PASS 3.1 both maximize gestures put the borderless 40px bar at y=0 and restore the exact client rectangle
+PASS 3.2 36/36 normal, hover and toggled theme PNGs at 1:1 across two workspaces
+PASS group 3: 2 checks
+PASS 4.1 gold window menu has 8 complete 40px rows, 2px border, hover colours and Escape focus
+PASS 4.2 title window menu has 8 complete 40px rows, 2px border, hover colours and Escape focus
+PASS 4.3 empty output root menu shows Terminal, separator, Reconfigure, Exit in Look A
+PASS group 4: 3 checks
+PASS group 5: 14 checks
+PASS group 6: 7 checks
+PASS group 7: 3 checks
+PASS group 8: 8 review sheets

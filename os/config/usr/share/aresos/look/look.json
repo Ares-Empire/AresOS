@@ -31,6 +31,86 @@
     ],
     "family": "Jersey 10"
   },
+  "frame_colours": {
+    "active": {
+      "bar": "#2b2832",
+      "border": "#cfa24f",
+      "shadow": "#0000008c",
+      "title": "#f3f1ea"
+    },
+    "inactive": {
+      "bar": "#1a181f",
+      "border": "#0d0d10",
+      "shadow": "#0000005a",
+      "title": "#a6a39a"
+    },
+    "menu": {
+      "bg": "#2b2832",
+      "border": "#0d0d10",
+      "chosen_bg": "#3a3644",
+      "chosen_text": "#edca77",
+      "separator": "#504b5c",
+      "text": "#f3f1ea"
+    },
+    "snap": {
+      "fill": "#cfa24f40",
+      "lines": [
+        "#0d0d10",
+        "#edca77",
+        "#0d0d10"
+      ]
+    },
+    "switcher": {
+      "bg": "#2b2832",
+      "border": "#0d0d10",
+      "chosen_bg": "#3a3644",
+      "chosen_border": "#edca77",
+      "outline": [
+        "#0d0d10",
+        "#edca77",
+        "#0d0d10"
+      ],
+      "text": "#f3f1ea"
+    }
+  },
+  "frame_sprites": {
+    "close-active.png": "sprites/frame/close-active.png",
+    "close-inactive.png": "sprites/frame/close-inactive.png",
+    "close_hover-active.png": "sprites/frame/close_hover-active.png",
+    "close_hover-inactive.png": "sprites/frame/close_hover-inactive.png",
+    "desk-active.png": "sprites/frame/desk-active.png",
+    "desk-inactive.png": "sprites/frame/desk-inactive.png",
+    "desk_hover-active.png": "sprites/frame/desk_hover-active.png",
+    "desk_hover-inactive.png": "sprites/frame/desk_hover-inactive.png",
+    "desk_toggled-active.png": "sprites/frame/desk_toggled-active.png",
+    "desk_toggled-inactive.png": "sprites/frame/desk_toggled-inactive.png",
+    "desk_toggled_hover-active.png": "sprites/frame/desk_toggled_hover-active.png",
+    "desk_toggled_hover-inactive.png": "sprites/frame/desk_toggled_hover-inactive.png",
+    "iconify-active.png": "sprites/frame/iconify-active.png",
+    "iconify-inactive.png": "sprites/frame/iconify-inactive.png",
+    "iconify_hover-active.png": "sprites/frame/iconify_hover-active.png",
+    "iconify_hover-inactive.png": "sprites/frame/iconify_hover-inactive.png",
+    "max-active.png": "sprites/frame/max-active.png",
+    "max-inactive.png": "sprites/frame/max-inactive.png",
+    "max_hover-active.png": "sprites/frame/max_hover-active.png",
+    "max_hover-inactive.png": "sprites/frame/max_hover-inactive.png",
+    "max_toggled-active.png": "sprites/frame/max_toggled-active.png",
+    "max_toggled-inactive.png": "sprites/frame/max_toggled-inactive.png",
+    "max_toggled_hover-active.png": "sprites/frame/max_toggled_hover-active.png",
+    "max_toggled_hover-inactive.png": "sprites/frame/max_toggled_hover-inactive.png",
+    "menu-active.png": "sprites/frame/menu-active.png",
+    "menu-inactive.png": "sprites/frame/menu-inactive.png",
+    "menu_hover-active.png": "sprites/frame/menu_hover-active.png",
+    "menu_hover-inactive.png": "sprites/frame/menu_hover-inactive.png",
+    "shade-active.png": "sprites/frame/shade-active.png",
+    "shade-inactive.png": "sprites/frame/shade-inactive.png",
+    "shade_hover-active.png": "sprites/frame/shade_hover-active.png",
+    "shade_hover-inactive.png": "sprites/frame/shade_hover-inactive.png",
+    "shade_toggled-active.png": "sprites/frame/shade_toggled-active.png",
+    "shade_toggled-inactive.png": "sprites/frame/shade_toggled-inactive.png",
+    "shade_toggled_hover-active.png": "sprites/frame/shade_toggled_hover-active.png",
+    "shade_toggled_hover-inactive.png": "sprites/frame/shade_toggled_hover-inactive.png"
+  },
   "look": "A",
   "sizes": {
     "bar_h": 8,

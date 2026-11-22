@@ -6,7 +6,6 @@ import dev.aresos.client.launch.AppLauncher;
 import dev.aresos.client.launch.LinuxAppLauncher;
 import dev.aresos.client.launch.WindowsAppLauncher;
 import dev.aresos.focus.FocusReturn;
-import dev.aresos.mode.ToggleModePayload;
 import dev.aresos.zone.ZoneLaunchPayload;
 import dev.aresos.zone.ZoneReturnPayload;
 import net.fabricmc.api.ClientModInitializer;
@@ -84,11 +83,9 @@ public final class AresOsClient implements ClientModInitializer {
                 InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_H, category));
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             AppInput.endTick();
+            HomeOnboarding.tick(client);
             while (toggle.consumeClick()) {
-                if (client.player != null && client.gui.screen() == null
-                        && ClientPlayNetworking.canSend(ToggleModePayload.TYPE)) {
-                    ModeSwitchClient.requestToggle();
-                }
+                if (client.gui.screen() == null) ModeSwitchClient.requestToggle();
             }
             while (home.consumeClick()) {
                 // Only in an AresOS world and only with no screen open; F3+H is the game's own (advanced tooltips).

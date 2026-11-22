@@ -8,6 +8,18 @@ Written 2026-11-13 (last update 19:00) by `linux-aresos`, the OS lead, now runni
 
 **Newest first: 2026-11-21 evening (`linux-aresos`).**
 
+- **R29's release package (B331) is building on Codex** (mac-capacity: Codex has room, new Claude agents wait until Sun 08:00). Brief `briefs/331-release-29.md` on `pkg/331-release-29`, drafted by Codex Sol and reviewed twice by fresh Codex contexts (reviews in `~/AresOS-331-review/`), then approved by the lead. Draft PR144.
+  - **PAUSED until Monday** (mac-capacity, 20:48: Codex is over pace too; at most one Codex job per lead on Sol; R29's release package can wait, since the cut waits for Deskflow).
+  - **Step 1, the R29 diff for current main:** built at `1767cf17`. REVIEW-1 is CHANGES-NEEDED: a must-fix in the guardian audit's raw-JSON comparison and a should-fix for Git-ignored config files. Both are in `reviews/331-release-29/PROGRESS.md`, "Paused" (`78e8b3b7`).
+  - **Step 2:** stopped partway, with nothing committed. The partial diff is at `~/AresOS-331-step2-partial.patch`.
+  - **Next, in order:** step 1's fixes and recheck, step 2, then steps 3 to 5. Only the lead dispatches workflows or opens the publish caps.
+  - **Decided 2026-11-21:**
+    - The owner on board T480: from R29 on, a candidate may be uploaded privately before its VM rehearsal; the pin waits for the rehearsal and the final review. The permission check refused the lead's edit of CLAUDE.md's Owner-decides line, so the rule lives on the board and in the brief; the owner was told.
+    - linux-desktop: B321 rides R29 and gates its cut, with an R30 fallback at the lead's call. Without B321, R29 ships main's 311 `aresos1` labwc.
+    - linux-tools: 18c-b ships with its gate closed by the placeholder exclusion list. The owner opens it later in the T298 sitting.
+    - Package 43 rides only if merged before the cut.
+- **B330, the Prism sign-in handler, is merged:** PR140, `a7fb7cfe`. It registers a hidden `org.prismlauncher.PrismLauncher.desktop` (the upstream ID; Prism 11.1.1 compares `xdg-mime`'s answer with its desktop file name). Reviews: REVIEW-1 CHANGES-NEEDED (the name), REVIEW-2 SAFE. Build 44938296580 green. A live browser sign-in waits for R29 on the laptop.
+- **PR76 (18c-b):** linux-tools merges it when green. The lead read its merged `pending-rebind.json`: clean, all hashes match.
 - **The laptop runs R28** (board T454 done): the owner's update session ran on 2026-11-21. The lead typed `at update`, `at title` and `at reboot` at his request behind his password windows; after the restart `at check` confirmed the update. Boot menu: R28, R27, the pinned stock. INSTALL-STATUS, STATE and the tests that pin their lines: branch `docs/475-laptop-on-r28` (board T475).
 - **What he saw after the restart:**
   - The Microsoft sign-in in the browser kept handing back to `prismlauncher://`, which R28 has no handler for. He signed in with the device code (`aresos-desktop retry`) and is in the hub. R29: a NoDisplay desktop entry for `x-scheme-handler/prismlauncher` (board T474).
