@@ -111,7 +111,7 @@ class PairingTest(unittest.TestCase):
                 self.asked.append(box.text())
                 if peer in accept or peer in reject:
                     label = 'It matches' if peer in accept else "It doesn't match"
-                    button = next(button for button in box.buttons() if button.text() == label)
+                    button = next(button for button in box.buttons() if button.text().replace('&', '') == label)
                     QTest.mouseClick(button, Qt.MouseButton.LeftButton)
                 else:
                     QTest.keyClick(self.app.focusWidget() or box, Qt.Key.Key_Return)

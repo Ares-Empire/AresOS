@@ -158,7 +158,7 @@ def ask(peer, own, server_alive=lambda: True):
     box.setIcon(QMessageBox.Icon.Warning)
     box.setTextFormat(Qt.TextFormat.PlainText)
     box.setText(text)
-    accept = box.addButton('It matches', QMessageBox.ButtonRole.YesRole)
+    accept = box.addButton('It &matches', QMessageBox.ButtonRole.YesRole)
     reject = box.addButton("It doesn't match", QMessageBox.ButtonRole.NoRole)
     # A focused push button can otherwise take over Qt's Enter action.
     accept.setAutoDefault(False)
