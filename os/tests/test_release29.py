@@ -79,7 +79,7 @@ class CurrentMainTest(unittest.TestCase):
         self.assertIn('os/build.sh', rd.BRANCH_SOURCE_CHANGES)
         self.assertEqual(rd.source_changes(MAIN, PROFILE_HEAD, sources=rd.IMAGE_SOURCES_29,
                                            exceptions=rd.BRANCH_SOURCE_CHANGES_29), ({}, []))
-        with patch.dict(os.environ, GITHUB_SHA=PROFILE_HEAD), patch.object(rd, 'ignored_build_files29', return_value=[]), \
+        with patch.dict(os.environ, GITHUB_SHA=PROFILE_HEAD), patch.object(rd, 'changed_build_context29', return_value=[]), \
                 patch.object(rd, 'git', side_effect=profile_git):
             self.assertEqual(rd.verify_source29(R28, MAIN)[1], [])
             damaged = dict(R28, source_trees=R28['source_trees'][1:])
@@ -294,8 +294,8 @@ class ImageDiffTest(unittest.TestCase):
         self.enterContext(patch.object(rd, 'git_bytes', side_effect=lambda version, rel:
                                        self.labwc_lock_bytes() if (version, rel) == (PROFILE_HEAD, rd.LABWC_LOCK_29)
                                        else real_git_bytes(version, rel)))
-        self.scan_ignored = rd.ignored_build_files29
-        self.enterContext(patch.object(rd, 'ignored_build_files29', return_value=[]))
+        self.scan_context = rd.changed_build_context29
+        self.enterContext(patch.object(rd, 'changed_build_context29', return_value=[]))
         self.commands = self.enterContext(patch.object(image_diff, 'command', side_effect=self.command))
 
     def labwc_lock_bytes(self):
@@ -751,30 +751,44 @@ class ImageDiffTest(unittest.TestCase):
                 self.assertIn(expected, result['problems'][0])
                 self.commands.assert_not_called()
 
-    def test_ignored_files_copied_from_os_stop_before_mounting(self):
+    def test_local_files_copied_from_os_stop_before_mounting(self):
         real_git = rd.git
         checkout = self.work / 'checkout'
         checkout.mkdir()
         real_git('-C', checkout, 'init', '--quiet')
         (checkout / '.gitignore').write_bytes(rd.git_bytes(PROFILE_HEAD, '.gitignore') + b'\n.env\n')
-        copied = ('os/.env', 'os/config/var/log/dnf5.log', 'os/tests/ci/.env')
-        for rel in (*copied, 'os/ci/.env', 'os/manifest/ci/.env', 'mod/.env'):
+        ignored = ('os/.env', 'os/config/var/log/dnf5.log', 'os/tests/ci/.env')
+        untracked = ('os/private-notes.txt', 'os/tests/audit notes.txt')
+        edited = ('os/tests/fixture.txt', 'os/look/example.txt')
+        excluded = ('os/ci/local-fixture.txt', 'os/manifest/ci/.env', 'os/release/local.txt', 'os/README.md')
+        for rel in (*edited, *excluded):
             path = checkout / rel
-            path.parent.mkdir(parents=True)
-            path.write_text('ignored fixture log\n')
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text('tracked fixture\n')
+            real_git('-C', checkout, 'add', '-f', '--', rel)
+        real_git('-C', checkout, '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
+                 'commit', '--quiet', '-m', 'context fixture')
+        for rel in (*ignored, *untracked, *edited, *excluded, 'mod/.env'):
+            path = checkout / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text('local fixture bytes\n')
+        for rel in ignored:
             real_git('-C', checkout, 'check-ignore', '--quiet', '--', rel)
+        real_git('-C', checkout, 'add', '--', edited[0])
 
         def git(*args, **kwargs):
-            if args[0] == 'ls-files':
-                return real_git('-C', checkout, *args, **kwargs)
+            if args[:4] == ('ls-files', '-z', '--others', '--') or args == (
+                    'diff', '-z', '--name-only', '--no-renames', 'HEAD', '--', 'os'):
+                return REAL_GIT('-C', checkout, *args, **kwargs)
             return real_git(*args, **kwargs)
 
-        with patch.object(rd, 'git', side_effect=git), patch.object(rd, 'ignored_build_files29', self.scan_ignored):
+        with patch.object(rd, 'git', side_effect=git), patch.object(rd, 'changed_build_context29', self.scan_context):
             _, result = self.diff()
             self.assertEqual(result['problems'], [
-                'Git-ignored files in the os/ build context. Move or remove these paths before rebuilding: '
-                + ', '.join(copied)])
+                'local changes in the os/ build context. Restore or move these paths before rebuilding: '
+                + ', '.join(sorted((*ignored, *untracked, *edited)))])
             self.commands.assert_not_called()
-            for rel in copied:
+            for rel in (*ignored, *untracked):
                 (checkout / rel).unlink()
+            real_git('-C', checkout, 'restore', '--source=HEAD', '--staged', '--worktree', '--', *edited)
             self.assertEqual(rd.verify_source29(R28, MAIN)[1], [])

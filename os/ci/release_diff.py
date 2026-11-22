@@ -1848,19 +1848,21 @@ JAR_REASON_29 = '56 (#117) and 53d (#121): rebuilt mod with free-pointer and hot
 NEW_EXECUTABLES_29 = {'usr/libexec/' + name for name in ('aresos-level', 'aresos-indicator', 'aresos-settings', 'aresos-laptop-home')}
 
 
-def ignored_build_files29():
-    """Git-ignored paths that COPY . can take from the local os/ context."""
-    ignored = git('ls-files', '-z', '--others', '--ignored', '--exclude-standard', '--', 'os', text=True)
-    paths = {path for path in ignored.split('\0') if path}
+def changed_build_context29():
+    """Local differences that COPY . can take from the os/ context."""
+    # Without --exclude-standard, ls-files includes ignored and ordinary untracked paths.
+    untracked = git('ls-files', '-z', '--others', '--', 'os', text=True)
+    edited = git('diff', '-z', '--name-only', '--no-renames', 'HEAD', '--', 'os', text=True)
+    paths = {path.rstrip('/') for path in (untracked + edited).split('\0') if path}
     if not paths:
         return []
     exclusions = []
     for line in git_bytes('HEAD', 'os/.containerignore').decode('utf-8-sig').splitlines():
         rule = line.strip()
-        if not rule or line.startswith('#'):
+        if not rule or rule.startswith('#'):
             continue
         # The reviewed ignore file uses literal paths. Until other patterns are reviewed,
-        # assume any ignored file could be copied if the rules use globbing or negation.
+        # assume any local path could be copied if the rules use globbing or negation.
         if any(char in rule for char in '*?[]!\\'):
             return sorted(paths)
         path = posixpath.normpath(rule.lstrip('/'))
@@ -1905,10 +1907,10 @@ def verify_source29(previous, main_base):
     if dirty:
         problems.append('image sources differ from HEAD in the checkout: ' + ', '.join(sorted(set(dirty))))
     # The mod and Control come from a Git archive. COPY . reads the local os/ directory.
-    ignored = ignored_build_files29() if 'os/.containerignore' not in missing else []
-    if ignored:
-        problems.append('Git-ignored files in the os/ build context. Move or remove these paths before rebuilding: '
-                        + ', '.join(ignored))
+    context = changed_build_context29() if 'os/.containerignore' not in missing else []
+    if context:
+        problems.append('local changes in the os/ build context. Restore or move these paths before rebuilding: '
+                        + ', '.join(context))
     if os.environ.get('GITHUB_SHA') != git('rev-parse', 'HEAD', text=True).strip():
         problems.append('the run source revision is not this checkout')
     return main, problems
