@@ -2,12 +2,14 @@ package dev.aresos.test;
 
 import dev.aresos.AresOs;
 import dev.aresos.client.EdgeLook;
+import dev.aresos.client.HomePointer;
 import dev.aresos.client.HomeScreen;
 import dev.aresos.client.LookSetting;
 import dev.aresos.client.ShellFocusClient;
 import dev.aresos.client.WorldCapture;
 import dev.aresos.config.LookMode;
 import dev.aresos.focus.EdgeTurn;
+import dev.aresos.item.AppItems;
 import dev.aresos.shell.FakeHelper;
 import dev.aresos.shell.ShellClient;
 import dev.aresos.test.WorldKeepsPointerClientGameTest.HelperProcess;
@@ -232,6 +234,29 @@ public final class EdgeTurnClientGameTest implements FabricClientGameTest {
             check(!attackHeld && !client.mouseHandler.isMouseGrabbed(), "The attack stayed held, or the use captured");
         });
 
+        // Package 56's taskbar stays first: a primary click on an app slot goes to the app, never to an attack.
+        int attacksBefore = context.computeOnClient(client -> {
+            client.player.getInventory().setItem(0, appStack());
+            pointAtSlot(client, 0);
+            check(HomePointer.hoveredSlot(client) == 0, "The free pointer does not reach the app slot");
+            button(client, LEFT, GLFW.GLFW_PRESS);
+            check(!client.options.keyAttack.isDown(), "A click on an app slot reached Minecraft's attack");
+            button(client, LEFT, GLFW.GLFW_RELEASE);
+            return attacks;
+        });
+        context.waitTicks(2);
+        context.runOnClient(client -> {
+            check(attacks == attacksBefore && !client.mouseHandler.isMouseGrabbed(), "A click on an app slot attacked or captured");
+            client.player.getInventory().setItem(0, ItemStack.EMPTY);
+        });
+
+        // Movement keys walk as in classic, and take no mouse.
+        context.getInput().holdKey(options -> options.keyUp);
+        context.waitTicks(2);
+        context.runOnClient(client -> check(client.options.keyUp.isDown() && !client.mouseHandler.isMouseGrabbed(),
+                "W did not walk, or it took the mouse"));
+        context.getInput().releaseKey(options -> options.keyUp);
+
         // While an app is in front the world ignores the mouse and the keys turn nothing; its press only brings it back.
         helper.focus(false);
         context.waitFor(HomeScreen::ignoresMouse);
@@ -316,6 +341,19 @@ public final class EdgeTurnClientGameTest implements FabricClientGameTest {
         rig.checkPosition(640, 300, "328c: the cursor after a click");
         rig.clean("328c edge turning");
         AresOs.LOGGER.info("328c native: left edge turned {} degrees; the edge beside output 2 let the cursor through", turned);
+    }
+
+    private static ItemStack appStack() {
+        var stack = new ItemStack(AppItems.APP);
+        stack.set(AppItems.APP_ID, "pkg328c-not-installed");
+        return stack;
+    }
+
+    private static void pointAtSlot(Minecraft client, int slot) {
+        var w = client.getWindow();
+        double scale = (double) w.getScreenWidth() / w.getGuiScaledWidth();
+        mouse(client).aresos$onMove(w.handle(), (w.getGuiScaledWidth() / 2 - 80 + slot * 20) * scale,
+                (w.getGuiScaledHeight() - 11) * (double) w.getScreenHeight() / w.getGuiScaledHeight());
     }
 
     private static void moveTo(ClientGameTestContext context, double x, double y) {
