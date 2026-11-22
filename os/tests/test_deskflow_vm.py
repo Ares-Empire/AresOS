@@ -1,0 +1,118 @@
+"""Regressions in the Deskflow output gate without a QEMU boot."""
+import contextlib
+import io
+import json
+import pathlib
+import sys
+import tempfile
+import unittest
+from unittest.mock import Mock, patch
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / 'ci/deskflow'))
+import actions  # noqa: E402
+import deskflow_vm as vm  # noqa: E402
+
+
+PRIMARY = {'enabled': True, 'modes': []}
+CUSTOM = {'width': 1022, 'height': 766, 'current': True}
+
+
+class DeskflowVMTest(unittest.TestCase):
+    def test_hotplug_fails_if_drm_moves_without_labwc(self):
+        for connected in (True, False):
+            for original in (None, {'card1-Virtual-1'}):
+                with self.subTest(connected=connected, original=original):
+                    guest = Mock()
+                    secondary = 'card1-Virtual-2' if original is None else 'card2-Virtual-1'
+                    name = 'Virtual-2' if original is None else 'Virtual-3'
+                    outputs = {vm.PRIMARY: PRIMARY}
+                    if not connected:
+                        outputs[name] = PRIMARY
+                    guest.request.return_value = dict(outputs=outputs, connectors={
+                        'card1-Virtual-1': 'connected', secondary: 'connected' if connected else 'disconnected',
+                    })
+                    with patch.object(vm.time, 'monotonic', side_effect=(0, 1, 13)), patch.object(vm.time, 'sleep'):
+                        with self.assertRaisesRegex(AssertionError, 'labwc did not reflect'):
+                            vm.wait_connector(guest, connected, original)
+
+    def test_unverified_hotplug_requires_neither_probe_to_move_drm(self):
+        guest = Mock()
+        guest.request.return_value = {'connectors': {'card1-Virtual-1': 'connected'}}
+        with patch.object(vm, 'wait_connector', side_effect=(None, None)) as wait:
+            result = vm.hotplug(guest)
+        guest.ui_info.assert_called_once_with(True)
+        guest.qmp.command.assert_called_once()
+        self.assertEqual(wait.call_count, 2)
+        self.assertEqual(result['hotplug'], 'unverified')
+        self.assertIn("the owner's direct OK", result['publication_requires'])
+
+    def test_vt_checks_the_original_bus_owner_and_listener(self):
+        for vt in ('tty3', 'tty1'):
+            with (
+                self.subTest(vt=vt),
+                patch.object(actions, 'labwc_pid', return_value=1),
+                patch.object(actions, 'session_log', return_value=''),
+                patch.object(actions.subprocess, 'run', return_value=Mock(stdout='')),
+                patch.object(actions, 'VT', Mock(**{'read_text.return_value': vt})),
+            ):
+                with (
+                    patch.object(actions, 'session', {'uid': 1000, 'pid': 1, 'backend_owner': ':1.2'}),
+                    patch.object(actions, 'backend_owner', return_value=':1.3'),
+                ):
+                    with self.assertRaisesRegex(AssertionError, 'original backend lost its bus name'):
+                        actions.vt({'expected': vt})
+                with (
+                    patch.object(actions, 'session', {'uid': 1000, 'pid': 1}),
+                    patch.object(actions, 'listener', Mock(**{'poll.return_value': 2})),
+                ):
+                    with self.assertRaisesRegex(AssertionError, 'listen-only Wayland connection ended'):
+                        actions.vt({'expected': vt})
+
+    def test_custom_verifies_each_transition(self):
+        on = {'outputs': {vm.PRIMARY: {'enabled': True, 'modes': [CUSTOM]}}}
+        off = {'outputs': {vm.PRIMARY: {'enabled': False}}}
+        diagnostics = {'session_log': ''}
+        abort = vm.GuestFailure("head_send_state: Assertion `found' failed")
+        for responses, status, completed in (
+            (({}, on, {}, off, {}, on), 'passed', 3),
+            (({}, {'outputs': {vm.PRIMARY: PRIMARY}}, diagnostics), 'unverified', 1),
+            (({}, on, {}, on, diagnostics), 'unverified', 2),
+            (({}, on, {}, off, abort, diagnostics), 'compositor-assertion', 3),
+        ):
+            with self.subTest(status=status, completed=completed):
+                guest = Mock()
+                guest.request.side_effect = responses
+                result = vm.custom(guest, {'outputs': {vm.PRIMARY: PRIMARY}})
+                self.assertEqual(result['status'], status)
+                operations = ['set-custom-mode', 'disable-output', 'reenable-custom-mode'][:completed]
+                self.assertEqual([transition['operation'] for transition in result['transitions']], operations)
+                if status != 'passed':
+                    self.assertEqual(result['operation'], operations[-1])
+
+    def test_incomplete_custom_evidence_is_reported_separately(self):
+        @contextlib.contextmanager
+        def boot(_disk, work, _evidence):
+            guest = Mock()
+            if work.name == 'custom-none':
+                guest.request.side_effect = vm.GuestFailure('not ready')
+            yield guest
+
+        with tempfile.TemporaryDirectory() as directory, contextlib.chdir(directory):
+            disk = pathlib.Path('vm-work/output/disk.raw')
+            disk.parent.mkdir(parents=True)
+            disk.touch()
+            log = io.StringIO()
+            with (
+                patch.object(vm, 'boot', boot),
+                patch.object(vm, 'regular', return_value={'status': 'passed'}) as regular,
+                patch.object(vm, 'custom', side_effect=[{'status': 'unverified'}, {'status': 'compositor-assertion'}]) as custom,
+                contextlib.redirect_stdout(log),
+            ):
+                regular.__name__ = 'regular'
+                custom.__name__ = 'custom'
+                vm.main()
+            result = json.loads(pathlib.Path('evidence/deskflow/result.json').read_text())
+        self.assertEqual(result['gate'], 'passed')
+        self.assertEqual(set(result['custom_incomplete']), {'custom-none', 'custom-listener'})
+        self.assertEqual(result['custom_incomplete']['custom-none']['phase'], 'readiness')
+        self.assertIn('DESKFLOW_CUSTOM_EVIDENCE_INCOMPLETE', log.getvalue())

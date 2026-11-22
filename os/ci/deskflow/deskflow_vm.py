@@ -16,6 +16,10 @@ from qmp import QMP  # noqa: E402
 PRIMARY = 'Virtual-1'
 SECONDARY = 'Virtual-2'
 STATES = ('none', 'listener', 'backend')
+HOTPLUG_REHEARSAL = (
+    "Before publication, get the owner's direct OK to run the check build's backend by hand "
+    "on the laptop without installing it and unplug and replug the external monitor three times."
+)
 
 
 class GuestFailure(Exception):
@@ -154,16 +158,20 @@ def set_mode(guest, name, mode, *, custom=False):
 
 
 def verify_mode(guest, name, mode):
-    output = guest.request('snapshot')['outputs'][name]
+    output = guest.request('snapshot')['outputs'].get(name)
+    assert output is not None, f'{name} missing from the output list'
     assert output['enabled'] == (mode is not None), output
     if mode is not None:
-        current, = [listed for listed in output['modes'] if listed['current']]
+        current = [listed for listed in output['modes'] if listed['current']]
+        assert len(current) == 1, output
+        current = current[0]
         assert mode_size(current) == mode_size(mode), output
         if 'refresh' in mode:
             assert round(current['refresh'], 3) == round(mode['refresh'], 3), output
 
 
 def wait_connector(guest, connected, original=None):
+    drm_seen = False
     deadline = time.monotonic() + 12
     while time.monotonic() < deadline:
         snap = guest.request('snapshot')
@@ -171,70 +179,83 @@ def wait_connector(guest, connected, original=None):
         assert outputs[PRIMARY]['enabled'], outputs
         if original is None:
             drm = [path for path in connectors if path.endswith(f'-{SECONDARY}')]
-            status = drm and all(connectors[path] == ('connected' if connected else 'disconnected') for path in drm)
-            if status and (SECONDARY in outputs) == connected:
-                return SECONDARY
+            status = 'connected' if connected else 'disconnected'
+            drm_match = any(connectors[path] == status for path in drm)
+            labwc_match = (SECONDARY in outputs) == connected
+            names = {SECONDARY} if connected else set()
         else:
             added = {path for path, state in connectors.items() if state == 'connected'} - original
             names = set(outputs) - {PRIMARY, SECONDARY, 'FALLBACK'}
             # The second DRM device may expose a duplicate Virtual-1.
-            if not connected and not added and not names:
-                return True
-            if connected and len(added) == len(names) == 1:
-                return names.pop()
+            drm_match = bool(added) == connected
+            labwc_match = len(names) == int(connected)
+            assert len(added) <= 1, f'PCI fallback added multiple DRM connectors: {added}'
+        if drm_match and labwc_match:
+            return names.pop() if connected else True
+        drm_seen |= drm_match
         time.sleep(0.4)
+    assert not drm_seen, f'DRM reached connected={connected}, but labwc did not reflect the connector transition'
     return None
 
 
 def hotplug(guest):
     base = guest.request('snapshot')
-    plugged = guest.ui_info(True)
-    appeared = plugged and wait_connector(guest, True)
-    unplugged = plugged and guest.ui_info(False)
-    vanished = unplugged and wait_connector(guest, False)
-    if appeared and vanished:
-        def toggle(connected):
-            assert guest.ui_info(connected), 'SetUIInfo rejected'
-            assert wait_connector(guest, connected), f'no DRM/labwc transition for connected={connected}'
+    original = {path for path, state in base['connectors'].items() if state == 'connected'}
+    initially_connected = any(path.endswith(f'-{SECONDARY}') for path in original)
 
-        name = SECONDARY
+    def ui(connected):
+        accepted = guest.ui_info(connected)
+        observed = wait_connector(guest, connected)
+        if observed:
+            assert accepted, f'SetUIInfo rejected connected={connected}'
+        return observed
+
+    if ui(not initially_connected):
+        toggle = ui
         method = 'SetUIInfo'
+        cycles = 3
+        if initially_connected:
+            assert toggle(True), 'DRM did not reconnect after the SetUIInfo probe'
+            cycles -= 1
     else:
         # A root port is present even when QEMU cannot change the virtio scanout.
-        original = {path for path, state in base['connectors'].items() if state == 'connected'}
-
         def pci(connected):
             if connected:
                 guest.qmp.command('device_add', {'driver': 'virtio-gpu-pci', 'bus': 'deskflow-port', 'id': 'deskflow-head'})
             else:
                 guest.qmp.command('device_del', {'id': 'deskflow-head'})
-            return wait_connector(guest, connected, original)
 
+        rejected = None
         try:
-            name = pci(True)
-            detached = pci(False)
+            pci(True)
         except RuntimeError as error:
-            print(f'DESKFLOW_HOTPLUG_UNVERIFIED {error}', flush=True)
-            return 'unverified'
-        if not name or not detached:
-            print('DESKFLOW_HOTPLUG_UNVERIFIED no second output transition in both DRM and labwc', flush=True)
-            return 'unverified'
+            rejected = str(error)
+        name = wait_connector(guest, True, original)
+        if not name:
+            detail = 'Neither SetUIInfo nor the PCI fallback drove the DRM connector'
+            if rejected:
+                detail += f' (PCI command rejected: {rejected})'
+            return dict(hotplug='unverified', detail=detail,
+                        publication_requires=HOTPLUG_REHEARSAL)
+        assert rejected is None, f'PCI command rejected despite a DRM transition: {rejected}'
 
         def toggle(connected):
-            assert pci(connected), f'no PCI DRM/labwc transition for connected={connected}'
+            pci(connected)
+            return wait_connector(guest, connected, original)
 
         method = 'virtio-gpu-pci'
-    toggle(True)
-    for _ in range(2):
-        toggle(False)
-        toggle(True)
+        cycles = 3
+    for _ in range(cycles):
+        assert toggle(False), f'{method} did not disconnect the DRM connector'
+        name = toggle(True)
+        assert name, f'{method} did not reconnect the DRM connector'
     output = guest.request('snapshot')['outputs'][name]
     mode, = [listed for listed in output['modes'] if listed['preferred']]
     set_mode(guest, name, None)
     verify_mode(guest, name, None)
     set_mode(guest, name, mode)
     verify_mode(guest, name, mode)
-    return method
+    return dict(hotplug=method)
 
 
 def regular(guest, ready):
@@ -255,24 +276,30 @@ def regular(guest, ready):
     guest.keys('f1')
     guest.request('vt', expected='tty1')
     assert guest.request('snapshot', geometry=False)['outputs'][PRIMARY]['enabled']
-    return dict(status='passed', hotplug=hotplug(guest))
+    return dict(status='passed', **hotplug(guest))
 
 
 def custom(guest, ready):
     modes = ready['outputs'][PRIMARY]['modes']
     mode = dict(width=1022, height=766)
     assert mode_size(mode) not in {mode_size(listed) for listed in modes}
-    try:
-        set_mode(guest, PRIMARY, mode, custom=True)
-        set_mode(guest, PRIMARY, None)
-        set_mode(guest, PRIMARY, mode, custom=True)
-        verify_mode(guest, PRIMARY, mode)
-    except (GuestFailure, AssertionError) as error:
-        proof = guest.request('diagnostics')
-        log = str(error) + proof['session_log']
-        kind = 'compositor-assertion' if 'head_send_state' in log and 'Assertion' in log else 'unverified'
-        return dict(status=kind, detail=str(error)[-2000:])
-    return dict(status='passed')
+    transitions = []
+    for operation, requested in (('set-custom-mode', mode), ('disable-output', None), ('reenable-custom-mode', mode)):
+        try:
+            set_mode(guest, PRIMARY, requested, custom=True)
+            verify_mode(guest, PRIMARY, requested)
+        except (GuestFailure, AssertionError, OSError, EOFError) as error:
+            log = str(error)
+            try:
+                log += '\n' + guest.request('diagnostics')['session_log']
+            except (OSError, EOFError, GuestFailure):
+                pass
+            expected = any('head_send_state' in line and 'Assertion' in line for line in log.splitlines())
+            status = 'compositor-assertion' if expected else 'unverified'
+            transitions.append(dict(operation=operation, status=status))
+            return dict(status=status, operation=operation, detail=str(error)[-2000:], transitions=transitions)
+        transitions.append(dict(operation=operation, status='passed'))
+    return dict(status='passed', transitions=transitions)
 
 
 def main():
@@ -286,16 +313,23 @@ def main():
     for scenario in (regular, custom):
         for state in STATES:
             name = f'{scenario.__name__}-{state}'
+            phase = 'boot'
             try:
                 with boot(disk, work / name, evidence / name) as guest:
+                    phase = 'readiness'
                     ready = guest.request('ready', state=state)
+                    phase = 'operations'
                     results[name] = scenario(guest, ready)
             except Exception as error:
-                results[name] = dict(status='failed', detail=str(error)[-4000:])
+                results[name] = dict(status='failed', phase=phase, detail=str(error)[-4000:])
             print(f'DESKFLOW_VM {name} {json.dumps(results[name])}', flush=True)
     passed = all(results[f'regular-{state}']['status'] == 'passed' for state in STATES)
-    (evidence / 'result.json').write_text(json.dumps(dict(gate='passed' if passed else 'failed', boots=results),
-                                                     indent=2) + '\n')
+    incomplete = {name: result for name, result in results.items()
+                  if name.startswith('custom-') and result['status'] not in ('passed', 'compositor-assertion')}
+    if incomplete:
+        print(f'DESKFLOW_CUSTOM_EVIDENCE_INCOMPLETE {json.dumps(incomplete)}', flush=True)
+    (evidence / 'result.json').write_text(json.dumps(
+        dict(gate='passed' if passed else 'failed', boots=results, custom_incomplete=incomplete), indent=2) + '\n')
     if not passed:
         raise SystemExit('DESKFLOW_OUTPUT_GATE_FAILED')
     print('DESKFLOW_OUTPUT_GATE_PASSED', flush=True)

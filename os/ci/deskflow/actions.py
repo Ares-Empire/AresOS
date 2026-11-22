@@ -89,6 +89,8 @@ def check_compositor():
     assert pid == session['pid'] and 'Assertion' not in log, (session['pid'], pid, log[-6000:])
     if listener is not None:
         assert listener.poll() is None, 'listen-only Wayland connection ended'
+    if 'backend_owner' in session:
+        assert backend_owner() == session['backend_owner'], 'original backend lost its bus name'
 
 
 def bus(*args):
@@ -96,8 +98,15 @@ def bus(*args):
 
 
 def backend_owner():
+    kind, owner = bus('call', 'org.freedesktop.DBus', '/org/freedesktop/DBus', 'org.freedesktop.DBus',
+                      'GetNameOwner', 's', BUS_NAME).split()
+    assert kind == 's' and owner.startswith('":') and owner.endswith('"'), (kind, owner)
+    return owner[1:-1]
+
+
+def backend_pid(owner):
     words = bus('call', 'org.freedesktop.DBus', '/org/freedesktop/DBus', 'org.freedesktop.DBus',
-                'GetConnectionUnixProcessID', 's', BUS_NAME).split()
+                'GetConnectionUnixProcessID', 's', owner).split()
     assert words[0] == 'u' and len(words) == 2, words
     return int(words[1])
 
@@ -127,15 +136,16 @@ def ready(request):
         require(guest_command('env', 'ARESOS_INPUT_PORTAL_LOG=debug', 'dbus-update-activation-environment',
                               'ARESOS_INPUT_PORTAL_LOG', 'WAYLAND_DISPLAY', 'XDG_CURRENT_DESKTOP'))
         assert require(guest_command(PORTAL, '--status')).strip() == 'no sessions'
-        pid = backend_owner()
+        owner = backend_owner()
+        pid = backend_pid(owner)
         env = environ(pid)
         assert env['DBUS_SESSION_BUS_ADDRESS'] == session['bus']
         assert env['WAYLAND_DISPLAY'] == session['wayland']
         assert env['XDG_CURRENT_DESKTOP'] == 'AresOS'
         assert os.readlink(PROC / str(pid) / 'exe') == PORTAL
         assert (PROC / str(pid)).stat().st_uid == session['uid']
-        session['backend'] = pid
-        proof['backend_pid'] = pid
+        session['backend_owner'] = owner
+        proof.update(backend_owner=owner, backend_pid=pid)
     check_compositor()
     return dict(returncode=0, **proof)
 
@@ -171,7 +181,6 @@ def zones(outputs):
 
 
 def backend_zones(expected):
-    assert backend_owner() == session['backend'], 'backend restarted'
     def current():
         lines = [line for line in session_log().splitlines() if 'screen geometry' in line]
         if not lines:
@@ -194,7 +203,7 @@ def snapshot(request):
     geometry = zones(outputs)
     result = dict(returncode=0, labwc_pid=session['pid'], outputs=outputs, zones=geometry,
                   connectors=drm_connectors(), vt=VT.read_text().strip())
-    if 'backend' in session and request.get('geometry', True) and session.get('last_geometry') != geometry:
+    if 'backend_owner' in session and request.get('geometry', True) and session.get('last_geometry') != geometry:
         result['backend_zones'] = backend_zones(geometry)
         session['last_geometry'] = geometry
     check_compositor()

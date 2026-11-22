@@ -573,7 +573,10 @@ static void outputs_done(void *d, struct zwlr_output_manager_v1 *m, uint32_t ser
 		first_output_list = false;
 	}
 }
-static void outputs_finished(void *d, struct zwlr_output_manager_v1 *m) {}
+static void outputs_finished(void *d, struct zwlr_output_manager_v1 *m)
+{
+	die("the compositor ended zwlr_output_manager_v1");
+}
 
 static const struct zwlr_output_manager_v1_listener outputs_listener = {
 	.head = outputs_head,
