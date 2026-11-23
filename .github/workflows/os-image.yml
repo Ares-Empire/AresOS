@@ -40,7 +40,7 @@ on:
       check_build:
         description: 'Throwaway image (package 21): resolve inputs or build and check this ref; never pushes, signs or publishes'
         type: choice
-        options: ['', resolve, build, control, bench, deskflow]
+        options: ['', resolve, resolve-deskflow-stable, build, control, bench, deskflow]
         default: ''
       bench_script:
         description: 'Hosted bench script from this ref (reviews/<package>/bench/<name>.json)'
