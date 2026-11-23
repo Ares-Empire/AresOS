@@ -477,6 +477,31 @@ class OpenAppsTest(ViewBase):
         self.assertEqual((replay['launch_id'], replay['error']), (opened['launch_id'], 'no_window'))
         self.assertEqual(self.popen.call_count, 2)
 
+    def test_a_discovered_app_can_finish_its_handoff_after_the_join_deadline(self):
+        helper = self.start(tracked=True)
+        laptop = self.view(helper)
+        desktop, _ = self.hello13(helper)
+        opened = self.call(helper, laptop, 'open_app', 'handoff', app_id=WEB.id)
+        launch = self.launch_for(helper, laptop.client, 'handoff')
+        self.now[0] += shell.WINDOW_TIMEOUT + 1
+        helper.tick()
+        self.assertEqual(launch.entry['state'], 'starting')
+        fresh = self.ask(helper, desktop, 'fresh', app=WEB.id)
+        self.assertEqual(fresh['state'], 'starting')
+        self.assertNotEqual(fresh['launch_id'], opened['launch_id'])
+
+        launch.process.code = 0
+        self.scope_pass(helper)
+        self.assertEqual(launch.scope, shell.GONE)
+        self.now[0] += shell.HANDOFF
+        helper.tick()
+        self.assertEqual(launch.entry['state'], 'starting')
+        self.show(helper.windows, 3, WEB.app_ids[0], active=True)
+        helper.windows_changed()
+        replay = self.call(helper, laptop, 'open_app', 'handoff', app_id=WEB.id)
+        self.assertEqual((replay['state'], replay['launch_id']), ('focused', opened['launch_id']))
+        self.assertEqual(self.popen.call_count, 2)
+
     def test_a_failed_laptop_launch_with_an_unknown_scope_is_not_joined(self):
         helper = self.start(tracked=True)
         laptop = self.view(helper)

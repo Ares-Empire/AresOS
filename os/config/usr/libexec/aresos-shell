@@ -2498,6 +2498,7 @@ class Launch:
     scope: str | None = None
     started: float = float('inf')
     deadline: float | None = None
+    window_retry: float | None = None
     handles: set = dataclasses.field(default_factory=set)
     adopting: bool = False
     ambiguous: bool = False
@@ -4341,6 +4342,7 @@ class Helper:
             self.update_join(self.journal.entries[other], entry)
         if state in FINAL or state in ('focused', 'background'):
             launch.deadline = None
+            launch.window_retry = None
         if state in FINAL:
             launch.started = float('inf')
             launch.closing = None
@@ -4463,13 +4465,14 @@ class Helper:
                                message=f'exited with status {code} before showing a window')
             # A single-instance app hands the launch to its running instance and exits 0.
         for launch in self.launch_entries():
-            if launch.deadline is not None and now >= launch.deadline:
+            deadline = launch.window_retry if launch.window_retry is not None else launch.deadline
+            if deadline is not None and now >= deadline:
                 entry = launch.entry
                 if entry['state'] == 'starting':
                     if self.is_discovered(entry):
-                        # No instance contract: a clean early exit can hand over to a resident process. With
-                        # a live/unknown scope keep waiting; once it is gone the usual bounded window wait ends.
+                        # A resident app can still answer this launch. The original deadline still governs joins.
                         if not self.catalogue_complete() or launch.may_be_running():
+                            launch.window_retry = now + self.window_timeout
                             continue
                     self.set_state(launch, 'failed', error='no_window',
                                    message='no matching window appeared')
