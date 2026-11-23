@@ -44,6 +44,88 @@ def layer(home):
                 load(CONTROL_CI / 'sessions.py', f'control_sessions_{id(home)}'))
 
 
+class GuestImportsTest(unittest.TestCase):
+    """What the control layer's guest code imports must be in the image (control runs 45099485788, 45099488536)."""
+
+    @staticmethod
+    def top_level_names(path):
+        names = set()
+        for node in ast.parse(path.read_text()).body:
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                names.add(node.name)
+            elif isinstance(node, (ast.Import, ast.ImportFrom)):
+                names.update((alias.asname or alias.name).split('.')[0] for alias in node.names)
+            elif isinstance(node, (ast.Assign, ast.AnnAssign)):
+                targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+                names.update(target.id for target in targets if isinstance(target, ast.Name))
+        return names
+
+    def test_every_sessions_name_actions_uses_exists(self):
+        tree = ast.parse((CONTROL_CI / 'actions.py').read_text())
+        used = {node.attr for node in ast.walk(tree) if isinstance(node, ast.Attribute)
+                and isinstance(node.value, ast.Name) and node.value.id == 'sessions'}
+        missing = used - self.top_level_names(CONTROL_CI / 'sessions.py')
+        self.assertTrue(used)
+        self.assertFalse(missing, f'actions.py uses sessions names that sessions.py lacks: {sorted(missing)}')
+
+    def test_the_storage_suite_gets_every_control_module_its_tests_import(self):
+        # actions.py runs STORAGE_TESTS from the copied chrome_tests; follow their imports through chrome_tests and
+        # require a COPY for every top-level control/ module they reach (test_engine imports response_checks).
+        storage = next(node.value for node in ast.parse((CONTROL_CI / 'actions.py').read_text()).body
+                       if isinstance(node, ast.Assign) and any(getattr(t, 'id', None) == 'STORAGE_TESTS'
+                                                               for t in node.targets))
+        queue, seen, needed = [element.value for element in storage.elts], set(), set()
+        while queue:
+            name = queue.pop()
+            path = ROOT / 'control/chrome_tests' / f'{name}.py'
+            if name in seen or not path.is_file():
+                continue
+            seen.add(name)
+            for node in ast.walk(ast.parse(path.read_text())):
+                modules = ([alias.name for alias in node.names] if isinstance(node, ast.Import)
+                           else [node.module] if isinstance(node, ast.ImportFrom) and node.module and not node.level
+                           else [])
+                for module in (module.split('.')[0] for module in modules):
+                    if (ROOT / 'control/chrome_tests' / f'{module}.py').is_file():
+                        queue.append(module)
+                    elif (ROOT / 'control' / f'{module}.py').is_file():
+                        needed.add(module)
+        self.assertIn('test_engine', seen)
+        containerfile = (CONTROL_CI / 'Containerfile').read_text()
+        for module in sorted(needed):
+            with self.subTest(module=module):
+                self.assertIn(f'COPY control/{module}.py /usr/libexec/aresos-ci/control/storage-suite/', containerfile)
+
+
+class C8QuestionTest(unittest.TestCase):
+    """C8 requires the whole service question on the prompt screen, not a prefix (28a merge look, finding 1)."""
+
+    QUESTION = ("On http://localhost:18766/form-yes, page 'Chrome form', as the page shows it, submit 'Submit test "
+                "message' to http://localhost:18766/form-yes (post, 2 fields, 0 hidden) in target '_self'; text next "
+                "to Send: 'Test message Submit test message'?")
+    # The layout of run 45011020590's C8 screen: the question wraps inside the prompt's border.
+    SCREEN = ("On http://localhost:18766/form-yes, page 'Chrome form', as the page shows it, submit 'Submit test "
+              "message' to\n   │ http://localhost:18766/form-yes (post, 2 fields, 0 hidden) in target '_self'; text "
+              "next to Send: 'Test message\n   │  Submit test message'?\n operation_id:\n   │ ab:cd\n description:\n")
+
+    def setUp(self):
+        home = pathlib.Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, home)
+        _, self.sessions = layer(home)
+
+    def test_the_wrapped_full_question_is_found_before_the_details(self):
+        position = self.sessions.question_position(self.SCREEN, self.QUESTION)
+        self.assertGreaterEqual(position, 0)
+        self.assertLess(position, self.sessions.squeeze(self.SCREEN).find('operation_id'))
+
+    def test_a_cut_question_fails_even_when_its_start_and_yes_no_show(self):
+        cut = self.SCREEN.split(' to\n')[0] + ' …\n 1. Yes\n 2. No\n'
+        self.assertGreaterEqual(self.sessions.flat(cut).find(self.sessions.flat(self.QUESTION)[:40]), 0)
+        self.assertEqual(self.sessions.question_position(cut, self.QUESTION), -1)
+        self.assertEqual(self.sessions.question_position(self.SCREEN.replace('form-yes (post', 'form-no (post'),
+                                                         self.QUESTION), -1)
+
+
 class LayerHookTest(unittest.TestCase):
     """Agreed change 8: checks.py loads a later layer's actions from actions.d and keeps its own first."""
 
@@ -876,7 +958,7 @@ class SessionPiecesTest(unittest.TestCase):
         imported = {(node.module, alias.name) for node in ast.walk(sessions) if isinstance(node, ast.ImportFrom)
                     for alias in node.names}
         self.assertEqual(imported, {('interactive_driver', 'Terminal'), ('interactive_driver', 'options'),
-                                    ('interactive_model', 'Model')})
+                                    ('interactive_model', 'Model'), ('interactive_model', 'texts')})
         actions = (CONTROL_CI / 'actions.py').read_text()
         self.assertIn("'/run/systemd/system/aresos-toold.service.d/aresos-ci-fail.conf'", actions)
 

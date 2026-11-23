@@ -1,5 +1,36 @@
 # Package 28a: Chrome acting progress
 
+## Merge look and control-build fixes (2026-11-23, the lead, `linux-tools`)
+
+The merge look (Codex gpt-6.2-sol, read-only, on `741e0426`) said **28: SAFE, 28a: CHANGES-NEEDED**, preserved in
+[MERGE-LOOK.md](MERGE-LOOK.md). Its finding 1 and two failures of 28a's first control builds (45099485788 and
+45099488536 on `4d4b018e`, both before the Chrome pass) are fixed here:
+
+- **Finding 1 (SHOULD-FIX), C8 matched only the first 40 characters of the question.** `os/ci/control/sessions.py`
+  now requires the whole question on the prompt screen (`question_position`: whitespace and the prompt's
+  box-drawing border removed on both sides, which is how run 45011020590's real C8 screen wraps it at 120 rows),
+  still before `operation_id` and `description`. Test `C8QuestionTest` (`os/tests/test_control_vm.py`): the
+  wrapped full question passes; a cut question with its start and Yes/No on screen fails, and so does a wrong
+  address. Mutation: matching only the first 40 characters fails the cut case.
+- **Finding 2 (NIT), the sweep's `notices` case leaves the queue-reconciliation branch unexercised.** Known limit:
+  today's path reads only the extension's in-memory queue (the look confirmed it safe); a future page lookup in that
+  branch would need its own sweep case. Low harm, no change.
+- **control-ordinary: `module 'sessions' has no attribute 'texts'`.** The harness fit had dropped `texts` from
+  `sessions.py`'s import while `os/ci/control/actions.py:1215` still uses it (and had changed the pinning test to
+  match). Restored, and `GuestImportsTest.test_every_sessions_name_actions_uses_exists` checks every
+  `sessions.<name>` that `actions.py` uses.
+- **control-storage-tests: `No module named 'response_checks'`.** 28a's `control/chrome_tests/test_engine.py`
+  imports `control/response_checks.py`, which the control layer didn't copy. `os/ci/control/Containerfile` now copies
+  it beside the storage suite; `GuestImportsTest.test_the_storage_suite_gets_every_control_module_its_tests_import`
+  follows `STORAGE_TESTS`' imports and requires a copy for each `control/` module they reach.
+- **The CI guest's hostname** came in with package 28's `8f3053a1` (NetworkManager `hostname-mode=none`).
+
+Mutations for both import tests fail as intended. `test_control_vm` (109), `test_control_image`,
+`test_checkout_sources` pass. Changed `os/` files for linux-aresos: `os/ci/control/sessions.py`,
+`os/ci/control/Containerfile`, `os/tests/test_control_vm.py`.
+
+Left: two control builds and the Chrome and qualification pass on this head, then a fresh recheck.
+
 ## 18c-b harness fitted to 28a (2026-11-23)
 
 Scope exception approved by linux-tools, 2026-11-23. The install proof and its
