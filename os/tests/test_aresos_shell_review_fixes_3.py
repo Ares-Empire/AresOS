@@ -215,7 +215,7 @@ class FlatpakScopeTest(DiscoveredBase):
 
     def test_the_launch_lives_on_its_process_and_window_while_its_scope_is_empty(self):
         self.assertTrue(self.open('org-kde-kcalc')['ok'])
-        process = self.helper_.processes['o-1']
+        process = self.helper_.processes[shell.DESKTOP, 'o-1']
         self.passes(shell.WINDOW_TIMEOUT / 2)  # flatpak run is still setting up its sandbox
         self.assertEqual(self.state(), 'starting')
         self.window(2, 'org.kde.kcalc', active=True)
@@ -235,6 +235,6 @@ class FlatpakScopeTest(DiscoveredBase):
         self.assertTrue(self.open('org-kde-kcalc')['ok'])
         self.passes(shell.WINDOW_TIMEOUT * 3)  # the live process keeps the launch waiting past the window wait
         self.assertEqual(self.state(), 'starting')
-        self.helper_.processes['o-1'].code = 0
+        self.helper_.processes[shell.DESKTOP, 'o-1'].code = 0
         self.passes(shell.WINDOW_TIMEOUT * 2)
         self.assertEqual([(e['state'], e.get('error')) for e in self.conn.events('app_state')], [('failed', 'no_window')])

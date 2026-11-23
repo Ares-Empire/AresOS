@@ -1,0 +1,22 @@
+test_automatic_creation_uses_observed_time_and_rejects_wrong_home (test_rig.CreationTest.test_automatic_creation_uses_observed_time_and_rejects_wrong_home) ... ok
+test_menu_keeps_confirmation_time_and_requires_it (test_rig.CreationTest.test_menu_keeps_confirmation_time_and_requires_it) ... ok
+test_frozen_snapshot_never_attaches_jcmd (test_rig.FrozenSnapshotTest.test_frozen_snapshot_never_attaches_jcmd) ... ok
+test_silently_enabled_tracking_rejects_absolute_measurement (test_rig.NmtOffTest.test_silently_enabled_tracking_rejects_absolute_measurement) ... ok
+test_tracking_off_is_confirmed_by_jvm (test_rig.NmtOffTest.test_tracking_off_is_confirmed_by_jvm) ... ok
+test_exact_owned_scope_with_membership (test_rig.ScopeTest.test_exact_owned_scope_with_membership) ... ok
+test_pid_in_ancestor_or_different_scope_refused (test_rig.ScopeTest.test_pid_in_ancestor_or_different_scope_refused) ... ok
+test_unrelated_unit_refused_before_any_read (test_rig.ScopeTest.test_unrelated_unit_refused_before_any_read) ... ok
+test_mapping_totals_and_unattributed_anonymous (test_rig.SmapsTest.test_mapping_totals_and_unattributed_anonymous) ... ok
+test_inactive_or_ambiguous_buttons_never_send_input (test_rig.UiTest.test_inactive_or_ambiguous_buttons_never_send_input) ... ok
+test_real_fifo_click_scales_observed_bounds_and_records_intent (test_rig.UiTest.test_real_fifo_click_scales_observed_bounds_and_records_intent) ... frozen: RSS 100 MiB; heap None; scope 100 MiB; swap 2 MiB; majflt 3
+nmt-off: RSS 100 MiB; heap None; scope 100 MiB; swap 0 MiB; majflt 0
+clicked 'New home…' at 960,548
+ok
+test_dead_virtual_input_reader_fails_instead_of_holding_the_game_lock (test_rig.WakeInputTest.test_dead_virtual_input_reader_fails_instead_of_holding_the_game_lock) ... ok
+test_reader_reopening_gap_and_multiple_commands (test_rig.WakeInputTest.test_reader_reopening_gap_and_multiple_commands) ... ok
+test_frozen_gap_clipped_at_wake_and_33ms_is_exact (test_rig.WakeTest.test_frozen_gap_clipped_at_wake_and_33ms_is_exact) ... ok
+
+----------------------------------------------------------------------
+Ran 14 tests in 2.273s
+
+OK

@@ -1,5 +1,6 @@
 """Pinned ISO rehearsal on two writable file-backed disks, with offline gates."""
 import base64
+import contextlib
 import json
 import os
 import pathlib
@@ -13,6 +14,7 @@ import sys
 import time
 
 import switch_vm as sw
+import stock_image
 from grub_bls import stock_bls_entry, confirm_menu_ocr, StockSelectionError
 from registry_auth import auth_file, guest_mount_command, REFERENCE
 from disk_audit import (all_variables, boot_variables, compare_disk, offline_disk,
@@ -35,6 +37,11 @@ class Guest(sw.Guest):
     audit = None
     firmware_default = False
     boot_purpose = 'installed'
+    # The host directory with the base image, for one live boot only (stock_share below).
+    stock_share = None
+
+    def stock_args(self):
+        return stock_image.qemu_args(self.stock_share) if self.mode == 'live' and self.stock_share else []
 
     def network_args(self):
         return super().network_args() + (',hostfwd=tcp:127.0.0.1:18080-:8080' if self.mode == 'live' else '')
@@ -91,7 +98,8 @@ class Guest(sw.Guest):
         return ['-device', 'virtio-vga,addr=0x4', '-device', 'qemu-xhci,id=usb-controller,addr=0x5',
                 '-device', 'usb-kbd,bus=usb-controller.0',
                 '-fsdev', f'local,id=owner-auth,path={self.owner_auth_directory},security_model=none,readonly=on',
-                '-device', 'virtio-9p-pci,id=owner-auth-device,fsdev=owner-auth,mount_tag=aresos-owner-auth,addr=0x6']
+                '-device', 'virtio-9p-pci,id=owner-auth-device,fsdev=owner-auth,mount_tag=aresos-owner-auth,addr=0x6',
+                *self.stock_args()]
 
     def prepare_registry_auth(self, encoded_auth=None):
         self.command(f'boot-{self.boot_number}-owner-auth-mount', guest_mount_command())
@@ -134,6 +142,11 @@ class Guest(sw.Guest):
             assert cd['qdev'] == 'installer-cd-device', 'Unexpected QMP ISO device ID'
             attached.append(dict(key='pci:00:1f.2/sata:0:65535:0', qdev_id='installer-cd-device',
                                  bus='ide.0', unit=0, evidence='explicit QEMU ide.0/unit=0 and QMP query-block'))
+        if self.stock_args():
+            # A file share, never a block device: no firmware boot option and no installer disk.
+            share, = [d for d in root['devices'] if d.get('qdev_id') == stock_image.DEVICE]
+            assert share['slot'] == stock_image.SLOT and share['function'] == 0, 'PLAN-GAP: stock share PCI address differs'
+            assert not any(b.get('device') == 'stock-image' for b in blocks), 'PLAN-GAP: the stock share must not be a block device'
         return dict(boot=self.boot_number, mode=self.mode, order=self.order, attached=attached,
                     query_pci=pci, query_block=blocks)
 
@@ -445,7 +458,7 @@ def live_inventory(guest, stage):
     release = json.loads(pathlib.Path('os/manifest/release.json').read_text())
     assert release['reference'] == REFERENCE
     verify = pathlib.Path('os/release/verify.sh').read_text().replace('@REFERENCE@', REFERENCE).replace('@IDENTITY@', release['signature']['identity'])
-    if os.environ.get('REHEARSAL_PACKAGE') in ('14', '16', '27', '22c', '22d'):
+    if os.environ.get('REHEARSAL_PACKAGE') in ('14', '16', '27', '22c', '22d', '42'):
         # The unchanged cryptographic check runs natively before the offline VM.
         # A guest cosign pull here would violate the link-down installer route.
         proof = json.loads(pathlib.Path('evidence/private-release-signature-proof.json').read_text())
@@ -459,16 +472,21 @@ def live_inventory(guest, stage):
     save(stage + '-release-signature-proof', dict(status='passed', reference=REFERENCE,
         identity=release['signature']['identity'], issuer=release['signature']['issuer'],
         diagnostics='private; only fixed proof fields exported'))
+    # Before anything reads the ISO's stock cache: the base image takes its place (stock_image.py).
+    host = substitute_stock(guest, stage)
     layout = guest.capture_json(stage + '-disks', sw.framed('lsblk --json --bytes --list --output NAME,TYPE,SIZE,SERIAL,PARTUUID,FSTYPE,MOUNTPOINTS'))
     protected, target = disk_names(layout)
     save(stage + '-mapping', dict(protected=protected, target=target, protected_serial='MICRON-KEEP', target_serial='CRUCIAL-TARGET'))
     digest = json.loads(pathlib.Path('os/manifest/base.json').read_text())['reference'].split('@', 1)[1]
-    guest.command(stage + '-payload', f'''set -e
+    # What the installer will install, as its own store reports it. Fail closed on anything else.
+    output = guest.command(stage + '-payload', f'''set -e
 digest=$(podman image inspect ghcr.io/ublue-os/bazzite-nvidia-open:stable --format "{{{{.Digest}}}}")
 printf '%s\\n' "$digest"
 test "$digest" = '{digest}'
 command -v runuser curl python3 busctl ss liveinst
 ''')
+    save('stock-rewind', stock_image.rewind(LIVE, host, stock_image.printed_digest(output)))
+    stock_image.drop_image(guest.stock_share)
     help_text = guest.command(stage + '-cli', 'set -e; NO_COLOR=1 anaconda --help > /tmp/rehearsal-anaconda-help; cat /tmp/rehearsal-anaconda-help')
     try:
         require_supported_live_kickstart(help_text)
@@ -481,6 +499,47 @@ command -v runuser curl python3 busctl ss liveinst
     bls = guest.capture_json(stage + '-bls-export-preflight', sw.framed(bls_inventory_command()))
     assert isinstance(bls, list)
     return protected, target
+
+
+@contextlib.contextmanager
+def stock_share():
+    """The host's side of the stock rewind, around one live boot: fetch, check, share, discard."""
+    share = WORK / stock_image.SHARE
+    try:
+        save('stock-image-host', stock_image.prepare(share))
+        Guest.stock_share = share
+        yield
+    finally:
+        Guest.stock_share = None
+        stock_image.discard(share)
+
+
+def substitute_stock(guest, stage):
+    """Design (a): the live session's containers-storage holds base.json's image before the installer starts."""
+    assert guest.mode == 'live' and guest.stock_share, 'STOP: no host-prepared stock image for this live boot'
+    host = json.loads((EVIDENCE / 'stock-image-host.json').read_text())
+    rows = guest.capture_json(stage + '-stock-embedded', sw.framed(stock_image.embedded_command()))
+    stock_image.check_embedded(rows, LIVE)
+    guest.command(stage + '-stock-share', stock_image.share_command())
+    guest.command(stage + '-stock-store', stock_image.store_command(), timeout=stock_image.STORE_TIMEOUT)
+    guest.command(stage + '-stock-copy', stock_image.copy_command(), timeout=stock_image.COPY_TIMEOUT)
+    return host
+
+
+def release_stock(guest, stage):
+    output = guest.command(stage + '-stock-release', stock_image.release_command(), timeout=stock_image.RELEASE_TIMEOUT)
+    save(stage + '-stock-release', dict(status='released', lazy='STOCK_LAZY_UNMOUNT' in output))
+
+
+def stock_rewind_booted(snapshot):
+    """At the first stock boot: the installed system is the base image with the laptop's origin."""
+    record = EVIDENCE / 'stock-rewind.json'
+    assert record.is_file(), 'STOP: this installation has no stock rewind record'
+    result = stock_image.booted(json.loads(record.read_text()), snapshot)
+    save('stock-rewind', result)
+    if not result['stock_commit']['equal']:
+        print('STOCK COMMIT DIFFERS FROM THE RECORDED ONE: ' + json.dumps(result['stock_commit']), flush=True)
+    return result
 
 
 def cleanup_live(guest, stage, diagnostics=False):
@@ -503,26 +562,28 @@ def install(audit, password, password_hash):
     from installer_webui import run
     Guest.mode = 'live'
     Guest.boot_purpose = Guest.order + '-install'
-    guest = Guest(WORK / 'target.raw', password, [password, password_hash])
-    stage = Guest.order + '-install'
-    try:
-        guest.login_live()
-        # 13d: live KDE/KWrite interaction is a laptop/followability gate.
-        # The installed layout is still chosen in the real installer below.
-        protected, target = live_inventory(guest, stage)
-        run(guest, EVIDENCE, protected, target, password, install=True, stage=stage)
-        guest.poweroff(stage)
-        audit.target_installed = True
-        save(stage + '-result', dict(status='passed', target=target,
-             method='unmodified liveinst Web UI via host Chromium',
-             click_path_qualified=False, installation_pages_exercised=True))
-        return target
-    finally:
+    with stock_share():
+        guest = Guest(WORK / 'target.raw', password, [password, password_hash])
+        stage = Guest.order + '-install'
         try:
-            cleanup_live(guest, stage)
+            guest.login_live()
+            # 13d: live KDE/KWrite interaction is a laptop/followability gate.
+            # The installed layout is still chosen in the real installer below.
+            protected, target = live_inventory(guest, stage)
+            run(guest, EVIDENCE, protected, target, password, install=True, stage=stage)
+            release_stock(guest, stage)
+            guest.poweroff(stage)
+            audit.target_installed = True
+            save(stage + '-result', dict(status='passed', target=target,
+                 method='unmodified liveinst Web UI via host Chromium',
+                 click_path_qualified=False, installation_pages_exercised=True))
+            return target
         finally:
-            guest.close(stage)
-            audit.check(stage, guest)
+            try:
+                cleanup_live(guest, stage)
+            finally:
+                guest.close(stage)
+                audit.check(stage, guest)
 
 
 def restore_windows_order(stage):
@@ -738,7 +799,7 @@ def stock_unit_names():
 
 
 def stock_recipe_probe(guest):
-    stock_inventory(guest, 'stock-updater-inventory')
+    stock_inventory(guest, 'live-session-updater-inventory')
     guest.command('stock-recipe-tools', 'set -e; for tool in systemctl podman pgrep runuser getent python3; do command -v "$tool"; done')
     source = pathlib.Path('os/ci/stock_probe.py').read_text()
     digest = json.loads(pathlib.Path('os/manifest/base.json').read_text())['reference'].split('@', 1)[1]
@@ -752,11 +813,12 @@ def stock_recipe_probe(guest):
     save('cached-stock-cli-probe', proof)
     source = pathlib.Path('os/release/pause-stock-updates.sh').read_text().split("<<'PAUSE_STOCK'\n", 1)[1].split('\nPAUSE_STOCK', 1)[0]
     program = source.split("if __name__ == '__main__':", 1)[0]
-    program += "\npause_units()\npause_units()\nprint('REAL_STOCK_UNIT_PAUSE_IDEMPOTENT_PROBE_PASSED')\n"
-    output = guest.command('stock-unit-pause-probe', 'python3 -c ' + shlex.quote(program))
-    assert 'REAL_STOCK_UNIT_PAUSE_IDEMPOTENT_PROBE_PASSED' in output
-    save('stock-recipe-probe', dict(status='passed', tools_and_help=True, real_unit_pause_twice=True,
-         cli_context='ISO cached exact stock image; pull never, network none, read-only, no owner credentials',
+    program += "\npause_units()\npause_units()\nprint('LIVE_SESSION_UNIT_PAUSE_IDEMPOTENT_PROBE_PASSED')\n"
+    output = guest.command('live-session-unit-pause-probe', 'python3 -c ' + shlex.quote(program))
+    assert 'LIVE_SESSION_UNIT_PAUSE_IDEMPOTENT_PROBE_PASSED' in output
+    save('stock-recipe-probe', dict(status='passed', tools_and_help=True,
+         live_session=dict(os='Fedora 45', updater_inventory='live-session-updater-inventory.json', unit_pause_twice=True),
+         cli_context="the base image in the live session's store (stock_image.py); pull never, network none, read-only, no owner credentials",
          pending_cleanup='read-only help plus real-status mocked native regressions; no OSTree deployment in live probe'))
 
 
@@ -820,40 +882,42 @@ def live_probe(audit):
     from installer_webui import probe
     Guest.mode = 'live'
     Guest.boot_purpose = 'live-ui-probe'
-    guest = Guest(WORK / 'target.raw', '', [])
-    try:
-        guest.login_live()
-        # Keep the live keyboard fixture unused; installed-system checks remain.
-        protected, target = live_inventory(guest, 'live')
-        save('live-assumptions', dict(order=Guest.order, protected=protected, target=target))
-        probe(guest, EVIDENCE, protected, target)
-        after = guest.capture_json('live-after-preview-disks', sw.framed('lsblk --json --bytes --list --output NAME,TYPE,SIZE,SERIAL,PARTUUID,FSTYPE,MOUNTPOINTS'))
-        assert disk_names(after) == (protected, target)
-        guest.keys(['shift'])
-        guest.screenshot('live-qmp-observer-input')
-        ocr = subprocess.check_output(['tesseract', str(EVIDENCE / 'live-qmp-observer-input.png'), 'stdout'],
-                                      stderr=subprocess.DEVNULL).decode()
-        (EVIDENCE / 'live-ocr-tool-preflight.txt').write_text(ocr)
-        save('part-b-tool-probe', dict(status='passed', ocr_executed=True,
-             context='actual live QMP screenshot; OCR tool only, not GRUB menu qualification'))
-        installed_keyboard_reader_probe(guest)
-        stock_recipe_probe(guest)
-        if os.environ.get('REHEARSAL_PACKAGE') == '13':
-            source = pathlib.Path('os/config/usr/libexec/aresos-keyboard').read_text()
-            program = source.split("if __name__ == '__main__':", 1)[0]
-            program += "\nreply=json.loads(subprocess.check_output(['busctl','--system','--json=short','call','org.freedesktop.locale1','/org/freedesktop/locale1','org.freedesktop.DBus.Properties','GetAll','s','org.freedesktop.locale1']))\nprint(json.dumps({k:v for k,v in environment(reply,{}).items() if k.startswith('XKB_DEFAULT_')}))\n"
-            guest.capture_json('localed-session-reader-probe', sw.framed('python3 -c ' + shlex.quote(program)))
-        assert guest.failure_counter('failure-counter-probe', probe_only=True)
-        assert json.loads((EVIDENCE / 'failure-counter-probe-failure-counter.json').read_text())['vm_paused']
-        guest.monitor.command('cont')
-        guest.writes('live-ui-probe')
-        guest.poweroff('live-ui-probe')
-    finally:
+    with stock_share():
+        guest = Guest(WORK / 'target.raw', '', [])
         try:
-            cleanup_live(guest, 'live-ui-probe', diagnostics=True)
+            guest.login_live()
+            # Keep the live keyboard fixture unused; installed-system checks remain.
+            protected, target = live_inventory(guest, 'live')
+            save('live-assumptions', dict(order=Guest.order, protected=protected, target=target))
+            probe(guest, EVIDENCE, protected, target)
+            after = guest.capture_json('live-after-preview-disks', sw.framed('lsblk --json --bytes --list --output NAME,TYPE,SIZE,SERIAL,PARTUUID,FSTYPE,MOUNTPOINTS'))
+            assert disk_names(after) == (protected, target)
+            guest.keys(['shift'])
+            guest.screenshot('live-qmp-observer-input')
+            ocr = subprocess.check_output(['tesseract', str(EVIDENCE / 'live-qmp-observer-input.png'), 'stdout'],
+                                          stderr=subprocess.DEVNULL).decode()
+            (EVIDENCE / 'live-ocr-tool-preflight.txt').write_text(ocr)
+            save('part-b-tool-probe', dict(status='passed', ocr_executed=True,
+                 context='actual live QMP screenshot; OCR tool only, not GRUB menu qualification'))
+            installed_keyboard_reader_probe(guest)
+            stock_recipe_probe(guest)
+            if os.environ.get('REHEARSAL_PACKAGE') == '13':
+                source = pathlib.Path('os/config/usr/libexec/aresos-keyboard').read_text()
+                program = source.split("if __name__ == '__main__':", 1)[0]
+                program += "\nreply=json.loads(subprocess.check_output(['busctl','--system','--json=short','call','org.freedesktop.locale1','/org/freedesktop/locale1','org.freedesktop.DBus.Properties','GetAll','s','org.freedesktop.locale1']))\nprint(json.dumps({k:v for k,v in environment(reply,{}).items() if k.startswith('XKB_DEFAULT_')}))\n"
+                guest.capture_json('localed-session-reader-probe', sw.framed('python3 -c ' + shlex.quote(program)))
+            assert guest.failure_counter('failure-counter-probe', probe_only=True)
+            assert json.loads((EVIDENCE / 'failure-counter-probe-failure-counter.json').read_text())['vm_paused']
+            guest.monitor.command('cont')
+            release_stock(guest, 'live')
+            guest.writes('live-ui-probe')
+            guest.poweroff('live-ui-probe')
         finally:
-            guest.close('live-ui-probe')
-            audit.check('live-ui-probe', guest)
+            try:
+                cleanup_live(guest, 'live-ui-probe', diagnostics=True)
+            finally:
+                guest.close('live-ui-probe')
+                audit.check('live-ui-probe', guest)
 
 
 def main():

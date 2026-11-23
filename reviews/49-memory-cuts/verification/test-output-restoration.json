@@ -1,0 +1,6 @@
+{
+  "tracked_test_files_restored": 55,
+  "generated_untracked_files_preserved_then_removed": 25,
+  "backup": "<worktree>/.work/pkg49/current-test-generated",
+  "scope": "Only test-generated screenshots/seeds outside package49; their backup bytes were SHA256-compared before restoration/removal."
+}

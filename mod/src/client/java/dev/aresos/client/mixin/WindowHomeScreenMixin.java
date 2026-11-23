@@ -3,6 +3,7 @@ package dev.aresos.client.mixin;
 import com.mojang.blaze3d.platform.DisplayData;
 import com.mojang.blaze3d.platform.Window;
 import dev.aresos.client.HomeScreen;
+import dev.aresos.client.WorldCapture;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -26,5 +27,12 @@ public abstract class WindowHomeScreenMixin {
     @Inject(method = "toggleFullScreen", at = @At("HEAD"), cancellable = true)
     private void aresos$stayTheDesktop(CallbackInfo ci) {
         if (HomeScreen.session()) ci.cancel();
+    }
+
+    // Package 328a: GLFW's focus callback, inside its event handling. The release's own focus events stop here, so
+    // Minecraft's record of the focus holds only what the real events said (WorldCapture.ownFocusEvent says why).
+    @Inject(method = "onFocus", at = @At("HEAD"), cancellable = true)
+    private void aresos$ownFocusEvent(long handle, boolean focused, CallbackInfo ci) {
+        if (WorldCapture.ownFocusEvent(handle, focused)) ci.cancel();
     }
 }

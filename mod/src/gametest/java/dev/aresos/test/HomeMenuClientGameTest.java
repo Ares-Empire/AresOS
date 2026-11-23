@@ -58,7 +58,7 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 /**
- * Package 48: the AresOS menu instead of the game menu in the home screen, "New home…" from one home to the next
+ * Package 48: the AresOS menu instead of the game menu in the home screen, "Start a new home…" from one home to the next
  * without the title screen, and the first start that makes the flat home without showing the title screen.
  *
  * <p>The first start makes the flat home this test then works in. The new home's switch is checked three ways: Cancel
@@ -232,7 +232,7 @@ public final class HomeMenuClientGameTest implements FabricClientGameTest {
         context.runOnClient(client -> {
             var widgets = Screens.getWidgets(client.gui.screen());
             var buttons = widgets.stream().filter(Button.class::isInstance).map(HomeMenuClientGameTest::text).toList();
-            check(buttons.equals(List.of("Back to the world", "Apps…", "Settings…", "New home…")), "The AresOS menu has " + buttons);
+            check(buttons.equals(List.of("Back to the world", "Apps…", "Settings…", "Build mode: Off", "Start a new home…")), "The AresOS menu has " + buttons);
             var lines = widgets.stream().filter(StringWidget.class::isInstance).map(HomeMenuClientGameTest::text).toList();
             check(lines.equals(List.of("AresOS", HINT)), "The AresOS menu's title and hint are " + lines);
             check(widgets.size() == buttons.size() + lines.size(), "The AresOS menu has more: " + widgets);
@@ -315,7 +315,7 @@ public final class HomeMenuClientGameTest implements FabricClientGameTest {
                 if (!apps.active) {
                     var narration = new ScreenNarrationCollector();
                     narration.update(apps::updateNarration);
-                    check(narration.collectNarrationText(true).contains("Apps open in Live mode. Back to the world, then H."),
+                    check(narration.collectNarrationText(true).contains("Apps open in Live mode. Use the Build mode button or press H in the world."),
                             "The Build-mode Apps tooltip did not follow the mode binding");
                 }
             });
@@ -363,7 +363,7 @@ public final class HomeMenuClientGameTest implements FabricClientGameTest {
         var server = context.computeOnClient(Minecraft::getSingleplayerServer);
         context.getInput().pressKey(InputConstants.KEY_ESCAPE);
         context.waitForScreen(AresOsMenuScreen.class);
-        context.clickScreenButton("New home…");
+        context.clickScreenButton("Start a new home…");
         context.waitForScreen(HomeCreateScreen.class);
         context.clickScreenButton("Home: Flat");
         context.clickScreenButton("50");
@@ -408,7 +408,7 @@ public final class HomeMenuClientGameTest implements FabricClientGameTest {
         var before = listing(saves);
         context.getInput().pressKey(InputConstants.KEY_ESCAPE);
         context.waitForScreen(AresOsMenuScreen.class);
-        context.clickScreenButton("New home…");
+        context.clickScreenButton("Start a new home…");
         context.waitForScreen(HomeCreateScreen.class);
         context.clickScreenButton("Home: Flat");
         context.clickScreenButton("50");
@@ -418,8 +418,7 @@ public final class HomeMenuClientGameTest implements FabricClientGameTest {
         context.waitForScreen(ConfirmScreen.class);
         context.runOnClient(client -> {
             String asked = client.gui.screen().getNarrationMessage().getString();
-            check(asked.contains("Keep this home under a dated name and make the new one? Nothing is deleted: the old home "
-                    + "stays in your saves."), "The confirmation asks " + asked);
+            check(asked.contains("AresOS will build a fresh home and open it. Your current home will stay in your saves."), "The confirmation asks " + asked);
             ScreenLog.start();
         });
         switchSaves.confirm(context);
@@ -457,7 +456,7 @@ public final class HomeMenuClientGameTest implements FabricClientGameTest {
         context.runOnClient(client -> HomeSwitch.failSecondRenameForTests(true));
         context.getInput().pressKey(InputConstants.KEY_ESCAPE);
         context.waitForScreen(AresOsMenuScreen.class);
-        context.clickScreenButton("New home…");
+        context.clickScreenButton("Start a new home…");
         context.waitForScreen(HomeCreateScreen.class);
         context.clickScreenButton("aresos.home.create");
         context.waitForScreen(ConfirmScreen.class);
@@ -631,7 +630,7 @@ public final class HomeMenuClientGameTest implements FabricClientGameTest {
     private static void startFlatSwitch(ClientGameTestContext context) {
         context.getInput().pressKey(InputConstants.KEY_ESCAPE);
         context.waitForScreen(AresOsMenuScreen.class);
-        context.clickScreenButton("New home…");
+        context.clickScreenButton("Start a new home…");
         context.waitForScreen(HomeCreateScreen.class);
         context.clickScreenButton("aresos.home.create");
         context.waitForScreen(ConfirmScreen.class);

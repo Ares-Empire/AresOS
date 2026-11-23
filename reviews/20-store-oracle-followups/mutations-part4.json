@@ -1,0 +1,397 @@
+[
+  {
+    "id": "m04",
+    "patch": "Replay old storage cause on later latched request",
+    "source_head": "1546da20198ab4c9b83e0a88081e29cb5c854f9c",
+    "file": "control/aresos_control/storage.py",
+    "patch_file": ".work/302/part4/m04.patch",
+    "patch_sha256": "222d8bf452d3eca7c8616ad4d9a7e1364c4fea4412701b53a9ddb90664421f7e",
+    "restored": true,
+    "result": "killed",
+    "tests": [
+      {
+        "test": "test_review22_storage.Journal22.test_first_fence_fsync_rollback_and_later_phase_failures",
+        "command": "python3 -B reviews/20-store-oracle-followups/mutations.py --run-export control/test-work/302-exports/part4-m04 base test_review22_storage.Journal22.test_first_fence_fsync_rollback_and_later_phase_failures",
+        "result": "killed",
+        "baseline": {
+          "exit": 0,
+          "log": ".work/302/part4/m04-1-baseline.log",
+          "summary": [
+            "Ran 1 test in 3.090s",
+            "OK"
+          ]
+        },
+        "mutant": {
+          "exit": 1,
+          "log": ".work/302/part4/m04-1-mutant.log",
+          "summary": [
+            "FAIL: test_first_fence_fsync_rollback_and_later_phase_failures (test_review22_storage.Journal22.test_first_fence_fsync_rollback_and_later_phase_failures) (phase='truncate', code='storage_limit', error='OSError')",
+            "AssertionError: 'storage_limit' != 'journal_incomplete'",
+            "Ran 1 test in 0.593s",
+            "FAILED (failures=27)"
+          ]
+        }
+      },
+      {
+        "test": "test_restore_batches.RestoreBatches.test_confirm_whose_last_marker_sync_fails_keeps_the_lock_until_a_restart",
+        "command": "python3 -B reviews/20-store-oracle-followups/mutations.py --run-export control/test-work/302-exports/part4-m04 base test_restore_batches.RestoreBatches.test_confirm_whose_last_marker_sync_fails_keeps_the_lock_until_a_restart",
+        "result": "killed",
+        "baseline": {
+          "exit": 0,
+          "log": ".work/302/part4/m04-2-baseline.log",
+          "summary": [
+            "Ran 1 test in 0.305s",
+            "OK"
+          ]
+        },
+        "mutant": {
+          "exit": 1,
+          "log": ".work/302/part4/m04-2-mutant.log",
+          "summary": [
+            "FAIL: test_confirm_whose_last_marker_sync_fails_keeps_the_lock_until_a_restart (test_restore_batches.RestoreBatches.test_confirm_whose_last_marker_sync_fails_keeps_the_lock_until_a_restart)",
+            "AssertionError: {'code': 'storage_limit', 'message': 'Disk full or [291 chars]ge.'} != {'code': 'journal_incomplete', 'message': 'A storag[184 chars]ge.'}",
+            "Ran 1 test in 0.280s",
+            "FAILED (failures=1)"
+          ]
+        }
+      },
+      {
+        "test": "test_owner_state_sweep.WriteLatchSweep302.test_latch_cases_use_the_same_status_checker_in_every_phase",
+        "command": "python3 -B reviews/20-store-oracle-followups/mutations.py --run-export control/test-work/302-exports/part4-m04 mail test_owner_state_sweep.WriteLatchSweep302.test_latch_cases_use_the_same_status_checker_in_every_phase",
+        "result": "killed",
+        "baseline": {
+          "exit": 0,
+          "log": ".work/302/part4/m04-3-baseline.log",
+          "summary": [
+            "Ran 1 test in 60.415s",
+            "OK"
+          ]
+        },
+        "mutant": {
+          "exit": 1,
+          "log": ".work/302/part4/m04-3-mutant.log",
+          "summary": [
+            "FAIL: test_latch_cases_use_the_same_status_checker_in_every_phase (test_owner_state_sweep.WriteLatchSweep302.test_latch_cases_use_the_same_status_checker_in_every_phase)",
+            "AssertionError: Lists differ: ['cancel/persistent/1/0/exhausted/response[9933 chars]tus'] != []",
+            "Ran 1 test in 58.234s",
+            "FAILED (failures=1)"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "m07",
+    "patch": "Infer latch from any call fault, including read/admission faults",
+    "source_head": "1546da20198ab4c9b83e0a88081e29cb5c854f9c",
+    "file": "control/owner_state_oracle/records.py",
+    "patch_file": ".work/302/part4/m07.patch",
+    "patch_sha256": "fa79d3c3887af5718d717463cd2a5cf37343e2b0900e2d735232502c96a92cbf",
+    "restored": true,
+    "result": "killed",
+    "tests": [
+      {
+        "test": "test_owner_state_oracle.WriteLatch302.test_fault_count_read_only_and_admission_failures_are_not_latch_evidence",
+        "command": "python3 -B reviews/20-store-oracle-followups/mutations.py --run-export control/test-work/302-exports/part4-m07 base test_owner_state_oracle.WriteLatch302.test_fault_count_read_only_and_admission_failures_are_not_latch_evidence",
+        "result": "killed",
+        "baseline": {
+          "exit": 0,
+          "log": ".work/302/part4/m07-1-baseline.log",
+          "summary": [
+            "Ran 1 test in 0.000s",
+            "OK"
+          ]
+        },
+        "mutant": {
+          "exit": 1,
+          "log": ".work/302/part4/m07-1-mutant.log",
+          "summary": [
+            "FAIL: test_fault_count_read_only_and_admission_failures_are_not_latch_evidence (test_owner_state_oracle.WriteLatch302.test_fault_count_read_only_and_admission_failures_are_not_latch_evidence) (faults={'admission': 'full'})",
+            "AssertionError: 'journal_incomplete' unexpectedly found in {'journal_incomplete'}",
+            "Ran 1 test in 0.001s",
+            "FAILED (failures=2)"
+          ]
+        }
+      },
+      {
+        "test": "test_owner_state_oracle.WriteLatch302.test_journal_phases_and_actual_cleanup_determine_the_latch",
+        "command": "python3 -B reviews/20-store-oracle-followups/mutations.py --run-export control/test-work/302-exports/part4-m07 base test_owner_state_oracle.WriteLatch302.test_journal_phases_and_actual_cleanup_determine_the_latch",
+        "result": "killed",
+        "baseline": {
+          "exit": 0,
+          "log": ".work/302/part4/m07-2-baseline.log",
+          "summary": [
+            "Ran 1 test in 0.009s",
+            "OK"
+          ]
+        },
+        "mutant": {
+          "exit": 1,
+          "log": ".work/302/part4/m07-2-mutant.log",
+          "summary": [
+            "FAIL: test_journal_phases_and_actual_cleanup_determine_the_latch (test_owner_state_oracle.WriteLatch302.test_journal_phases_and_actual_cleanup_determine_the_latch) (phase='fence', written=False, synced=False, truncate=False, rollback_sync=False)",
+            "AssertionError: Items in the first set but not the second:",
+            "Ran 1 test in 0.009s",
+            "FAILED (failures=18)"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "m14",
+    "patch": "Ignore applied tail and project marked rows only",
+    "source_head": "1546da20198ab4c9b83e0a88081e29cb5c854f9c",
+    "file": "control/owner_state_oracle/records.py",
+    "patch_file": ".work/302/part4/m14.patch",
+    "patch_sha256": "f0e454d0a8c1bff213a90d373b979e61d03b131420d9f4133b4f33a33985d0fe",
+    "restored": true,
+    "result": "killed",
+    "tests": [
+      {
+        "test": "test_owner_state_oracle.AppliedHistory.test_decoder_applied_tail_matrix_and_missing_projection_row",
+        "command": "python3 -B reviews/20-store-oracle-followups/mutations.py --run-export control/test-work/302-exports/part4-m14 base test_owner_state_oracle.AppliedHistory.test_decoder_applied_tail_matrix_and_missing_projection_row",
+        "result": "killed",
+        "baseline": {
+          "exit": 0,
+          "log": ".work/302/part4/m14-1-baseline.log",
+          "summary": [
+            "Ran 1 test in 0.254s",
+            "OK"
+          ]
+        },
+        "mutant": {
+          "exit": 1,
+          "log": ".work/302/part4/m14-1-mutant.log",
+          "summary": [
+            "FAIL: test_decoder_applied_tail_matrix_and_missing_projection_row (test_owner_state_oracle.AppliedHistory.test_decoder_applied_tail_matrix_and_missing_projection_row) (variant='applied')",
+            "AssertionError: False != True",
+            "Ran 1 test in 0.316s",
+            "FAILED (failures=2)"
+          ]
+        }
+      },
+      {
+        "test": "test_owner_state_sweep.OwnerStateSweep.test_applied_tail_views_keep_the_producing_call_and_restart_never_resubmits",
+        "command": "python3 -B reviews/20-store-oracle-followups/mutations.py --run-export control/test-work/302-exports/part4-m14 mail test_owner_state_sweep.OwnerStateSweep.test_applied_tail_views_keep_the_producing_call_and_restart_never_resubmits",
+        "result": "killed",
+        "baseline": {
+          "exit": 0,
+          "log": ".work/302/part4/m14-2-baseline.log",
+          "summary": [
+            "Ran 1 test in 100.410s",
+            "OK"
+          ]
+        },
+        "mutant": {
+          "exit": 1,
+          "log": ".work/302/part4/m14-2-mutant.log",
+          "summary": [
+            "FAIL: test_applied_tail_views_keep_the_producing_call_and_restart_never_resubmits (test_owner_state_sweep.OwnerStateSweep.test_applied_tail_views_keep_the_producing_call_and_restart_never_resubmits)",
+            "AssertionError: Items in the second set but not the first:",
+            "Ran 1 test in 76.584s",
+            "FAILED (failures=1)"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "m15",
+    "patch": "Promote every prepared event without application proof",
+    "source_head": "1546da20198ab4c9b83e0a88081e29cb5c854f9c",
+    "file": "control/owner_state_oracle/records.py",
+    "patch_file": ".work/302/part4/m15.patch",
+    "patch_sha256": "ae7c9fdd86dc11d65ae19b9b70c9a3c6bf0e1dae7aa4d447a0b905755ee0d022",
+    "restored": true,
+    "result": "killed",
+    "tests": [
+      {
+        "test": "test_owner_state_oracle.AppliedHistory.test_decoder_applied_tail_matrix_and_missing_projection_row",
+        "command": "python3 -B reviews/20-store-oracle-followups/mutations.py --run-export control/test-work/302-exports/part4-m15 base test_owner_state_oracle.AppliedHistory.test_decoder_applied_tail_matrix_and_missing_projection_row",
+        "result": "killed",
+        "baseline": {
+          "exit": 0,
+          "log": ".work/302/part4/m15-1-baseline.log",
+          "summary": [
+            "Ran 1 test in 0.260s",
+            "OK"
+          ]
+        },
+        "mutant": {
+          "exit": 1,
+          "log": ".work/302/part4/m15-1-mutant.log",
+          "summary": [
+            "FAIL: test_decoder_applied_tail_matrix_and_missing_projection_row (test_owner_state_oracle.AppliedHistory.test_decoder_applied_tail_matrix_and_missing_projection_row) (variant='staged')",
+            "AssertionError: True != False",
+            "Ran 1 test in 0.281s",
+            "FAILED (failures=5)"
+          ]
+        }
+      },
+      {
+        "test": "test_owner_state_sweep.WriteLatchSweep302.test_latch_cases_use_the_same_status_checker_in_every_phase",
+        "command": "python3 -B reviews/20-store-oracle-followups/mutations.py --run-export control/test-work/302-exports/part4-m15 mail test_owner_state_sweep.WriteLatchSweep302.test_latch_cases_use_the_same_status_checker_in_every_phase",
+        "result": "killed",
+        "baseline": {
+          "exit": 0,
+          "log": ".work/302/part4/m15-2-baseline.log",
+          "summary": [
+            "Ran 1 test in 65.241s",
+            "OK"
+          ]
+        },
+        "mutant": {
+          "exit": 1,
+          "log": ".work/302/part4/m15-2-mutant.log",
+          "summary": [
+            "FAIL: test_latch_cases_use_the_same_status_checker_in_every_phase (test_owner_state_sweep.WriteLatchSweep302.test_latch_cases_use_the_same_status_checker_in_every_phase)",
+            "AssertionError: Lists differ: ['cancel/single/24/0/live-restored/operati[805 chars]ate'] != []",
+            "Ran 1 test in 59.403s",
+            "FAILED (failures=1)"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "m17",
+    "patch": "End producing call at marked sequence, leaving applied event to later reads",
+    "source_head": "1546da20198ab4c9b83e0a88081e29cb5c854f9c",
+    "file": "control/owner_state_oracle/driver.py",
+    "patch_file": ".work/302/part4/m17.patch",
+    "patch_sha256": "0b2fe2fb2931f95aac81e04c4185e6f568c0d8c8edde192bfd335e5a757a97e0",
+    "restored": true,
+    "result": "killed",
+    "tests": [
+      {
+        "test": "test_owner_state_sweep.OwnerStateSweep.test_applied_tail_views_keep_the_producing_call_and_restart_never_resubmits",
+        "command": "python3 -B reviews/20-store-oracle-followups/mutations.py --run-export control/test-work/302-exports/part4-m17 mail test_owner_state_sweep.OwnerStateSweep.test_applied_tail_views_keep_the_producing_call_and_restart_never_resubmits",
+        "result": "killed",
+        "baseline": {
+          "exit": 0,
+          "log": ".work/302/part4/m17-1-baseline.log",
+          "summary": [
+            "Ran 1 test in 84.682s",
+            "OK"
+          ]
+        },
+        "mutant": {
+          "exit": 1,
+          "log": ".work/302/part4/m17-1-mutant.log",
+          "summary": [
+            "FAIL: test_applied_tail_views_keep_the_producing_call_and_restart_never_resubmits (test_owner_state_sweep.OwnerStateSweep.test_applied_tail_views_keep_the_producing_call_and_restart_never_resubmits)",
+            "AssertionError: 5 not greater than or equal to 6 : Outer producing call must include its applied event",
+            "Ran 1 test in 4.055s",
+            "FAILED (failures=1)"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "m18",
+    "patch": "Accept unscripted cancellation and acknowledgement",
+    "source_head": "1546da20198ab4c9b83e0a88081e29cb5c854f9c",
+    "file": "control/owner_state_oracle/model.py",
+    "patch_file": ".work/302/part4/m18.patch",
+    "patch_sha256": "0f54d637ec4d1df58de2485287cf62dfe9e4d3c5d4e059e96b4858f9f9c460c7",
+    "restored": true,
+    "result": "killed",
+    "tests": [
+      {
+        "test": "test_owner_state_oracle.AppliedHistory.test_applied_cancellation_and_acknowledgement_still_require_exact_script_identity",
+        "command": "python3 -B reviews/20-store-oracle-followups/mutations.py --run-export control/test-work/302-exports/part4-m18 base test_owner_state_oracle.AppliedHistory.test_applied_cancellation_and_acknowledgement_still_require_exact_script_identity",
+        "result": "killed",
+        "baseline": {
+          "exit": 0,
+          "log": ".work/302/part4/m18-1-baseline.log",
+          "summary": [
+            "Ran 1 test in 0.007s",
+            "OK"
+          ]
+        },
+        "mutant": {
+          "exit": 1,
+          "log": ".work/302/part4/m18-1-mutant.log",
+          "summary": [
+            "FAIL: test_applied_cancellation_and_acknowledgement_still_require_exact_script_identity (test_owner_state_oracle.AppliedHistory.test_applied_cancellation_and_acknowledgement_still_require_exact_script_identity)",
+            "AssertionError: False is not true : set()",
+            "Ran 1 test in 0.006s",
+            "FAILED (failures=1)"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "m25",
+    "patch": "Use marked boundary for all call attribution, moving applied event to later capture",
+    "source_head": "1546da20198ab4c9b83e0a88081e29cb5c854f9c",
+    "file": "control/owner_state_oracle/records.py",
+    "patch_file": ".work/302/part4/m25.patch",
+    "patch_sha256": "52709b6f8ac72da466377e63cdda5789e37694cf1f649bfbc88e4a7831821856",
+    "restored": true,
+    "result": "killed",
+    "tests": [
+      {
+        "test": "test_owner_state_sweep.OwnerStateSweep.test_applied_tail_views_keep_the_producing_call_and_restart_never_resubmits",
+        "command": "python3 -B reviews/20-store-oracle-followups/mutations.py --run-export control/test-work/302-exports/part4-m25 mail test_owner_state_sweep.OwnerStateSweep.test_applied_tail_views_keep_the_producing_call_and_restart_never_resubmits",
+        "result": "killed",
+        "baseline": {
+          "exit": 0,
+          "log": ".work/302/part4/m25-1-baseline.log",
+          "summary": [
+            "Ran 1 test in 79.208s",
+            "OK"
+          ]
+        },
+        "mutant": {
+          "exit": 1,
+          "log": ".work/302/part4/m25-1-mutant.log",
+          "summary": [
+            "FAIL: test_applied_tail_views_keep_the_producing_call_and_restart_never_resubmits (test_owner_state_sweep.OwnerStateSweep.test_applied_tail_views_keep_the_producing_call_and_restart_never_resubmits)",
+            "AssertionError: False is not true : (6, [])",
+            "Ran 1 test in 3.900s",
+            "FAILED (failures=1)"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "m27",
+    "patch": "Ignore live recheck latch refusal without a fresh physical fault",
+    "source_head": "1546da20198ab4c9b83e0a88081e29cb5c854f9c",
+    "file": "control/owner_state_oracle/model.py",
+    "patch_file": ".work/302/part4/m27.patch",
+    "patch_sha256": "d09e2c6226becb2f6c1493e990e3453ec1fd7fe9c4b3bd4bc6244d898ba74cad",
+    "restored": true,
+    "result": "killed",
+    "tests": [
+      {
+        "test": "test_owner_state_oracle.WriteLatch302.test_live_sent_copy_recheck_refused_by_latch_without_a_fresh_fault_is_unchecked",
+        "command": "python3 -B reviews/20-store-oracle-followups/mutations.py --run-export control/test-work/302-exports/part4-m27 base test_owner_state_oracle.WriteLatch302.test_live_sent_copy_recheck_refused_by_latch_without_a_fresh_fault_is_unchecked",
+        "result": "killed",
+        "baseline": {
+          "exit": 0,
+          "log": ".work/302/part4/m27-1-baseline.log",
+          "summary": [
+            "Ran 1 test in 0.001s",
+            "OK"
+          ]
+        },
+        "mutant": {
+          "exit": 1,
+          "log": ".work/302/part4/m27-1-mutant.log",
+          "summary": [
+            "FAIL: test_live_sent_copy_recheck_refused_by_latch_without_a_fresh_fault_is_unchecked (test_owner_state_oracle.WriteLatch302.test_live_sent_copy_recheck_refused_by_latch_without_a_fresh_fault_is_unchecked) (live=True, attempted=True, latched=True)",
+            "AssertionError: False != True",
+            "Ran 1 test in 0.001s",
+            "FAILED (failures=1)"
+          ]
+        }
+      }
+    ]
+  }
+]

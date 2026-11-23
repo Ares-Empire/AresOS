@@ -1,0 +1,22 @@
+{"monotonic_ns": 280300238050644, "command": "key lctrl down"}
+{"monotonic_ns": 280300338293122, "command": "key lctrl up"}
+{"monotonic_ns": 280300338402760, "command": "rel 200 0 15"}
+{"monotonic_ns": 280300838665803, "command": "rel -200 0 15"}
+{"monotonic_ns": 280301338933685, "command": "rel 200 0 15"}
+{"monotonic_ns": 280301839178782, "command": "rel -200 0 15"}
+{"monotonic_ns": 280302339462174, "command": "rel 200 0 15"}
+{"monotonic_ns": 280302839759467, "command": "rel -200 0 15"}
+{"monotonic_ns": 280303340023341, "command": "rel 200 0 15"}
+{"monotonic_ns": 280303840273899, "command": "rel -200 0 15"}
+{"monotonic_ns": 280304340578475, "command": "rel 200 0 15"}
+{"monotonic_ns": 280304840896062, "command": "rel -200 0 15"}
+{"monotonic_ns": 280305341243503, "command": "rel 200 0 15"}
+{"monotonic_ns": 280305841589731, "command": "rel -200 0 15"}
+{"monotonic_ns": 280306341895365, "command": "rel 200 0 15"}
+{"monotonic_ns": 280306842204873, "command": "rel -200 0 15"}
+{"monotonic_ns": 280307342518389, "command": "rel 200 0 15"}
+{"monotonic_ns": 280307842996808, "command": "rel -200 0 15"}
+{"monotonic_ns": 280308343399389, "command": "rel 200 0 15"}
+{"monotonic_ns": 280308843744750, "command": "rel -200 0 15"}
+{"monotonic_ns": 280309344105267, "command": "rel 200 0 15"}
+{"monotonic_ns": 280309844465799, "command": "rel -200 0 15"}

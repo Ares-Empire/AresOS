@@ -26,7 +26,7 @@ public final class IconPack {
             Path item = pack.resolve("assets/aresos/items/apps/" + app.id() + ".json");
             Path model = pack.resolve("assets/aresos/models/item/apps/" + app.id() + ".json");
             boolean success = false;
-            if (AppIcons.path(app) != null) try {
+            if (!TerminalAppearance.usesBuiltInPicture(app) && AppIcons.path(app) != null) try {
                 var picture = AppIcons.read(app);
                 String fingerprint = WindowsAppCatalogue.hash(picture.bytes()) + ":" + converter.version();
                 if (!Files.exists(texture) || !Files.exists(item) || !Files.exists(model) || !Files.exists(stamp)

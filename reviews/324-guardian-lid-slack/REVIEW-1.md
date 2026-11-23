@@ -1,0 +1,19 @@
+## PR #136 review
+
+The archived VM evidence confirms the reported failure. The lid watcher recorded `149.237 s`, journald stamped `save_asked` at `149.237067 s`, and logind logged the lid close at `149.237617 s`. Both clocks use the guest’s `CLOCK_MONOTONIC`. Python reports seconds, while journald records receipt time in microseconds. The 67 µs discrepancy is consistent with millisecond rounding and possible journal receipt delay. [CI run 44917067389](https://github.com/Ares-Empire/AresOS/actions/runs/44917067389) · [Python clock documentation](https://docs.python.org/3/library/time.html#time.monotonic) · [systemd journal fields](https://www.freedesktop.org/software/systemd/man/260/systemd.journal-fields.html)
+
+The fixture receives the save request, prints and flushes `save_asked`, then creates the marker. The watcher waits for that marker, injects the lid close, and samples the clock. The fixture sleeps five seconds, sends the answer, then logs `save_answered`. The host predicate alone can accept an early lid timestamp inside the slack, but the marker gates the actual event. Arming removes any existing marker under `/run`, and the offline export selects the current boot. The check still requires the matching save answer, a `saved` stop record, and orderly game exit before session teardown. [GuardianGame.java:96](os/ci/overlay/GuardianGame.java:96) · [guardian.py:240](os/ci/overlay/guardian.py:240) · [guardian.py:409](os/ci/overlay/guardian.py:409) · [offline_journal.py:235](os/ci/offline_journal.py:235) · [guardian_host.py:214](os/ci/guardian_host.py:214)
+
+| Severity | Where | Finding and fix |
+|---|---|---|
+| known limit | [guardian_host.py:229](os/ci/guardian_host.py:229) | The lower bound moves by exactly 500,000 µs. The upper bound remains inclusive at the journal’s `save_answered` stamp. `round` avoids the occasional 1 µs loss from truncating the float product. The bound still rejects lid timestamps after the answer stamp. Near the boundary, millisecond rounding and journal receipt delay can blur the order relative to the actual socket reply. If that distinction becomes necessary, record both event times directly at microsecond precision. |
+| nit | [test_guardian_vm.py:201](os/tests/test_guardian_vm.py:201) | The new test accepts a lid 1 ms and 490 ms before the request stamp and rejects one 510 ms before it or 10 ms after the answer. This covers the regression shape. Pin the exact 67 µs case and use literal offsets if the test should also lock down the half-second policy. |
+| known limit | [guardian_host.py:154](os/ci/guardian_host.py:154) · [guardian_host.py:190](os/ci/guardian_host.py:190) · [guardian_host.py:254](os/ci/guardian_host.py:254) | The strict `labwc_gone > guard_ended` comparison can falsely fail an R29 build if a valid probe rounds across the journal boundary. I reproduced that with a synthetic sample 100 µs after guard completion. The archived sample had about 588 ms of margin. The interior probe window already leaves 0.5–1 s margins, and the hang boot has repeated chances to observe tty3. If the labwc check flakes in CI, retain full probe precision and correlate the exit with session teardown. |
+
+## Verification
+
+- `python3 -m unittest discover -s os/tests -p 'test_guardian*.py'` ran 20 tests in 0.854 s and reported `OK`. The tests ran without `sudo`.
+- Replayed the archived pass 1 evidence in memory. `origin/main` failed with `no lid event during the save`. PR head passed with the lid block held. The nearest millisecond values on either side of both bounds produced the expected results.
+- `git diff --check origin/main...HEAD` passed. A fresh hosted VM boot remains unverified.
+
+SAFE

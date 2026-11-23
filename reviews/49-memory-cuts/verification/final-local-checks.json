@@ -1,0 +1,25 @@
+{
+  "json_files_parsed": 960,
+  "json_parse_exit": 0,
+  "shell_syntax_files": [
+    "reviews/49-memory-cuts/rig/check-flight.sh",
+    "reviews/49-memory-cuts/rig/inner.sh",
+    "reviews/49-memory-cuts/rig/java-wrapper.sh",
+    "reviews/49-memory-cuts/rig/measure.sh",
+    "reviews/49-memory-cuts/rig/retry.sh",
+    "reviews/49-memory-cuts/rig/run.sh",
+    "reviews/49-memory-cuts/rig/start.sh",
+    "reviews/49-memory-cuts/frames/build.sh"
+  ],
+  "shell_syntax_exit": 0,
+  "literal_local_home_or_worktree_path_matches": [],
+  "final_protocol_complete": true,
+  "recorded_measurement_attempts": 65,
+  "measurement_pass_line_met": false,
+  "no_qualification_threshold_relaxed": true,
+  "report_local_links_valid": true,
+  "full_branch_whitespace_exit": 0,
+  "own_first_parent_commits_checked": 48,
+  "commit_trailers_missing": [],
+  "checked_through_commit": "1659df27e9f5eb0e2cfed04077c822c865b22838"
+}

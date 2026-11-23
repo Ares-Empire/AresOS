@@ -1,0 +1,13 @@
+{
+ "attempt": "a1",
+ "settings": [
+  "COVER=300",
+  "SHOTS=0",
+  "RECLAIM=600M",
+  "FREEZE=1",
+  "RT=demote"
+ ],
+ "exit": 0,
+ "overlapped_by_other_java": false,
+ "interference_samples": []
+}

@@ -1,0 +1,8 @@
+[2/2] STEP 6/6: RUN bash /opt/harness/src/build.sh
+HARNESS_LABWC /usr/bin/labnag loaded_sha256 789da84fb23e482434c84e300d1a95c90f5cec5ffc1b9a156d2f6b5cdcff47d2 matches the lock
+HARNESS_LABWC /usr/bin/labwc loaded_sha256 92b42d5f5174a91adab883a3f6196500483ac08e37adff7928568284d70422f2 matches the lock
+HARNESS_LABWC_RPM 8f9f4ea2ab3163ee2a760624cd10d7ceb105a3c84f1d980ed73cbea7aba565c6  /opt/harness/rpm/labwc-0.9.6-1.fc44.aresos1.x86_64.rpm
+Successfully tagged localhost/aresos-indicator-clients:320
+Successfully tagged localhost/aresos-indicator-harness:320
+[18/19] Installing gobject-introspectio 100% | 130.7 MiB/s | 401.5 KiB |  00m00s
+Successfully tagged localhost/aresos-indicator-harness:320

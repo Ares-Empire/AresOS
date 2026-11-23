@@ -5,6 +5,169 @@ handover `mac-aresos-control` wrote on 2026-11-12. A fresh session that takes ov
 (item 6, the control layer), then the board (`board`, topic `tools`). Docs are claims: check `git log`, `gh pr list`
 and `git worktree list` first.
 
+## Resume here (2026-11-20 10:50, `linux-tools`, clean break)
+
+The detail behind every line is in `~/codex-queue/linux-tools/QUEUE.md` (newest entries at the top of the dated
+list). Shell watchers started by the old session are gone: start new ones with `gh run watch <id> -R
+Ares-Empire/AresOS --interval 300` in a background shell.
+
+**Now (Fri 10:50):** no new Claude agent until `mac-capacity` messages after its 13:43 reading (R28 alone runs
+meanwhile). Then, in order:
+- **28a step 4:** read the five runs on `c2a20dcb` (Chrome 44705819383, qualification 44705823983, base
+  44705828872, Mail 44705834097, privacy 44705838823), fill their results into the RESULTS line of
+  `~/codex-queue/linux-tools/28a-step4-opus.txt`, and start it as one Opus agent (it holds the lead's latency
+  decisions). Anything red other than `navigate`'s latency: a fresh fix round first. After step 4 pushes, watch
+  its pass 1, then dispatch pass 2 (Chrome and qualification again on the same head), then the Codex astra
+  package and security reviews.
+- **B317 revision:** Sat after 08:00, one Fable agent from `~/codex-queue/linux-tools/317-revise-1.txt`, only
+  after messaging `mac-capacity` one line and getting "go".
+- **18c-b step 6b** when `linux-aresos` says pkg/42 is on main (item 3).
+
+1. **R28: cut taken 12:05 (main `fba94b25` with #111 and #122, merged into pkg/42 as `7f896b62`).** #111 and #122 ride R28 if merged by 10:00 and
+   Control CI is green **on main's merge commit**; send `linux-aresos` that commit and the results. If either goes
+   red, revert it before 11:30 and it rides R29.
+   - **Both merged.** #111: main `c496035629e10f84887a01f2923ecedc72fcb48d`. #122 (07:27): main
+     `89dc80b186670e447d659024f493c7e62702307e`, which contains #111. On `c4960356` base, boundary and privacy are
+     green and Mail 44466979939 was running; its queued Chrome and qualification runs were cancelled because
+     `89dc80b1`'s runs cover both PRs: Chrome 44472212759, qualification 44472212767, boundary 44472212816, base
+     44472224412, Mail 44472228261, privacy 44472232086: **all green (08:54), sent to `linux-aresos`; both ride R28.**
+   - What he sees after #111 (for `linux-aresos`' owner line, sent): after an interrupted save the tools ask him to
+     free space and restart `aresos-toold` (a system service: his password, or a reboot) and refuse requests,
+     reads included, until then. Board #386 brings reads back (with N8) and re-pins once.
+2. **28a** (`pkg/28a-chrome-act`, `~/AresOS-28a-act`, draft PR #116 stacked on `pkg/28-chrome`; its CI is
+   dispatched by hand: control-chrome, control-chrome-qualification, control-base, control-mail, repo-privacy).
+   - Steps 0a to 1d part 1 built (PROGRESS has each); CI green on `bd86097c` (0b to 1a).
+   - On `c579a066` (1b, 1c, old catalogue): everything green except Control Chrome's **latency (plain)** job (run
+     44456571350). Likely the fingerprint's outline cost (1a measured 0.3 s → 1.0 s for 20,000 nodes on doubles).
+   - 1d part 2's code is at `a2ad7c7d` (groups 14 to 16, the latency run, `REASK_RESULT` as in #122): Chrome
+     44463920809 had two failures so far (fixtures external and policy, recheck2), qualification 44463926398 queued.
+   - **The stopped agent left an unpushed local commit `e4c06925`** ("the stand-in DOM runs every branch a listed
+     node picks") **and an uncommitted one-line edit in `control/chrome/ci/act-matrix.mjs`.** Inspect both first.
+     No "Step 1d, part 2" PROGRESS section yet.
+   - **10:00: `28a-1d2-fix` done** (`c6b9a2d4`, `790d6151`, PROGRESS "Step 1d, part 2" `efd56521`): the fixture and
+     qualification causes repaired; no latency ceiling missed (worst read 19.01/19.64 ms against 35/60). Chrome
+     44491713756 and qualification 44491718224 run on `790d6151`; F4's 9,000-byte assertion still fails there.
+   - **Lead decisions (10:00):** conservative F4's approval measures 13,348 bytes (form 6,311, `item_fields`
+     repeating 5,127) against the brief's 9,000 (ASK_LIMIT 16,384 stays). Accept it: F4 sends in one approval,
+     which was the point (main refuses it at about 21,700). The assertion becomes "under ASK_LIMIT, pinned at the
+     measured size with a small margin (at most 14,000), and the same facts with whole options are refused".
+     Deduplicating `item_fields` against `form` changes the frozen asking path: a later item with its own review
+     (known limit: a form about a quarter bigger than F4 refuses with `asking_input_too_large`). The old F4
+     comparator's extra `chrome_old_find` stays: brief 20 needs a fresh find after fills.
+   - **11:30: Codex Sol `28a-1d2-fix2` done** (`4fb4821b`, `18fadda2`, PROGRESS `d42d1890`): the F4 pin (at most
+     14,000, under ASK_LIMIT, whole options refused) and its known limit are in; latency (plain)'s cause was the F3
+     find at 218.5/291.4 ms against a 207.3 ms median ceiling, so the fingerprint hashing got cheaper; recheck2's
+     empty-owner-page fixture fixed.
+   - **19:30 (after a clear): green on `18fadda2`**, Chrome 44505065741 and qualification 44505070907, every job.
+     Base 44588323576, Mail 44588330029 and privacy 44588336857 dispatched on `d42d1890`. **Codex gpt-6.2-sol xhigh
+     `28a-1d2-gaps-b` running** (prompt `~/codex-queue/linux-tools/28a-1d2-gaps.txt`, log `~/AresOS-28a-1d2-gaps-b.log`):
+     the four browser cases part 2 left unproven (an input held back at seconds 11 to 13, through an instrumented
+     test build only; the owner typing with real keys during a step; muted playback; an `unknown` outcome with its
+     shape). **Done 19:44** (`e3da3a8d` product fix: `background.js` applies the input deadline during frame setup
+     and rechecks it after pointer hit testing; `df24623d` the four cases; PROGRESS `1511707e`). **Read Chrome
+     44590799388 and qualification 44590799642** on `df24623d` (shell watcher). The package reviews must look at
+     `e3da3a8d`.
+   - **20:52: red in one case only** (the owner typing with real keys: his keys never reached the field). Fix
+     `a28720dd` (CI harness: a native click focuses the field first; assertions kept). **Read Chrome 44604152322
+     and qualification 44604152624** on `a28720dd`: **green (22:03).**
+   - **22:04: step 2 running** (`28a-step2`, gpt-6.2-sol xhigh, prompt `~/codex-queue/linux-tools/28a-step2.txt`):
+     HARNESS-MAP first, then the harness moves in its helpers only; it dispatches Chrome and qualification once and
+     stops. **Done 22:22** (map `21a06d7c`: 23 helpers, 23 hand-built cases; harness `205c7219`; PROGRESS
+     `124e8aee`); Chrome 44617691792 and qualification 44617724806 on its head. Its PLAN-GAPs: six spots still
+     take evidence from the old tools. **Lead decision (22:30):** that evidence comes from channels outside
+     Claude's tools (the fixture's reports, the audit and boundary logs, an observer in the CI's instrumented
+     copy, the owner's and admin's paths), never a public tool or reply field; assertions on an old surface only
+     retire with it, each with a named carrying test on the new surface. **Step 3 is split:** 3a (prompt
+     `28a-step3a.txt`) moves that evidence with the old tools still present; a shell chain launches it only if
+     step 2's two runs are green (log `~/AresOS-28a-step3a.log`). 3b removes the tools.
+   - **22:44: step 2 red** (core, review and recheck3 shards, most qualification pairs; `a28720dd` was green). A
+     shell chain runs Codex `28a-step2-fix` (log `~/AresOS-28a-step2-fix.log`), watches the two runs it dispatches,
+     and launches 3a only if both are green.
+   - **Fri 00:29: the fix (`9b482732`) is red in two cases** that were hidden behind earlier failures (a shard stops
+     at its first failure): core group 7's late shadow root, review group 8's iframe drafts. It also fixed two
+     real reader defects (image-map links, an editable Pay button's role): **the package reviews must read
+     `9b482732`.** Fix round 2 runs on gpt-6.2-astra (`28a-step2-fix2`): every shard runs all its checks first; the
+     same chain launches 3a only if green.
+   - **Fri 02:32: step 2 green** on `35f7af24` (Chrome 44639875539, qualification 44639888962); **step 3a done**
+     (`70d7e5fb`; every evidence gap now on a channel outside Claude's tools; 40 old call sites left for 3b).
+     Its runs (Chrome 44654244144, qualification 44654244071) are **red everywhere** (03:20): extension calls
+     answer "Cannot access 'tab' before initialization", likely the CI-copy observer; plus two Python pins
+     (`test_latency`, `test_state_mutations` S6 and S12). A shell chain (`chain.sh` in the scratchpad) runs Codex
+     `28a-step3a-fix`, then **3b** (prompt `28a-step3b.txt`) only if the fix's two runs are green. Fri 04:52: the fix
+     (`c64d7367`) is **red in two cases only** (Chrome 44661058968, qualification 44661067429): GROUP 7 POST18D typed
+     reads (`fixture is not defined`, late-reader-matrix.mjs:64) and GROUP 8 REVIEW iframe drafts (3a's new
+     `navigationTrace` finds no `Page.reload` row although the page reloaded). Fix round 2 (`28a-step3a-fix2.txt`,
+     gpt-6.2-sol) runs in the same chain, then 3b if green. **Fri 05:04 3a green** on `75bc1428` (Chrome 44671559502,
+     qualification 44671559627). **06:59 3b done** (`25809d99`: 18 tools removed, 19 left; descriptions 5,975,
+     instructions 2,798, combined 8,773; group 16 now fails a sample above 1.5x its task's median in the same run).
+     Pass 1 on 25809d99: boundary 44684294599 and privacy 44684311459 green; Chrome 44684296519, qualification
+     44684299893, base 44684303561, Mail 44684307975 **red at 08:20**: shared `response_checks.VALIDATORS` became
+     bare functions (owner-state oracle test in base and Mail); a reviews/20-chrome pin of the old WITHHELD_FORM
+     text (qualification); GROUP 14 TIME calls an action the proxy refuses; latency `asking_click`/`navigate` miss.
+     Fix round `28a-step3b-fix.txt` (gpt-6.2-sol; lead allows changing only the old-text pins in reviews/20-chrome,
+     never its records/) done 09:07 (`fb34fb6f`; runs Chrome 44699409140, qualification 44699413577, base
+     44699417356, Mail 44699421544, privacy 44699425679). **Latency PLAN-GAP:** on 3a PR #27's probe still timed
+     the old tools; now it times `chrome_do`/`chrome_go` (asking_click ~130 ms vs 60, navigate ~370 vs 100). The
+     brief says the gate stays within its ceilings, so this is the lead's call. An Opus agent (09:30) breaks the
+     time down by span, fixes waste outside the frozen asking path, proposes ceilings if inherent, and rebuilds
+     group 16's check as the brief reads (each task's median against the new-tools median recorded in
+     `efficiency-baseline.json`, fail above 1.5x; 3b built a per-sample check). **Done 10:20** (`7dd773c0`,
+     `c2a20dcb`): asking_click's gap was a needless poll sleep (fixed); navigate's is brief 28's 150 ms quiet rule
+     (inherent). Runs on `c2a20dcb`: Chrome 44705819383, qualification 44705823983, base 44705828872, Mail
+     44705834097, privacy 44705838823. **Lead's decisions** (navigate 400/450 and its reference re-taken from
+     44705819383; group 16 on the brief's step-1 run; the flaky test_doing case fixed) are in
+     `~/codex-queue/linux-tools/28a-step4-opus.txt`: step 4 as one Opus agent once those runs report, then
+     pass 2 (Chrome and qualification again) from the lead's shell, then the Codex astra package and security
+     reviews. The lead's `chrome_show` line is in
+     CONTROL.md on the branch (`1c67199b`). Next: Codex step 4 (`28a-step4.txt`: FEATURES' stale `chrome_fill`
+     State cell, REPORT.md, KNOWN-LIMITS, pass 2 = Chrome and qualification again), then the package and security
+     reviews (astra). Reviewers must read 3b's "private view digest" in the reader's native reply. Then step 2
+     (HARNESS-MAP), step 3b (removal; CONTROL.md line 753 "nothing of ours ... takes the focus" needs `chrome_show`'s exception;
+     `response_checks.check_responses` in the Chrome tests, #122's NIT 2), step 4 (full validation twice), the
+     package and security reviews. Red: one Codex Sol fix step that pushes, dispatches once and stops.
+3. **18c-b** (`pkg/18c-b-chrome`, `~/AresOS-18c-b-build`, draft PR #76; rides R29).
+   - Step 4 done (`8bcb9504`; `linux-aresos` read its `os/` diff: OK). Step 4b pushed `3cb3687d` (C3, the rest of
+     C6, C10, C11) and `1b263438` (fixes); control runs 44452254488 and 44462912726 red, 44468856359 queued. That is
+     7 of the brief's 12 `check_build=control` runs (4b was given 4). No "Step 4b" PROGRESS section yet.
+   - **4b green and recorded** (`20eddb77`): C3, the full C6, C10, C11 PASS in 44468856359; `checks_only`
+     44488329704 (1820 tests); the managed-note screenshot exists; 7 of 12 control runs used; `linux-aresos` has
+     4b's `os/` diff (three CI-only files). Next: step 5 (C4, C5, C9, then C7 and C8), then 6. When main is merged
+     in after R28: take main's `pending-rebind.json`, rerun `rebind.py pending` with step 4's five notes word for
+     word plus the merge note; keep pkg/42's comment and 156 in `os-image.yml`.
+   - **19:40: step 5 running** on Codex gpt-6.2-sol xhigh (`18cb-step5`, prompt in `~/codex-queue/linux-tools/`,
+     log `~/AresOS-18cb-step5.log`): C4 as connection only (28b isn't merged, so CROSS-5's pin case stays with
+     28b's PR), C5, C9, then C7 (F7's loosening dialog only) and C8; at most 3 control runs, then `checks_only`.
+     **Green (Fri 01:18):** five PASS lines in control 44621559332 attempt 2 (attempt 1: a GitHub 403 in C11, plus
+     unexplained daily-profile reconnect timeouts, a known limit: watch for it in step 6's runs); checks_only
+     44640281276; 10 of 12 control runs used. For the security review: C9 compares against a probe-only start,
+     because Chrome calls the update service itself (our ID: zero non-file mentions). `linux-aresos` has the
+     CI-only `os/` diff: **read clean** (01:40). R28 is published privately but pkg/42 isn't on main yet (Fri
+     afternoon, after its third rehearsal); `linux-aresos` messages when it is. **Step 6a done (01:51):**
+     rehearsal checks `dbeaff72` (11 tests), README `dac9ed88`, report text with 6b placeholders `dd3f0007`;
+     checks_only 44645747088 green; no control run. `linux-aresos` has its `os/` diff and the release-brief
+     request. For the security review: the stock KDE host's IDs pass only while its manifest equals the image's.
+     **6b after pkg/42 is on main:** merge main (as agreed above), the two final greens (2 control runs left),
+     fill the placeholders.
+4. **Package 28** (#72): held until right after R29's cut, then merge and retarget #116 to main.
+5. **Board:** T386 (N8 and N9 follow-up, one re-pin): **B317 brief started Fri 08:44** by one Fable writer
+   (`briefs/20-store-oracle-reads.md` on local branch `brief/317-store-oracle-reads`, worktree
+   `~/AresOS-317-brief`). **On main at `29f79ee5`.** Codex astra review running (09:32, answer in the
+   scratchpad). **Review 1 NOT READY** (`reviews/20-store-oracle-reads/BRIEF-REVIEW-1.md`, four BLOCKERs on N8's
+   drop rule and N9's read/write line). Next: **one fresh Fable reviser on Sat after 08:00** (`mac-capacity`,
+   Fri 10:02: message it one line just before starting and wait for "go"), handed only the brief, the four
+   blockers and the files they touch; then one Claude review (Opus) of the revision, then build. T298 (live Chrome setup with him). #337 and #385 done.
+6. **Budget (`mac-capacity`, Fri 09:55):** three Fable agents at once (08:44-09:30, ours was B317's writer) cost
+   8% of the week. Until Sat 08:00: one Opus agent at a time per lead (R28 first). **Fable only after
+   `mac-capacity`'s go, one across all leads.** Order here: the running 28a latency agent, then 28a step 4
+   (Opus), then B317's Fable revision on Sat after 08:00 (after `mac-capacity`'s go) and its Claude review. Earlier (Fri 08:42 and 08:48): Claude week 41%, about 10% for all five leads until Sat
+   08:00; one Claude agent at a time per lead; no Claude agent waiting on CI (shell watchers do that); Opus by
+   default, Fable where the design needs it. **Codex ran at twice its fair pace:** keep it for cross-reviews and
+   the builds that need it (each run pushes and stops), and give the rest to Claude Opus agents. So 28a step 4
+   (report, known limits, pass 2) goes to an Opus agent (`28a-step4.held.txt` is its basis); the package and
+   security reviews stay on Codex astra. Meter: `~/.codex/sessions/`. Doc-only
+   commits on a PR into main end with `[skip ci]` (every push re-runs Control CI, and Control Chrome never cancels
+   a superseded run).
+
 ## Who does what
 
 - **`linux-tools`** (this baton): the tools. `control/`, `docs/control/`, `docs/design/CONTROL.md`, the `control-*`
@@ -31,15 +194,19 @@ and `git worktree list` first.
 | 18c, image part | on main (PR #58, squash `beb42ec8`, 2026-11-18) | Codex astra reviews: SECURITY-REVIEW-X1 SAFE (known limits K1 auto mode, the Stop JSON diagnostic, UID/GID 250 on the rehearsal); REVIEW-X1 and RECHECK-X1..X3 CHANGES-NEEDED, closed by fix rounds X1 (Opus), X2 (Opus), X3 (Fable: check 8 rebuilt around one record per learned path) and X4 (Codex astra); RECHECK-X4 SAFE on `16bcc784` with two NITs as known limits (cached mount paths under coordinated renames; a nested btrfs subvolume without its own mount would fail check 8). All green on `16bcc784`: checks_only 44180217274, control 44184266040 and 44195810105, build 44199832455. Owner's answers #286, #254, #203, #349. `linux-aresos` read the `os/` diff after every round. Report: `reviews/18c-image-test/REPORT.md`. `CONTROL_CHROME_BUILD` `7854f4a2…cfbbfb` at merge (follows main at the cut). | R28 step 2 and 43 step 3 (`linux-aresos`) start from it. Next on our side: 18c-b step 3a. |
 | Service fixes, brief 18e | on main (PR #69, merge commit `9324224a`, 2026-11-16) | Reviews: package CHANGES-NEEDED → two fix rounds → RECHECK-2 SAFE twice; security SAFE; astra cross-review SAFE (its nit fixed by #89). Pending reminders and notices reach only a session that used the tools; reminder says don't complete, cancel, resend or acknowledge on your own; sockets bound then renamed. Known limits in `reviews/18e-service-fixes/PROGRESS.md`. Chrome's server instructions are at 4,093 of 4,096 characters. Queue item 16 merged as PR #97 (`4737bb69`, 2026-11-17): the IdleLoop tests use a stopped wall clock with independent lateness bounds (they no longer measure real reaction time); #96's nits; Control base under `--init`. Known limit: the idle checks' 1 s real budget fails at about 0.5 s per fsync. | - |
 | Chrome briefs 28, 28a, 28b | on main (PR #48, merge commit `75f7d80e`, 2026-11-16) | Review 6 READY and its recheck READY (Claude Opus); lead's decisions in `reviews/28-chrome-capability/ALIGNMENT.md` through "After review 6's recheck". | Codex astra cross-review (Tue; prompt `28-brief-cross-5.txt` written for the merged head); its findings go to the 28a and 28b builds, which must also make room in Chrome's instructions. |
-| Package 28 | `pkg/28-chrome`, `~/AresOS-28-chrome-read`, draft PR #72 | Steps 1-13b built. 13a: four reference-lifecycle cases, green twice. 13b: closed-tab references dropped on release events and confirmed close/release replies (JC: the narrow reading of "gone"); 23 named cases, paging and state-token cases green; H1 stopped CI because the extension sends a lone surrogate as `\ud800` and `bridge.py`'s strict decoder refuses the reply. Lead's call: the strict guard stays; the extension makes every outgoing string well-formed (lone surrogate → U+FFFD) at one boundary; known limit. | Step 13c (Codex sol, 2026-11-17 evening): merge main (#98 conflicts in adapter.py and engine.py, guidance in `reviews/79-read-cost/PROGRESS.md`), the boundary fix, the 15 blocked cases. Then step 14 (latency baseline, HARNESS-MAP, KNOWN-LIMITS, report, green twice); package and security reviews (astra). For the 28a/28b revision: the asking question writes two same-label fields' labels alike (identities still bind). Follow-up: shadow roots met at `attachShadow` (review 5, S7). |
-| Brief 18c-b | `briefs/18c-b-chrome-image.md`, on main (PR #73, `a7b5cf52`) | Two Fable brief reviews (NOT READY, then READY with six should-fixes, folded in); `linux-aresos` agreed the `os/` part (owner's list in `/var/lib/aresos-control`, refused placeholder). Owner's answer #297: Chrome's managed notice is fine. Build: `pkg/18c-b-chrome`, `~/AresOS-18c-b-build`, draft PR #76; steps 1a (Fable), 1b (Opus), 2 and 2b (Fable) built: the install proof passes all five cases on the pinned Chrome (run 43729218613, head `c4514015`). The lead's decisions after 2b are on top of `reviews/18c-b-chrome-image/PROGRESS.md` (a DevTools pipe only in the proof's own Chrome starts, also for C9 and C2 in the VM). | Step 3a (PR #58 merged 2026-11-18); tell `linux-aresos` before the first `os-image.yml` commit. |
+| Package 28 | `pkg/28-chrome`, `~/AresOS-28-chrome-read`, draft PR #72 | Steps 1-14 built; green twice. Codex astra package and security reviews (2026-11-18) CHANGES-NEEDED (security: presentational textarea roles and a slash in a fragment bypassed withholding); fix round X1 (astra, code `52891587`, green twice) closed every finding and two siblings; RECHECK-X1 SAFE (`cd2ce599`). Reports: `reviews/28-chrome-read/` (REPORT, KNOWN-LIMITS, HARNESS-MAP). | **Held unmerged until right after R29's cut** (owner via mac-capacity, 2026-11-18: R29 ships 18c-b with PR #27's tools; 28, 28a and 28b reach the laptop together). 28a builds stacked on `pkg/28-chrome` (Claude Opus agents from Thu). |
+| Brief 18c-b | `briefs/18c-b-chrome-image.md`, on main (PR #73; revised by #106: the profile pin's restore contract, no profile password dialog) | Build `pkg/18c-b-chrome`, `~/AresOS-18c-b-build`, draft PR #76: steps 1a-2b, 3a and its fix (green: build 44288748140; `linux-aresos` read the `os/` diff) and 3b (`gh`: RPM, signature, keyring and install PASS; build 44339552024 red on a name-based docs/completions check; resolve 44344811923 green). | Step 4 done (`8bcb9504`), 4b in CI; then 5, 6. See "Resume here", item 3. Rides R29 with PR #27's tools. |
 | Shipped qualification copy | on main (PR #83, merge commit `68dde093`, 2026-11-16; fix PR #87, squash `52d13cb7`) | Tests and harness start Chrome from a fixture runtime with an empty shipped copy; the shipped copy holds 8 attested entries (runs up to 43856179386). #83's six checks green on `0a285b24`; the two later entries checked locally (valid, append-only). | Queue item 9 done in PR #93 (below). |
 | Qualification follow-ups | on main (PR #93, squash `23424f07`, 2026-11-16; read cost PR #98, squash `3a5eea14`, 2026-11-17) | #87's nits N1-N4; the pending-row projection goes through `record()` (O1); `mode()` reads the record once per call (O2). A refresh that fails after `verified()` says the held record may have changed, and `maintenance()` re-reads it. Brief 79-read-cost (empire 301): one slot per Qualification keyed by the journal offset and the line's exact bytes, compared on every cached read; `shipped` a deep copy; `_hold()`; the 300-entry latency leg is back (history-4000 read 20.1/21.4 ms against 35/60). Codex astra xhigh REVIEW-1 SAFE: all 26 mutation variants killed. | - |
 | Control follow-ups | on main (PR #89, `e9fd8ffc`, 2026-11-16) | 20-ci-noise's nits 1-6 and #69's socket-mode pin (queue items 3 and 10). | - |
 | Stop hook | on main (PR #91, `91487807`, 2026-11-16) | The managed Stop hook runs under `/bin/sh` and always exits 0; only JSON `{"decision":"block"}` blocks. Quiet for a session that never used the tools; an unreadable mark counts as not used. Marks live in `/run/user/<uid>/aresos-control/used/`; the walk from a hook to its session is four levels and never PID 1 (`usage.py`). | - |
 | Owner channel test | on main (PR #96, `d0b91522`, 2026-11-16) | The channel test marks the session its hooks resolve; the owner-oracle workflow runs its containers with `--init` (a test process at PID 1 was the ledger job's failure) and has a `ledger_only` input (about 20 min instead of 2.5 h). | Its nits 1 and 2 in queue item 16. |
-| Restore lock follow-ups | on main (PR #95, squash `ffb0547b`, 2026-11-17) | The owner oracle's three wrong lock expectations fixed: a confirm interrupted at the restore flow's last point keeps the lock until restart (C5); a log refused under the lock is seen as locked (`crash-locked`'s `aresos log` view); a head ahead of the last commit marker isn't a restore. Re-pinned: `reviews/19b-owner-state/KNOWN-GAPS.json`, 2,576,083 keys, SHA-256 `8b27b116…`, reproduced by proof 43972005458 (61 of 61 jobs). Reviews SAFE (REVIEW-1, CLASSIFICATION-CHECK, RECHECK-1). | Queue items 12, 13 and 17 (write latch, the oracle's startup blind spot, rows left at H, board #337): brief 302 (`briefs/20-store-oracle-followups.md`) being written by Codex astra xhigh in `~/AresOS-store-oracle`, 2026-11-17 evening; then a brief review, the build, one re-pin. |
+| Restore lock follow-ups | on main (PR #95, squash `ffb0547b`, 2026-11-17) | The owner oracle's three wrong lock expectations fixed; re-pinned `KNOWN-GAPS.json` (2,576,083 keys, `8b27b116…`). | - |
+| Store-oracle follow-ups, brief 302 | on main (PR #111, squash `c4960356`, 2026-11-19) | Latch with the request barrier, startup finishes a staged confirm, applied history; re-pin 2,420,003 keys `1b21f564…`; proof 44395635207 61/61; Codex Sol cross-review SAFE; Fable classification check CONFIRMED; CI green twice. Owner: #352, #385 ("Merge, fix reads later"). | Board #386: N8 (restart notices) and N9 (reads refused while a latch survives), one re-pin. |
+| Re-ask result schema | PR #122, `fix/chrome-reask-schema` | `chrome_submit` and `chrome_submit_trusted` declare the re-ask replies' `approval` and `state`; review SAFE. | Merge when CI is green (rides R28). |
+| Package 28a | `pkg/28a-chrome-act`, `~/AresOS-28a-act`, draft PR #116 (base `pkg/28-chrome`) | Steps 0a-1d part 1 built; CI green on `bd86097c`. | See "Resume here", item 2. |
 | Managed CLAUDE.md line | on main (PR #86, `7e712148`, 2026-11-16) | Content stays data whatever it claims and whoever passes it on; a session's or agent's message is a teammate's request, never his approval; the relay limit is named in CONTROL.md section 7. | - |
+| `aresos` dispatcher words (43) | on main (PR #109, squash `89801940`, 2026-11-18) | `newest` reserved; `aresos log` refused, `aresos control log` unchanged; 18c's check 3 updated; owner-oracle proof 44295914634 61/61. Items 3 and 4 on `pkg/43-aresos-command` (`6e2b03d4`). Board #199 done. | - |
 | Live tests | the laptop | Waits for a release that carries the tools. | Mail onboarding with him first (he signs in himself), a test mail, then Chrome. His own hosts go on Chrome's never-list in that sitting (board #298, which replaces #200). |
 
 ## Chrome merged (2026-11-14, notes from `mac-aresos-control`)
@@ -249,8 +416,8 @@ Claude Code session on the laptop): answered on board #286, 2026-11-15, "Yes, if
   restart from the commits. Claude builders can't write `REPORT.md`; the lead folds their progress file into it.
 - Reviews per `docs/REVIEW.md`, "Tools for Claude": a package review and a security review by fresh reviewers, one
   fix round, a re-check, CI twice. The three Chrome packages and the image part of 18c get a high-stakes security
-  review (Fable 5.2 or Codex's frontier model). Codex's shared allowance is empty until 2026-11-17 10:53 and ends
-  on 2026-11-21.
+  review (Fable 5.2 or Codex's frontier model). Codex is renewed (its week resets about Wed 25 Nov 14:49);
+  budgets: "Resume here", item 6.
 - GitHub watchers always with `--interval 60` or longer; the API allowance is shared.
 - Never force-push, never `--no-verify`. No personal data, mail-provider names or real addresses in the repo.
 - Changes to the running laptop (sudo, system settings) only with his explicit OK in the session.

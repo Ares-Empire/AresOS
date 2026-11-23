@@ -8,6 +8,14 @@ base=$(jq -r .reference os/manifest/base.json)
 mkdir -p evidence
 case $mode in
     resolve)
+        # Package 311: what labwc's build needs today, found on its own locked fedora:44. check-resolve.sh turns
+        # this into a candidate lock. A failure here is reported there and does not stop the other resolutions.
+        labwc_base=$(jq -r .base.reference os/labwc/labwc.lock.json)
+        sudo podman pull "$labwc_base"
+        sudo podman run --rm --network=host -v "$PWD/os/labwc:/tmp/aresos-labwc:ro" -v "$PWD/evidence:/evidence" \
+            --entrypoint /usr/bin/bash "$labwc_base" /tmp/aresos-labwc/resolve-download.sh \
+            "$(jq -r .source.url os/labwc/labwc.lock.json)" "$(jq -r .source.sha256 os/labwc/labwc.lock.json)" \
+            /evidence/labwc-resolved || echo 'labwc resolve-download.sh failed; see evidence/resolve/labwc.txt'
         # Inventory and resolve inside the pinned base only; no build.
         sudo podman pull "$base"
         sudo podman run --rm --network=host -v "$PWD/os:/tmp/aresos:ro" -v "$PWD/evidence:/evidence" \
@@ -52,8 +60,9 @@ case $mode in
         date +%s > evidence/build-end-time.txt
         sudo podman image inspect localhost/aresos:check > evidence/image-inspect.json
         bash os/ci/check-image.sh localhost/aresos:check "$kind"
-        # Then boot it once as the release job does, still without publishing:
-        # the CI-only test layer, a file-backed disk and one fresh VM pass. Its
+        python3 -B os/ci/control/chrome_image.py build-log evidence/image/checks.txt evidence/build.log \
+            | tee evidence/image/control-chrome-build-log.txt
+        # Boot both guardian scenarios on fresh overlays of the same disk. The
         # guest policy checks polkit for the daily account's real active
         # session (os/tests/guest.sh), then recovery login and the power key.
         sudo modprobe nbd max_part=8
@@ -79,6 +88,7 @@ case $mode in
             sudo -E env ARESOS_VM_PASS=1 python3 os/ci/vm.py
             grep -q ARESOS_ACTIVE_SESSION_POLKIT_PASSED evidence/vm-pass-1/policy-result.json
             grep -q CONSOLE_KEYMAP_PASSED evidence/vm-pass-1/console-keymap-result.json
+            sudo -E env ARESOS_VM_PASS=2 python3 os/ci/vm.py
             echo CHECK_BUILD_VM_PASSED
         fi
         ;;
@@ -91,8 +101,15 @@ case $mode in
         sudo -E env "ARESOS_REVISION=$revision" python3 os/ci/control/control_vm.py
         echo CHECK_BUILD_CONTROL_PASSED
         ;;
+    control-chrome-pass)
+        # Brief 18c-b, item 5: check_build=control's second VM step with its own time limit. The same disk with a
+        # fresh overlay: Chrome's checks in his session, with the pass's one reboot (control_vm.py chrome).
+        test -d vm-work/output
+        sudo -E python3 os/ci/control/control_vm.py chrome
+        echo CHECK_BUILD_CONTROL_CHROME_PASSED
+        ;;
     *)
-        echo "Unknown check-build mode: '$mode' (expected resolve, build, control or control-pass)" >&2
+        echo "Unknown check-build mode: '$mode' (expected resolve, build, control, control-pass or control-chrome-pass)" >&2
         exit 2
         ;;
 esac

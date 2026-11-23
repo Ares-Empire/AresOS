@@ -1,0 +1,19 @@
+# Package 316's headless harness: package 311's labwc, the test tools and the test clients, on the Fedora
+# that labwc was built on. harness/run.sh builds it and runs the tests in a throwaway container of it, with
+# no network and nothing of the host mounted.
+#
+# LABWC_IMAGE is the image the `labwc` stage of os/Containerfile produces; its /out holds the RPM.
+# clients/build.sh refuses a labwc that isn't the build os/labwc/labwc.lock.json describes.
+ARG LABWC_IMAGE=localhost/aresos-labwc:311e
+FROM ${LABWC_IMAGE} AS labwc
+
+FROM registry.fedoraproject.org/fedora@sha256:b02bb57e0e8ec2e057f0826436d2fc58765fa2b3b82d2abd322ece06e39c88f5
+COPY --from=labwc /out/ /opt/harness/rpm/
+RUN dnf5 -y -q --setopt=install_weak_deps=False install /opt/harness/rpm/labwc-*.rpm \
+        xorg-x11-server-Xwayland gcc pkgconf-pkg-config wayland-devel wayland-protocols-devel \
+        wlr-protocols-devel libxkbcommon-devel libei-devel dbus-daemon python3-gobject wl-clipboard \
+        wlr-randr wayland-utils procps-ng && \
+    dnf5 clean all
+COPY labwc-lock/ /opt/harness/labwc-lock/
+COPY clients/ /opt/harness/src/
+RUN bash /opt/harness/src/build.sh

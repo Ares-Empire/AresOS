@@ -1,0 +1,32 @@
+name=threads-1
+RD=8
+SD=5
+HEAP=1024
+MIN_HEAP=256
+GC=-XX:MaxHeapFreeRatio=30,-XX:MinHeapFreeRatio=10,-XX:ParallelGCThreads=4,-XX:ConcGCThreads=1,-Dmax.bg.threads=4
+MEMHIGH=2560M
+SIZE=1920x1080
+REFRESH=144
+SETTLE=120
+WINDOW=60
+COVER=300
+MODE=measure
+WORLD=base
+HOMEKIND=flat
+BASE=<worktree>/.work/pkg49/AresHub-base
+FLIGHT=roads
+QUIT=0
+ENV=
+MODS=
+PROBE=0
+RECLAIM=
+FREEZE=0
+LONG=0
+NMT=1
+COVER_ACTION=none
+WAKE_INPUT=active-v2
+JVM_ARGS=-Xms256m -Xmx1024m -Xlog:gc:file=<worktree>/.work/pkg49/rigs/threads-1/gc.txt:tn,u -XX:NativeMemoryTracking=summary -Dfabric.addMods=<worktree>/.work/pkg49/pkg41-frames.jar -Dpkg41.frames=<worktree>/.work/pkg49/rigs/threads-1/frames.txt -XX:MaxHeapFreeRatio=30 -XX:MinHeapFreeRatio=10 -XX:ParallelGCThreads=4 -XX:ConcGCThreads=1 -Dmax.bg.threads=4
+GAME_ARGS=--quickPlaySingleplayer AresHub
+source_revision=9f263cf1963a9bb576283e0c1f388da674644b93
+started=2026-11-17T19:22:58+01:00
+GAME_PID=330144

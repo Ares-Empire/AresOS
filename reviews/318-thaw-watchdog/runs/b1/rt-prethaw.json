@@ -1,0 +1,18 @@
+{
+ "monotonic_ns": 469181749580742,
+ "pid": 3617294,
+ "frozen": true,
+ "mode": "keep",
+ "realtime": [
+  {
+   "tid": 3618139,
+   "comm": "Render thread",
+   "policy": "SCHED_RR",
+   "priority": 1,
+   "flags": [
+    "SCHED_RESET_ON_FORK"
+   ]
+  }
+ ],
+ "invalid": false
+}

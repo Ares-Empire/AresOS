@@ -1,0 +1,46 @@
+{
+  "threshold_mib": 30,
+  "skip_native_factors": false,
+  "snapshots": {
+    "covered0": {
+      "probe_trim_rss_delta_mib": 28,
+      "probe_gc_trim_rss_delta_mib": 11
+    },
+    "covered1m": {
+      "probe_trim_rss_delta_mib": 58,
+      "probe_gc_trim_rss_delta_mib": 5
+    },
+    "covered2m": {
+      "probe_trim_rss_delta_mib": 29,
+      "probe_gc_trim_rss_delta_mib": 2
+    },
+    "covered3m": {
+      "probe_trim_rss_delta_mib": 3,
+      "probe_gc_trim_rss_delta_mib": 2
+    },
+    "covered4m": {
+      "probe_trim_rss_delta_mib": 11,
+      "probe_gc_trim_rss_delta_mib": 2
+    },
+    "covered5m": {
+      "probe_trim_rss_delta_mib": 4,
+      "probe_gc_trim_rss_delta_mib": 2
+    },
+    "flight": {
+      "probe_trim_rss_delta_mib": 107,
+      "probe_gc_trim_rss_delta_mib": 3
+    },
+    "settled": {
+      "probe_trim_rss_delta_mib": 187,
+      "probe_gc_trim_rss_delta_mib": 4
+    },
+    "stand": {
+      "probe_trim_rss_delta_mib": 46,
+      "probe_gc_trim_rss_delta_mib": 2
+    },
+    "wake": {
+      "probe_trim_rss_delta_mib": 25,
+      "probe_gc_trim_rss_delta_mib": 2
+    }
+  }
+}

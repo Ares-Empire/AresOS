@@ -6,6 +6,7 @@
     {"nevra": "greetd-0.10.3-6.fc44.x86_64", "sha256": "d6f3ab7263462e40f96dff09f17a7246fa1e0c0776ad0f4cab728cf62d3145a8"},
     {"nevra": "greetd-selinux-0.10.3-6.fc44.noarch", "sha256": "7feb07dfad123449fc05622fec614bf7d0a1b46017f249530769bc548d20019b"},
     {"nevra": "grim-1.5.0-3.fc44.x86_64", "sha256": "5e7bbe7da1a270a17fd5af19b436206414a2e9772e03b947aecd3addd5c8c43a"},
+    {"nevra": "gtk4-layer-shell-1.3.0-1.fc44.x86_64", "sha256": "9dd6c2bfc53b9dd1a7a03c9c18f381dcbd350a0abd692a9cae7377d658f852a1"},
     {"nevra": "java-25-openjdk-crypto-adapter-1:25.0.5.0.8-3.1.fc44.x86_64", "sha256": "f92517a8a383457ad6506511fb22e8ed94368085681282565f24c88bfce21552"},
     {"nevra": "java-25-openjdk-headless-1:25.0.5.0.8-3.1.fc44.x86_64", "sha256": "28f00e524ecb699f35cc3347903e480ef5751dcff30205d5b55ffce6177acc00"},
     {"nevra": "javapackages-filesystem-6.4.1-10.fc44.noarch", "sha256": "5bc8a5ed5ab9716c321ef8f9a71b9ea88985d1bab25371675fa5a5ce67037996"},

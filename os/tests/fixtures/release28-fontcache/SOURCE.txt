@@ -1,0 +1,10 @@
+Real fontconfig caches of the folder /usr/share/fonts/aresos (package 31's
+Space Grotesk, os/config/usr/share/fonts/aresos) for test_release28 (package 42),
+made with fontconfig 2.17.0 (Fedora 44), fc-cache-32 and fc-cache-64, run as
+`fc-cache-NN --sysroot=ROOT --system-only --really-force` over a stand-in root
+holding only that folder and a fonts.conf naming /usr/share/fonts:
+  50471fd4bd417ff5c0731b6a17aa3708-le32d4.cache-9  the 32-bit format (fc-cache-32)
+  50471fd4bd417ff5c0731b6a17aa3708-le64.cache-9    the 64-bit format (fc-cache-64)
+The name is the MD5 of the folder. Release 28's dry run (run 43832912792) built
+caches of this folder with the same sizes (6752 and 9144 bytes). They let the
+tests read real caches of both formats.

@@ -1,0 +1,61 @@
+[
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameOwnerChanged",
+  "args": [
+   "org.freedesktop.portal.Desktop",
+   "",
+   ":1.1"
+  ]
+ },
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameAcquired",
+  "args": [
+   "org.freedesktop.portal.Desktop"
+  ]
+ },
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameOwnerChanged",
+  "args": [
+   ":1.2",
+   "",
+   ":1.2"
+  ]
+ },
+ {
+  "sender": "org.freedesktop.DBus",
+  "path": "/org/freedesktop/DBus",
+  "iface": "org.freedesktop.DBus",
+  "member": "NameOwnerChanged",
+  "args": [
+   "org.freedesktop.impl.portal.desktop.aresos-input",
+   "",
+   ":1.2"
+  ]
+ },
+ {
+  "sender": ":1.2",
+  "path": "/org/freedesktop/portal/desktop",
+  "iface": "org.freedesktop.impl.portal.InputCapture",
+  "member": "Activated",
+  "args": [
+   "/org/freedesktop/portal/desktop/session/harness/bus_dies_capturing",
+   {
+    "cursor_position": [
+     0.0,
+     360.0
+    ],
+    "activation_id": 1,
+    "barrier_id": 1
+   }
+  ]
+ }
+]

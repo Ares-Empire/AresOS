@@ -286,6 +286,7 @@ public final class LiveFlightGameTests {
     }
 
     private static void assertLive(Abilities abilities, String where) {
+        check(abilities.getFlyingSpeed() == LiveMode.DESKTOP_FLYING_SPEED, where + ": flying speed " + abilities.getFlyingSpeed());
         check(abilities.mayfly, where + ": he cannot fly");
         check(abilities.invulnerable, where + ": he is not invulnerable");
         check(!abilities.instabuild, where + ": he builds like creative");
@@ -294,6 +295,7 @@ public final class LiveFlightGameTests {
     }
 
     private static void assertGameSurvival(Abilities abilities, String where) {
+        check(abilities.getFlyingSpeed() == new Abilities().getFlyingSpeed(), where + ": flying speed " + abilities.getFlyingSpeed());
         check(!abilities.mayfly && !abilities.flying && !abilities.invulnerable && !abilities.instabuild,
                 where + ": abilities other than the game's survival");
         check(abilities.getWalkingSpeed() == new Abilities().getWalkingSpeed(),
@@ -302,6 +304,8 @@ public final class LiveFlightGameTests {
 
     /** Both halves of the speed, and the speed he really moves at when not sprinting. */
     private static void assertSpeed(ServerPlayer player, String where) {
+        check(player.getAbilities().getFlyingSpeed() == LiveMode.DESKTOP_FLYING_SPEED,
+                where + ": flying speed " + player.getAbilities().getFlyingSpeed());
         check(!player.isSprinting(), "Fixture: sprinting");
         check(player.getAbilities().getWalkingSpeed() == LiveMode.DESKTOP_WALKING_SPEED,
                 where + ": walking speed " + player.getAbilities().getWalkingSpeed());

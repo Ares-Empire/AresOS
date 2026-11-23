@@ -36,7 +36,7 @@ class AppGroupTest {
                 app("notepad", List.of("Utility")), app("steam", List.of("Network", "Game")), app("discord", List.of("Network")),
                 app("okular", List.of("Office")), app("dolphin", List.of("System")), app("bare", null), app("empty", List.of()),
                 new ShellClient.App("old-helper", "Old helper", true, null)));
-        assertEquals(List.of("minecraft:compass", "minecraft:command_block", "minecraft:writable_book",
+        assertEquals(List.of("minecraft:compass", "minecraft:black_concrete", "minecraft:writable_book",
                 "minecraft:diamond_sword", "minecraft:ender_pearl", "minecraft:painting", "minecraft:iron_pickaxe",
                 "minecraft:paper", "minecraft:paper", "minecraft:paper"), definitions.stream().map(AppDefinition::look).toList());
         for (var group : AppGroup.values()) assertTrue(group.look().matches("minecraft:[a-z_]+"), group.title());

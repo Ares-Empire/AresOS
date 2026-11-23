@@ -13,6 +13,17 @@ COPY os/ci/control/sessions.py os/ci/control/own-hook.py control/boundary/intera
 # faults) run on the image's own Python and SQLite against the installed code; only the test modules come in here.
 COPY control/chrome_tests/*.py /usr/libexec/aresos-ci/control/storage-suite/chrome_tests/
 COPY control/mail_tests/storage_faults.py /usr/libexec/aresos-ci/control/storage-suite/mail_tests/
+# Brief 18c-b, item 5: the Chrome pass's actions and its test-only pieces, never in a release. chrome_layer.py packs
+# the install proof's probe (its own key, policy file and host), lays out an extension as he would load one by hand,
+# and packs bundles B and C, each key inside one pack.py call; cdp.py and netlog.py serve the starts that need them.
+COPY os/ci/control/chrome_actions.py /usr/libexec/aresos-ci/actions.d/chrome.py
+COPY control/chrome/ci/install/cdp.py control/chrome/ci/install/netlog.py /usr/libexec/aresos-ci/control/chrome/
+COPY control/chrome/packaging/pack.py control/chrome/packaging/update.xml control/chrome/packaging/policy.json \
+     control/chrome/packaging/native-host.json /tmp/aresos-ci-chrome/packaging/
+COPY control/chrome/extension /tmp/aresos-ci-chrome/extension
+COPY control/chrome/ci/install/probe /tmp/aresos-ci-chrome/probe
+COPY control/chrome/ci/install/probe_host.py os/ci/control/chrome_layer.py /tmp/aresos-ci-chrome/
+RUN python3 -I -B /tmp/aresos-ci-chrome/chrome_layer.py /tmp/aresos-ci-chrome && test ! -e /tmp/aresos-ci-chrome
 # Per run: the pinned Claude Code (checked by runner.sh), the fixture CA
 # certificate (never its key) and the fixture servers' names at 10.0.2.2.
 COPY vm-work/control-layer/claude vm-work/control-layer/fixture-ca.crt vm-work/control-layer/hosts /tmp/aresos-ci-control/

@@ -1,0 +1,62 @@
+{
+  "v1-create": {
+    "aresos_listed": true,
+    "frame_recorder_version": "1",
+    "ferritecore_listed": false
+  },
+  "winner-create": {
+    "aresos_listed": true,
+    "frame_recorder_version": "1",
+    "ferritecore_listed": false
+  },
+  "v1-nether": {
+    "aresos_listed": true,
+    "frame_recorder_version": "1",
+    "ferritecore_listed": false
+  },
+  "winner-nether": {
+    "aresos_listed": true,
+    "frame_recorder_version": "1",
+    "ferritecore_listed": false
+  },
+  "winner-long": {
+    "aresos_listed": true,
+    "frame_recorder_version": "1",
+    "ferritecore_listed": false
+  },
+  "winner-nmt0": {
+    "aresos_listed": true,
+    "frame_recorder_version": "1",
+    "ferritecore_listed": false
+  },
+  "v1-flat-1": {
+    "aresos_listed": true,
+    "frame_recorder_version": "1",
+    "ferritecore_listed": false
+  },
+  "winner-flat-1": {
+    "aresos_listed": true,
+    "frame_recorder_version": "1",
+    "ferritecore_listed": false
+  },
+  "v1-flat-2": {
+    "aresos_listed": true,
+    "frame_recorder_version": "1",
+    "ferritecore_listed": false
+  },
+  "winner-flat-2": {
+    "aresos_listed": true,
+    "frame_recorder_version": "1",
+    "ferritecore_listed": false
+  },
+  "v1-flat-3": {
+    "aresos_listed": true,
+    "frame_recorder_version": "1",
+    "ferritecore_listed": false
+  },
+  "winner-flat-3": {
+    "aresos_listed": true,
+    "frame_recorder_version": "1",
+    "ferritecore_listed": false
+  }
+}

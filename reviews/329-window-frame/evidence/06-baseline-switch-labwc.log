@@ -1,0 +1,86 @@
+00:00:00.008 [INFO] [../src/config/tablet.c:111] Adding button map for 0x140 with 0x110
+00:00:00.008 [INFO] [../src/config/tablet.c:111] Adding button map for 0x14b with 0x111
+00:00:00.008 [INFO] [../src/config/tablet.c:111] Adding button map for 0x14c with 0x112
+00:00:00.008 [INFO] [../src/config/tablet.c:111] Adding button map for 0x110 with 0x110
+00:00:00.008 [INFO] [../src/config/tablet.c:111] Adding button map for 0x111 with 0x111
+00:00:00.008 [INFO] [../src/config/tablet.c:111] Adding button map for 0x112 with 0x112
+00:00:00.008 [INFO] [../src/config/tablet.c:111] Adding button map for 0x113 with 0x113
+00:00:00.008 [INFO] [../src/config/tablet.c:111] Adding button map for 0x114 with 0x114
+00:00:00.008 [INFO] [../src/config/tablet.c:111] Adding button map for 0x115 with 0x115
+00:00:00.008 [INFO] [../src/config/tablet.c:111] Adding button map for 0x116 with 0x116
+00:00:00.008 [INFO] [../src/config/tablet.c:111] Adding button map for 0x117 with 0x117
+00:00:00.008 [INFO] [../src/config/rcxml.c:1947] read config file /tmp/indicator-home.c5jLnO/.config/labwc-baseline-switch/rc.xml
+00:00:00.009 [INFO] [../src/config/rcxml.c:1697] load default mouse bindings
+00:00:00.009 [INFO] [../src/config/rcxml.c:1805] load default window switcher fields
+00:00:00.009 [INFO] [backend/backend.c:342] Loading user-specified backends due to WLR_BACKENDS: headless
+00:00:00.009 [INFO] [backend/headless/backend.c:60] Creating headless backend
+00:00:00.009 [INFO] [util/env.c:25] Loading WLR_RENDERER option: pixman
+00:00:00.009 [INFO] [render/pixman/renderer.c:328] Creating pixman renderer
+00:00:00.024 [INFO] [../src/server.c:701] VR will not be available
+00:00:00.035 [INFO] [backend/headless/backend.c:17] Starting headless backend
+00:00:00.038 [INFO] [../src/theme.c:1157] read theme /usr/share/themes/Ares-Crown/labwc/themerc
+00:00:00.056 [INFO] [../src/output.c:1175] adaptive sync disabled for output HEADLESS-2
+00:00:00.057 [INFO] [../src/output.c:1175] adaptive sync disabled for output HEADLESS-1
+00:00:00.061 [INFO] [../src/seat.c:380] map pointer to output (null)
+00:00:02.104 [INFO] [../src/desktop-entry.c:378] failed to load icon file aresos-desktop
+00:00:02.104 [INFO] [../src/desktop-entry.c:378] failed to load icon file application-x-executable
+00:00:02.105 [INFO] [../src/desktop-entry.c:378] failed to load icon file overlap
+00:00:02.105 [INFO] [../src/desktop-entry.c:378] failed to load icon file application-x-executable
+00:00:02.105 [INFO] [../src/desktop-entry.c:378] failed to load icon file spare
+00:00:02.105 [INFO] [../src/desktop-entry.c:378] failed to load icon file application-x-executable
+00:00:02.106 [INFO] [../src/desktop-entry.c:378] failed to load icon file on-right
+00:00:02.106 [INFO] [../src/desktop-entry.c:378] failed to load icon file application-x-executable
+00:00:02.106 [INFO] [../src/desktop-entry.c:378] failed to load icon file minimized
+00:00:02.106 [INFO] [../src/desktop-entry.c:378] failed to load icon file application-x-executable
+00:00:02.110 [INFO] [../src/desktop-entry.c:378] failed to load icon file aresos-desktop
+00:00:02.110 [INFO] [../src/desktop-entry.c:378] failed to load icon file application-x-executable
+00:00:02.110 [INFO] [../src/desktop-entry.c:378] failed to load icon file overlap
+00:00:02.110 [INFO] [../src/desktop-entry.c:378] failed to load icon file application-x-executable
+00:00:02.111 [INFO] [../src/desktop-entry.c:378] failed to load icon file spare
+00:00:02.111 [INFO] [../src/desktop-entry.c:378] failed to load icon file application-x-executable
+00:00:02.111 [INFO] [../src/desktop-entry.c:378] failed to load icon file on-right
+00:00:02.111 [INFO] [../src/desktop-entry.c:378] failed to load icon file application-x-executable
+00:00:02.111 [INFO] [../src/desktop-entry.c:378] failed to load icon file minimized
+00:00:02.111 [INFO] [../src/desktop-entry.c:378] failed to load icon file application-x-executable
+00:00:02.166 [INFO] [../src/desktop-entry.c:378] failed to load icon file aresos-desktop
+00:00:02.166 [INFO] [../src/desktop-entry.c:378] failed to load icon file application-x-executable
+00:00:02.167 [INFO] [../src/desktop-entry.c:378] failed to load icon file overlap
+00:00:02.167 [INFO] [../src/desktop-entry.c:378] failed to load icon file application-x-executable
+00:00:02.168 [INFO] [../src/desktop-entry.c:378] failed to load icon file spare
+00:00:02.168 [INFO] [../src/desktop-entry.c:378] failed to load icon file application-x-executable
+00:00:02.169 [INFO] [../src/desktop-entry.c:378] failed to load icon file on-right
+00:00:02.169 [INFO] [../src/desktop-entry.c:378] failed to load icon file application-x-executable
+00:00:02.169 [INFO] [../src/desktop-entry.c:378] failed to load icon file minimized
+00:00:02.170 [INFO] [../src/desktop-entry.c:378] failed to load icon file application-x-executable
+00:00:02.174 [INFO] [../src/desktop-entry.c:378] failed to load icon file aresos-desktop
+00:00:02.174 [INFO] [../src/desktop-entry.c:378] failed to load icon file application-x-executable
+00:00:02.175 [INFO] [../src/desktop-entry.c:378] failed to load icon file overlap
+00:00:02.175 [INFO] [../src/desktop-entry.c:378] failed to load icon file application-x-executable
+00:00:02.176 [INFO] [../src/desktop-entry.c:378] failed to load icon file spare
+00:00:02.176 [INFO] [../src/desktop-entry.c:378] failed to load icon file application-x-executable
+00:00:02.176 [INFO] [../src/desktop-entry.c:378] failed to load icon file on-right
+00:00:02.176 [INFO] [../src/desktop-entry.c:378] failed to load icon file application-x-executable
+00:00:02.177 [INFO] [../src/desktop-entry.c:378] failed to load icon file minimized
+00:00:02.177 [INFO] [../src/desktop-entry.c:378] failed to load icon file application-x-executable
+00:00:02.177 [INFO] [../src/input/ime.c:611] The surface is already focused
+00:00:02.228 [INFO] [../src/desktop-entry.c:378] failed to load icon file overlap
+00:00:02.228 [INFO] [../src/desktop-entry.c:378] failed to load icon file application-x-executable
+00:00:02.235 [INFO] [../src/desktop-entry.c:378] failed to load icon file aresos-desktop
+00:00:02.235 [INFO] [../src/desktop-entry.c:378] failed to load icon file application-x-executable
+00:00:02.235 [INFO] [../src/desktop-entry.c:378] failed to load icon file spare
+00:00:02.235 [INFO] [../src/desktop-entry.c:378] failed to load icon file application-x-executable
+00:00:02.236 [INFO] [../src/desktop-entry.c:378] failed to load icon file on-right
+00:00:02.236 [INFO] [../src/desktop-entry.c:378] failed to load icon file application-x-executable
+00:00:02.237 [INFO] [../src/desktop-entry.c:378] failed to load icon file minimized
+00:00:02.237 [INFO] [../src/desktop-entry.c:378] failed to load icon file application-x-executable
+00:00:02.238 [INFO] [../src/desktop-entry.c:378] failed to load icon file overlap
+00:00:02.238 [INFO] [../src/desktop-entry.c:378] failed to load icon file application-x-executable
+00:00:02.243 [INFO] [../src/desktop-entry.c:378] failed to load icon file aresos-desktop
+00:00:02.243 [INFO] [../src/desktop-entry.c:378] failed to load icon file application-x-executable
+00:00:02.243 [INFO] [../src/desktop-entry.c:378] failed to load icon file spare
+00:00:02.243 [INFO] [../src/desktop-entry.c:378] failed to load icon file application-x-executable
+00:00:02.244 [INFO] [../src/desktop-entry.c:378] failed to load icon file on-right
+00:00:02.244 [INFO] [../src/desktop-entry.c:378] failed to load icon file application-x-executable
+00:00:02.244 [INFO] [../src/desktop-entry.c:378] failed to load icon file minimized
+00:00:02.245 [INFO] [../src/desktop-entry.c:378] failed to load icon file application-x-executable
+00:00:02.302 [INFO] [../src/input/ime.c:611] The surface is already focused

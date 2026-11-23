@@ -1,0 +1,10 @@
+Rechecked PR #114 at `def0db5b941ca3f63c1724055b8d650ffdf801fb` against the fix brief. I used read-only source inspection and in-memory checks. I changed no files, ran no build, and did not check CI.
+
+1. **Focus return — incomplete and blocking.** Direct foreground closes and closes split across reads within 500 ms still request focus for the world. A background editor closing 60 seconds after the owner focuses either form of the laptop home now leaves focus there. But when the editor closes 100 ms after the owner clicks the home, the helper still requests world activation. That can redirect the owner’s next keystroke into Minecraft. I also reproduced a new missed return in memory: with no intervening focus, a genuine close notification arriving 600 ms after deactivation no longer triggers world activation, whereas the base commit did. I did not verify that delay on labwc. [Focus handoff](/var/home/ares/AresOS-53c-laptop-home/os/config/usr/libexec/aresos-shell:3908)
+2. **Full-size saved town — done and correct.** The 207,215-byte bound covers 200 maximum-width houses, and the writer shares the reader’s validation. A null revision keeps the cached town. I found no regression in the cache paths. [Cache code](/var/home/ares/AresOS-53c-laptop-home/os/config/usr/libexec/aresos-laptop-home:159)
+3. **Running apps on first draw — done and correct.** Authenticated running IDs reach the page while catalogue paging is pending. Opening stays disabled until both reads complete. I found no regression in startup or launch gating. [Helper sync](/var/home/ares/AresOS-53c-laptop-home/os/config/usr/libexec/aresos-laptop-home:351)
+4. **Grid verification — done and correct.** The test samples slab and turf pixels and compares rendered house bounds across all four streets after a slide. The builder’s report records the expected failure with the slab CSS removed. This fix changes only the test. [Grid checks](/var/home/ares/AresOS-53c-laptop-home/os/tests/test_aresos_laptop_home_page.py:248)
+
+The report records both requested known limits, and the design carries the fullscreen fallback note for package 23c.
+
+CHANGES-NEEDED

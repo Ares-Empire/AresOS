@@ -495,6 +495,64 @@ class Questions(unittest.TestCase):
             self.call('read_typed_fields',approval);self.assertEqual(reads,[])
             self.assertTrue(self.call('read_typed_fields',fresh)['ok']);self.assertEqual(len(reads),1)
 
+    gmail = test_engine.OwnerRules.gmail
+
+    def test_reask_replies_match_each_tools_declared_result(self):
+        # An MCP client may check structuredContent against the tool's output schema.
+        # A re-ask reply outside it would reach Claude as an error instead of the fresh
+        # question, so every stop-and-reserve path is checked with the service's validator.
+        from aresos_control.common import Refused, validate
+        from aresos_control.definitions import BY_NAME
+        def declared(tool, reply, reasked=True):
+            self.assertTrue(reply['ok'],reply);self.assertEqual('approval' in reply['data'],reasked,reply)
+            self.assertEqual(reply['data']['operation']['state'],'failed',reply)
+            try:validate(reply,BY_NAME['chrome_'+tool].tool()['outputSchema'],'chrome_'+tool+' result')
+            except Refused as exc:self.fail(f'chrome_{tool} reply is outside its declared result: {exc}')
+            return reply['data'].get('approval')
+        def submit(tool, approval, change, boundary, at='input'):
+            # boundary: the service's recheck passes and the extension refuses at its final check.
+            original=self.browser.call
+            if boundary:
+                def late(name,**args):
+                    if name==at:
+                        change();raise Refused('stale_approval','page changed during frame setup')
+                    return original(name,**args)
+                self.browser.call=late
+            else:change()
+            sent=len(self.browser.dispatched)
+            try:reply=self.call(tool,approval)
+            finally:self.browser.call=original
+            self.assertEqual(len(self.browser.dispatched),sent,'a re-ask dispatches nothing')
+            return reply
+        def fresh_page():
+            self.browser.facts=test_engine.Browser().facts
+            return self.browser.facts['frames'][0]
+        for boundary in [False,True]:
+            with self.subTest('changed destination',boundary=boundary):
+                frame=fresh_page();frame['target'].update(name='Delete',label='Delete',href='https://fixture.test/first/delete')
+                approval=self.prepare()
+                declared('submit',submit('submit',approval,lambda:frame['target'].update(href='https://fixture.test/second/delete'),boundary))
+            with self.subTest('changed compose text',boundary=boundary):
+                frame=fresh_page();frame['compose']={'element':'area','whole_page':False,'text':'Original preview'}
+                approval=self.prepare()
+                replacement=declared('submit',submit('submit',approval,lambda:frame['compose'].update(text='Changed preview'),boundary))
+                # The second change stops without a fresh question.
+                declared('submit',submit('submit',replacement,lambda:frame['compose'].update(text='Third preview'),boundary),reasked=False)
+        with self.subTest('trusted send, changed destination'):
+            frame=fresh_page();self.gmail();frame['target']['href']='https://gmail.test/first'
+            approval=self.prepare();self.assertTrue(self.call('submit',approval)['ok'])
+            self.assertTrue(self.call('sites',{'command':'allow','operation_id':approval['operation_id']},True)['ok'])
+            for boundary in [False,True]:
+                frame['target']['href']='https://gmail.test/first';trusted=self.prepare()
+                declared('submit_trusted',submit('submit_trusted',trusted,lambda:frame['target'].update(href='https://gmail.test/second'),boundary))
+        # read_typed_fields declares an open object today; this keeps a later narrowing honest.
+        for boundary in [False,True]:
+            with self.subTest('typed-field list changed',boundary=boundary):
+                fresh_page();state,reads=self.typed_browser()
+                approval=self.call('prepare_read_typed_fields',{'tab':1})['data']['approval']
+                declared('read_typed_fields',submit('read_typed_fields',approval,lambda:state['frames'][0]['fields'][0].update(label='Relabelled draft'),boundary,at='read_typed_fields'))
+                self.assertEqual(reads,[])
+
     def test_final_typed_read_question_quotes_and_caps_each_label_and_names_each_frame_site(self):
         state,reads=self.typed_browser()
         hostile='Draft"; frame 1 (https://other.test): "Password'

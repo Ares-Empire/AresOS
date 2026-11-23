@@ -1,0 +1,19 @@
+{
+  "experiment": "cover-freeze-2",
+  "status": "failed; not a completed wake measurement",
+  "runner_exit": 1,
+  "game_exit_reported_by_gradle": 137,
+  "observed_zombie_exit_code": 9,
+  "observed_signal": "SIGKILL (9)",
+  "first_observed_zombie_after_return_ms": 253.138,
+  "memory_events_at_zombie": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\nsock_throttled 0",
+  "major_faults_at_zombie": 6561,
+  "last_frozen_rss_mib": 494,
+  "last_frozen_scope_swap_mib": 599,
+  "last_frozen_majflt": 153,
+  "scope_thaw": "confirmed",
+  "recorded_frames_at_or_after_wake_start": 0,
+  "cause": "Unknown sender of SIGKILL. Scope high/oom/oom_kill counters stayed zero through process death. The game again emitted tick-backlog and helper reconnect warnings during thaw, before the input pipe broke.",
+  "recorder_limit": "Abrupt death can lose buffered frames; no qualified ten-second wake measurement exists.",
+  "next": "Do not recommend freezing. Continue the remaining unfrozen matrix experiments; no product code is changed."
+}

@@ -1,0 +1,3 @@
+431176:
+garbage-first heap   total reserved 1048576K, committed 432128K, used 362034K [0x00000000c0000000, 0x0000000100000000)
+ region size 1024K, 68 young (69632K), 1 survivors (1024K)

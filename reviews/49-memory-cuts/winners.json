@@ -1,0 +1,24 @@
+{
+  "settings": [
+    "GC=-XX:MaxHeapFreeRatio=30,-XX:MinHeapFreeRatio=10",
+    "ENV=MALLOC_ARENA_MAX=2"
+  ],
+  "purpose": "Final conservative candidate: game-only arena cap, retaining baseline JVM arguments. Fresh full qualification follows two retained unsuccessful combinations.",
+  "cover_policy": "No added GC, native trim timer, reclaim or freezing; ordinary covered pause only.",
+  "selection": {
+    "arena_cap": "Both isolated pairs saved 182-185 MiB settled and 248-295 MiB post-flight, with zero standing/flight frames over17ms. It is the dominant consistent isolated native-memory saving.",
+    "native_interval": "Omitted after the trim+arena combination added a 34.916ms flight frame versus its paired current control11.565ms. The cause is unknown; omission does not prove the timer caused it. The interval and arena gains overlap, so retain the simpler choice and measure it directly.",
+    "headers": "Initial header+native combination failed creation standing/flight comparison; retained under candidates/compact-headers-native.",
+    "non_additive": "No sum of isolated savings is asserted. Final arena-only creation, flatx3, Nether, long20 and NMT-off measurements must justify any shipping recommendation.",
+    "excluded": "No string dedup, LWJGL system allocation, worker limits or FerriteCore; forced covered GC exceeded50ms, and both frozen returns failed."
+  },
+  "qualification": {
+    "under_requested_full_pass_line": false,
+    "recommendation": "Retain current product settings; arena cap is a measured follow-up candidate, not a fully qualified shipping set.",
+    "reason": "One 19.948 ms flight frame in winner-flat-1 versus adjacent control 15.1 ms and zero frames over 17 ms; all three current flat controls have zero active frames over 17 ms. First-creation startup tail counts and individual wakes also differ. No later clean trial cancels these observations.",
+    "complete_final_protocol_runs": 12,
+    "actual_measurement_attempts": 65,
+    "memory_gc_recorder_guards_final_candidates_pass": true,
+    "nmt0_live_snapshots_confirmed_disabled": 10
+  }
+}

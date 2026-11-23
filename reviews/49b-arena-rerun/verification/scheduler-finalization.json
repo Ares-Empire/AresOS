@@ -1,0 +1,12 @@
+{
+  "schedule_exec_exit": 143,
+  "last_completed_attempt": "nether-arena",
+  "last_completion": "2026-11-18T14:01:23+01:00",
+  "all_18_individual_measurement_rig_commands_exit_0": true,
+  "accepted_map_rebuilt_from_published_attempt_records": true,
+  "fixture_bases_unchanged": true,
+  "new_games_launched_by_finalization": 0,
+  "cause_of_scheduler_signal": "unknown; observed after the last individual run completed, during final bookkeeping/unlocked gap",
+  "finalized_utc": "2026-11-18T13:06:24Z",
+  "finalization_command": "python3 reviews/49b-arena-rerun/rig/finalize.py"
+}

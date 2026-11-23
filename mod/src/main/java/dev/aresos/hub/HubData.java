@@ -7,7 +7,6 @@ import com.mojang.serialization.Decoder;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.aresos.AresOs;
-import dev.aresos.mode.LiveMode;
 import dev.aresos.world.DesktopWorld;
 import dev.aresos.zone.AppZone;
 import dev.aresos.zone.GatePalette;
@@ -19,7 +18,6 @@ import net.minecraft.core.GlobalPos;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.GameType;
@@ -56,6 +54,7 @@ import java.util.stream.Collectors;
  * The two files can disagree (an older mod's {@code zone remove}): a pass of the town puts a missing zone back.
  */
 public final class HubData extends SavedData {
+    private long logoRevision;
     /** One block the mod placed; the block as its ID, for example "minecraft:gold_block". */
     public record Placed(BlockPos pos, String block) {
         public static final Codec<Placed> CODEC = RecordCodecBuilder.create(i -> i.group(
@@ -311,6 +310,7 @@ public final class HubData extends SavedData {
     void adopt(TownFile file) {
         if (!home.equals(file.home)) throw new IllegalArgumentException("The town file belongs to another home: " + file.home);
         check(file.logos);
+        logoRevision++;
         for (var logo : town.logos) for (var block : logo.gate().placed()) { placed.remove(block.pos()); logoBlocks.remove(block.pos()); }
         var logos = List.copyOf(file.logos);
         file.logos.clear();
@@ -328,6 +328,22 @@ public final class HubData extends SavedData {
     public Fixed fixed() { return fixed; }
     /** The town's standing logos, in the order they were built. */
     public List<Logo> logos() { return List.copyOf(town.logos); }
+
+    long logoRevision() { return logoRevision; }
+
+    /** The recorded front includes the doorway and any cells that left the town's ownership. */
+    List<String> front(Logo logo, Place place) {
+        var front = plan(place, "?", null);
+        var blocks = new HashMap<BlockPos, String>();
+        for (var block : logo.gate().placed()) blocks.put(block.pos(), block.block());
+        var result = new ArrayList<String>(HubLayout.SIZE * HubLayout.SIZE);
+        for (int y = HubLayout.SIZE - 1; y >= 0; y--) for (int x = 0; x < HubLayout.SIZE; x++) {
+            String block = blocks.get(front.at(0, x, y));
+            var id = block == null ? null : net.minecraft.resources.Identifier.tryParse(block);
+            result.add(id != null && id.getNamespace().equals("minecraft") ? id.getPath() : "");
+        }
+        return result;
+    }
 
     /** The logo of an app that stands in the town. */
     public Optional<Logo> logo(String app) {
@@ -379,6 +395,7 @@ public final class HubData extends SavedData {
         logos.add(logo);
         check(logos);
         index(logo);
+        logoRevision++;
         town.setDirty();
     }
 
@@ -482,6 +499,7 @@ public final class HubData extends SavedData {
         var logo = logo(app);
         logo.ifPresent(gone -> {
             town.logos.remove(gone);
+            logoRevision++;
             for (var block : gone.gate().placed()) { placed.remove(block.pos()); logoBlocks.remove(block.pos()); }
             town.setDirty();
         });
@@ -517,23 +535,12 @@ public final class HubData extends SavedData {
         }
         var app = logoBlocks.remove(pos);
         if (app == null) return;
+        logoRevision++;
         for (int i = 0; i < town.logos.size(); i++) {
             var logo = town.logos.get(i);
             if (logo.app().equals(app)) town.logos.set(i, logo.without(Set.of(pos)));
         }
         town.setDirty();
-    }
-
-    /** In Live mode he cannot break the hub's own blocks by hand. */
-    public static boolean protectsFrom(ServerPlayer player, BlockPos pos) {
-        return protection(player, pos) != null;
-    }
-
-    /** What the action bar says when he tries to break one of the hub's blocks in Live mode; null when he may. */
-    public static String protection(ServerPlayer player, BlockPos pos) {
-        if (!LiveMode.isLive(player)) return null;
-        HubData hub = get(player.level().getServer());
-        return hub == null ? null : hub.refusal(player.level(), pos);
     }
 
     /** Names what protects the block: a logo of the town, or the pad and roads. Null for a block that isn't the hub's. */

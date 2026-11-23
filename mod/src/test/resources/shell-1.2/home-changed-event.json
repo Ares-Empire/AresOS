@@ -1,0 +1,6 @@
+{
+  "protocol": "aresos-shell/1.2",
+  "id": "e-2",
+  "event": "home_changed",
+  "revision": "17"
+}

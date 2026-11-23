@@ -1,0 +1,33 @@
+name=v1-nether
+RD=8
+SD=5
+HEAP=1024
+MIN_HEAP=256
+GC=-XX:MaxHeapFreeRatio=30,-XX:MinHeapFreeRatio=10
+MEMHIGH=2560M
+SIZE=1920x1080
+REFRESH=144
+SETTLE=120
+WINDOW=60
+COVER=300
+MODE=measure
+WORLD=base
+HOMEKIND=nether
+BASE=<worktree>/.work/pkg49/AresHub-nether-base
+FLIGHT=glide
+QUIT=0
+CREATE_FLOW=manual
+ENV=
+MODS=
+PROBE=0
+RECLAIM=
+FREEZE=0
+LONG=0
+NMT=1
+COVER_ACTION=none
+WAKE_INPUT=active-v3
+JVM_ARGS=-Xms256m -Xmx1024m -Xlog:gc:file=<worktree>/.work/pkg49/rigs/v1-nether/gc.txt:tn,u -XX:NativeMemoryTracking=summary -Dfabric.addMods=<worktree>/.work/pkg49/pkg41-frames.jar -Dpkg41.frames=<worktree>/.work/pkg49/rigs/v1-nether/frames.txt -XX:MaxHeapFreeRatio=30 -XX:MinHeapFreeRatio=10
+GAME_ARGS=--quickPlaySingleplayer AresHub
+source_revision=f2b38bff8f1b47a68ec6cba7aecfa29cb0a17b21
+started=2026-11-18T04:06:09+01:00
+GAME_PID=888767

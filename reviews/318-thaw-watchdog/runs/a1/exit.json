@@ -1,0 +1,19 @@
+{
+ "pid": 3734625,
+ "mode": "demote",
+ "watch_start_ns": 469889099384640,
+ "return_start_ns": 469888961485566,
+ "sample_end_ns": 469899099384640,
+ "hold_until_ns": 469948961485566,
+ "outcome": "alive",
+ "sampled_threads": [
+  {
+   "tid": 3736529,
+   "recorded_realtime": true
+  }
+ ],
+ "alive_at_ns": 469948967173789,
+ "after_return_ms": 60005.688,
+ "samples": 1000,
+ "gradle_exit_value": null
+}

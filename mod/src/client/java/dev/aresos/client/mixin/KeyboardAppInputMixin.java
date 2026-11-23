@@ -15,6 +15,8 @@ public abstract class KeyboardAppInputMixin {
     private void aresos$useInput(long handle, int action, KeyEvent event, CallbackInfo ci) {
         var client = Minecraft.getInstance();
         if (handle == client.getWindow().handle()) dev.aresos.client.AresOsClient.modeKeyInMenu(client, action, event);
+        // Package 328b: with look = click a movement key starts look mode; Minecraft then walks as always.
+        if (handle == client.getWindow().handle()) dev.aresos.client.ClickToLook.key(client, action, event);
         if (handle == client.getWindow().handle() && client.options.keyUse.matches(event)) {
             AppInput.onUseInput(client, action);
         }

@@ -520,6 +520,11 @@ def check(action, request):
         return cover_start()
     if action == 'cover-stop':
         return cover_stop()
+    if action == 'guardian-arm':
+        # Package 25: the stand-in game, the seeded home and the watchers for the power key that follows. Imported
+        # here: a layer that carries this file without guardian.py loses only this action.
+        import guardian
+        return guardian.arm(request)
     if action == 'export':
         return dict(returncode=0, files={name: export_bytes(pathlib.Path(path).read_bytes())
                                        for name, path in EXPORTS.items() if pathlib.Path(path).exists()})
@@ -570,6 +575,16 @@ def layer_actions():
     return actions
 
 
+def reply(request):
+    try:
+        result = check(request['action'], request)
+    except Exception as error:
+        result = dict(returncode=1, stderr=traceback.format_exc())
+        if files := getattr(error, 'files', None):
+            result['files'] = files
+    return dict(id=request['id'], **result)
+
+
 def main():
     port = pathlib.Path('/dev/virtio-ports/org.aresos.ci')
     deadline = time.monotonic() + 60
@@ -590,12 +605,7 @@ def main():
 
         send(dict(ready=True, protocol=1))
         while True:
-            request = incoming.receive()
-            try:
-                result = check(request['action'], request)
-            except Exception:
-                result = dict(returncode=1, stderr=traceback.format_exc())
-            send(dict(id=request['id'], **result))
+            send(reply(incoming.receive()))
 
 
 if __name__ == '__main__':

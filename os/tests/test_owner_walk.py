@@ -7,6 +7,7 @@ import contextlib
 import base64
 import copy
 import hashlib
+import io
 import json
 import os
 import pathlib
@@ -14,7 +15,9 @@ import re
 import shutil
 import shlex
 import string
+import subprocess
 import sys
+import tarfile
 import tempfile
 import unittest
 from types import SimpleNamespace
@@ -31,6 +34,7 @@ from owner_console_shim import execute_idle, execute_hidden, execute_screen, Ins
 from test_owner_hidden import vcsa
 
 FIXTURES = ROOT / 'os/tests/fixtures/owner-tools'
+R27_RECORD = ROOT / 'os/manifest/releases/27.json'
 
 
 def retained(name):
@@ -48,15 +52,18 @@ WAYS_BACK_STAGES = UPDATE_STAGES[:5] + ['intl-27', 'trial-27', 'abandon-27', 'ba
 # Package 22d's rehearsal (os/ci/tools_local.py): package 27's route up to release 27 confirmed, the
 # dialog stages up to the cut, the restart after it (install, tamper, the next version, exports), the end.
 TOOLS_LOCAL_STAGES = UPDATE_STAGES[:5] + ['cut-27', 'final-27']
+# Package 42's rehearsal (os/ci/release28_walk.py): package 27's route up to release 27 confirmed, tools version 4
+# and then 5 from the window, the update to release 28, previous to release 27, forward to release 28.
+RELEASE28_STAGES = UPDATE_STAGES[:5] + ['release-28', 'previous-27', 'final-28']
 QUALIFICATION_STAGES = ['stock','tools-stock','corrected-stock','layout-reset-trial','layout-reset-recovery','aresos','aresos-intl','aresos-back-de','rollback-stock','default-stock']
 
 
-def laptop_rows(pair):
+def laptop_rows(pair, reference=None):
     """The laptop's three deployments (newer AresOS, older AresOS, stock), built from the retained
     release 13 pair, and the builder of rpm-ostree's and bootc's status for a list of them."""
     old = next(d for d in pair['rpm']['deployments'] if d['booted'])
     stock = next(d for d in pair['rpm']['deployments'] if d['pinned'])
-    reference = json.loads((ROOT / 'os/manifest/release.json').read_text())['reference']
+    reference = reference or json.loads(R27_RECORD.read_text())['reference']
     new = copy.deepcopy(old)
     new.update(checksum='c2' * 32, serial=0, **{'container-image-reference': 'ostree-unverified-registry:' + reference,
                                                'container-image-reference-digest': reference.split('@')[1]})
@@ -76,9 +83,9 @@ def laptop_rows(pair):
     return new, old, stock, machine
 
 
-def update_states(pair):
+def update_states(pair, reference=None):
     """Package 22's three-deployment shapes."""
-    new, old, stock, machine = laptop_rows(pair)
+    new, old, stock, machine = laptop_rows(pair, reference)
     up = lambda row, **kw: dict(copy.deepcopy(row), **kw)
     return {'owner-update-staged': machine(up(new, booted=False, staged=True), up(old, booted=True), stock),
             'release-27': machine(up(new, booted=True), up(old, booted=False), stock),
@@ -255,11 +262,11 @@ class ToolsLocal:
              'tl-cut-armed', 'tl-cut-frozen', 'tl-install-records', 'tl-install-receipt', 'tl-export-access',
              'tools-next-install-owner-result', 'export-version-2-stick-owner-result')
 
-    def __init__(self, typed, media, ares_password):
+    def __init__(self, typed, media, ares_password, source=ROOT):
         self.typed, self.media, self.ares_password = typed, media, ares_password
-        self.commands = json.loads((ROOT / 'os/owner-tools/commands.json').read_text())
-        self.head = hashlib.sha256((ROOT / 'os/owner-tools/payload/SHA256SUMS').read_bytes()).hexdigest()
-        self.version = json.loads((ROOT / 'os/owner-tools/payload/history.json').read_text())['tools_version']
+        self.commands = json.loads((source / 'os/owner-tools/commands.json').read_text())
+        self.head = hashlib.sha256((source / 'os/owner-tools/payload/SHA256SUMS').read_bytes()).hexdigest()
+        self.version = json.loads((source / 'os/owner-tools/payload/history.json').read_text())['tools_version']
         self.callers, self.windows, self.escaped, self.tampered = {}, {}, False, False
         self.signalled = []
         self.prepared, self.lost, self.hidden, self.shots = {}, {}, set(), []
@@ -396,6 +403,424 @@ class ToolsLocal:
         return done
 
 
+def release28_states(pair, r27, r28):
+    """Package 42's shapes: release 28 staged over the laptop's three, then release 28 beside release 27 and stock
+    (release 13 went at the update's shutdown), in the order each start and each queued change leaves."""
+    new, old, stock, machine = laptop_rows(pair, r27)
+    up = lambda row, **kw: dict(copy.deepcopy(row), **kw)
+    next_ = up(new, checksum='c8' * 32, **{'container-image-reference': 'ostree-unverified-registry:' + r28,
+                                           'container-image-reference-digest': r28.split('@')[1]})
+    return {'r28-update-staged': machine(up(next_, booted=False, staged=True), up(new, booted=True), up(old, booted=False), stock),
+            'release-28': machine(up(next_, booted=True), up(new, booted=False), stock),
+            'r28-previous-queued': machine(up(new, booted=False), up(next_, booted=True), stock),
+            'previous-27': machine(up(new, booted=True), up(next_, booted=False), stock),
+            'r28-forward-queued': machine(up(next_, booted=False), up(new, booted=True), stock),
+            'final-28': machine(up(next_, booted=True), up(new, booted=False), stock)}
+
+
+def release28_record():
+    """A stand-in for release 28's record (step 5 writes the real one): release 27's, with another digest and
+    package 42's signature identity."""
+    import release28_walk
+    actual = ROOT / release28_walk.RECORD
+    if actual.is_file(): return actual.read_bytes()
+    record = json.loads((ROOT / 'os/manifest/releases/27.json').read_text())
+    record.update(reference='ghcr.io/ares-empire/aresos@sha256:' + '28' * 32, tag='28-' + 'b' * 40, source_commit='b' * 40)
+    record['signature'] = dict(record['signature'], identity=release28_walk.IDENTITY)
+    return (json.dumps(record, indent=2) + '\n').encode()
+
+
+class Release28Local(ToolsLocal):
+    """Package 42's guest in its dialogs: each caller's lines read from the stand-in commit it names (as the
+    caller reads them in the VM), and what the routine line does with the installed tools by the tools' own rule:
+    a bundle installs only over a lower tools version (owner.update_tools), else it STOPs and nothing changes."""
+    LOCAL = ToolsLocal.LOCAL + ('r28-v4-records', 'r28-tools-receipt')
+
+    def __init__(self, typed, media, ares_password, work):
+        super().__init__(typed, media, ares_password)
+        self.work, self.versions, self.installs = work, {vm.TOOLS_V2: 2}, []
+        self.ran = {}
+
+    def known(self, fingerprint, version):
+        self.versions[fingerprint] = version
+
+    def lines(self, stage):
+        params = self.callers[stage]
+        commands = json.loads(subprocess.check_output(['git', '-C', str(self.work / 'stand-in-28' / 'stand-in.git'), 'show',
+                                                        params['commit'] + ':os/owner-tools/commands.json']))
+        return dict(params['lines'], **{step: commands[entry] for step, entry in params['entries'].items()})
+
+    def answer(self, guest, name):
+        if name == 'r28-v4-records':
+            return list(self.machine['records'])
+        if name == 'r28-tools-receipt':
+            receipt = self.installs[-1]
+            return dict(status='passed', command=['install'], trace=[], source='folder', finished_from='folder',
+                        caller=dict(login_uid=1001, terminal=False), **receipt)
+        return super().answer(guest, name)
+
+    def run(self, stage):
+        params, lines, machine = self.callers[stage], self.lines(stage), self.machine
+        self.ran[stage] = lines
+        done = dict(uid=1001, loginuid='1001', stdin_terminal=False, terminal=False, tty_errno=6, wayland=True,
+                    runtime='/run/user/1001', line_sha256={step: hashlib.sha256(line.encode()).hexdigest() for step, line in lines.items()})
+        if 'folder' in params['steps']:
+            done['folder'] = dict(status=0, stdout='', stderr='')
+            machine['folder'] = params['commit']
+        window = self.windows[stage]
+        answered = any(text == self.ares_password + '\n' for text, _ in self.typed[window['typed']:])
+        new, = [fingerprint for fingerprint in self.versions if fingerprint in lines['routine']]
+        old = machine['tools']
+        routine = dict(signalled=[], helper=window['helper'], helper_gone=True)
+        if not answered:
+            routine.update(status=1, stdout='', stderr='sudo: no password was provided\n')
+        elif new == old:
+            routine.update(status=0, stderr='', stdout='Tools already installed; nothing changed\nmanifest SHA256 '+new+'\nPASS install\nPASS check\nPASS title\n')
+        elif self.versions[new] <= self.versions[old]:
+            routine.update(status=1, stderr='', stdout='STOP: Installed tools are version ' + str(self.versions[old]) + '; refusing version '
+                           + str(self.versions[new]) + ' (downgrade or same version)\nSTOP bootstrap: verification or install refused\n')
+        else:
+            machine.update(tools=new, entry='tools-' + new + '/at', journal=dict(phase='complete', manifest=new, source='folder',
+                                                                                 previous=old, tools_version=self.versions[new]))
+            machine['records'].append('records/2026111' + str(len(self.installs)) + 'T120000.000000Z-tools-update.json')
+            self.installs.append(dict(manifest=new, previous_manifest=old, previous_version=self.versions[old],
+                                      tools_version=self.versions[new]))
+            routine.update(status=0, stderr='', stdout='Tools updated from version ' + str(self.versions[old]) + ' to '
+                           + str(self.versions[new]) + '\nPASS install\nPASS check\nPASS title\n')
+        done['routine'] = routine
+        if 'no-ticket' in params['steps'] and routine['status'] == 0:
+            done['no_ticket'] = dict(status=1, stderr='sudo: a password is required\n')
+        return done
+
+
+class Release28Session:
+    """Execute the submitted Python probes with controlled filesystem and process interfaces.
+
+    Absolute paths map to a temporary guest root. Imports and process execution are closed over these fixtures;
+    an unmodelled command fails rather than reaching the laptop. Faults change observations, never probe answers.
+    """
+
+    def __init__(self, control, faults=()):
+        import importlib.machinery
+        import types
+        import release28_walk
+        self.walk, self.control, self.faults = release28_walk, control, set(faults)
+        self.foot, self.events, self.executed, self.boots = 1, [], [], []
+        self.doomed_foot = False
+        # The VT in front (the QMP keys move it); labwc has a monitor only while its tty1 is.
+        self.vt, self.launches = 'tty1', 0
+        self.folder = tempfile.TemporaryDirectory()
+        self.root = pathlib.Path(self.folder.name)
+        self.owners, self.modes, self.jvm, self.wrapper = {}, {}, False, None
+        session = self
+
+        class Path(type(self.root)):
+            @staticmethod
+            def mapped(parts):
+                p = pathlib.Path(*parts)
+                if p.is_absolute() and not p.is_relative_to(session.root):
+                    p = session.root / str(p).lstrip('/')
+                return p
+
+            def __new__(cls, *parts):
+                return super().__new__(cls, cls.mapped(parts))
+
+            def __init__(self, *parts):
+                super().__init__(self.mapped(parts))
+
+            def stat(self, *, follow_symlinks=True):
+                found = super().stat(follow_symlinks=follow_symlinks)
+                uid, gid = session.owners.get(str(self), (1001, 1001))
+                mode = (found.st_mode & ~0o7777) | session.modes.get(str(self), found.st_mode & 0o7777)
+                return SimpleNamespace(st_uid=uid, st_gid=gid, st_mode=mode, st_size=found.st_size)
+
+            def lstat(self):
+                return self.stat(follow_symlinks=False)
+
+        self.Path = Path
+        self.Path('/tmp').mkdir()
+        self.write('/proc/42/cmdline', '/usr/bin/labwc\0--config-dir\0/usr/share/aresos/labwc\0')
+        # labwc sets WAYLAND_DISPLAY after it starts, so its /proc environ never holds it (rehearsal 6, 44781321736);
+        # its autostart's desktop supervisor (43) inherits it. 44 is the walk's own `aresos-desktop status`.
+        self.write('/proc/42/environ', 'HOME=/var/home/ares\0XDG_RUNTIME_DIR=/run/user/1001\0')
+        self.write('/proc/43/cmdline', '/usr/bin/python3\0/usr/libexec/aresos-desktop\0session\0')
+        display = '' if 'supervisor_without_display' in self.faults else 'WAYLAND_DISPLAY=wayland-0\0'
+        self.write('/proc/43/environ', 'HOME=/var/home/ares\0' + display + 'XDG_RUNTIME_DIR=/run/user/1001\0')
+        self.write('/proc/44/cmdline', '/usr/bin/python3\0/usr/libexec/aresos-desktop\0status\0')
+        self.write('/proc/44/environ', 'HOME=/var/home/ares\0WAYLAND_DISPLAY=wayland-0\0XDG_RUNTIME_DIR=/run/user/1001\0')
+        self.write('/proc/42/cgroup', '0::/user.slice/user-1001.slice/session-3.scope\n')
+        self.write('/usr/share/aresos/labwc/rc.xml', '<labwc_config><theme><name>Ares-Crown</name></theme></labwc_config>')
+        self.write('/usr/share/themes/Ares-Crown/labwc/themerc', 'fixture')
+        self.write('/usr/share/aresos/minecraft/desktop.lock.json', json.dumps(dict(instance='AresDesktop', java=dict(path='/java'))))
+        self.write('/run/user/1001/aresos/desktop-runtime.json', json.dumps(dict(launch='fixture')))
+        group = '/user.slice/user-1001.slice/user@1001.service/aresos.slice/aresos-game-fixture.scope'
+        self.write('/proc/4242/cgroup', '0::' + group + '\n')
+        self.write('/sys/fs/cgroup' + group + '/memory.high', release28_walk.MEMORY_HIGH)
+        for name, data in {'.aresos-managed.json': '{"schema":1}', 'instance.cfg': '[General]\nname=AresDesktop\nlastLaunchTime=1\n',
+                           'mmc-pack.json': '{"formatVersion":1}', 'minecraft/options.txt': 'fullscreen:false\n'}.items():
+            self.write(release28_walk.INSTANCE + '/' + name, data)
+        # The real provisioner owns this layout; a copied dictionary previously hid a VM blocker.
+        loader = importlib.machinery.SourceFileLoader('release28_desktop_fixture',
+            str(ROOT / 'os/config/usr/libexec/aresos-desktop'))
+        desktop = types.ModuleType(loader.name)
+        with patch.dict(sys.modules, {loader.name: desktop}):
+            loader.exec_module(desktop)
+        paths = desktop.Paths('/var/home/ares', '/run/user/1001')
+        self.links = desktop.expected_links(paths, {})
+        self.share = self.Path(paths.share)
+        self.absent_share = self.root / 'release-28-share'
+        for name, target in self.links.items():
+            self.Path(target).mkdir(parents=True, exist_ok=True)
+            self.Path(release28_walk.INSTANCE + '/' + name).symlink_to(self.Path(target))
+
+    def control_fixture(self):
+        record = {'files': {}}
+        for file in ('CLAUDE.md', 'managed-settings.json'):
+            content = '# managed fixture\n' if file.endswith('.md') else '{}\n'
+            for top in ('/etc/claude-code', '/usr/etc/claude-code'):
+                path = top + '/' + file
+                self.write(path, content)
+                self.owners[str(self.Path(path))] = (0, 0)
+                self.Path(path).chmod(0o644)
+            record['files']['/etc/claude-code/' + file] = dict(mode='0644', sha256=hashlib.sha256(content.encode()).hexdigest())
+        self.write('/usr/share/aresos/manifest/control.json', json.dumps(record))
+        self.write('/usr/share/aresos/control/service.json', json.dumps(dict(owner_uid=1001)))
+        self.write('/usr/share/aresos/control/proxy.json', json.dumps(dict(folders=['/var/home/ares/Downloads', '/var/home/ares/Documents'])))
+        for path, mode in {'/var/lib/aresos-tools': 0o700, '/var/lib/aresos-operation-evidence': 0o700, '/run/aresos-tools': 0o711,
+                           '/var/home/ares/Downloads': 0o700, '/var/home/ares/Documents': 0o700}.items():
+            self.Path(path).mkdir(parents=True, exist_ok=True)
+            self.Path(path).chmod(mode)
+            if not path.startswith('/var/home/'):
+                self.owners[str(self.Path(path))] = (250, 250)
+        self.write('/proc/4243/status', 'Uid:\t250\t250\t250\t250\nGid:\t250\t250\t250\t250\n')
+
+    def boot(self, stage):
+        """Switch the model's image payload, leaving home and its symlink text alone."""
+        if stage in ('release-28', 'final-28'):
+            if self.absent_share.exists(): self.absent_share.rename(self.share)
+        elif self.share.exists():
+            self.share.rename(self.absent_share)
+        if self.control and stage in ('release-28', 'final-28') and not self.Path('/run/aresos-tools').exists():
+            self.control_fixture()
+        self.boots.append(dict(stage=stage, targets={
+            name: self.Path(self.walk.INSTANCE + '/' + name).exists() for name in self.links}))
+
+    def readlink(self, path):
+        target = os.readlink(path)
+        return '/' + str(pathlib.Path(target).relative_to(self.root)) if pathlib.Path(target).is_relative_to(self.root) else target
+
+    def close(self):
+        self.folder.cleanup()
+
+    def write(self, path, data):
+        p = self.Path(path)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(data)
+
+    def execute(self, script, *, uid=0, argv=(), allow_exit=False):
+        import builtins, io, subprocess, xml.etree.ElementTree as ET
+
+        def access(path, mode):
+            p = self.Path(path)
+            if not p.exists(): return False
+            s = p.stat()
+            shift = 6 if uid == s.st_uid else 3 if s.st_gid == 1001 else 0
+            return uid == 0 or ((s.st_mode >> shift) & mode) == mode
+
+        modules = dict(pathlib=SimpleNamespace(Path=self.Path, PurePath=pathlib.PurePath),
+            os=SimpleNamespace(walk=os.walk, chown=lambda p,u,g: self.owners.__setitem__(str(p), (u,g)),
+                readlink=self.readlink, access=access, R_OK=os.R_OK, W_OK=os.W_OK, X_OK=os.X_OK,
+                getuid=lambda: uid, environ=dict(PATH='/usr/bin' if 'bad_path' in self.faults else vm.DAILY_PATH)),
+            subprocess=SimpleNamespace(run=self.run, check_output=self.check_output, Popen=self.popen,
+                DEVNULL=subprocess.DEVNULL, PIPE=subprocess.PIPE, STDOUT=subprocess.STDOUT, TimeoutExpired=subprocess.TimeoutExpired),
+            time=SimpleNamespace(sleep=lambda _: None, monotonic=lambda: 0),
+            sys=SimpleNamespace(argv=['probe', *argv], exit=lambda code: (_ for _ in ()).throw(SystemExit(code))),
+            pwd=SimpleNamespace(getpwnam=lambda _: SimpleNamespace(pw_uid=250,pw_gid=250,pw_dir='/var/lib/aresos-tools',pw_shell='/usr/sbin/nologin'),
+                getpwall=lambda: [SimpleNamespace(pw_name='aresos-tools',pw_uid=250)]),
+            grp=SimpleNamespace(getgrnam=lambda _: SimpleNamespace(gr_gid=250),getgrall=lambda: [SimpleNamespace(gr_name='aresos-tools',gr_gid=250)]),
+            xml=SimpleNamespace(etree=SimpleNamespace(ElementTree=SimpleNamespace(
+                parse=lambda p: ET.ElementTree(ET.fromstring(p.read_text()))))))
+        allowed = {'hashlib', 'json', 'stat', 're'}
+
+        def imports(name, globals=None, locals=None, fromlist=(), level=0):
+            key = 'xml' if name == 'xml.etree.ElementTree' else name
+            if key in modules: return modules[key]
+            assert name in allowed, 'Uncontrolled probe import: ' + name
+            return builtins.__import__(name, globals, locals, fromlist, level)
+
+        output = io.StringIO()
+        status = 0
+        with contextlib.redirect_stdout(output):
+            try:
+                exec(compile(script, '<submitted-release28-probe>', 'exec'),
+                     dict(__name__='__main__', __builtins__=dict(vars(builtins), __import__=imports,
+                          open=lambda p,*a,**kw: self.Path(p).open(*a,**kw))))
+            except SystemExit as error:
+                if not allow_exit: raise
+                status = error.code
+        return (status, output.getvalue()) if allow_exit else output.getvalue()
+
+    def check_output(self, argv, **kw):
+        done = self.run(argv, **kw)
+        assert done.returncode == 0, (argv, done.stderr)
+        return done.stdout
+
+    def run(self, argv, **kw):
+        import subprocess
+        words, uid, assigned = list(argv), 0, {}
+        if words[:4] == ['runuser', '-u', 'ares', '--']:
+            uid, words = 1001, words[4:]
+        if words[0] in ('env', '/usr/bin/env'):
+            words = words[1:]
+            if words[0] == '-i': words = words[1:]
+            while words and '=' in words[0]:
+                key, value = words[0].split('=', 1)
+                assigned[key], words = value, words[1:]
+        code, stdout, stderr = 0, '', ''
+        if words[0] == 'pgrep':
+            if words[-1] == 'labwc': stdout = '42\n'
+            elif words[-1] == 'aresos-desktop': stdout = '43\n44\n'
+            else:
+                stdout = ''.join(str(50+i)+'\n' for i in range(self.foot))
+                if self.doomed_foot:
+                    # A foot without a display is seen once, then it has exited.
+                    self.foot, self.doomed_foot = self.foot - 1, False
+            code = 0 if stdout else 1
+        elif words[0] == 'pkill':
+            self.events.append('foot ended')
+            if 'retained_foot' not in self.faults: self.foot = 0
+        elif words[0] == 'setsid':
+            assert words[1:] == ['-f', *vm.HUB_TERMINAL], 'Wrong Terminal argv'
+            self.foot += 1
+            # foot exits at once without a display or when it cannot enter its directory (rehearsal 6; review of 391366a9),
+            # and without a monitor: tty3 in front (rehearsal 7), or labwc's output not back yet on the first try.
+            self.launches += 1
+            monitor = self.vt == 'tty1' and not ('late_monitor' in self.faults and self.launches == 1)
+            if not monitor:
+                kw['stdout'].write(b' err: wayland.c:1827: no monitors available\n')
+                kw['stdout'].flush()
+            self.doomed_foot = not assigned.get('WAYLAND_DISPLAY') or kw.get('cwd') != '/var/home/ares' or not monitor
+            self.events.append('terminal opened')
+        elif words[0] == '/usr/bin/fc-match': stdout = self.walk.SPACE_GROTESK
+        elif words[:3] == ['/usr/bin/python3', '-I', '-']:
+            assert kw.get('input') == (ROOT / self.walk.CONTROL_CHECKER).read_text(), 'Not the bound checker on stdin'
+            assert words[3:] == ['service_user', 'unit', 'claude_code_files', 'folders', 'state_folders'], words
+            code, stdout = self.execute(kw['input'], argv=words[3:], allow_exit=True)
+        elif words[:2] == ['systemctl', 'show']:
+            if words[2] == 'aresos-toold.service':
+                stdout = 'ActiveState=active\nSubState=running\nMainPID=4243\nNRestarts=0\nUnitFileState=enabled\n'
+            else:
+                name = words[-1]
+                after = 'basic.target' if name == 'greetd.service' else ''
+                if 'control_delays_login' in self.faults and name == 'basic.target': after = 'aresos-toold.service'
+                requires = 'aresos-toold.service' if 'control_required_login' in self.faults and name == 'greetd.service' else ''
+                state = 'loaded'
+                if 'optional_login_unit' in self.faults:
+                    if name == 'greetd.service': after += ' optional.service'
+                    if name == 'optional.service': state, code = 'not-found', 1
+                if 'missing_login_root' in self.faults and name == 'greetd.service': state, code = 'not-found', 1
+                # The stock base masks systemd-remount-fs.service, which other units order after (rehearsal 4).
+                if self.faults & {'masked_login_unit', 'masked_unit_after_control', 'masked_login_requirement'}:
+                    if name == 'greetd.service': after += ' masked.service'
+                    if name == 'greetd.service' and 'masked_login_requirement' in self.faults: requires = 'masked.service'
+                    if name == 'masked.service':
+                        state = 'masked'
+                        after = 'aresos-toold.service' if 'masked_unit_after_control' in self.faults else 'basic.target'
+                if 'masked_login_root' in self.faults and name == 'greetd.service': state = 'masked'
+                if 'failed_login_query' in self.faults and name == 'basic.target': code = 1
+                stdout = f'Id={name}\nLoadState={state}\nAfter={after}\nRequires={requires}\nRequisite=\nBindsTo=\n'
+        elif words[0] == 'python3' and words[1] == '-c':
+            try: stdout = self.execute(words[2], uid=uid, argv=words[3:])
+            except (AssertionError, OSError) as error: code, stderr = 1, str(error)
+        elif words[:2] == ['/usr/libexec/aresos-desktop', 'status']:
+            stdout = json.dumps(dict(state='SETUP', jvm_pid=4242) if self.jvm else dict(state='RECOVERY', latched=True))
+        elif words[:2] == ['/usr/bin/systemctl', '--user']:
+            assert words[2:] == ['kill', '--signal=SIGKILL', 'aresos-game-fixture.scope']
+            self.jvm, self.wrapper.returncode = False, 137
+        elif words[:2] == ['loginctl', 'list-sessions']: stdout = '3 1001 ares seat0 tty1\n'
+        elif words[:2] == ['loginctl', 'show-session']: stdout = 'Active=yes\nRemote=no\n'
+        elif words[0] == 'pkaction': stdout = '\n'.join(self.actions)
+        elif words[0] == 'pkcheck': code = 0 if words[2] in self.passwordless else 2
+        else: raise AssertionError('Uncontrolled probe command: ' + repr(words))
+        done = subprocess.CompletedProcess(argv, code, stdout, stderr)
+        if kw.get('check'): done.check_returncode()
+        return done
+
+    def popen(self, argv, **kw):
+        assert '/usr/libexec/aresos-desktop-java' in argv and '-XX:+PauseAtStartup' in argv
+        self.events.append('game scope')
+        self.jvm = True
+        self.wrapper = SimpleNamespace(returncode=None, poll=lambda: None, communicate=lambda **_: (b'', None))
+        return self.wrapper
+
+    def command(self, name, source):
+        if name.endswith('-sites'):
+            assert 'tee ' + self.walk.SITES in source and self.control
+            words = shlex.split(source.splitlines()[-1])
+            assert words[:2] == ['printf', '%s\\n']
+            self.write(words[words.index('tee')+1], words[2] + '\n')
+        if name.endswith('-sites-hash'):
+            path = source.split('sha256sum < ', 1)[1].split()[0]
+            if 'changed_sites' in self.faults and name.startswith('final-28'):
+                self.write(path, 'changed\n')
+            return hashlib.sha256(self.Path(path).read_bytes()).hexdigest() + '\n'
+        if name == 'release-28-path-prepare':
+            words = shlex.split(source)
+            self.write('/run/aresos-path.py', base64.b64decode(words[words.index('printf')+2]).decode())
+        return None
+
+    def capture(self, name, source):
+        if not name.startswith(('release-28-', 'previous-27-', 'final-28-')): return None
+        suffixes = ('-session', '-end-foot', '-terminal', '-home', '-game-scope', '-polkit', '-path-result', '-control')
+        if not name.endswith(suffixes): return None
+        if name.endswith('-path-result'):
+            # Execute the program prepared for, and typed into, the reopened terminal, then its reader.
+            self.execute(self.Path('/run/aresos-path.py').read_text(), uid=1001)
+            script = source.split("python3 - <<'PY'\n", 1)[1].split('\nPY', 1)[0]
+        else:
+            words = shlex.split(source)
+            script = words[words.index('python3')+2]
+        if name == 'final-28-control':
+            if 'bad_control_state' in self.faults: self.modes[str(self.Path('/var/lib/aresos-tools'))] = 0o755
+            if 'bad_control_folder' in self.faults: self.modes[str(self.Path('/var/home/ares/Downloads'))] = 0o755
+            if 'bad_control_owner' in self.faults: self.owners[str(self.Path('/run/aresos-tools'))] = (0, 0)
+        if name == 'final-28-home':
+            if 'wrong_owner' in self.faults: self.owners[str(self.Path(self.walk.APPS))] = (0, 0)
+            if 'missing_instance' in self.faults: self.Path(self.walk.INSTANCE + '/mmc-pack.json').unlink()
+            # Root must still read the snapshot; only the controlled ares process loses access.
+            if 'bad_permissions' in self.faults: self.modes[str(self.Path(self.walk.APPS))] = 0
+            if 'stable_changed' in self.faults: self.write(self.walk.INSTANCE + '/minecraft/options.txt', 'changed')
+            if 'bad_instance_mode' in self.faults: self.Path(self.walk.INSTANCE).chmod(0o700)
+            if 'prism_mutable' in self.faults:
+                self.write(self.walk.INSTANCE + '/instance.cfg', '[General]\nname=AresDesktop\nlastLaunchTime=2\n')
+                self.write(self.walk.INSTANCE + '/minecraft/logs/latest.log', 'new log')
+            world = (self.Path(self.walk.INSTANCE + '/minecraft/saves') / self.walk.WORLD).resolve()
+            if 'deleted_world' in self.faults: (world / 'level.dat').unlink()
+            if 'corrupt_world' in self.faults: (world / 'region/r.0.0.mca').write_bytes(b'corrupt')
+            if 'denied_world' in self.faults: self.modes[str(world)] = 0
+        if name.endswith('-game-scope') and 'bad_memory' in self.faults:
+            self.write('/sys/fs/cgroup/user.slice/user-1001.slice/user@1001.service/aresos.slice/aresos-game-fixture.scope/memory.high', 'max')
+        if name.endswith('-polkit'):
+            reviewed = json.loads((ROOT / 'os/ci/polkit-review.json').read_text())['passwordless']
+            self.actions = [*reviewed, 'unexpected.permission']
+            self.passwordless = self.actions if 'extra_polkit' in self.faults else reviewed
+        self.executed.append((name, script))
+        return json.loads(self.execute(script))
+
+    def owner(self, name, r27, r28):
+        """The tools' lines on this route, by the command's stage name."""
+        if name.endswith('-check-owner-result') and self.foot == 0:
+            # Tools version 4's check reads his foot (owner.py:2016-2017).
+            return dict(status='stopped', trace=[], error='Read failed: pgrep -u ares -x foot')
+        lines = {'r28-update-owner-result': ['At shutdown, this update removes older AresOS', 'Signed exact release staged ' + r28],
+                 'release-28-title-owner-result': ['Update to ' + r28 + ' confirmed after the restart'],
+                 'r28-previous-owner-result': ['Previous AresOS queued for the next start ' + r27],
+                 'previous-27-title-owner-result': ['Return to ' + r27 + ' confirmed after the restart'],
+                 'r28-forward-owner-result': ['Newest installed AresOS starts next ' + r28],
+                 'final-28-title-owner-result': ['Forward to ' + r28 + ' confirmed after the restart']}
+        return dict(status='passed', trace=[], result=lines[name]) if name in lines else None
+
+
 def tools_local_v3():
     import tools_local
     return tools_local.TOOLS_V3
@@ -406,13 +831,29 @@ def ast_literal(text):
     return ast.literal_eval(text)
 
 
-def walk(ps2=False, route='qualification'):
-    assert route in ('qualification', 'update', 'reorder-probe', 'ways-back', 'tools-local')
-    laptop = route in ('update', 'reorder-probe', 'ways-back', 'tools-local')
+def historical_checkout(folder, commit):
+    """Give the historical drivers the tool sources that went with their R27 rehearsal."""
+    sources = subprocess.check_output(['git', '-C', str(ROOT), 'archive', commit, 'os/owner-tools', 'os/release'])
+    with tarfile.open(fileobj=io.BytesIO(sources)) as archive:
+        archive.extractall(folder, filter='data')
+    for name in ('ci', 'tests', 'manifest/base.json', 'manifest/releases'):
+        link = folder / 'os' / name
+        link.parent.mkdir(exist_ok=True)
+        link.symlink_to(ROOT / 'os' / name)
+    # The driver expects the checkout target here. Use the fixed R27 record.
+    (folder / 'os/manifest/release.json').write_bytes(R27_RECORD.read_bytes())
+    return json.loads((folder / 'os/owner-tools/commands.json').read_text())
+
+
+def walk(ps2=False, route='qualification', control=False, faults=()):
+    assert route in ('qualification', 'update', 'reorder-probe', 'ways-back', 'tools-local', 'release-28')
+    laptop = route in ('update', 'reorder-probe', 'ways-back', 'tools-local', 'release-28')
+    dialogs = route in ('tools-local', 'release-28')
     stages = dict(qualification=QUALIFICATION_STAGES, update=UPDATE_STAGES)
     stages['reorder-probe'] = PROBE_STAGES
     stages['ways-back'] = WAYS_BACK_STAGES
     stages['tools-local'] = TOOLS_LOCAL_STAGES
+    stages['release-28'] = RELEASE28_STAGES
     owner_words = {command: name for name, command in vm.COMMANDS.items()}
     oracle = [None]
     # The walk's own /var/lib/ares entry (InstalledTools): which toolset is installed, and the
@@ -433,16 +874,23 @@ def walk(ps2=False, route='qualification'):
     prompt_waits, idle_answers, hidden_reads = {}, [], []
     hidden_shapes, wait_shapes = [], []
     pinned, pair, staged, queued, rolled = (retained(n) for n in ('after-pin', 'aresos', 'after-switch-staged', 'after-rollback-queued', 'rollback'))
-    updates = update_states(pair)
     old_reference = json.loads((ROOT / 'os/manifest/releases/13.json').read_text())['reference']
-    new_reference = json.loads((ROOT / 'os/manifest/release.json').read_text())['reference']
+    new_reference = json.loads(R27_RECORD.read_text())['reference']
+    if route == 'release-28':
+        record_28 = release28_record()
+    updates = update_states(pair, new_reference)
+    if route == 'release-28':
+        updates.update(release28_states(pair, new_reference, json.loads(record_28)['reference']))
+        r28_session = Release28Session(control, faults)
     stock = copy.deepcopy(pinned['rpm']['deployments'][0])
+    historical = None
     first = common.stock()
     first['bls'] = copy.deepcopy(pinned['bls'])
     disk = LaptopDisk(pair) if route in ('reorder-probe', 'ways-back') else None
     class Guest:
         def __init__(self, stage, menu=False):
             self.stage, self.owner_layout = stage, 'de'
+            if route == 'release-28': r28_session.boot(stage)
             # A probe start: the first row, unless the menu is shown and waits for its choice.
             self.menu = menu
             if disk is not None and stage not in UPDATE_STAGES and not menu:
@@ -473,8 +921,12 @@ def walk(ps2=False, route='qualification'):
         def command(self, name, source, **kw):
             syntax(name, source)
             commands.append((name, source))
-            if route == 'tools-local':
+            if dialogs:
                 local.command(name, source)
+            if route == 'release-28':
+                said = r28_session.command(name, source)
+                if said is not None:
+                    return said
             if name.endswith('-prepare-input'):
                 self.physical_case = name.removesuffix('-prepare-input')
             if name.endswith('-input-result'):
@@ -617,8 +1069,16 @@ def walk(ps2=False, route='qualification'):
                 index, = re.findall(r"^argv=\['ostree', 'admin', 'set-default', '([0-9]+)'\]$", script, re.M)
                 return disk.set_default(int(index))
             if disk is not None and name.endswith('-bls-entries'): return disk.inventory()
-            if route == 'tools-local' and local.answers(name):
+            if dialogs and local.answers(name):
                 return local.answer(self, name)
+            if route == 'release-28':
+                seen = r28_session.capture(name, source)
+                if seen is not None:
+                    return seen
+                if name.endswith('-owner-result') and self.stage in RELEASE28_STAGES[4:]:
+                    said = r28_session.owner(name, new_reference, json.loads(record_28)['reference'])
+                    if said is not None:
+                        return said
             if route == 'ways-back':
                 # The rehearsal's own captures; from tools version 3 on, the tools themselves answer.
                 if name == 'tools-3-install-owner-result':
@@ -698,7 +1158,11 @@ def walk(ps2=False, route='qualification'):
             assert args['hold-time'] == 30
             assert all(k['type'] == 'qcode' for k in args['keys'])
             keys = [k['data'] for k in args['keys']]
-            if route == 'tools-local' and keys == ['esc']:
+            if route == 'release-28' and keys in (['ctrl', 'alt', 'f1'], ['ctrl', 'alt', 'f3']):
+                # vt_stays_tty3: the switch back to his desktop does not happen (rehearsal 7 opened foot there).
+                if not ('vt_stays_tty3' in faults and keys[-1] == 'f1'):
+                    r28_session.vt = 'tty' + keys[-1][1:]
+            if dialogs and keys == ['esc']:
                 local.escaped = True
             if self.menu:
                 # The boot menu takes the keys; Enter starts the row under the cursor.
@@ -739,7 +1203,7 @@ def walk(ps2=False, route='qualification'):
                 raw_output_retained=False, serial_input_flushed=True, physical_enter_sent=False)
         def screenshot(self, stage):
             assert self.screenshot_safe
-            if route == 'tools-local':
+            if dialogs:
                 local.screenshot(stage)
         def assert_offline(self, stage):
             vm.Guest.assert_offline(self, stage)
@@ -774,7 +1238,7 @@ def walk(ps2=False, route='qualification'):
         def replace(self, stage, source=None):
             assert guest_media[0] is None
             if stage == 'tools-3':
-                # The rehearsal's second copy: this checkout's bundle (version 3) over version 2.
+                # The historical rehearsal's second copy: version 3 over version 2.
                 assert route == 'ways-back' and source is None and self.fingerprint == vm.TOOLS_V2
             elif route == 'tools-local' and stage in ('tools-next', 'export-version-2'):
                 # Package 22d: the harness-built next version over version 2, then version 2 again.
@@ -784,8 +1248,11 @@ def walk(ps2=False, route='qualification'):
                 return
             else:
                 # Package 22c's and 22d's routes copy version 2 from history; the update rehearsal copied its checkout's payload.
-                assert self.fingerprint == vm.LAPTOP_TOOLS and (source is not None) == (route in ('reorder-probe', 'ways-back', 'tools-local'))
-            self.fingerprint = vm.TOOLS_V2 if source is not None else common.bundle.check(ROOT / 'os/owner-tools/payload')
+                assert self.fingerprint == vm.LAPTOP_TOOLS and (source is not None) == (route in ('reorder-probe', 'ways-back', 'tools-local', 'release-28'))
+            if source is None:
+                self.fingerprint = vm.bundle_module('bundle').check(pathlib.Path('os/owner-tools/payload'))
+            else:
+                self.fingerprint = vm.bundle_module('owner').checked_bundle(source)
             checks.append(stage + '-windows-copy')
         def attach(self, guest, stage):
             assert guest.owner_signed_in and guest.owner_physical_signed_in
@@ -803,7 +1270,7 @@ def walk(ps2=False, route='qualification'):
     guest_media = [None]
     cut = [None]
     media = Media()
-    local = ToolsLocal(typed, media, 'abcdefghijklmnopqrstuvwx')
+    local = None
 
     def snapshot(guest, stage):
         if route == 'ways-back' and guest.stage not in UPDATE_STAGES[:4]:
@@ -820,8 +1287,8 @@ def walk(ps2=False, route='qualification'):
         return pair
 
     with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as temporary, contextlib.ExitStack() as stack:
+        if route == 'release-28': stack.callback(r28_session.close)
         if ps2:
-            import subprocess
             from test_owner_ps2 import kernel_result,journal
             original_run=subprocess.run
             def run(argv,*args,**kwargs):
@@ -842,8 +1309,14 @@ def walk(ps2=False, route='qualification'):
         stack.enter_context(patch.object(vm.Guest, 'network_up', False))
         for module in (vm.td, vm.sw):
             stack.enter_context(patch.object(module, 'EVIDENCE', pathlib.Path(temporary)))
-        for name in ('install', 'restore_windows_order'):
-            stack.enter_context(patch.object(vm.td, name))
+        # The install's stand-in leaves what the real one leaves: the live session's stock rewind record
+        # (the base image under the ISO's name), which the first stock boot completes.
+        base = vm.td.stock_image.base()
+        host = dict(status='prepared', source='docker://' + base['reference'], credentials='none', digest=base['digest'],
+                    layers=128, blobs=130, bytes=5634826157)
+        stack.enter_context(patch.object(vm.td, 'install', side_effect=lambda *args: vm.td.save(
+            'stock-rewind', vm.td.stock_image.rewind(vm.td.LIVE, host, base['digest']))))
+        stack.enter_context(patch.object(vm.td, 'restore_windows_order'))
         # The host-side boot entry edit after the install (SerialConsolePinTest covers it).
         stack.enter_context(patch.object(vm, 'pin_serial_console', side_effect=lambda: checks.append('stock-serial-console')))
         stack.enter_context(patch.object(vm.td, 'marker', side_effect=lambda audit,name,**kw: markers.append(name)))
@@ -859,22 +1332,41 @@ def walk(ps2=False, route='qualification'):
         if disk is not None:
             stack.enter_context(patch.object(vm.rp, 'start_at_menu', side_effect=lambda p, h, s: Guest(s, menu=True)))
             stack.enter_context(patch.object(vm.rp, 'read_screen', side_effect=lambda guest, name: disk.screen()))
+        if route in ('update', 'reorder-probe', 'ways-back', 'tools-local'):
+            import release28_walk, tools_local
+            head = {'ways-back': tools_local.V3_COMMIT, 'tools-local': release28_walk.V4_COMMIT}.get(route, vm.TOOLS_V2_COMMIT)
+            historical = pathlib.Path(temporary) / 'historical'
+            historical_commands = historical_checkout(historical, head)
+            version_2 = vm.laptop_payload(pathlib.Path(temporary) / 'tools-version-2', vm.TOOLS_V2_COMMIT, vm.TOOLS_V2)
+            stack.enter_context(contextlib.chdir(historical))
+            stack.enter_context(patch.object(vm, 'COMMANDS', historical_commands))
         if route == 'tools-local':
-            import subprocess, tools_local
-            # The walk builds its stand-in origin from this checkout's HEAD, as the VM does from its commit.
-            head = subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', 'HEAD'], text=True).strip()
+            local = ToolsLocal(typed, media, 'abcdefghijklmnopqrstuvwx', historical)
             stack.enter_context(patch.dict(os.environ, GITHUB_SHA=head))
             stack.enter_context(patch.object(vm.td, 'WORK', pathlib.Path(temporary)))
             tools_local.rehearsal(vm, audit, media, 'yz-/!ü0123456789abcdef', 'SYNTHETIC-HASH', 'abcdefghijklmnopqrstuvwx',
-                                  pathlib.Path(temporary) / 'tools-version-2')
+                                  version_2)
             result = json.loads((pathlib.Path(temporary) / 'tools-local-rehearsal-result.json').read_text())
+        elif route == 'release-28':
+            import release28_walk
+            head = subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', 'HEAD'], text=True).strip()
+            stack.enter_context(patch.dict(os.environ, GITHUB_SHA=head))
+            stack.enter_context(patch.object(vm.td, 'WORK', pathlib.Path(temporary)))
+            stack.enter_context(patch.object(release28_walk, 'CONTROL_RIDES', control))
+            local = Release28Local(typed, media, 'abcdefghijklmnopqrstuvwx', pathlib.Path(temporary))
+            local.known(release28_walk.TOOLS_V4, 4)
+            local.known(release28_walk.announced(record_28)['fingerprint'], release28_walk.TOOLS_VERSION)
+            version_2 = vm.laptop_payload(pathlib.Path(temporary) / 'tools-version-2', vm.TOOLS_V2_COMMIT, vm.TOOLS_V2)
+            release28_walk.rehearsal(vm, audit, media, 'yz-/!ü0123456789abcdef', 'SYNTHETIC-HASH', 'abcdefghijklmnopqrstuvwx',
+                                     version_2, record_28, allow_deferred=True)
+            result = json.loads((pathlib.Path(temporary) / 'release-28-rehearsal-result.json').read_text())
         elif route == 'ways-back':
             oracle[0] = Oracle(stack, disk, old_reference, new_reference)
             vm.ways_back_rehearsal(audit, media, 'yz-/!ü0123456789abcdef', 'SYNTHETIC-HASH', 'abcdefghijklmnopqrstuvwx',
-                                   pathlib.Path(temporary) / 'tools-version-2')
+                                   version_2)
             result = json.loads((pathlib.Path(temporary) / 'ways-back-rehearsal-result.json').read_text())
         elif route == 'reorder-probe':
-            vm.reorder_probe(audit, media, 'yz-/!ü0123456789abcdef', 'SYNTHETIC-HASH', pathlib.Path(temporary) / 'tools-version-2')
+            vm.reorder_probe(audit, media, 'yz-/!ü0123456789abcdef', 'SYNTHETIC-HASH', version_2)
             result = json.loads((pathlib.Path(temporary) / 'reorder-probe-result.json').read_text())
         elif route == 'update':
             vm.update_rehearsal(audit, media, 'yz-/!ü0123456789abcdef', 'SYNTHETIC-HASH', 'abcdefghijklmnopqrstuvwx')
@@ -900,8 +1392,121 @@ def walk(ps2=False, route='qualification'):
     assert checks.index('tools-stock-hotplug') < checks.index('tools-stock-detach') < checks.index('tools-stock-reboot-tools-absent')
     return dict(stages=visits, commands=commands, typed=typed, visible_blocks=visible_blocks, checks=checks, markers=markers,
         physical_cases=physical_cases, result=result, disk=disk, tool_readers=tool_readers, local=local,
+        session=r28_session if route == 'release-28' else None,
         prompt_waits=sorted(prompt_waits), fresh_idle_answers=idle_answers, resyncs=events,
         hidden_reads=hidden_reads, hidden_shapes=hidden_shapes, wait_shapes=wait_shapes)
+
+
+class Release28ProbeTest(unittest.TestCase):
+    def test_injected_guest_failures_stop_the_route(self):
+        cases = {'retained_foot': 'still running', 'bad_control_state': 'Control release checker failed',
+                 'bad_control_folder': 'Control daily folder metadata differs', 'bad_control_owner': 'Control release checker failed',
+                 'control_delays_login': 'Control service delays login', 'control_required_login': 'Control service delays login',
+                 'failed_login_query': 'login dependency query failed', 'missing_login_root': 'login dependency query failed',
+                 'masked_login_root': 'login dependency query failed', 'masked_unit_after_control': 'Control service delays login',
+                 'masked_login_requirement': 'a login unit requires masked',
+                 'wrong_owner': 'ownership changed', 'missing_instance': 'inaccessible as ares',
+                 'bad_permissions': 'inaccessible as ares', 'stable_changed': 'stable instance',
+                 'bad_instance_mode': 'stable instance', 'bad_memory': 'memory.high',
+                 'extra_polkit': 'beyond the reviewed list', 'bad_path': 'terminal lacks his PATH',
+                 'deleted_world': 'missing saved-world', 'corrupt_world': 'saved-world contents',
+                 'denied_world': 'inaccessible as ares',
+                 'supervisor_without_display': 'has no Wayland display',
+                 'vt_stays_tty3': 'exited at once: .*no monitors available'}
+        for fault, error in cases.items():
+            with self.subTest(fault=fault), self.assertRaisesRegex(AssertionError, error):
+                walk(route='release-28', control=fault.startswith(('bad_control', 'control_')) or fault in (
+                    'failed_login_query', 'missing_login_root', 'masked_login_root', 'masked_unit_after_control',
+                    'masked_login_requirement'), faults=[fault])
+
+    def test_a_masked_login_unit_cannot_delay_login_and_passes(self):
+        # Rehearsal 4 (run 44729393652) stopped on release 28's masked systemd-remount-fs.service.
+        walk(route='release-28', control=True, faults=['masked_login_unit'])
+
+    def test_removing_the_submitted_kill_no_longer_gets_a_canned_success(self):
+        import release28_walk
+        source = release28_walk.END_FOOT.replace("subprocess.run(['pkill','-u','ares','-x','foot'])", 'pass')
+        self.assertNotEqual(source, release28_walk.END_FOOT)
+        with patch.object(release28_walk, 'END_FOOT', source), self.assertRaisesRegex(AssertionError, 'still running'):
+            walk(route='release-28')
+
+    def test_a_terminal_from_labwcs_own_environment_stops(self):
+        # Rehearsal 6 (run 44781321736): labwc's /proc environ has no WAYLAND_DISPLAY, so a foot started from it
+        # exited at once. Reading labwc instead of the desktop supervisor must stop the route here.
+        import release28_walk
+        source = (release28_walk.TERMINAL.replace("['pgrep','-u','ares','-x','aresos-desktop']", "['pgrep','-u','ares','-x','labwc']")
+                  .replace(r"b'/usr/bin/python3\0/usr/libexec/aresos-desktop\0session\0'",
+                           r"b'/usr/bin/labwc\0--config-dir\0/usr/share/aresos/labwc\0'"))
+        self.assertNotEqual(source.count('labwc'), release28_walk.TERMINAL.count('labwc'))
+        with patch.object(release28_walk, 'TERMINAL', source), self.assertRaisesRegex(AssertionError, 'has no Wayland display'):
+            walk(route='release-28')
+
+    def test_a_terminal_outside_his_home_exits_and_stops(self):
+        # The serial root shell's directory is the recovery account's, which ares cannot enter: a foot started there
+        # appears and exits. Without the hub's working directory the route must stop with foot's log.
+        import release28_walk
+        source = release28_walk.TERMINAL.replace(",cwd=env['HOME']", '')
+        self.assertNotEqual(source, release28_walk.TERMINAL)
+        with patch.object(release28_walk, 'TERMINAL', source), self.assertRaisesRegex(AssertionError, 'exited at once'):
+            walk(route='release-28')
+
+    def test_a_late_monitor_is_tried_again(self):
+        # labwc may bring its output back a moment after the switch to tty1: the second launch opens his Terminal.
+        result = walk(route='release-28', faults=['late_monitor'])
+        terminal = result['result']['no_foot']['terminal']
+        self.assertEqual((terminal['attempts'], terminal['running']), (2, 1))
+        self.assertIn('[attempt 1]  err: wayland.c:1827: no monitors available', terminal['log'])
+
+    def test_explicit_prism_allowances_preserve_stable_files(self):
+        result = walk(route='release-28', faults=['prism_mutable'])
+        self.assertNotEqual(result['result']['home']['instance_tree'], result['result']['home']['after_forward_tree'])
+        self.assertEqual([name for name, _ in result['session'].executed if name.endswith('-home')],
+                         ['release-28-home', 'previous-27-home', 'final-28-home'])
+
+
+class Release28InstallerTest(unittest.TestCase):
+    def attempt(self, old_version, new_version, identical=False):
+        old, new = '11'*32, '11'*32 if identical else '22'*32
+        model = object.__new__(Release28Local)
+        model.versions = {old: old_version, new: new_version}
+        model.installs, model.ares_password = [], 'synthetic-password'
+        model.ran = {}
+        model.typed = [(model.ares_password+'\n', 'de')]
+        model.windows = dict(retry=dict(typed=0, helper='helper'))
+        model.callers = dict(retry=dict(steps=('folder', 'routine', 'no-ticket'), commit='fixture'))
+        model.machine = dict(tools=old, entry='tools-'+old+'/at', journal=None, records=[], folder='fixture')
+        before = copy.deepcopy(model.machine)
+        with patch.object(model, 'lines', return_value=dict(folder='folder', routine='routine '+new)):
+            done = model.run('retry')
+        return model, before, done
+
+    def test_identical_fingerprint_is_a_no_op_before_the_version_check(self):
+        model, before, done = self.attempt(5, 5, identical=True)
+        self.assertEqual(done['routine']['status'], 0)
+        self.assertIn('Tools already installed; nothing changed', done['routine']['stdout'])
+        self.assertEqual(model.machine, before)
+        self.assertEqual(model.installs, [])
+
+    def test_same_version_different_fingerprint_refuses_without_writes(self):
+        model, before, done = self.attempt(5, 5)
+        self.assertEqual(done['routine']['status'], 1)
+        self.assertIn('refusing version 5 (downgrade or same version)', done['routine']['stdout'])
+        self.assertEqual(model.machine, before)
+        self.assertEqual(model.installs, [])
+
+    def test_downgrade_refuses_without_writes(self):
+        model, before, done = self.attempt(5, 4)
+        self.assertEqual(done['routine']['status'], 1)
+        self.assertIn('refusing version 4 (downgrade or same version)', done['routine']['stdout'])
+        self.assertEqual(model.machine, before)
+        self.assertEqual(model.installs, [])
+
+    def test_newer_fingerprint_installs_and_records_the_previous_bundle(self):
+        model, before, done = self.attempt(4, 5)
+        self.assertEqual(done['routine']['status'], 0)
+        self.assertIn('Tools updated from version 4 to 5', done['routine']['stdout'])
+        self.assertEqual(model.machine['tools'], '22'*32)
+        self.assertEqual(model.installs, [dict(manifest='22'*32, previous_manifest='11'*32, previous_version=4, tools_version=5)])
 
 
 class OwnerWalkTest(unittest.TestCase):
@@ -937,7 +1542,7 @@ class OwnerWalkTest(unittest.TestCase):
             self.assertTrue(any(name.startswith(stage) and name.endswith('-xhci-health') for name in names),stage)
 
     def test_update_route_walks_the_laptop_tools_update_password_and_previous(self):
-        commands = json.loads((ROOT / 'os/owner-tools/commands.json').read_text())
+        commands = json.loads(vm.git_blob(vm.TOOLS_V2_COMMIT, 'os/owner-tools/commands.json'))
         for ps2 in (False, True):
             with self.subTest(ps2=ps2):
                 result = walk(ps2=ps2, route='update')

@@ -6,7 +6,6 @@ import dev.aresos.client.launch.AppLauncher;
 import dev.aresos.client.launch.LinuxAppLauncher;
 import dev.aresos.client.launch.WindowsAppLauncher;
 import dev.aresos.focus.FocusReturn;
-import dev.aresos.mode.ToggleModePayload;
 import dev.aresos.zone.ZoneLaunchPayload;
 import dev.aresos.zone.ZoneReturnPayload;
 import net.fabricmc.api.ClientModInitializer;
@@ -45,6 +44,7 @@ public final class AresOsClient implements ClientModInitializer {
         HomeButton.register();
         HomeSwitch.register();
         AppsScreen.register();
+        WorldSearchScreen.register();
         IconReload.register(dev.aresos.item.MyAppsGame.icons());
         if (AresOs.shell() != null) ShellFocusClient.register(AresOs.shell());
         // Package 46: the supervisor's lifecycle channel saves the world on request, only where the supervisor asked
@@ -58,7 +58,7 @@ public final class AresOsClient implements ClientModInitializer {
         ClientPlayNetworking.registerGlobalReceiver(ZoneLaunchPayload.TYPE, (payload, context) -> {
             // A remote Minecraft server must never be able to auto-launch local programs.
             if (acceptsAppCommands(Minecraft.getInstance())
-                    && (payload.visit() == 0 || AppsScreen.active(Minecraft.getInstance()))) launch(payload.app(), payload.visit());
+                    && (payload.visit() == 0 || AppsScreen.active(Minecraft.getInstance()))) launch(payload.app(), payload.visit(), false, null);
             else {
                 if (ClientPlayNetworking.canSend(ZoneReturnPayload.TYPE))
                     ClientPlayNetworking.send(new ZoneReturnPayload(payload.visit(), false));
@@ -83,11 +83,9 @@ public final class AresOsClient implements ClientModInitializer {
                 InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_H, category));
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             AppInput.endTick();
+            HomeOnboarding.tick(client);
             while (toggle.consumeClick()) {
-                if (client.player != null && client.gui.screen() == null
-                        && ClientPlayNetworking.canSend(ToggleModePayload.TYPE)) {
-                    ModeSwitchClient.requestToggle();
-                }
+                if (client.gui.screen() == null) ModeSwitchClient.requestToggle();
             }
             while (home.consumeClick()) {
                 // Only in an AresOS world and only with no screen open; F3+H is the game's own (advanced tooltips).
@@ -132,7 +130,12 @@ public final class AresOsClient implements ClientModInitializer {
     }
 
     public static void launch(String id) {
-        launch(id, 0);
+        launch(id, 0, false, null);
+    }
+
+    /** From the search over the world (package 53d): as {@link #launch(String)}, on the screen that shows the world. */
+    public static void launchOnWorldScreen(String id) {
+        launch(id, 0, true, null);
     }
 
     public static boolean regainedFocus(Object screen) {
@@ -153,7 +156,11 @@ public final class AresOsClient implements ClientModInitializer {
         zoneVisit = 0; zoneFocusToken = 0;
     }
 
-    private static void launch(String id, long visit) {
+    static void launchFromPointer(String id, Runnable opened) {
+        launch(id, 0, false, opened);
+    }
+
+    private static void launch(String id, long visit, boolean worldScreen, Runnable opened) {
         Minecraft client = Minecraft.getInstance();
         finishZone(false);
         var app = AresOs.app(id);
@@ -167,7 +174,7 @@ public final class AresOsClient implements ClientModInitializer {
         zoneFocusToken = visit == 0 ? 0 : token;
         zoneVisit = visit;
         try {
-            launcher.launchTracked(app).whenComplete((requestId, error) -> {
+            (worldScreen ? launcher.launchOnWorldScreen(app) : launcher.launchTracked(app)).whenComplete((requestId, error) -> {
                 if (error == null && requestId != null) client.execute(() -> LATE_TOKENS.put(requestId, token));
                 if (error != null) {
                     client.execute(() -> {
@@ -177,6 +184,7 @@ public final class AresOsClient implements ClientModInitializer {
                     });
                     AresOs.LOGGER.warn("Could not launch app {}", id, error);
                 }
+                if (error == null && opened != null) client.execute(opened);
             });
         } catch (RuntimeException error) {
             FOCUS_RETURN.cancel(token);

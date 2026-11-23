@@ -1,0 +1,3 @@
+1052041:
+garbage-first heap   total reserved 1048576K, committed 405504K, used 345088K [0x00000000c0000000, 0x0000000100000000)
+ region size 1024K, 35 young (35840K), 4 survivors (4096K)

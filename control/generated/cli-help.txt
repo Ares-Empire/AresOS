@@ -1,5 +1,5 @@
 Usage: aresos [admin] <app> <action> [--input JSON] [--json]
-       aresos log [--input JSON]
+       aresos control log [--input JSON]
 
 Actions (input is the definition's JSON object; --help on any action shows its schema):
   aresos control observations [read]

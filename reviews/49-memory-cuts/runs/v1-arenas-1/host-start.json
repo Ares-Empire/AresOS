@@ -1,0 +1,23 @@
+{
+ "time_utc": "2026-11-17T17:51:44Z",
+ "monotonic_ns": 242795126154792,
+ "loadavg": [
+  0.65478515625,
+  0.7685546875,
+  0.908203125
+ ],
+ "memory_kib": {
+  "MemFree": 2809620,
+  "MemAvailable": 9074748,
+  "SwapTotal": 8036860,
+  "SwapFree": 2156276
+ },
+ "process_counts": {
+  "labwc": 1,
+  "Xwayland": 1,
+  "claude": 5,
+  "codex": 3,
+  "python3": 4,
+  "chrome": 15
+ }
+}

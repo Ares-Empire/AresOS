@@ -1,0 +1,8 @@
+{
+ "slot": "setup-flat",
+ "attempt": "setup-flat",
+ "utility": true,
+ "contaminated": false,
+ "interference_samples": [],
+ "accepted": true
+}

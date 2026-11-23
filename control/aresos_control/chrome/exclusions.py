@@ -5,7 +5,7 @@ from ..boundary import Boundary
 from ..common import Refused
 from .policy import FIXED_HOSTS
 
-SETTING = '/etc/aresos/control/chrome-excluded-sites.json'
+SETTING = '/var/lib/aresos-control/chrome-excluded-sites.json'
 
 
 def owner_hosts(path=SETTING):
@@ -20,7 +20,7 @@ def owner_hosts(path=SETTING):
                 raise ValueError('entries must be lowercase DNS host names')
         return sorted(set(data['hosts']))
     except (Refused, ValueError, TypeError) as exc:
-        raise Refused('chrome_settings_unavailable', 'Chrome refuses reads and actions: its owner-only excluded-sites setting is missing, unreadable or unsafe; ask the owner to install it.') from exc
+        raise Refused('chrome_settings_unavailable', 'Chrome refuses reads and actions: its owner-only excluded-sites setting is not set up yet, or is missing, not a valid list, unreadable or unsafe; ask the owner to set it up.') from exc
 
 
 def excluded_hosts(path=SETTING):

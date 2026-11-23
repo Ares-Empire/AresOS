@@ -1,0 +1,73 @@
+aresos-level: /usr/libexec/aresos-indicator is missing or not executable; the level changed without a plate
+aresos-level: /usr/libexec/aresos-indicator is missing or not executable; the level changed without a plate
+aresos-level: /usr/libexec/aresos-indicator is missing or not executable; the level changed without a plate
+aresos-level: /usr/libexec/aresos-indicator is missing or not executable; the level changed without a plate
+aresos-level: /usr/libexec/aresos-indicator is missing or not executable; the level changed without a plate
+aresos-level: /usr/libexec/aresos-indicator is missing or not executable; the level changed without a plate
+aresos-level: /usr/libexec/aresos-indicator is missing or not executable; the level changed without a plate
+aresos-level: /usr/libexec/aresos-indicator is missing or not executable; the level changed without a plate
+aresos-level: /usr/libexec/aresos-indicator is missing or not executable; the level changed without a plate
+aresos-level: /usr/libexec/aresos-indicator is missing or not executable; the level changed without a plate
+aresos-level: /usr/libexec/aresos-indicator is missing or not executable; the level changed without a plate
+aresos-level: /usr/libexec/aresos-indicator is missing or not executable; the level changed without a plate
+Traceback (most recent call last):
+  File "/usr/libexec/aresos-indicator", line 2, in <module>
+    raise RuntimeError("synthetic crash at startup")
+RuntimeError: synthetic crash at startup
+aresos-level: the indicator ended (status 1) before it took its bus name
+Traceback (most recent call last):
+  File "/usr/libexec/aresos-indicator", line 2, in <module>
+    raise RuntimeError("synthetic crash at startup")
+RuntimeError: synthetic crash at startup
+aresos-level: the indicator ended (status 1) before it took its bus name
+Traceback (most recent call last):
+  File "/usr/libexec/aresos-indicator", line 2, in <module>
+    raise RuntimeError("synthetic crash at startup")
+RuntimeError: synthetic crash at startup
+aresos-level: the indicator ended (status 1) before it took its bus name
+Traceback (most recent call last):
+  File "/usr/libexec/aresos-indicator", line 2, in <module>
+    raise RuntimeError("synthetic crash at startup")
+RuntimeError: synthetic crash at startup
+aresos-level: the indicator ended (status 1) before it took its bus name
+Traceback (most recent call last):
+  File "/usr/libexec/aresos-indicator", line 2, in <module>
+    raise RuntimeError("synthetic crash at startup")
+RuntimeError: synthetic crash at startup
+aresos-level: the indicator ended (status 1) before it took its bus name
+Traceback (most recent call last):
+  File "/usr/libexec/aresos-indicator", line 2, in <module>
+    raise RuntimeError("synthetic crash at startup")
+RuntimeError: synthetic crash at startup
+aresos-level: the indicator ended (status 1) before it took its bus name
+aresos-indicator: cannot start (Namespace Gtk4LayerShell not available)
+aresos-level: the indicator ended (status 1) before it took its bus name
+aresos-indicator: cannot start (Namespace Gtk4LayerShell not available)
+aresos-level: the indicator ended (status 1) before it took its bus name
+aresos-indicator: cannot start (Namespace Gtk4LayerShell not available)
+aresos-level: the indicator ended (status 1) before it took its bus name
+aresos-indicator: cannot start (Namespace Gtk4LayerShell not available)
+aresos-level: the indicator ended (status 1) before it took its bus name
+aresos-indicator: cannot start (Namespace Gtk4LayerShell not available)
+aresos-level: the indicator ended (status 1) before it took its bus name
+aresos-indicator: cannot start (Namespace Gtk4LayerShell not available)
+aresos-level: the indicator ended (status 1) before it took its bus name
+Xwayland glamor: GBM Wayland interfaces not available
+Failed to initialize glamor, falling back to sw
+The XKEYBOARD keymap compiler (xkbcomp) reports:
+> Warning:          Multiple symbols for level 1/group 1 on key <FK23>
+>                   Using F23, ignoring XF86TouchpadOff
+> Warning:          Symbol map for key <FK23> redefined
+>                   Using last definition for conflicting fields
+> Warning:          Symbol map for key <FK24> redefined
+>                   Using last definition for conflicting fields
+Errors from xkbcomp are not fatal to the X server
+The XKEYBOARD keymap compiler (xkbcomp) reports:
+> Warning:          Unsupported maximum keycode 709, clipping.
+>                   X11 cannot support keycodes above 255.
+> Warning:          Virtual modifier Hyper multiply defined
+>                   Using 0, ignoring 0
+> Warning:          Virtual modifier ScrollLock multiply defined
+>                   Using 0, ignoring 0
+Errors from xkbcomp are not fatal to the X server
+(EE) failed to read Wayland events: Broken pipe

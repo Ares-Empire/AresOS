@@ -17,8 +17,9 @@ public final class GatePicture {
      * The version of these rules. A standing logo records the version that drew it, so a logo drawn by older rules
      * is noticed and drawn again (HUB.md 2.5). Raise it with every change that can draw a different picture.
      * 2: a logo is built from its icon's main colours, one block each, plain blocks first (package 39).
+     * 3: dark neutral colours give more weight to matching chroma (package 327).
      */
-    public static final int CONVERTER = 2;
+    public static final int CONVERTER = 3;
     /** A pixel counts as visible from 12% opacity. */
     private static final double VISIBLE = 0.12;
     /**

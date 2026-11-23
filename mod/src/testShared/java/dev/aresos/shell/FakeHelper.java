@@ -17,8 +17,7 @@ import java.util.function.Function;
 
 /**
  * A scripted aresos-shell helper on a real Unix socket. It never starts anything; it counts launches. It speaks 1.0
- * by default, like the helper on the laptop today; with {@link #minor} 1 it speaks 1.1 (docs/design/HUB.md 3.8) to a
- * client that offers minor 1: pages, what the system knows about each program, and apps_changed.
+ * by default. Minor 1 adds catalogue details, paging and apps_changed. Minor 2 also accepts publish_home.
  *
  * It lives in its own source folder because the unit tests and the client game tests both use it (build.gradle).
  */
@@ -35,6 +34,15 @@ public final class FakeHelper implements AutoCloseable {
     public static final List<String> DETAIL_CAPABILITIES = List.of("app_details", "apps_changed", "list_paging");
     /** The helper's own minor version. The reply to hello names the lower of this and the client's. */
     public volatile int minor;
+    public volatile boolean offerHome = true;
+    /** An optional error code for an otherwise valid publish. */
+    public volatile String refuseHome;
+    public volatile boolean dropOnFirstHomePart;
+    public final List<String> invalidHome = new CopyOnWriteArrayList<>();
+    public final List<PublishedHome> homes = new CopyOnWriteArrayList<>();
+    public record PublishedHome(String revision, JsonObject palette, Map<String, JsonObject> apps) {
+        public PublishedHome { apps = Map.copyOf(apps); }
+    }
     /** What the helper lists, in this order. Entries may carry the 1.1 fields. */
     public volatile List<JsonObject> entries = List.of(entry("terminal", "Terminal", null),
             entry("notepad", "Notepad", null), entry("browser", "Chrome", "not_installed"));
@@ -113,12 +121,38 @@ public final class FakeHelper implements AutoCloseable {
 
     private void serve(SocketChannel channel) {
         try (var reader = new BufferedReader(new InputStreamReader(Channels.newInputStream(channel), StandardCharsets.UTF_8))) {
+            FakeHome publishing = null;
             String line;
             while ((line = reader.readLine()) != null) {
                 var message = JsonParser.parseString(line).getAsJsonObject();
                 received.add(message);
                 var reply = override.apply(message);
-                if (reply == null) reply = standard(channel, message);
+                if (reply == null && "publish_home".equals(string(message, "op"))) {
+                    try {
+                        if (negotiated.getOrDefault(channel, 0) < 2 || !offerHome)
+                            throw new IllegalArgumentException("publish_home was not negotiated");
+                        publishing = FakeHome.receive(publishing, message, line.getBytes(StandardCharsets.UTF_8).length + 1);
+                        if (dropOnFirstHomePart && !message.get("last").getAsBoolean()) {
+                            dropOnFirstHomePart = false;
+                            channel.close();
+                            return;
+                        }
+                        if (refuseHome != null) {
+                            publishing = null;
+                            reply = homeReply(message, refuseHome, "the test refused this home");
+                        } else {
+                            if (message.get("last").getAsBoolean()) {
+                                homes.add(publishing.published());
+                                publishing = null;
+                            }
+                            reply = homeReply(message, null, null);
+                        }
+                    } catch (IllegalArgumentException invalid) {
+                        invalidHome.add(invalid.getMessage());
+                        publishing = null;
+                        reply = homeReply(message, "malformed", invalid.getMessage());
+                    }
+                } else if (reply == null) reply = standard(channel, message);
                 if (reply != null) send(channel, reply);
                 if (stallFirstConnection && "list_apps".equals(string(message, "op"))) {
                     stallFirstConnection = false;
@@ -131,6 +165,17 @@ public final class FakeHelper implements AutoCloseable {
         } catch (InterruptedException stopped) {
             Thread.currentThread().interrupt();
         }
+    }
+
+    private static JsonObject homeReply(JsonObject request, String error, String message) {
+        var reply = new JsonObject();
+        reply.add("id", request.get("id"));
+        reply.addProperty("ok", error == null);
+        if (error != null) {
+            reply.addProperty("error", error);
+            reply.addProperty("message", message);
+        }
+        return reply;
     }
 
     private JsonObject standard(SocketChannel channel, JsonObject message) throws IOException {
@@ -148,6 +193,13 @@ public final class FakeHelper implements AutoCloseable {
                 var offered = new JsonArray();
                 capabilities.forEach(offered::add);
                 if (minor >= 1) DETAIL_CAPABILITIES.forEach(offered::add);
+                if (agreed >= 2) {
+                    offered.add("views");
+                    if (offerHome) offered.add("home_state");
+                    offered.add("apps_running");
+                    // It plays a helper with window tracking: shell_focus and windows are offered too.
+                    offered.add("shell_search");
+                }
                 reply.add("capabilities", offered);
             }
             case "list_apps" -> {

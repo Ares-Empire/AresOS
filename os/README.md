@@ -120,8 +120,30 @@ managed files in `/etc/claude-code/` (no `managed-mcp.json`), and
 The service's Chrome adapter starts from two files in
 `/usr/libexec/aresos-control/chrome/`: `qualification.json` (the shipped
 baseline) and `build-id.json`, the hash `control/chrome/build.py` computes over
-`control/` at image build. Chrome's browser side (extension, native host,
-policies, the excluded-sites list) and `gh` come with package 18c-b.
+`control/` before the build generates anything. Package 18c-b installs the
+native host beside those files, the uncached Chrome polkit action, and a
+policy-installed extension in `/usr/share/aresos/chrome/`. One packer call
+makes its CRX, policy, update manifest and host manifest under a fresh signing
+key which is discarded. The two Chrome entries in `/etc` are fixed links into
+that folder. Each build therefore has a different extension ID and signature;
+`control.json` records `chrome_build` and `chrome_extension`, and the checks
+bind the signed payload and rendered files to this checkout. Chrome shows a
+pinned AresOS Chrome button and marks the browser as managed. On the next
+start after an update or rollback, Chrome installs the booted image's helper.
+Profile continuity after replacement belongs to brief 28b's in-session
+confirmation.
+The image carries no excluded-sites list. At boot tmpfiles creates
+`/var/lib/aresos-control/chrome-excluded-sites.json` as a refused format-0
+placeholder; Chrome reads and actions stay refused until the owner writes
+his format-1 list. A later boot preserves the content and restores its
+root ownership, service group and 0640 mode. The qualification verifier's `gh`
+comes from `gh.lock.json`: exact RPM bytes and NEVRA, no scripts or triggers,
+and a header signature verified by the single committed GitHub CLI key.
+Only the pinned binary is extracted; its licence is committed with its hash.
+No gh RPM, repository, git dependency, completions or signing trust is installed.
+The packages step restores the RPM key list after both Chrome and gh imports;
+the image and checkout checks bind the binary and its `control.json` record to
+the reviewed lock. Resolve reports the latest gh release as information only.
 The config's owner UID and home come from `ares`'s `sysusers.d` line; the tools
 may use `~/Downloads` and `~/Documents`, which tmpfiles makes at boot when they
 are missing and leaves alone when they exist. `/usr/share/aresos/manifest/control.json`
@@ -129,6 +151,12 @@ records the commit, every installed file's mode and SHA-256, every wheel and
 every vendored file; `ci/image-checks.sh` holds the image to that record and
 `ci/check-image.sh` holds the record to the checkout (`build.sh control-tree`
 recomputes it). Claude Code itself is not in the image.
+
+In the booted release rehearsal, pass `ci/control/release_checks.py` to the
+image's `python3 -I` as root. It checks the merged Chrome links, extension ID
+and CRX signature, excluded-sites file metadata, pinned `gh`, and recorded
+polkit action. `CONTROL_CHROME_SITES_SHA256` reports the digest of the list
+without displaying any hosts, for comparison across the update and rollback.
 
 The `ares` account is UID 1001 and, since the owner's 2026-11-09 decision
 ("Like Windows", package 21), a member of `wheel` behind its own password. The

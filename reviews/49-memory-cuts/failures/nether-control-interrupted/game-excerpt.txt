@@ -1,0 +1,5 @@
+[04:10:38] [Render thread/INFO] (Minecraft) [System] [CHAT] pkg41 glide ticks: 1200
+X connection to :1 broken (explicit kill or server shutdown).
+> Task :runClient FAILED
+> Process 'command '<worktree>/.work/pkg49/rigs/v1-nether/jdk/bin/java'' finished with non-zero exit value 1
+BUILD FAILED in 9m 30s
