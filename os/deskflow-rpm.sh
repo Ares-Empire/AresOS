@@ -21,3 +21,35 @@ check_deskflow_rpm() {
     [[ $actual == "$deskflow_nevra" ]] || return 1
     printf '%s  %s\n' "$deskflow_sha256" "${files[0]}" | sha256sum -c -
 }
+
+resolve_deskflow_candidate() {
+    local mode=$1 dest=$2 match repo other
+    local -a exclude=()
+    shift 2
+    if [[ $mode == resolve ]]; then
+        deskflow_repos throwaway || return
+    fi
+    match=$(dnf5 "${fedora_repos[@]}" repoquery --available --qf '%{full_nevra} %{repoid}\n' "$deskflow_nevra") || return
+    case $match in
+        "$deskflow_nevra fedora"|"$deskflow_nevra updates"|"$deskflow_nevra updates-testing")
+            repo=${match##* }
+            ;;
+        *)
+            printf 'Cannot identify one Fedora repository for the reviewed Deskflow RPM: %s\n' "$match" >&2
+            return 1
+            ;;
+    esac
+    if [[ $mode == resolve-deskflow-stable && $repo != updates ]]; then
+        printf 'Deskflow requires Fedora stable updates, found %s\n' "$repo" >&2
+        return 1
+    fi
+    # Keep all dependency repositories, but make only the recorded one eligible to serve Deskflow.
+    for other in fedora updates updates-testing; do
+        if [[ $other != "$repo" ]]; then
+            exclude+=("--setopt=$other.excludepkgs=deskflow")
+        fi
+    done
+    dnf5 "${fedora_repos[@]}" "${exclude[@]}" download --resolve --destdir="$dest" "$@" "$deskflow_nevra" >&2 &&
+        check_deskflow_rpm "$dest" >&2 || return 1
+    printf 'DESKFLOW_RESOLVED repo=%s nevra=%s sha256=%s\n' "$repo" "$deskflow_nevra" "$deskflow_sha256"
+}
