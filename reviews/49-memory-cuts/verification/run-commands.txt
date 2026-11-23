@@ -1,0 +1,403 @@
+Launch/exit lines from the retry-wrapper logs; paths redacted, trailing whitespace trimmed.
+Measurement counts exclude refusals before a game starts. This ledger also includes the four full client/build qualifications.
+An interrupted launch has no final retry-wrapper exit line; its controller status is in failures/nether-control-interrupted/failure.json.
+
+arenas-1.txt
+2026-11-17T19:02:08+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh arenas-1 COVER=300 ENV=MALLOC_ARENA_MAX=2
+2026-11-17T19:12:03+01:00 attempt=0 exit=0
+
+arenas-2.txt
+2026-11-17T21:42:34+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh arenas-2 COVER=300 ENV=MALLOC_ARENA_MAX=2
+2026-11-17T21:52:30+01:00 attempt=0 exit=0
+
+client-tests-1.txt
+2026-11-17T16:25:26+01:00 attempt=0 command=mod/dev/client-test.sh --gpu nvidia --keep-screenshots <worktree>/.work/pkg49/test-shots-1 -I <worktree>/reviews/49-memory-cuts/rig/client-mods.gradle build
+2026-11-17T16:37:51+01:00 attempt=0 exit=0
+
+client-tests-2.txt
+2026-11-17T16:29:21+01:00 attempt=0 command=mod/dev/client-test.sh --gpu nvidia --keep-screenshots <worktree>/.work/pkg49/test-shots-2 -I <worktree>/reviews/49-memory-cuts/rig/client-mods.gradle build
+2026-11-17T16:29:21+01:00 attempt=0 exit=75
+2026-11-17T16:34:21+01:00 attempt=1 command=mod/dev/client-test.sh --gpu nvidia --keep-screenshots <worktree>/.work/pkg49/test-shots-2 -I <worktree>/reviews/49-memory-cuts/rig/client-mods.gradle build
+2026-11-17T16:34:22+01:00 attempt=1 exit=75
+2026-11-17T16:39:22+01:00 attempt=2 command=mod/dev/client-test.sh --gpu nvidia --keep-screenshots <worktree>/.work/pkg49/test-shots-2 -I <worktree>/reviews/49-memory-cuts/rig/client-mods.gradle build
+2026-11-17T16:50:39+01:00 attempt=2 exit=0
+
+client-tests-3-raw.txt
+2026-11-18T00:37:47+01:00 attempt=0 command=<worktree>/mod/dev/client-test.sh --gpu nvidia --keep-screenshots <worktree>/.work/pkg49/test-shots-3 -I <worktree>/reviews/49-memory-cuts/rig/client-mods.gradle build
+2026-11-18T00:51:29+01:00 attempt=0 exit=0
+
+client-tests-4-raw.txt
+2026-11-18T00:51:59+01:00 attempt=0 command=<worktree>/mod/dev/client-test.sh --gpu nvidia --keep-screenshots <worktree>/.work/pkg49/test-shots-4 -I <worktree>/reviews/49-memory-cuts/rig/client-mods.gradle build
+2026-11-18T01:05:26+01:00 attempt=0 exit=0
+
+coh-1.txt
+2026-11-17T17:38:43+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh coh-1 COVER=300 GC=-XX:MaxHeapFreeRatio=30\,-XX:MinHeapFreeRatio=10\,-XX:+UseCompactObjectHeaders
+2026-11-17T17:48:37+01:00 attempt=0 exit=0
+
+coh-2.txt
+2026-11-17T20:19:13+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh coh-2 COVER=300 GC=-XX:MaxHeapFreeRatio=30\,-XX:MinHeapFreeRatio=10\,-XX:+UseCompactObjectHeaders
+2026-11-17T20:29:09+01:00 attempt=0 exit=0
+
+cover-freeze-1.txt
+2026-11-17T23:26:48+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh cover-freeze-1 COVER=300 RECLAIM=600M FREEZE=1
+2026-11-17T23:36:18+01:00 attempt=0 exit=1
+
+cover-freeze-2.txt
+2026-11-17T23:43:00+01:00 attempt=0 command=reviews/49-memory-cuts/rig/run.sh cover-freeze-2 COVER=300 RECLAIM=600M FREEZE=1
+2026-11-17T23:52:31+01:00 attempt=0 exit=1
+
+cover-gc-1.txt
+2026-11-17T22:55:33+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh cover-gc-1 COVER=300 COVER_ACTION=gc-trim
+2026-11-17T23:05:28+01:00 attempt=0 exit=0
+
+cover-gc-2.txt
+2026-11-18T00:14:23+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh cover-gc-2 COVER=300 COVER_ACTION=gc-trim
+2026-11-18T00:24:18+01:00 attempt=0 exit=0
+
+cover-none-1.txt
+2026-11-17T22:45:08+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh cover-none-1 COVER=300
+2026-11-17T22:55:03+01:00 attempt=0 exit=0
+
+cover-none-2.txt
+2026-11-18T00:24:48+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh cover-none-2 COVER=300
+2026-11-18T00:34:44+01:00 attempt=0 exit=0
+
+cover-r300-1.txt
+2026-11-17T23:05:58+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh cover-r300-1 COVER=300 RECLAIM=300M
+2026-11-17T23:15:53+01:00 attempt=0 exit=0
+
+cover-r300-2.txt
+2026-11-18T00:03:58+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh cover-r300-2 COVER=300 RECLAIM=300M
+2026-11-18T00:13:53+01:00 attempt=0 exit=0
+
+cover-r600-1.txt
+2026-11-17T23:16:23+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh cover-r600-1 COVER=300 RECLAIM=600M
+2026-11-17T23:26:18+01:00 attempt=0 exit=0
+
+cover-r600-2.txt
+2026-11-17T23:53:32+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh cover-r600-2 COVER=300 RECLAIM=600M
+2026-11-18T00:03:28+01:00 attempt=0 exit=0
+
+dedup-1.txt
+2026-11-17T17:59:33+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh dedup-1 COVER=300 GC=-XX:MaxHeapFreeRatio=30\,-XX:MinHeapFreeRatio=10\,-XX:+UseCompactObjectHeaders\,-XX:+UseStringDeduplication
+2026-11-17T18:09:29+01:00 attempt=0 exit=0
+
+dedup-2.txt
+2026-11-17T20:40:04+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh dedup-2 COVER=300 GC=-XX:MaxHeapFreeRatio=30\,-XX:MinHeapFreeRatio=10\,-XX:+UseCompactObjectHeaders\,-XX:+UseStringDeduplication
+2026-11-17T20:49:59+01:00 attempt=0 exit=0
+
+ferrite-1-input-race.txt
+2026-11-17T19:43:50+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh ferrite-1 COVER=300 MODS=<worktree>/.work/pkg49/downloads/ferritecore-9.0.0-fabric.jar
+2026-11-17T19:53:20+01:00 attempt=0 exit=1
+
+ferrite-1.txt
+2026-11-17T20:08:48+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh ferrite-1 COVER=300 MODS=<worktree>/.work/pkg49/downloads/ferritecore-9.0.0-fabric.jar
+2026-11-17T20:18:43+01:00 attempt=0 exit=0
+
+ferrite-2.txt
+2026-11-17T22:24:18+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh ferrite-2 COVER=300 MODS=<worktree>/.work/pkg49/downloads/ferritecore-9.0.0-fabric.jar
+2026-11-17T22:34:13+01:00 attempt=0 exit=0
+
+run-commands-draft.txt
+2026-11-17T19:02:08+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh arenas-1 COVER=300 ENV=MALLOC_ARENA_MAX=2
+2026-11-17T19:12:03+01:00 attempt=0 exit=0
+2026-11-17T21:42:34+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh arenas-2 COVER=300 ENV=MALLOC_ARENA_MAX=2
+2026-11-17T21:52:30+01:00 attempt=0 exit=0
+2026-11-17T16:25:26+01:00 attempt=0 command=mod/dev/client-test.sh --gpu nvidia --keep-screenshots <worktree>/.work/pkg49/test-shots-1 -I <worktree>/reviews/49-memory-cuts/rig/client-mods.gradle build
+2026-11-17T16:37:51+01:00 attempt=0 exit=0
+2026-11-17T16:29:21+01:00 attempt=0 command=mod/dev/client-test.sh --gpu nvidia --keep-screenshots <worktree>/.work/pkg49/test-shots-2 -I <worktree>/reviews/49-memory-cuts/rig/client-mods.gradle build
+2026-11-17T16:29:21+01:00 attempt=0 exit=75
+2026-11-17T16:34:21+01:00 attempt=1 command=mod/dev/client-test.sh --gpu nvidia --keep-screenshots <worktree>/.work/pkg49/test-shots-2 -I <worktree>/reviews/49-memory-cuts/rig/client-mods.gradle build
+2026-11-17T16:34:22+01:00 attempt=1 exit=75
+2026-11-17T16:39:22+01:00 attempt=2 command=mod/dev/client-test.sh --gpu nvidia --keep-screenshots <worktree>/.work/pkg49/test-shots-2 -I <worktree>/reviews/49-memory-cuts/rig/client-mods.gradle build
+2026-11-17T16:50:39+01:00 attempt=2 exit=0
+2026-11-18T00:37:47+01:00 attempt=0 command=<worktree>/mod/dev/client-test.sh --gpu nvidia --keep-screenshots <worktree>/.work/pkg49/test-shots-3 -I <worktree>/reviews/49-memory-cuts/rig/client-mods.gradle build
+2026-11-18T00:51:29+01:00 attempt=0 exit=0
+2026-11-18T00:51:59+01:00 attempt=0 command=<worktree>/mod/dev/client-test.sh --gpu nvidia --keep-screenshots <worktree>/.work/pkg49/test-shots-4 -I <worktree>/reviews/49-memory-cuts/rig/client-mods.gradle build
+2026-11-18T01:05:26+01:00 attempt=0 exit=0
+2026-11-17T17:38:43+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh coh-1 COVER=300 GC=-XX:MaxHeapFreeRatio=30\,-XX:MinHeapFreeRatio=10\,-XX:+UseCompactObjectHeaders
+2026-11-17T17:48:37+01:00 attempt=0 exit=0
+2026-11-17T20:19:13+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh coh-2 COVER=300 GC=-XX:MaxHeapFreeRatio=30\,-XX:MinHeapFreeRatio=10\,-XX:+UseCompactObjectHeaders
+2026-11-17T20:29:09+01:00 attempt=0 exit=0
+2026-11-17T23:26:48+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh cover-freeze-1 COVER=300 RECLAIM=600M FREEZE=1
+2026-11-17T23:36:18+01:00 attempt=0 exit=1
+2026-11-17T23:43:00+01:00 attempt=0 command=reviews/49-memory-cuts/rig/run.sh cover-freeze-2 COVER=300 RECLAIM=600M FREEZE=1
+2026-11-17T23:52:31+01:00 attempt=0 exit=1
+2026-11-17T22:55:33+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh cover-gc-1 COVER=300 COVER_ACTION=gc-trim
+2026-11-17T23:05:28+01:00 attempt=0 exit=0
+2026-11-18T00:14:23+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh cover-gc-2 COVER=300 COVER_ACTION=gc-trim
+2026-11-18T00:24:18+01:00 attempt=0 exit=0
+2026-11-17T22:45:08+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh cover-none-1 COVER=300
+2026-11-17T22:55:03+01:00 attempt=0 exit=0
+2026-11-18T00:24:48+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh cover-none-2 COVER=300
+2026-11-18T00:34:44+01:00 attempt=0 exit=0
+2026-11-17T23:05:58+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh cover-r300-1 COVER=300 RECLAIM=300M
+2026-11-17T23:15:53+01:00 attempt=0 exit=0
+2026-11-18T00:03:58+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh cover-r300-2 COVER=300 RECLAIM=300M
+2026-11-18T00:13:53+01:00 attempt=0 exit=0
+2026-11-17T23:16:23+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh cover-r600-1 COVER=300 RECLAIM=600M
+2026-11-17T23:26:18+01:00 attempt=0 exit=0
+2026-11-17T23:53:32+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh cover-r600-2 COVER=300 RECLAIM=600M
+2026-11-18T00:03:28+01:00 attempt=0 exit=0
+2026-11-17T17:59:33+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh dedup-1 COVER=300 GC=-XX:MaxHeapFreeRatio=30\,-XX:MinHeapFreeRatio=10\,-XX:+UseCompactObjectHeaders\,-XX:+UseStringDeduplication
+2026-11-17T18:09:29+01:00 attempt=0 exit=0
+2026-11-17T20:40:04+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh dedup-2 COVER=300 GC=-XX:MaxHeapFreeRatio=30\,-XX:MinHeapFreeRatio=10\,-XX:+UseCompactObjectHeaders\,-XX:+UseStringDeduplication
+2026-11-17T20:49:59+01:00 attempt=0 exit=0
+2026-11-17T19:43:50+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh ferrite-1 COVER=300 MODS=<worktree>/.work/pkg49/downloads/ferritecore-9.0.0-fabric.jar
+2026-11-17T19:53:20+01:00 attempt=0 exit=1
+2026-11-17T20:08:48+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh ferrite-1 COVER=300 MODS=<worktree>/.work/pkg49/downloads/ferritecore-9.0.0-fabric.jar
+2026-11-17T20:18:43+01:00 attempt=0 exit=0
+2026-11-17T22:24:18+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh ferrite-2 COVER=300 MODS=<worktree>/.work/pkg49/downloads/ferritecore-9.0.0-fabric.jar
+2026-11-17T22:34:13+01:00 attempt=0 exit=0
+2026-11-17T17:02:55+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh s0-long COVER=300 LONG=20 FLIGHT=none COVER=0
+2026-11-17T17:26:39+01:00 attempt=0 exit=0
+2026-11-17T16:52:28+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh s0-probe COVER=300 PROBE=1
+2026-11-17T17:02:25+01:00 attempt=0 exit=0
+2026-11-17T16:29:37+01:00 attempt=0 command=reviews/49-memory-cuts/rig/run.sh setup-flat MODE=create HOMEKIND=flat FLIGHT=none SETTLE=30 WINDOW=6 SHOTS=1 QUIT=1
+2026-11-17T16:29:37+01:00 attempt=0 exit=75
+2026-11-17T16:34:37+01:00 attempt=1 command=reviews/49-memory-cuts/rig/run.sh setup-flat MODE=create HOMEKIND=flat FLIGHT=none SETTLE=30 WINDOW=6 SHOTS=1 QUIT=1
+2026-11-17T16:34:37+01:00 attempt=1 exit=75
+2026-11-17T16:39:37+01:00 attempt=2 command=reviews/49-memory-cuts/rig/run.sh setup-flat MODE=create HOMEKIND=flat FLIGHT=none SETTLE=30 WINDOW=6 SHOTS=1 QUIT=1
+2026-11-17T16:52:27+01:00 attempt=2 exit=0
+2026-11-18T01:27:43+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh setup-nether COVER=300 GC=-XX:MaxHeapFreeRatio=30\,-XX:MinHeapFreeRatio=10\,-XX:+UseCompactObjectHeaders\,-XX:TrimNativeHeapInterval=60000 ENV=MALLOC_ARENA_MAX=2 MODE=create HOMEKIND=nether CREATE_FLOW=menu FLIGHT=none QUIT=1
+2026-11-18T01:36:44+01:00 attempt=0 exit=0
+2026-11-17T18:41:17+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh system-1 COVER=300 GC=-XX:MaxHeapFreeRatio=30\,-XX:MinHeapFreeRatio=10\,-XX:TrimNativeHeapInterval=60000\,-Dorg.lwjgl.system.allocator=system
+2026-11-17T18:51:13+01:00 attempt=0 exit=0
+2026-11-17T21:21:44+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh system-2 COVER=300 GC=-XX:MaxHeapFreeRatio=30\,-XX:MinHeapFreeRatio=10\,-XX:TrimNativeHeapInterval=60000\,-Dorg.lwjgl.system.allocator=system
+2026-11-17T21:31:39+01:00 attempt=0 exit=0
+2026-11-17T19:22:57+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh threads-1 COVER=300 GC=-XX:MaxHeapFreeRatio=30\,-XX:MinHeapFreeRatio=10\,-XX:ParallelGCThreads=4\,-XX:ConcGCThreads=1\,-Dmax.bg.threads=4
+2026-11-17T19:32:54+01:00 attempt=0 exit=0
+2026-11-17T22:03:28+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh threads-2 COVER=300 GC=-XX:MaxHeapFreeRatio=30\,-XX:MinHeapFreeRatio=10\,-XX:ParallelGCThreads=4\,-XX:ConcGCThreads=1\,-Dmax.bg.threads=4
+2026-11-17T22:13:23+01:00 attempt=0 exit=0
+2026-11-17T18:20:26+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh trim-1 COVER=300 GC=-XX:MaxHeapFreeRatio=30\,-XX:MinHeapFreeRatio=10\,-XX:TrimNativeHeapInterval=60000
+2026-11-17T18:30:21+01:00 attempt=0 exit=0
+2026-11-17T21:00:54+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh trim-2 COVER=300 GC=-XX:MaxHeapFreeRatio=30\,-XX:MinHeapFreeRatio=10\,-XX:TrimNativeHeapInterval=60000
+2026-11-17T21:10:49+01:00 attempt=0 exit=0
+2026-11-17T18:51:43+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-arenas-1 COVER=300
+2026-11-17T19:01:38+01:00 attempt=0 exit=0
+2026-11-17T21:53:00+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-arenas-2 COVER=300
+2026-11-17T22:02:58+01:00 attempt=0 exit=0
+2026-11-17T17:28:17+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-coh-1 COVER=300
+2026-11-17T17:38:13+01:00 attempt=0 exit=0
+2026-11-17T20:29:39+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-coh-2 COVER=300
+2026-11-17T20:39:34+01:00 attempt=0 exit=0
+2026-11-18T01:06:46+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-create COVER=300 MODE=create HOMEKIND=flat CREATE_FLOW=automatic QUIT=1
+2026-11-18T01:16:45+01:00 attempt=0 exit=0
+2026-11-18T01:39:02+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-create COVER=300 MODE=create HOMEKIND=flat CREATE_FLOW=automatic QUIT=1
+2026-11-18T01:49:00+01:00 attempt=0 exit=0
+2026-11-17T17:49:07+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-dedup-1 COVER=300
+2026-11-17T17:59:03+01:00 attempt=0 exit=0
+2026-11-17T20:50:29+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-dedup-2 COVER=300
+2026-11-17T21:00:24+01:00 attempt=0 exit=0
+2026-11-17T19:33:24+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-ferrite-1 COVER=300
+2026-11-17T19:43:20+01:00 attempt=0 exit=0
+2026-11-17T19:58:24+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-ferrite-1 COVER=300
+2026-11-17T20:08:18+01:00 attempt=0 exit=0
+2026-11-17T22:34:43+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-ferrite-2 COVER=300
+2026-11-17T22:44:38+01:00 attempt=0 exit=0
+2026-11-18T01:59:58+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-flat-1 COVER=300
+2026-11-18T02:09:55+01:00 attempt=0 exit=0
+2026-11-17T18:30:51+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-system-1 COVER=300
+2026-11-17T18:40:47+01:00 attempt=0 exit=0
+2026-11-17T21:32:09+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-system-2 COVER=300
+2026-11-17T21:42:04+01:00 attempt=0 exit=0
+2026-11-17T19:12:33+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-threads-1 COVER=300
+2026-11-17T19:22:27+01:00 attempt=0 exit=0
+2026-11-17T22:13:53+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-threads-2 COVER=300
+2026-11-17T22:23:48+01:00 attempt=0 exit=0
+2026-11-17T18:09:59+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-trim-1 COVER=300
+2026-11-17T18:19:56+01:00 attempt=0 exit=0
+2026-11-17T21:11:19+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-trim-2 COVER=300
+2026-11-17T21:21:14+01:00 attempt=0 exit=0
+2026-11-18T01:17:15+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh winner-create COVER=300 GC=-XX:MaxHeapFreeRatio=30\,-XX:MinHeapFreeRatio=10\,-XX:+UseCompactObjectHeaders\,-XX:TrimNativeHeapInterval=60000 ENV=MALLOC_ARENA_MAX=2 MODE=create HOMEKIND=flat CREATE_FLOW=automatic QUIT=1
+2026-11-18T01:27:13+01:00 attempt=0 exit=0
+2026-11-18T01:49:30+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh winner-create COVER=300 GC=-XX:MaxHeapFreeRatio=30\,-XX:MinHeapFreeRatio=10\,-XX:TrimNativeHeapInterval=60000 ENV=MALLOC_ARENA_MAX=2 MODE=create HOMEKIND=flat CREATE_FLOW=automatic QUIT=1
+2026-11-18T01:59:28+01:00 attempt=0 exit=0
+2026-11-18T02:10:25+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh winner-flat-1 COVER=300 GC=-XX:MaxHeapFreeRatio=30\,-XX:MinHeapFreeRatio=10\,-XX:TrimNativeHeapInterval=60000 ENV=MALLOC_ARENA_MAX=2
+
+s0-long.txt
+2026-11-17T17:02:55+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh s0-long COVER=300 LONG=20 FLIGHT=none COVER=0
+2026-11-17T17:26:39+01:00 attempt=0 exit=0
+
+s0-probe.txt
+2026-11-17T16:52:28+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh s0-probe COVER=300 PROBE=1
+2026-11-17T17:02:25+01:00 attempt=0 exit=0
+
+setup-flat.txt
+2026-11-17T16:29:37+01:00 attempt=0 command=reviews/49-memory-cuts/rig/run.sh setup-flat MODE=create HOMEKIND=flat FLIGHT=none SETTLE=30 WINDOW=6 SHOTS=1 QUIT=1
+2026-11-17T16:29:37+01:00 attempt=0 exit=75
+2026-11-17T16:34:37+01:00 attempt=1 command=reviews/49-memory-cuts/rig/run.sh setup-flat MODE=create HOMEKIND=flat FLIGHT=none SETTLE=30 WINDOW=6 SHOTS=1 QUIT=1
+2026-11-17T16:34:37+01:00 attempt=1 exit=75
+2026-11-17T16:39:37+01:00 attempt=2 command=reviews/49-memory-cuts/rig/run.sh setup-flat MODE=create HOMEKIND=flat FLIGHT=none SETTLE=30 WINDOW=6 SHOTS=1 QUIT=1
+2026-11-17T16:52:27+01:00 attempt=2 exit=0
+
+setup-nether.txt
+2026-11-18T01:27:43+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh setup-nether COVER=300 GC=-XX:MaxHeapFreeRatio=30\,-XX:MinHeapFreeRatio=10\,-XX:+UseCompactObjectHeaders\,-XX:TrimNativeHeapInterval=60000 ENV=MALLOC_ARENA_MAX=2 MODE=create HOMEKIND=nether CREATE_FLOW=menu FLIGHT=none QUIT=1
+2026-11-18T01:36:44+01:00 attempt=0 exit=0
+
+system-1.txt
+2026-11-17T18:41:17+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh system-1 COVER=300 GC=-XX:MaxHeapFreeRatio=30\,-XX:MinHeapFreeRatio=10\,-XX:TrimNativeHeapInterval=60000\,-Dorg.lwjgl.system.allocator=system
+2026-11-17T18:51:13+01:00 attempt=0 exit=0
+
+system-2.txt
+2026-11-17T21:21:44+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh system-2 COVER=300 GC=-XX:MaxHeapFreeRatio=30\,-XX:MinHeapFreeRatio=10\,-XX:TrimNativeHeapInterval=60000\,-Dorg.lwjgl.system.allocator=system
+2026-11-17T21:31:39+01:00 attempt=0 exit=0
+
+threads-1.txt
+2026-11-17T19:22:57+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh threads-1 COVER=300 GC=-XX:MaxHeapFreeRatio=30\,-XX:MinHeapFreeRatio=10\,-XX:ParallelGCThreads=4\,-XX:ConcGCThreads=1\,-Dmax.bg.threads=4
+2026-11-17T19:32:54+01:00 attempt=0 exit=0
+
+threads-2.txt
+2026-11-17T22:03:28+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh threads-2 COVER=300 GC=-XX:MaxHeapFreeRatio=30\,-XX:MinHeapFreeRatio=10\,-XX:ParallelGCThreads=4\,-XX:ConcGCThreads=1\,-Dmax.bg.threads=4
+2026-11-17T22:13:23+01:00 attempt=0 exit=0
+
+trim-1.txt
+2026-11-17T18:20:26+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh trim-1 COVER=300 GC=-XX:MaxHeapFreeRatio=30\,-XX:MinHeapFreeRatio=10\,-XX:TrimNativeHeapInterval=60000
+2026-11-17T18:30:21+01:00 attempt=0 exit=0
+
+trim-2.txt
+2026-11-17T21:00:54+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh trim-2 COVER=300 GC=-XX:MaxHeapFreeRatio=30\,-XX:MinHeapFreeRatio=10\,-XX:TrimNativeHeapInterval=60000
+2026-11-17T21:10:49+01:00 attempt=0 exit=0
+
+v1-arenas-1.txt
+2026-11-17T18:51:43+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-arenas-1 COVER=300
+2026-11-17T19:01:38+01:00 attempt=0 exit=0
+
+v1-arenas-2.txt
+2026-11-17T21:53:00+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-arenas-2 COVER=300
+2026-11-17T22:02:58+01:00 attempt=0 exit=0
+
+v1-coh-1.txt
+2026-11-17T17:28:17+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-coh-1 COVER=300
+2026-11-17T17:38:13+01:00 attempt=0 exit=0
+
+v1-coh-2.txt
+2026-11-17T20:29:39+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-coh-2 COVER=300
+2026-11-17T20:39:34+01:00 attempt=0 exit=0
+
+v1-create-rejected-headers.txt
+2026-11-18T01:06:46+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-create COVER=300 MODE=create HOMEKIND=flat CREATE_FLOW=automatic QUIT=1
+2026-11-18T01:16:45+01:00 attempt=0 exit=0
+
+v1-create-rejected-native-interval.txt
+2026-11-18T01:39:02+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-create COVER=300 MODE=create HOMEKIND=flat CREATE_FLOW=automatic QUIT=1
+2026-11-18T01:49:00+01:00 attempt=0 exit=0
+
+v1-create.txt
+2026-11-18T02:42:39+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-create COVER=300 MODE=create HOMEKIND=flat CREATE_FLOW=automatic QUIT=1
+2026-11-18T02:52:36+01:00 attempt=0 exit=0
+
+v1-dedup-1.txt
+2026-11-17T17:49:07+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-dedup-1 COVER=300
+2026-11-17T17:59:03+01:00 attempt=0 exit=0
+
+v1-dedup-2.txt
+2026-11-17T20:50:29+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-dedup-2 COVER=300
+2026-11-17T21:00:24+01:00 attempt=0 exit=0
+
+v1-ferrite-1-prior-input-race.txt
+2026-11-17T19:33:24+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-ferrite-1 COVER=300
+2026-11-17T19:43:20+01:00 attempt=0 exit=0
+
+v1-ferrite-1.txt
+2026-11-17T19:58:24+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-ferrite-1 COVER=300
+2026-11-17T20:08:18+01:00 attempt=0 exit=0
+
+v1-ferrite-2.txt
+2026-11-17T22:34:43+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-ferrite-2 COVER=300
+2026-11-17T22:44:38+01:00 attempt=0 exit=0
+
+v1-flat-1-rejected-native-interval.txt
+2026-11-18T01:59:58+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-flat-1 COVER=300
+2026-11-18T02:09:55+01:00 attempt=0 exit=0
+
+v1-flat-1.txt
+2026-11-18T03:03:35+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-flat-1 COVER=300
+2026-11-18T03:13:31+01:00 attempt=0 exit=0
+
+v1-flat-2-rejected-native-interval.txt
+2026-11-18T02:31:27+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-flat-2 COVER=300
+2026-11-18T02:41:22+01:00 attempt=0 exit=0
+
+v1-flat-2.txt
+2026-11-18T03:34:53+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-flat-2 COVER=300
+2026-11-18T03:44:48+01:00 attempt=0 exit=0
+
+v1-flat-3.txt
+2026-11-18T03:45:18+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-flat-3 COVER=300
+2026-11-18T03:55:14+01:00 attempt=0 exit=0
+
+v1-nether-interrupted.txt
+2026-11-18T04:06:09+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-nether COVER=300 BASE=AresHub-nether-base HOMEKIND=nether FLIGHT=glide
+
+v1-nether.txt
+2026-11-18T04:22:07+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-nether COVER=300 BASE=AresHub-nether-base HOMEKIND=nether FLIGHT=glide
+2026-11-18T04:32:06+01:00 attempt=0 exit=0
+
+v1-system-1.txt
+2026-11-17T18:30:51+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-system-1 COVER=300
+2026-11-17T18:40:47+01:00 attempt=0 exit=0
+
+v1-system-2.txt
+2026-11-17T21:32:09+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-system-2 COVER=300
+2026-11-17T21:42:04+01:00 attempt=0 exit=0
+
+v1-threads-1.txt
+2026-11-17T19:12:33+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-threads-1 COVER=300
+2026-11-17T19:22:27+01:00 attempt=0 exit=0
+
+v1-threads-2.txt
+2026-11-17T22:13:53+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-threads-2 COVER=300
+2026-11-17T22:23:48+01:00 attempt=0 exit=0
+
+v1-trim-1.txt
+2026-11-17T18:09:59+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-trim-1 COVER=300
+2026-11-17T18:19:56+01:00 attempt=0 exit=0
+
+v1-trim-2.txt
+2026-11-17T21:11:19+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh v1-trim-2 COVER=300
+2026-11-17T21:21:14+01:00 attempt=0 exit=0
+
+winner-create-rejected-headers.txt
+2026-11-18T01:17:15+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh winner-create COVER=300 GC=-XX:MaxHeapFreeRatio=30\,-XX:MinHeapFreeRatio=10\,-XX:+UseCompactObjectHeaders\,-XX:TrimNativeHeapInterval=60000 ENV=MALLOC_ARENA_MAX=2 MODE=create HOMEKIND=flat CREATE_FLOW=automatic QUIT=1
+2026-11-18T01:27:13+01:00 attempt=0 exit=0
+
+winner-create-rejected-native-interval.txt
+2026-11-18T01:49:30+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh winner-create COVER=300 GC=-XX:MaxHeapFreeRatio=30\,-XX:MinHeapFreeRatio=10\,-XX:TrimNativeHeapInterval=60000 ENV=MALLOC_ARENA_MAX=2 MODE=create HOMEKIND=flat CREATE_FLOW=automatic QUIT=1
+2026-11-18T01:59:28+01:00 attempt=0 exit=0
+
+winner-create.txt
+2026-11-18T02:53:06+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh winner-create COVER=300 GC=-XX:MaxHeapFreeRatio=30\,-XX:MinHeapFreeRatio=10 ENV=MALLOC_ARENA_MAX=2 MODE=create HOMEKIND=flat CREATE_FLOW=automatic QUIT=1
+2026-11-18T03:03:05+01:00 attempt=0 exit=0
+
+winner-flat-1-rejected-native-interval.txt
+2026-11-18T02:10:25+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh winner-flat-1 COVER=300 GC=-XX:MaxHeapFreeRatio=30\,-XX:MinHeapFreeRatio=10\,-XX:TrimNativeHeapInterval=60000 ENV=MALLOC_ARENA_MAX=2
+2026-11-18T02:20:32+01:00 attempt=0 exit=0
+
+winner-flat-1.txt
+2026-11-18T03:14:01+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh winner-flat-1 COVER=300 GC=-XX:MaxHeapFreeRatio=30\,-XX:MinHeapFreeRatio=10 ENV=MALLOC_ARENA_MAX=2
+2026-11-18T03:23:57+01:00 attempt=0 exit=0
+
+winner-flat-2-rejected-native-interval.txt
+2026-11-18T02:21:02+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh winner-flat-2 COVER=300 GC=-XX:MaxHeapFreeRatio=30\,-XX:MinHeapFreeRatio=10\,-XX:TrimNativeHeapInterval=60000 ENV=MALLOC_ARENA_MAX=2
+2026-11-18T02:30:57+01:00 attempt=0 exit=0
+
+winner-flat-2.txt
+2026-11-18T03:24:27+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh winner-flat-2 COVER=300 GC=-XX:MaxHeapFreeRatio=30\,-XX:MinHeapFreeRatio=10 ENV=MALLOC_ARENA_MAX=2
+2026-11-18T03:34:23+01:00 attempt=0 exit=0
+
+winner-flat-3.txt
+2026-11-18T03:55:44+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh winner-flat-3 COVER=300 GC=-XX:MaxHeapFreeRatio=30\,-XX:MinHeapFreeRatio=10 ENV=MALLOC_ARENA_MAX=2
+2026-11-18T04:05:38+01:00 attempt=0 exit=0
+
+winner-long.txt
+2026-11-18T04:43:05+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh winner-long COVER=300 GC=-XX:MaxHeapFreeRatio=30\,-XX:MinHeapFreeRatio=10 ENV=MALLOC_ARENA_MAX=2 LONG=20 COVER=0 FLIGHT=none
+2026-11-18T05:06:50+01:00 attempt=0 exit=0
+
+winner-nether.txt
+2026-11-18T04:32:36+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh winner-nether COVER=300 GC=-XX:MaxHeapFreeRatio=30\,-XX:MinHeapFreeRatio=10 ENV=MALLOC_ARENA_MAX=2 BASE=AresHub-nether-base HOMEKIND=nether FLIGHT=glide
+2026-11-18T04:42:35+01:00 attempt=0 exit=0
+
+winner-nmt0.txt
+2026-11-18T05:07:20+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh winner-nmt0 COVER=300 GC=-XX:MaxHeapFreeRatio=30\,-XX:MinHeapFreeRatio=10 ENV=MALLOC_ARENA_MAX=2 NMT=0
+2026-11-18T05:17:14+01:00 attempt=0 exit=0

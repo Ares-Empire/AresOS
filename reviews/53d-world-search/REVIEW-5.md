@@ -1,0 +1,11 @@
+PR #121 at `80610929` preserves the behavior of 56, 53c/53f, and 53d. The rebase introduces no blocking findings under decision 24.
+
+- The helper still uses `conn.focus_reported` to send existing background focus after hello. The `view_focus` gate and foreground bookkeeping remain intact. `SearchSignal.install()` is still the first action in `main()`, and the `shell_search` handoff and timer match the reviewed code. [Focus reporting](os/config/usr/libexec/aresos-shell:3893) · [View gate](os/config/usr/libexec/aresos-shell:4251) · [Search handoff](os/config/usr/libexec/aresos-shell:4199) · [Startup](os/config/usr/libexec/aresos-shell:4574)
+- `ShellFocusClient` retains `status()` and `search()`. Both launch paths use the same four-argument method. Pointer launches pass `worldScreen=false` and retain their callback. Search launches pass `opened=null`. Both Gradle property sets and both sides’ mixins are present, and the world-search client test remains last. [Focus client](mod/src/client/java/dev/aresos/client/ShellFocusClient.java:32) · [Launch paths](mod/src/client/java/dev/aresos/client/AresOsClient.java:135) · [Gradle](mod/build.gradle:121) · [Mixins](mod/src/client/resources/aresos.client.mixins.json:5) · [Test order](mod/src/gametest/resources/fabric.mod.json:49)
+- The helper test’s fake socket returns the byte count and retains its assertions. The appended client test checks both event orders, verifies that Escape leaves yaw and pitch unchanged, and checks when the world recaptures the mouse. All four renumbered screenshots are byte-identical. [Helper test](os/tests/test_aresos_shell_views.py:714) · [Client test](mod/src/gametest/java/dev/aresos/test/WorldSearchClientGameTest.java:625)
+
+**Verification.** The diff and range-diff checks passed. The permitted helper test run hit 396 setup errors because the read-only sandbox had no writable temporary directory. The builder reports 396 passes on the final base and two client-suite passes before the conflict-free second rebase. [Run results](reviews/53d-world-search/REBASE.md:95)
+
+**Known limits.** If labwc keeps the laptop home and world both marked active, Super can time out. The fake-helper client test leaves real two-screen focus behavior unverified. [Known limits](reviews/53d-world-search/REBASE.md:123)
+
+SAFE

@@ -6,6 +6,7 @@ import io
 import json
 import pathlib
 import re
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -151,19 +152,23 @@ def check_rehearsed_rows(status, waiting, active, result_of, payload):
 
 class CheckoutSourcesTest(unittest.TestCase):
     def test_current_receipts_agree_and_package14_stays_historical(self):
-        # Each VM rehearsal rebinds the tables of the one before it (27 after 16,
-        # 22c after 27); until it records them, the earlier ones stay current.
-        package=next(p for p in ('22c','27','16') if (ROOT/'os/manifest/ci'/p/'source-bindings.json').exists())
-        folder=ROOT/'os/manifest/ci'/package
-        walk=json.loads((folder/'host-walk.json').read_text())
-        record=json.loads((folder/'source-bindings.json').read_text())
-        self.assertEqual(record['package'],package)
+        # The qualified walk stays in Git even when the worktree's host receipt is refreshed.
+        record = active_record(ROOT)
+        package = record['package']
+        walk_path = f'os/manifest/ci/{package}/host-walk.json'
+        # A squash-merged package's own commit (22d's 89bc0658) is in no branch a CI checkout fetches: there the
+        # receipt comes from the tree. Wherever the commit is present (the laptop's suite) it is read from Git.
+        present = 'commit' in record and subprocess.run(
+            ['git', 'cat-file', '-e', f"{record['commit']}:{walk_path}"], cwd=ROOT, capture_output=True).returncode == 0
+        raw = (subprocess.check_output(['git', 'show', f"{record['commit']}:{walk_path}"], cwd=ROOT)
+               if present else (ROOT / walk_path).read_bytes())
+        walk = json.loads(raw)
         self.assertEqual(walk['status'],'passed')
         self.assertFalse(walk['stick_across_reboot'])
         self.assertEqual(walk['sources'],record['tables'][0]['sources'])
         self.assertIn('os/tests/test_owner_staged_release.py',{row['path'] for row in walk['sources']})
         if package!='16':
-            earlier={'27':'16','22c':'27'}[package]
+            earlier = {'27': '16', '22c': '27', '22d': '22c', '42': '22d'}[package]
             old=json.loads((ROOT/'os/manifest/ci'/earlier/'source-bindings.json').read_text())
             self.assertEqual([t['name'].replace('package'+earlier,'package'+package) for t in old['tables'][1:]],
                              [t['name'] for t in record['tables'][1:]])
@@ -176,6 +181,50 @@ class CheckoutSourcesTest(unittest.TestCase):
         legacy=json.loads((ROOT/'os/manifest/ci/14/host-walk/result.json').read_text())
         self.assertNotEqual(walk['sources'],legacy['sources'])
         self.assertTrue(legacy['current_verification'].startswith('os/manifest/ci/14/'))
+
+    def test_release28_record_activates_qualified_tables_and_clears_waiting(self):
+        def write(path, value):
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(value))
+
+        with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as temporary:
+            root = pathlib.Path(temporary)
+            ci = root / 'os/manifest/ci'
+            (root / '.gitattributes').write_text('* text=auto eol=lf\n')
+            guide = root / 'guide.md'
+            guide.write_text('earlier guide\n')
+            prior = checkout.records(root, ['guide.md'])
+            write(ci / '22d/source-bindings.json', dict(package='22d', tables=[
+                dict(name='package22d host walk', sources=prior)]))
+            guide.write_text('qualified guide\n')
+            qualified = checkout.records(root, ['guide.md'])
+            write(ci / '42/host-walk.json', dict(status='passed', sources=qualified))
+            waiting_path = ci / '16/pending-rebind.json'
+            write(waiting_path, dict(walk='os/manifest/ci/22d/source-bindings.json', changes=['changed guide'],
+                                     files=qualified, removed=[]))
+            tables = [dict(name='package42 host walk', sources=qualified)]
+            evidence = root / '42-bound-sources.json'
+            write(evidence, dict(package='42', commit='a' * 40, tables=tables))
+            self.assertEqual(checkout.active_tables(root), [('package22d host walk', prior)])
+            self.assertEqual(rebind.changed(root), qualified)
+            with contextlib.redirect_stdout(io.StringIO()):
+                rebind.rebind('42', evidence, '777', root)
+            self.assertEqual(active_record(root)['tables'], tables)
+            self.assertEqual(checkout.active_tables(root), [('package42 host walk', qualified)])
+            waiting = json.loads(waiting_path.read_text())
+            self.assertEqual((waiting['changes'], waiting['files'], waiting['removed']), ([], [], []))
+            self.assertEqual((rebind.changed(root), rebind.removed(root)), ([], []))
+            guide.write_text('later guide\n')
+            self.assertEqual(rebind.changed(root), checkout.records(root, ['guide.md']))
+
+    def test_release28_rejects_a_record_from_another_package(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary)
+            record = root / 'os/manifest/ci/42/source-bindings.json'
+            record.parent.mkdir(parents=True)
+            record.write_text(json.dumps(dict(package='27', tables=[])))
+            with self.assertRaisesRegex(AssertionError, 'Binding record package differs from its directory: 42'):
+                checkout.active_tables(root)
 
     def test_every_active_source_binding_replays_checkout_including_crlf(self):
         tables = checkout.active_tables(ROOT)

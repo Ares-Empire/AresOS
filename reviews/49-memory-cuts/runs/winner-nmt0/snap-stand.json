@@ -1,0 +1,156 @@
+{
+ "label": "stand",
+ "monotonic_ns": 279930111502972,
+ "time": "05:10:39",
+ "status_mib": {
+  "VmHWM": 1063,
+  "VmRSS": 1054,
+  "RssAnon": 856,
+  "RssFile": 143,
+  "RssShmem": 54,
+  "VmSwap": 0
+ },
+ "smaps_rollup_mib": {
+  "Rss": 1005,
+  "Pss": 948,
+  "Pss_Anon": 856,
+  "Pss_File": 86,
+  "Pss_Shmem": 5,
+  "Swap": 0
+ },
+ "cgroup": "/user.slice/user-1001.slice/user@1001.service/app.slice/pkg49-game-winner-nmt0-906336.scope",
+ "cgroup_mib": {
+  "current": 876,
+  "peak": 884,
+  "swap": 0,
+  "high": "2684354560",
+  "anon": 856,
+  "file": 12,
+  "kernel": 5,
+  "shmem": 0
+ },
+ "cgroup_events": {
+  "low": 0,
+  "high": 0,
+  "max": 0,
+  "oom": 0,
+  "oom_kill": 0,
+  "oom_group_kill": 0,
+  "sock_throttled": 0
+ },
+ "majflt": 0,
+ "minflt": 262508,
+ "host": {
+  "time_utc": "2026-11-18T04:10:39Z",
+  "monotonic_ns": 279930127844582,
+  "loadavg": [
+   0.9365234375,
+   0.955078125,
+   0.78173828125
+  ],
+  "memory_kib": {
+   "MemFree": 664960,
+   "MemAvailable": 7639960,
+   "SwapTotal": 8036860,
+   "SwapFree": 2138960
+  },
+  "process_counts": {
+   "labwc": 2,
+   "Xwayland": 2,
+   "claude": 5,
+   "codex": 3,
+   "python3": 7,
+   "chrome": 15,
+   "java": 3
+  }
+ },
+ "zram_mm_stat": {
+  "zram0": [
+   5881937920,
+   2050605649,
+   2085359616,
+   0,
+   2308247552,
+   76077,
+   199305,
+   227493,
+   342924
+  ]
+ },
+ "frozen": false,
+ "nmt_committed_mib": {},
+ "heap_mib": {
+  "reserved": 1024,
+  "committed": 393,
+  "used": 354
+ },
+ "nmt_disabled_confirmed": true,
+ "smaps_classes": {
+  "anonymous-unattributed": {
+   "Size_kib": 2343012,
+   "Rss_kib": 386696,
+   "Pss_kib": 386680,
+   "Private_Dirty_kib": 386680,
+   "Anonymous_kib": 386680,
+   "Swap_kib": 0
+  },
+  "other-files": {
+   "Size_kib": 599332,
+   "Rss_kib": 80284,
+   "Pss_kib": 41209,
+   "Private_Dirty_kib": 20760,
+   "Anonymous_kib": 15744,
+   "Swap_kib": 0
+  },
+  "java-heap": {
+   "Size_kib": 1048576,
+   "Rss_kib": 396124,
+   "Pss_kib": 395879,
+   "Private_Dirty_kib": 395736,
+   "Anonymous_kib": 395736,
+   "Swap_kib": 0
+  },
+  "glibc-brk": {
+   "Size_kib": 90452,
+   "Rss_kib": 74000,
+   "Pss_kib": 74000,
+   "Private_Dirty_kib": 74000,
+   "Anonymous_kib": 74000,
+   "Swap_kib": 0
+  },
+  "nvidia-other": {
+   "Size_kib": 299592,
+   "Rss_kib": 41548,
+   "Pss_kib": 22664,
+   "Private_Dirty_kib": 5236,
+   "Anonymous_kib": 5236,
+   "Swap_kib": 0
+  },
+  "nvidiactl": {
+   "Size_kib": 50304,
+   "Rss_kib": 50304,
+   "Pss_kib": 50300,
+   "Private_Dirty_kib": 47864,
+   "Anonymous_kib": 0,
+   "Swap_kib": 0
+  },
+  "jemalloc-library": {
+   "Size_kib": 516,
+   "Rss_kib": 480,
+   "Pss_kib": 480,
+   "Private_Dirty_kib": 480,
+   "Anonymous_kib": 28,
+   "Swap_kib": 0
+  },
+  "stack": {
+   "Size_kib": 136,
+   "Rss_kib": 40,
+   "Pss_kib": 40,
+   "Private_Dirty_kib": 40,
+   "Anonymous_kib": 40,
+   "Swap_kib": 0
+  }
+ },
+ "gpu_total_used_mib": 370,
+ "gpu_process_mib": 306
+}

@@ -52,9 +52,9 @@ class ShellClientTest {
         var apps = connect().apps();
         var hello = helper.received("hello").getFirst();
         // hello carries the client's own version; after a 1.0 helper's reply everything else says 1.0.
-        assertEquals("aresos-shell/1.1", hello.get("protocol").getAsString());
+        assertEquals("aresos-shell/1.2", hello.get("protocol").getAsString());
         assertEquals(1, hello.get("major").getAsInt());
-        assertEquals(1, hello.get("minor").getAsInt());
+        assertEquals(2, hello.get("minor").getAsInt());
         assertEquals(FakeHelper.INSTANCE, hello.get("instance").getAsString());
         assertEquals(FakeHelper.NONCE, hello.get("nonce").getAsString());
         var capabilities = hello.getAsJsonArray("capabilities").asList().stream().map(value -> value.getAsString()).toList();
@@ -64,7 +64,7 @@ class ShellClientTest {
         client.world("AresOS");
         FakeHelper.await(() -> !helper.received("world_ready").isEmpty(), "world_ready");
         for (var message : helper.received) {
-            assertEquals(message == hello ? "aresos-shell/1.1" : "aresos-shell/1.0", message.get("protocol").getAsString());
+            assertEquals(message == hello ? "aresos-shell/1.2" : "aresos-shell/1.0", message.get("protocol").getAsString());
             assertTrue(message.get("id").getAsString().matches("[A-Za-z0-9._:-]{1,128}"));
         }
         assertFalse(client.detailed());
@@ -80,7 +80,7 @@ class ShellClientTest {
             assertTrue(app.command().isEmpty(), "The mod never holds a Linux command");
             assertFalse(app.pinned());
         }
-        assertEquals(List.of("minecraft:command_block", "minecraft:writable_book", "minecraft:compass"),
+        assertEquals(List.of("minecraft:black_concrete", "minecraft:writable_book", "minecraft:compass"),
                 definitions.stream().map(AppDefinition::look).toList());
     }
 
@@ -129,7 +129,7 @@ class ShellClientTest {
         var launcher = new LinuxAppLauncher(() -> null);
         var app = new AppDefinition("notepad", "Notepad", List.of("notepad.exe"), "minecraft:paper", true);
         var failure = assertThrows(CompletionException.class, () -> launcher.launch(app).toCompletableFuture().join());
-        assertTrue(failure.getCause().getMessage().contains("aresos-shell/1.1"));
+        assertTrue(failure.getCause().getMessage().contains("aresos-shell/1.2"));
         assertEquals("app helper unavailable", LinuxAppLauncher.reason(failure));
         assertThrows(IOException.class, () -> new LinuxAppCatalogue().listApps());
     }
@@ -362,6 +362,75 @@ class ShellClientTest {
         assertEquals(List.of(new ShellClient.Focus(false, "app_activated", "notepad", false),
                 new ShellClient.Focus(true, "app_closed", "notepad", true),
                 new ShellClient.Focus(true, "desktop_activated", null, false)), focus);
+    }
+
+    @Test void aLateListenerReceivesFocusReportedDuringTheHandshake() throws Exception {
+        helper.override = message -> {
+            if ("hello".equals(FakeHelper.string(message, "op"))) try {
+                helper.event("shell_focus", Map.of("focus", "background", "reason", "app_activated", "app_id", "notepad"));
+            } catch (IOException error) { throw new java.io.UncheckedIOException(error); }
+            return null;
+        };
+        connect();
+        var focus = new CopyOnWriteArrayList<ShellClient.Focus>();
+        client.addListener(new ShellClient.Listener() {
+            @Override public void focus(ShellClient.Focus event) { focus.add(event); }
+        });
+        assertEquals(List.of(new ShellClient.Focus(false, "app_activated", "notepad", false)), focus);
+    }
+
+    @Test void aFocusReplayCannotArriveAfterANewerFocusEvent() throws Exception {
+        connect();
+        var first = new CopyOnWriteArrayList<ShellClient.Focus>();
+        client.addListener(new ShellClient.Listener() {
+            @Override public void focus(ShellClient.Focus event) { first.add(event); }
+        });
+        helper.event("shell_focus", Map.of("focus", "background", "reason", "app_activated", "app_id", "notepad"));
+        FakeHelper.await(() -> first.size() == 1, "initial focus received");
+        var replaying = new CountDownLatch(1);
+        var release = new CountDownLatch(1);
+        var focus = new CopyOnWriteArrayList<ShellClient.Focus>();
+        var subscribed = CompletableFuture.runAsync(() -> client.addListener(new ShellClient.Listener() {
+            @Override public void focus(ShellClient.Focus event) {
+                if (!event.foreground()) {
+                    replaying.countDown();
+                    try { assertTrue(release.await(5, TimeUnit.SECONDS)); }
+                    catch (InterruptedException error) { Thread.currentThread().interrupt(); throw new RuntimeException(error); }
+                }
+                focus.add(event);
+            }
+        }));
+        try {
+            assertTrue(replaying.await(5, TimeUnit.SECONDS));
+            helper.event("shell_focus", Map.of("focus", "foreground", "reason", "desktop_activated"));
+            helper.launchState = "focused";
+            var opened = client.open("terminal");
+            // Its reply is behind the focus event on the same socket: neither may overtake the blocked replay.
+            assertThrows(TimeoutException.class, () -> opened.get(100, TimeUnit.MILLISECONDS));
+            release.countDown();
+            subscribed.get(5, TimeUnit.SECONDS);
+            opened.get(5, TimeUnit.SECONDS);
+            assertEquals(List.of(new ShellClient.Focus(false, "app_activated", "notepad", false),
+                    new ShellClient.Focus(true, "desktop_activated", null, false)), focus);
+        } finally { release.countDown(); }
+    }
+
+    @Test void aLostConnectionDoesNotReplayItsOldFocusToANewListener() throws Exception {
+        connect();
+        var first = new CopyOnWriteArrayList<ShellClient.Focus>();
+        client.addListener(new ShellClient.Listener() {
+            @Override public void focus(ShellClient.Focus event) { first.add(event); }
+        });
+        helper.event("shell_focus", Map.of("focus", "background", "reason", "app_activated", "app_id", "notepad"));
+        FakeHelper.await(() -> first.size() == 1, "initial focus received");
+        helper.override = message -> "hello".equals(FakeHelper.string(message, "op")) ? new JsonObject() : null;
+        helper.drop();
+        FakeHelper.await(() -> client.status().state() != ShellClient.State.CONNECTED, "connection lost");
+        var replayed = new CopyOnWriteArrayList<ShellClient.Focus>();
+        client.addListener(new ShellClient.Listener() {
+            @Override public void focus(ShellClient.Focus event) { replayed.add(event); }
+        });
+        assertTrue(replayed.isEmpty());
     }
 
     @Test void aHelperThatNeverAnswersTimesOut() throws Exception {

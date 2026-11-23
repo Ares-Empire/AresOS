@@ -2,6 +2,7 @@
 FROM localhost/aresos:ci
 COPY os/ci/channel.py os/ci/overlay/checks.py os/ci/overlay/pam_check.py os/ci/overlay/updater_regressions.py /usr/libexec/aresos-ci/
 COPY os/ci/overlay/console_keymap.py /usr/libexec/aresos-ci/
+COPY os/ci/overlay/guardian.py os/ci/overlay/GuardianGame.java /usr/libexec/aresos-ci/
 COPY os/tests/guest.sh os/tests/power-events.py /usr/libexec/aresos-ci/
 COPY os/ci/overlay/aresos-ci.service os/ci/overlay/logind-debug.conf os/ci/overlay/journal-debug.conf /tmp/aresos-ci/
 COPY os/ci/overlay/updater-generator os/ci/overlay/static-canary.service /tmp/aresos-ci/
@@ -20,6 +21,7 @@ RUN install -Dm0644 /tmp/aresos-ci/aresos-ci.service /usr/lib/systemd/system/are
     mkdir -p /usr/lib/systemd/system/multi-user.target.wants && \
     ln -s ../aresos-ci.service /usr/lib/systemd/system/multi-user.target.wants/aresos-ci.service && \
     printf 'KEYMAP=us\n' > /etc/vconsole.conf && \
+    printf 'aresos-ci\n' > /etc/hostname && \
     mkdir -p /etc/X11/xorg.conf.d && \
     printf 'Section "InputClass"\n Identifier "ci-keyboard"\n MatchIsKeyboard "on"\n Option "XkbLayout" "us"\nEndSection\n' > /etc/X11/xorg.conf.d/00-keyboard.conf && \
     bootc container lint

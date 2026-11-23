@@ -2,7 +2,7 @@
 import copy
 from .model import Fact
 from .compare import compare_proofs
-from .records import canonical, decoded_lock, fingerprint, restore_intervals, service_lock, visible
+from .records import canonical, decoded_lock, fingerprint, restore_intervals, service_lock, visible, visible_history
 
 STATES = ('reserved', 'submitting', 'unknown', 'partial', 'done', 'failed', 'refused',
           'started', 'checked', 'open', 'clean', 'warning', 'cancelled', 'expired', 'settled')
@@ -131,44 +131,48 @@ def mutations(record, states=None):
             else:
                 changed.rows[key] = replacement
             yield 'rows/' + key + '/' + '/'.join(map(str, path)), kind, changed
-    for index, event in enumerate(record.events):
+    for event in visible_history(record):
         seq = event['seq']
+        group = 'events' if event in record.events else 'prepared'
+        index = getattr(record, group).index(event)
+        def with_event(replacement):
+            changed = copy.copy(record)
+            versions = list(getattr(record, group))
+            versions[index:index + 1] = replacement
+            setattr(changed, group, versions)
+            return changed
         metadata = {key: value for key, value in event.items() if key not in {'set', 'record'}}
         for path, kind, replacement in audited_leaves(metadata, states):
-            changed = copy.copy(record)
-            changed.events = list(record.events)
-            changed.events[index] = {**event, **copy.deepcopy(metadata)}
-            put(changed.events[index], path, kind, replacement)
-            yield 'event-metadata/' + str(seq) + '/' + '/'.join(map(str, path)), kind, changed
-        changed = copy.copy(record)
-        changed.events = list(record.events)
-        changed.events.pop(index)
-        yield 'drop-sequence:' + str(seq), 'sequence', changed
+            value = {**event, **copy.deepcopy(metadata)}
+            put(value, path, kind, replacement)
+            yield 'event-metadata/' + str(seq) + '/' + '/'.join(map(str, path)), kind, with_event([value])
+        yield 'drop-sequence:' + str(seq), 'sequence', with_event([])
+        # Keep restore mutations on marked history: an invented restore batch
+        # must not be used to promote an ordinary applied-tail claim.
         changed = copy.copy(record)
         changed.events = copy.deepcopy(record.events)
-        if index:
-            changed.events[index - 1]['action'] = 'control_restore_confirm'
-            changed.events[index - 1]['set']['generation'] = 'perturbed-generation'
+        prior = index - 1 if group == 'events' else len(changed.events) - 1
+        if prior >= 0:
+            changed.events[prior]['action'] = 'control_restore_confirm'
+            changed.events[prior]['set']['generation'] = 'perturbed-generation'
         else:
             changed.events.insert(0, {'seq': 0, 'time': event['time'], 'action': 'control_restore_confirm', 'set': {'generation': 'perturbed-generation'}})
         yield 'restore-before:' + str(seq), 'restore', changed
         for key, row in event['set'].items():
-            changed = copy.copy(record)
-            changed.events = list(record.events)
-            changed.events[index] = {**event, 'set': dict(event['set'])}
-            del changed.events[index]['set'][key]
-            yield 'remove-event-row:' + str(seq) + '/' + key, 'row', changed
+            value = {**event, 'set': dict(event['set'])}
+            del value['set'][key]
+            yield 'remove-event-row:' + str(seq) + '/' + key, 'row', with_event([value])
             for path, kind, replacement in audited_leaves(row, states):
-                changed = copy.copy(record)
-                changed.events = list(record.events)
-                changed.events[index] = {**event, 'set': {**event['set'], key: copy.deepcopy(row)}}
+                value = {**event, 'set': {**event['set'], key: copy.deepcopy(row)}}
                 if path:
-                    put(changed.events[index]['set'][key], path, kind, replacement)
+                    put(value['set'][key], path, kind, replacement)
                 else:
-                    changed.events[index]['set'][key] = replacement
-                # Rebuild the projection for a coherent committed-record lie.
+                    value['set'][key] = replacement
+                changed = with_event([value])
+                # Reconstruct the same visible-history projection; compact
+                # fence coherence is exercised separately by coherent_change.
                 changed.rows = {}
-                for version in changed.events:
+                for version in visible_history(changed):
                     for name, item in version['set'].items():
                         if item is None:
                             changed.rows.pop(name, None)
@@ -190,6 +194,7 @@ RECORD_EXCLUSIONS = {
     'head': 'Independent SQLite head/chain validation has dedicated decoder tests',
     'startup_sequence': 'Test recorder startup boundary, not production-written',
     'interrupted_confirm': 'Test recorder fault-trace rule (a confirm on a locked store met a fault), not production-written',
+    'journal_history': 'Immutable raw journal phase/cleanup inputs; independently table-tested, not production-written',
 }
 
 
@@ -201,7 +206,7 @@ def field_paths(record):
             result.update(group + '/' + str(index) + '/' + '/'.join(map(str, path)) for path in scalar_fields(value))
     for key, row in record.rows.items():
         result.update('rows/' + key + '/' + '/'.join(map(str, path)) for path in scalar_fields(row))
-    for event in record.events:
+    for event in visible_history(record):
         prefix = str(event['seq']) + '/'
         metadata = {key: value for key, value in event.items() if key not in {'set', 'record'}}
         result.update('event-metadata/' + prefix + '/'.join(map(str, path)) for path in scalar_fields(metadata))
@@ -213,6 +218,7 @@ def field_paths(record):
 # These compare redundant encodings, not a rule's independent authority. They
 # remain useful integrity checks but cannot establish a coherent lie was caught.
 STRUCTURAL = {'changed-decoded-projection', 'changed-observed-commit', 'changed-fixture-input',
+              'changed-independent-chain', 'invalid-restore-plan',
               'missing-committed-history', 'uncommitted-event', 'changed-independent-fence',
               'changed-fenced-operation', 'unjustified-lock', 'invalid-record', 'changed-stage-event', 'unjustified-filing-start'}
 SNAPSHOTS = ('committed_before', 'created_before', 'check_sources')
@@ -285,6 +291,9 @@ def compact_description(row):
 def coherent_change(oracle, record, key, path=(), kind='row', replacement=None, since=0):
     """Write one production lie into every later encoding of that row claim."""
     changed, replay = copy.copy(record), clone(oracle)
+    # Re-encoding a claim is not another physical write. Its new fence hashes
+    # must not turn the unchanged raw I/O trace into an invented write latch.
+    replay.transaction_record = getattr(oracle, 'transaction_record', record)
     changed.rows = dict(record.rows)
     # Copy the affected path and writable envelopes, sharing other immutable
     # decoded inputs. This keeps the complete historical corpus practical.
@@ -299,7 +308,7 @@ def coherent_change(oracle, record, key, path=(), kind='row', replacement=None, 
     replay.servers = [dict(event) for event in oracle.servers]
     replay.commit_observations = dict(oracle.commit_observations)
     replay.response_observer = None
-    origin = next((event['set'][key] for event in record.events if event['seq'] >= since and key in event['set']), record.rows.get(key))
+    origin = next((event['set'][key] for event in visible_history(record) if event['seq'] >= since and key in event['set']), record.rows.get(key))
     original = origin
     for part in path:
         original = original[part]
@@ -360,16 +369,19 @@ def coherent_change(oracle, record, key, path=(), kind='row', replacement=None, 
                         else:
                             content[name].pop('state', None)
                         event['untrusted_content'] = content
+    selected_sequences = {e['seq'] for e in visible_history(record)}
+    history = sorted([e for e in changed.events + changed.prepared if e['seq'] in selected_sequences], key=lambda e: e['seq'])
+    visible_sequence = max(selected_sequences, default=0)
     prefix, created, cursor, fence_rows = {}, {}, 0, {}
     server_sequences = {}
     for server in replay.servers:
         if isinstance(server.get('before_seq'), int):
             server_sequences.setdefault(server['before_seq'], []).append(server)
     snapshots = sorted({event.get('before_seq') for event in replay.servers if isinstance(event.get('before_seq'), int)} |
-                       set(replay.commit_observations) | {fence['seq'] for fence in record.fences} | {max(record.committed, default=max((e['seq'] for e in changed.events), default=0))})
+                       set(replay.commit_observations) | {fence['seq'] for fence in record.fences} | {visible_sequence})
     for sequence in snapshots:
-        while cursor < len(changed.events) and changed.events[cursor]['seq'] <= sequence:
-            event = changed.events[cursor]
+        while cursor < len(history) and history[cursor]['seq'] <= sequence:
+            event = history[cursor]
             fence_rows[event['seq']] = event['set'].get(key) or prefix.get(key)
             for name, row in event['set'].items():
                 if row is None:
@@ -401,7 +413,7 @@ def coherent_change(oracle, record, key, path=(), kind='row', replacement=None, 
                 else:
                     creation.pop(key, None)
                 server['created_before'] = creation
-        if sequence == max(record.committed, default=max((e['seq'] for e in changed.events), default=0)):
+        if sequence == visible_sequence:
             if key in prefix:
                 changed.rows[key] = prefix[key]
             else:
@@ -473,21 +485,20 @@ def coherent_change(oracle, record, key, path=(), kind='row', replacement=None, 
         previous = fence.get('hash', previous)
         if fence is not original_fence and fence['seq'] in versions:
             versions[fence['seq']]['record'] = fence
-        if changed.head and changed.head[0] == fence['seq']:
+        if fence is not original_fence and changed.head == (original_fence['seq'], original_fence.get('hash')):
             changed.head = (changed.head[0], fence.get('hash', changed.head[1]))
     changed.generation = changed.rows.get('generation')
     changed.restore_intervals = restore_intervals(changed.events)
-    if changed.head is not None:
-        # The fences come from a decoded record, so their sequences are unique.
-        fences = {fence['seq']: fence for fence in changed.fences}
-        changed.locked = decoded_lock(changed.rows, fences, changed.committed, changed.head) or service_lock(changed)
+    # Recompute even a missing head; copying the input lock hides alterations.
+    fences = {fence['seq']: fence for fence in changed.fences}
+    changed.locked = decoded_lock(changed.rows, fences, changed.committed, changed.head) or service_lock(changed)
     replay.validated_input = replay.validated_record = None
     return replay, changed
 
 
 def coherent_mutations(oracle, record, states):
     seed = getattr(oracle, 'seed_sequence', 0)
-    for event in record.events:
+    for event in visible_history(record):
         if event['seq'] <= seed or any(c['action'] == 'fixture_input' and
                 c.get('start_seq', -1) < event['seq'] <= c.get('end_seq', -1) for c in oracle.script):
             continue  # Independent fixture input, not a production claim.

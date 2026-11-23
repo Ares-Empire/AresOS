@@ -41,8 +41,6 @@ def main(config, argv=None):
                       "Admin commands need sudo: run sudo aresos admin " + " ".join(command) + " (same options)."}, "pending": {}}
             print(display_json(result))
             return 1
-    if command == ["log"]:
-        command = ["control", "log"]
     if command == ["mail", "account", "add"]:
         command = ["mail", "account_add"]
     chrome_alias = None
@@ -51,7 +49,7 @@ def main(config, argv=None):
         if len(command)==3:chrome_alias[{'allow':'operation_id','revoke':'id','readonly':'site'}[verb]]=command[2]
         command=['chrome','sites']
     if len(command) != 2:
-        root.error("expected [admin] <app> <action>, or log")
+        root.error("expected [admin] <app> <action>")
     try:
         if admin and command == ["mail", "account_add"]:
             import getpass

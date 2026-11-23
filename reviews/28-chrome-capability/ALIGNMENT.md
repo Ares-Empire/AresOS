@@ -340,3 +340,57 @@ The recheck of `1028ec49` said READY with three nits; the lead made them directl
 
 PR #48 merges on this READY; Codex's `gpt-6-astra` cross-reviews the merged briefs (Tue 2026-11-17), and its
 findings go to the 28a and 28b builds.
+
+## After BRIEF-CROSS-5
+
+Revision for the lead `linux-tools`, 2026-11-18, against `main` at `918fba67`, package 28 at `e07a88eb`
+and 18c-b's step-2b record at `c4514015`. The earlier entries remain history; the held-submission exception in
+review 5's JUDGMENT-CALL 3 and review 6's S3 is superseded here, including the READY recorded after the recheck.
+Owner questions below are recommendations for his decision, not decisions attributed to him.
+
+- **1 — Profile continuity:** keep the logical service pin through A → B → A; recommend explicit owner relink after each extension replacement, with only an installation id exempted from 18c-b's storage ban; reject every unapproved/retired pair and other profile; owner question 1 stays open (28b item 1; 18c-b's CROSS-5 handoff).
+- **2 — Held submissions:** resumption is controllable and loss is a fix; check whole-tab work at preparation and resumption; recommend one send/loss question, no preliminary reload, retaining board #138 in taken tabs; owner question 2 stays open (28b item 4c; CONTROL's loss limit narrowed).
+- **3 — Link references:** classify fresh control facts before reference-open; asking controls refuse and point to the asking click; explicit URL/tab-address/library policy stays separate (28a item 4).
+- **4 — Reload freshness:** bind field/frame/document/reader identities and every later owner-edit generation, not merely sticky use; missing continuous observation refuses without approval, values stay unread (28b item 4d).
+- **5 — Loss reports:** fixed service code/message, page details only in untrusted loss data across bare, batched and stored results; approvals use the untrusted description (28a item 5b; 28b item 0).
+- **6 — Section 6 parity:** incorporate the mixed-case/digit token rule with `_`/`-`, defer to brief 28's full address algorithm, and list the 5,000-reference paging ceiling with harm and alternatives (CONTROL; 28a inherited regressions).
+- **Package 28 inheritance:** preserve repaired fresh-side comparisons, unique native option resolution and end-of-control reference cleanup on all new paths; no claim that the in-flight branch is fully verified (28a/28b item 0).
+- **Distinct fields:** 28a item 3b changes the frozen asking-description path; every field is distinguishable after repair/shortening with identity/order still bound; 28b inherits it, including loss questions.
+- **Instruction budget and steps:** measured 4,093 instructions plus 5,085 descriptions = 9,178; 28a compacts before additions and pins 2,800, 28b verifies headroom then pins 3,800; no new instruction text in this revision; both have bounded gpt-6.1-sol build steps and named test/mutation pairs.
+
+The detailed changes, code evidence, owner options and 18c-b remaining-step handoff are in
+[`REVISION-CROSS-5.md`](REVISION-CROSS-5.md). No finding is rejected. No product code or workflow was run/changed
+by this revision; the builder tests described above remain implementation work.
+
+Revision 2 after `RECHECK-CROSS-5.md`, from `d175acdd`; `linux-tools` remains the lead:
+
+- **Pin restore authority:** only committed `store.chrome_state`; locked current-pair hellos are quarantined, every admitted connection closes before recovery reopens the gate, and missing restored state never enrolls (28b item 1/step 2; CONTROL §6).
+- **Restore regression/mutations:** P → backup → switch Q → restore P database, attempts before/after confirmation, P never serves Q and Q must reconnect; disposable lookup and omitted recovery closure/revalidation each fail that regression (28b Tests).
+- **Profile confirmation recommendation:** helper button plus F7's uncached password dialog, no typed IDs or administrator command; the owner checks the Chrome picker name supplied at setup, and no/cancel/timeout leaves the pin unchanged and candidate refused; authorization is not proof against copied state (owner question 1 remains open).
+- **Dialog ownership:** 28b step 2 builds the candidate channel, name UI and bound polkit lifecycle; 18c-b 3a already installs the action, with 4/4b and 5/C7 proving the real-session dialog before shipping; failure still stops for the lead.
+- **18c-b handoff:** at `91ad33d6`, next is **3a fix** for the PEM scan's root-home link to boot-created `var/roothome`; keep the two-image-round stop and require the lead's disposition before any further image run or 3b.
+- **Unchanged:** findings 2–6 stay closed as specifications, owner question 2 stays word for word, and Unicode/cleanup, distinct descriptions, 28a's 2,800 then 28b's 3,800 caps and step order remain.
+- **Owner question 2 answered** (board #353, 2026-11-18): "One question (recommended)". 28b item 4c builds the combined send/loss question as written; refusal is no longer the interim fallback for it.
+
+
+Revision 3 (2026-11-18), after `RECHECK-CROSS-5-2.md`; the Revision 2 profile-password recommendation above is
+superseded by the owner's answer, while its committed-state/restore safeguards remain:
+
+- **Owner question 1 answered:** board #354 asked why confirmation follows every update; each image gives the
+  helper a new identity. Board #355 chose **"Yes/no in the session (recommended)"**. The first Chrome tool call
+  after replacement asks `Keep using Chrome profile <name>?` in Claude Code's permission prompt through
+  Control's managed ask, like a mail send; no password or helper approval button (28b item 1/step 2; CONTROL §6).
+- **Binding and sessions:** fixed waiting refusal, no page data; send-style exact operation binding plus pair,
+  peer, name, pin/recovery generations. Prepare never takes the pin. No/cancel/no answer/stale leaves it unchanged.
+  First valid yes commits once across sessions, later answers are stale; later sessions need no question until
+  another replacement. Other candidates never win by arriving first or matching the name.
+- **Known limits:** same direct-service, PermissionRequest and relay residuals as a send (CONTROL §7), copied
+  profile state, and **K1: auto mode is not tested**. An owner-added user allow hook can approve without showing
+  the prompt. This is the send's accepted boundary, not F7's independent password boundary.
+- **Tests/mutations:** 28b's `profile_ask_yes`, `profile_ask_waits`, `profile_ask_bound`, `profile_ask_sessions` and
+  `profile_ask_prompt`, plus the retained restore regression. Skip ask → prompt/waits; another candidate's
+  answer → bound; pin on prepare → waits. Restore lookup/retirement mutations remain independently required.
+- **Image/steps and instructions:** 28b step 2 owns the ask and case 3/C4 integration. 18c-b no longer needs any
+  profile polkit lifecycle/probe/C7 cases; its real-session probe and C7 remain for loosening only. Its **3a fix**
+  gate stays. CONTROL §6 and 18c-b change together; 28a changes only its dependency note. Added server-instruction
+  text: **0 characters**, retaining 3,800 and the twenty-tool count. No product code or workflow change/run.

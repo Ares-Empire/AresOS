@@ -16,6 +16,7 @@ import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -24,13 +25,13 @@ import java.util.concurrent.atomic.AtomicLong;
  * definition, so the Linux mod never runs a command itself. One background thread connects, says hello, lists apps
  * and then reads replies and events, reconnecting with backoff when the helper is missing or restarts.
  *
- * The client offers minor 1 and works with a 1.0 helper as before. When the helper answers with minor 1, the list
- * comes in pages with what the system knows about each program, and an apps_changed event makes the client list
- * again. Listeners only ever get a complete list.
+ * The client offers minor 2. Minor 1 adds catalogue details, paging and refresh. Minor 2 lets the desktop send
+ * its town to helpers that offer home_state, hear Super's shell_search and name the world's screen in open_app.
+ * Listeners only ever get a complete app list.
  */
 public final class ShellClient implements AutoCloseable {
     public static final int MAJOR = 1;
-    public static final int MINOR = 1;
+    public static final int MINOR = 2;
     /** The client's own version. hello carries it; later messages carry the minor the helper agreed to. */
     public static final String PROTOCOL = protocol(MINOR);
     public static final int MAX_MESSAGE = 64 * 1024;
@@ -41,11 +42,14 @@ public final class ShellClient implements AutoCloseable {
     public static final int MAX_APPS = 1024;
     /** Wayland app_id and X11 class of the desktop window, so the helper can hand focus back to it. */
     public static final String DESKTOP_APP_ID = "aresos-desktop";
-    // app_details, apps_changed and list_paging are 1.1's, shell_covered is package 40's. The helper sends an event
-    // only to a client that offered its name, so the events must be offered; none is required, which keeps a 1.0
-    // helper compatible.
+    /** {@code open_app}'s "screen" for the screen that shows the world (1.2, docs/design/LAPTOP-HOME.md section 5). */
+    public static final String SCREEN_WORLD = "world";
+    // app_details, apps_changed and list_paging are 1.1's, shell_covered is package 40's, shell_search 1.2's
+    // (package 53d). The helper sends an event only to a client that offered its name, so the events must be offered;
+    // none is required, which keeps a 1.0 helper compatible.
     static final List<String> CAPABILITIES = List.of("list_apps", "open_app", "app_state", "shell_focus",
-            "world_ready", "heartbeat", "windows", "app_details", "apps_changed", "list_paging", "shell_covered");
+            "world_ready", "heartbeat", "windows", "app_details", "apps_changed", "list_paging", "shell_covered",
+            "home_state", "shell_search");
     static final List<String> REQUIRES = List.of("list_apps", "open_app");
     private static final Gson JSON = new Gson();
     private static final System.Logger LOG = System.getLogger("aresos");
@@ -89,6 +93,8 @@ public final class ShellClient implements AutoCloseable {
          * Called on every change, and with false when the connection ends: a helper that is gone covers nothing.
          */
         default void covered(boolean covered) { }
+        /** Super was pressed (package 53d, {@code shell_search}): open the search over the world, if now is a good moment. */
+        default void search() { }
     }
 
     /** A refusal carrying the helper's stable error code (B1), such as unknown_app, unavailable or no_window. */
@@ -105,15 +111,18 @@ public final class ShellClient implements AutoCloseable {
 
     private static final class PendingOpen {
         private final String id, appId;
+        /** Where the app should open ({@link #SCREEN_WORLD}), or null for where the pointer is. Kept for every resend. */
+        private final String screen;
         private final CompletableFuture<Launch> future;
         // Writer-owned: publication callbacks can queue a normal send before startup queues its replay.
         private Connection lastSent;
         /** The helper started the program and waits for its window: a deadline after this is no missing answer. */
         private volatile boolean starting;
 
-        PendingOpen(String id, String appId, CompletableFuture<Launch> future) {
+        PendingOpen(String id, String appId, String screen, CompletableFuture<Launch> future) {
             this.id = id;
             this.appId = appId;
+            this.screen = screen;
             this.future = future;
         }
         String id() { return id; }
@@ -145,7 +154,14 @@ public final class ShellClient implements AutoCloseable {
     private volatile boolean windows;
     // Reader thread only: what the helper last said about covering. Every connection starts uncovered.
     private boolean covered;
+    // Guarded by listeners: the common initializer starts the helper before the client initializer can subscribe.
+    private Focus lastFocus;
     private volatile String world;
+    private volatile HomeState home;
+    private volatile boolean homeSupported;
+    private final AtomicBoolean homeQueued = new AtomicBoolean();
+    private final HomePublish homePublish = new HomePublish();
+    private long homeRevision;
     private volatile boolean closed;
     private Thread loop;
 
@@ -189,7 +205,13 @@ public final class ShellClient implements AutoCloseable {
         return new ShellClient(path, instance, nonce, settings, problem);
     }
 
-    public void addListener(Listener listener) { listeners.add(Objects.requireNonNull(listener)); }
+    public void addListener(Listener listener) {
+        synchronized (listeners) {
+            listeners.add(Objects.requireNonNull(listener));
+            // Replay under the dispatch lock so a newer event cannot arrive before this snapshot.
+            if (!closed && lastFocus != null) tellFocus(listener, lastFocus);
+        }
+    }
     public Status status() { return status; }
     /** The last complete list; it is kept while the helper is away or its list will not hold still. */
     public List<App> apps() { return catalogue.apps(); }
@@ -234,12 +256,22 @@ public final class ShellClient implements AutoCloseable {
 
     /** One deliberate action, one request ID. A reconnect resends it under the same ID, so it never launches twice. */
     public CompletableFuture<Launch> open(String appId) {
+        return open(appId, null);
+    }
+
+    /**
+     * Like {@link #open(String)}, and says on which screen the app should open: {@link #SCREEN_WORLD} for the search
+     * over the world (package 53d), whose app opens where the world is even when the pointer is on the other screen.
+     * Null leaves the place to the helper. The hint is part of 1.2: a helper that agreed to less never sees it.
+     */
+    public CompletableFuture<Launch> open(String appId, String screen) {
+        if (screen != null && !SCREEN_WORLD.equals(screen)) throw new IllegalArgumentException("unknown screen: " + screen);
         var future = new CompletableFuture<Launch>();
         if (connection == null) {
             future.completeExceptionally(notConnected());
             return future;
         }
-        var open = new PendingOpen("o-" + session + "-" + ids.incrementAndGet(), appId, future);
+        var open = new PendingOpen("o-" + session + "-" + ids.incrementAndGet(), appId, screen, future);
         opens.put(open.id(), open);
         // One deadline, two meanings (package 40): a helper that never answered, or one that started the program and
         // is still waiting for a window it can tell is this program's. The second is said as what it is.
@@ -276,7 +308,24 @@ public final class ShellClient implements AutoCloseable {
         });
     }
 
-    private boolean later(Runnable task) {
+    /** Once a helper has offered home_state, keep capturing changes during a disconnect for its next hello. */
+    public boolean tracksHome() { return homeSupported; }
+
+    /** Called by the server with a complete snapshot, or null when the home closes. */
+    public void home(HomeState snapshot) {
+        home = snapshot;
+        if (snapshot != null && connection != null) queueHome();
+    }
+
+    private void queueHome() {
+        if (homeQueued.compareAndSet(false, true) && !later(() -> {
+            homeQueued.set(false);
+            sendHome();
+        })) homeQueued.set(false);
+    }
+
+    /** Package-private for the tests, which hold the writer to put its tasks in a chosen order. */
+    boolean later(Runnable task) {
         try {
             writer.execute(task);
             return true;
@@ -355,6 +404,7 @@ public final class ShellClient implements AutoCloseable {
             Status failure;
             ShellException first;
             try {
+                setStatus(new Status(State.STARTING, "connecting to the app helper"));
                 session();
                 retry = settings.firstRetry().toMillis();
                 failure = new Status(State.UNAVAILABLE, "lost the connection to the app helper");
@@ -402,6 +452,7 @@ public final class ShellClient implements AutoCloseable {
                 throw new ShellException("incompatible_version", "the app helper lacks " + protocol(0) + " list/open");
             // The reply names the lower minor of the two sides. A helper that claims more than ours is held to ours.
             current.minor = Math.clamp(number(reply, "minor"), 0, MINOR);
+            current.homeState = current.minor >= 2 && offered.contains("home_state");
             windows = offered.contains("windows") && offered.contains("app_state");
             var listed = firstList(current);
             var snapshot = listed == null ? null : keep(current, listed);
@@ -411,6 +462,10 @@ public final class ShellClient implements AutoCloseable {
             // Without a complete list nothing is known yet; whoever waits must not take an empty list for one.
             else firstAttempt.completeExceptionally(new ShellException("list_incomplete",
                     "the app helper's app list did not hold still"));
+            if (current.homeState) {
+                homeSupported = true;
+                queueHome();
+            }
             synchronized (current) { current.listing = false; }
             scheduleRefresh(current);
             // Requests the old connection may have carried: the helper answers a known ID without launching again.
@@ -437,6 +492,7 @@ public final class ShellClient implements AutoCloseable {
             if (connection == current) connection = null;
             if (attempt == current) attempt = null;
             current.close();
+            synchronized (listeners) { lastFocus = null; }
             // A helper that is gone must never leave the world paused.
             setCovered(false);
         }
@@ -451,12 +507,14 @@ public final class ShellClient implements AutoCloseable {
         return message;
     }
 
-    private JsonObject openRequest(PendingOpen open) {
+    private JsonObject openRequest(Connection current, PendingOpen open) {
         var message = new JsonObject();
         message.addProperty("protocol", PROTOCOL);
         message.addProperty("id", open.id());
         message.addProperty("op", "open_app");
         message.addProperty("app_id", open.appId());
+        // An older helper calls the key malformed and would open nothing; without it the app opens where the pointer is.
+        if (open.screen != null && current.minor >= 2) message.addProperty("screen", open.screen);
         return message;
     }
 
@@ -464,7 +522,7 @@ public final class ShellClient implements AutoCloseable {
     private void sendOnce(Connection current, PendingOpen open) {
         if (connection != current || open.lastSent == current) return;
         open.lastSent = current;
-        try { current.send(openRequest(open)); }
+        try { current.send(openRequest(current, open)); }
         catch (IOException lost) { current.close(); }
     }
 
@@ -616,7 +674,7 @@ public final class ShellClient implements AutoCloseable {
         String id = world;
         if (Objects.equals(id, current.reportedWorld)) return;
         try {
-            if (id == null) current.send(heartbeatMessage(false));
+            if (id == null) current.send(heartbeatMessage(null));
             else {
                 var message = request("w", "world_ready");
                 message.addProperty("instance", instance);
@@ -626,6 +684,78 @@ public final class ShellClient implements AutoCloseable {
             }
             current.reportedWorld = id;
         } catch (IOException lost) { current.close(); }
+    }
+
+    /** The writer owns one transfer per connection. A newer snapshot waits for the final acknowledgement. */
+    private void sendHome() {
+        var current = connection;
+        var latest = home;
+        if (current == null || !current.homeState || current.homeTransfer != null || latest == null
+                || latest.equals(current.lastHome)) return;
+        long now = System.nanoTime();
+        long wait = current.lastHome == null ? 0 : TimeUnit.SECONDS.toNanos(1) - (now - current.homeStarted);
+        if (wait > 0) {
+            if (!current.homeScheduled) {
+                current.homeScheduled = true;
+                afterHome(wait, () -> {
+                    current.homeScheduled = false;
+                    sendHome();
+                });
+            }
+            return;
+        }
+        var parts = homePublish.messages(latest, Long.toUnsignedString(++homeRevision),
+                () -> request("p", "publish_home"), MAX_MESSAGE);
+        current.lastHome = latest;
+        current.homeStarted = System.nanoTime();
+        current.homeTransfer = new HomeTransfer(parts.iterator());
+        sendHomePart(current);
+    }
+
+    private void sendHomePart(Connection current) {
+        var transfer = current.homeTransfer;
+        var message = transfer.parts.next();
+        String id = text(message, "id");
+        transfer.id = id;
+        try {
+            current.send(message);
+            transfer.deadline = afterHome(settings.replyTimeout().toNanos(), () -> {
+                if (connection == current && current.homeTransfer == transfer && id.equals(transfer.id)) {
+                    LOG.log(System.Logger.Level.WARNING, "AresOS app helper did not acknowledge a home part; reconnecting");
+                    current.close();
+                }
+            });
+        } catch (IOException lost) { current.close(); }
+    }
+
+    private ScheduledFuture<?> afterHome(long nanos, Runnable task) {
+        try { return timer.schedule(() -> later(task), nanos, TimeUnit.NANOSECONDS); }
+        catch (RejectedExecutionException closedAlready) { return null; }
+    }
+
+    private void homeReply(Connection current, String id, JsonObject reply) {
+        var transfer = current.homeTransfer;
+        if (current != connection || transfer == null || !id.equals(transfer.id)) return;
+        if (transfer.deadline != null) transfer.deadline.cancel(false);
+        if (bool(reply, "ok") && transfer.parts.hasNext()) {
+            sendHomePart(current);
+            return;
+        }
+        if (!bool(reply, "ok")) {
+            String detail = text(reply, "message");
+            LOG.log(System.Logger.Level.WARNING, "AresOS app helper refused publish_home ("
+                    + clip(String.valueOf(text(reply, "error"))) + "): " + (detail == null ? "no reason given" : clip(detail)));
+        }
+        current.homeTransfer = null;
+        sendHome();
+    }
+
+    private static final class HomeTransfer {
+        final Iterator<JsonObject> parts;
+        String id;
+        ScheduledFuture<?> deadline;
+
+        HomeTransfer(Iterator<JsonObject> parts) { this.parts = parts; }
     }
 
     /** The watchdog. It never writes, so a write blocked on a helper that stopped reading cannot stop it. */
@@ -646,22 +776,38 @@ public final class ShellClient implements AutoCloseable {
                 current.close();
                 return;
             }
-            later(() -> {
-                try { current.send(heartbeatMessage(world != null)); }
-                catch (IOException | RuntimeException lost) { current.close(); }
-            });
+            later(() -> heartbeat(current));
         } catch (RuntimeException error) {
             LOG.log(System.Logger.Level.ERROR, "AresOS app helper watchdog failed", error);
         }
     }
 
-    private JsonObject heartbeatMessage(boolean ready) {
+    /**
+     * The periodic heartbeat, on the writer. A not-ready heartbeat takes the world back on the helper's side (Super is
+     * off until a fresh world_ready), so it counts as reporting "no world": when the same save is ready again,
+     * {@link #sendWorld} reports it again instead of taking it as already told (review 1, should-fix 3).
+     */
+    private void heartbeat(Connection current) {
+        String id = world;
+        try {
+            current.send(heartbeatMessage(id));
+            if (id == null) current.reportedWorld = null;
+        } catch (IOException | RuntimeException lost) { current.close(); }
+    }
+
+    /** Package-private for the tests: the watchdog's heartbeat on the current connection, run where it is called. */
+    void heartbeatNow() {
+        var current = connection;
+        if (current != null) heartbeat(current);
+    }
+
+    /** Ready with the world {@code id}, or not ready when it is null. */
+    private JsonObject heartbeatMessage(String id) {
         var message = request("b", "heartbeat");
         message.addProperty("instance", instance);
         message.addProperty("nonce", nonce);
-        message.addProperty("ready", ready);
-        String id = world;
-        if (ready && id != null) message.add("world", worldObject(id));
+        message.addProperty("ready", id != null);
+        if (id != null) message.add("world", worldObject(id));
         return message;
     }
 
@@ -684,12 +830,20 @@ public final class ShellClient implements AutoCloseable {
                     else if (watching.containsKey(id)) lateUpdate(id, message);
                 }
                 case "shell_covered" -> setCovered(bool(message, "covered"));
+                // A 1.2 event: an older connection never offered it, and never acts on one that comes anyway.
+                case "shell_search" -> {
+                    if (current.minor < 2) return;
+                    for (var listener : listeners) {
+                        try { listener.search(); }
+                        catch (RuntimeException error) { LOG.log(System.Logger.Level.ERROR, "Shell listener failed", error); }
+                    }
+                }
                 case "shell_focus" -> {
                     var focus = new Focus("foreground".equals(text(message, "focus")), text(message, "reason"),
                             text(message, "app_id"), bool(message, "activated"));
-                    for (var listener : listeners) {
-                        try { listener.focus(focus); }
-                        catch (RuntimeException error) { LOG.log(System.Logger.Level.ERROR, "Shell listener failed", error); }
+                    synchronized (listeners) {
+                        lastFocus = focus;
+                        for (var listener : listeners) tellFocus(listener, focus);
                     }
                 }
                 default -> { }
@@ -697,6 +851,10 @@ public final class ShellClient implements AutoCloseable {
             return;
         }
         String id = String.valueOf(text(message, "id"));
+        if (id.startsWith("p-")) {
+            later(() -> homeReply(current, id, message));
+            return;
+        }
         if (claim(current, id)) {
             refreshPage(current, message);
             return;
@@ -713,6 +871,11 @@ public final class ShellClient implements AutoCloseable {
             try { listener.covered(now); }
             catch (RuntimeException error) { LOG.log(System.Logger.Level.ERROR, "Shell listener failed", error); }
         }
+    }
+
+    private static void tellFocus(Listener listener, Focus focus) {
+        try { listener.focus(focus); }
+        catch (RuntimeException error) { LOG.log(System.Logger.Level.ERROR, "Shell listener failed", error); }
     }
 
     private void update(PendingOpen open, JsonObject message) {
@@ -866,6 +1029,10 @@ public final class ShellClient implements AutoCloseable {
         return value instanceof JsonPrimitive primitive && primitive.isNumber() ? primitive.getAsInt() : -1;
     }
 
+    static byte[] wireBytes(JsonObject message) {
+        return (JSON.toJson(message) + "\n").getBytes(StandardCharsets.UTF_8);
+    }
+
     /** One socket connection: line framing, the size limit and a write lock. */
     private static final class Connection {
         final SocketChannel channel;
@@ -880,6 +1047,12 @@ public final class ShellClient implements AutoCloseable {
         volatile boolean expired;
         /** Our own minor until the helper's hello reply, then the one both sides speak. */
         volatile int minor = MINOR;
+        boolean homeState;
+        // Home transfers belong to the writer. A fresh connection has no lastHome or in-progress parts.
+        HomeState lastHome;
+        HomeTransfer homeTransfer;
+        long homeStarted;
+        boolean homeScheduled;
         // The app list on this connection, guarded by the connection: a list is running (the first one starts with
         // the session), an apps_changed is waiting for a list, and that list is planned.
         boolean listing = true, changed, scheduled;
@@ -891,7 +1064,7 @@ public final class ShellClient implements AutoCloseable {
 
         void send(JsonObject message) throws IOException {
             message.addProperty("protocol", protocol(minor));
-            byte[] bytes = (JSON.toJson(message) + "\n").getBytes(StandardCharsets.UTF_8);
+            byte[] bytes = wireBytes(message);
             if (bytes.length > MAX_MESSAGE) throw new IOException("outgoing message too large");
             synchronized (writeLock) {
                 writeStarted = System.nanoTime();

@@ -1,0 +1,25 @@
+{
+  "time_utc": "2026-11-18T13:09:35Z",
+  "json_metadata_parsed": 366,
+  "shell_syntax": {
+    "command": "bash -n reviews/49b-arena-rerun/rig/*.sh reviews/49b-arena-rerun/frames/build.sh",
+    "exit": 0,
+    "stdout": ""
+  },
+  "python_syntax": {
+    "command": "python3 -m py_compile reviews/49b-arena-rerun/rig/*.py",
+    "exit": 0
+  },
+  "whitespace": {
+    "command": "git diff --cached --check",
+    "exit": 0,
+    "stdout": ""
+  },
+  "privacy": {
+    "source": ".github/workflows/repo-privacy.yml exact run body",
+    "exit": 0,
+    "stdout": "No file holds a home path with a real user name."
+  },
+  "frozen_criteria_audit": "passed; REPORT prefix identical to 2ddcb93f",
+  "new_jars_or_classes_in_index": []
+}

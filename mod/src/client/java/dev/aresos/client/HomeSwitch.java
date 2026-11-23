@@ -1,6 +1,7 @@
 package dev.aresos.client;
 
 import dev.aresos.AresOs;
+import dev.aresos.hub.TownKeeper;
 import dev.aresos.world.HomeSwap;
 import dev.aresos.world.NetherHome;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -22,7 +23,7 @@ import java.nio.file.Path;
 import java.time.LocalDateTime;
 
 /**
- * Package 48, A.5: "New home…" in the AresOS menu, from one home to a new one without the title screen in between.
+ * Package 48, A.5: "Start a new home…" in the AresOS menu, from one home to a new one without the title screen in between.
  *
  * <ol>
  *   <li>The open home is saved and closed ("Making your new home…" shows from here to the end).</li>
@@ -178,6 +179,7 @@ public final class HomeSwitch {
             Files.createDirectories(saves);
             staging = HomeSwap.freshStaging(saves, LocalDateTime.now());
             AresOs.LOGGER.info("New home: building it in {}", staging.getFileName());
+            TownKeeper.preparingHome(staging, true);
             plan.create(client, staging, working);
         } catch (IOException | RuntimeException error) {
             fail(client, "it could not be started (" + reason(error) + ")", error);
@@ -193,6 +195,7 @@ public final class HomeSwitch {
     }
 
     private static void swapAndOpen(Minecraft client) {
+        TownKeeper.preparingHome(staging, false);
         try {
             HomeSwap.checkComplete(staging);
             archived = HomeSwap.swap(saves, staging, LocalDateTime.now(), mover(), gapNanos);
@@ -212,6 +215,7 @@ public final class HomeSwitch {
 
     /** Restore the canonical save if possible; always open the world he left, at its tracked location. */
     private static void restoreAndOpen(Minecraft client) {
+        TownKeeper.preparingHome(staging, false);
         if (archived != null || promoted) {
             try {
                 HomeSwap.restore(saves, archived, staging, mover());

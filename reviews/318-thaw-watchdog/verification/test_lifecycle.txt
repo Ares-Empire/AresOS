@@ -1,0 +1,10 @@
+$ python3 reviews/318-thaw-watchdog/rig/test_lifecycle.py
+standing: PASS exit 1, processes/scopes gone, lock free (0.114s)
+flight: PASS exit 1, processes/scopes gone, lock free (0.164s)
+compositor: PASS exit 1, processes/scopes gone, lock free (0.114s)
+frozen-health: PASS exit 1, one thaw after the watcher was ready, watcher exited, processes/scopes gone, lock free (0.214s)
+frozen-term: PASS exit 143, one thaw after the watcher was ready, watcher exited, processes/scopes gone, lock free (0.214s)
+frozen-error: PASS exit 1, one thaw after the watcher was ready, watcher exited, processes/scopes gone, lock free (0.214s)
+invalid: PASS exit 3, one thaw after the watcher was ready, watcher exited, processes/scopes gone, lock free (10.291s)
+normal: PASS exit 0, one thaw after the watcher was ready, watcher alive, processes/scopes gone, lock free (10.288s)
+exit 0

@@ -244,11 +244,12 @@ class ProtocolTest(Base):
         helper.connected(conn)
         reply = self.request(helper, conn, 'hello', 'h-1', major=1, minor=7, capabilities=ALL,
                              requires=['open_app'], instance=INSTANCE, nonce=NONCE, future_field={'x': 1})
-        self.assertEqual(reply['protocol'], 'aresos-shell/1.1')
-        self.assertEqual((reply['id'], reply['ok'], reply['major'], reply['minor']), ('h-1', True, 1, 1))
+        self.assertEqual(reply['protocol'], 'aresos-shell/1.2')
+        self.assertEqual((reply['id'], reply['ok'], reply['major'], reply['minor']), ('h-1', True, 1, 2))
         # Without a compositor there is no window tracking, so no shell_focus.
         self.assertEqual(set(reply['capabilities']), {'list_apps', 'open_app', 'app_state', 'world_ready', 'heartbeat',
-                                                    'app_details', 'apps_changed', 'list_paging'})
+                                                    'app_details', 'apps_changed', 'list_paging', 'views',
+                                                    'home_state', 'apps_running'})
         self.assertIs(helper.desktop, conn)
         again = self.request(helper, conn, 'hello', 'h-2', major=1, minor=0, instance=INSTANCE, nonce=NONCE)
         self.assertEqual(again['error'], 'invalid_state')
@@ -484,7 +485,7 @@ class LaunchTest(Base):
         self.popen.side_effect = FileNotFoundError('systemd-run')
         reply = self.request(helper, conn, 'open_app', 'o-1', app_id='terminal')
         self.assertEqual((reply['ok'], reply['state'], reply['error']), (False, 'failed', 'launch_failed'))
-        self.assertEqual(helper.journal.entries['o-1']['state'], 'failed')
+        self.assertEqual(helper.journal.entries[shell.DESKTOP, 'o-1']['state'], 'failed')
 
     def test_journal_survives_a_restart_and_never_retries_a_launch(self):
         helper = self.helper()
@@ -557,8 +558,8 @@ class LaunchTest(Base):
         self.scope_pass(restarted)
         self.assertEqual(restarted.watched_units(), {})
         self.assertEqual(len(self.systemctl_calls), 2)
-        self.assertTrue(restarted.journal.entries['o-0'].get('settled'))  # Chrome handed over
-        terminal = restarted.journal.entries['o-1']
+        self.assertTrue(restarted.journal.entries[shell.DESKTOP, 'o-0'].get('settled'))  # Chrome handed over
+        terminal = restarted.journal.entries[shell.DESKTOP, 'o-1']
         self.assertEqual(terminal['state'], 'closed')
         # Their answers stay for replays while a resend is still possible ...
         again = self.request(restarted, conn, 'open_app', 'o-1', app_id='terminal')
@@ -577,15 +578,15 @@ class LaunchTest(Base):
         self.addCleanup(helper.watcher.stop)
         conn = self.connect(helper)
         launch = self.request(helper, conn, 'open_app', 'o-1', app_id='terminal')
-        self.active_units = {helper.journal.entries['o-1']['unit']}
+        self.active_units = {helper.journal.entries[shell.DESKTOP, 'o-1']['unit']}
         restarted = shell.Helper(str(REGISTRY), INSTANCE, NONCE, self.journal, launcher=self.launcher(),
                                  windows=shell.Windows(clock=self.clock), activate=self.activate, clock=self.clock,
                                  executable=lambda path: True)
         self.addCleanup(restarted.watcher.stop)
-        self.assertEqual(list(restarted.watched_units().values()), ['o-1'])
+        self.assertEqual(list(restarted.watched_units().values()), [(shell.DESKTOP, 'o-1')])
         self.active_units = set()
         self.scope_pass(restarted)
-        entry = restarted.journal.entries['o-1']
+        entry = restarted.journal.entries[shell.DESKTOP, 'o-1']
         self.assertEqual((entry['state'], entry['error'], entry['launch_id']), ('failed', 'launch_failed',
                                                                                 launch['launch_id']))
 
@@ -640,13 +641,13 @@ class LaunchTest(Base):
         good = self.request(helper, conn, 'open_app', 'o-2', app_id='notepad')
         self.request(helper, conn, 'open_app', 'o-3', app_id='browser')
         for request_id, code in (('o-1', 1), ('o-2', 0), ('o-3', 0)):
-            helper.processes[request_id].code = code
+            helper.processes[shell.DESKTOP, request_id].code = code
         helper.tick()
         states = [(e['request_id'], e['launch_id'], e['state'], e.get('error')) for e in conn.events('app_state')]
         # A one-process app that exits cleanly has closed; Chrome handed over to its running instance.
         self.assertEqual(states, [('o-1', bad['launch_id'], 'failed', 'launch_failed'),
                                   ('o-2', good['launch_id'], 'closed', None)])
-        browser = helper.journal.entries['o-3']
+        browser = helper.journal.entries[shell.DESKTOP, 'o-3']
         self.assertEqual((browser['state'], browser.get('settled')), ('starting', True))
         self.assertEqual(conn.events('shell_focus'), [])
 
@@ -736,8 +737,8 @@ class ScopeWatcherTest(Base):
                                               'unit': unit}})
         self.scope_answer = (0, f'{unit} loaded exploding running AresOS app\n')
         self.scope_pass(helper)
-        self.assertEqual(helper.journal.entries['o-1']['state'], 'starting')
-        self.assertEqual(helper.watched_units(), {unit: 'o-1'})
+        self.assertEqual(helper.journal.entries[shell.DESKTOP, 'o-1']['state'], 'starting')
+        self.assertEqual(helper.watched_units(), {unit: (shell.DESKTOP, 'o-1')})
 
     def journal_on_disk(self):
         with open(self.journal) as handle:
@@ -748,43 +749,43 @@ class ScopeWatcherTest(Base):
         self.scope_answer = subprocess.TimeoutExpired(shell.LIST_SCOPES, 5)  # unknown at start-up
         helper = self.restarted_with({'o-1': {'app_id': 'terminal', 'launch_id': 't1', 'state': 'launching',
                                               'unit': unit}})
-        self.assertTrue(helper.journal.entries['o-1'].get('uncertain'))
+        self.assertTrue(helper.journal.entries[shell.DESKTOP, 'o-1'].get('uncertain'))
         self.scope_answer = None
         self.active_units = {unit}  # then seen running
         self.scope_pass(helper)
-        self.assertNotIn('uncertain', helper.journal.entries['o-1'])
+        self.assertNotIn('uncertain', helper.journal.entries[shell.DESKTOP, 'o-1'])
         self.assertNotIn('uncertain', self.journal_on_disk()['o-1'])
         self.active_units = set()  # then gone
         self.scope_pass(helper)
-        entry = helper.journal.entries['o-1']
+        entry = helper.journal.entries[shell.DESKTOP, 'o-1']
         self.assertEqual((entry['state'], entry.get('error')), ('closed', None))
 
     def test_a_running_scope_at_start_up_clears_a_persisted_doubt(self):
         self.active_units = {'u1.scope'}
         helper = self.restarted_with({'o-1': {'app_id': 'terminal', 'launch_id': 't1', 'state': 'starting',
                                               'unit': 'u1.scope', 'uncertain': True}})
-        self.assertNotIn('uncertain', helper.journal.entries['o-1'])
+        self.assertNotIn('uncertain', helper.journal.entries[shell.DESKTOP, 'o-1'])
         self.assertNotIn('uncertain', self.journal_on_disk()['o-1'])
         self.active_units = set()
         self.scope_pass(helper)
-        self.assertEqual(helper.journal.entries['o-1']['state'], 'closed')
+        self.assertEqual(helper.journal.entries[shell.DESKTOP, 'o-1']['state'], 'closed')
 
     def test_a_window_clears_doubt_so_its_close_is_normal(self):
         self.scope_answer = subprocess.TimeoutExpired(shell.LIST_SCOPES, 5)
         helper = self.restarted_with({'o-1': {'app_id': 'notepad', 'launch_id': 'n1', 'state': 'launching',
                                               'unit': 'u1.scope'}}, tracked=True)
-        self.assertTrue(helper.journal.entries['o-1'].get('uncertain'))
+        self.assertTrue(helper.journal.entries[shell.DESKTOP, 'o-1'].get('uncertain'))
         for handle, app_id, active in ((1, 'aresos-desktop', False), (2, 'org.kde.kwrite', True)):
             self.windows.new(handle)
             self.windows.app_id(handle, app_id)
             self.windows.state(handle, active)
             self.windows.done(handle)
         helper.windows_changed()
-        self.assertEqual(helper.journal.entries['o-1']['state'], 'focused')
+        self.assertEqual(helper.journal.entries[shell.DESKTOP, 'o-1']['state'], 'focused')
         self.assertNotIn('uncertain', self.journal_on_disk()['o-1'])
         self.windows.gone(2)
         helper.windows_changed()
-        entry = helper.journal.entries['o-1']
+        entry = helper.journal.entries[shell.DESKTOP, 'o-1']
         self.assertEqual((entry['state'], entry.get('error')), ('closed', None))
 
     def test_unknown_answers_keep_the_launch_until_a_real_gone(self):
@@ -797,12 +798,12 @@ class ScopeWatcherTest(Base):
             self.scope_answer = failure
             self.scope_pass(helper)
             with self.subTest(failure=repr(failure)):
-                self.assertEqual(helper.journal.entries['o-1']['state'], 'starting')
-                self.assertEqual(helper.watched_units(), {unit: 'o-1'})
+                self.assertEqual(helper.journal.entries[shell.DESKTOP, 'o-1']['state'], 'starting')
+                self.assertEqual(helper.watched_units(), {unit: (shell.DESKTOP, 'o-1')})
         self.scope_answer = None
         self.active_units = set()
         self.scope_pass(helper)
-        self.assertEqual(helper.journal.entries['o-1']['state'], 'closed')
+        self.assertEqual(helper.journal.entries[shell.DESKTOP, 'o-1']['state'], 'closed')
         self.assertEqual(helper.watched_units(), {})
 
     def test_an_unknown_answer_at_start_up_decides_nothing(self):
@@ -811,12 +812,12 @@ class ScopeWatcherTest(Base):
             'o-1': {'app_id': 'terminal', 'launch_id': 't1', 'state': 'launching', 'unit': 'u1.scope'},
             'o-2': {'app_id': 'notepad', 'launch_id': 'n1', 'state': 'starting', 'unit': 'u2.scope'}})
         entries = helper.journal.entries
-        self.assertEqual((entries['o-1']['state'], entries['o-2']['state']), ('starting', 'starting'))
+        self.assertEqual((entries[shell.DESKTOP, 'o-1']['state'], entries[shell.DESKTOP, 'o-2']['state']), ('starting', 'starting'))
         self.scope_answer = None  # both turn out gone
         self.scope_pass(helper)
         # The interrupted launch never surely started; the other one ran and ended.
-        self.assertEqual((entries['o-1']['state'], entries['o-1']['error']), ('failed', 'launch_uncertain'))
-        self.assertEqual(entries['o-2']['state'], 'closed')
+        self.assertEqual((entries[shell.DESKTOP, 'o-1']['state'], entries[shell.DESKTOP, 'o-1']['error']), ('failed', 'launch_uncertain'))
+        self.assertEqual(entries[shell.DESKTOP, 'o-2']['state'], 'closed')
         self.popen.assert_not_called()
 
     def test_tracking_lost_after_a_restart_still_ends_focused_and_background_launches(self):
@@ -835,8 +836,8 @@ class ScopeWatcherTest(Base):
         self.active_units = set()
         self.scope_pass(helper)
         self.assertEqual(helper.watched_units(), {})
-        self.assertEqual(helper.journal.entries['o-1']['state'], 'closed')
-        self.assertTrue(helper.journal.entries['o-0'].get('settled'))
+        self.assertEqual(helper.journal.entries[shell.DESKTOP, 'o-1']['state'], 'closed')
+        self.assertTrue(helper.journal.entries[shell.DESKTOP, 'o-0'].get('settled'))
         again = self.request(helper, conn, 'open_app', 'o-1', app_id='notepad')
         self.assertEqual((again['state'], again['launch_id']), ('closed', 'l1'))
         self.assertEqual(self.request(helper, conn, 'open_app', 'n-2', app_id='terminal')['error'], 'journal_full')
@@ -850,15 +851,15 @@ class ScopeWatcherTest(Base):
             'o-1': {'app_id': 'notepad', 'launch_id': 'n1', 'state': 'focused', 'unit': 'u1.scope'},
             'o-2': {'app_id': 'terminal', 'launch_id': 't1', 'state': 'starting', 'unit': 'u2.scope'},
             'o-3': {'app_id': 'browser', 'launch_id': 'b1', 'state': 'starting', 'unit': 'u3.scope'}}, tracked=True)
-        self.assertEqual(helper.journal.entries['o-1']['state'], 'closed')  # no Notepad window is open
-        self.assertEqual(helper.watched_units(), {'u2.scope': 'o-2', 'u3.scope': 'o-3'})
+        self.assertEqual(helper.journal.entries[shell.DESKTOP, 'o-1']['state'], 'closed')  # no Notepad window is open
+        self.assertEqual(helper.watched_units(), {'u2.scope': (shell.DESKTOP, 'o-2'), 'u3.scope': (shell.DESKTOP, 'o-3')})
         live = self.request(helper, self.connect(helper), 'open_app', 'o-4', app_id='notepad')
         self.assertEqual(live['state'], 'starting')
-        self.assertNotIn('o-4', helper.watched_units().values())  # its own process decides
+        self.assertNotIn((shell.DESKTOP, 'o-4'), helper.watched_units().values())  # its own process decides
         self.active_units = set()
         self.scope_pass(helper)
-        self.assertEqual(helper.journal.entries['o-2']['error'], 'launch_failed')
-        self.assertEqual(helper.journal.entries['o-3']['state'], 'starting')  # Chrome waits for its window
+        self.assertEqual(helper.journal.entries[shell.DESKTOP, 'o-2']['error'], 'launch_failed')
+        self.assertEqual(helper.journal.entries[shell.DESKTOP, 'o-3']['state'], 'starting')  # Chrome waits for its window
 
     def test_a_slow_check_never_holds_up_the_helper(self):
         started, release = threading.Event(), threading.Event()
@@ -886,14 +887,14 @@ class ScopeWatcherTest(Base):
         self.assertTrue(self.request(helper, conn, 'list_apps', 'l-1')['ok'])
         helper.tick()
         self.assertLess(time.monotonic() - began, 0.5, 'a reply waited for the scope check')
-        self.assertEqual(helper.journal.entries['o-1']['state'], 'starting')
+        self.assertEqual(helper.journal.entries[shell.DESKTOP, 'o-1']['state'], 'starting')
         release.set()
         deadline = time.monotonic() + 5
-        while helper.journal.entries['o-1']['state'] != 'closed' and time.monotonic() < deadline:
+        while helper.journal.entries[shell.DESKTOP, 'o-1']['state'] != 'closed' and time.monotonic() < deadline:
             time.sleep(0.02)
             helper.tick()
-        self.assertEqual(helper.journal.entries['o-1']['state'], 'closed')
-        self.assertEqual(helper.journal.entries['o-2']['state'], 'starting')
+        self.assertEqual(helper.journal.entries[shell.DESKTOP, 'o-1']['state'], 'closed')
+        self.assertEqual(helper.journal.entries[shell.DESKTOP, 'o-2']['state'], 'starting')
         # The next pass waits a full interval after the previous one ended.
         while len(passes) < 3 and time.monotonic() < deadline:
             time.sleep(0.02)
@@ -953,7 +954,7 @@ class WindowTest(Base):
         self.window(3, 'org.kde.kwrite', activated=True)
         states = [(e['request_id'], e['state']) for e in self.conn.events('app_state')]
         self.assertEqual(states, [('o-1', 'focused')])
-        self.assertEqual(self.helper_.handles['o-1'], {3})
+        self.assertEqual(self.helper_.handles[shell.DESKTOP, 'o-1'], {3})
         self.assertEqual(self.focus_events(), [('background', 'app_activated', 'notepad')])
         again = self.open('notepad', 'o-1')
         self.assertEqual((again['state'], again['launch_id']), ('focused', launch['launch_id']))
@@ -967,16 +968,16 @@ class WindowTest(Base):
         windows.state(2, True)
         windows.done(2)
         self.helper_.windows_changed()
-        self.assertEqual(self.helper_.journal.entries['o-1']['state'], 'starting')
+        self.assertEqual(self.helper_.journal.entries[shell.DESKTOP, 'o-1']['state'], 'starting')
         windows.app_id(2, 'org.kde.kwrite')
         windows.done(2)
         self.helper_.windows_changed()
-        self.assertEqual(self.helper_.journal.entries['o-1']['state'], 'focused')
+        self.assertEqual(self.helper_.journal.entries[shell.DESKTOP, 'o-1']['state'], 'focused')
         self.open('notepad', 'o-2')
         windows.done(2)
         self.helper_.windows_changed()
-        self.assertEqual(self.helper_.handles, {'o-1': {2}})
-        self.assertEqual(self.helper_.journal.entries['o-2']['state'], 'starting')
+        self.assertEqual(self.helper_.handles, {(shell.DESKTOP, 'o-1'): {2}})
+        self.assertEqual(self.helper_.journal.entries[shell.DESKTOP, 'o-2']['state'], 'starting')
         self.assertEqual(launch['state'], 'starting')
 
     def test_no_matching_window_fails_the_launch_and_never_hangs(self):
@@ -987,18 +988,18 @@ class WindowTest(Base):
         failed = self.conn.events('app_state')[-1]
         self.assertEqual((failed['request_id'], failed['state'], failed['error']), ('o-1', 'failed', 'no_window'))
         self.window(3, 'org.kde.kwrite')  # too late: the launch stays failed
-        self.assertEqual(self.helper_.journal.entries['o-1']['state'], 'failed')
+        self.assertEqual(self.helper_.journal.entries[shell.DESKTOP, 'o-1']['state'], 'failed')
 
     def test_early_exit_fails_multi_instance_apps_but_single_instance_apps_wait(self):
         self.open('notepad', 'o-1')
         self.open('browser', 'o-2')
-        self.helper_.processes['o-1'].code = 0
-        self.helper_.processes['o-2'].code = 0
+        self.helper_.processes[shell.DESKTOP, 'o-1'].code = 0
+        self.helper_.processes[shell.DESKTOP, 'o-2'].code = 0
         self.helper_.tick()
-        self.assertEqual(self.helper_.journal.entries['o-1']['error'], 'launch_failed')
-        self.assertEqual(self.helper_.journal.entries['o-2']['state'], 'starting')
+        self.assertEqual(self.helper_.journal.entries[shell.DESKTOP, 'o-1']['error'], 'launch_failed')
+        self.assertEqual(self.helper_.journal.entries[shell.DESKTOP, 'o-2']['state'], 'starting')
         self.window(2, 'google-chrome', activated=True)
-        self.assertEqual(self.helper_.journal.entries['o-2']['state'], 'focused')
+        self.assertEqual(self.helper_.journal.entries[shell.DESKTOP, 'o-2']['state'], 'focused')
 
     def test_closing_the_foreground_apps_last_window_returns_to_the_desktop(self):
         self.open('notepad', 'o-1')
@@ -1028,8 +1029,8 @@ class WindowTest(Base):
         self.close(2)
         self.assertEqual(self.focus_events(), before)
         self.assertEqual(self.activations, [])
-        self.assertEqual(self.helper_.journal.entries['o-1']['state'], 'closed')
-        self.assertEqual(self.helper_.journal.entries['o-2']['state'], 'focused')
+        self.assertEqual(self.helper_.journal.entries[shell.DESKTOP, 'o-1']['state'], 'closed')
+        self.assertEqual(self.helper_.journal.entries[shell.DESKTOP, 'o-2']['state'], 'focused')
 
     def switch_then_close(self, delay):
         """Notepad in front, the owner switches to the terminal, and Notepad's last window closes `delay` later."""
@@ -1053,7 +1054,24 @@ class WindowTest(Base):
         self.assertEqual(self.switch_then_close(shell.HANDOFF + 0.1), [])
         self.assertEqual(self.activations, [])
         self.assertEqual(self.helper_.foreground_app, 'terminal')
-        self.assertEqual(self.helper_.journal.entries['o-2']['state'], 'closed')
+        self.assertEqual(self.helper_.journal.entries[shell.DESKTOP, 'o-2']['state'], 'closed')
+
+    def test_the_handoff_starts_when_the_next_window_is_activated_after_a_gap(self):
+        self.open('terminal', 'o-1')
+        self.window(2, 'aresos.terminal')
+        self.open('notepad', 'o-2')
+        self.window(3, 'org.kde.kwrite', activated=True)
+        self.windows.state(3, False)
+        self.windows.done(3)
+        self.helper_.windows_changed()
+        self.now[0] += shell.HANDOFF + 0.1
+
+        self.focus(2)
+        self.close(3)
+        self.assertEqual(self.activations, [1])
+        self.assertEqual(self.focus_events()[-1], ('foreground', 'app_closed', 'notepad'))
+        self.assertIsNone(self.helper_.foreground_app)
+        self.assertEqual(self.helper_.journal.entries[shell.DESKTOP, 'o-2']['state'], 'closed')
 
     def test_dialogs_count_as_their_apps_windows(self):
         self.open('notepad', 'o-1')
@@ -1117,7 +1135,7 @@ class WindowTest(Base):
         windows.state(9, True)
         windows.done(9)
         restarted.windows_changed()
-        self.assertEqual(restarted.journal.entries['o-1']['state'], 'focused')
+        self.assertEqual(restarted.journal.entries[shell.DESKTOP, 'o-1']['state'], 'focused')
         self.assertEqual(self.popen.call_count, 1)
 
 
@@ -1401,14 +1419,14 @@ class StartupTest(Base):
         entries = helper.journal.entries
         self.assertIn('windows', helper.capabilities)
         self.assertEqual(helper.windows.toplevels[kwrite].owner, 'notepad')
-        self.assertEqual(helper.handles, {'o-1': {kwrite}})
-        self.assertEqual(entries['o-1']['state'], 'background')  # the desktop has the focus
-        self.assertEqual(entries['o-2']['state'], 'closed')  # no terminal window is left
-        self.assertEqual((entries['o-3']['state'], entries['o-3']['error']), ('failed', 'launch_uncertain'))
-        self.assertEqual(entries['o-4']['state'], 'starting')
+        self.assertEqual(helper.handles, {(shell.DESKTOP, 'o-1'): {kwrite}})
+        self.assertEqual(entries[shell.DESKTOP, 'o-1']['state'], 'background')  # the desktop has the focus
+        self.assertEqual(entries[shell.DESKTOP, 'o-2']['state'], 'closed')  # no terminal window is left
+        self.assertEqual((entries[shell.DESKTOP, 'o-3']['state'], entries[shell.DESKTOP, 'o-3']['error']), ('failed', 'launch_uncertain'))
+        self.assertEqual(entries[shell.DESKTOP, 'o-4']['state'], 'starting')
         wayland.feed(FakeCompositor.message(kwrite, 6))
         helper.windows_changed()
-        self.assertEqual(entries['o-1']['state'], 'closed')
+        self.assertEqual(entries[shell.DESKTOP, 'o-1']['state'], 'closed')
         self.popen.assert_not_called()
 
 
@@ -1445,7 +1463,7 @@ class SplitReadTest(Base):
         wayland.feed(wire_state(self.TERMINAL, False) + wire_state(self.DESKTOP, True))
         helper.windows_changed()
         focus = [(e['focus'], e['reason'], e.get('app_id')) for e in conn.events('shell_focus')[before:]]
-        return focus, activations, helper.journal.entries['o-1']['state']
+        return focus, activations, helper.journal.entries[shell.DESKTOP, 'o-1']['state']
 
     def test_close_and_refocus_give_the_same_result_at_every_split(self):
         closed = FakeCompositor.message(self.NOTEPAD, 6)
@@ -1527,7 +1545,7 @@ class ServerTest(Base):
                            'instance': INSTANCE, 'nonce': NONCE})
         self.assertTrue(self.receive(server, client)['ok'])
         self.assertLess(time.monotonic() - began, 1.0, 'the reply waited for the hanging scope check')
-        self.assertEqual(helper.journal.entries['o-1']['state'], 'starting')
+        self.assertEqual(helper.journal.entries[shell.DESKTOP, 'o-1']['state'], 'starting')
         release.set()
         # The answer must wake the selector by itself (well before its timeout), and that one event must apply it:
         # no step(), so no tick() polling the queue.
@@ -1537,7 +1555,7 @@ class ServerTest(Base):
         scopes = [(key, mask) for key, mask in events if key.data == 'scopes']
         self.assertEqual(len(scopes), 1, f'no scopes event among {[key.data for key, _ in events]}')
         server.handle(*scopes[0])
-        self.assertEqual(helper.journal.entries['o-1']['state'], 'closed')
+        self.assertEqual(helper.journal.entries[shell.DESKTOP, 'o-1']['state'], 'closed')
 
     def test_an_unexpected_error_drops_only_that_connection(self):
         path = os.path.join(self.folder.name, 'aresos', 'shell.sock')

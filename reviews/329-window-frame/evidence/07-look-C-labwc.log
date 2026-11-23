@@ -1,0 +1,25 @@
+00:00:00.005 [INFO] [../src/config/tablet.c:111] Adding button map for 0x140 with 0x110
+00:00:00.005 [INFO] [../src/config/tablet.c:111] Adding button map for 0x14b with 0x111
+00:00:00.005 [INFO] [../src/config/tablet.c:111] Adding button map for 0x14c with 0x112
+00:00:00.005 [INFO] [../src/config/tablet.c:111] Adding button map for 0x110 with 0x110
+00:00:00.005 [INFO] [../src/config/tablet.c:111] Adding button map for 0x111 with 0x111
+00:00:00.005 [INFO] [../src/config/tablet.c:111] Adding button map for 0x112 with 0x112
+00:00:00.005 [INFO] [../src/config/tablet.c:111] Adding button map for 0x113 with 0x113
+00:00:00.005 [INFO] [../src/config/tablet.c:111] Adding button map for 0x114 with 0x114
+00:00:00.005 [INFO] [../src/config/tablet.c:111] Adding button map for 0x115 with 0x115
+00:00:00.005 [INFO] [../src/config/tablet.c:111] Adding button map for 0x116 with 0x116
+00:00:00.005 [INFO] [../src/config/tablet.c:111] Adding button map for 0x117 with 0x117
+00:00:00.005 [INFO] [../src/config/rcxml.c:1947] read config file /tmp/indicator-home.c5jLnO/.config/labwc-look-C/rc.xml
+00:00:00.005 [INFO] [../src/config/rcxml.c:584] create mousebind for TitleBar
+00:00:00.005 [INFO] [../src/config/rcxml.c:584] create mousebind for TitleBar
+00:00:00.005 [INFO] [../src/config/rcxml.c:1805] load default window switcher fields
+00:00:00.005 [INFO] [backend/backend.c:342] Loading user-specified backends due to WLR_BACKENDS: headless
+00:00:00.005 [INFO] [backend/headless/backend.c:60] Creating headless backend
+00:00:00.005 [INFO] [util/env.c:25] Loading WLR_RENDERER option: pixman
+00:00:00.005 [INFO] [render/pixman/renderer.c:328] Creating pixman renderer
+00:00:00.013 [INFO] [../src/server.c:701] VR will not be available
+00:00:00.026 [INFO] [backend/headless/backend.c:17] Starting headless backend
+00:00:00.030 [INFO] [../src/theme.c:1157] read theme /usr/share/themes/AresOS/labwc/themerc
+00:00:00.047 [INFO] [../src/output.c:1175] adaptive sync disabled for output HEADLESS-2
+00:00:00.048 [INFO] [../src/output.c:1175] adaptive sync disabled for output HEADLESS-1
+00:00:00.051 [INFO] [../src/seat.c:380] map pointer to output (null)

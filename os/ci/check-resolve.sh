@@ -8,11 +8,31 @@ mkdir -p "$out"
 section() { printf '\n===== %s\n' "$*"; }
 show() { for file in "$@"; do printf -- '--- %s\n' "$file"; cat "$file" 2>&1; done; }
 
+# Informational only: a lookup outage must never change the reviewed pin or
+# fail resolution. Keep both the console line and the uploaded evidence.
+python3 - /tmp/aresos/gh.lock.json <<'PY' | tee "$out/gh.txt" || true
+import json, pathlib, re, subprocess, sys
+try:
+    pin = json.loads(pathlib.Path(sys.argv[1]).read_text())['nevra']
+except Exception:
+    pin = 'unavailable'
+try:
+    reply = subprocess.check_output(['curl', '-fsSL', '--proto', '=https', '--proto-redir', '=https',
+                                     '--tlsv1.2', '--connect-timeout', '10', '--max-time', '30',
+                                     'https://api.github.com/repos/cli/cli/releases/latest'],
+                                    text=True, stderr=subprocess.DEVNULL, timeout=35)
+    newest = json.loads(reply)['tag_name']
+    assert re.fullmatch(r'v\d+\.\d+\.\d+', newest)
+except Exception:
+    newest = 'unavailable (lookup failed)'
+print(f'INFO gh newest={newest} pinned={pin}')
+PY
+
 {
     section packages
     rpm -q util-linux util-linux-core util-linux-script qrencode qrencode-libs brightnessctl polkit polkit-kde \
         wireplumber flatpak foot labwc xdg-utils cronie sudo shadow-utils podman distrobox liberation-fonts \
-        liberation-fonts-common wget2-wget gnupg2 curl rpm dnf5 bazaar
+        liberation-fonts-common wget2-wget gnupg2 curl rpm dnf5 bazaar gtk4-layer-shell
     section filesystem
     ls -ld /opt /var/opt /home /usr/local 2>&1
     ls -la /opt/ /var/opt/ 2>&1
@@ -160,12 +180,12 @@ PY
     done < "$chrome/unsatisfied.txt" | tee "$chrome/providers.txt"
     section transaction-preview
     dnf5 --disable-repo='*' --enable-repo=fedora --enable-repo=updates --setopt=install_weak_deps=False \
-        install --assumeno util-linux-script qrencode brightnessctl "$chrome/google-chrome.rpm"
+        install --assumeno util-linux-script qrencode brightnessctl gtk4-layer-shell.x86_64 "$chrome/google-chrome.rpm"
     section available
     dnf5 --disable-repo='*' --enable-repo=fedora --enable-repo=updates repoquery \
         --qf '%{full_nevra} %{repoid}\n' util-linux-script util-linux-core util-linux qrencode brightnessctl \
         liberation-fonts foot labwc greetd grim fcft libsfdo utf8proc wlroots0.19 xdg-desktop-portal-wlr \
-        greetd-selinux
+        greetd-selinux gtk4-layer-shell
     section existing-lock-availability
     # The candidate below requests each locked NEVRA Fedora still serves. Its
     # updates repository keeps only the newest build, so a vanished pin is
@@ -226,11 +246,13 @@ PY
 } > "$out/pkg23.txt" 2>&1
 
 # Candidate lock: the existing exact inputs (a vanished pin by name and
-# architecture, see existing-lock-availability) plus package 23's Java 25,
-# resolved exactly as build.sh does.
+# architecture, see existing-lock-availability) plus package 23's Java 25 and
+# package 323's gtk4-layer-shell (x86_64 only: by name, dnf also fetches the
+# i686 build and its multilib chain), resolved exactly as build.sh does.
 names=()
 while read -r spec; do names+=("$spec"); done < /tmp/lock-requests.txt
 names+=(java-25-openjdk-headless)
+names+=(gtk4-layer-shell.x86_64)
 {
     printf 'Requested: %s\n' "${names[*]}"
     rm -rf /tmp/ares-rpms
@@ -260,4 +282,13 @@ PY
     section install-preview
     dnf5 --disable-repo='*' --setopt=install_weak_deps=False install --assumeno /tmp/ares-rpms/*.rpm "$chrome/google-chrome.rpm"
 } > "$out/candidate.txt" 2>&1
+
+# Package 311: a candidate lock from what resolve-download.sh found on labwc's locked fedora:44 (os/ci/check-build.sh).
+{
+    section labwc-build-dependencies
+    python3 -I /tmp/aresos/labwc/stage.py resolve /tmp/aresos/labwc /evidence/labwc-resolved "$out"
+    echo "labwc resolve exit=$?"
+} > "$out/labwc.txt" 2>&1
+# The evidence folder is uploaded: the candidate is the result, the packages are not.
+rm -rf /evidence/labwc-resolved
 echo 'Resolution finished; see evidence/resolve/'

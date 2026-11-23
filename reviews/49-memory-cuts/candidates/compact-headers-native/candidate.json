@@ -1,0 +1,60 @@
+{
+  "candidate": "compact headers + native interval + arena cap",
+  "status": "not qualified: first-creation standing/flight frames worse than paired current v1",
+  "settings": {
+    "RD": "8",
+    "SD": "5",
+    "HEAP": "1024",
+    "MIN_HEAP": "256",
+    "GC": "-XX:MaxHeapFreeRatio=30,-XX:MinHeapFreeRatio=10,-XX:+UseCompactObjectHeaders,-XX:TrimNativeHeapInterval=60000",
+    "MEMHIGH": "2560M",
+    "SIZE": "1920x1080",
+    "REFRESH": "144",
+    "SETTLE": "120",
+    "WINDOW": "60",
+    "COVER": "300",
+    "MODE": "create",
+    "HOMEKIND": "flat",
+    "BASE": "<worktree>/.work/pkg49/AresHub-base",
+    "FLIGHT": "roads",
+    "ENV": "MALLOC_ARENA_MAX=2",
+    "MODS": "",
+    "PROBE": "0",
+    "RECLAIM": "",
+    "FREEZE": "0",
+    "LONG": "0",
+    "NMT": "1",
+    "COVER_ACTION": "none",
+    "WAKE_INPUT": "active-v3",
+    "CREATE_FLOW": "automatic"
+  },
+  "memory_saving_mib": {
+    "settled": 324,
+    "flight": 385,
+    "covered5m": 456
+  },
+  "observed_active_outliers": [
+    {
+      "window": "stand",
+      "frame_ms": 21.902,
+      "jvm_uptime_s": 142.7427,
+      "gc": "Mixed",
+      "gc_pause_ms": 19.914,
+      "seconds_from_nearest_trim_boundary": 22.7427
+    },
+    {
+      "window": "flight",
+      "frame_ms": 26.317,
+      "jvm_uptime_s": 230.3431,
+      "gc": "Remark",
+      "gc_pause_ms": 18.596,
+      "seconds_from_nearest_trim_boundary": 9.6569
+    }
+  ],
+  "control_active_max_ms": {
+    "stand": 12.0,
+    "flight": 12.3
+  },
+  "interpretation": "These are GC-linked stalls away from trim boundaries. This pair does not prove a sole cause or that compact headers always regress frames. Preserve the observations, omit the small optional header saving, and qualify the larger native-memory cuts directly.",
+  "next": "Fresh automatic creation control/trial followed by all required native-only combination validations. The active Nether setup is a utility fixture, not a qualification of the revised settings."
+}

@@ -1,0 +1,3 @@
+1072221:
+garbage-first heap   total reserved 1048576K, committed 342016K, used 297046K [0x00000000c0000000, 0x0000000100000000)
+ region size 1024K, 21 young (21504K), 1 survivors (1024K)

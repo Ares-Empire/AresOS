@@ -1,0 +1,7 @@
+$ python3 reviews/318-thaw-watchdog/rig/test_input.py
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.101s
+
+OK
+exit 0

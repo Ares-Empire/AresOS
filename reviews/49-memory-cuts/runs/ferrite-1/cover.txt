@@ -1,0 +1,6 @@
+warn: terminal.c:2034: slave exited with signal 1 (Hangup)
+puts=[4] title='Cover'
+'aresos-desktop'             ['maximized'] outputs=[4] title='Minecraft* 26.2 - Singleplayer'
+'pkg41.Cover'                ['maximized', 'activated'] outputs=[4] title='Cover'
+'aresos-desktop'             ['maximized'] outputs=[4] title='Minecraft* 26.2 - Singleplayer'
+'aresos-desktop'             ['maximized', 'activated'] outputs=[4] title='Minecraft* 26.2 - Singleplayer'

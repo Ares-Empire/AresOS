@@ -1,0 +1,32 @@
+name=cover-freeze-2
+RD=8
+SD=5
+HEAP=1024
+MIN_HEAP=256
+GC=-XX:MaxHeapFreeRatio=30,-XX:MinHeapFreeRatio=10
+MEMHIGH=2560M
+SIZE=1920x1080
+REFRESH=144
+SETTLE=120
+WINDOW=60
+COVER=300
+MODE=measure
+WORLD=base
+HOMEKIND=flat
+BASE=<worktree>/.work/pkg49/AresHub-base
+FLIGHT=roads
+QUIT=0
+ENV=
+MODS=
+PROBE=0
+RECLAIM=600M
+FREEZE=1
+LONG=0
+NMT=1
+COVER_ACTION=none
+WAKE_INPUT=active-v3
+JVM_ARGS=-Xms256m -Xmx1024m -Xlog:gc:file=<worktree>/.work/pkg49/rigs/cover-freeze-2/gc.txt:tn,u -XX:NativeMemoryTracking=summary -Dfabric.addMods=<worktree>/.work/pkg49/pkg41-frames.jar -Dpkg41.frames=<worktree>/.work/pkg49/rigs/cover-freeze-2/frames.txt -XX:MaxHeapFreeRatio=30 -XX:MinHeapFreeRatio=10
+GAME_ARGS=--quickPlaySingleplayer AresHub
+source_revision=43c0927393b4ef12cc150e6489f1dff41fe5940d
+started=2026-11-17T23:43:01+01:00
+GAME_PID=428293

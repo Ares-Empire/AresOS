@@ -383,7 +383,7 @@ class ReviewFixes7(MailCase):
                             'home':str(home), 'folders':[str(home / name) for name in ('Documents','Downloads')]}
             code = 'import json,sys; from aresos_control.cli import main; raise SystemExit(main(json.loads(sys.argv[1]),sys.argv[2:]))'
             process = subprocess.run(['setpriv','--reuid','26101','--regid','26101','--clear-groups',sys.executable,'-c',code,
-                                      json.dumps(proxy_config),'log','--input','{"limit":10}','--json'], capture_output=True, text=True, timeout=30)
+                                      json.dumps(proxy_config),'control','log','--input','{"limit":10}','--json'], capture_output=True, text=True, timeout=30)
             self.assertEqual(process.returncode, 0, process.stderr)
             cli = json.loads(process.stdout)
         result = self.engine.request({'v':1,'method':'call','action':'control_log','arguments':{'limit':10}})

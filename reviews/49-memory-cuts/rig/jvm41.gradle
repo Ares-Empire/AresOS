@@ -1,0 +1,12 @@
+// DEVELOPMENT AID of package 49 (copied from package 41) (measurement only): a Gradle init script (-I) for the rig's runClient. It adds the
+// run's JVM arguments (PKG49_JVM_ARGS, split on spaces) and, with PKG49_JAVA, starts the game through the rig's
+// java wrapper (jdk/bin/java, which puts it in a scope of its own with MemoryHigh, as the supervisor does).
+gradle.allprojects { project ->
+    project.tasks.withType(JavaExec).configureEach { task ->
+        if (task.name != 'runClient') return
+        def extra = System.getenv('PKG49_JVM_ARGS')
+        if (extra) task.jvmArgs(extra.trim().split(/\s+/) as List)
+        def java = System.getenv('PKG49_JAVA')
+        if (java) task.executable = java
+    }
+}

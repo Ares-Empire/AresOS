@@ -1,0 +1,3 @@
+323713:
+garbage-first heap   total reserved 1048576K, committed 506880K, used 451409K [0x00000000c0000000, 0x0000000100000000)
+ region size 1024K, 116 young (118784K), 9 survivors (9216K)

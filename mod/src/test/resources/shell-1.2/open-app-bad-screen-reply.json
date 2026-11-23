@@ -1,0 +1,7 @@
+{
+  "protocol": "aresos-shell/1.2",
+  "id": "o-2",
+  "ok": false,
+  "error": "malformed",
+  "message": "screen must be \"world\""
+}

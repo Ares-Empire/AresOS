@@ -3,6 +3,7 @@ package dev.aresos.zone;
 import dev.aresos.catalogue.AppGroup;
 import dev.aresos.config.AppDefinition;
 import dev.aresos.icon.AppIcons;
+import dev.aresos.icon.TerminalAppearance;
 import dev.aresos.mixin.TextDisplayAccess;
 import dev.aresos.world.HomeSites;
 import net.minecraft.ChatFormatting;
@@ -88,6 +89,7 @@ public final class GateBuilder {
      * on the group; only the plain front does. It reads a file: never on the server thread.
      */
     public static Optional<GatePicture> icon(AppDefinition app, int size) {
+        if (TerminalAppearance.usesBuiltInPicture(app)) return Optional.of(terminal(size));
         try {
             var icon = AppIcons.read(app);
             if (icon != null) {
@@ -98,6 +100,31 @@ public final class GateBuilder {
             // Falls through to the plain front; the sign says which app it is.
         }
         return Optional.empty();
+    }
+
+    /** A prompt above the doorway, drawn in blocks so there is no light rim around the face. */
+    private static GatePicture terminal(int size) {
+        String[] face = {
+                "............",
+                "............",
+                "..#.........",
+                "...#........",
+                "....#.......",
+                "...#........",
+                "..#...####..",
+                "............",
+                "............",
+                "............",
+                "............",
+                "............"
+        };
+        var blocks = new String[size * size];
+        for (int y = 0; y < size; y++) for (int x = 0; x < size; x++) {
+            int row = face.length - 1 - (2 * y + 1) * face.length / (2 * size);
+            int column = (2 * x + 1) * face[row].length() / (2 * size);
+            blocks[y * size + x] = face[row].charAt(column) == '#' ? "white_concrete" : GatePalette.BLACK;
+        }
+        return GatePicture.ofBlocks(blocks, size);
     }
 
     /** The concrete of the app's group, named as the gate names blocks: its doormat and its plain front. */

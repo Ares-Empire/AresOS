@@ -43,7 +43,9 @@ class Duplicates22(unittest.TestCase):
         self.mail.register_sent_check(self.engine.operation(old['id']))
         with patch.object(self.engine.store.journal, 'write', side_effect=OSError(errno.ENOSPC, 'Synthetic disk full')):
             self.assert_observation(self.call('operation_status', {'operation_id': old['id']}))
-        self.assertTrue(self.engine.store.write_failed)
+        self.assertFalse(self.engine.store.write_failed)
+        healthy = self.data('operation_status', {'operation_id': old['id']})
+        self.assertEqual(len(healthy['evidence']['sent']), 2)
 
     def test_review22_completed_repair_returns_two_copies_warning_and_enospc(self):
         old, args, repair, raw, ended = self.pending_append()

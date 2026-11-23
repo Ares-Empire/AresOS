@@ -223,8 +223,7 @@ public final class FlatHomeGameTests {
             check(LiveMode.isLive(player), "Fixture: the player is not in Live mode");
             check(!player.gameMode.destroyBlock(gold) && level.getBlockState(gold).is(Blocks.GOLD_BLOCK), "Live mode broke the gold block");
             check(!player.gameMode.destroyBlock(road) && level.getBlockState(road).is(Blocks.CONCRETE.lightBlue()), "Live mode broke the road");
-            check(player.gameMode.destroyBlock(grass) && level.getBlockState(grass).isAir(), "Live mode could not break plain ground");
-            level.setBlockAndUpdate(grass, Blocks.GRASS_BLOCK.defaultBlockState());
+            check(!player.gameMode.destroyBlock(grass) && level.getBlockState(grass).is(Blocks.GRASS_BLOCK), "Live mode broke plain ground");
             // Right above the pad's corner: the pad block below and the grass diagonally below are both in reach.
             explode(level, player, Vec3.atCenterOf(home.offset(2, 0, 2)));
             check(level.getBlockState(grass).isAir(), "Fixture: the explosion did not reach the ground beside the pad");
@@ -239,9 +238,9 @@ public final class FlatHomeGameTests {
 
             // Another dimension's blocks at the same coordinates are not the hub's.
             HubData.store(server, new HubData(HubLayout.LOOK, HubLayout.numbers(), GlobalPos.of(Level.NETHER, home), fixed));
-            check(!HubData.protectsFrom(player, gold), "The record of another dimension protects this one");
+            check(!HubData.get(server).holds(level, gold), "The record of another dimension claims this one");
             HubData.store(server, new HubData(HubLayout.LOOK, HubLayout.numbers(), GlobalPos.of(level.dimension(), home), fixed));
-            check(HubData.protectsFrom(player, gold), "Fixture: the record is back");
+            check(HubData.get(server).holds(level, gold), "Fixture: the record is back");
 
             mode(player, GameType.CREATIVE);
             check(!DesktopWorld.isHost(server, player) && HubData.protectsFromExplosions(server),
@@ -273,16 +272,17 @@ public final class FlatHomeGameTests {
 
             mode(player, GameType.SURVIVAL);
             check(HubData.protectsFromExplosions(server), "Live mode does not shield the hub from explosions");
-            check(!HubData.protectsFrom(player, road), "A block he changed in Build mode is still treated as the mod's");
-            check(!HubData.protectsFrom(player, gold) && player.gameMode.destroyBlock(gold), "His gold regained protection in Live");
-            check(!HubData.protectsFrom(player, replaced) && player.gameMode.destroyBlock(replaced), "Changed-back concrete regained protection");
-            check(player.gameMode.destroyBlock(road) && level.getBlockState(road).isAir(), "Live mode could not break his own block");
+            check(!HubData.get(server).holds(level, road), "A block he changed in Build mode is still treated as the mod's");
+            check(!HubData.get(server).holds(level, gold) && !player.gameMode.destroyBlock(gold), "Live mode broke his unowned gold");
+            check(!HubData.get(server).holds(level, replaced) && !player.gameMode.destroyBlock(replaced), "Live mode broke his changed-back concrete");
+            check(!player.gameMode.destroyBlock(road) && level.getBlockState(road).is(Blocks.CONCRETE.lightBlue()),
+                    "Live mode broke his own road block");
             var remaining = HubData.get(server).fixed();
             check(remaining.names().equals(fixed.names()) && remaining.blocks().size() < fixed.blocks().size(), "The record did not relinquish edits");
             check(remaining.blocks().stream().allMatch(block -> HubData.get(server).holds(level, block.pos())), "An exploded block stayed recorded");
 
             DesktopWorld.setEnabled(server, false);
-            check(!HubData.protectsFrom(player, gold), "Protection outlives the desktop marker");
+            check(player.gameMode.destroyBlock(gold) && level.getBlockState(gold).isAir(), "Mining protection outlives the desktop marker");
             helper.succeed();
         } finally {
             server.getPlayerList().remove(player);

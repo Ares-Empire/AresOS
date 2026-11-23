@@ -1076,5 +1076,37 @@
     "run": 42868506005,
     "scenario": "local-flag/healthy",
     "seconds": 0.791
+  },
+  {
+    "alterations": 2211,
+    "index": 98,
+    "measurement": "local focused four-record corpus, build part 2",
+    "parts": 1,
+    "scenario": "applied-tail/cancel",
+    "seconds": 1.0402573039755225
+  },
+  {
+    "alterations": 1234,
+    "index": 99,
+    "measurement": "local focused four-record corpus, build part 2",
+    "parts": 1,
+    "scenario": "applied-tail/onboarding",
+    "seconds": 0.3037032740539871
+  },
+  {
+    "alterations": 1264,
+    "index": 100,
+    "measurement": "local focused four-record corpus, build part 2",
+    "parts": 1,
+    "scenario": "staged-restore/final",
+    "seconds": 0.3063742339727469
+  },
+  {
+    "alterations": 7575,
+    "index": 101,
+    "measurement": "local focused four-record corpus, build part 2",
+    "parts": 1,
+    "scenario": "staged-restore/intermediate",
+    "seconds": 11.395122965041082
   }
 ]

@@ -84,6 +84,19 @@ as his own user under the permissions he sets; our tools only add safe saving an
 | His own `PermissionRequest` hooks (hooks that answer permission prompts for him, for example a broad auto-approve) | his settings | owner | they must not match our asking tools (the send, delete and submit tools of Mail, Chrome and later apps), so such a hook never answers for him; whether one could approve a managed ask at all is tested in brief 18c |
 | Our app servers (Mail, Chrome, later apps) | installed for his user by the image's setup, like any MCP server | | first: their send, delete and submit tools always ask |
 
+## Which tool a site gets, and later tool families (owner, 2026-11-18)
+
+**The route rule.** A site with a real API or command-line tool gets a direct tool (GitHub: `gh`, already there).
+Our own Empire apps get API tools (below). Everything else goes through the Chrome tool and its site adapters.
+
+| Feature | Tool | Effect | State |
+|---|---|---|---|
+| Aresium's API tools | an API tool for Aresium on our server | read; sends ask | later: before or alongside the Minecraft tool (owner, 2026-11-18: "aresium maybe before or simultaneous to minecraft"); we own both sides, so it's a cheap, clean tool |
+| Arestemis's and Aresus's API tools | an API tool per app | read; sends ask | later, not a priority (owner: "the rest isnt priority (I use only phone anyways)") |
+| Minecraft stage 1: Claude sees where he is and what's around, builds, goes places and runs commands; creative first | through our own Fabric mod (the hub's channel) | change | later: after the Chrome adapters, with `linux-hub`, which owns the mod. His own singleplayer world is enough; not Lunar ("I dont care abt lunar for now") |
+| Minecraft stage 2: Claude as a survival player in his world | the stage 1 tool plus a planning loop | change | later: after stage 1 |
+| Minecraft stage 3: a Claude player genuinely pro at modern PvP, not just the sword. Owner's list: pearl and wind charge; mace (also mace and axe against shields); water and trident (riptide); crystal; totems (also refilling from the inventory); spear, elytra and mace; sword; shield; blocks; cobwebs; rails; TNT minecarts; TNT and fishing rod. In his words: "I wanna see some form of claude minecraft player a pro at all of that genuinely beating pro pvpers" | kit by kit: each mechanic a coded module with exact physics from the game code (trajectories, explosion, fall and mace damage, totem timing); the mod reads the exact game state every tick (no screen reading); a fast learned policy for movement and combo choice, trained by self-play in a sped-up world (`/tick sprint`, a headless server or a stripped combat simulator); Claude designs the modules and the training, and analyses recorded fights | change | later: research, no rush, after stages 1 and 2. Benchmarks: him first, then pro players who agree, on his own server. Self-play training needs GPU compute, which is spending, so it's the owner's call when we get there. Singleplayer or his own server only: bots get banned on public servers |
+
 ## Chrome
 
 The light tool (decision 25): our extension in his normal Chrome, no proxy and no certificate. It asks before

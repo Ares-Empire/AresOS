@@ -1,0 +1,1821 @@
+{
+  "pass_line_commit": "2ddcb93f",
+  "frozen_prefix_sha256": "f39af12eba8239d58de9c7353883df5e0399c4a5cb099e6f934fde49472eb5cc",
+  "accepted_slots": [
+    "flat-1-control",
+    "flat-1-arena",
+    "flat-2-arena",
+    "flat-2-control",
+    "flat-3-arena",
+    "flat-3-control",
+    "flat-4-control",
+    "flat-4-arena",
+    "flat-5-control",
+    "flat-5-arena",
+    "flat-6-arena",
+    "flat-6-control",
+    "create-1-control",
+    "create-1-arena",
+    "create-2-arena",
+    "create-2-control",
+    "nether-control",
+    "nether-arena"
+  ],
+  "attempts": [
+    {
+      "slot": "create-1-arena",
+      "attempt": "create-1-arena",
+      "utility": false,
+      "contaminated": false,
+      "interference_samples": [],
+      "accepted": true
+    },
+    {
+      "slot": "create-1-control",
+      "attempt": "create-1-control",
+      "utility": false,
+      "contaminated": false,
+      "interference_samples": [],
+      "accepted": true
+    },
+    {
+      "slot": "create-2-arena",
+      "attempt": "create-2-arena",
+      "utility": false,
+      "contaminated": false,
+      "interference_samples": [],
+      "accepted": true
+    },
+    {
+      "slot": "create-2-control",
+      "attempt": "create-2-control",
+      "utility": false,
+      "contaminated": false,
+      "interference_samples": [],
+      "accepted": true
+    },
+    {
+      "slot": "flat-1-arena",
+      "attempt": "flat-1-arena",
+      "utility": false,
+      "contaminated": false,
+      "interference_samples": [],
+      "accepted": true
+    },
+    {
+      "slot": "flat-1-control",
+      "attempt": "flat-1-control",
+      "utility": false,
+      "contaminated": false,
+      "interference_samples": [],
+      "accepted": true
+    },
+    {
+      "slot": "flat-2-arena",
+      "attempt": "flat-2-arena",
+      "utility": false,
+      "contaminated": false,
+      "interference_samples": [],
+      "accepted": true
+    },
+    {
+      "slot": "flat-2-control",
+      "attempt": "flat-2-control",
+      "utility": false,
+      "contaminated": false,
+      "interference_samples": [],
+      "accepted": true
+    },
+    {
+      "slot": "flat-3-arena",
+      "attempt": "flat-3-arena",
+      "utility": false,
+      "contaminated": false,
+      "interference_samples": [],
+      "accepted": true
+    },
+    {
+      "slot": "flat-3-control",
+      "attempt": "flat-3-control",
+      "utility": false,
+      "contaminated": false,
+      "interference_samples": [],
+      "accepted": true
+    },
+    {
+      "slot": "flat-4-arena",
+      "attempt": "flat-4-arena",
+      "utility": false,
+      "contaminated": false,
+      "interference_samples": [],
+      "accepted": true
+    },
+    {
+      "slot": "flat-4-control",
+      "attempt": "flat-4-control",
+      "utility": false,
+      "contaminated": false,
+      "interference_samples": [],
+      "accepted": true
+    },
+    {
+      "slot": "flat-5-arena",
+      "attempt": "flat-5-arena",
+      "utility": false,
+      "contaminated": false,
+      "interference_samples": [],
+      "accepted": true
+    },
+    {
+      "slot": "flat-5-control",
+      "attempt": "flat-5-control",
+      "utility": false,
+      "contaminated": false,
+      "interference_samples": [],
+      "accepted": true
+    },
+    {
+      "slot": "flat-6-arena",
+      "attempt": "flat-6-arena",
+      "utility": false,
+      "contaminated": false,
+      "interference_samples": [],
+      "accepted": true
+    },
+    {
+      "slot": "flat-6-control",
+      "attempt": "flat-6-control",
+      "utility": false,
+      "contaminated": false,
+      "interference_samples": [],
+      "accepted": true
+    },
+    {
+      "slot": "nether-arena",
+      "attempt": "nether-arena",
+      "utility": false,
+      "contaminated": false,
+      "interference_samples": [],
+      "accepted": true
+    },
+    {
+      "slot": "nether-control",
+      "attempt": "nether-control",
+      "utility": false,
+      "contaminated": false,
+      "interference_samples": [],
+      "accepted": true
+    },
+    {
+      "slot": "setup-flat",
+      "attempt": "setup-flat",
+      "utility": true,
+      "contaminated": false,
+      "interference_samples": [],
+      "accepted": true
+    },
+    {
+      "slot": "setup-nether",
+      "attempt": "setup-nether",
+      "utility": true,
+      "contaminated": false,
+      "interference_samples": [],
+      "accepted": true
+    }
+  ],
+  "measurement_count": 18,
+  "fixture_bases_unchanged": true,
+  "source_objects_identical": true,
+  "runs": {
+    "flat-1-control": {
+      "attempt": "flat-1-control",
+      "source_revision": "32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be",
+      "source_objects": {
+        "revision": "32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be",
+        "mod_tree": "09a77ad94e74f4c5c8e51c71a418d23048792cb3",
+        "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+        "labwc_blob": "6ea557a97357f3336b267f371126c25e43403974"
+      },
+      "game_environment": {
+        "MALLOC_ARENA_MAX": "",
+        "GLIBC_TUNABLES": "",
+        "JE_MALLOC_CONF": "",
+        "__NV_PRIME_RENDER_OFFLOAD": "1",
+        "__GLX_VENDOR_LIBRARY_NAME": "nvidia",
+        "__VK_LAYER_NV_optimus": "NVIDIA_only",
+        "ALSOFT_DRIVERS": "null",
+        "DISPLAY": ":1",
+        "WAYLAND_DISPLAY": "wayland-1"
+      },
+      "jvm_flags": [
+        "-XX:NativeMemoryTracking=summary",
+        "-XX:MaxHeapFreeRatio=30",
+        "-XX:MinHeapFreeRatio=10",
+        "-XX:StackShadowPages=32",
+        "-Xms256m",
+        "-Xmx1024m"
+      ],
+      "launch_available_mib": 9263,
+      "host_available_mib": {
+        "min": 7236,
+        "median": 7390,
+        "max": 9246
+      },
+      "host_load1": {
+        "min": 0.345703125,
+        "median": 0.76318359375,
+        "max": 1.43017578125
+      },
+      "selected_process_count_ranges": {
+        "Xwayland": {
+          "min": 1,
+          "median": 2,
+          "max": 2
+        },
+        "chrome": {
+          "min": 15,
+          "median": 15,
+          "max": 15
+        },
+        "claude": {
+          "min": 5,
+          "median": 5,
+          "max": 5
+        },
+        "codex": {
+          "min": 3,
+          "median": 3,
+          "max": 3
+        },
+        "java": {
+          "min": 0,
+          "median": 3,
+          "max": 3
+        },
+        "labwc": {
+          "min": 1,
+          "median": 2,
+          "max": 2
+        },
+        "python3": {
+          "min": 7,
+          "median": 10,
+          "max": 11
+        }
+      },
+      "host_max_sample_gap_s": 2.040661981,
+      "external_build_game_samples": 0,
+      "required_frames_covered": true,
+      "frame_count": 28306,
+      "renderer": [
+        "NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2 (NVIDIA Corporation)"
+      ],
+      "jar_sha256": {
+        "aresos-0.1.0-sources.jar": "87e0437736a2e11f417949851a030df0154cb415e66955837e5091ab073e3f6a",
+        "aresos-0.1.0.jar": "e88194c52e956e5c098477d02cc5debc7ce3b3d4c234c05ca676235152f45b48",
+        "pkg41-frames.jar": "057fb099ae8e395a0c38cb74fd2dce93f48306ea7e5de6effa82d0f025ba77d0"
+      },
+      "java_executable_sha256": "1bf1aaef01e4f8d7c85d913c60fb2ee4624cbe54d4053254c59657b7ea913b25"
+    },
+    "flat-1-arena": {
+      "attempt": "flat-1-arena",
+      "source_revision": "32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be",
+      "source_objects": {
+        "revision": "32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be",
+        "mod_tree": "09a77ad94e74f4c5c8e51c71a418d23048792cb3",
+        "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+        "labwc_blob": "6ea557a97357f3336b267f371126c25e43403974"
+      },
+      "game_environment": {
+        "MALLOC_ARENA_MAX": "2",
+        "GLIBC_TUNABLES": "",
+        "JE_MALLOC_CONF": "",
+        "__NV_PRIME_RENDER_OFFLOAD": "1",
+        "__GLX_VENDOR_LIBRARY_NAME": "nvidia",
+        "__VK_LAYER_NV_optimus": "NVIDIA_only",
+        "ALSOFT_DRIVERS": "null",
+        "DISPLAY": ":1",
+        "WAYLAND_DISPLAY": "wayland-1"
+      },
+      "jvm_flags": [
+        "-XX:NativeMemoryTracking=summary",
+        "-XX:MaxHeapFreeRatio=30",
+        "-XX:MinHeapFreeRatio=10",
+        "-XX:StackShadowPages=32",
+        "-Xms256m",
+        "-Xmx1024m"
+      ],
+      "launch_available_mib": 9100,
+      "host_available_mib": {
+        "min": 7374,
+        "median": 7598,
+        "max": 9073
+      },
+      "host_load1": {
+        "min": 0.345703125,
+        "median": 0.9892578125,
+        "max": 2.888671875
+      },
+      "selected_process_count_ranges": {
+        "Xwayland": {
+          "min": 1,
+          "median": 2,
+          "max": 2
+        },
+        "chrome": {
+          "min": 15,
+          "median": 15,
+          "max": 15
+        },
+        "claude": {
+          "min": 5,
+          "median": 5,
+          "max": 5
+        },
+        "codex": {
+          "min": 3,
+          "median": 4,
+          "max": 5
+        },
+        "java": {
+          "min": 0,
+          "median": 3,
+          "max": 3
+        },
+        "labwc": {
+          "min": 1,
+          "median": 2,
+          "max": 2
+        },
+        "python3": {
+          "min": 7,
+          "median": 10,
+          "max": 11
+        }
+      },
+      "host_max_sample_gap_s": 2.035368994,
+      "external_build_game_samples": 0,
+      "required_frames_covered": true,
+      "frame_count": 28261,
+      "renderer": [
+        "NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2 (NVIDIA Corporation)"
+      ],
+      "jar_sha256": {
+        "aresos-0.1.0-sources.jar": "87e0437736a2e11f417949851a030df0154cb415e66955837e5091ab073e3f6a",
+        "aresos-0.1.0.jar": "e88194c52e956e5c098477d02cc5debc7ce3b3d4c234c05ca676235152f45b48",
+        "pkg41-frames.jar": "072bf74c9371c68b429f2b0be368b47d040e2e9d116149a7d10829ed2df3ee71"
+      },
+      "java_executable_sha256": "1bf1aaef01e4f8d7c85d913c60fb2ee4624cbe54d4053254c59657b7ea913b25"
+    },
+    "flat-2-arena": {
+      "attempt": "flat-2-arena",
+      "source_revision": "32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be",
+      "source_objects": {
+        "revision": "32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be",
+        "mod_tree": "09a77ad94e74f4c5c8e51c71a418d23048792cb3",
+        "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+        "labwc_blob": "6ea557a97357f3336b267f371126c25e43403974"
+      },
+      "game_environment": {
+        "MALLOC_ARENA_MAX": "2",
+        "GLIBC_TUNABLES": "",
+        "JE_MALLOC_CONF": "",
+        "__NV_PRIME_RENDER_OFFLOAD": "1",
+        "__GLX_VENDOR_LIBRARY_NAME": "nvidia",
+        "__VK_LAYER_NV_optimus": "NVIDIA_only",
+        "ALSOFT_DRIVERS": "null",
+        "DISPLAY": ":1",
+        "WAYLAND_DISPLAY": "wayland-1"
+      },
+      "jvm_flags": [
+        "-XX:NativeMemoryTracking=summary",
+        "-XX:MaxHeapFreeRatio=30",
+        "-XX:MinHeapFreeRatio=10",
+        "-XX:StackShadowPages=32",
+        "-Xms256m",
+        "-Xmx1024m"
+      ],
+      "launch_available_mib": 9047,
+      "host_available_mib": {
+        "min": 7471,
+        "median": 7550,
+        "max": 9025
+      },
+      "host_load1": {
+        "min": 0.15625,
+        "median": 0.79833984375,
+        "max": 2.96240234375
+      },
+      "selected_process_count_ranges": {
+        "Xwayland": {
+          "min": 1,
+          "median": 2,
+          "max": 2
+        },
+        "chrome": {
+          "min": 15,
+          "median": 15,
+          "max": 15
+        },
+        "claude": {
+          "min": 5,
+          "median": 5,
+          "max": 5
+        },
+        "codex": {
+          "min": 4,
+          "median": 4,
+          "max": 4
+        },
+        "java": {
+          "min": 0,
+          "median": 3,
+          "max": 3
+        },
+        "labwc": {
+          "min": 1,
+          "median": 2,
+          "max": 3
+        },
+        "python3": {
+          "min": 7,
+          "median": 10,
+          "max": 11
+        }
+      },
+      "host_max_sample_gap_s": 2.037688153,
+      "external_build_game_samples": 0,
+      "required_frames_covered": true,
+      "frame_count": 28324,
+      "renderer": [
+        "NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2 (NVIDIA Corporation)"
+      ],
+      "jar_sha256": {
+        "aresos-0.1.0-sources.jar": "87e0437736a2e11f417949851a030df0154cb415e66955837e5091ab073e3f6a",
+        "aresos-0.1.0.jar": "e88194c52e956e5c098477d02cc5debc7ce3b3d4c234c05ca676235152f45b48",
+        "pkg41-frames.jar": "dd08e1bf386eb1b657f80b844c25c4296be11b7dc3cde053cf05ded74b636db9"
+      },
+      "java_executable_sha256": "1bf1aaef01e4f8d7c85d913c60fb2ee4624cbe54d4053254c59657b7ea913b25"
+    },
+    "flat-2-control": {
+      "attempt": "flat-2-control",
+      "source_revision": "32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be",
+      "source_objects": {
+        "revision": "32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be",
+        "mod_tree": "09a77ad94e74f4c5c8e51c71a418d23048792cb3",
+        "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+        "labwc_blob": "6ea557a97357f3336b267f371126c25e43403974"
+      },
+      "game_environment": {
+        "MALLOC_ARENA_MAX": "",
+        "GLIBC_TUNABLES": "",
+        "JE_MALLOC_CONF": "",
+        "__NV_PRIME_RENDER_OFFLOAD": "1",
+        "__GLX_VENDOR_LIBRARY_NAME": "nvidia",
+        "__VK_LAYER_NV_optimus": "NVIDIA_only",
+        "ALSOFT_DRIVERS": "null",
+        "DISPLAY": ":1",
+        "WAYLAND_DISPLAY": "wayland-1"
+      },
+      "jvm_flags": [
+        "-XX:NativeMemoryTracking=summary",
+        "-XX:MaxHeapFreeRatio=30",
+        "-XX:MinHeapFreeRatio=10",
+        "-XX:StackShadowPages=32",
+        "-Xms256m",
+        "-Xmx1024m"
+      ],
+      "launch_available_mib": 8999,
+      "host_available_mib": {
+        "min": 7214,
+        "median": 7294.5,
+        "max": 8992
+      },
+      "host_load1": {
+        "min": 0.25,
+        "median": 0.749267578125,
+        "max": 1.9140625
+      },
+      "selected_process_count_ranges": {
+        "Xwayland": {
+          "min": 1,
+          "median": 2.0,
+          "max": 2
+        },
+        "chrome": {
+          "min": 15,
+          "median": 15.0,
+          "max": 15
+        },
+        "claude": {
+          "min": 5,
+          "median": 5.0,
+          "max": 5
+        },
+        "codex": {
+          "min": 4,
+          "median": 4.0,
+          "max": 4
+        },
+        "java": {
+          "min": 0,
+          "median": 3.0,
+          "max": 3
+        },
+        "labwc": {
+          "min": 1,
+          "median": 2.0,
+          "max": 3
+        },
+        "python3": {
+          "min": 7,
+          "median": 10.0,
+          "max": 11
+        }
+      },
+      "host_max_sample_gap_s": 2.039863824,
+      "external_build_game_samples": 0,
+      "required_frames_covered": true,
+      "frame_count": 28326,
+      "renderer": [
+        "NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2 (NVIDIA Corporation)"
+      ],
+      "jar_sha256": {
+        "aresos-0.1.0-sources.jar": "87e0437736a2e11f417949851a030df0154cb415e66955837e5091ab073e3f6a",
+        "aresos-0.1.0.jar": "e88194c52e956e5c098477d02cc5debc7ce3b3d4c234c05ca676235152f45b48",
+        "pkg41-frames.jar": "de08a4d958b2c8a32b4f414691b4f6a115c98f389c4f4954eeef726dea71673b"
+      },
+      "java_executable_sha256": "1bf1aaef01e4f8d7c85d913c60fb2ee4624cbe54d4053254c59657b7ea913b25"
+    },
+    "flat-3-arena": {
+      "attempt": "flat-3-arena",
+      "source_revision": "32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be",
+      "source_objects": {
+        "revision": "32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be",
+        "mod_tree": "09a77ad94e74f4c5c8e51c71a418d23048792cb3",
+        "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+        "labwc_blob": "6ea557a97357f3336b267f371126c25e43403974"
+      },
+      "game_environment": {
+        "MALLOC_ARENA_MAX": "2",
+        "GLIBC_TUNABLES": "",
+        "JE_MALLOC_CONF": "",
+        "__NV_PRIME_RENDER_OFFLOAD": "1",
+        "__GLX_VENDOR_LIBRARY_NAME": "nvidia",
+        "__VK_LAYER_NV_optimus": "NVIDIA_only",
+        "ALSOFT_DRIVERS": "null",
+        "DISPLAY": ":1",
+        "WAYLAND_DISPLAY": "wayland-1"
+      },
+      "jvm_flags": [
+        "-XX:NativeMemoryTracking=summary",
+        "-XX:MaxHeapFreeRatio=30",
+        "-XX:MinHeapFreeRatio=10",
+        "-XX:StackShadowPages=32",
+        "-Xms256m",
+        "-Xmx1024m"
+      ],
+      "launch_available_mib": 9057,
+      "host_available_mib": {
+        "min": 7479,
+        "median": 7555.0,
+        "max": 9037
+      },
+      "host_load1": {
+        "min": 0.11083984375,
+        "median": 0.958984375,
+        "max": 3.06103515625
+      },
+      "selected_process_count_ranges": {
+        "Xwayland": {
+          "min": 1,
+          "median": 2.0,
+          "max": 2
+        },
+        "chrome": {
+          "min": 15,
+          "median": 15.0,
+          "max": 15
+        },
+        "claude": {
+          "min": 5,
+          "median": 5.0,
+          "max": 5
+        },
+        "codex": {
+          "min": 4,
+          "median": 4.0,
+          "max": 4
+        },
+        "java": {
+          "min": 0,
+          "median": 3.0,
+          "max": 3
+        },
+        "labwc": {
+          "min": 1,
+          "median": 2.0,
+          "max": 2
+        },
+        "python3": {
+          "min": 7,
+          "median": 10.0,
+          "max": 11
+        }
+      },
+      "host_max_sample_gap_s": 2.036980651,
+      "external_build_game_samples": 0,
+      "required_frames_covered": true,
+      "frame_count": 28289,
+      "renderer": [
+        "NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2 (NVIDIA Corporation)"
+      ],
+      "jar_sha256": {
+        "aresos-0.1.0-sources.jar": "87e0437736a2e11f417949851a030df0154cb415e66955837e5091ab073e3f6a",
+        "aresos-0.1.0.jar": "e88194c52e956e5c098477d02cc5debc7ce3b3d4c234c05ca676235152f45b48",
+        "pkg41-frames.jar": "078e56b3a357fa9ec29952870caa6be9d23ab7935b6a1cd2f19e25a466521a60"
+      },
+      "java_executable_sha256": "1bf1aaef01e4f8d7c85d913c60fb2ee4624cbe54d4053254c59657b7ea913b25"
+    },
+    "flat-3-control": {
+      "attempt": "flat-3-control",
+      "source_revision": "32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be",
+      "source_objects": {
+        "revision": "32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be",
+        "mod_tree": "09a77ad94e74f4c5c8e51c71a418d23048792cb3",
+        "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+        "labwc_blob": "6ea557a97357f3336b267f371126c25e43403974"
+      },
+      "game_environment": {
+        "MALLOC_ARENA_MAX": "",
+        "GLIBC_TUNABLES": "",
+        "JE_MALLOC_CONF": "",
+        "__NV_PRIME_RENDER_OFFLOAD": "1",
+        "__GLX_VENDOR_LIBRARY_NAME": "nvidia",
+        "__VK_LAYER_NV_optimus": "NVIDIA_only",
+        "ALSOFT_DRIVERS": "null",
+        "DISPLAY": ":1",
+        "WAYLAND_DISPLAY": "wayland-1"
+      },
+      "jvm_flags": [
+        "-XX:NativeMemoryTracking=summary",
+        "-XX:MaxHeapFreeRatio=30",
+        "-XX:MinHeapFreeRatio=10",
+        "-XX:StackShadowPages=32",
+        "-Xms256m",
+        "-Xmx1024m"
+      ],
+      "launch_available_mib": 8958,
+      "host_available_mib": {
+        "min": 7007,
+        "median": 7067.0,
+        "max": 8938
+      },
+      "host_load1": {
+        "min": 0.18017578125,
+        "median": 0.96875,
+        "max": 2.81494140625
+      },
+      "selected_process_count_ranges": {
+        "Xwayland": {
+          "min": 1,
+          "median": 2.0,
+          "max": 2
+        },
+        "chrome": {
+          "min": 15,
+          "median": 15.0,
+          "max": 15
+        },
+        "claude": {
+          "min": 5,
+          "median": 5.0,
+          "max": 5
+        },
+        "codex": {
+          "min": 4,
+          "median": 4.0,
+          "max": 4
+        },
+        "java": {
+          "min": 1,
+          "median": 3.0,
+          "max": 3
+        },
+        "labwc": {
+          "min": 1,
+          "median": 2.0,
+          "max": 2
+        },
+        "python3": {
+          "min": 7,
+          "median": 10.0,
+          "max": 11
+        }
+      },
+      "host_max_sample_gap_s": 2.032751045,
+      "external_build_game_samples": 0,
+      "required_frames_covered": true,
+      "frame_count": 28279,
+      "renderer": [
+        "NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2 (NVIDIA Corporation)"
+      ],
+      "jar_sha256": {
+        "aresos-0.1.0-sources.jar": "87e0437736a2e11f417949851a030df0154cb415e66955837e5091ab073e3f6a",
+        "aresos-0.1.0.jar": "e88194c52e956e5c098477d02cc5debc7ce3b3d4c234c05ca676235152f45b48",
+        "pkg41-frames.jar": "31c37dce6e9b680b91addef674b4c6713ded18b4c42462dfabc55f90f457fa35"
+      },
+      "java_executable_sha256": "1bf1aaef01e4f8d7c85d913c60fb2ee4624cbe54d4053254c59657b7ea913b25"
+    },
+    "flat-4-control": {
+      "attempt": "flat-4-control",
+      "source_revision": "32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be",
+      "source_objects": {
+        "revision": "32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be",
+        "mod_tree": "09a77ad94e74f4c5c8e51c71a418d23048792cb3",
+        "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+        "labwc_blob": "6ea557a97357f3336b267f371126c25e43403974"
+      },
+      "game_environment": {
+        "MALLOC_ARENA_MAX": "",
+        "GLIBC_TUNABLES": "",
+        "JE_MALLOC_CONF": "",
+        "__NV_PRIME_RENDER_OFFLOAD": "1",
+        "__GLX_VENDOR_LIBRARY_NAME": "nvidia",
+        "__VK_LAYER_NV_optimus": "NVIDIA_only",
+        "ALSOFT_DRIVERS": "null",
+        "DISPLAY": ":1",
+        "WAYLAND_DISPLAY": "wayland-1"
+      },
+      "jvm_flags": [
+        "-XX:NativeMemoryTracking=summary",
+        "-XX:MaxHeapFreeRatio=30",
+        "-XX:MinHeapFreeRatio=10",
+        "-XX:StackShadowPages=32",
+        "-Xms256m",
+        "-Xmx1024m"
+      ],
+      "launch_available_mib": 8799,
+      "host_available_mib": {
+        "min": 6834,
+        "median": 6973,
+        "max": 8788
+      },
+      "host_load1": {
+        "min": 0.11767578125,
+        "median": 0.7607421875,
+        "max": 2.08984375
+      },
+      "selected_process_count_ranges": {
+        "Xwayland": {
+          "min": 1,
+          "median": 2,
+          "max": 2
+        },
+        "chrome": {
+          "min": 15,
+          "median": 15,
+          "max": 15
+        },
+        "claude": {
+          "min": 5,
+          "median": 5,
+          "max": 5
+        },
+        "codex": {
+          "min": 4,
+          "median": 5,
+          "max": 5
+        },
+        "java": {
+          "min": 0,
+          "median": 3,
+          "max": 3
+        },
+        "labwc": {
+          "min": 1,
+          "median": 2,
+          "max": 2
+        },
+        "python3": {
+          "min": 7,
+          "median": 10,
+          "max": 11
+        }
+      },
+      "host_max_sample_gap_s": 2.058250213,
+      "external_build_game_samples": 0,
+      "required_frames_covered": true,
+      "frame_count": 28286,
+      "renderer": [
+        "NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2 (NVIDIA Corporation)"
+      ],
+      "jar_sha256": {
+        "aresos-0.1.0-sources.jar": "87e0437736a2e11f417949851a030df0154cb415e66955837e5091ab073e3f6a",
+        "aresos-0.1.0.jar": "e88194c52e956e5c098477d02cc5debc7ce3b3d4c234c05ca676235152f45b48",
+        "pkg41-frames.jar": "619ef3816df3a134baf32f3bd86d479da16ac169ccbf06ab040a20b606f3712a"
+      },
+      "java_executable_sha256": "1bf1aaef01e4f8d7c85d913c60fb2ee4624cbe54d4053254c59657b7ea913b25"
+    },
+    "flat-4-arena": {
+      "attempt": "flat-4-arena",
+      "source_revision": "32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be",
+      "source_objects": {
+        "revision": "32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be",
+        "mod_tree": "09a77ad94e74f4c5c8e51c71a418d23048792cb3",
+        "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+        "labwc_blob": "6ea557a97357f3336b267f371126c25e43403974"
+      },
+      "game_environment": {
+        "MALLOC_ARENA_MAX": "2",
+        "GLIBC_TUNABLES": "",
+        "JE_MALLOC_CONF": "",
+        "__NV_PRIME_RENDER_OFFLOAD": "1",
+        "__GLX_VENDOR_LIBRARY_NAME": "nvidia",
+        "__VK_LAYER_NV_optimus": "NVIDIA_only",
+        "ALSOFT_DRIVERS": "null",
+        "DISPLAY": ":1",
+        "WAYLAND_DISPLAY": "wayland-1"
+      },
+      "jvm_flags": [
+        "-XX:NativeMemoryTracking=summary",
+        "-XX:MaxHeapFreeRatio=30",
+        "-XX:MinHeapFreeRatio=10",
+        "-XX:StackShadowPages=32",
+        "-Xms256m",
+        "-Xmx1024m"
+      ],
+      "launch_available_mib": 8712,
+      "host_available_mib": {
+        "min": 7175,
+        "median": 7229.5,
+        "max": 8696
+      },
+      "host_load1": {
+        "min": 0.24658203125,
+        "median": 0.855712890625,
+        "max": 2.4423828125
+      },
+      "selected_process_count_ranges": {
+        "Xwayland": {
+          "min": 1,
+          "median": 2.0,
+          "max": 2
+        },
+        "chrome": {
+          "min": 15,
+          "median": 15.0,
+          "max": 15
+        },
+        "claude": {
+          "min": 5,
+          "median": 5.0,
+          "max": 5
+        },
+        "codex": {
+          "min": 4,
+          "median": 5.0,
+          "max": 5
+        },
+        "java": {
+          "min": 0,
+          "median": 3.0,
+          "max": 3
+        },
+        "labwc": {
+          "min": 1,
+          "median": 2.0,
+          "max": 2
+        },
+        "python3": {
+          "min": 7,
+          "median": 10.0,
+          "max": 11
+        }
+      },
+      "host_max_sample_gap_s": 2.035175149,
+      "external_build_game_samples": 0,
+      "required_frames_covered": true,
+      "frame_count": 28313,
+      "renderer": [
+        "NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2 (NVIDIA Corporation)"
+      ],
+      "jar_sha256": {
+        "aresos-0.1.0-sources.jar": "87e0437736a2e11f417949851a030df0154cb415e66955837e5091ab073e3f6a",
+        "aresos-0.1.0.jar": "e88194c52e956e5c098477d02cc5debc7ce3b3d4c234c05ca676235152f45b48",
+        "pkg41-frames.jar": "0040ec7b4c75a01ecb379cce1087e25569674a97c6b815b4d3ece3a022061ae0"
+      },
+      "java_executable_sha256": "1bf1aaef01e4f8d7c85d913c60fb2ee4624cbe54d4053254c59657b7ea913b25"
+    },
+    "flat-5-control": {
+      "attempt": "flat-5-control",
+      "source_revision": "32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be",
+      "source_objects": {
+        "revision": "32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be",
+        "mod_tree": "09a77ad94e74f4c5c8e51c71a418d23048792cb3",
+        "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+        "labwc_blob": "6ea557a97357f3336b267f371126c25e43403974"
+      },
+      "game_environment": {
+        "MALLOC_ARENA_MAX": "",
+        "GLIBC_TUNABLES": "",
+        "JE_MALLOC_CONF": "",
+        "__NV_PRIME_RENDER_OFFLOAD": "1",
+        "__GLX_VENDOR_LIBRARY_NAME": "nvidia",
+        "__VK_LAYER_NV_optimus": "NVIDIA_only",
+        "ALSOFT_DRIVERS": "null",
+        "DISPLAY": ":1",
+        "WAYLAND_DISPLAY": "wayland-1"
+      },
+      "jvm_flags": [
+        "-XX:NativeMemoryTracking=summary",
+        "-XX:MaxHeapFreeRatio=30",
+        "-XX:MinHeapFreeRatio=10",
+        "-XX:StackShadowPages=32",
+        "-Xms256m",
+        "-Xmx1024m"
+      ],
+      "launch_available_mib": 8737,
+      "host_available_mib": {
+        "min": 6886,
+        "median": 7009.0,
+        "max": 8724
+      },
+      "host_load1": {
+        "min": 0.12353515625,
+        "median": 0.8310546875,
+        "max": 2.294921875
+      },
+      "selected_process_count_ranges": {
+        "Xwayland": {
+          "min": 1,
+          "median": 2.0,
+          "max": 2
+        },
+        "chrome": {
+          "min": 15,
+          "median": 15.0,
+          "max": 15
+        },
+        "claude": {
+          "min": 5,
+          "median": 5.0,
+          "max": 5
+        },
+        "codex": {
+          "min": 5,
+          "median": 5.0,
+          "max": 5
+        },
+        "java": {
+          "min": 0,
+          "median": 3.0,
+          "max": 3
+        },
+        "labwc": {
+          "min": 1,
+          "median": 2.0,
+          "max": 2
+        },
+        "python3": {
+          "min": 7,
+          "median": 10.0,
+          "max": 11
+        }
+      },
+      "host_max_sample_gap_s": 2.036463356,
+      "external_build_game_samples": 0,
+      "required_frames_covered": true,
+      "frame_count": 28320,
+      "renderer": [
+        "NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2 (NVIDIA Corporation)"
+      ],
+      "jar_sha256": {
+        "aresos-0.1.0-sources.jar": "87e0437736a2e11f417949851a030df0154cb415e66955837e5091ab073e3f6a",
+        "aresos-0.1.0.jar": "e88194c52e956e5c098477d02cc5debc7ce3b3d4c234c05ca676235152f45b48",
+        "pkg41-frames.jar": "5d588e11bd8bfab3d0d0df4f57925b1b512335ca21441d2c16a97b7a3b3cbe89"
+      },
+      "java_executable_sha256": "1bf1aaef01e4f8d7c85d913c60fb2ee4624cbe54d4053254c59657b7ea913b25"
+    },
+    "flat-5-arena": {
+      "attempt": "flat-5-arena",
+      "source_revision": "32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be",
+      "source_objects": {
+        "revision": "32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be",
+        "mod_tree": "09a77ad94e74f4c5c8e51c71a418d23048792cb3",
+        "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+        "labwc_blob": "6ea557a97357f3336b267f371126c25e43403974"
+      },
+      "game_environment": {
+        "MALLOC_ARENA_MAX": "2",
+        "GLIBC_TUNABLES": "",
+        "JE_MALLOC_CONF": "",
+        "__NV_PRIME_RENDER_OFFLOAD": "1",
+        "__GLX_VENDOR_LIBRARY_NAME": "nvidia",
+        "__VK_LAYER_NV_optimus": "NVIDIA_only",
+        "ALSOFT_DRIVERS": "null",
+        "DISPLAY": ":1",
+        "WAYLAND_DISPLAY": "wayland-1"
+      },
+      "jvm_flags": [
+        "-XX:NativeMemoryTracking=summary",
+        "-XX:MaxHeapFreeRatio=30",
+        "-XX:MinHeapFreeRatio=10",
+        "-XX:StackShadowPages=32",
+        "-Xms256m",
+        "-Xmx1024m"
+      ],
+      "launch_available_mib": 8641,
+      "host_available_mib": {
+        "min": 7089,
+        "median": 7178.0,
+        "max": 8623
+      },
+      "host_load1": {
+        "min": 0.22607421875,
+        "median": 0.72216796875,
+        "max": 1.72900390625
+      },
+      "selected_process_count_ranges": {
+        "Xwayland": {
+          "min": 1,
+          "median": 2.0,
+          "max": 2
+        },
+        "chrome": {
+          "min": 15,
+          "median": 15.0,
+          "max": 15
+        },
+        "claude": {
+          "min": 5,
+          "median": 5.0,
+          "max": 5
+        },
+        "codex": {
+          "min": 5,
+          "median": 5.0,
+          "max": 5
+        },
+        "java": {
+          "min": 0,
+          "median": 3.0,
+          "max": 3
+        },
+        "labwc": {
+          "min": 1,
+          "median": 2.0,
+          "max": 2
+        },
+        "python3": {
+          "min": 7,
+          "median": 10.0,
+          "max": 14
+        }
+      },
+      "host_max_sample_gap_s": 2.041253525,
+      "external_build_game_samples": 0,
+      "required_frames_covered": true,
+      "frame_count": 28324,
+      "renderer": [
+        "NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2 (NVIDIA Corporation)"
+      ],
+      "jar_sha256": {
+        "aresos-0.1.0-sources.jar": "87e0437736a2e11f417949851a030df0154cb415e66955837e5091ab073e3f6a",
+        "aresos-0.1.0.jar": "e88194c52e956e5c098477d02cc5debc7ce3b3d4c234c05ca676235152f45b48",
+        "pkg41-frames.jar": "b5216dae4a4e5ce69f17f94633ac4aa476d2efb6e1c1e63578a99a65ce8449a1"
+      },
+      "java_executable_sha256": "1bf1aaef01e4f8d7c85d913c60fb2ee4624cbe54d4053254c59657b7ea913b25"
+    },
+    "flat-6-arena": {
+      "attempt": "flat-6-arena",
+      "source_revision": "32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be",
+      "source_objects": {
+        "revision": "32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be",
+        "mod_tree": "09a77ad94e74f4c5c8e51c71a418d23048792cb3",
+        "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+        "labwc_blob": "6ea557a97357f3336b267f371126c25e43403974"
+      },
+      "game_environment": {
+        "MALLOC_ARENA_MAX": "2",
+        "GLIBC_TUNABLES": "",
+        "JE_MALLOC_CONF": "",
+        "__NV_PRIME_RENDER_OFFLOAD": "1",
+        "__GLX_VENDOR_LIBRARY_NAME": "nvidia",
+        "__VK_LAYER_NV_optimus": "NVIDIA_only",
+        "ALSOFT_DRIVERS": "null",
+        "DISPLAY": ":1",
+        "WAYLAND_DISPLAY": "wayland-1"
+      },
+      "jvm_flags": [
+        "-XX:NativeMemoryTracking=summary",
+        "-XX:MaxHeapFreeRatio=30",
+        "-XX:MinHeapFreeRatio=10",
+        "-XX:StackShadowPages=32",
+        "-Xms256m",
+        "-Xmx1024m"
+      ],
+      "launch_available_mib": 8661,
+      "host_available_mib": {
+        "min": 7118,
+        "median": 7182.0,
+        "max": 8646
+      },
+      "host_load1": {
+        "min": 0.24365234375,
+        "median": 0.93701171875,
+        "max": 3.5693359375
+      },
+      "selected_process_count_ranges": {
+        "Xwayland": {
+          "min": 1,
+          "median": 2.0,
+          "max": 2
+        },
+        "chrome": {
+          "min": 15,
+          "median": 15.0,
+          "max": 16
+        },
+        "claude": {
+          "min": 5,
+          "median": 5.0,
+          "max": 5
+        },
+        "codex": {
+          "min": 5,
+          "median": 5.0,
+          "max": 5
+        },
+        "java": {
+          "min": 0,
+          "median": 3.0,
+          "max": 3
+        },
+        "labwc": {
+          "min": 1,
+          "median": 2.0,
+          "max": 3
+        },
+        "python3": {
+          "min": 7,
+          "median": 10.0,
+          "max": 11
+        }
+      },
+      "host_max_sample_gap_s": 2.038435892,
+      "external_build_game_samples": 0,
+      "required_frames_covered": true,
+      "frame_count": 28307,
+      "renderer": [
+        "NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2 (NVIDIA Corporation)"
+      ],
+      "jar_sha256": {
+        "aresos-0.1.0-sources.jar": "87e0437736a2e11f417949851a030df0154cb415e66955837e5091ab073e3f6a",
+        "aresos-0.1.0.jar": "e88194c52e956e5c098477d02cc5debc7ce3b3d4c234c05ca676235152f45b48",
+        "pkg41-frames.jar": "be12fe2f0355221cd2f1a6a55a0887173f17cb69173aa9c0a2df75b7407af02a"
+      },
+      "java_executable_sha256": "1bf1aaef01e4f8d7c85d913c60fb2ee4624cbe54d4053254c59657b7ea913b25"
+    },
+    "flat-6-control": {
+      "attempt": "flat-6-control",
+      "source_revision": "32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be",
+      "source_objects": {
+        "revision": "32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be",
+        "mod_tree": "09a77ad94e74f4c5c8e51c71a418d23048792cb3",
+        "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+        "labwc_blob": "6ea557a97357f3336b267f371126c25e43403974"
+      },
+      "game_environment": {
+        "MALLOC_ARENA_MAX": "",
+        "GLIBC_TUNABLES": "",
+        "JE_MALLOC_CONF": "",
+        "__NV_PRIME_RENDER_OFFLOAD": "1",
+        "__GLX_VENDOR_LIBRARY_NAME": "nvidia",
+        "__VK_LAYER_NV_optimus": "NVIDIA_only",
+        "ALSOFT_DRIVERS": "null",
+        "DISPLAY": ":1",
+        "WAYLAND_DISPLAY": "wayland-1"
+      },
+      "jvm_flags": [
+        "-XX:NativeMemoryTracking=summary",
+        "-XX:MaxHeapFreeRatio=30",
+        "-XX:MinHeapFreeRatio=10",
+        "-XX:StackShadowPages=32",
+        "-Xms256m",
+        "-Xmx1024m"
+      ],
+      "launch_available_mib": 8748,
+      "host_available_mib": {
+        "min": 5912,
+        "median": 6909.5,
+        "max": 8735
+      },
+      "host_load1": {
+        "min": 0.37451171875,
+        "median": 1.05712890625,
+        "max": 4.37353515625
+      },
+      "selected_process_count_ranges": {
+        "Xwayland": {
+          "min": 1,
+          "median": 2.0,
+          "max": 2
+        },
+        "chrome": {
+          "min": 15,
+          "median": 15.0,
+          "max": 15
+        },
+        "claude": {
+          "min": 5,
+          "median": 5.0,
+          "max": 5
+        },
+        "codex": {
+          "min": 4,
+          "median": 4.0,
+          "max": 9
+        },
+        "java": {
+          "min": 0,
+          "median": 3.0,
+          "max": 3
+        },
+        "labwc": {
+          "min": 1,
+          "median": 2.0,
+          "max": 2
+        },
+        "node": {
+          "min": 0,
+          "median": 0.0,
+          "max": 10
+        },
+        "python3": {
+          "min": 7,
+          "median": 10.0,
+          "max": 16
+        }
+      },
+      "host_max_sample_gap_s": 2.033984525,
+      "external_build_game_samples": 0,
+      "required_frames_covered": true,
+      "frame_count": 28283,
+      "renderer": [
+        "NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2 (NVIDIA Corporation)"
+      ],
+      "jar_sha256": {
+        "aresos-0.1.0-sources.jar": "87e0437736a2e11f417949851a030df0154cb415e66955837e5091ab073e3f6a",
+        "aresos-0.1.0.jar": "e88194c52e956e5c098477d02cc5debc7ce3b3d4c234c05ca676235152f45b48",
+        "pkg41-frames.jar": "aba6024b0df3185b5d782c8f1fa46966a5a5904f743c0831923d994989a13d2f"
+      },
+      "java_executable_sha256": "1bf1aaef01e4f8d7c85d913c60fb2ee4624cbe54d4053254c59657b7ea913b25"
+    },
+    "create-1-control": {
+      "attempt": "create-1-control",
+      "source_revision": "32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be",
+      "source_objects": {
+        "revision": "32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be",
+        "mod_tree": "09a77ad94e74f4c5c8e51c71a418d23048792cb3",
+        "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+        "labwc_blob": "6ea557a97357f3336b267f371126c25e43403974"
+      },
+      "game_environment": {
+        "MALLOC_ARENA_MAX": "",
+        "GLIBC_TUNABLES": "",
+        "JE_MALLOC_CONF": "",
+        "__NV_PRIME_RENDER_OFFLOAD": "1",
+        "__GLX_VENDOR_LIBRARY_NAME": "nvidia",
+        "__VK_LAYER_NV_optimus": "NVIDIA_only",
+        "ALSOFT_DRIVERS": "null",
+        "DISPLAY": ":1",
+        "WAYLAND_DISPLAY": "wayland-1"
+      },
+      "jvm_flags": [
+        "-XX:NativeMemoryTracking=summary",
+        "-XX:MaxHeapFreeRatio=30",
+        "-XX:MinHeapFreeRatio=10",
+        "-XX:StackShadowPages=32",
+        "-Xms256m",
+        "-Xmx1024m"
+      ],
+      "launch_available_mib": 8705,
+      "host_available_mib": {
+        "min": 6621,
+        "median": 6872.5,
+        "max": 8692
+      },
+      "host_load1": {
+        "min": 0.0732421875,
+        "median": 0.91650390625,
+        "max": 2.10546875
+      },
+      "selected_process_count_ranges": {
+        "Xwayland": {
+          "min": 1,
+          "median": 2.0,
+          "max": 2
+        },
+        "chrome": {
+          "min": 15,
+          "median": 15.0,
+          "max": 15
+        },
+        "claude": {
+          "min": 5,
+          "median": 5.0,
+          "max": 5
+        },
+        "codex": {
+          "min": 3,
+          "median": 4.0,
+          "max": 6
+        },
+        "java": {
+          "min": 1,
+          "median": 3.0,
+          "max": 3
+        },
+        "labwc": {
+          "min": 1,
+          "median": 2.0,
+          "max": 2
+        },
+        "node": {
+          "min": 0,
+          "median": 0.0,
+          "max": 2
+        },
+        "python3": {
+          "min": 7,
+          "median": 10.0,
+          "max": 12
+        }
+      },
+      "host_max_sample_gap_s": 2.038224895,
+      "external_build_game_samples": 0,
+      "required_frames_covered": true,
+      "frame_count": 28412,
+      "renderer": [
+        "NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2 (NVIDIA Corporation)"
+      ],
+      "jar_sha256": {
+        "aresos-0.1.0-sources.jar": "87e0437736a2e11f417949851a030df0154cb415e66955837e5091ab073e3f6a",
+        "aresos-0.1.0.jar": "e88194c52e956e5c098477d02cc5debc7ce3b3d4c234c05ca676235152f45b48",
+        "pkg41-frames.jar": "6b249c7875d1bf4f60966d81d856b454a3f528d9cbd8ed47dadb635d82115b61"
+      },
+      "java_executable_sha256": "1bf1aaef01e4f8d7c85d913c60fb2ee4624cbe54d4053254c59657b7ea913b25"
+    },
+    "create-1-arena": {
+      "attempt": "create-1-arena",
+      "source_revision": "32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be",
+      "source_objects": {
+        "revision": "32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be",
+        "mod_tree": "09a77ad94e74f4c5c8e51c71a418d23048792cb3",
+        "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+        "labwc_blob": "6ea557a97357f3336b267f371126c25e43403974"
+      },
+      "game_environment": {
+        "MALLOC_ARENA_MAX": "2",
+        "GLIBC_TUNABLES": "",
+        "JE_MALLOC_CONF": "",
+        "__NV_PRIME_RENDER_OFFLOAD": "1",
+        "__GLX_VENDOR_LIBRARY_NAME": "nvidia",
+        "__VK_LAYER_NV_optimus": "NVIDIA_only",
+        "ALSOFT_DRIVERS": "null",
+        "DISPLAY": ":1",
+        "WAYLAND_DISPLAY": "wayland-1"
+      },
+      "jvm_flags": [
+        "-XX:NativeMemoryTracking=summary",
+        "-XX:MaxHeapFreeRatio=30",
+        "-XX:MinHeapFreeRatio=10",
+        "-XX:StackShadowPages=32",
+        "-Xms256m",
+        "-Xmx1024m"
+      ],
+      "launch_available_mib": 8952,
+      "host_available_mib": {
+        "min": 7306,
+        "median": 7376.5,
+        "max": 8929
+      },
+      "host_load1": {
+        "min": 0.13427734375,
+        "median": 1.31640625,
+        "max": 3.26708984375
+      },
+      "selected_process_count_ranges": {
+        "Xwayland": {
+          "min": 1,
+          "median": 2.0,
+          "max": 2
+        },
+        "chrome": {
+          "min": 15,
+          "median": 15.0,
+          "max": 16
+        },
+        "claude": {
+          "min": 5,
+          "median": 5.0,
+          "max": 5
+        },
+        "codex": {
+          "min": 4,
+          "median": 4.0,
+          "max": 4
+        },
+        "java": {
+          "min": 0,
+          "median": 3.0,
+          "max": 3
+        },
+        "labwc": {
+          "min": 1,
+          "median": 2.0,
+          "max": 2
+        },
+        "python3": {
+          "min": 7,
+          "median": 10.0,
+          "max": 11
+        }
+      },
+      "host_max_sample_gap_s": 2.043363289,
+      "external_build_game_samples": 0,
+      "required_frames_covered": true,
+      "frame_count": 28379,
+      "renderer": [
+        "NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2 (NVIDIA Corporation)"
+      ],
+      "jar_sha256": {
+        "aresos-0.1.0-sources.jar": "87e0437736a2e11f417949851a030df0154cb415e66955837e5091ab073e3f6a",
+        "aresos-0.1.0.jar": "e88194c52e956e5c098477d02cc5debc7ce3b3d4c234c05ca676235152f45b48",
+        "pkg41-frames.jar": "1e481368b5723db9ab5761127acfbea8c5de895d958391207f22af2196d5d16c"
+      },
+      "java_executable_sha256": "1bf1aaef01e4f8d7c85d913c60fb2ee4624cbe54d4053254c59657b7ea913b25"
+    },
+    "create-2-arena": {
+      "attempt": "create-2-arena",
+      "source_revision": "32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be",
+      "source_objects": {
+        "revision": "32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be",
+        "mod_tree": "09a77ad94e74f4c5c8e51c71a418d23048792cb3",
+        "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+        "labwc_blob": "6ea557a97357f3336b267f371126c25e43403974"
+      },
+      "game_environment": {
+        "MALLOC_ARENA_MAX": "2",
+        "GLIBC_TUNABLES": "",
+        "JE_MALLOC_CONF": "",
+        "__NV_PRIME_RENDER_OFFLOAD": "1",
+        "__GLX_VENDOR_LIBRARY_NAME": "nvidia",
+        "__VK_LAYER_NV_optimus": "NVIDIA_only",
+        "ALSOFT_DRIVERS": "null",
+        "DISPLAY": ":1",
+        "WAYLAND_DISPLAY": "wayland-1"
+      },
+      "jvm_flags": [
+        "-XX:NativeMemoryTracking=summary",
+        "-XX:MaxHeapFreeRatio=30",
+        "-XX:MinHeapFreeRatio=10",
+        "-XX:StackShadowPages=32",
+        "-Xms256m",
+        "-Xmx1024m"
+      ],
+      "launch_available_mib": 8848,
+      "host_available_mib": {
+        "min": 7088,
+        "median": 7223.0,
+        "max": 8830
+      },
+      "host_load1": {
+        "min": 0.1015625,
+        "median": 0.850830078125,
+        "max": 2.63134765625
+      },
+      "selected_process_count_ranges": {
+        "Xwayland": {
+          "min": 1,
+          "median": 2.0,
+          "max": 2
+        },
+        "chrome": {
+          "min": 15,
+          "median": 15.0,
+          "max": 15
+        },
+        "claude": {
+          "min": 5,
+          "median": 5.0,
+          "max": 5
+        },
+        "codex": {
+          "min": 4,
+          "median": 4.0,
+          "max": 4
+        },
+        "java": {
+          "min": 1,
+          "median": 3.0,
+          "max": 3
+        },
+        "labwc": {
+          "min": 1,
+          "median": 2.0,
+          "max": 2
+        },
+        "python3": {
+          "min": 7,
+          "median": 10.0,
+          "max": 11
+        }
+      },
+      "host_max_sample_gap_s": 2.041065209,
+      "external_build_game_samples": 0,
+      "required_frames_covered": true,
+      "frame_count": 28377,
+      "renderer": [
+        "NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2 (NVIDIA Corporation)"
+      ],
+      "jar_sha256": {
+        "aresos-0.1.0-sources.jar": "87e0437736a2e11f417949851a030df0154cb415e66955837e5091ab073e3f6a",
+        "aresos-0.1.0.jar": "e88194c52e956e5c098477d02cc5debc7ce3b3d4c234c05ca676235152f45b48",
+        "pkg41-frames.jar": "b536e25fad8309d9aeb8d9c9312921e19aadd9b54069dffaa286c931ad634e0a"
+      },
+      "java_executable_sha256": "1bf1aaef01e4f8d7c85d913c60fb2ee4624cbe54d4053254c59657b7ea913b25"
+    },
+    "create-2-control": {
+      "attempt": "create-2-control",
+      "source_revision": "32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be",
+      "source_objects": {
+        "revision": "32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be",
+        "mod_tree": "09a77ad94e74f4c5c8e51c71a418d23048792cb3",
+        "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+        "labwc_blob": "6ea557a97357f3336b267f371126c25e43403974"
+      },
+      "game_environment": {
+        "MALLOC_ARENA_MAX": "",
+        "GLIBC_TUNABLES": "",
+        "JE_MALLOC_CONF": "",
+        "__NV_PRIME_RENDER_OFFLOAD": "1",
+        "__GLX_VENDOR_LIBRARY_NAME": "nvidia",
+        "__VK_LAYER_NV_optimus": "NVIDIA_only",
+        "ALSOFT_DRIVERS": "null",
+        "DISPLAY": ":1",
+        "WAYLAND_DISPLAY": "wayland-1"
+      },
+      "jvm_flags": [
+        "-XX:NativeMemoryTracking=summary",
+        "-XX:MaxHeapFreeRatio=30",
+        "-XX:MinHeapFreeRatio=10",
+        "-XX:StackShadowPages=32",
+        "-Xms256m",
+        "-Xmx1024m"
+      ],
+      "launch_available_mib": 8810,
+      "host_available_mib": {
+        "min": 6857,
+        "median": 6939,
+        "max": 8794
+      },
+      "host_load1": {
+        "min": 0.228515625,
+        "median": 0.91796875,
+        "max": 1.9501953125
+      },
+      "selected_process_count_ranges": {
+        "Xwayland": {
+          "min": 1,
+          "median": 2,
+          "max": 2
+        },
+        "chrome": {
+          "min": 15,
+          "median": 15,
+          "max": 15
+        },
+        "claude": {
+          "min": 5,
+          "median": 5,
+          "max": 5
+        },
+        "codex": {
+          "min": 3,
+          "median": 3,
+          "max": 4
+        },
+        "java": {
+          "min": 0,
+          "median": 3,
+          "max": 3
+        },
+        "labwc": {
+          "min": 1,
+          "median": 2,
+          "max": 2
+        },
+        "python3": {
+          "min": 7,
+          "median": 10,
+          "max": 11
+        }
+      },
+      "host_max_sample_gap_s": 2.037385343,
+      "external_build_game_samples": 0,
+      "required_frames_covered": true,
+      "frame_count": 28384,
+      "renderer": [
+        "NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2 (NVIDIA Corporation)"
+      ],
+      "jar_sha256": {
+        "aresos-0.1.0-sources.jar": "87e0437736a2e11f417949851a030df0154cb415e66955837e5091ab073e3f6a",
+        "aresos-0.1.0.jar": "e88194c52e956e5c098477d02cc5debc7ce3b3d4c234c05ca676235152f45b48",
+        "pkg41-frames.jar": "64133df8025d3d813dc4a6f5ddcd14b4f5e67a4b3c3215ac4e3a971307f60d8e"
+      },
+      "java_executable_sha256": "1bf1aaef01e4f8d7c85d913c60fb2ee4624cbe54d4053254c59657b7ea913b25"
+    },
+    "nether-control": {
+      "attempt": "nether-control",
+      "source_revision": "32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be",
+      "source_objects": {
+        "revision": "32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be",
+        "mod_tree": "09a77ad94e74f4c5c8e51c71a418d23048792cb3",
+        "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+        "labwc_blob": "6ea557a97357f3336b267f371126c25e43403974"
+      },
+      "game_environment": {
+        "MALLOC_ARENA_MAX": "",
+        "GLIBC_TUNABLES": "",
+        "JE_MALLOC_CONF": "",
+        "__NV_PRIME_RENDER_OFFLOAD": "1",
+        "__GLX_VENDOR_LIBRARY_NAME": "nvidia",
+        "__VK_LAYER_NV_optimus": "NVIDIA_only",
+        "ALSOFT_DRIVERS": "null",
+        "DISPLAY": ":1",
+        "WAYLAND_DISPLAY": "wayland-1"
+      },
+      "jvm_flags": [
+        "-XX:NativeMemoryTracking=summary",
+        "-XX:MaxHeapFreeRatio=30",
+        "-XX:MinHeapFreeRatio=10",
+        "-XX:StackShadowPages=32",
+        "-Xms256m",
+        "-Xmx1024m"
+      ],
+      "launch_available_mib": 8875,
+      "host_available_mib": {
+        "min": 6336,
+        "median": 6544.0,
+        "max": 8865
+      },
+      "host_load1": {
+        "min": 0.2255859375,
+        "median": 1.00927734375,
+        "max": 2.11865234375
+      },
+      "selected_process_count_ranges": {
+        "Xwayland": {
+          "min": 1,
+          "median": 2.0,
+          "max": 2
+        },
+        "chrome": {
+          "min": 15,
+          "median": 15.0,
+          "max": 15
+        },
+        "claude": {
+          "min": 5,
+          "median": 5.0,
+          "max": 5
+        },
+        "codex": {
+          "min": 3,
+          "median": 3.0,
+          "max": 3
+        },
+        "java": {
+          "min": 0,
+          "median": 3.0,
+          "max": 3
+        },
+        "labwc": {
+          "min": 1,
+          "median": 2.0,
+          "max": 2
+        },
+        "python3": {
+          "min": 7,
+          "median": 10.0,
+          "max": 11
+        }
+      },
+      "host_max_sample_gap_s": 2.039710217,
+      "external_build_game_samples": 0,
+      "required_frames_covered": true,
+      "frame_count": 28720,
+      "renderer": [
+        "NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2 (NVIDIA Corporation)"
+      ],
+      "jar_sha256": {
+        "aresos-0.1.0-sources.jar": "87e0437736a2e11f417949851a030df0154cb415e66955837e5091ab073e3f6a",
+        "aresos-0.1.0.jar": "e88194c52e956e5c098477d02cc5debc7ce3b3d4c234c05ca676235152f45b48",
+        "pkg41-frames.jar": "15c2af5bf96f0210b2b41b6b10c88f0c4fa611f1685c2b7b233fb504e79da04a"
+      },
+      "java_executable_sha256": "1bf1aaef01e4f8d7c85d913c60fb2ee4624cbe54d4053254c59657b7ea913b25"
+    },
+    "nether-arena": {
+      "attempt": "nether-arena",
+      "source_revision": "32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be",
+      "source_objects": {
+        "revision": "32bcdb551e8d921113ad1c7ed0e9d5dd6b6fd4be",
+        "mod_tree": "09a77ad94e74f4c5c8e51c71a418d23048792cb3",
+        "helper_blob": "a2567c4b11e5739af2478ca13ee98c1d4cdfc0e9",
+        "labwc_blob": "6ea557a97357f3336b267f371126c25e43403974"
+      },
+      "game_environment": {
+        "MALLOC_ARENA_MAX": "2",
+        "GLIBC_TUNABLES": "",
+        "JE_MALLOC_CONF": "",
+        "__NV_PRIME_RENDER_OFFLOAD": "1",
+        "__GLX_VENDOR_LIBRARY_NAME": "nvidia",
+        "__VK_LAYER_NV_optimus": "NVIDIA_only",
+        "ALSOFT_DRIVERS": "null",
+        "DISPLAY": ":1",
+        "WAYLAND_DISPLAY": "wayland-1"
+      },
+      "jvm_flags": [
+        "-XX:NativeMemoryTracking=summary",
+        "-XX:MaxHeapFreeRatio=30",
+        "-XX:MinHeapFreeRatio=10",
+        "-XX:StackShadowPages=32",
+        "-Xms256m",
+        "-Xmx1024m"
+      ],
+      "launch_available_mib": 8621,
+      "host_available_mib": {
+        "min": 6803,
+        "median": 6920,
+        "max": 8605
+      },
+      "host_load1": {
+        "min": 0.39697265625,
+        "median": 0.9794921875,
+        "max": 2.41796875
+      },
+      "selected_process_count_ranges": {
+        "Xwayland": {
+          "min": 1,
+          "median": 2,
+          "max": 2
+        },
+        "chrome": {
+          "min": 15,
+          "median": 15,
+          "max": 15
+        },
+        "claude": {
+          "min": 5,
+          "median": 5,
+          "max": 5
+        },
+        "codex": {
+          "min": 3,
+          "median": 3,
+          "max": 3
+        },
+        "java": {
+          "min": 1,
+          "median": 3,
+          "max": 3
+        },
+        "labwc": {
+          "min": 1,
+          "median": 2,
+          "max": 2
+        },
+        "python3": {
+          "min": 7,
+          "median": 10,
+          "max": 11
+        }
+      },
+      "host_max_sample_gap_s": 2.038393911,
+      "external_build_game_samples": 0,
+      "required_frames_covered": true,
+      "frame_count": 28716,
+      "renderer": [
+        "NVIDIA GeForce RTX 4060 Laptop GPU/PCIe/SSE2 (NVIDIA Corporation)"
+      ],
+      "jar_sha256": {
+        "aresos-0.1.0-sources.jar": "87e0437736a2e11f417949851a030df0154cb415e66955837e5091ab073e3f6a",
+        "aresos-0.1.0.jar": "e88194c52e956e5c098477d02cc5debc7ce3b3d4c234c05ca676235152f45b48",
+        "pkg41-frames.jar": "6be8c41bdb69fb529667dd31d4d33f9a252ba3b529525f9add76adad7285c4dd"
+      },
+      "java_executable_sha256": "1bf1aaef01e4f8d7c85d913c60fb2ee4624cbe54d4053254c59657b7ea913b25"
+    }
+  }
+}

@@ -7,14 +7,18 @@ import shlex
 import time
 import os
 
-UI_BUNDLE_SHA256 = '9e456995a4be3d09b2b81b7e55f363d09577e688b8361d90081e1484cfb4f449'
-UI_SOURCE_MAP_SHA256 = 'de301b46d770b5ce75ee3b00be8416c5b8de1a5348dfe0c4ab282f8e8b3ef36a'
+# The live ISO pinned in installer-isos.json (bd043223..., Bazzite's 2026-11-17 stable): its
+# usr/share/cockpit/anaconda-webui/index.js.gz as a browser receives it (unpacked, 895148 bytes) and
+# its index.js.map, hashed from the verified ISO (package 42 step 6, PLAN-GAP 3; the map matches run
+# 44644689353's inspection). The previous ISO (776b76f3...) served 9e456995... and de301b46...
+UI_BUNDLE_SHA256 = 'fffb3a05621db05f3419230e7b8b0c3c82c8253f1d35da1a49d3ca66954a0fdb'
+UI_SOURCE_MAP_SHA256 = '9c3f8f28461619452bc89d966fcc944bd8ef9a39d4cc073275faccd6388b8e24'
 # Packages whose rehearsals install through package 14's owner VM harness:
 # NIC link down, WebUI over virtio-serial. Package 27's update rehearsal is one
 # (run 42933781975 stopped when this list lacked it), package 22c's reorder
-# probe and rehearsal are two more. Package 13's keyboard rehearsal shares the
+# probe and rehearsal are two more, 22d and 42 (release-28) two others. Package 13's keyboard rehearsal shares the
 # untrusted console and the keyboard diagnostics.
-OWNER_VM_PACKAGES = ('14', '16', '27', '22c', '22d')
+OWNER_VM_PACKAGES = ('14', '16', '27', '22c', '22d', '42')
 KEYBOARD_PACKAGES = ('13',) + OWNER_VM_PACKAGES
 
 
@@ -398,11 +402,11 @@ PY
             raw = response.body()
             sources.append(dict(url=url, sha256=hashlib.sha256(raw).hexdigest(), bytes=len(raw)))
             if url.endswith('/index.js'):
-                assert hashlib.sha256(raw).hexdigest() == UI_BUNDLE_SHA256, 'Served installer bundle changed'
+                assert hashlib.sha256(raw).hexdigest() == UI_BUNDLE_SHA256, 'Served installer bundle changed: ' + hashlib.sha256(raw).hexdigest()
                 mapped = self.page.request.get(url + '.map')
                 assert mapped.ok, 'Pinned UI source map is unavailable'
                 mapping_raw = mapped.body()
-                assert hashlib.sha256(mapping_raw).hexdigest() == UI_SOURCE_MAP_SHA256, 'Served UI source map changed'
+                assert hashlib.sha256(mapping_raw).hexdigest() == UI_SOURCE_MAP_SHA256, 'Served UI source map changed: ' + hashlib.sha256(mapping_raw).hexdigest()
                 mapping = json.loads(mapping_raw)
                 application = {name.split('/src/', 1)[1]: content
                                for name, content in zip(mapping['sources'], mapping['sourcesContent'])

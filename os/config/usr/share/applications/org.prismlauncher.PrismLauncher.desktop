@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Prism Launcher
+NoDisplay=true
+Exec=/usr/bin/prismlauncher %U
+MimeType=x-scheme-handler/prismlauncher;

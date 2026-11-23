@@ -21,11 +21,27 @@ public final class ShellFocusClient {
         shell.addListener(new ShellClient.Listener() {
             @Override public void focus(ShellClient.Focus focus) {
                 var client = Minecraft.getInstance();
-                client.execute(() -> apply(client, focus));
+                // A replay can arrive inside client initialization, before its GUI exists. Always queue it.
+                client.schedule(() -> apply(client, focus));
             }
 
             @Override public void covered(boolean covered) {
                 Minecraft.getInstance().execute(() -> HomeScreen.covered(covered));
+            }
+
+            @Override public void status(ShellClient.Status status) {
+                if (status.state() != ShellClient.State.CONNECTED && status.state() != ShellClient.State.STARTING)
+                    Minecraft.getInstance().schedule(() -> {
+                        HomeScreen.appInFront(false);
+                        HomePointer.reset();
+                        WorldCapture.helperLost(Minecraft.getInstance());
+                    });
+            }
+
+            // Super (package 53d): the compositor reports the world active; the bar still waits for the window's focus.
+            @Override public void search() {
+                var client = Minecraft.getInstance();
+                client.execute(() -> WorldSearchScreen.requested(client));
             }
 
             @Override public void launchFailed(String appId, String requestId, ShellClient.ShellException error) {
@@ -39,9 +55,11 @@ public final class ShellFocusClient {
 
     /** An app took the foreground, or the helper handed focus back to the hub. */
     public static void apply(Minecraft client, ShellClient.Focus focus) {
+        WorldCapture.worldFocused(focus.foreground());
         // Keys held while focus moved (walking into a logo, the click that opened it) never see their release.
         KeyMapping.releaseAll();
         AppInput.reset();
+        if (HomePointer.focus(client, focus)) return;
         HomeScreen.appInFront(!focus.foreground());
         if (!focus.foreground()) {
             client.mouseHandler.releaseMouse();

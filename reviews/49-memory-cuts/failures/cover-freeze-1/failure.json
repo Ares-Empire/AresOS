@@ -1,0 +1,23 @@
+{
+  "experiment": "cover-freeze-1",
+  "status": "failed; not a completed wake measurement",
+  "runner_exit": 1,
+  "game_exit_reported_by_gradle": 137,
+  "first_frame_after_return_request_ms": 56.16,
+  "scope_thaw": "confirmed before input failure",
+  "last_frozen_rss_mib": 510,
+  "last_frozen_scope_swap_mib": 598,
+  "last_frozen_memory_events": {
+    "low": 0,
+    "high": 0,
+    "max": 0,
+    "oom": 0,
+    "oom_kill": 0,
+    "oom_group_kill": 0,
+    "sock_throttled": 0
+  },
+  "cause": "Unknown. Game exit 137 and heartbeat catch-up/reconnect warnings accompany thaw. The subsequent input pipe broke; do not classify this as the earlier FIFO ENXIO race or as a successful wake.",
+  "next": "Repeat unchanged as cover-freeze-2; keep this failed experiment and exclude it from valid-run averages.",
+  "recorded_frames_at_or_after_wake_start": 0,
+  "recorder_limit": "The abrupt game exit can lose buffered frame records. Zero recorded wake frames is not proof of zero frames actually rendered."
+}

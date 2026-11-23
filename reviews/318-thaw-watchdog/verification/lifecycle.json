@@ -1,0 +1,104 @@
+[
+  {
+    "scenario": "standing",
+    "exit": 1,
+    "seconds": 0.114,
+    "all_owned_processes_exited": true,
+    "scopes_gone": true,
+    "lock_free": true,
+    "reason": "VINPUT_PID exited"
+  },
+  {
+    "scenario": "flight",
+    "exit": 1,
+    "seconds": 0.164,
+    "all_owned_processes_exited": true,
+    "scopes_gone": true,
+    "lock_free": true,
+    "reason": "VINPUT_PID exited"
+  },
+  {
+    "scenario": "compositor",
+    "exit": 1,
+    "seconds": 0.114,
+    "all_owned_processes_exited": true,
+    "scopes_gone": true,
+    "lock_free": true,
+    "reason": "rig launcher exited"
+  },
+  {
+    "scenario": "frozen-health",
+    "exit": 1,
+    "seconds": 0.214,
+    "requests": [
+      "freeze",
+      "thaw"
+    ],
+    "thaw_after_watcher_ready": true,
+    "exit_watcher": "exited",
+    "cleanup_started_before_exit": true,
+    "all_owned_processes_exited": true,
+    "scopes_gone": true,
+    "lock_free": true
+  },
+  {
+    "scenario": "frozen-term",
+    "exit": 143,
+    "seconds": 0.214,
+    "requests": [
+      "freeze",
+      "thaw"
+    ],
+    "thaw_after_watcher_ready": true,
+    "exit_watcher": "exited",
+    "cleanup_started_before_exit": true,
+    "all_owned_processes_exited": true,
+    "scopes_gone": true,
+    "lock_free": true
+  },
+  {
+    "scenario": "frozen-error",
+    "exit": 1,
+    "seconds": 0.214,
+    "requests": [
+      "freeze",
+      "thaw"
+    ],
+    "thaw_after_watcher_ready": true,
+    "exit_watcher": "exited",
+    "cleanup_started_before_exit": true,
+    "all_owned_processes_exited": true,
+    "scopes_gone": true,
+    "lock_free": true
+  },
+  {
+    "scenario": "invalid",
+    "exit": 3,
+    "seconds": 10.291,
+    "requests": [
+      "freeze",
+      "thaw"
+    ],
+    "thaw_after_watcher_ready": true,
+    "exit_watcher": "exited",
+    "cleanup_started_before_exit": true,
+    "all_owned_processes_exited": true,
+    "scopes_gone": true,
+    "lock_free": true
+  },
+  {
+    "scenario": "normal",
+    "exit": 0,
+    "seconds": 10.288,
+    "requests": [
+      "freeze",
+      "thaw"
+    ],
+    "thaw_after_watcher_ready": true,
+    "exit_watcher": "alive",
+    "cleanup_started_before_exit": null,
+    "all_owned_processes_exited": true,
+    "scopes_gone": true,
+    "lock_free": true
+  }
+]

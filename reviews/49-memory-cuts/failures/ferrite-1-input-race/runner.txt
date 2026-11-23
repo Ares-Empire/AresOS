@@ -1,0 +1,34 @@
+2026-11-17T19:43:50+01:00 attempt=0 command=<worktree>/reviews/49-memory-cuts/rig/run.sh ferrite-1 COVER=300 MODS=<worktree>/.work/pkg49/downloads/ferritecore-9.0.0-fabric.jar
+19:43:51 waiting for the lock and the game (ferrite-1)
+19:44:00 game PID 340765 in pkg49-game-ferrite-1-340266.scope
+19:44:00 game_detected
+19:44:09 joined
+19:44:09 settling
+settled: RSS 1151 MiB; heap {'reserved': 1024, 'committed': 331, 'used': 287}; scope 975 MiB; swap 0 MiB; majflt 0
+19:46:11 stand_start
+19:47:08 stand_end
+stand: RSS 1166 MiB; heap {'reserved': 1024, 'committed': 331, 'used': 280}; scope 989 MiB; swap 0 MiB; majflt 0
+19:47:15 flight_start
+19:48:15 flight_end
+flight: RSS 1257 MiB; heap {'reserved': 1024, 'committed': 368, 'used': 322}; scope 1086 MiB; swap 0 MiB; majflt 0
+19:48:18 covered_start
+covered0: RSS 1257 MiB; heap {'reserved': 1024, 'committed': 368, 'used': 322}; scope 1087 MiB; swap 0 MiB; majflt 0
+covered1m: RSS 1234 MiB; heap {'reserved': 1024, 'committed': 368, 'used': 317}; scope 1063 MiB; swap 0 MiB; majflt 0
+covered2m: RSS 1239 MiB; heap {'reserved': 1024, 'committed': 368, 'used': 339}; scope 1067 MiB; swap 0 MiB; majflt 0
+covered3m: RSS 1239 MiB; heap {'reserved': 1024, 'committed': 368, 'used': 312}; scope 1068 MiB; swap 0 MiB; majflt 0
+covered4m: RSS 1239 MiB; heap {'reserved': 1024, 'committed': 368, 'used': 324}; scope 1067 MiB; swap 0 MiB; majflt 0
+covered5m: RSS 1239 MiB; heap {'reserved': 1024, 'committed': 368, 'used': 329}; scope 1067 MiB; swap 0 MiB; majflt 0
+19:53:18 covered_end
+19:53:18 return_start
+19:53:18 wake_start
+Traceback (most recent call last):
+  File "<worktree>/reviews/49-memory-cuts/rig/wake.py", line 31, in <module>
+    if __name__ == '__main__': wake(sys.argv[1])
+                               ~~~~^^^^^^^^^^^^^
+  File "<worktree>/reviews/49-memory-cuts/rig/wake.py", line 26, in wake
+    send(f'rel {200*turn} 0 15')
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<worktree>/reviews/49-memory-cuts/rig/wake.py", line 16, in send
+    fd=os.open(rig/'vin',os.O_WRONLY|os.O_NONBLOCK)
+OSError: [Errno 6] No such device or address: '<worktree>/.work/pkg49/rigs/ferrite-1/vin'
+2026-11-17T19:53:20+01:00 attempt=0 exit=1

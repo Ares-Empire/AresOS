@@ -73,6 +73,28 @@ public final class HomeScreen {
         appInFront = inFront;
     }
 
+    static boolean appInFront() {
+        return appInFront;
+    }
+
+    /**
+     * Package 56: the pointer is free while an app is in front, and the world refuses every grab; with {@code look = click}
+     * also outside look mode, and with {@code look = edge} always (package 328).
+     */
+    public static boolean freePointer(Minecraft client) {
+        return dev.aresos.focus.PointerRules.free(session(), AresOsClient.acceptsAppCommands(client),
+                active(client), appInFront || ClickToLook.idle(client) || EdgeLook.setting());
+    }
+
+    /**
+     * Package 56: the world ignores the free pointer's clicks (no attack, no use): while an app is in front, and with
+     * {@code look = click} outside look mode. With {@code look = edge} and the world in front they act (package 328c).
+     */
+    public static boolean ignoresMouse(Minecraft client) {
+        return dev.aresos.focus.PointerRules.free(session(), AresOsClient.acceptsAppCommands(client),
+                active(client), appInFront || ClickToLook.idle(client));
+    }
+
     /** The helper said a window hides the world on its screen, or no longer does (false also when it went away). */
     static void covered(boolean now) {
         covered = now;
@@ -116,11 +138,20 @@ public final class HomeScreen {
      */
     public static void frame(Minecraft client) {
         boolean focused = client.getWindow().isFocused();
+        HomePointer.frame(client);
+        ClickToLook.frame(client);
+        EdgeLook.frame(client);
         if (!active(client)) {
             wasFocused = true;
-            appInFront = false;
+            // A helper event can precede the player/world while joining or switching homes. Keep its focus until
+            // the helper changes it; clearing it here used to capture the mouse behind the still-focused app.
+            var shell = dev.aresos.AresOs.shell();
+            var state = shell == null ? ShellClient.State.CLOSED : shell.status().state();
+            if (!session() || (state != ShellClient.State.CONNECTED && state != ShellClient.State.STARTING)) appInFront = false;
             return;
         }
+        // With look = edge the world never holds the mouse: a capture from before the world was active is let go too.
+        if ((appInFront || EdgeLook.on(client)) && client.mouseHandler.isMouseGrabbed()) client.mouseHandler.releaseMouse();
         if (wasFocused && !focused) {
             KeyMapping.releaseAll();
             AppInput.reset();
@@ -138,5 +169,10 @@ public final class HomeScreen {
         wasFocused = true;
         appInFront = false;
         covered = false;
+        HomePointer.reset();
+        // Tests that stand for a session run in classic unless they ask for another look (package 328).
+        LookSetting.forTests(session == null && active == null ? null : dev.aresos.config.LookMode.CLASSIC);
+        // Callback-driven tests have no real pointer over the window: they stand for one that is (package 328a).
+        WorldCapture.forTests(session == null && active == null ? null : Boolean.TRUE, false);
     }
 }

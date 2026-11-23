@@ -1,0 +1,3 @@
+# cardwire get: exit 0
+Current Mode: Hybrid
+Available Mode: integrated, hybrid, smart

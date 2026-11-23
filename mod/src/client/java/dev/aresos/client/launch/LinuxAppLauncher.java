@@ -28,9 +28,17 @@ public final class LinuxAppLauncher implements AppLauncher {
 
     /** The request ID lets a failure reported after the launch counted as done find this launch again. */
     @Override public CompletionStage<String> launchTracked(AppDefinition app) {
+        return open(app, null);
+    }
+
+    @Override public CompletionStage<String> launchOnWorldScreen(AppDefinition app) {
+        return open(app, ShellClient.SCREEN_WORLD);
+    }
+
+    private CompletionStage<String> open(AppDefinition app, String screen) {
         var client = shell.get();
         if (client == null) return launch(List.<String>of()).thenApply(ignored -> null);
-        return client.open(app.id()).thenApply(ShellClient.Launch::requestId);
+        return client.open(app.id(), screen).thenApply(ShellClient.Launch::requestId);
     }
 
     /** Why a launch failed, in a few words for the action bar. */

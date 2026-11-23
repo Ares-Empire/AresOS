@@ -1,0 +1,132 @@
+{
+  "gold": {
+    "rect": [
+      668,
+      430,
+      870,
+      754
+    ],
+    "rows": {
+      "Minimize": [
+        8,
+        10,
+        114,
+        30
+      ],
+      "Maximize": [
+        8,
+        10,
+        124,
+        30
+      ],
+      "Fullscreen": [
+        8,
+        10,
+        140,
+        30
+      ],
+      "Roll Up/Down": [
+        8,
+        10,
+        172,
+        34
+      ],
+      "Decorations": [
+        8,
+        10,
+        164,
+        30
+      ],
+      "Always on Top": [
+        8,
+        10,
+        188,
+        34
+      ],
+      "Workspace": [
+        8,
+        10,
+        188,
+        34
+      ],
+      "Close": [
+        8,
+        10,
+        74,
+        30
+      ]
+    }
+  },
+  "title": {
+    "rect": [
+      780,
+      410,
+      982,
+      734
+    ],
+    "rows": {
+      "Minimize": [
+        8,
+        10,
+        114,
+        30
+      ],
+      "Maximize": [
+        8,
+        10,
+        124,
+        30
+      ],
+      "Fullscreen": [
+        8,
+        10,
+        140,
+        30
+      ],
+      "Roll Up/Down": [
+        8,
+        10,
+        172,
+        34
+      ],
+      "Decorations": [
+        8,
+        10,
+        164,
+        30
+      ],
+      "Always on Top": [
+        8,
+        10,
+        188,
+        34
+      ],
+      "Workspace": [
+        8,
+        10,
+        188,
+        34
+      ],
+      "Close": [
+        8,
+        10,
+        74,
+        30
+      ]
+    }
+  },
+  "root": {
+    "Left": {
+      "menu_on_press": false,
+      "menu_on_release": false
+    },
+    "Right": {
+      "menu_on_press": false,
+      "menu_on_release": false
+    },
+    "Middle": {
+      "menu_on_press": false,
+      "menu_on_release": false
+    }
+  }
+}

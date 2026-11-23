@@ -1,0 +1,16 @@
+CONNECT
+SEAT name=aresos-capture pointer=1 pointer_absolute=0 keyboard=0 touch=0 scroll=1 button=1
+BOUND everything
+DEVICE_ADDED name=aresos-capture-pointer pointer=1 pointer_absolute=0 keyboard=0 touch=0 scroll=1 button=1 region=0,0,2560x720
+DEVICE_RESUMED name=aresos-capture-pointer
+START name=aresos-capture-pointer sequence=13
+MOTION -7.00 3.00
+MOTION -7.00 3.00
+MOTION -7.00 3.00
+BUTTON 272 1
+BUTTON 272 0
+SCROLL_DISCRETE 0 120
+SCROLL 0.00 15.00
+STOP name=aresos-capture-pointer
+ 08:26:01 | INFO | Disconnected by EIS
+DEVICE_REMOVED name=aresos-capture-pointer

@@ -1,8 +1,3 @@
-FROM ghcr.io/ublue-os/bazzite-nvidia-open@sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151 AS packages
-
-COPY . /tmp/aresos/
-RUN test ! -e /tmp/aresos/ci && bash /tmp/aresos/build.sh packages
-
 # Package 23: every image build builds the AresOS mod jar from this exact source
 # revision. The source stage fetches that commit in the pinned base (which has
 # curl) and keeps only mod/ (and control/, package 18c); the mod stage runs only Gradle on it, in the
@@ -19,6 +14,31 @@ ARG ARESOS_SOURCE_REVISION=unrecorded
 COPY build.sh /tmp/aresos-mod/build.sh
 COPY --from=source /source/mod /tmp/aresos-mod/mod
 RUN bash /tmp/aresos-mod/build.sh mod /tmp/aresos-mod/mod /out "$ARESOS_SOURCE_REVISION"
+
+# Package 311: Fedora's labwc source package with one upstream fix, so a pointer lock holds on a layer-shell
+# surface. Every input is exact (labwc/labwc.lock.json); /out holds the RPM and nothing else. The build runs on a
+# pinned fedora:44 because the base's Terra mesa has no matching mesa-libgbm-devel. That image has no Python, so the
+# pinned base downloads and checks the inputs first, and refuses a labwc stage on any Fedora but the lock's (311c).
+FROM ghcr.io/ublue-os/bazzite-nvidia-open@sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151 AS labwc-inputs
+COPY labwc/ /tmp/aresos/labwc/
+COPY packages.lock.json /tmp/aresos/packages.lock.json
+COPY Containerfile /tmp/aresos/Containerfile
+RUN python3 -I /tmp/aresos/labwc/stage.py fetch /tmp/aresos/labwc /inputs
+
+FROM registry.fedoraproject.org/fedora@sha256:b02bb57e0e8ec2e057f0826436d2fc58765fa2b3b82d2abd322ece06e39c88f5 AS labwc
+COPY labwc/ /tmp/aresos-labwc/
+COPY --from=labwc-inputs /inputs/ /tmp/aresos-labwc-inputs/
+RUN bash /tmp/aresos-labwc/install-inputs.sh /tmp/aresos-labwc-inputs && \
+    python3 -I /tmp/aresos-labwc/stage.py build /tmp/aresos-labwc /tmp/aresos-labwc-inputs /out
+
+FROM ghcr.io/ublue-os/bazzite-nvidia-open@sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151 AS packages
+COPY . /tmp/aresos/
+COPY --from=labwc /out/ /tmp/aresos-labwc-rpm/
+# Keep Fedora's labwc and its replacement in one RUN. A metadata-only layer diff can
+# miss the swap when both binaries have the same size, mode and reproducible mtime.
+RUN test ! -e /tmp/aresos/ci && bash /tmp/aresos/build.sh packages && \
+    python3 -I /tmp/aresos/labwc/stage.py install /tmp/aresos-labwc-rpm /tmp/aresos/labwc && \
+    rm -rf /tmp/aresos-labwc-rpm
 
 FROM packages AS aresos
 ARG ARESOS_SOURCE_REVISION=unrecorded

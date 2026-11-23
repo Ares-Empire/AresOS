@@ -63,7 +63,7 @@ I only build things myself when writing the brief would cost more than doing it 
 - Anything touching the laptop's disks, partitions or BIOS/boot settings, or installing AresOS onto a drive. Once he has said yes, Claude may carry it out itself (hard rule 1).
 - Installing system software on Windows (JDK, drivers, tools). Ask once per tool.
 - Spending money: hardware, subscriptions, credits.
-- Publishing an AresOS image (a new release in the package registry) or changing what the laptop installs (the pinned image in `docs/INSTALL.md`). Test images that a CI job builds and throws away (never pushed to a registry, never pinned) need no OK (owner, 2026-11-07).
+- Publishing an AresOS image (a new release in the package registry) or changing what the laptop installs (the pinned image in `docs/INSTALL.md`). Test images that a CI job builds and throws away (never pushed to a registry, never pinned) need no OK (owner, 2026-11-07). A private release whose reviews, checks and VM rehearsal have passed may be published and pinned without asking (owner, board #388, 2026-11-19: "Yes, publish on your own"); installing it on the laptop (`at update`) stays his own step.
 - Making the repo or anything else public.
 - Design calls that are hard to undo or change how AresOS feels. A Codex `JUDGMENT-CALL` goes to the owner before merge.
 
@@ -81,6 +81,8 @@ I only build things myself when writing the brief would cost more than doing it 
 ## How I write to the owner
 
 Plain language, outcome first. Explain technical things through what they'll see in the game. Bring decisions with a recommendation, not a menu.
+
+**In anything committed, write `the owner`, never his name** (handoffs, briefs, reviews, commit messages): the repo is public (owner, board T433, 2026-11-20). His machine username is already covered by `AGENTS.md` rule 6.
 
 ## Codex models
 

@@ -105,7 +105,8 @@ PROGRESS.md; if that session has not happened, version 2). Then walk the guides'
 
 1. **Tools, from Claude's terminal** (22d): the folder line and the routine line at the announced commit on the
    stand-in origin's `main`; the password window approved; the 8 characters equal line 1 of `OWNER-TOOLS.md`. This
-   proves the laptop's installed tools to the new bundle (version 4's code with R28's reference, so a new fingerprint).
+   proves the laptop's installed tools to the new bundle (version 4's code with `tools_version` 5 and R28's reference, so a new
+   fingerprint; the lead's decision of 2026-11-17, PLAN-GAP 1).
 2. **Before the update** (only when Control rides): root writes the made-up sites list
    `{"format":1,"hosts":["rehearsal.invalid"]}` to `/var/lib/aresos-control/chrome-excluded-sites.json` with
    `sudo tee` as the guide does (making `/var/lib/aresos-control/` `root:root` 0755 first if R27 lacks it), and

@@ -1,0 +1,1150 @@
+#!/usr/bin/python3 -I
+"""Package 316's harness, inside its container: the tests of briefs/316-input-portal.md, "Tests".
+
+in-container.sh starts this once the container has proved it is cut off from the host. It starts a private
+session bus and a private headless labwc with two outputs, a full-screen probe window, a virtual pointer and
+a virtual keyboard, and then plays the portal frontend against the backend: one bus connection owns
+org.freedesktop.portal.Desktop and makes the calls in the real order, a second one (the stranger) makes the
+calls that must be refused and listens for signals it must never get, and eis-receiver plays Deskflow's end
+of each EIS connection.
+
+Every check prints one PASS or FAIL line; all of them, with the logs, land in /evidence. Exit 0 when every
+check passed, 1 when one failed, 2 when the setup itself could not be used (nothing was tested). Every wait
+has a time limit, and at the end only the processes started here are stopped.
+"""
+import json
+import os
+import re
+import select
+import signal
+import subprocess
+import sys
+import time
+import traceback
+
+import gi
+
+gi.require_version("Gio", "2.0")
+from gi.repository import Gio, GLib  # noqa: E402
+
+EV = "/evidence"
+RUNTIME = os.environ["XDG_RUNTIME_DIR"]
+BUS_PATH = f"{RUNTIME}/bus"
+BUS_ADDR = f"unix:path={BUS_PATH}"
+DISPLAY_NAME = "wayland-0"
+BACKEND = "/usr/libexec/aresos-input-portal"
+WLH = "/opt/harness/bin/wl-harness"
+RECEIVER = "/opt/harness/bin/eis-receiver"
+NAME = "org.freedesktop.impl.portal.desktop.aresos-input"
+FRONTEND_NAME = "org.freedesktop.portal.Desktop"
+PORTAL = "/org/freedesktop/portal/desktop"
+IC = "org.freedesktop.impl.portal.InputCapture"
+CLIP = "org.freedesktop.impl.portal.Clipboard"
+SESSION = "org.freedesktop.impl.portal.Session"
+APP = "org.aresos.harness"
+DENIED = "org.freedesktop.DBus.Error.AccessDenied"
+V = GLib.Variant
+
+# The only environment any process of the harness gets: nothing is inherited.
+ENV = {
+    "PATH": "/usr/bin:/usr/sbin",
+    "LANG": "C.UTF-8",
+    "NO_COLOR": "1",
+    "DBUS_SESSION_BUS_ADDRESS": BUS_ADDR,
+    **{k: os.environ[k] for k in ("HOME", "XDG_RUNTIME_DIR", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME", "XDG_STATE_HOME")},
+}
+CLIENT_ENV = {**ENV, "WAYLAND_DISPLAY": DISPLAY_NAME}
+
+results = []
+procs = {}
+buses = []
+ZONES = []
+
+
+def check(test, what, ok, detail=""):
+    ok = bool(ok)
+    line = f"{'PASS' if ok else 'FAIL'} {test} {what}" + (f" [{detail}]" if detail and not ok else "")
+    print(line, flush=True)
+    results.append(line)
+    return ok
+
+
+def info(text):
+    print(f"INFO {text}", flush=True)
+    results.append(f"INFO {text}")
+
+
+def pump(duration=0.03):
+    """Let the bus connections deliver their signals."""
+    context = GLib.MainContext.default()
+    end = time.monotonic() + duration
+    while True:
+        while context.pending():
+            context.iteration(False)
+        if time.monotonic() >= end:
+            return
+        time.sleep(0.01)
+
+
+def wait_for(predicate, timeout):
+    end = time.monotonic() + timeout
+    while True:
+        pump()
+        value = predicate()
+        if value or time.monotonic() >= end:
+            return value
+
+
+# ---- processes ------------------------------------------------------------------------------------------------
+
+
+def spawn(name, argv, env, **popen):
+    if "stdout" not in popen:
+        popen["stdout"] = open(f"{EV}/{name}.log", "ab", buffering=0)
+        popen["stderr"] = subprocess.STDOUT
+    popen.setdefault("stdin", subprocess.DEVNULL)
+    process = subprocess.Popen(argv, env=dict(env), **popen)
+    procs[name] = process
+    return process
+
+
+def stop(name, sig=signal.SIGTERM, timeout=5):
+    """Stop one process this harness started. Returns its exit code."""
+    process = procs.pop(name, None)
+    if process is None:
+        return None
+    if process.poll() is None:
+        process.send_signal(sig)
+        try:
+            process.wait(timeout)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait(5)
+    return process.returncode
+
+
+def tool(argv, timeout=10):
+    return subprocess.run(argv, env=CLIENT_ENV, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=timeout)
+
+
+def log_of(name):
+    try:
+        with open(f"{EV}/{name}.log", errors="replace") as handle:
+            return handle.read()
+    except FileNotFoundError:
+        return ""
+
+
+def lines_of(name):
+    return log_of(name).splitlines()
+
+
+def start_bus():
+    if os.path.exists(BUS_PATH):
+        os.unlink(BUS_PATH)
+    spawn("dbus-daemon", ["dbus-daemon", "--session", "--nofork", "--nopidfile", f"--address={BUS_ADDR}"], ENV)
+    if not wait_for(lambda: os.path.exists(BUS_PATH), 5):
+        raise RuntimeError("the private bus did not start")
+
+
+class Reply:
+    def __init__(self, value=None, fds=None, error=None):
+        self.value = value.unpack() if value is not None else None
+        self.fds = fds
+        self.error = Gio.DBusError.get_remote_error(error) if error is not None else None
+        self.message = error.message if error is not None else ""
+        self.ok = error is None
+        self.nfds = fds.get_length() if fds is not None else 0
+
+    def fd(self):
+        """The reply's file descriptor, taken out of the message: no second copy stays open in this process,
+        so the other end sees end-of-file when the test closes it."""
+        return self.fds.steal_fds()[self.value[0]]
+
+
+class Bus:
+    """One connection to the private bus, with every signal it is sent."""
+
+    def __init__(self, label):
+        self.label = label
+        self.signals = []
+        flags = Gio.DBusConnectionFlags.AUTHENTICATION_CLIENT | Gio.DBusConnectionFlags.MESSAGE_BUS_CONNECTION
+        self.conn = Gio.DBusConnection.new_for_address_sync(BUS_ADDR, flags, None, None)
+        self.conn.set_exit_on_close(False)
+        self.unique = self.conn.get_unique_name()
+        # No filter at all: the match rule is type='signal', everything the bus is willing to deliver.
+        self.conn.signal_subscribe(None, None, None, None, None, Gio.DBusSignalFlags.NONE, self._signal)
+        buses.append(self)
+
+    def _signal(self, _conn, sender, path, iface, member, params, *_):
+        self.signals.append({"sender": sender, "path": path, "iface": iface, "member": member, "args": params.unpack()})
+
+    def call(self, path, iface, method, params=None, dest=NAME, timeout=5000):
+        try:
+            value, fds = self.conn.call_with_unix_fd_list_sync(
+                dest, path, iface, method, params, None, Gio.DBusCallFlags.NO_AUTO_START, timeout, None, None
+            )
+            return Reply(value, fds)
+        except GLib.Error as error:
+            return Reply(error=error)
+
+    def own_frontend(self):
+        reply = self.call("/org/freedesktop/DBus", "org.freedesktop.DBus", "RequestName", V("(su)", (FRONTEND_NAME, 4)), dest="org.freedesktop.DBus")
+        if not reply.ok or reply.value[0] != 1:
+            raise RuntimeError(f"could not own {FRONTEND_NAME}: {reply.message}")
+
+    def has_owner(self, name):
+        reply = self.call("/org/freedesktop/DBus", "org.freedesktop.DBus", "NameHasOwner", V("(s)", (name,)), dest="org.freedesktop.DBus")
+        return reply.ok and reply.value[0]
+
+    def sig(self, member, session=None, start=0, predicate=None):
+        """Portal signals since `start`, for one session path when given."""
+        found = []
+        for signal_ in self.signals[start:]:
+            if signal_["member"] != member or not signal_["iface"].startswith("org.freedesktop.impl.portal"):
+                continue
+            about = signal_["args"][0] if signal_["args"] else signal_["path"]
+            if session is not None and about != session:
+                continue
+            if predicate is None or predicate(signal_):
+                found.append(signal_)
+        return found
+
+    def close(self):
+        self.conn.close_sync(None)
+
+
+class VInput:
+    """wl-harness input: a virtual pointer or keyboard that lives until it is stopped."""
+
+    def __init__(self, kind):
+        self.kind = kind
+        self.name = f"vinput-{kind}"
+        self.process = None
+        self.start()
+
+    def start(self):
+        self.process = spawn(
+            self.name, [WLH, "input", self.kind], CLIENT_ENV,
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=open(f"{EV}/{self.name}.log", "ab"), bufsize=0,
+        )
+        self._expect("READY")
+
+    def _expect(self, word):
+        ready, _, _ = select.select([self.process.stdout], [], [], 5)
+        line = self.process.stdout.readline().decode().strip() if ready else "(nothing within 5 s)"
+        if line != word:
+            raise RuntimeError(f"{self.name}: expected {word}, got {line!r}")
+
+    def cmd(self, line):
+        self.process.stdin.write((line + "\n").encode())
+        self._expect("OK")
+
+    def stop(self):
+        stop(self.name)
+
+
+class Session:
+    """One portal session, driven the way xdg-desktop-portal drives the backend."""
+
+    count = 0
+
+    def __init__(self, fe, name, caps=3, clipboard=True, app_id=APP):
+        Session.count += 1
+        self.fe, self.name, self.caps, self.clipboard, self.app_id = fe, name, caps, clipboard, app_id
+        self.path = f"/org/freedesktop/portal/desktop/session/harness/{name.replace('-', '_')}"
+        self.request = f"/org/freedesktop/portal/desktop/request/harness/r{Session.count}"
+        self.receiver = f"eis-{Session.count:02d}-{name}"
+
+    def call(self, iface, method, params, path=PORTAL):
+        return self.fe.call(path, iface, method, params)
+
+    def must(self, iface, method, params, path=PORTAL):
+        reply = self.call(iface, method, params, path)
+        if not reply.ok:
+            raise RuntimeError(f"{method} for {self.name}: {reply.error} {reply.message}")
+        return reply
+
+    def create(self):
+        return self.call(IC, "CreateSession2", V("(osa{sv})", (self.path, self.app_id, {})))
+
+    def connect_eis(self):
+        reply = self.must(IC, "ConnectToEIS", V("(osa{sv})", (self.path, self.app_id, {})))
+        fd = reply.fd()
+        spawn(self.receiver, [RECEIVER, str(fd)], ENV, pass_fds=[fd])
+        # The receiver holds the only copy from here on: when it dies, the connection dies.
+        os.close(fd)
+        if not wait_for(lambda: any(line.startswith("DEVICE_RESUMED") for line in self.eis()), 5):
+            raise RuntimeError(f"the EIS receiver of {self.name} got no device: {self.eis()}")
+
+    def zones(self):
+        reply = self.must(IC, "GetZones", V("(oosa{sv})", (self.request, self.path, self.app_id, {})))
+        return [tuple(zone) for zone in reply.value[1]["zones"]], reply.value[1]["zone_set"]
+
+    def set_barriers(self, barriers, zone_set):
+        wire = [{"barrier_id": V("u", barrier_id), "position": V("(iiii)", position)} for barrier_id, position in barriers.items()]
+        reply = self.must(IC, "SetPointerBarriers", V("(oosa{sv}aa{sv}u)", (self.request, self.path, self.app_id, {}, wire, zone_set)))
+        return sorted(reply.value[1]["failed_barriers"])
+
+    def enable(self):
+        return self.must(IC, "Enable", V("(osa{sv})", (self.path, self.app_id, {})))
+
+    def release(self, cursor=None):
+        options = {"cursor_position": V("(dd)", cursor)} if cursor else {}
+        return self.must(IC, "Release", V("(osa{sv})", (self.path, self.app_id, options)))
+
+    def open(self, armed=True):
+        """The real order: CreateSession2, RequestClipboard, Start, ConnectToEIS, the receiver's devices,
+        GetZones, SetPointerBarriers, Enable. `armed` sets barrier 1 on the left outer edge and enables."""
+        reply = self.create()
+        if not reply.ok:
+            raise RuntimeError(f"CreateSession2 for {self.name}: {reply.error} {reply.message}")
+        if self.clipboard:
+            self.must(CLIP, "RequestClipboard", V("(oa{sv})", (self.path, {})))
+        started = self.must(IC, "Start", V("(oossa{sv})", (self.request, self.path, self.app_id, "", {"capabilities": V("u", self.caps)})))
+        self.granted = started.value[1]
+        self.connect_eis()
+        if armed:
+            zones, zone_set = self.zones()
+            failed = self.set_barriers({1: edges(zones)["left"]}, zone_set)
+            if failed:
+                raise RuntimeError(f"the left edge was refused for {self.name}")
+            self.enable()
+        return self
+
+    def eis(self):
+        return lines_of(self.receiver)
+
+    def regions(self):
+        """The regions of the pointer device as the receiver has it now."""
+        added = [line for line in self.eis() if line.startswith("DEVICE_ADDED") and " pointer=1" in line]
+        if not added:
+            return None
+        return [tuple(int(n) for n in re.split("[,x]", field[7:])) for field in added[-1].split() if field.startswith("region=")]
+
+    def kill_receiver(self):
+        stop(self.receiver, signal.SIGKILL)
+
+    def close(self):
+        return self.fe.call(self.path, SESSION, "Close")
+
+    def shut(self):
+        self.close()
+        stop(self.receiver)
+
+
+# ---- the screens, the pointer and the probe window ---------------------------------------------------------------
+
+
+def randr_outputs():
+    """The enabled outputs as wlr-randr reports them: name -> (width, height, x, y) in logical pixels."""
+    report = tool(["wlr-randr", "--json"])
+    outputs = {}
+    for output in json.loads(report.stdout):
+        if not output["enabled"]:
+            continue
+        mode = next(m for m in output["modes"] if m["current"])
+        width, height = mode["width"], mode["height"]
+        if "90" in output["transform"] or "270" in output["transform"]:
+            width, height = height, width
+        outputs[output["name"]] = (round(width / output["scale"]), round(height / output["scale"]), output["position"]["x"], output["position"]["y"])
+    return outputs
+
+
+def randr_zones():
+    return list(randr_outputs().values())
+
+
+def box(zones):
+    """The layout's bounding box: left, top, width, height."""
+    left, top = min(x for w, h, x, y in zones), min(y for w, h, x, y in zones)
+    return left, top, max(x + w for w, h, x, y in zones) - left, max(y + h for w, h, x, y in zones) - top
+
+
+def region_of(zones):
+    """What the backend tells EIS for these zones: the bounding box's size, at (0, 0)."""
+    return [(0, 0, *box(zones)[2:])]
+
+
+def leftmost(zones):
+    return min(zones, key=lambda zone: zone[2])
+
+
+def rightmost(zones):
+    return max(zones, key=lambda zone: zone[2] + zone[0])
+
+
+def edges(zones):
+    """Barrier positions (x1, y1, x2, y2) as the portal counts them: ends inclusive, the right and bottom
+    edges one past the last pixel."""
+    lw, lh, lx, ly = leftmost(zones)
+    rw, rh, rx, ry = rightmost(zones)
+    return {
+        "left": (lx, ly, lx, ly + lh - 1),
+        "right": (rx + rw, ry, rx + rw, ry + rh - 1),
+        "top-right": (rx, ry, rx + rw - 1, ry),
+        "bottom-left": (lx, ly + lh, lx + lw - 1, ly + lh),
+        "inner": (lx + lw, ly, lx + lw, ly + lh - 1),
+    }
+
+
+def goto(x, y):
+    """Put the pointer at a layout position (wlroots spreads an absolute position over the layout's box)."""
+    left, top, width, height = box(ZONES)
+    vptr.cmd(f"abs {x - left} {y - top} {width} {height}")
+
+
+def approach(edge="left", along=None):
+    """Go near an outer edge. Returns the one relative move that then pushes the pointer through it."""
+    lw, lh, lx, ly = leftmost(ZONES)
+    rw, rh, rx, ry = rightmost(ZONES)
+    if edge == "left":
+        goto(lx + 200, along if along is not None else ly + lh // 2)
+        return "rel -400 0"
+    if edge == "right":
+        goto(rx + rw - 100, along if along is not None else ry + rh // 2)
+        return "rel 300 0"
+    if edge == "top-right":
+        goto(rx + rw // 2, ry + 100)
+        return "rel 0 -300"
+    goto(lx + lw // 2, ly + lh - 100)
+    return "rel 0 300"
+
+
+def push(edge="left", along=None):
+    """Go near an outer edge and push the pointer through it."""
+    vptr.cmd(approach(edge, along))
+
+
+def window():
+    return lines_of("window")
+
+
+def window_gets(action, wanted):
+    seen = len(window())
+    action()
+    return bool(wait_for(lambda: any(line.startswith(wanted) for line in window()[seen:]), 2))
+
+
+def local_motion():
+    """The pointer is free: moved over the probe window, the window sees it move."""
+    def move():
+        # The window fills the leftmost output, and stays there: only the right one is ever changed.
+        width, height, x, y = leftmost(ZONES)
+        goto(x + width // 2, y + height // 2)
+        vptr.cmd("rel 9 9")
+    return window_gets(move, "MOTION")
+
+
+def local_button():
+    def click():
+        vptr.cmd("btn 272 1")
+        vptr.cmd("btn 272 0")
+    return window_gets(click, "BUTTON 272 1")
+
+
+def local_key():
+    def tap():
+        vkbd.cmd("key 57 1")
+        vkbd.cmd("key 57 0")
+    return window_gets(tap, "KEY 57 1")
+
+
+def burst():
+    """Synthetic input for a capture: motion, a button, the wheel and two keys."""
+    for _ in range(3):
+        vptr.cmd("rel -7 3")
+    vptr.cmd("btn 272 1")
+    vptr.cmd("btn 272 0")
+    vptr.cmd("axis 1")
+    for code in (30, 48):
+        vkbd.cmd(f"key {code} 1")
+        vkbd.cmd(f"key {code} 0")
+
+
+BURST = ["MOTION -7.00 3.00", "BUTTON 272 1", "BUTTON 272 0", "KEY 30 1", "KEY 30 0", "KEY 48 1", "KEY 48 0"]
+
+
+def capture(session, edge="left", along=None, timeout=3, shove=None):
+    """Cross the session's barrier. Returns the Activated signal's options, or None. `shove` is the last
+    move when the pointer has been brought near the edge already."""
+    mark = len(session.fe.signals)
+    if shove:
+        vptr.cmd(shove)
+    else:
+        push(edge, along)
+    got = wait_for(lambda: session.fe.sig("Activated", session.path, mark), timeout)
+    return got[0]["args"][1] if got else None
+
+
+def stays_local(fe, backend, edge="left"):
+    """Push through an edge: nobody is activated, the backend takes no grab, the pointer stays free."""
+    mark = len(fe.signals)
+    grabs = log_of(backend).count("the grab is held")
+    push(edge)
+    activated = wait_for(lambda: fe.sig("Activated", None, mark), 1.0)
+    return not activated and log_of(backend).count("the grab is held") == grabs and local_motion()
+
+
+backends = 0
+
+
+def start_backend(admin, extra=None):
+    global backends
+    backends += 1
+    name = f"backend-{backends}"
+    spawn(name, [BACKEND], {**CLIENT_ENV, "ARESOS_INPUT_PORTAL_LOG": "debug", **(extra or {})})
+    if not wait_for(lambda: admin.has_owner(NAME), 10):
+        raise RuntimeError(f"{name} did not take its bus name: {log_of(name)[-600:]}")
+    return name
+
+
+def read_fd(fd, timeout=3):
+    data = b""
+    end = time.monotonic() + timeout
+    while time.monotonic() < end:
+        ready, _, _ = select.select([fd], [], [], 0.2)
+        if ready:
+            chunk = os.read(fd, 65536)
+            if not chunk:
+                break
+            data += chunk
+    os.close(fd)
+    return data
+
+
+def copy(text, mime=None):
+    argv = ["wl-copy"] + (["--type", mime] if mime else []) + [text]
+    subprocess.run(argv, env=CLIENT_ENV, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5)
+
+
+def paste_through(owner, fe, text, mime=None, thief=None):
+    """A local paste (wl-paste) of a selection the session `owner` claimed: answer the transfer with `text`.
+    Returns what wl-paste printed, the transfer signals, and the reply `thief` got for the same serial."""
+    mark = len(fe.signals)
+    paster = subprocess.Popen(
+        ["wl-paste", "--no-newline"] + (["--type", mime] if mime else []),
+        env=CLIENT_ENV, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+    )
+    transfers = wait_for(lambda: fe.sig("SelectionTransfer", None, mark), 3)
+    stolen = None
+    if transfers:
+        serial = transfers[0]["args"][2]
+        if thief is not None:
+            stolen = thief.call(CLIP, "SelectionWrite", V("(ou)", (thief.path, serial)))
+        write = owner.call(CLIP, "SelectionWrite", V("(ou)", (owner.path, serial)))
+        if write.ok:
+            fd = write.fd()
+            os.write(fd, text.encode())
+            os.close(fd)
+            owner.call(CLIP, "SelectionWriteDone", V("(oub)", (owner.path, serial, True)))
+    try:
+        pasted = paster.communicate(timeout=5)[0].decode()
+    except subprocess.TimeoutExpired:
+        paster.kill()
+        pasted = "(wl-paste got nothing within 5 s)"
+    return pasted, transfers or [], stolen
+
+
+# ---- the tests -----------------------------------------------------------------------------------------------------
+
+
+def test1_zones(fe, backend):
+    global ZONES
+    T = "test1"
+    randr = randr_zones()
+    session = Session(fe, "zones").open(armed=False)
+    zones, zone_set = session.zones()
+    check(T, "GetZones gives the two outputs as wlr-randr reports them", len(zones) == 2 and sorted(zones) == sorted(randr), f"zones {zones}, wlr-randr {randr}")
+    check(T, "the EIS pointer's region covers exactly those outputs", session.regions() == region_of(zones), f"{session.regions()} for {zones}")
+    edge = edges(zones)
+    failed = session.set_barriers({1: edge["left"], 2: edge["right"], 3: edge["top-right"], 4: edge["bottom-left"], 9: edge["inner"]}, zone_set)
+    check(T, "barriers on four outer edges are accepted, the one between the two outputs is refused", failed == [9], f"failed {failed}")
+    session.enable()
+    check(T, "four barrier surfaces are placed", wait_for(lambda: "armed 4 barrier surface(s)" in log_of(backend), 2))
+    _, _, width, height = box(zones)
+    on_edge = {
+        "left": lambda p: p[0] < 1.5,
+        "right": lambda p: p[0] > width - 1.5,
+        "top-right": lambda p: p[1] < 1.5 and p[0] >= leftmost(zones)[0],
+        "bottom-left": lambda p: p[1] > height - 1.5 and p[0] < leftmost(zones)[0],
+    }
+    for barrier_id, name in ((1, "left"), (2, "right"), (3, "top-right"), (4, "bottom-left")):
+        activated = capture(session, name)
+        check(T, f"the {name} edge's surface is where the output's edge is: crossing it activates barrier {barrier_id} there",
+              activated and activated["barrier_id"] == barrier_id and on_edge[name](activated["cursor_position"]), f"{activated}")
+        session.release()
+        pump(0.2)
+
+    # An output changes: scale 2 halves the right output's logical size. (The probe window is on the left one.)
+    right = max(randr_outputs().items(), key=lambda item: item[1][2] + item[1][0])[0]
+    mark, seen = len(fe.signals), len(session.eis())
+    tool(["wlr-randr", "--output", right, "--scale", "2"])
+    changed = wait_for(lambda: fe.sig("ZonesChanged", session.path, mark), 5)
+    randr2 = randr_zones()
+    zones2, zone_set2 = session.zones()
+    check(T, "changing an output brings ZonesChanged, and GetZones follows wlr-randr with a new zone set",
+          changed and sorted(zones2) == sorted(randr2) and zones2 != zones and zone_set2 != zone_set, f"{zones2} set {zone_set2}, wlr-randr {randr2}")
+    ZONES = zones2
+    check(T, "barriers for the old zone set are refused", session.set_barriers({1: edge["left"]}, zone_set) == [1])
+    check(T, "the old barrier surfaces are gone: the old edge no longer captures", stays_local(fe, backend))
+    after = session.eis()[seen:]
+    check(T, "EIS: the old devices are removed and the new ones carry the new geometry",
+          any(line.startswith("DEVICE_REMOVED") for line in after) and session.regions() == region_of(zones2), f"{session.regions()} for {zones2}: {after}")
+    failed = session.set_barriers({5: edges(zones2)["right"]}, zone_set2)
+    activated = capture(session, "right")
+    check(T, "barriers for the new zone set capture again, without another Enable", failed == [] and activated and activated["barrier_id"] == 5, f"failed {failed}, {activated}")
+    session.release()
+
+    mark = len(fe.signals)
+    tool(["wlr-randr", "--output", right, "--scale", "1"])
+    changed = wait_for(lambda: fe.sig("ZonesChanged", session.path, mark) and sorted(session.zones()[0]) == sorted(zones), 5)
+    check(T, "changing it back brings ZonesChanged and the first zones again", changed, f"{session.zones()}")
+    ZONES = session.zones()[0]
+    session.shut()
+
+
+def test1_output_off(fe, admin):
+    """The last part of test 1, late in the run: the right output stays off from here on (see
+    control_output_cycle for why it is not switched on again)."""
+    global ZONES
+    T = "test1"
+    backend = start_backend(admin)
+    session = Session(fe, "output-off").open()
+    zones, zone_set = session.zones()
+    right = max(randr_outputs().items(), key=lambda item: item[1][2] + item[1][0])[0]
+    mark = len(fe.signals)
+    tool(["wlr-randr", "--output", right, "--off"])
+    changed = wait_for(lambda: fe.sig("ZonesChanged", session.path, mark), 5)
+    randr = randr_zones()
+    zones2, zone_set2 = session.zones()
+    check(T, "disabling an output brings ZonesChanged and leaves one zone, as wlr-randr reports it", changed and len(zones2) == 1 and zones2 == randr and zone_set2 != zone_set, f"{zones2}, wlr-randr {randr}")
+    ZONES = zones2
+    check(T, "barriers for the zone set with two outputs are refused", session.set_barriers({1: edges(zones)["left"]}, zone_set) == [1])
+    check(T, "EIS has the one output's geometry", wait_for(lambda: session.regions() == region_of(zones2), 2), f"{session.regions()} for {zones2}")
+    failed = session.set_barriers({6: edges(zones2)["right"]}, zone_set2)
+    activated = capture(session, "right")
+    check(T, "the edge that faced the disabled output is an outer edge now: its barrier is accepted and captures", failed == [] and activated and activated["barrier_id"] == 6, f"failed {failed}, {activated}")
+    session.release()
+    session.shut()
+    stop(backend, signal.SIGINT)
+
+
+def control_output_cycle():
+    """Not a test of the backend's rules, and it decides nothing about the run's result. The first run of this
+    harness switched a headless output off and on again and labwc aborted (wlroots: head_send_state:
+    Assertion `found' failed). This shows when: a fresh labwc each time, with nobody else on
+    zwlr_output_manager_v1, with a client that only listens there, and with the backend."""
+    def fresh_labwc():
+        stop("labwc")
+        for stale in (f"{RUNTIME}/{DISPLAY_NAME}", f"{RUNTIME}/{DISPLAY_NAME}.lock"):
+            if os.path.exists(stale):
+                os.unlink(stale)
+        start_labwc()
+        pump(0.5)
+
+    def cycle():
+        right = max(randr_outputs().items(), key=lambda item: item[1][2] + item[1][0])[0]
+        for number, step in enumerate(("--off", "--on", "--off", "--on"), 1):
+            tool(["wlr-randr", "--output", right, step])
+            pump(0.7)
+            if procs["labwc"].poll() is not None:
+                return f"labwc aborts at step {number} ({step}): {(lines_of('labwc') or ['(no message)'])[-1]}"
+        return "labwc keeps running"
+
+    fresh_labwc()
+    info(f"control: nobody else on zwlr_output_manager_v1; wlr-randr switches an output off, on, off, on: {cycle()}")
+    fresh_labwc()
+    spawn("output-listener", [WLH, "outputs"], CLIENT_ENV)
+    pump(0.5)
+    info(f"control: a client that only listens on zwlr_output_manager_v1 is connected; off, on, off, on: {cycle()}")
+    stop("output-listener")
+    fresh_labwc()
+    start_bus()
+    backend = start_backend(Bus("stranger-3"))
+    info(f"control: the backend is connected; off, on, off, on: {cycle()}; "
+         f"the backend saw {log_of(backend).count('retired a mode')} mode(s) and {log_of(backend).count('retired a head')} head(s) retired")
+    stop(backend, signal.SIGINT)
+
+
+def test2_crossing(fe, backend):
+    T = "test2"
+    session = Session(fe, "crossing").open()
+    check(T, "before the capture the local window receives motion, a button and a key", local_motion() and local_button() and local_key())
+    # Near the edge first (the window sees that move), so that everything from here on is the crossing.
+    shove = approach("left")
+    pump(0.3)
+    seen_window, seen_eis, seen_log = len(window()), len(session.eis()), len(log_of(backend))
+    activated = capture(session, shove=shove)
+    if not check(T, "crossing the barrier: Activated arrives", activated, log_of(backend)[seen_log:][-1500:]):
+        session.shut()
+        return
+    log = log_of(backend)[seen_log:]
+    asked, locked, focused, held = (log.find(text) for text in (
+        "asking the compositor for the grab", "the compositor granted the pointer lock",
+        "the barrier's surface has keyboard focus", "the grab is held"))
+    check(T, "labwc granted the pointer lock and the keyboard focus before Activated was sent (REVIEW-1, finding 3)",
+          0 <= asked < locked < held and asked < focused < held, f"offsets {asked} {locked} {focused} {held}")
+    burst()
+    arrived = wait_for(lambda: all(line in session.eis()[seen_eis:] for line in BURST) and any(line.startswith("SCROLL") for line in session.eis()[seen_eis:]), 3)
+    eis = session.eis()[seen_eis:]
+    check(T, "EIS emulation starts with the activation's number", any(line.startswith("START") and line.endswith(f"sequence={activated['activation_id']}") for line in eis), f"{eis[:6]}")
+    check(T, "motion, a button, scroll and keys arrive over EIS", arrived, f"{eis}")
+    pump(0.4)
+    leaked = [line for line in window()[seen_window:] if line.split()[0] in ("ENTER", "MOTION", "BUTTON", "AXIS", "KEY")]
+    check(T, "the local window receives none of them, from the crossing on", not leaked and "LEAVE" in window()[seen_window:], f"{window()[seen_window:]}")
+    session.release()
+    check(T, "Release: EIS emulation stops", wait_for(lambda: any(line.startswith("STOP") for line in session.eis()[seen_eis:]), 2))
+    check(T, "after the capture the local window receives motion, a button and a key again", local_motion() and local_button() and local_key())
+    session.shut()
+
+
+def test3_ways_out(fe, backend):
+    T = "test3"
+    session = Session(fe, "ways-out").open()
+
+    activated = capture(session)
+    seen = len(session.eis())
+    session.release()
+    check(T, "Release ends the capture and the pointer moves locally again",
+          activated and wait_for(lambda: any(line.startswith("STOP") for line in session.eis()[seen:]), 2) and local_motion() and local_key())
+
+    activated = capture(session)
+    mark = len(fe.signals)
+    said = tool([BACKEND, "--release"]).stdout.strip()
+    ended = wait_for(lambda: fe.sig("Deactivated", session.path, mark), 3)
+    check(T, "--release ends the capture (Deactivated with its activation_id) and the pointer moves locally again",
+          activated and ended and ended[0]["args"][1]["activation_id"] == activated["activation_id"] and "released 1" in said and local_motion() and local_key(), f"{said!r} {ended}")
+
+    activated = capture(session)
+    mark = len(fe.signals)
+    said = tool([BACKEND, "--disarm"]).stdout.strip()
+    ended = wait_for(lambda: fe.sig("Deactivated", session.path, mark) and fe.sig("Disabled", session.path, mark), 3)
+    check(T, "--disarm ends the capture and disarms (Deactivated, Disabled) and the pointer moves locally again",
+          activated and ended and "released 1" in said and local_motion() and local_key(), f"{said!r}")
+    check(T, "after --disarm a crossing stays local", stays_local(fe, backend))
+    session.enable()
+
+    activated = capture(session)
+    mark, seen, seen_log = len(fe.signals), len(session.eis()), len(log_of(backend))
+    # Super_L, Shift_L, Escape: the real keys, pressed one after the other under the grab.
+    for command in ("key 125 1", "key 42 1", "key 1 1", "key 1 0", "key 42 0", "key 125 0"):
+        vkbd.cmd(command)
+    ended = wait_for(lambda: fe.sig("Deactivated", session.path, mark), 3)
+    requested = "ForceRelease requested" in log_of(backend)[seen_log:]
+    check(T, "Super+Shift+Escape, pressed through the virtual keyboard while the backend holds the grab, ends the capture",
+          activated and ended and requested, f"activated {bool(activated)}, Deactivated {bool(ended)}, labwc ran --release {requested}")
+    check(T, "and the pointer and the keyboard are local again", local_motion() and local_key())
+    info(f"test3 the chord's keys as the EIS receiver saw them: {[line for line in session.eis()[seen:] if line.startswith('KEY')]}")
+    session.shut()
+
+
+def test3_kill_and_watchdog(fe, admin, backend):
+    T = "test3"
+    session = Session(fe, "killed").open()
+    activated = capture(session)
+    stop(backend, signal.SIGKILL)
+    check(T, "killing the backend ends the capture: the pointer and the keyboard are local again", activated and local_motion() and local_key())
+    stop(session.receiver)
+
+    backend = start_backend(admin, {"ARESOS_INPUT_PORTAL_IDLE_TIMEOUT": "3"})
+    session = Session(fe, "idle").open()
+    activated = capture(session)
+    mark, began = len(fe.signals), time.monotonic()
+    ended = wait_for(lambda: fe.sig("Deactivated", session.path, mark), 8)
+    took = time.monotonic() - began
+    check(T, "the idle watchdog (set to 3 s) ends a capture that carries no input", activated and ended and 2.0 <= took <= 5.0, f"Deactivated {bool(ended)} after {took:.1f} s")
+    check(T, "and the pointer and the keyboard are local again", local_motion() and local_key())
+    session.shut()
+    stop(backend, signal.SIGINT)
+
+
+def test4_teardown(fe, backend):
+    T = "test4"
+    session = Session(fe, "closed").open()
+    mark = len(fe.signals)
+    session.close()
+    check(T, "Close: the session is closed and its EIS receiver disconnected",
+          wait_for(lambda: fe.sig("Closed", session.path, mark), 3) and wait_for(lambda: "DISCONNECT" in session.eis(), 3), f"{session.eis()[-3:]}")
+    check(T, "after Close a crossing stays local", stays_local(fe, backend))
+
+    session = Session(fe, "eis-dies-first").open()
+    mark = len(fe.signals)
+    session.kill_receiver()
+    check(T, "the EIS connection dies before a crossing: the session is closed", wait_for(lambda: fe.sig("Closed", session.path, mark), 3))
+    check(T, "and a crossing stays local", stays_local(fe, backend))
+
+    session = Session(fe, "eis-dies-capturing").open()
+    activated = capture(session)
+    mark = len(fe.signals)
+    session.kill_receiver()
+    ended = wait_for(lambda: fe.sig("Deactivated", session.path, mark) and fe.sig("Closed", session.path, mark), 3)
+    check(T, "the EIS connection dies during a capture: Deactivated, the session is closed, input is local again", activated and ended and local_motion() and local_key())
+    check(T, "and a new crossing stays local", stays_local(fe, backend))
+
+    session = Session(fe, "frontend-drops").open()
+    fe.close()
+    gone = wait_for(lambda: "DISCONNECT" in session.eis(), 3)
+    status = tool([BACKEND, "--status"]).stdout.strip()
+    check(T, "the frontend connection drops: its session is closed and its EIS receiver disconnected", gone and status == "no sessions", f"--status says {status!r}")
+    stop(session.receiver)
+    fe = Bus("frontend-2")
+    fe.own_frontend()
+    check(T, "and a crossing stays local", stays_local(fe, backend))
+    return fe
+
+
+def test5_clipboard(fe):
+    T = "test5"
+    session = Session(fe, "clipboard").open()
+    text = "aresos-316 copied on this machine 6f1d"
+    mark = len(fe.signals)
+    copy(text)
+    offered = wait_for(lambda: fe.sig("SelectionOwnerChanged", session.path, mark, lambda s: not s["args"][1].get("session_is_owner")
+                                      and any(t.startswith("text/plain") for t in s["args"][1].get("mime_types", []))), 3)
+    check(T, "text copied with wl-copy is offered to the session: SelectionOwnerChanged with its MIME types", offered, f"{fe.sig('SelectionOwnerChanged', None, mark)}")
+    read = session.call(CLIP, "SelectionRead", V("(os)", (session.path, "text/plain;charset=utf-8")))
+    got = read_fd(read.fd()) if read.ok else read.message.encode()
+    check(T, "a read through the session's transfer file descriptor gets the text", got == text.encode(), f"{got!r}")
+
+    text = "aresos-316 written by the session 9c2e"
+    mark = len(fe.signals)
+    session.must(CLIP, "SetSelection", V("(oa{sv})", (session.path, {"mime_types": V("as", ["text/plain;charset=utf-8", "text/plain"])})))
+    owns = wait_for(lambda: fe.sig("SelectionOwnerChanged", session.path, mark, lambda s: s["args"][1].get("session_is_owner")), 3)
+    pasted, transfers, _ = paste_through(session, fe, text)
+    check(T, "a write through the session lands on the selection: wl-paste shows it", owns and transfers and pasted == text, f"owner signal {bool(owns)}, transfers {transfers}, wl-paste {pasted!r}")
+    session.shut()
+
+
+def test6_refusals(fe, stranger, backend):
+    T = "test6"
+    for app_id, what in (("org.example.unlisted", "an app_id that is not on the allow-list"), ("", "the empty app_id")):
+        reply = Session(fe, "refused", app_id=app_id).create()
+        check(T, f"{what} is refused, and no file descriptor comes back", reply.error == DENIED and reply.nfds == 0, f"{reply.error} {reply.message}")
+    check(T, "neither left a session behind", tool([BACKEND, "--status"]).stdout.strip() == "no sessions")
+
+    first = Session(fe, "first").open()
+    path, request, none = first.path, first.request, {}
+    theirs = "/org/freedesktop/portal/desktop/session/harness/stranger"
+    calls = [
+        (PORTAL, IC, "CreateSession2", V("(osa{sv})", (theirs, APP, none))),
+        (PORTAL, IC, "CreateSession", V("(oossa{sv})", (request, theirs, APP, "", {"capabilities": V("u", 3)}))),
+        (PORTAL, IC, "Start", V("(oossa{sv})", (request, path, APP, "", {"capabilities": V("u", 3)}))),
+        (PORTAL, IC, "GetZones", V("(oosa{sv})", (request, path, APP, none))),
+        (PORTAL, IC, "SetPointerBarriers", V("(oosa{sv}aa{sv}u)", (request, path, APP, none, [], 1))),
+        (PORTAL, IC, "ConnectToEIS", V("(osa{sv})", (path, APP, none))),
+        (PORTAL, IC, "Enable", V("(osa{sv})", (path, APP, none))),
+        (PORTAL, IC, "Disable", V("(osa{sv})", (path, APP, none))),
+        (PORTAL, IC, "Release", V("(osa{sv})", (path, APP, none))),
+        (PORTAL, CLIP, "RequestClipboard", V("(oa{sv})", (path, none))),
+        (PORTAL, CLIP, "SetSelection", V("(oa{sv})", (path, {"mime_types": V("as", ["text/plain"])}))),
+        (PORTAL, CLIP, "SelectionWrite", V("(ou)", (path, 1))),
+        (PORTAL, CLIP, "SelectionWriteDone", V("(oub)", (path, 1, True))),
+        (PORTAL, CLIP, "SelectionRead", V("(os)", (path, "text/plain"))),
+        (path, SESSION, "Close", None),
+    ]
+    wrong = []
+    for object_path, iface, method, params in calls:
+        reply = stranger.call(object_path, iface, method, params)
+        if reply.error != DENIED or reply.nfds:
+            wrong.append((method, reply.error, reply.nfds))
+    check(T, f"a bus name that isn't the frontend is refused on all {len(calls)} methods, InputCapture, Clipboard and Session.Close, and gets no file descriptor", not wrong, f"{wrong}")
+    activated = capture(first)
+    check(T, "the frontend's session is untouched by them and still captures", activated)
+    first.release()
+
+    # Two sessions of the frontend, the same barrier ID on the same edge.
+    mark = len(fe.signals)
+    second = Session(fe, "second").open()
+    disarmed = wait_for(lambda: fe.sig("Disabled", first.path, mark), 3)
+    seen_first, seen_second, mark = len(first.eis()), len(second.eis()), len(fe.signals)
+    push("left")
+    activations = wait_for(lambda: fe.sig("Activated", None, mark), 3) or []
+    burst()
+    wait_for(lambda: "KEY 48 0" in second.eis()[seen_second:], 2)
+    pump(0.3)
+    reached_first = [line for line in first.eis()[seen_first:] if line.split()[0] in ("START", "MOTION", "BUTTON", "KEY", "SCROLL", "SCROLL_DISCRETE")]
+    check(T, "enabling a second session disarms the first (Disabled); a crossing activates the second only, and the first receives no input",
+          disarmed and activations and all(s["args"][0] == second.path for s in fe.sig("Activated", None, mark)) and not reached_first
+          and all(line in second.eis()[seen_second:] for line in BURST), f"Disabled {bool(disarmed)}, Activated {activations}, first got {reached_first}")
+    second.release()
+
+    text = "aresos-316 the second session's clipboard 41ab"
+    mark = len(fe.signals)
+    second.must(CLIP, "SetSelection", V("(oa{sv})", (second.path, {"mime_types": V("as", ["text/plain;charset=utf-8", "text/plain"])})))
+    wait_for(lambda: fe.sig("SelectionOwnerChanged", second.path, mark, lambda s: s["args"][1].get("session_is_owner")), 3)
+    pasted, transfers, stolen = paste_through(second, fe, text, thief=first)
+    check(T, "a clipboard transfer is announced to the owning session only; the first session's SelectionWrite with its serial is refused with no file descriptor, the owner's works",
+          transfers and all(s["args"][0] == second.path for s in transfers) and stolen is not None and not stolen.ok and stolen.nfds == 0 and pasted == text,
+          f"transfers {transfers}, the thief got {stolen and (stolen.error, stolen.nfds)}, wl-paste {pasted!r}")
+    first.shut()
+    second.shut()
+
+    # A session that was granted the pointer only; its receiver binds everything.
+    pointer_only = Session(fe, "pointer-only", caps=2).open()
+    seats = [line for line in pointer_only.eis() if line.startswith("SEAT ")]
+    devices = [line for line in pointer_only.eis() if line.startswith("DEVICE_ADDED")]
+    seen = len(pointer_only.eis())
+    activated = capture(pointer_only)
+    burst()
+    wait_for(lambda: "BUTTON 272 0" in pointer_only.eis()[seen:], 2)
+    pump(0.3)
+    got = pointer_only.eis()[seen:]
+    check(T, "an EIS receiver that binds every capability gets only what Start granted: no keyboard on the seat, no keyboard device, no key",
+          pointer_only.granted.get("capabilities") == 2 and seats and all(" keyboard=0" in line for line in seats + devices) and len(devices) == 1
+          and activated and "MOTION -7.00 3.00" in got and not [line for line in got if line.startswith("KEY")],
+          f"granted {pointer_only.granted}, seat {seats}, devices {devices}, got {got}")
+    pointer_only.release()
+    pointer_only.shut()
+
+
+def review5_pointer_device(fe, backend):
+    """REVIEW-1's finding 5 (a closed layer or a lost pointer capability must be reported) has no trigger of
+    its own under labwc: labwc closes a layer surface only with its output, which changes the screens anyway
+    (test 1), and it keeps the seat's pointer capability when the last pointer device goes. This shows the
+    second, and that a capture then still ends the usual way. The rule itself is unit-tested."""
+    global vptr
+    T = "review1-finding5"
+    session = Session(fe, "pointer-device-gone").open()
+    activated = capture(session)
+    mark, caps = len(fe.signals), [line for line in window() if line.startswith("SEAT_CAPS")]
+    vptr.stop()
+    pump(1.0)
+    kept = [line for line in window() if line.startswith("SEAT_CAPS")] == caps and not fe.sig("Deactivated", session.path, mark)
+    vptr = VInput("pointer")
+    info(f"review1-finding5 the only pointer device was removed during a capture: labwc {'kept' if kept else 'changed'} the seat's capabilities ({caps[-1] if caps else 'none seen'})")
+    session.release()
+    check(T, "with the pointer device gone and back the capture still ends on Release, and input is local again",
+          activated and wait_for(lambda: any(line.startswith("STOP") for line in session.eis()), 2) and local_motion() and local_key())
+    session.shut()
+
+
+def test7_logs(fe, stranger, admin):
+    T = "test7"
+    backend = start_backend(admin, {"ARESOS_INPUT_PORTAL_LOG": "trace", "RUST_LOG": "trace", "WAYLAND_DEBUG": "1", "REIS_DEBUG": "1"})
+    errors = []
+    session = Session(fe, "logged").open()
+    mime, marker = "text/x-aresosmark-51c2", "ARESOSMARK7f3a9c51"
+    mark = len(fe.signals)
+    copy(f"{marker} copied", mime)
+    wait_for(lambda: fe.sig("SelectionOwnerChanged", session.path, mark), 3)
+    read = session.call(CLIP, "SelectionRead", V("(os)", (session.path, mime)))
+    copied = read_fd(read.fd()) if read.ok else b""
+    absent = session.call(CLIP, "SelectionRead", V("(os)", (session.path, "text/x-aresosmark-absent")))
+    errors.append(absent.message)
+    mark = len(fe.signals)
+    session.must(CLIP, "SetSelection", V("(oa{sv})", (session.path, {"mime_types": V("as", [mime])})))
+    wait_for(lambda: fe.sig("SelectionOwnerChanged", session.path, mark), 3)
+    pasted, _, _ = paste_through(session, fe, f"{marker} written", mime)
+    errors.append(session.call(CLIP, "SelectionWrite", V("(ou)", (session.path, 424242))).message)
+
+    seen = len(session.eis())
+    activated = capture(session, along=437)
+    for command in ("rel -123.25 77.5", "rel -123.25 77.5", "btn 275 1", "btn 275 0", "axis 3"):
+        vptr.cmd(command)
+    for code in (183, 184, 185):
+        vkbd.cmd(f"key {code} 1")
+        vkbd.cmd(f"key {code} 0")
+    delivered = wait_for(lambda: "KEY 185 0" in session.eis()[seen:] and "MOTION -123.25 77.50" in session.eis()[seen:], 3)
+    session.release(cursor=(611.0, 437.0))
+    errors.append(stranger.call(PORTAL, IC, "ConnectToEIS", V("(osa{sv})", (session.path, APP, {}))).message)
+    errors.append(Session(fe, "refused", app_id="org.example.unlisted").create().message)
+    activated_again = capture(session, along=437)
+    status = tool([BACKEND, "--status"])
+    released = tool([BACKEND, "--release"])
+    session.shut()
+    code = stop(backend, signal.SIGINT)
+    check(T, "the marked run really happened: clipboard read and written, a capture with keys, motion, a button and scroll over EIS",
+          copied == f"{marker} copied".encode() and pasted == f"{marker} written" and activated and delivered and activated_again and code == 0,
+          f"copied {copied!r}, pasted {pasted!r}, activated {bool(activated)}, delivered {bool(delivered)}, exit {code}")
+
+    log = re.sub(r"\x1b\[[0-9;]*m", "", log_of(backend))
+    body = [re.sub(r"^\S+Z\s+", "", line) for line in log.splitlines()]
+    levels = {level: sum(1 for line in body if line.startswith(level)) for level in ("TRACE", "DEBUG", "INFO", "WARN", "ERROR")}
+    info(f"test7 the verbose log has {len(body)} lines: {levels}")
+    check(T, "the verbose log is there, with the backend's debug lines", levels["DEBUG"] > 10 and levels["INFO"] > 5)
+    check(T, "WAYLAND_DEBUG and REIS_DEBUG in the backend's environment switch no wire dump on",
+          not [line for line in body if re.search(r"wl_keyboard|wl_pointer|zwp_relative_pointer|ei_keyboard|ei_pointer|\bei_\w+@", line)])
+    forbidden = {
+        "the clipboard marker or its type": r"(?i)aresosmark",
+        "a key code": r"\b18[345]\b",
+        "the button code": r"\b275\b",
+        "a motion value": r"123\.25|77\.5",
+        "the crossing's coordinate": r"\b437\b",
+        "the release hint": r"\b611\b",
+    }
+    said = "\n".join(errors + [status.stdout, status.stderr, released.stdout, released.stderr])
+    for what, pattern in forbidden.items():
+        hits = [line for line in body if re.search(pattern, line)]
+        check(T, f"no line of the verbose log carries {what}", not hits, f"{hits[:3]}")
+        check(T, f"no error or command output carries {what}", not re.search(pattern, said), said)
+    with open(f"{EV}/test7-errors-and-output.txt", "w") as handle:
+        handle.write(said + "\n")
+
+
+def review2_bus_loss(fe, admin):
+    T = "review1-finding2"
+    backend = start_backend(admin)
+    session = Session(fe, "bus-dies-armed").open()
+    stop("dbus-daemon", signal.SIGKILL)
+    exited = wait_for(lambda: procs[backend].poll() is not None, 5)
+    check(T, "the bus dies while a session is armed: the backend closes the session (EIS disconnected) and exits with an error",
+          exited and procs[backend].returncode != 0 and wait_for(lambda: "DISCONNECT" in session.eis(), 3), f"exit {procs[backend].returncode}, EIS {session.eis()[-2:]}")
+    push("left")
+    check(T, "and the next crossing stays local", local_motion() and local_key())
+    stop(backend)
+    stop(session.receiver)
+
+    start_bus()
+    admin = Bus("stranger-2")
+    fe = Bus("frontend-3")
+    fe.own_frontend()
+    backend = start_backend(admin)
+    session = Session(fe, "bus-dies-capturing").open()
+    activated = capture(session)
+    stop("dbus-daemon", signal.SIGKILL)
+    exited = wait_for(lambda: procs[backend].poll() is not None, 5)
+    check(T, "the bus dies during a capture: the backend gives the input back and exits with an error",
+          activated and exited and procs[backend].returncode != 0 and local_motion() and local_key(), f"activated {bool(activated)}, exit {procs[backend].returncode}")
+    push("left")
+    check(T, "and the next crossing stays local", local_motion() and local_key())
+    stop(backend)
+    stop(session.receiver)
+
+
+def review4_signals():
+    T = "review1-finding4"
+    members = ("Activated", "Deactivated", "Disabled", "ZonesChanged", "SelectionOwnerChanged", "SelectionTransfer", "Closed")
+    frontends = [bus for bus in buses if bus.label.startswith("frontend")]
+    strangers = [bus for bus in buses if bus.label.startswith("stranger")]
+    got = {member: sum(len(bus.sig(member)) for bus in frontends) for member in members}
+    leaked = [s for bus in strangers for s in bus.signals if s["iface"].startswith("org.freedesktop.impl.portal")]
+    heard = sum(1 for bus in strangers for s in bus.signals if s["member"] == "NameOwnerChanged")
+    info(f"review1-finding4 the frontend connections received {got}; the strangers heard {heard} NameOwnerChanged broadcasts")
+    check(T, "the frontend received every kind of portal signal", all(got.values()), f"{got}")
+    check(T, "a second bus connection, subscribed to every signal on the bus for the whole run, received none of them", heard > 0 and not leaked, f"{leaked[:3]}")
+
+
+# ---- the run -------------------------------------------------------------------------------------------------------
+
+
+def isolation_of_clients():
+    """Every process of the harness has the private bus and the private labwc, and nothing else."""
+    wrong = []
+    for name, process in procs.items():
+        with open(f"/proc/{process.pid}/environ", "rb") as handle:
+            env = dict(item.split("=", 1) for item in handle.read().decode().split("\0") if "=" in item)
+        expected_display = None if name in ("dbus-daemon", "labwc") else DISPLAY_NAME
+        if (env.get("DBUS_SESSION_BUS_ADDRESS") != BUS_ADDR or env.get("XDG_RUNTIME_DIR") != RUNTIME
+                or env.get("WAYLAND_DISPLAY") != expected_display or "DISPLAY" in env or not env.get("HOME", "").startswith("/tmp/harness-home.")):
+            wrong.append(name)
+    check("isolation", f"each of the harness's {len(procs)} processes ({', '.join(sorted(procs))}) has the private bus, the scratch runtime dir and home, and only the private labwc as display", not wrong, f"{wrong}")
+    sockets = subprocess.run(["find", "/", "(", "-path", "/proc", "-o", "-path", "/sys", ")", "-prune", "-o", "-type", "s", "-print"], capture_output=True, text=True).stdout.split()
+    foreign = [path for path in sockets if not path.startswith((RUNTIME + "/", "/tmp/.X11-unix/"))]
+    check("isolation", "the only sockets in the container are the harness's own (the private bus, labwc's Wayland socket and labwc's own Xwayland)", not foreign, f"{foreign}")
+    with open(f"{EV}/isolation-sockets.txt", "w") as handle:
+        handle.write("\n".join(sockets) + "\n")
+
+
+def start_labwc():
+    """A headless labwc with two outputs. It is given the private bus only so that its key binding can reach
+    the backend, and told not to update any activation environment."""
+    spawn("labwc", ["labwc", "-C", f"{ENV['XDG_CONFIG_HOME']}/labwc"],
+          {**ENV, "WLR_BACKENDS": "headless", "WLR_RENDERER": "pixman", "WLR_HEADLESS_OUTPUTS": "2", "WLR_LIBINPUT_NO_DEVICES": "1", "LABWC_UPDATE_ACTIVATION_ENV": "0"})
+    if not wait_for(lambda: os.path.exists(f"{RUNTIME}/{DISPLAY_NAME}"), 10):
+        raise RuntimeError(f"labwc did not start: {log_of('labwc')[-600:]}")
+
+
+def setup():
+    global vptr, vkbd, ZONES
+    start_bus()
+    start_labwc()
+    offered = tool(["wayland-info"]).stdout
+    needed = ["zwlr_layer_shell_v1", "zwp_pointer_constraints_v1", "zwp_relative_pointer_manager_v1", "ext_data_control_manager_v1",
+              "zwlr_output_manager_v1", "zwlr_virtual_pointer_manager_v1", "zwp_virtual_keyboard_manager_v1"]
+    with open(f"{EV}/wayland-info.txt", "w") as handle:
+        handle.write(offered)
+    missing = [name for name in needed if f"'{name}'" not in offered]
+    check("setup", "this labwc offers every protocol the backend and the harness use", not missing, f"missing {missing}")
+    ZONES = randr_zones()
+    with open(f"{EV}/wlr-randr.txt", "w") as handle:
+        handle.write(tool(["wlr-randr"]).stdout)
+    vptr = VInput("pointer")
+    vkbd = VInput("keyboard")
+    goto(300, 300)
+    spawn("window", [WLH, "window"], CLIENT_ENV)
+    if not wait_for(lambda: any(line.startswith("CONFIGURED") for line in window()), 5):
+        raise RuntimeError("the probe window did not map")
+    pump(0.3)
+    check("setup", "the probe window is full-screen on the first output and receives local input", local_motion() and local_button() and local_key(), f"{window()[-6:]}")
+    check("setup", "labwc was told not to update any activation environment, and did not", "Updating dbus execution environment" not in log_of("labwc"))
+
+
+def run(name, function, *args):
+    try:
+        return function(*args)
+    except Exception as error:  # a broken test is a failed test, and the rest still runs
+        check(name, "ran to its end", False, f"{type(error).__name__}: {error}")
+        traceback.print_exc()
+        return None
+
+
+def main():
+    def too_long(*_):
+        raise TimeoutError("the harness ran into its own time limit")
+
+    signal.signal(signal.SIGALRM, too_long)
+    signal.alarm(780)
+    code = 2
+    try:
+        setup()
+        stranger = Bus("stranger-1")
+        fe = Bus("frontend-1")
+        fe.own_frontend()
+        backend = start_backend(stranger)
+        isolation_of_clients()
+        if any(line.startswith("FAIL") for line in results):
+            raise RuntimeError("the setup is not usable")
+
+        run("test1", test1_zones, fe, backend)
+        run("test2", test2_crossing, fe, backend)
+        run("test3", test3_ways_out, fe, backend)
+        run("test5", test5_clipboard, fe)
+        run("test6", test6_refusals, fe, stranger, backend)
+        run("review1-finding5", review5_pointer_device, fe, backend)
+        fe = run("test4", test4_teardown, fe, backend) or fe
+        run("test3", test3_kill_and_watchdog, fe, stranger, backend)
+        run("test7", test7_logs, fe, stranger, stranger)
+        run("test1", test1_output_off, fe, stranger)
+        run("review1-finding2", review2_bus_loss, fe, stranger)
+        run("review1-finding4", review4_signals)
+        code = 1 if any(line.startswith("FAIL") for line in results) else 0
+        # After the result is settled: it restarts labwc, and may see it abort.
+        try:
+            control_output_cycle()
+        except Exception as error:
+            info(f"control: could not be run: {type(error).__name__}: {error}")
+    except Exception as error:
+        traceback.print_exc()
+        results.append(f"UNUSABLE {type(error).__name__}: {error}")
+        print(results[-1], flush=True)
+    finally:
+        signal.alarm(0)
+        # Only what this harness started: its own processes, and wl-copy's own background copies.
+        for name in list(procs):
+            stop(name, timeout=3)
+        subprocess.run(["pkill", "-x", "wl-copy"], check=False)
+        for bus in buses:
+            with open(f"{EV}/signals-{bus.label}.json", "w") as handle:
+                json.dump(bus.signals, handle, indent=1, default=str)
+        passed = sum(1 for line in results if line.startswith("PASS"))
+        failed = sum(1 for line in results if line.startswith("FAIL"))
+        results.append(f"SUMMARY {passed} passed, {failed} failed, exit {code}")
+        print(results[-1], flush=True)
+        with open(f"{EV}/results.txt", "a") as handle:
+            handle.write("\n".join(results) + "\n")
+    return code
+
+
+if __name__ == "__main__":
+    sys.exit(main())

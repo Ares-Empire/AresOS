@@ -1,0 +1,3 @@
+337305:
+garbage-first heap   total reserved 1048576K, committed 401408K, used 327608K [0x00000000c0000000, 0x0000000100000000)
+ region size 1024K, 49 young (50176K), 1 survivors (1024K)

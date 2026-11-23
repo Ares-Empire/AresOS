@@ -776,6 +776,7 @@ class Engine:
     def _admitted_request(self, request, admin=False):
         previous_recovery = self.store.recovering
         try:
+            self.store.observations.require_writable()
             envelope(request)
             mutating = changing(request)
             if mutating:

@@ -1,0 +1,3 @@
+310592:
+garbage-first heap   total reserved 1048576K, committed 397312K, used 354851K [0x00000000c0000000, 0x0000000100000000)
+ region size 1024K, 31 young (31744K), 1 survivors (1024K)

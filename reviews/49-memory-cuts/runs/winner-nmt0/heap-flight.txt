@@ -1,0 +1,3 @@
+906858:
+garbage-first heap   total reserved 1048576K, committed 403456K, used 377764K [0x00000000c0000000, 0x0000000100000000)
+ region size 1024K, 48 young (49152K), 3 survivors (3072K)

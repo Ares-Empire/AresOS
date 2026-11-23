@@ -1,0 +1,3 @@
+374750:
+garbage-first heap   total reserved 1048576K, committed 387072K, used 346041K [0x00000000c0000000, 0x0000000100000000)
+ region size 1024K, 19 young (19456K), 6 survivors (6144K)

@@ -18,8 +18,12 @@ public final class ModeSwitchClient {
 
     public static void reset() { pending = false; transaction = 0; completed = 0; }
 
+    public static boolean canRequestToggle(Minecraft client) {
+        return !pending && client.player != null && ClientPlayNetworking.canSend(ToggleModePayload.TYPE);
+    }
+
     public static void requestToggle() {
-        if (pending) return;
+        if (!canRequestToggle(Minecraft.getInstance())) return;
         pending = true;
         ClientPlayNetworking.send(ToggleModePayload.INSTANCE);
     }

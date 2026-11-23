@@ -55,12 +55,16 @@ def old_files():
 HISTORY = json.loads(blob('history.json'))['releases']
 LATEST = HISTORY[-1]['reference']
 OLDER = HISTORY[0]['reference']
+RELEASE_28 = json.loads((ROOT / 'os/manifest/releases/28.json').read_text())
+TARGET = RELEASE_28['reference']
+ANNOUNCED_HISTORY = [*HISTORY, dict(reference=TARGET, identity=RELEASE_28['signature']['identity'], daily_wheel=True)]
 
 
 def row(reference, running=False, staged=False):
     if reference == 'S':
         return base.stock_row(running)
-    value = base.release_row(base.R13 if reference == OLDER else base.R21, booted=running, staged=staged)
+    fixture = {OLDER: base.R13, LATEST: base.R21, TARGET: base.R30}[reference]
+    value = base.release_row(fixture, booted=running, staged=staged)
     value['container-image-reference'] = 'ostree-unverified-registry:' + reference
     value['container-image-reference-digest'] = reference.split('@')[1]
     return value
@@ -71,13 +75,13 @@ def listed(order, running, stage=None):
     return base.machine(([row(stage, staged=True)] if stage else []) + rows)
 
 
-def first_switch():
-    return base.machine([row(LATEST, staged=True), *base.prepared()['state']['rpm']['deployments']])
+def first_switch(saved, target):
+    return base.machine([row(target, staged=True), *saved['state']['rpm']['deployments']])
 
 
 def candidates():
     yield 'prepared stock', base.prepared()['state']
-    yield 'first switch staged', first_switch()
+    yield 'first switch staged', first_switch(base.prepared(), LATEST)
     for releases in ((OLDER,), (LATEST,), (OLDER, LATEST)):
         for order in itertools.permutations((*releases, 'S')):
             for running in order:
@@ -106,12 +110,12 @@ class HistoricalHost(Host):
 
 
 @contextlib.contextmanager
-def route(state):
+def route(state, bundle_history=HISTORY):
     # The prepared lifecycle compares complete observations, before Host's installed-state projection.
     installed = any(r['container-image-reference-digest'] in {OLDER.split('@')[1], LATEST.split('@')[1]}
                     and not r.get('staged') for r in state['rpm']['deployments'])
     host_class = HistoricalHost if installed else KeyboardMachine
-    with base.route(state, HISTORY, host_class=host_class) as (tools, host, store), contextlib.ExitStack() as stack:
+    with base.route(state, bundle_history, host_class=host_class) as (tools, host, store), contextlib.ExitStack() as stack:
         old_payload = store.parent / 'v2'
         paths = {r['path'] for r in json.loads((base.PAYLOAD / 'SHA256.json').read_text())}
         fingerprint = base.write_bundle(old_payload, extra=old_files(), drop=tuple(paths - set(old_files())))
@@ -164,12 +168,23 @@ def classified(tools, state, retry=None):
 
 
 class CompatibilityTest(unittest.TestCase):
-    def test_exact_historical_code_payload_version_and_unchanged_release_history(self):
+    def assert_refused_without_changes(self, harness, home, run, host, message):
+        # The installation snapshot includes the entry symlink, journal, bundles and every record's bytes.
+        before = harness.snapshot(home)
+        deployments = json.dumps(host.state)
+        with self.assertRaises(owner.Stop) as stopped:
+            run()
+        self.assertEqual(str(stopped.exception), message)
+        self.assertEqual(harness.snapshot(home), before)
+        self.assertEqual(json.dumps(host.state), deployments)
+        self.assertFalse(any(t.get('mutation') for t in host.trace))
+
+    def test_exact_historical_code_payload_version_and_append_only_release_history(self):
         self.assertEqual(hashlib.sha256(blob('SHA256SUMS')).hexdigest(), V2_FINGERPRINT)
         self.assertEqual(blob('owner.py'), subprocess.check_output(
             ['git', 'show', COMMIT + ':os/owner-tools/owner.py'], cwd=ROOT))
         self.assertEqual(json.loads(blob('history.json')), dict(tools_version=2, releases=HISTORY))
-        self.assertEqual(owner.lineage(base.PAYLOAD), dict(tools_version=4, releases=HISTORY))
+        self.assertEqual(owner.lineage(base.PAYLOAD), dict(tools_version=5, releases=ANNOUNCED_HISTORY))
         self.assertEqual(version2().Tools.outcome.__code__.co_filename, COMMIT + ':owner.py')
 
     def test_version3_accepts_every_version2_shape_including_before_first_switch(self):
@@ -197,21 +212,35 @@ class CompatibilityTest(unittest.TestCase):
     def test_single_stock_prepared_and_first_switch_remain_accepted_and_updatable(self):
         saved = base.prepared()
         saved['state'] = base.machine([copy.deepcopy(saved['stock'])])
-        states = [('prepared single stock', saved['state']),
-                  ('first switch over single stock', base.machine([row(LATEST, staged=True), *saved['state']['rpm']['deployments']]))]
-        for name, state in states:
-            with self.subTest(state=name), route(state) as (tools, legacy, host, store):
-                tools.save('prepared', saved)
-                legacy.qualified(host.state)
-                self.assertEqual(classified(tools, host.state), (None, ''))
-                self.assertEqual(tools.title(), legacy.title())
-                self.assertEqual(host.changes, [])
-            with self.subTest(update=name), installation(state) as (harness, home, run, fingerprint, previous, host):
+        states = [('prepared single stock', saved['state'], saved['state']),
+                  ('first switch over single stock', first_switch(saved, LATEST), first_switch(saved, TARGET))]
+        for name, old_state, new_state in states:
+            with self.subTest(state=name):
+                with route(old_state) as (tools, legacy, host, store):
+                    tools.save('prepared', saved)
+                    legacy.qualified(host.state)
+                    self.assertEqual(classified(tools, host.state), (None, ''))
+                    old_lines = legacy.title()
+                    self.assertEqual(tools.title(), old_lines)
+                    self.assertEqual(host.changes, [])
+                with route(new_state, ANNOUNCED_HISTORY) as (tools, legacy, host, store):
+                    tools.save('prepared', saved)
+                    self.assertEqual(classified(tools, host.state), (None, ''))
+                    self.assertEqual(tools.title(), old_lines)
+                    self.assertEqual(host.changes, [])
+            with self.subTest(update=name), installation(new_state) as (harness, home, run, fingerprint, previous, host):
                 writer = object.__new__(owner.Tools)
                 writer.store = home / 'records'
                 writer.save('prepared', saved)
-                self.assertEqual(run()[0], 'Tools updated from version 2 to 4')
+                self.assertEqual(run()[0], 'Tools updated from version 2 to 5')
                 harness.updated(home, fingerprint, previous)
+                self.assertEqual(host.state, new_state)
+                self.assertFalse(any(t.get('mutation') for t in host.trace))
+        with installation(first_switch(saved, LATEST)) as (harness, home, run, fingerprint, previous, host):
+            writer = object.__new__(owner.Tools)
+            writer.store = home / 'records'
+            writer.save('prepared', saved)
+            self.assert_refused_without_changes(harness, home, run, host, 'Unexpected staged switch')
 
     def test_modified_releases_version2_reads_remain_readable(self):
         for field in (*owner.MODIFIED, 'unlocked'):
@@ -224,23 +253,32 @@ class CompatibilityTest(unittest.TestCase):
                     tools.title()
                     self.assertEqual(host.changes, [])
                 with installation(state) as (harness, home, run, fingerprint, previous, host):
-                    self.assertEqual(run()[0], 'Tools updated from version 2 to 4')
+                    self.assertEqual(run()[0], 'Tools updated from version 2 to 5')
                     harness.updated(home, fingerprint, previous)
                     self.assertEqual(host.state, state)
 
     def test_tools_update_runs_over_every_historical_resting_and_staged_shape(self):
+        stages = {
+            'first switch staged': (first_switch(base.prepared(), TARGET), 'Unexpected staged switch'),
+            'update staged over pair': (listed((OLDER, 'S'), OLDER, TARGET), 'Unexpected staged update'),
+        }
         for name, state in accepted_by_v2():
+            if name in stages:
+                replacement, error = stages[name]
+                with self.subTest(older_stage=name), installation(state) as (harness, home, run, fingerprint, previous, host):
+                    self.assert_refused_without_changes(harness, home, run, host, error)
+                state = replacement
             with self.subTest(state=name), installation(state) as (harness, home, run, fingerprint, previous, host):
                 before = copy.deepcopy(host.state)
                 try:
                     lines = run()
                 except owner.Stop as error:
                     self.fail('new tools refused historical ' + name + ': ' + str(error))
-                self.assertEqual(lines[0], 'Tools updated from version 2 to 4')
+                self.assertEqual(lines[0], 'Tools updated from version 2 to 5')
                 harness.updated(home, fingerprint, previous)
                 self.assertEqual(host.state, before)
                 self.assertFalse(any(t.get('mutation') for t in host.trace))
-        print('B8: tools update over all 13 historical shapes, no deployment mutation')
+        print('B8: 11 historical resting/prepared shapes and two R28 stages accept tools 5; two R27 stages refuse unchanged')
 
     def test_tools_update_on_both_named_stuck_states_with_each_old_previous_form(self):
         states = {
@@ -262,7 +300,7 @@ class CompatibilityTest(unittest.TestCase):
                             lines = run()
                         except owner.Stop as error:
                             self.fail(name + ' with ' + str(status) + ': ' + str(error))
-                    self.assertEqual(lines[0], 'Tools updated from version 2 to 4')
+                    self.assertEqual(lines[0], 'Tools updated from version 2 to 5')
                     harness.updated(home, fingerprint, previous)
                     record = home / 'records' / (owner.OUTCOME + '.json')
                     if status and name.startswith('stock taken'):
@@ -285,7 +323,7 @@ class CompatibilityTest(unittest.TestCase):
                     write_old_change(legacy, 'previous', status)
                 boot = 'old-boot' if same else 'new-boot'
                 with patch.object(owner, 'boot_id', return_value=boot):
-                    self.assertEqual(run()[0], 'Tools updated from version 2 to 4')
+                    self.assertEqual(run()[0], 'Tools updated from version 2 to 5')
                     checker = owner.Tools(home / ('tools-' + fingerprint), host, home / 'records')
                     expected = (None if order[0] == LATEST else
                         ('applied' if running == OLDER else 'pending') if same else
@@ -496,7 +534,7 @@ class PublicationTest(unittest.TestCase):
             def cut(obj, name, value):
                 result = save(obj, name, value)
                 if name == owner.TOOLS_JOURNAL:
-                    raise PowerCut('first v3 tools journal, before publication')
+                    raise PowerCut('first new tools journal, before publication')
                 return result
             with patch.object(owner, 'boot_id', return_value='new-boot'), patch.object(owner.Tools, 'save', cut), self.assertRaises(PowerCut):
                 owner.update_tools(home.parent / 'usb/ares-tools', fingerprint, host, None)
@@ -504,7 +542,7 @@ class PublicationTest(unittest.TestCase):
             self.assertEqual(legacy.load(owner.OUTCOME), original, 'readiness made the restored v2 tools unable to read their intent')
             with patch.object(version2(), 'boot_id', return_value='new-boot'):
                 self.assertEqual(legacy.qualified(host.state, retry='previous'), 'complete')
-            self.assertEqual(run()[0], 'Tools updated from version 2 to 4')
+            self.assertEqual(run()[0], 'Tools updated from version 2 to 5')
             harness.updated(home, fingerprint, previous)
 
     def test_not_applied_is_archived_and_reported_only_after_publication(self):
@@ -542,7 +580,7 @@ class PublicationTest(unittest.TestCase):
             stack.enter_context(patch.object(version2(), 'boot_id', return_value='new-boot'))
             yield (*values, old_name, legacy, original)
 
-    def test_version2_settles_every_v3_cut_before_publication_and_v3_resumes(self):
+    def test_version2_settles_every_cut_before_publication_and_version5_resumes(self):
         for versioned, open_change in itertools.product((False, True), repeat=2):
             with self.publication_case(versioned, open_change) as (harness, home, run, fingerprint, previous, host, old_name, legacy, original):
                 with self.observed(home) as seen:
@@ -559,7 +597,7 @@ class PublicationTest(unittest.TestCase):
                     raw = json.loads((home / (owner.TOOLS_JOURNAL + '.json')).read_text())
                     self.assertEqual(raw['schema'], 'tools-update1')
                     self.assertEqual(raw['previous_version'], 2)
-                    self.assertEqual(raw['tools_version'], 4)
+                    self.assertEqual(raw['tools_version'], 5)
                     self.assertIn(raw['phase'], ('copy', 'publish'))
                     settled = version2().settle_tools()
                     self.assertEqual(settled, raw)
@@ -569,9 +607,9 @@ class PublicationTest(unittest.TestCase):
                     if open_change:
                         self.assertEqual(legacy.load(owner.OUTCOME), original, 'pre-publication migration broke the old reader')
                         self.assertEqual(legacy.qualified(host.state, retry='previous'), 'complete')
-                    self.assertEqual(run()[0], 'Tools updated from version 2 to 4')
+                    self.assertEqual(run()[0], 'Tools updated from version 2 to 5')
                     harness.updated(home, fingerprint, previous)
-            print('B8: v2 settle_tools read v3 tools-update1 at', len(cuts), 'pre-publication cuts; versioned=', versioned,
+            print('B8: v2 settle_tools read v5 tools-update1 at', len(cuts), 'pre-publication cuts; versioned=', versioned,
                   'open_previous_intent=', open_change)
 
 
@@ -634,7 +672,7 @@ class CompatibilityRevertsTest(unittest.TestCase):
             def cut(obj, name, value):
                 result = save(obj, name, value)
                 if name == owner.TOOLS_JOURNAL:
-                    raise PowerCut('first v3 tools journal')
+                    raise PowerCut('first new tools journal')
                 return result
             with patch.object(owner.Tools, 'save', cut), self.assertRaises(PowerCut):
                 changed(home.parent / 'usb/ares-tools', fingerprint, host, None)

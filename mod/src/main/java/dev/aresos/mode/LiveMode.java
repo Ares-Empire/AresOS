@@ -12,8 +12,8 @@ import net.minecraft.world.entity.player.Abilities;
 import net.minecraft.world.level.GameType;
 
 /**
- * Live mode is the game's survival mode in a desktop world: the hotbar is his taskbar, logos and the town's blocks
- * cannot be broken, and nothing can hurt or starve him.
+ * Live mode is the game's survival mode in a desktop world: the hotbar is his taskbar, mining is disabled,
+ * and nothing can hurt or starve him.
  *
  * <p>Package 40 (the owner: "put the user into creative and give him speed to travel faster"): Live stays survival,
  * so the creative inventory never reaches the taskbar and left-click never breaks a logo at once, but it gets
@@ -27,7 +27,7 @@ public final class LiveMode {
      * The walking speed in desktop worlds, in both modes: 1.5 times the game's 0.1, so he walks 6.5 blocks a second
      * instead of 4.3 and sprints 8.4 instead of 5.6. The front row's doorway (21 blocks, HUB.md) is 2.5 seconds away
      * sprinting instead of 3.7, the farthest of forty apps (64 blocks) 7.6 seconds instead of 11.3. Walking is now
-     * faster than the game's sprint, so he need not hold a key to cross the town. It stays below flight (10.9 a
+     * faster than the game's sprint, so he need not hold a key to cross the town. It stays below flight (16.4 a
      * second), the fast way, and at 0.42 blocks a tick a 2-wide doorway is still easy to hit.
      *
      * <p>It is the walking speed of his abilities and the base of his movement speed together, as the game itself keeps
@@ -35,13 +35,19 @@ public final class LiveMode {
      * or a modifier: the game widens it by the ratio of the two.
      */
     public static final float DESKTOP_WALKING_SPEED = 0.15f;
+    /** Both desktop modes fly at 1.5 times the game's 0.05: about 16.4 blocks/s, 32.7 sprinting. */
+    public static final float DESKTOP_FLYING_SPEED = 0.075f;
     private static final float GAME_WALKING_SPEED = new Abilities().getWalkingSpeed();
+    private static final float GAME_FLYING_SPEED = new Abilities().getFlyingSpeed();
 
     private LiveMode() { }
 
     public static boolean isLive(ServerPlayer player) {
-        return DesktopWorld.isEnabled(player.level().getServer())
-                && player.gameMode.getGameModeForPlayer() == GameType.SURVIVAL;
+        return isLive(DesktopWorld.isEnabled(player.level().getServer()), player.gameMode.getGameModeForPlayer());
+    }
+
+    public static boolean isLive(boolean desktopWorld, GameType mode) {
+        return desktopWorld && mode == GameType.SURVIVAL;
     }
 
     public static void register() {
@@ -78,6 +84,7 @@ public final class LiveMode {
     public static void applyDesktopAbilities(ServerPlayer player, boolean wasFlying) {
         if (!DesktopWorld.isEnabled(player.level().getServer())) return;
         setWalkingSpeed(player, DESKTOP_WALKING_SPEED);
+        player.getAbilities().setFlyingSpeed(DESKTOP_FLYING_SPEED);
         if (!isLive(player)) return;
         var abilities = player.getAbilities();
         abilities.mayfly = true;
@@ -92,6 +99,7 @@ public final class LiveMode {
             // The game's own abilities for his mode, and its walking speed if it was this mod's.
             player.gameMode.getGameModeForPlayer().updatePlayerAbilities(player.getAbilities());
             if (player.getAbilities().getWalkingSpeed() == DESKTOP_WALKING_SPEED) setWalkingSpeed(player, GAME_WALKING_SPEED);
+            if (player.getAbilities().getFlyingSpeed() == DESKTOP_FLYING_SPEED) player.getAbilities().setFlyingSpeed(GAME_FLYING_SPEED);
         }
         player.onUpdateAbilities();
     }

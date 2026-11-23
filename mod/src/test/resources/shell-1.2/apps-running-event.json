@@ -1,0 +1,9 @@
+{
+  "protocol": "aresos-shell/1.2",
+  "id": "e-2",
+  "event": "apps_running",
+  "apps": [
+    "notepad",
+    "terminal"
+  ]
+}

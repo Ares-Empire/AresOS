@@ -1,0 +1,7 @@
+{
+  "monotonic_ns": 298222989564840,
+  "unit": "pkg49b-game-flat-2-arena-1061678.scope",
+  "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\nsock_throttled 0",
+  "memory.peak": "992006144",
+  "memory.swap.current": "0"
+}
