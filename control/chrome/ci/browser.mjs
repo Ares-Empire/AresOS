@@ -5,9 +5,13 @@ import {spawn,execFileSync} from 'node:child_process';
 import {setTimeout as delay} from 'node:timers/promises';
 import {fixtures} from './fixture.mjs';
 import {latencyProbe} from './latency-probe.mjs';
+import {efficiencyProbe} from './efficiency-probe.mjs';
 import {matrices} from './matrices.mjs';
 import {measureCompatibility,nativeNavigate,nativeCompatibilityClick,compareCompatibility} from './compatibility.mjs';
 import {ownerUI} from './owner-ui.mjs';
+import {outlineTime} from './outline-time.mjs';
+import {rpcResult} from './rpc-result.mjs';
+import {outlineReadMatrix} from './outline-read.mjs';
 if(process.platform !== 'linux' || process.env.GITHUB_ACTIONS !== 'true' || !fs.existsSync('/.dockerenv'))throw Error('Browser runs only in GitHub Linux containers');
 const fixture=await fixtures();
 const profile=fs.mkdtempSync('/tmp/aresos-chrome-fixture-');
@@ -21,7 +25,7 @@ function rpc(action,arguments_={}) {
     const socket=net.createConnection('/run/aresos-tools/act.sock');let buffer='';
     socket.setTimeout(20000,()=>socket.destroy(Error('Tool response timeout')));
     socket.on('connect',()=>socket.write(JSON.stringify({v:1,method:'call',action:action==='control_pending'?action:'chrome_'+action,arguments:arguments_})+'\n'));
-    socket.on('data',data=>{buffer+=data;if(buffer.includes('\n')){socket.end();const result=JSON.parse(buffer);fs.appendFileSync('/out/tool.jsonl',JSON.stringify({action,result})+'\n');resolve(result);}});
+    socket.on('data',data=>{buffer+=data;if(buffer.includes('\n')){socket.end();const result=rpcResult(buffer.slice(0,buffer.indexOf('\n')));fs.appendFileSync('/out/tool.jsonl',JSON.stringify({action,result})+'\n');resolve(result);}});
     socket.on('end',()=>{if(!buffer.includes('\n'))reject(Error('Service disconnected before its reply; inspect status, never replay'));});
     socket.on('error',reject);
   });
@@ -57,7 +61,31 @@ try {
   const send=await target('Send');const prepared=await call('click',send);assert.ok(prepared.approval);assert.equal(counts('compose'),0);
   const sent=await call('submit',prepared.approval);assert.equal(sent.operation.state,'done');await eventually(()=>counts('compose')===1,'receiver compose');
   await call('submit',prepared.approval);assert.equal(counts('compose'),1);console.log('GROUP 1 what asks PASS: zero before approval, one after, no replay');
+  if(process.env.LATENCY_PROBE==='true'&&process.env.EFFICIENCY_PROBE==='true'){await efficiencyProbe({rpc,eventually,counts,getTab:()=>tab});return;}
   if(process.env.LATENCY_PROBE==='true'){await latencyProbe({call,target,nav,eventually,getTab:()=>tab});return;}
+  // Brief 28, item 4: group 14's time cases, in the core shard while nothing is
+  // pending, in Control Chrome's own runs only (the qualification run sets
+  // RUNTIME_COMMIT and qualifies brief 20's tools, maybe on an older build).
+  // A failure here fails the shard at its end; brief 20's cases still run first.
+  const groupFourteen=[];
+  if(process.env.BROWSER_SHARD==='core'&&!process.env.RUNTIME_COMMIT){
+    try{await outlineTime({call,nav,target,eventually,getTab:()=>tab});console.log('GROUP 14 TIME PASS');}
+    catch(error){groupFourteen.push(error);console.error('GROUP 14 TIME FAIL',error.stack);}
+    // Group 14's reading, reference and password cases are named cases at the end of the core matrix (matrices.mjs).
+  }
+  const envelopeResults=[];
+  if(process.env.BROWSER_SHARD==='core'){
+    await outlineReadMatrix({call,rpc,nav,target,getTab:()=>tab,envelopeOnly:true,
+      lifecycle:async command=>{
+        const result=JSON.parse(execFileSync('sudo',['-n','/usr/bin/python3','/workspace/control/chrome/ci/admin.py',JSON.stringify(command)],{encoding:'utf8'}));
+        assert.equal(result.ok,true);return result;
+      },
+      check:async(name,fn)=>{
+        try{await fn();envelopeResults.push({name,passed:true});console.log(name,'EARLY PASS');}
+        catch(error){envelopeResults.push({name,passed:false,error:String(error.stack)});console.error(name,'EARLY FAIL',error.stack);}
+        fs.writeFileSync('/out/outline-read/envelope-cases.json',JSON.stringify(envelopeResults,null,2));
+      }});
+  }
   for(const kind of ['native','event']) {
     await nav(kind);const item=await target('Continue');await call('click',item);assert.equal(counts(kind),0);
     const pending=await new Promise((resolve,reject)=>{const socket=net.createConnection('/run/aresos-tools/act.sock');let b='';socket.on('connect',()=>socket.write(JSON.stringify({v:1,method:'call',action:'control_pending',arguments:{}})+'\n'));socket.on('data',d=>{b+=d;if(b.includes('\n')){socket.end();resolve(JSON.parse(b));}});socket.on('error',reject);});
@@ -84,7 +112,7 @@ try {
     ownerArrivals:counts('owner-input'),scheduledArrivals:counts('scheduled-input'),result:continuedResult};
   fs.writeFileSync('/out/owner-input.json',JSON.stringify(evidence,null,2));
   console.log('GROUP 8 owner input evidence',JSON.stringify(evidence));
-  const failures=[];
+  const failures=[...groupFourteen];
   try {
     assert.ok(ownerDelay<300,'Owner test missed the active hold window');
     assert.equal(counts('scheduled-input'),0,'Scheduled submission from Claude input must stay held');
@@ -147,7 +175,7 @@ try {
     if(command==='kill_host'){const lines=execFileSync('ps',['-u','1000','-o','pid=,args='],{encoding:'utf8'}).split('\n');for(const line of lines)if(line.includes('/usr/libexec/aresos-control/chrome/native_host.py'))process.kill(Number(line.trim().split(/\s+/)[0]),'SIGKILL');return;}
     return JSON.parse(execFileSync('sudo',['-n','/usr/bin/python3','/workspace/control/chrome/ci/admin.py',JSON.stringify(command)],{encoding:'utf8'}));
   };
-  for(const failure of await matrices({call,read,nav,target,counts,eventually,tab,setTab:value=>{tab=value;},fixture,admin,rpc,caller,ownerNavigate,ownerOpenPopup,nativeDonor,closeNativeDonor,baseline,
+  for(const failure of await matrices({call,read,nav,target,counts,eventually,tab,setTab:value=>{tab=value;},fixture,admin,rpc,caller,ownerNavigate,ownerOpenPopup,nativeDonor,closeNativeDonor,baseline,envelopeResults,
     popupControl:async(command,value)=>{
       const state=async()=>{await lifecycle({fixture:'control_status'});const value=JSON.parse(fs.readFileSync('/out/control-status.json'));fs.appendFileSync('/out/popup-controls.jsonl',JSON.stringify(value)+'\n');return value;};
       if(command==='state')return state();

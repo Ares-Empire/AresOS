@@ -11,7 +11,7 @@ if request.get('fixture'):
     import signal
     import subprocess
     command=request['fixture']
-    if command in {'popup','stop','control_status','network_restart'}:
+    if command in {'popup','stop','control_status','network_restart','hold'}:
         Path('/run/aresos-tools/fixture-'+command).write_text(json.dumps(request))
         request={'action':'chrome_sites','arguments':{'command':'list'}}
         with socket.socket(socket.AF_UNIX) as connection:
@@ -36,7 +36,8 @@ if request.get('fixture'):
     elif command=='start_service':
         Path('/run/aresos-tools/fixture-cut.json').unlink(missing_ok=True)
         log=open('/out/service.txt','a')
-        subprocess.Popen(['runuser','-u','aresos-tools','--','env','PYTHONPATH=/workspace/control','PYTHONDONTWRITEBYTECODE=1','GITHUB_ACTIONS=true','python3','control/chrome/ci/service.py'],stdout=log,stderr=log,start_new_session=True)
+        # Started again as run.sh starts it, with brief 28's test-only switch, so chrome_outline outlives a restart.
+        subprocess.Popen(['runuser','-u','aresos-tools','--','env','PYTHONPATH=/workspace/control','PYTHONDONTWRITEBYTECODE=1','GITHUB_ACTIONS=true','ARESOS_TEST_CHROME_OUTLINE=1','python3','control/chrome/ci/service.py'],stdout=log,stderr=log,start_new_session=True)
     else:raise SystemExit('Unknown fixture lifecycle command')
     print(json.dumps({'ok':True,'data':{'fixture':command}}));raise SystemExit(0)
 with socket.socket(socket.AF_UNIX) as connection:

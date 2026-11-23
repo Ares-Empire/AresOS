@@ -12,7 +12,7 @@ export function reviewPage(url){
   if(['late-binding','late-binding-child','late-withheld-form'].includes(mode))return lateBindingPage(url);
   const receive='/receive?case='+encodeURIComponent(id),send=`fetch(${JSON.stringify(receive)},{method:'POST',body:'review fixture'})`;
   let body='',script='';
-  const form=(extra='')=>`<form method="post" action="${receive}" target="sink"><input name="draft" value="Saved">${extra}</form>`;
+  const form=(extra='',draft=' value="Saved"')=>`<form method="post" action="${receive}" target="sink"><input name="draft"${draft}>${extra}</form>`;
   const sink='<iframe name="sink" hidden></iframe>';
   if(mode==='cross-tab'){
     body='<button type="button" id="open">Open window</button><button type="button" id="continue">Continue</button>';
@@ -64,7 +64,10 @@ export function reviewPage(url){
     body=form()+sink;script="setTimeout(()=>document.querySelector('form').submit(),0);";
   }else if(mode==='shadow'){
     body='<button type="button" id="continue">Continue</button><div id="host"></div>'+sink;
-    const markup=form('<button type="submit">Submit</button>');
+    // Brief 28 (a shadow root met late): the reader meets this root at the held submission, and a typed field that
+    // holds text then stays unread, so Claude wouldn't send its form. The case is about holding the submission, so
+    // its draft starts empty (HARNESS-MAP).
+    const markup=form('<button type="submit">Submit</button>','');
     script=`document.querySelector('#continue').onclick=()=>{const root=document.querySelector('#host').attachShadow({mode:${JSON.stringify(variant.startsWith('closed')?'closed':'open')}});root.innerHTML=${JSON.stringify(markup)};const form=root.querySelector('form');${variant.endsWith('click')?"form.querySelector('button').click()":variant.endsWith('event')?'form.requestSubmit()':'form.submit()'};};`;
   }else if(mode==='shadow-fallback'){
     const composed=url.searchParams.get('composed')==='true',cancel=url.searchParams.get('cancel')==='true',native=url.searchParams.get('native')==='true';

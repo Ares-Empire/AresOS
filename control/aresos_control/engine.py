@@ -748,25 +748,28 @@ class Engine:
         previous_request = getattr(self.store, 'in_request', False)
         self.store.in_request = True
         try:
-            self.store.observations = Observations()
-            self.pending(resolve_checks=False)
-            try:
-                if not isinstance(request, dict) or request.get('action') not in {'control_archive', 'control_restore_confirm'}:
-                    self.store.flush_notices()
-            except Exception as exc:
-                self.store.remember_storage(exc)
-                self.store.observations.storage(exc)
-            result = self._admitted_request(request, admin)
-            if isinstance(request, dict) and str(request.get('action','')).startswith('chrome_'):
-                chrome = self.adapters['chrome']
-                if chrome.bridge.version:
-                    try:
-                        notice = chrome.qualification.switches(chrome.bridge.version)['notice']
-                        if notice:
-                            result.setdefault('pending', {})['chrome_version_notice'] = notice
-                    except Exception as exc:
-                        self.store.observations.storage(exc)
-            return self.store.observations.finish(result, self.store)
+            # Brief 28, item 4: chrome_outline has one deadline, from before the
+            # first look at pending to the response; no other request has one.
+            with self.adapters['chrome'].call_time(request):
+                self.store.observations = Observations()
+                self.pending(resolve_checks=False)
+                try:
+                    if not isinstance(request, dict) or request.get('action') not in {'control_archive', 'control_restore_confirm'}:
+                        self.store.flush_notices()
+                except Exception as exc:
+                    self.store.remember_storage(exc)
+                    self.store.observations.storage(exc)
+                result = self._admitted_request(request, admin)
+                if isinstance(request, dict) and str(request.get('action','')).startswith('chrome_'):
+                    chrome = self.adapters['chrome']
+                    if chrome.bridge.version:
+                        try:
+                            notice = chrome.qualification.switches(chrome.bridge.version)['notice']
+                            if notice:
+                                result.setdefault('pending', {})['chrome_version_notice'] = notice
+                        except Exception as exc:
+                            self.store.observations.storage(exc)
+                return self.store.observations.finish(result, self.store)
         finally:
             self.store.in_request = previous_request
 

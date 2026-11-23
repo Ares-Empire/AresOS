@@ -1,0 +1,22 @@
+navigation "Site" REF1
+  link "Section 0" REF2
+  link "Section 1" REF3
+  link "Section 2" REF4
+  link "Section 3" REF5
+  link "Section 4" REF6
+  link "Section 5" REF7
+main REF8
+  h1 "Results"
+  list "Results" REF9
+    link "Result 0 of the listing" REF10
+    link "Result 1 of the listing" REF11
+    link "Result 2 of the listing" REF12
+    link "Result 3 of the listing" REF13
+    link "Result 4 of the listing" REF14
+    … 295 more (12,876 characters) REF15
+contentinfo REF16
+  link "Footer 0" REF17
+  link "Footer 1" REF18
+  link "Footer 2" REF19
+  link "Footer 3" REF20
+  link "Footer 4" REF21

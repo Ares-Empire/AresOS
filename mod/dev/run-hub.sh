@@ -6,11 +6,12 @@
 # on the owner's real screen, so that walking into a logo opens the app and closing it returns to the game.
 # Run it from a terminal in the AresOS session. Extra arguments go to Gradle.
 #
-#   mod/dev/run-hub.sh [--force] [--session] [--helper <path>] [--registry <dir>] [gradle arguments...]
+#   mod/dev/run-hub.sh [--force] [--session [--outputs 1|2]] [--helper <path>] [--registry <dir>] [gradle arguments...]
 #
-#   --session         show it as the AresOS session will (package 40): the helper and the game run inside a labwc of
-#                     their own with the checkout's os/config/usr/share/aresos/labwc/rc.xml, shown fullscreen on this
-#                     desktop. Without it the game is an ordinary window here. See "The session preview" below.
+#   --session         run the helper and the game inside nested labwc with the checkout's window rules.
+#                     The default preview is fullscreen. See "The session preview" below.
+#   --outputs 1|2     show one fullscreen preview (default) or two movable windows for side-by-side outputs.
+#                     Requires --session. The trial uses the checkout's disposable mod/run/saves/AresHub.
 #   --helper <path>   the app helper to start (default /usr/libexec/aresos-shell), e.g. one from a worktree that
 #                     is not in the image yet
 #   --registry <dir>  its folder of app entries, passed to the helper's own --registry
@@ -36,34 +37,32 @@
 # It writes only to mod/run/ (the game), ~/.cache/aresos-dev/ (lock, helper log and the preview's log) and its private
 # folder, besides Gradle's own build output and caches.
 #
-# The session preview (--session). A labwc of this run's own (the wlroots Wayland backend: one window on this
-# desktop) gets a copy of the checkout's rc.xml in the private folder and nothing else of the session's labwc folder
-# (its autostart would start the session's own supervisor). preview-window.py asks this desktop to show that window
-# fullscreen (wlr foreign-toplevel; labwc does it, another desktop may not) and reports when the window closes. The
-# helper and the game get that labwc's Wayland socket, Xwayland display and PID instead of this desktop's; the game
-# window is then the maximized, frameless, always-on-bottom desktop window of the session, and apps open over it.
-# Closing the game, Ctrl+C here, or closing the preview window stops all of it; closing the window first asks the
-# game to save and quit, as its close button would. The run also ends when the preview's labwc has no screen left
-# (preview-window.py --outputs), so closing the preview ends it even where the watcher never found its window. The
-# preview's labwc and the watchers do not get the launch identity: a terminal started from labwc's own menu, and a
-# development client started in it, must not take themselves for the session. What it cannot show:
+# The session preview (--session). A labwc of this run's own (the wlroots Wayland backend: one window per output
+# on this desktop) gets a copy of the checkout's rc.xml in the private folder. preview-window.py asks this desktop
+# to show the single-output preview fullscreen and reports when it closes. The two-output trial opens two movable
+# windows and uses labwc's automatic horizontal output layout. The helper and the game get that labwc's Wayland
+# socket, Xwayland display and PID. The game is the maximized, frameless, always-on-bottom desktop window of
+# the preview, and apps open over it.
+# Closing the game, Ctrl+C here, or closing all preview windows stops all of it. The run asks the game to save and
+# quit when the fullscreen watcher reports the window closed or the nested output watcher sees no screen left
+# (preview-window.py --outputs). Only the game and helper get the launch identity, so other programs started from
+# nested labwc's menu still start as ordinary apps. Preview limits:
 #   - Keys this desktop binds itself reach it first, whatever has the focus: on AresOS Alt+Tab (switches this
-#     desktop's windows, the preview being one), Alt+F4 (closes the whole preview window, and with it the preview),
+#     desktop's windows), Alt+F4 (closes the focused preview window),
 #     Super+Ctrl+Escape (this desktop's recovery terminal). labwc offers no way to hand them on. In the preview,
 #     close an app with its own X and switch apps by clicking.
 #   - A program that allows one copy and already runs on this desktop hands the request to that copy, whose window
 #     opens out here: the preview's helper sees no window of it and says so after its open deadline.
 #   - Whatever goes through this desktop's D-Bus session opens out here too: the polkit password prompt, portal
 #     dialogs (file choosers), notifications.
-#   - One screen only (the preview is one window on the screen it opens on): the world on an external monitor and
-#     "covered" per screen are not shown. No package 23 supervisor (no restart, no recovery terminal), and the
-#     development client instead of Prism's.
+#   - The development client runs directly, so the supervisor's restart and recovery terminal are unavailable here.
 set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/env.sh"
 
-usage="usage: run-hub.sh [--force] [--session] [--helper <path>] [--registry <dir>] [gradle arguments...]"
+usage="usage: run-hub.sh [--force] [--session [--outputs 1|2]] [--helper <path>] [--registry <dir>] [gradle arguments...]"
 force=0
 session=0
+outputs=
 helper=/usr/libexec/aresos-shell
 registry=
 gradle_args=()
@@ -71,6 +70,12 @@ while (($#)); do
     case $1 in
         --force) force=1 ;;
         --session) session=1 ;;
+        --outputs)
+            case ${2-} in
+                1|2) outputs=$2 ;;
+                *) aresos_fail 2 "--outputs needs 1 or 2; $usage" ;;
+            esac
+            shift ;;
         --helper)
             (($# >= 2)) || aresos_fail 2 "--helper needs a path; $usage"
             helper=$2
@@ -84,6 +89,8 @@ while (($#)); do
     esac
     shift
 done
+[[ -z $outputs ]] || ((session)) || aresos_fail 2 "--outputs needs --session; $usage"
+outputs=${outputs:-1}
 aresos_check_gradle_args "${gradle_args[@]}"
 [[ $helper == /* ]] || helper="$ARESOS_CALLER_DIR/$helper"
 [[ -f $helper && -r $helper ]] || aresos_fail 2 "--helper $helper is not a readable regular file."
@@ -104,6 +111,11 @@ if ((session)); then
         || aresos_fail 2 "--session cannot run from a folder whose path has a single quote in it."
 fi
 
+if ((outputs == 2)); then
+    # The preview uses Loom's mod/run. Refuse a trial save redirected to an installed game.
+    [[ ! -L run && ! -L run/saves && ! -L run/saves/AresHub ]] \
+        || aresos_fail 2 "--outputs 2 needs a local dev world in mod/run/saves/AresHub."
+fi
 [[ -n ${XDG_RUNTIME_DIR:-} && -d $XDG_RUNTIME_DIR ]] || aresos_fail 1 "XDG_RUNTIME_DIR is not set; run this from a terminal in the AresOS session."
 [[ -n ${WAYLAND_DISPLAY:-} ]] || aresos_fail 1 "WAYLAND_DISPLAY is not set; run this from a terminal in the AresOS session."
 aresos_find_java
@@ -153,22 +165,25 @@ start_session() {
     /usr/bin/mkdir -m 0700 -- "$config"
     /usr/bin/cp -- "$rc_xml" "$config/rc.xml"
     printf '\n--- %s run-hub.sh --session starts labwc with %s\n' "$(/usr/bin/date -Is)" "$rc_xml" >>"$SESSION_LOG"
-    # The watcher lists this desktop's windows first, so the next new labwc window is the preview's.
-    aresos_scope_start run-hub-window -- /usr/bin/env "${no_identity[@]}" /usr/bin/python3 -I \
-        "$ARESOS_MOD_DIR/dev/preview-window.py" "$ready" </dev/null >>"$SESSION_LOG" 2>&1
-    window_job=$ARESOS_JOB
-    until [[ -e $ready ]]; do
-        if ! aresos_job_running "$window_job" || ((tries++ >= 50)); then
-            aresos_say "The preview cannot cover the screen (see $SESSION_LOG); it opens as a window."
-            break
-        fi
-        /usr/bin/sleep 0.1
-    done
+    # With two outputs, leave both windows movable so the owner can place one on each screen.
+    if ((outputs == 1)); then
+        # The watcher lists this desktop's windows first, so the next new labwc window is the preview's.
+        aresos_scope_start run-hub-window -- /usr/bin/env "${no_identity[@]}" /usr/bin/python3 -I \
+            "$ARESOS_MOD_DIR/dev/preview-window.py" "$ready" </dev/null >>"$SESSION_LOG" 2>&1
+        window_job=$ARESOS_JOB
+        until [[ -e $ready ]]; do
+            if ! aresos_job_running "$window_job" || ((tries++ >= 50)); then
+                aresos_say "The preview cannot cover the screen (see $SESSION_LOG); it opens as a window."
+                break
+            fi
+            /usr/bin/sleep 0.1
+        done
+    fi
     # Nested on this desktop. LABWC_UPDATE_ACTIVATION_ENV=0: never hand this desktop's D-Bus and systemd user
     # environment the preview's displays (labwc leaves them alone when nested anyway; this makes it certain). No
     # LABWC_FALLBACK_OUTPUT: a stand-in screen would keep the preview going after its window closed.
     aresos_scope_start run-hub-labwc -- /usr/bin/env "${no_identity[@]}" -u DISPLAY -u WAYLAND_SOCKET -u LABWC_PID \
-        -u LABWC_FALLBACK_OUTPUT WLR_BACKENDS=wayland LABWC_UPDATE_ACTIVATION_ENV=0 PATH="$SYSTEM_PATH" \
+        -u LABWC_FALLBACK_OUTPUT WLR_BACKENDS=wayland WLR_WL_OUTPUTS="$outputs" LABWC_UPDATE_ACTIVATION_ENV=0 PATH="$SYSTEM_PATH" \
         /usr/bin/labwc --config-dir "$config" \
         --startup "'$ARESOS_MOD_DIR/dev/preview-env.sh' '$found'" </dev/null >>"$SESSION_LOG" 2>&1
     labwc_job=$ARESOS_JOB
@@ -189,7 +204,7 @@ start_session() {
     # LABWC_PID too: `labwc --exit` in a terminal opened in the preview must end the preview, not this desktop.
     nested_env=(WAYLAND_DISPLAY="$wayland" DISPLAY="$display" LABWC_PID="$pid")
     nested_wayland=$wayland
-    # Its window on this desktop closing takes its only screen away; the run ends then (wait_session).
+    # Closing a preview window removes its output; the run ends when the last one goes away (wait_session).
     aresos_scope_start run-hub-outputs -- /usr/bin/env "${no_identity[@]}" "${nested_env[@]}" /usr/bin/python3 -I \
         "$ARESOS_MOD_DIR/dev/preview-window.py" --outputs --display "$wayland" </dev/null >>"$SESSION_LOG" 2>&1
     outputs_job=$ARESOS_JOB

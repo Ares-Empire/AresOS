@@ -4,6 +4,12 @@
 # permission or credentials; nothing is pushed, signed or published.
 set -euo pipefail
 mode=${1-}
+if [[ $mode == bench || $mode == bench-pass ]]; then
+    if [[ ${GITHUB_ACTIONS-}/${RUNNER_ENVIRONMENT-}/${GITHUB_JOB-} != true/github-hosted/check-build ]]; then
+        echo 'Bench requires the hosted check-build job' >&2
+        exit 2
+    fi
+fi
 base=$(jq -r .reference os/manifest/base.json)
 mkdir -p evidence
 case $mode in
@@ -23,7 +29,7 @@ case $mode in
         # Package 23: the mod jar must build to the same bytes twice.
         bash os/ci/build-mod.sh --twice
         ;;
-    control|build)
+    bench|control|build)
         # check_build=control (package 18c, B2) builds and checks the same image,
         # then puts the Control test layer on top of the CI layer and makes its
         # disk; the workflow's next step boots it (control-pass, below). Its
@@ -62,6 +68,10 @@ case $mode in
         bash os/ci/check-image.sh localhost/aresos:check "$kind"
         python3 -B os/ci/control/chrome_image.py build-log evidence/image/checks.txt evidence/build.log \
             | tee evidence/image/control-chrome-build-log.txt
+        if [[ $mode == bench ]]; then
+            bash os/ci/bench/build.sh
+            exit 0
+        fi
         # Boot both guardian scenarios on fresh overlays of the same disk. The
         # guest policy checks polkit for the daily account's real active
         # session (os/tests/guest.sh), then recovery login and the power key.
@@ -92,6 +102,13 @@ case $mode in
             echo CHECK_BUILD_VM_PASSED
         fi
         ;;
+    bench-pass)
+        if [[ ! -w /dev/kvm && -c /dev/kvm ]]; then
+            sudo chgrp "$(id -g)" /dev/kvm
+            sudo chmod g+rw /dev/kvm
+        fi
+        exec python3 -B os/ci/bench/driver.py
+        ;;
     control-pass)
         # check_build=control's own workflow step with its own time limit, so
         # the build step keeps its limit for every mode: boot the disk the
@@ -109,7 +126,7 @@ case $mode in
         echo CHECK_BUILD_CONTROL_CHROME_PASSED
         ;;
     *)
-        echo "Unknown check-build mode: '$mode' (expected resolve, build, control, control-pass or control-chrome-pass)" >&2
+        echo "Unknown check-build mode: '$mode' (expected resolve, build, bench, bench-pass, control, control-pass or control-chrome-pass)" >&2
         exit 2
         ;;
 esac
