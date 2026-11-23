@@ -10,6 +10,12 @@ if [[ $mode == bench || $mode == bench-pass ]]; then
         exit 2
     fi
 fi
+if [[ $mode == deskflow || $mode == deskflow-pass ]]; then
+    if [[ ${GITHUB_ACTIONS-}/${RUNNER_ENVIRONMENT-}/${GITHUB_JOB-} != true/github-hosted/check-build ]]; then
+        echo 'Deskflow requires the hosted check-build job' >&2
+        exit 2
+    fi
+fi
 base=$(jq -r .reference os/manifest/base.json)
 mkdir -p evidence
 case $mode in
