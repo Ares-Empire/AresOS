@@ -382,9 +382,13 @@ jobs:
         run: |
           set -euo pipefail
           sudo podman run --rm --entrypoint /usr/bin/bash localhost/aresos:ci -ec '
-            test ! -e /usr/libexec/aresos-ci && test ! -e /usr/libexec/aresos-bench && test ! -L /usr/libexec/aresos-bench
-            test ! -e /usr/lib/systemd/system/aresos-bench.service && test ! -L /usr/lib/systemd/system/aresos-bench.service
-            test ! -e /usr/lib/systemd/system/multi-user.target.wants/aresos-bench.service && test ! -L /usr/lib/systemd/system/multi-user.target.wants/aresos-bench.service
+            test ! -e /usr/libexec/aresos-ci
+            test ! -e /usr/libexec/aresos-bench
+            test ! -L /usr/libexec/aresos-bench
+            test ! -e /usr/lib/systemd/system/aresos-bench.service
+            test ! -L /usr/lib/systemd/system/aresos-bench.service
+            test ! -e /usr/lib/systemd/system/multi-user.target.wants/aresos-bench.service
+            test ! -L /usr/lib/systemd/system/multi-user.target.wants/aresos-bench.service
             test ! -e /usr/lib/systemd/system/aresos-ci.service
             test ! -e /usr/lib/systemd/system-generators/aresos-ci-updater-regression
             test ! -e /etc/systemd/system/aresos-ci-routine.service
@@ -503,9 +507,13 @@ jobs:
         run: |
           set -euo pipefail
           sudo podman run --rm --entrypoint /usr/bin/bash localhost/aresos:ci -ec '
-            test ! -e /usr/libexec/aresos-ci && test ! -e /usr/libexec/aresos-bench && test ! -L /usr/libexec/aresos-bench
-            test ! -e /usr/lib/systemd/system/aresos-bench.service && test ! -L /usr/lib/systemd/system/aresos-bench.service
-            test ! -e /usr/lib/systemd/system/multi-user.target.wants/aresos-bench.service && test ! -L /usr/lib/systemd/system/multi-user.target.wants/aresos-bench.service
+            test ! -e /usr/libexec/aresos-ci
+            test ! -e /usr/libexec/aresos-bench
+            test ! -L /usr/libexec/aresos-bench
+            test ! -e /usr/lib/systemd/system/aresos-bench.service
+            test ! -L /usr/lib/systemd/system/aresos-bench.service
+            test ! -e /usr/lib/systemd/system/multi-user.target.wants/aresos-bench.service
+            test ! -L /usr/lib/systemd/system/multi-user.target.wants/aresos-bench.service
             test ! -e /usr/lib/systemd/system/aresos-ci.service
             test ! -e /usr/lib/systemd/system-generators/aresos-ci-updater-regression
             test ! -e /etc/systemd/system/aresos-ci-routine.service
@@ -616,9 +624,13 @@ jobs:
         run: |
           set -euo pipefail
           sudo podman run --rm --entrypoint /usr/bin/bash localhost/aresos:ci -ec '
-            test ! -e /usr/libexec/aresos-ci && test ! -e /usr/libexec/aresos-bench && test ! -L /usr/libexec/aresos-bench
-            test ! -e /usr/lib/systemd/system/aresos-bench.service && test ! -L /usr/lib/systemd/system/aresos-bench.service
-            test ! -e /usr/lib/systemd/system/multi-user.target.wants/aresos-bench.service && test ! -L /usr/lib/systemd/system/multi-user.target.wants/aresos-bench.service
+            test ! -e /usr/libexec/aresos-ci
+            test ! -e /usr/libexec/aresos-bench
+            test ! -L /usr/libexec/aresos-bench
+            test ! -e /usr/lib/systemd/system/aresos-bench.service
+            test ! -L /usr/lib/systemd/system/aresos-bench.service
+            test ! -e /usr/lib/systemd/system/multi-user.target.wants/aresos-bench.service
+            test ! -L /usr/lib/systemd/system/multi-user.target.wants/aresos-bench.service
             test ! -e /usr/lib/systemd/system/aresos-ci.service
             test ! -e /usr/lib/systemd/system-generators/aresos-ci-updater-regression
             test ! -e /etc/systemd/system/aresos-ci-routine.service
@@ -730,9 +742,13 @@ jobs:
         run: |
           set -euo pipefail
           sudo podman run --rm --entrypoint /usr/bin/bash localhost/aresos:ci -ec '
-            test ! -e /usr/libexec/aresos-ci && test ! -e /usr/libexec/aresos-bench && test ! -L /usr/libexec/aresos-bench
-            test ! -e /usr/lib/systemd/system/aresos-bench.service && test ! -L /usr/lib/systemd/system/aresos-bench.service
-            test ! -e /usr/lib/systemd/system/multi-user.target.wants/aresos-bench.service && test ! -L /usr/lib/systemd/system/multi-user.target.wants/aresos-bench.service
+            test ! -e /usr/libexec/aresos-ci
+            test ! -e /usr/libexec/aresos-bench
+            test ! -L /usr/libexec/aresos-bench
+            test ! -e /usr/lib/systemd/system/aresos-bench.service
+            test ! -L /usr/lib/systemd/system/aresos-bench.service
+            test ! -e /usr/lib/systemd/system/multi-user.target.wants/aresos-bench.service
+            test ! -L /usr/lib/systemd/system/multi-user.target.wants/aresos-bench.service
             test ! -e /usr/lib/systemd/system/aresos-ci.service
             test ! -e /usr/lib/systemd/system-generators/aresos-ci-updater-regression
             test ! -e /etc/systemd/system/aresos-ci-routine.service
