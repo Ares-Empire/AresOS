@@ -8,7 +8,7 @@ in `reviews/332-outside-game-design/INPUTS-2.md`: the owner's idea of home style
 `linux-desktop`'s points on video, icons and memory. Review 3 (`reviews/332-outside-game-design/REVIEW-3.md`) found
 it NOT READY on two points: a video could take the bar and the search away, and the second screen and the first
 icons had no place in the build order. This revision applies the lead's four decisions on that review and records
-the owner's answer T498. Both are the last two parts of INPUTS-2. It has not been reviewed yet. Nothing here is
+the owner's answer T498. Both are the last two parts of INPUTS-2. Revision 4 was rechecked twice (`RECHECK-R4.md`, NOT READY on one point the lead fixed; `RECHECK-R4-2.md`, READY), and the lead then fixed three points from CodeRabbit's comments on PR171. Nothing here is
 built. It decides the structure for the hub (`linux-hub`), the desktop (`linux-desktop`) and the supervisor
 (`linux-aresos`).
 
@@ -399,7 +399,7 @@ A side that did not offer a capability gets none of it. The laptop home pins min
 | `search_view` | 6 | `"screen": "world"` on `open_app` and `activate_app` | from a view | Allowed from a view in 1.3. It means the home output. Until 23c places windows it is only recorded. |
 | (existing `shell_focus`) | 6 | reasons `view` and `view_closed` | to the desktop | The search took the keyboard while the world had it, or gave it back. |
 | `notices` | 6 | event `notice` | to views | `{"text": "The world stays on: your home could not be saved."}`. One line for a toast. |
-| `view_alive` | 6 | request `view_alive` | from a view | A view that holds the keyboard sends it once a second, from its drawing loop. After three silent seconds the helper tells the supervisor, which ends the native home's scope. |
+| `view_alive` | 6 | request `view_alive` | from a view | A view that holds the keyboard sends it once a second, from its drawing loop. Any view also answers the helper's `view_ping` with `view_alive` at once, whatever holds the keyboard (the style switch's liveness check). After three silent seconds the helper tells the supervisor, which ends the native home's scope. |
 | `settings` | 7 | request `set_setting` | desktop and views | The helper starts `aresos-settings set` off its loop and replies `accepted` at once. A change of style that closes the world can take a minute; the outcome shows in `screens`, and a refusal comes as a `notice`. It never carries a path: the helper refuses `picture-file` and `video-file` from every client. Those two are set only by the command, run by him or by Claude for him. |
 | `world_power` | 7, 9 | request `wake_world` | views | `{"reason": "anyway"}` from package 7: his "Start anyway" for a pending start. From package 9 also `click`, `pointer` and `home`: a wake. The helper passes it to the supervisor, which decides. |
 | `window_list` | 4 | `list_windows`, `windows_changed`, `activate_window`, `close_window`, `go_home` | views | As COMPONENTS.md 4.5 planned them for the overview. The app menu uses the first four. |
@@ -460,8 +460,10 @@ is no world change: it ends in `aresos-desktop video` alone.
   package 3I, so that first home has its starter icons (the owner, T498).
 - **A laptop that has a home keeps it.** The settings file holds only what he chose, so a new default would reach
   his laptop too (`os/config/usr/libexec/aresos-settings:4-6`). So the supervisor settles it before it reads the
-  style. If the file has no `home` value, and this laptop has had a home, it writes `home = minecraft` once, through
-  `aresos-settings`. "Has had a home" is the supervisor's own `hub_seen` (supervisor `:1111`), or a home folder in
+  style. If the file was read cleanly and has no `home` value, and this laptop has had a home, it writes `home =
+  minecraft` once, through `aresos-settings`. If the file can't be read, or has a format this release doesn't know,
+  the supervisor leaves it untouched and uses the Minecraft style for this session when the laptop has had a home
+  (the picture home otherwise), with a notice. A read that failed never leads to a write, so no setting of his is lost. "Has had a home" is the supervisor's own `hub_seen` (supervisor `:1111`), or a home folder in
   his worlds folder. From then on the file names his style like any choice of his.
 - The rule runs at every supervisor start, so it also mends a file that lost the name after `previous`.
 - **A style change never touches a world's files.** Whatever the setting says, his home is where it was.
@@ -502,8 +504,9 @@ is no world change: it ends in `aresos-desktop video` alone.
   the owner its measured cost.
 
 **A normal style needs a launcher outside.** The supervisor refuses to turn the world off unless a view `home` is
-connected that negotiated the search and answered its alive beat within the last few seconds. A silent or hung view
-counts as absent. A notice says why. So he never trades the hotbar for nothing. Package 7 needs package 6 and 23c's
+connected that negotiated the search and answers a liveness ping at the moment of the switch: the helper sends it
+`view_ping`, and the view replies `view_alive` within one second, whether or not it holds the keyboard. A silent or
+hung view counts as absent. A notice says why. So he never trades the hotbar for nothing. Package 7 needs package 6 and 23c's
 Super key for the same reason (section 10). The native home is the same program in every style, so the check meets
 the program that will hold the home, also on a change to Video.
 
@@ -1033,8 +1036,10 @@ One bar on every output, the same content on each (the owner, T484). The helper 
 state. The helper takes the first route that holds:
 
 1. **The native search.** A view `home` is connected and negotiated `search_view`: it gets `search_requested`.
-   Nothing is activated, minimized or woken. If the view has not reported `view_focus` true within a second, the
-   helper goes on down this list and tells the supervisor that the view did not answer.
+   Nothing is activated, minimized or woken. `view_focus` names the surface that holds the keyboard (`"surface":
+   "search"` or `"icons"`). If the view has not reported `view_focus` true for the search surface within a second, the
+   helper goes on down this list and tells the supervisor that the view did not answer. Icons that already hold the
+   keyboard never count as an open search.
 2. **The mod's search.** The world is awake, and its desktop is ready and offered `shell_search`: today's route
    (helper `:4240-4284`). It is built, costs nothing, and is never removed.
 3. **Otherwise the supervisor decides.** With a sleeping world, Super is a wake request with the keyboard. In OFF,
