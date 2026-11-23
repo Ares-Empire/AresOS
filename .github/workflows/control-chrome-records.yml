@@ -1,0 +1,30 @@
+name: Control Chrome records
+# builds.json is recorded by control/chrome/record_build.py, not by hand (brief 18c-b, item 4).
+# The release job runs `add`; the pull request that pins a release carries the row, and this check
+# fails it without one. Read-only, no secrets, nothing from the network but the checkout.
+on:
+  pull_request:
+    paths:
+      - 'os/manifest/release.json'
+      - 'os/manifest/releases/**'
+      - 'control/chrome/builds.json'
+      - 'control/chrome/record_build.py'
+      - 'control/chrome/ci/records/**'
+      - '.github/workflows/control-chrome-records.yml'
+permissions:
+  contents: read
+concurrency:
+  group: control-chrome-records-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  records:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: record_build.py tests (synthetic repositories)
+        run: python3 -B -m unittest discover -s control/chrome/ci/records -p 'test_*.py' -v
+      - name: Release manifests against builds.json
+        run: python3 -B control/chrome/record_build.py check

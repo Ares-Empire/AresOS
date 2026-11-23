@@ -22,6 +22,17 @@ class PointerRulesTest {
         assertEquals(ENTER_WORLD, PointerRules.click(true, false, false, true, true));
     }
 
+    @Test void withEdgeTurningAndTheWorldInFrontClicksActButAnAppSlotStillOpensItsApp() {
+        // Package 328c: the free pointer's clicks go to Minecraft (attack, use) instead of only entering the world.
+        assertEquals(OPEN_APP, PointerRules.click(true, true, true, true));
+        assertEquals(VANILLA, PointerRules.click(true, true, false, true));
+        assertEquals(VANILLA, PointerRules.click(true, false, true, true));
+        assertEquals(VANILLA, PointerRules.click(true, false, false, true));
+        // Behind an app the world still only comes to the front.
+        assertEquals(ENTER_WORLD, PointerRules.click(true, true, false, false));
+        assertEquals(VANILLA, PointerRules.click(false, true, true, true));
+    }
+
     @Test void aDesktopWorldTakesTheMouseOnlyWithTheFocusAndThePointerOnIt() {
         for (int bits = 0; bits < 8; bits++) {
             boolean desktop = (bits & 1) != 0, focused = (bits & 2) != 0, over = (bits & 4) != 0;

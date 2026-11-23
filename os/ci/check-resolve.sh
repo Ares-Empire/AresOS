@@ -8,6 +8,26 @@ mkdir -p "$out"
 section() { printf '\n===== %s\n' "$*"; }
 show() { for file in "$@"; do printf -- '--- %s\n' "$file"; cat "$file" 2>&1; done; }
 
+# Informational only: a lookup outage must never change the reviewed pin or
+# fail resolution. Keep both the console line and the uploaded evidence.
+python3 - /tmp/aresos/gh.lock.json <<'PY' | tee "$out/gh.txt" || true
+import json, pathlib, re, subprocess, sys
+try:
+    pin = json.loads(pathlib.Path(sys.argv[1]).read_text())['nevra']
+except Exception:
+    pin = 'unavailable'
+try:
+    reply = subprocess.check_output(['curl', '-fsSL', '--proto', '=https', '--proto-redir', '=https',
+                                     '--tlsv1.2', '--connect-timeout', '10', '--max-time', '30',
+                                     'https://api.github.com/repos/cli/cli/releases/latest'],
+                                    text=True, stderr=subprocess.DEVNULL, timeout=35)
+    newest = json.loads(reply)['tag_name']
+    assert re.fullmatch(r'v\d+\.\d+\.\d+', newest)
+except Exception:
+    newest = 'unavailable (lookup failed)'
+print(f'INFO gh newest={newest} pinned={pin}')
+PY
+
 {
     section packages
     rpm -q util-linux util-linux-core util-linux-script qrencode qrencode-libs brightnessctl polkit polkit-kde \

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {REQUIRED,verdicts} from '../chrome/ci/verdicts.mjs';
+import {REQUIRED,SUPPORT,verdicts} from '../chrome/ci/verdicts.mjs';
 import {collectSiteResults} from '../chrome/ci/site-results.mjs';
 
 const names=Object.values(REQUIRED).flat().filter(name=>name.includes(' ADAPTER '));
@@ -10,7 +10,8 @@ test('a completed adapter failure reaches final failing matrix while independent
   const results=rows().map(row=>row.name==='GROUP 10 ADAPTER Gemini question uses its required semantic name'?{...row,passed:false,error:'strict fixture assertion'}:row);
   const collected=await collectSiteResults(async()=>{throw failure(results);});assert.equal(collected,results);
   const core=Object.values(REQUIRED).flat().filter(name=>!names.includes(name)).map(name=>({name,passed:true}));
-  const support=['FEATURE tools forms options find wait fill_form scroll and full catalogues','VIEW representative long article/form complete paging','QUALIFICATION conservative activations ask and core failures gate before reads'].map(name=>({name,passed:true}));
+  // Every support case passes (brief 28 added its reading cases to the list), so only the adapter failure decides.
+  const support=SUPPORT.map(name=>({name,passed:true}));
   const result=verdicts([...core,...collected,...support],{owner:true,forgery:true,isolation:true,residual:true},Object.fromEntries(['gmail','whatsapp','github','bank','gemini','deezer'].map(site=>[site,true])));
   assert.equal(result.adapters.gemini,false);assert.equal(result.adapters.gmail,true);
   assert.equal([...core,...collected].filter(row=>!row.passed).length,1,'the browser final aggregate still fails');

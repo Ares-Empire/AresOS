@@ -1,0 +1,14 @@
+# AresOS Control: the owner's excluded-sites list for Claude's Chrome tools.
+# Installed as /usr/lib/tmpfiles.d/aresos-control-chrome.conf.
+#
+# The image can't carry his sites, so the list is made at boot when missing,
+# as a placeholder the tool service refuses (format 0): every Chrome read and
+# action answers "not set up yet" until root writes a format 1 list
+# ({"format":1,"hosts":[]} when no site is excluded). A list that exists keeps
+# its content; only owner, group and mode are put back.
+#
+# The folder is root's and apart from the service's own state in
+# /var/lib/aresos-tools: the list restricts the service, so the service may
+# read it (its group) and must never be able to write it.
+d /var/lib/aresos-control 0755 root root -
+f /var/lib/aresos-control/chrome-excluded-sites.json 0640 root aresos-tools - {"format":0,"hosts":[]}

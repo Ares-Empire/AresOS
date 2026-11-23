@@ -111,6 +111,18 @@ public final class WorldCapture {
         (directForTests ? (CursorMode) WorldCapture::direct : minecraft).set(window, GLFW.GLFW_CURSOR_DISABLED, x, y);
     }
 
+    /**
+     * Package 328b: look mode started by a key gives the pointer back at the centre of the world's window, which labwc
+     * keeps maximized on its output, instead of where it rested. Only the point changes; the release stays the same.
+     */
+    static void returnToCentre(Window window) {
+        if (!hiddenInX) return;
+        int[] width = new int[1], height = new int[1];
+        GLFW.glfwGetWindowSize(window.handle(), width, height);
+        startX = width[0] / 2.0;
+        startY = height[0] / 2.0;
+    }
+
     /** Replaces Minecraft's release call in {@code MouseHandler.releaseMouse}. */
     public static void release(Window window, double x, double y, CursorMode minecraft) {
         if (letGo != null) return;

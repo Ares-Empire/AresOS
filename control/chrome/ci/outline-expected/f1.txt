@@ -1,0 +1,48 @@
+p "Paragraph 0 readable article text readable article text readable article text readable article text readable article text readable article text readable article text readable article text readable art"…+251 REF1
+p "Paragraph 1 readable article text readable article text readable article text readable article text readable article text readable article text readable article text readable article text readable art"…+251 REF2
+p "Paragraph 2 readable article text readable article text readable article text readable article text readable article text readable article text readable article text readable article text readable art"…+251 REF3
+p "Paragraph 3 readable article text readable article text readable article text readable article text readable article text readable article text readable article text readable article text readable art"…+251 REF4
+p "Paragraph 4 readable article text readable article text readable article text readable article text readable article text readable article text readable article text readable article text readable art"…+251 REF5
+… 115 more (52,569 characters) REF6
+form → GET http://fixture.test:8765/?… REF7
+  textbox "Field 0" = "Synthetic value 0" REF8
+  textbox "Field 1" = "Synthetic value 1" REF9
+  textbox "Field 2" = "Synthetic value 2" REF10
+  textbox "Field 3" = "Synthetic value 3" REF11
+  textbox "Field 4" = "Synthetic value 4" REF12
+  textbox "Field 5" = "Synthetic value 5" REF13
+  textbox "Field 6" = "Synthetic value 6" REF14
+  textbox "Field 7" = "Synthetic value 7" REF15
+  textbox "Field 8" = "Synthetic value 8" REF16
+  textbox "Field 9" = "Synthetic value 9" REF17
+  textbox "Field 10" = "Synthetic value 10" REF18
+  textbox "Field 11" = "Synthetic value 11" REF19
+  textbox "Field 12" = "Synthetic value 12" REF20
+  textbox "Field 13" = "Synthetic value 13" REF21
+  textbox "Field 14" = "Synthetic value 14" REF22
+  textbox "Field 15" = "Synthetic value 15" REF23
+  textbox "Field 16" = "Synthetic value 16" REF24
+  textbox "Field 17" = "Synthetic value 17" REF25
+  textbox "Field 18" = "Synthetic value 18" REF26
+  textbox "Field 19" = "Synthetic value 19" REF27
+  textbox "Field 20" = "Synthetic value 20" REF28
+  textbox "Field 21" = "Synthetic value 21" REF29
+  textbox "Field 22" = "Synthetic value 22" REF30
+  textbox "Field 23" = "Synthetic value 23" REF31
+  textbox "Field 24" = "Synthetic value 24" REF32
+  textbox "Field 25" = "Synthetic value 25" REF33
+  textbox "Field 26" = "Synthetic value 26" REF34
+  textbox "Field 27" = "Synthetic value 27" REF35
+  textbox "Field 28" = "Synthetic value 28" REF36
+  textbox "Field 29" = "Synthetic value 29" REF37
+  textbox "Field 30" = "Synthetic value 30" REF38
+  textbox "Field 31" = "Synthetic value 31" REF39
+  textbox "Field 32" = "Synthetic value 32" REF40
+  textbox "Field 33" = "Synthetic value 33" REF41
+  textbox "Field 34" = "Synthetic value 34" REF42
+  textbox "Field 35" = "Synthetic value 35" REF43
+  textbox "Field 36" = "Synthetic value 36" REF44
+  textbox "Field 37" = "Synthetic value 37" REF45
+  textbox "Field 38" = "Synthetic value 38" REF46
+  textbox "Field 39" = "Synthetic value 39" REF47
+  … 40 more (2,119 characters) REF48

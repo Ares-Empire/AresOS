@@ -2,4 +2,7 @@ manifest/ci/
 README.md
 # The release build must never copy the CI service into any image layer.
 ci/
+# Bench regressions run on the runner. Keep their fixtures out of the image COPY.
+tests/test_bench_*
+tests/__pycache__/
 release/

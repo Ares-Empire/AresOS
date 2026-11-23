@@ -50,6 +50,8 @@
       "dev.aresos.test.WorldSearchClientGameTest",
       "dev.aresos.test.HomeTryoutClientGameTest",
       "dev.aresos.test.WorldKeepsPointerClientGameTest",
+      "dev.aresos.test.ClickToLookClientGameTest",
+      "dev.aresos.test.EdgeTurnClientGameTest",
       "dev.aresos.test.OpenAppsClientGameTest"
     ]
   },

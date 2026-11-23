@@ -40,7 +40,11 @@ on:
       check_build:
         description: 'Throwaway image (package 21): resolve inputs or build and check this ref; never pushes, signs or publishes'
         type: choice
-        options: ['', resolve, build, control]
+        options: ['', resolve, build, control, bench]
+        default: ''
+      bench_script:
+        description: 'Hosted bench script from this ref (reviews/<package>/bench/<name>.json)'
+        type: string
         default: ''
       full_model:
         description: 'Checks only: run the full ways-back model even when none of its sources changed'
@@ -54,13 +58,14 @@ env:
   REHEARSAL_PACKAGE: ${{ github.ref_name == 'pkg/42-release-28' && '42' || github.ref_name == 'pkg/22d-tools-without-stick' && '22d' || github.ref_name == 'pkg/22c-ways-back-after-update' && '22c' || github.ref_name == 'pkg/27-first-update-release' && '27' || github.ref_name == 'pkg/16-staged-release' && '16' || github.ref_name == 'pkg/14-owner-tools' && '14' || github.ref_name == 'pkg/13-keyboard-layout' && '13' || '11c' }}
 
 concurrency:
-  group: os-image-${{ github.ref }}
+  # Bench jobs build on disposable runners. Keep each commit's batch independent.
+  group: ${{ inputs.check_build == 'bench' && format('os-bench-{0}-{1}', github.ref, github.sha) || format('os-image-{0}', github.ref) }}
   cancel-in-progress: false
 
 jobs:
   regressions:
     name: Regression checks only (no image build or VM)
-    if: github.event_name == 'workflow_dispatch' && inputs.checks_only && !inputs.rehearsal && github.ref_name != 'pkg/16-staged-release'
+    if: github.event_name == 'workflow_dispatch' && inputs.checks_only && inputs.check_build != 'bench' && !inputs.rehearsal && github.ref_name != 'pkg/16-staged-release'
     runs-on: ubuntu-24.04
     # The suite explores a bounded slice of 22c's ways-back model; the full model
     # runs in the model job below (22c stage 1b, addition 1). Main's suite needs
@@ -152,7 +157,7 @@ jobs:
           retention-days: 3
   model:
     name: Full ways-back model when its sources changed (no image build or VM)
-    if: github.event_name == 'workflow_dispatch' && inputs.checks_only && !inputs.rehearsal && github.ref_name != 'pkg/16-staged-release'
+    if: github.event_name == 'workflow_dispatch' && inputs.checks_only && inputs.check_build != 'bench' && !inputs.rehearsal && github.ref_name != 'pkg/16-staged-release'
     runs-on: ubuntu-24.04
     # 22c's exhaustive model took 12 to 21 minutes on hosted runners (1275 s in run
     # 43547375701); it runs beside the regressions job, not inside it.
@@ -181,11 +186,11 @@ jobs:
         run: env -u REHEARSAL_PACKAGE python3 -m unittest discover -s os/tests -p test_ways_back_model.py -k test_reachable_state_space -v
   check-build:
     name: Throwaway image build and checks (never pushed, signed or published)
-    if: github.event_name == 'workflow_dispatch' && github.ref_name != 'pkg/16-staged-release' && inputs.check_build != '' && !inputs.rehearsal && !inputs.release_13 && !inputs.release_27 && !inputs.release_28 && !inputs.dry_run_28 && !inputs.checks_only && !inputs.switch_from_run
+    if: github.event_name == 'workflow_dispatch' && inputs.check_build != '' && !inputs.rehearsal && !inputs.release_13 && !inputs.release_27 && !inputs.release_28 && !inputs.dry_run_28 && !inputs.checks_only && !inputs.switch_from_run && (github.ref_name != 'pkg/16-staged-release' || inputs.check_build == 'bench') && (inputs.check_build != 'bench' || (!inputs.probe_run && !inputs.full_model))
     runs-on: ubuntu-24.04
-    # check_build=control adds its own VM step (below) after the build step:
-    # tools 20 + build 80 + Control VM pass 16 + 15.
-    timeout-minutes: ${{ inputs.check_build == 'control' && 131 || 120 }}
+    # check_build=control adds its own VM steps (below) after the build step:
+    # tools 20 + build 80 + Control VM pass 16 + Control Chrome VM pass 25 + 15.
+    timeout-minutes: ${{ inputs.check_build == 'control' && 156 || inputs.check_build == 'bench' && 136 || 120 }}
     # Read-only on purpose: no write permission, no id-token and no other secret
     # than the job token, so this job cannot push, sign or publish the image it
     # builds. actions: read and packages: read are what package 42's guard step
@@ -203,11 +208,18 @@ jobs:
       # guard stops a resolve beyond the cap, and any other check build on the
       # branch, before the tools and the build.
       - name: Reserve package 42 resolve budget
-        if: github.ref_name == 'pkg/42-release-28'
+        if: github.ref_name == 'pkg/42-release-28' && inputs.check_build != 'bench'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REHEARSAL_MODE: resolve
         run: python3 os/ci/rehearsal_guard.py ci 120
+      - name: Refuse unsafe bench dispatches and exercise the evidence refusals
+        if: inputs.check_build == 'bench'
+        env:
+          BENCH_SCRIPT: ${{ inputs.bench_script }}
+        run: |
+          python3 -B os/ci/bench/script.py
+          python3 -B -m unittest discover -s os/tests -p test_bench_evidence.py -v
       - uses: ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6
         with:
           extra-squeeze: 'true'
@@ -232,6 +244,24 @@ jobs:
         env:
           CHECK_BUILD_MODE: ${{ inputs.check_build }}
         run: bash os/ci/check-build.sh "$CHECK_BUILD_MODE"
+      - name: Hosted bench VM pass
+        id: bench-vm
+        if: inputs.check_build == 'bench'
+        timeout-minutes: 20
+        env:
+          BENCH_SCRIPT: ${{ inputs.bench_script }}
+        run: bash os/ci/check-build.sh bench-pass
+      - name: Validate bench evidence for upload
+        id: bench-evidence
+        if: ${{ !cancelled() && inputs.check_build == 'bench' && steps.bench-vm.outcome != 'skipped' }}
+        run: python3 -B os/ci/bench/evidence.py evidence/bench
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: ${{ !cancelled() && steps.bench-evidence.outputs.safe == 'true' }}
+        with:
+          name: bench-evidence
+          path: evidence/bench/
+          retention-days: 3
+          if-no-files-found: error
       - name: Control VM pass (check_build=control only)
         if: inputs.check_build == 'control'
         # The last passes took 7 min 50 s and 7 min 9 s (run 43687234953); 18c's fix round 1 adds about
@@ -239,23 +269,29 @@ jobs:
         # 1.5 times the slower pass with that added.
         timeout-minutes: 16
         run: bash os/ci/check-build.sh control-pass
+      - name: Control Chrome VM pass (check_build=control only)
+        if: inputs.check_build == 'control'
+        # Brief 18c-b, item 5: the second pass on the same disk with a fresh overlay. 25 minutes to start, as agreed
+        # with linux-aresos; then about 1.5 times the slowest green.
+        timeout-minutes: 25
+        run: bash os/ci/check-build.sh control-chrome-pass
       - name: Stop the Control fixture servers (check_build=control only)
         if: always() && inputs.check_build == 'control'
         run: bash os/ci/control/runner.sh stop
       - name: Bound evidence
-        if: always()
+        if: always() && inputs.check_build != 'bench'
         run: |
           sudo chown -R "$(id -u):$(id -g)" evidence
           test "$(du -sb evidence | cut -f1)" -lt 180000000
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        if: always()
+        if: always() && inputs.check_build != 'bench'
         with:
           name: check-build-evidence
           path: evidence/
           retention-days: 3
           if-no-files-found: error
   image:
-    if: github.event_name == 'workflow_dispatch' && inputs.release_13 && github.ref_name == 'pkg/13-keyboard-layout' && !inputs.release_28 && !inputs.dry_run_28 && !inputs.checks_only && !inputs.switch_from_run && !inputs.rehearsal
+    if: github.event_name == 'workflow_dispatch' && inputs.release_13 && github.ref_name == 'pkg/13-keyboard-layout' && !inputs.release_28 && !inputs.dry_run_28 && !inputs.checks_only && !inputs.switch_from_run && !inputs.rehearsal && inputs.check_build == ''
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     permissions:
@@ -347,6 +383,12 @@ jobs:
           set -euo pipefail
           sudo podman run --rm --entrypoint /usr/bin/bash localhost/aresos:ci -ec '
             test ! -e /usr/libexec/aresos-ci
+            test ! -e /usr/libexec/aresos-bench
+            test ! -L /usr/libexec/aresos-bench
+            test ! -e /usr/lib/systemd/system/aresos-bench.service
+            test ! -L /usr/lib/systemd/system/aresos-bench.service
+            test ! -e /usr/lib/systemd/system/multi-user.target.wants/aresos-bench.service
+            test ! -L /usr/lib/systemd/system/multi-user.target.wants/aresos-bench.service
             test ! -e /usr/lib/systemd/system/aresos-ci.service
             test ! -e /usr/lib/systemd/system-generators/aresos-ci-updater-regression
             test ! -e /etc/systemd/system/aresos-ci-routine.service
@@ -466,6 +508,12 @@ jobs:
           set -euo pipefail
           sudo podman run --rm --entrypoint /usr/bin/bash localhost/aresos:ci -ec '
             test ! -e /usr/libexec/aresos-ci
+            test ! -e /usr/libexec/aresos-bench
+            test ! -L /usr/libexec/aresos-bench
+            test ! -e /usr/lib/systemd/system/aresos-bench.service
+            test ! -L /usr/lib/systemd/system/aresos-bench.service
+            test ! -e /usr/lib/systemd/system/multi-user.target.wants/aresos-bench.service
+            test ! -L /usr/lib/systemd/system/multi-user.target.wants/aresos-bench.service
             test ! -e /usr/lib/systemd/system/aresos-ci.service
             test ! -e /usr/lib/systemd/system-generators/aresos-ci-updater-regression
             test ! -e /etc/systemd/system/aresos-ci-routine.service
@@ -577,6 +625,12 @@ jobs:
           set -euo pipefail
           sudo podman run --rm --entrypoint /usr/bin/bash localhost/aresos:ci -ec '
             test ! -e /usr/libexec/aresos-ci
+            test ! -e /usr/libexec/aresos-bench
+            test ! -L /usr/libexec/aresos-bench
+            test ! -e /usr/lib/systemd/system/aresos-bench.service
+            test ! -L /usr/lib/systemd/system/aresos-bench.service
+            test ! -e /usr/lib/systemd/system/multi-user.target.wants/aresos-bench.service
+            test ! -L /usr/lib/systemd/system/multi-user.target.wants/aresos-bench.service
             test ! -e /usr/lib/systemd/system/aresos-ci.service
             test ! -e /usr/lib/systemd/system-generators/aresos-ci-updater-regression
             test ! -e /etc/systemd/system/aresos-ci-routine.service
@@ -689,6 +743,12 @@ jobs:
           set -euo pipefail
           sudo podman run --rm --entrypoint /usr/bin/bash localhost/aresos:ci -ec '
             test ! -e /usr/libexec/aresos-ci
+            test ! -e /usr/libexec/aresos-bench
+            test ! -L /usr/libexec/aresos-bench
+            test ! -e /usr/lib/systemd/system/aresos-bench.service
+            test ! -L /usr/lib/systemd/system/aresos-bench.service
+            test ! -e /usr/lib/systemd/system/multi-user.target.wants/aresos-bench.service
+            test ! -L /usr/lib/systemd/system/multi-user.target.wants/aresos-bench.service
             test ! -e /usr/lib/systemd/system/aresos-ci.service
             test ! -e /usr/lib/systemd/system-generators/aresos-ci-updater-regression
             test ! -e /etc/systemd/system/aresos-ci-routine.service
@@ -739,7 +799,7 @@ jobs:
   switch:
     name: Published-image switch and rollback
     needs: image
-    if: always() && !cancelled() && github.ref_name != 'pkg/16-staged-release' && github.ref_name != 'pkg/27-first-update-release' && !inputs.release_13 && !inputs.release_27 && !inputs.release_28 && !inputs.dry_run_28 && !inputs.checks_only && !inputs.rehearsal && (needs.image.result == 'success' || inputs.switch_from_run != '')
+    if: always() && !cancelled() && inputs.check_build != 'bench' && github.ref_name != 'pkg/16-staged-release' && github.ref_name != 'pkg/27-first-update-release' && !inputs.release_13 && !inputs.release_27 && !inputs.release_28 && !inputs.dry_run_28 && !inputs.checks_only && !inputs.rehearsal && (needs.image.result == 'success' || inputs.switch_from_run != '')
     runs-on: ubuntu-24.04
     timeout-minutes: 75
     permissions:
@@ -806,7 +866,7 @@ jobs:
           if-no-files-found: error
   rehearsal:
     name: Pinned live ISO inspection and two-disk rehearsal
-    if: github.event_name == 'workflow_dispatch' && inputs.rehearsal != '' && (github.ref_name != 'pkg/16-staged-release' || (inputs.rehearsal == 'probe' && !inputs.release_13 && !inputs.checks_only && !inputs.switch_from_run && !inputs.probe_run)) && (inputs.rehearsal == 'update') == (github.ref_name == 'pkg/27-first-update-release') && (github.ref_name == 'pkg/27-first-update-release' && !inputs.release_13 && !inputs.release_27 && !inputs.checks_only && !inputs.switch_from_run && !inputs.probe_run || github.ref_name != 'pkg/27-first-update-release') && (inputs.rehearsal == 'reorder-probe' || inputs.rehearsal == 'ways-back') == (github.ref_name == 'pkg/22c-ways-back-after-update') && (inputs.rehearsal == 'tools-local') == (github.ref_name == 'pkg/22d-tools-without-stick') && (inputs.rehearsal == 'release-28') == (github.ref_name == 'pkg/42-release-28') && (github.ref_name != 'pkg/42-release-28' || !inputs.release_13 && !inputs.release_27 && !inputs.release_28 && !inputs.dry_run_28 && !inputs.checks_only && !inputs.switch_from_run && !inputs.probe_run && inputs.check_build == '') && (github.ref_name != 'pkg/22c-ways-back-after-update' && github.ref_name != 'pkg/22d-tools-without-stick' || !inputs.release_13 && !inputs.release_27 && !inputs.checks_only && !inputs.switch_from_run && !inputs.probe_run && inputs.check_build == '')
+    if: github.event_name == 'workflow_dispatch' && inputs.check_build != 'bench' && inputs.rehearsal != '' && (github.ref_name != 'pkg/16-staged-release' || (inputs.rehearsal == 'probe' && !inputs.release_13 && !inputs.checks_only && !inputs.switch_from_run && !inputs.probe_run)) && (inputs.rehearsal == 'update') == (github.ref_name == 'pkg/27-first-update-release') && (github.ref_name == 'pkg/27-first-update-release' && !inputs.release_13 && !inputs.release_27 && !inputs.checks_only && !inputs.switch_from_run && !inputs.probe_run || github.ref_name != 'pkg/27-first-update-release') && (inputs.rehearsal == 'reorder-probe' || inputs.rehearsal == 'ways-back') == (github.ref_name == 'pkg/22c-ways-back-after-update') && (inputs.rehearsal == 'tools-local') == (github.ref_name == 'pkg/22d-tools-without-stick') && (inputs.rehearsal == 'release-28') == (github.ref_name == 'pkg/42-release-28') && (github.ref_name != 'pkg/42-release-28' || !inputs.release_13 && !inputs.release_27 && !inputs.release_28 && !inputs.dry_run_28 && !inputs.checks_only && !inputs.switch_from_run && !inputs.probe_run && inputs.check_build == '') && (github.ref_name != 'pkg/22c-ways-back-after-update' && github.ref_name != 'pkg/22d-tools-without-stick' || !inputs.release_13 && !inputs.release_27 && !inputs.checks_only && !inputs.switch_from_run && !inputs.probe_run && inputs.check_build == '')
     runs-on: ubuntu-24.04
     timeout-minutes: ${{ (github.ref_name == 'pkg/22c-ways-back-after-update' || github.ref_name == 'pkg/22d-tools-without-stick' || github.ref_name == 'pkg/42-release-28' && inputs.rehearsal == 'release-28') && 345 || inputs.rehearsal == 'update' && 300 || inputs.rehearsal == 'owner-tools' && 240 || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') && inputs.rehearsal == 'probe' && 70 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 130 || 40 }}
     permissions:

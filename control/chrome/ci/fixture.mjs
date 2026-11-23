@@ -3,7 +3,10 @@ import fs from 'node:fs';
 import {compatibilityScript} from './compatibility.mjs';
 import {popupPage,POPUP_GATE} from './popups.mjs';
 import {passwordPage} from './password-fixtures.mjs';
+import {unreadPage} from './unread-fixtures.mjs';
 import {reviewPage} from './review-fixtures.mjs';
+import {efficiencyPage} from './efficiency-fixtures.mjs';
+import {outlinePage} from './outline-fixtures.mjs';
 // A React-style controlled field: the page keeps its default (the value
 // attribute) in step with every edit, as React does, and Continue resets both.
 // It reports a synced, non-empty field and the reset to the receiver.
@@ -53,10 +56,13 @@ export async function fixtures(options={}) {
     // Mutation channels belong to the current fixture document. Old SSEs must
     // not exhaust Chrome's six HTTP/1.1 connections and hide later receivers.
     const lateBindingChild=kind==='review-page'&&url.searchParams.get('mode')==='late-binding-child';
-    if(!['draft-inner','password-inner'].includes(kind)&&!lateBindingChild)for(const [id,stream]of streams){stream.end();streams.delete(id);}
+    const outlineChild=['outline-state','password-outline'].includes(kind)&&url.searchParams.get('mode')==='child';
+    if(!['draft-inner','password-inner'].includes(kind)&&!lateBindingChild&&!outlineChild)for(const [id,stream]of streams){stream.end();streams.delete(id);}
     let body,script='';
     if(kind==='latency'){body='<textarea aria-label="Draft">Synthetic latency draft</textarea><button type="button">Continue</button><button type="button">Send</button>';script="document.querySelectorAll('button')[0].onclick=()=>{if(navigator.clipboard)navigator.clipboard.writeText('Synthetic latency clipboard').catch(()=>{});};document.querySelectorAll('button')[1].onclick=()=>{const draft=document.querySelector('textarea');fetch('/receive?case=latency-'+"+JSON.stringify(url.searchParams.get('id'))+",{method:'POST',body:draft.value});draft.defaultValue='';draft.value='';};";}
     else if(kind==='destination-sink'){res.end(page('<p>Destination sink</p>'));return;}
+    else if(kind.startsWith('efficiency-')){const efficiency=efficiencyPage(url);if(!efficiency){res.writeHead(404);res.end('Unknown efficiency fixture');return;}({body,script}=efficiency);}
+    else if(kind.startsWith('outline-')||kind==='password-outline'){const outline=outlinePage(url);if(!outline)throw Error('Unknown outline fixture');({body,script}=outline);}
     else if(kind==='review-page'){const review=reviewPage(url);if(!review)throw Error('Unknown review fixture');({body,script}=review);}
     else if(['popup-opener','popup-start','popup-child'].includes(kind)){
       const popup=popupPage(url);res.end(page(popup.body,popup.script));return;
@@ -181,6 +187,9 @@ export async function fixtures(options={}) {
     } else if(kind==='upload') {
       const id=url.searchParams.get('id')||'upload';body='<input type="file" aria-label="Upload"><textarea aria-label="Message">Existing draft independent of upload</textarea><button type="button">Send</button>';
       script=`document.querySelector('[type=file]').onchange=async event=>fetch('/receive?case='+${JSON.stringify(id)},{method:'POST',body:await event.target.files[0].text()});document.querySelector('button').onclick=()=>fetch('/receive?case=after-upload',{method:'POST',body:document.querySelector('textarea').value});`;
+    } else if(kind==='password-unread') {
+      // Brief 28, group 14's password fixtures (unread-fixtures.mjs).
+      const unread=unreadPage(url);if(!unread){res.writeHead(404);res.end('Unknown unread fixture');return;}({body,script}=unread);
     } else if(kind==='password-matrix'||kind==='password-inner') {
       ({body,script}=passwordPage(kind==='password-inner'));
     } else if(kind==='excluded') {
@@ -266,7 +275,9 @@ export async function fixtures(options={}) {
       body='<button aria-label="">●</button><textarea aria-label="Autosave"></textarea>';
       script="document.querySelector('button').onclick=()=>fetch('/receive?case=residual-click',{method:'POST',body:'ordinary click'});document.querySelector('textarea').oninput=e=>fetch('/receive?case=residual-autosave',{method:'POST',body:e.target.value});";
     } else {res.statusCode=404;res.end('Unknown synthetic fixture');return;}
-    const mutationId=!lateBindingChild&&(['review-page','binding','page-dialog','upload','draft-inner','stop-modal'].includes(kind)||kind==='site'&&url.searchParams.get('id')?.startsWith('adapter-bind-'))?url.searchParams.get('id'):null;
+    // Only the asking parent mutates. Its child shares the reporting id and
+    // would otherwise replace the parent's SSE with a handler that has no reviewChange.
+    const mutationId=!lateBindingChild&&!(kind==='password-outline'&&url.searchParams.get('mode')==='child')&&(['outline-state','password-outline','review-page','binding','page-dialog','upload','draft-inner','stop-modal'].includes(kind)||kind==='efficiency-h1'&&url.searchParams.get('id')||kind==='password-unread'&&url.searchParams.get('mode')==='late'||kind==='site'&&url.searchParams.get('id')?.startsWith('adapter-bind-'))?url.searchParams.get('id'):null;
     if(mutationId)script+=`;new EventSource('/events?id='+${JSON.stringify(mutationId)}).onmessage=event=>{
       const mutation=JSON.parse(event.data),change=mutation.change,form=document.querySelector('form'),button=document.querySelector('button');
       if(change==='review-change')globalThis.reviewChange();

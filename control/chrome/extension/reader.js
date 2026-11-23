@@ -12,6 +12,9 @@
   const privacy=globalThis[privacyKey]??={protectedFields:new WeakSet(),observed:new WeakSet(),fileIdentities:new WeakMap()};
   const watched=privacy.watched??=globalThis[Symbol.for('aresos.chrome.document-start.v1')]===true;
   const {protectedFields,fileIdentities}=privacy;
+  // Shadow roots the reader has met, and the typed fields that already held
+  // text at that first meeting (meet, below). Document lifetime, like the rest.
+  privacy.metRoots??=new WeakSet();privacy.lateFields??=new WeakSet();
   const protectedKey=Symbol.for('aresos.chrome.password-node.v1');
   const protectNode=node=>{protectedFields.add(node);if(!Object.getOwnPropertyDescriptor(node,protectedKey))Object.defineProperty(node,protectedKey,{value:true});};
   const guard=globalThis[Symbol.for('aresos.chrome.guard.v2')];
@@ -29,6 +32,7 @@
   const animatedValue=nativeGetter(globalThis.SVGAnimatedString,'animVal');
   const svgLink=element=>element.namespaceURI==='http://www.w3.org/2000/svg'&&element.localName==='a';
   const nodeBase=nativeGetter(globalThis.Node,'baseURI');
+  const elementHidden=nativeGetter(globalThis.HTMLElement,'hidden');
   const baseURI=node=>nodeBase?nodeBase.call(node):node.baseURI;
   const xlinkNamespace='http://www.w3.org/1999/xlink',elementAttributeNS=Element.prototype.getAttributeNS;
   const documentQueryAll=globalThis.Document?.prototype.querySelectorAll;
@@ -68,7 +72,7 @@
     const found = [root];
     for (const element of root.querySelectorAll('*')) {
       const childShadow = shadow(element);
-      if (childShadow) { guard.watch(childShadow); found.push(...roots(childShadow)); }
+      if (childShadow) { guard.watch(childShadow); if(meet(childShadow))observe(childShadow); found.push(...roots(childShadow)); }
     }
     return found;
   }
@@ -101,6 +105,31 @@
   const credentialStems=String.raw`pass[\s_-]*(?:word|wort|code|phrase)|passwd|kennwort|sicherheits[\s_-]*(?:code|antwort)|einmal[\s_-]*(?:code|kennwort|passwort)|best(?:ä|ae)tigungs[\s_-]*code|zugangs[\s_-]*code|one[\s_-]*time[\s_-]*(?:code|password)|security[\s_-]*(?:code|answer)|card[\s_-]*(?:verification|code)|pr(?:ü|ue)f[\s_-]*nummer|kartenpr(?:ü|ue)f|geheim[\s_-]*(?:zahl|nummer|code|wort)|transaktions[\s_-]*nummer|(?:verification|verify|authentication|auth|access|activation|recovery|backup|login|sms)[\s_-]*code|(?:verifizierungs|verifikations|authentifizierungs|authentisierungs|aktivierungs|wiederherstellungs|freigabe|anmelde|sicherungs)[\s_-]*code`;
   const credentialTokens=String.raw`pin(?:[\s_-]?(?:code|nummer|number))?\d*|otp(?:code|pin)?|[th]otp|2fa|mfa|pwd?\d*|passwd\d*|secret|puk\d*|cvc\d*|cvv\d*|csc|cvn|(?:sms|push|chip|photo|foto|app|mobile|m)?[\s_-]?tans?|user[\s_-]*pass|api[\s_-]?keys?|api[\s_-]?schl(?:ü|ue)ssel`;
   const credentialWords=new RegExp(`${credentialStems}|(?:^|[^\\p{L}\\p{N}])(?:${credentialTokens})(?:$|[^\\p{L}\\p{N}])`,'u');
+  // Brief 28, item 1 (the name rule): the credential words of the definitions,
+  // a copy of control/aresos_control/chrome/credentials.py that
+  // test_credentials.py compares with it. Either list makes a field
+  // password-kind. This one counts only for a field a person types into, so
+  // a hidden *_token field stays an ordinary field and its form is still sent.
+  const credentialNames={"version":1,"words":["password","passwort","kennwort","passcode","passphrase","pwd","pin","otp","totp","tan","mtan","2fa","mfa","secret","token","seed","mnemonic","cvv","cvc"],"pairs":{"code":["verification","verify","security","sms","login","auth","recovery","backup","card","einmal","bestätigung","sicherheit"],"key":["private","api","secret","access","recovery","signing"],"phrase":["recovery","seed","secret"]}};
+  const foldName=value=>value.toLowerCase().replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss');
+  const namedWords=new Set(credentialNames.words.map(foldName));
+  const namedPairs=Object.entries(credentialNames.pairs).map(([word,beside])=>[foldName(word),new Set(beside.map(foldName))]);
+  // A word counts whole or as a part of a name (user_password, otpCode,
+  // PIN2), never inside another word (shipping, pinned). A paired word
+  // counts beside a companion: as neighbours in either order, or written as
+  // one word, with the s German puts between them (Einmalcode, Sicherheitscode).
+  function namesCredential(value){
+    const parts=value.normalize('NFKC').replace(/(\p{Ll})(\p{Lu})/gu,'$1 $2').replace(/(\p{Lu})(\p{Lu}\p{Ll})/gu,'$1 $2').split(/[^\p{L}\p{N}]+/u).filter(Boolean)
+      .map(part=>{const folded=foldName(part);return folded.replace(/\d+$/,'')||folded;});
+    return parts.some((part,index)=>namedWords.has(part)||namedPairs.some(([word,beside])=>{
+      if(part===word)return beside.has(parts[index-1])||beside.has(parts[index+1]);
+      const before=part.endsWith(word)?part.slice(0,-word.length):null;
+      return before!==null&&(beside.has(before)||beside.has(before.replace(/s$/,'')));
+    }));
+  }
+  // A verdict depends on the field's kind and its name strings alone, and a
+  // read asks for it many times a field: it is kept until one of them changes.
+  const credentialVerdicts=new WeakMap();
   function credentialLike(element) {
     // Text is joined twice: with spaces between nodes for words in separate
     // elements, and without for a word split by markup (P<b>a</b>sswort).
@@ -116,7 +145,12 @@
       signals.push(referenced.map(node=>labelText(node,joiner)).join(' '));
       signals.push([...element.labels||[]].map(node=>labelText(node,joiner)).join(' '));
     }
-    return signals.some(value=>credentialWords.test(value.replace(/([a-z])([A-Z])/g,'$1 $2').normalize('NFKC').toLowerCase()));
+    const typed=!!element.isContentEditable||html(element,HTMLTextAreaElement,'textarea')||html(element,HTMLInputElement,'input')&&element.type!=='hidden';
+    const key=JSON.stringify([typed,...signals]),known=credentialVerdicts.get(element);
+    if(known?.key===key)return known.verdict;
+    const verdict=signals.some(value=>credentialWords.test(value.replace(/([a-z])([A-Z])/g,'$1 $2').normalize('NFKC').toLowerCase())||typed&&namesCredential(value));
+    credentialVerdicts.set(element,{key,verdict});
+    return verdict;
   }
   function password(element) {
     if(observer?.takeRecords)protect(observer.takeRecords());
@@ -126,12 +160,25 @@
     }
     return false;
   }
+  // Brief 28, item 1 (the history rule inside a watched document). A shadow
+  // root attached to an element that is already in the page causes no change
+  // an observer sees, so the owner can type into its field and make it plain
+  // before the reader meets the root at all. A typed field that already
+  // holds text at that first meeting has no known history, for the life of
+  // the document; an empty one is watched from then on. The check looks at
+  // whether a field is filled, never at its value. True when the root is new.
+  function meet(root){
+    if(privacy.metRoots.has(root))return false;
+    privacy.metRoots.add(root);
+    for(const element of root.querySelectorAll('input,textarea'))if(typedField(element)&&!password(element)&&filledStatus(element)==='filled')privacy.lateFields.add(element);
+    return true;
+  }
   function remember(root) {
     if(!watchedRoots.has(root)){watchedRoots.add(root);guard.watch(root);}
     for (const element of root.querySelectorAll('input,textarea,[contenteditable]')) password(element);
     for (const element of root.querySelectorAll('*')) {
       const childShadow = shadow(element);
-      if (childShadow) { guard.watch(childShadow); observe(childShadow); remember(childShadow); }
+      if (childShadow) { guard.watch(childShadow); meet(childShadow); observe(childShadow); remember(childShadow); }
     }
   }
   const changed = changes => {
@@ -161,13 +208,13 @@
     const children=composed?(assigned?.length?assigned:shadow(node)?.childNodes||node.childNodes):node.childNodes;
     return [...children].map(child=>text(child,includeHidden,composed)).join(' ');
   }
-  function name(element) {
+  function name(element, fromContent=['BUTTON','A','SUMMARY'].includes(element.tagName) || hyperlink(element) || element.hasAttribute('role')) {
     const root = element.getRootNode();
     const labelled = (element.getAttribute('aria-labelledby') || '').split(/\s+/).map(key => root.getElementById?.(key)).filter(Boolean);
     const buttonValue=html(element,HTMLInputElement,'input') && ['button','submit','reset'].includes(element.type) ? safeValue(element).value || (element.type==='submit'?'Submit':element.type==='reset'?'Reset':''):null;
     return (labelled.length ? labelled.map(node=>text(node,true)).join(' ') : element.getAttribute('aria-label') ||
       (element.labels?.length ? [...element.labels].map(node=>text(node,true)).join(' ') : element.getAttribute('alt') || buttonValue ||
-      ((['BUTTON','A','SUMMARY'].includes(element.tagName) || hyperlink(element) || element.hasAttribute('role') ? text(element) : element.getAttribute('placeholder') || '') || element.getAttribute('title') || ''))).replace(/\s+/g, ' ').trim();
+      ((fromContent ? text(element) : element.getAttribute('placeholder') || '') || element.getAttribute('title') || ''))).replace(/\s+/g, ' ').trim();
   }
   function editableText(node) {
     if(node.nodeType===Node.TEXT_NODE)return node.parentElement&&password(node.parentElement)?'':node.textContent;
@@ -236,10 +283,10 @@
     if(!identity.sha256)throw Error('refused: selected file digest is not ready; read the page again');
     return {name:file.name,size:blobSize.call(file),lastModified:file.lastModified,identity:identity.identity,sha256:identity.sha256};
   }
-  function safeValue(element) {
+  function safeValue(element, traced=true) {
     // The exclusion is repeated immediately before EACH value/text read.
     if (password(element)) return {password: true};
-    if(!watched&&typedField(element))return {typed_text:true,unknown_history:true,value_status:filledStatus(element)};
+    if(unknownHistory(element)&&typedField(element))return {typed_text:true,unknown_history:true,value_status:filledStatus(element)};
     if(!watched&&html(element,HTMLInputElement,'input')&&element.type==='hidden')return {unknown_history:true,value_status:'not_read'};
     let value;
     if (html(element,HTMLInputElement,'input')) {
@@ -248,9 +295,15 @@
     } else if (html(element,HTMLTextAreaElement,'textarea') || html(element,HTMLSelectElement,'select') || html(element,HTMLButtonElement,'button')) value = element.value;
     else if (element.isContentEditable) value = editableText(element).replace(/\n$/, '');
     else return {};
+    // The outline's reply holds what it read; brief 20's trace and rich identity stay with brief 20's reads.
+    if(!traced)return {value};
     traces.push({element: id(element), value});
     return {value,...(element.isContentEditable?{rich:richIdentity(element)}:{})};
   }
+  // Whether the reader can't know what a typed field held before it looked
+  // (brief 28, item 1, the history rule): its value is not read, the asking
+  // read may list it, and Claude doesn't type into it.
+  const unknownHistory=element=>!watched||privacy.lateFields.has(element);
   function typedField(element) {
     // This shared predicate controls normal reads, approval scope and reload warnings.
     return html(element,HTMLTextAreaElement,'textarea')||html(element,HTMLInputElement,'input')&&!['hidden','password','checkbox','radio','date','datetime-local','month','week','time','range','color','file','button','submit','reset','image'].includes(element.type);
@@ -264,7 +317,7 @@
     return element.validity?.badInput||!copy.validity.valueMissing?'filled':'empty';
   }
   function typedFields() {
-    return {document:documentId,reader:readerInstance,fields:watched?[]:all().filter(element=>typedField(element)&&!password(element)).map((element,index)=>({element:id(element),label:name(element)||(html(element,HTMLTextAreaElement,'textarea')?'textarea ':'single-line field ')+(index+1),type:element.type}))};
+    return {document:documentId,reader:readerInstance,fields:all().filter(element=>typedField(element)&&!password(element)&&unknownHistory(element)).map((element,index)=>({element:id(element),label:name(element)||(html(element,HTMLTextAreaElement,'textarea')?'textarea ':'single-line field ')+(index+1),type:element.type}))};
   }
   function readTypedFields(message) {
     if(message.approved!==true||!message.operation||typedReads.has(message.operation))throw Error('refused: typed fields require a fresh one-call approval');
@@ -276,6 +329,181 @@
       if(password(element)||!typedField(element))throw Error('stale_approval: typed field became a credential; ask again');
       return {...field,value:element.value};
     })};
+  }
+  // Brief 28, item 1: the outline. A node holds its own text and facts, never
+  // its descendants' text, a box or a style. Everything a page wrote leaves as
+  // a string value; a role leaves only as a word of this list (nodes.py ROLES).
+  const outlineRoles=new Set('main navigation banner contentinfo complementary region search form article group list listitem table row cell columnheader rowheader figure img separator toolbar dialog alertdialog alert status tooltip progressbar frame h1 h2 h3 h4 h5 h6 p text link button textbox searchbox combobox listbox option checkbox radio radiogroup switch slider spinbutton tab tablist tabpanel menu menubar menuitem menuitemcheckbox menuitemradio tree treeitem grid gridcell password'.split(' '));
+  // Roles the reader gives by its own rules; a role attribute can't claim them.
+  // A page's role="password" on a container would make the service refuse the
+  // whole reply (a field that isn't read has no children).
+  const readerRoles=new Set(['password','frame','text','p','h1','h2','h3','h4','h5','h6']);
+  const tagRoles=new Map(Object.entries({main:'main',nav:'navigation',aside:'complementary',form:'form',article:'article',fieldset:'group',details:'group',ul:'list',ol:'list',dl:'list',menu:'list',li:'listitem',dt:'listitem',dd:'listitem',table:'table',tr:'row',td:'cell',figure:'figure',hr:'separator',dialog:'dialog',iframe:'frame',h1:'h1',h2:'h2',h3:'h3',h4:'h4',h5:'h5',h6:'h6',p:'p',blockquote:'p',pre:'p',button:'button',summary:'button',textarea:'textbox',option:'option',progress:'progressbar',meter:'progressbar'}));
+  const inputRoles=new Map(Object.entries({checkbox:'checkbox',radio:'radio',range:'slider',number:'spinbutton',search:'searchbox',button:'button',submit:'button',reset:'button',image:'button'}));
+  // Inline formatting is text of the element it stands in (brief 28, section 7, decision 6).
+  const formattingTags=new Set('a b strong i em code span small mark abbr sub sup time u s q cite kbd var samp dfn del ins bdi bdo font big tt data ruby rt rp'.split(' '));
+  const unreadTags=new Set(['script','style','noscript','template','head','title']);
+  const contentNamed=new Set(['link','button','checkbox','radio','switch','tab','menuitem','menuitemcheckbox','menuitemradio','option','treeitem']);
+  const XHTML='http://www.w3.org/1999/xhtml',NODE_LIMIT=20000,OPTION_LIMIT=50;
+  const squeeze=value=>String(value??'').replace(/\s+/g,' ').trim();
+  // The reader's element id as a number (decision 4): e12 is 12.
+  const number=element=>Number(id(element).slice(1));
+  function outlineRole(element,tag){
+    const word=(element.getAttribute('role')||'').trim().split(/\s+/)[0].toLowerCase();
+    if(word==='heading'){const level=Number(element.getAttribute('aria-level')||2);return Number.isInteger(level)&&level>=1&&level<=6?'h'+level:'h2';}
+    if(outlineRoles.has(word)&&!readerRoles.has(word))return word;
+    if(hyperlink(element))return 'link';
+    if(element.namespaceURI!==XHTML)return null;
+    if(tag==='input')return element.type==='hidden'?null:inputRoles.get(element.type)||'textbox';
+    if(tag==='select')return element.multiple||element.size>1?'listbox':'combobox';
+    if(element.isContentEditable)return 'textbox';
+    // Native controls still take the value/withholding path under presentation roles.
+    if(tag==='textarea')return 'textbox';
+    if(tag==='button')return 'button';
+    if(word==='presentation'||word==='none')return null;
+    if(tag==='header'||tag==='footer')return element.parentElement?.localName==='body'?(tag==='header'?'banner':'contentinfo'):null;
+    if(tag==='section')return element.hasAttribute('aria-label')||element.hasAttribute('aria-labelledby')?'region':null;
+    if(tag==='th')return (element.getAttribute('scope')||'').toLowerCase()==='row'?'rowheader':'columnheader';
+    if(tag==='img')return element.getAttribute('alt')?'img':null;
+    return tagRoles.get(tag)||null;
+  }
+  function outlineStates(element,tag){
+    const aria=key=>element.getAttribute('aria-'+key),states=[];
+    const control=['input','textarea','select','button'].includes(tag);
+    if(tag==='input'&&['checkbox','radio'].includes(element.type)?element.checked===true:aria('checked')==='true')states.push('checked');
+    if(aria('selected')==='true')states.push('selected');
+    if(control&&element.matches(':disabled')||aria('disabled')==='true')states.push('disabled');
+    if(control&&element.required===true||aria('required')==='true')states.push('required');
+    if(aria('invalid')==='true')states.push('invalid');
+    const expanded=tag==='details'?String(element.open===true):aria('expanded');
+    if(expanded==='true')states.push('expanded');else if(expanded==='false')states.push('collapsed');
+    if(aria('current')&&aria('current')!=='false')states.push('current');
+    if((tag==='input'||tag==='textarea')&&element.readOnly===true||aria('readonly')==='true')states.push('readonly');
+    return states;
+  }
+  // The elements that hold a field's error text (shown with the field while it is invalid).
+  const errorParts=element=>{const root=element.getRootNode();return (element.getAttribute('aria-errormessage')||element.getAttribute('aria-describedby')||'').split(/\s+/).map(key=>key&&root.getElementById?.(key)).filter(Boolean);};
+  const optionFacts=option=>({label:squeeze(text(option)),value:String(option.value??''),chosen:option.selected===true,disabled:!!option.matches(':disabled')});
+  const composedChildren=node=>{const assigned=node.localName==='slot'?node.assignedNodes?.():null;return assigned?.length?assigned:shadow(node)?.childNodes||node.childNodes;};
+  // Fills a node's own facts. True when the element's content is its value or
+  // nothing the outline reads, so its children get no nodes.
+  function describe(node,tag,role,out){
+    const label=name(node,contentNamed.has(role));if(label)out.name=label;
+    const title=squeeze(node.getAttribute('title'));if(title&&title!==label)out.title=title;
+    const states=outlineStates(node,tag);if(states.length)out.states=states;
+    if(node.getAttribute('aria-invalid')==='true'){const error=squeeze(errorParts(node).map(part=>text(part,true)).join(' '));if(error)out.error=error;}
+    if(role==='link'){const href=hyperlinkAddress(node);if(typeof href==='string')out.href=href;}
+    if(node.namespaceURI!==XHTML)return false;
+    if(tag==='form'){
+      out.method=String(formProperty(node,'method')||'get').toLowerCase();out.action=String(formProperty(node,'action')||'');
+      const hidden=[...formProperty(node,'elements')].filter(control=>html(control,HTMLInputElement,'input')&&control.type==='hidden').map(control=>control.getAttribute('name')||'').filter(Boolean);
+      if(hidden.length)out.hidden=hidden;
+      return false;
+    }
+    if(tag==='iframe'){const frame=chrome.runtime.getFrameId?.(node);if(Number.isInteger(frame)&&frame>0)out.frame=frame;return true;}
+    if(tag==='select'){
+      const options=[...node.options];
+      out.option_count=options.length;out.chosen=options.filter(option=>option.selected).map(option=>squeeze(text(option))).join(', ');
+      out.options=options.slice(0,OPTION_LIMIT).map(optionFacts);
+      return true;
+    }
+    const input=tag==='input';
+    if(input&&node.type==='file'){out.value=[...node.files].map(file=>String(file.name)).join(', ');return true;}
+    if(input&&!['checkbox','radio','button','submit','reset','image'].includes(node.type)||tag==='textarea'||node.isContentEditable){
+      // safeValue repeats the exclusion right before the read (the password
+      // rule, the history rule); an unread field carries filled or empty only.
+      const safe=safeValue(node,false);
+      if(safe.password||safe.unknown_history){out.unread=true;if(['filled','empty'].includes(safe.value_status))out.filled=safe.value_status==='filled';}
+      else if(typeof safe.value==='string')out.value=safe.value;
+      return true;
+    }
+    return input||tag==='img'||tag==='progress'||tag==='meter';
+  }
+  function outline(budget){
+    // The background passes what is left of the tab's nodes; a frame never gets more than the limit.
+    const limit=Number.isInteger(budget)&&budget>=0?Math.min(budget,NODE_LIMIT):NODE_LIMIT;
+    const mark=traces.length;
+    try{
+      let modal=null;const errors=new Set();
+      for(const element of all()){
+        if(!modal&&element.matches('dialog[open],[role=dialog][aria-modal=true],[role=alertdialog][aria-modal=true]'))modal=element;
+        if(element.getAttribute('aria-invalid')==='true')for(const part of errorParts(element))errors.add(part);
+      }
+      const flush=owner=>{if(owner.run){owner.parts.push(owner.pre?owner.run.replace(/\r\n?/g,'\n'):owner.run.replace(/\s+/g,' '));owner.run='';}};
+      function visit(node,owner){
+        if(node.nodeType===Node.TEXT_NODE){owner.run+=node.textContent;return;}
+        if(!isElement(node))return;
+        const tag=node.localName;
+        if(unreadTags.has(tag)||errors.has(node))return;
+        // The exclusion comes before anything of the element is read.
+        const kept=password(node);
+        const style=getComputedStyle(node);
+        // A form's named controls can shadow hidden with an element. Read the
+        // native state so a control called "hidden" cannot hide its form.
+        if(html(node,HTMLElement)&&(elementHidden?elementHidden.call(node):node.hidden)||style.display==='none'||style.visibility==='hidden')return;
+        if(kept){flush(owner);const label=name(node,false);owner.parts.push({element:node,out:{role:'password',...(label?{name:label}:{}),unread:true},parts:[]});return;}
+        if(tag==='br'){owner.run+=owner.pre?'\n':' ';return;}
+        const role=outlineRole(node,tag);
+        if(role===null&&(node.namespaceURI!==XHTML||formattingTags.has(tag))){for(const child of composedChildren(node))visit(child,owner);return;}
+        flush(owner);
+        const record={element:node,out:{role},parts:[],run:'',pre:tag==='pre'||/^(?:pre|break-spaces)/.test(style.whiteSpace||'')};
+        // A textarea's default text is never generic page text, whatever its role.
+        if((role===null||!describe(node,tag,role,record.out))&&tag!=='textarea')for(const child of composedChildren(node))visit(child,record);
+        flush(record);
+        // No role and no text of its own: no node, and its children move up.
+        if(role===null&&!record.parts.some(part=>typeof part==='string'&&part.trim()))owner.parts.push(...record.parts.filter(part=>typeof part!=='string'));
+        else{if(role===null)record.out.role='text';owner.parts.push(record);}
+      }
+      const top={parts:[],run:'',pre:false};
+      visit(modal||document.body||document.documentElement,top);
+      const nodes=[];let omitted=0;
+      const lost=record=>{omitted++;for(const part of record.parts)if(typeof part!=='string')lost(part);};
+      // Document order: a parent stands before its children.
+      function emit(record,parent){
+        if(nodes.length>=limit){lost(record);return false;}
+        const out={id:number(record.element),parent,...record.out};nodes.push(out);
+        const parts=[];
+        for(const part of record.parts){
+          if(typeof part==='string')parts.push(part);
+          else{const child=nodes.length;if(emit(part,out.id))parts.push(nodes[child].id);}
+        }
+        if(typeof parts[0]==='string')parts[0]=parts[0].trimStart();
+        if(typeof parts.at(-1)==='string')parts[parts.length-1]=parts.at(-1).trimEnd();
+        const own=parts.filter(part=>part!=='');
+        if(own.some(part=>typeof part==='string'&&part.trim()))out.text=own;
+        return true;
+      }
+      for(const part of top.parts)if(typeof part!=='string')emit(part,null);
+      return {document:documentId,reader:readerInstance,watched,origin:globalThis.origin,url:location.href,title:document.title,
+        scroll:Math.max(0,Math.round(scrollY)||0),height:Math.max(0,Math.round(document.documentElement?.scrollHeight)||0),omitted,nodes};
+    }finally{traces.length=mark;}
+  }
+  // Every option of one list field, for a read of that field by its reference.
+  // A number names an element only for the reader instance that gave it: a
+  // new instance in the same document counts from one again.
+  function fieldOptions(message){
+    if(message.document!==documentId||message.reader!==readerInstance)throw Error('stale_reference: the document or its reader is new; read again');
+    const key=message.element,element=Number.isInteger(key)&&key>0?elements.get('e'+key):null;
+    if(!element?.isConnected||!html(element,HTMLSelectElement,'select')||password(element))throw Error('stale_reference: the list field is gone or is not read; read again');
+    return [...element.options].map(optionFacts);
+  }
+  // The reader's part of page_state: what moves whenever a read of this
+  // document could return something else. Values are digested here; a field
+  // that isn't read adds only what the outline shows of it.
+  function pageState(){
+    const digest=value=>sha256(new TextEncoder().encode(value)),fields=[];
+    for(const element of all()){
+      const tag=element.localName;
+      if(element.namespaceURI!==XHTML||!['input','textarea','select'].includes(tag))continue;
+      let state;
+      if(password(element))state='p';
+      else if(tag==='select')state='s'+[...element.options].map(option=>option.selected?1:0).join('');
+      else if(['checkbox','radio'].includes(element.type))state=element.checked?'c1':'c0';
+      else if(element.type==='file')state='f'+JSON.stringify([...element.files].map(file=>String(file.name)));
+      else{const safe=safeValue(element,false);state=typeof safe.value==='string'?'v'+safe.value:'u'+(safe.value_status||'');}
+      fields.push(state.length+':'+state);
+    }
+    return {document:documentId,reader:readerInstance,origin:globalThis.origin,revision,address:digest(location.href),fields:digest(fields.join('')),ready:document.readyState==='complete'};
   }
   function role(element) {
     if (element.getAttribute('role')) return element.getAttribute('role');
@@ -463,7 +691,8 @@
     const nodes = all(), modal = nodes.find(node => node.matches('dialog[open],[role=dialog][aria-modal=true],[role=alertdialog][aria-modal=true]'));
     const rows = nodes.filter(node => (!modal || modal.contains(node)) && !['SCRIPT','STYLE','NOSCRIPT','OPTION'].includes(node.tagName)).map(node => {
       const facts = targetFacts(node);
-      if (facts.role === 'generic' && !node.isContentEditable) {
+      // Native controls already went through safeValue; their child text is not a fallback name.
+      if (facts.role === 'generic' && !node.isContentEditable && !['INPUT','TEXTAREA','SELECT','BUTTON'].includes(node.tagName)) {
         if(password(node))return null;
         const own=[...node.childNodes].filter(child=>child.nodeType===Node.TEXT_NODE).map(child=>child.textContent).join(' ').replace(/\s+/g,' ').trim();
         if(!own || password(node) || node.hidden || getComputedStyle(node).display==='none' || getComputedStyle(node).visibility==='hidden')return null;
@@ -620,12 +849,17 @@
       else if (message.command === 'ready') value = {preload:true,document:documentId,...(message.element?{element_present:!!elements.get(message.element)?.isConnected}:{})};
       else if (message.command === 'typed_fields') value={...typedFields(),origin:globalThis.origin,url:location.href,title:document.title};
       else if (message.command === 'read_typed_fields') value=readTypedFields(message);
+      else if (message.command === 'outline') value=outline(message.limit);
+      else if (message.command === 'options') value=fieldOptions(message);
+      else if (message.command === 'page_state') value=pageState();
       else if (message.command === 'read' || message.command === 'facts') value = snapshot(message.element);
       else if (message.command === 'steps') { value = guard.steps(); }
       else if (message.command === 'focus') {
         const element = elements.get(message.element);
         if (!element?.isConnected) throw Error('stale_reference: read again');
         if (password(element)) throw Error('owner_signin: password fields belong to the owner');
+        // A fill or a key would overwrite what Claude can't see.
+        if (typedField(element)&&unknownHistory(element)) throw Error('owner_signin: the tool may not read this field, so it does not type into it either; the owner types here himself');
         element.focus();
         let focused=document.activeElement;
         while(focused && shadow(focused)?.activeElement)focused=shadow(focused).activeElement;

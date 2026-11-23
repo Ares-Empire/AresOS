@@ -46,13 +46,13 @@ Nobody can answer questions mid-run. If the brief doesn't settle something, take
 
 ## Hard rules
 
-1. Stay inside your worktree. Don't touch other worktrees, the main checkout, or files outside the repo, except the Gradle and Java caches the build needs.
+1. Stay inside your worktree. Don't touch other worktrees, the main checkout, or files outside the repo, except the Gradle and Java caches the build needs, and the shared bench store at `${XDG_CACHE_HOME:-$HOME/.cache}/aresos-bench/`, written only through the bench's own code. The shared client-test lock stays outside that store.
 2. Never touch the owner's real Minecraft folder (`%APPDATA%\.minecraft`) or Lunar Client. Test with Gradle's dev client (`runClient`), which uses its own `run/` folder.
 3. Never commit Mojang or Supercell assets (textures, sounds, fonts, logos). Vanilla textures load from the game at runtime. App icons are generated or drawn by us.
 4. Never install system software, change Windows settings, touch disks, partitions or boot configuration, or run anything as admin. If the brief seems to need that, stop and record it as a blocker.
 5. Never weaken, skip or delete a test to get green.
 6. Never put secrets in the repo, nor the owner's name (write `the owner`; the repo is public; owner, board T433, 2026-11-20), nor his machine username: write home paths with `owner` (`/Users/owner/...`, `C:\Users\owner\...`), also in made-up examples, or as repo-relative paths. The Repo privacy check refuses any other name there.
-7. Keep at most **one** verified copy of each large download (ISO, image layer) in your worktree's `.work/`, and reuse it. Delete extracted images (`squashfs.img`), duplicates and partial downloads as soon as the step that made them ends. Before the closing report, list what is left in `.work/` that is over 500 MB. The laptop's SSD is shared with the owner: package 14's replays once left 115 GB behind (2026-11-02).
+7. Keep at most **one** verified copy of each large download (ISO, image layer) in your worktree's `.work/`, and reuse it. The same one-copy rule holds in the shared bench store. Delete extracted images (`squashfs.img`), duplicates and partial downloads as soon as the step that made them ends. Before the closing report, list what is left in `.work/` that is over 500 MB. The laptop's SSD is shared with the owner: package 14's replays once left 115 GB behind (2026-11-02).
 
 ## Environment (the owner's laptop)
 
