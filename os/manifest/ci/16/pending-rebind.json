@@ -25,7 +25,7 @@
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
     {
-      "sha256": "9006f4327635e00f043d0e83874fed89ec768a314342961739c306d6d72bc9f2",
+      "sha256": "d1a974610993ef0364b578dc8f3f57ae6c709a2d6536a7e90968db00d37f7784",
       "path": ".github/workflows/os-image.yml"
     },
     {
@@ -33,7 +33,7 @@
       "path": "os/ci/control/release_checks.py"
     },
     {
-      "sha256": "dd76985796c94b7b3e8b98f321a6c9bead2d3e86762fe1bb00c7bfe6c3475872",
+      "sha256": "32b231fa99a40941f9f1804fb55be4ae51e26681a43f98865aace812a24f17f4",
       "path": "os/ci/owner_vm.py"
     },
     {
@@ -61,7 +61,7 @@
       "path": "os/tests/test_owner_path.py"
     },
     {
-      "sha256": "ebe736a65ba06f29bc049e87b4a78455a8a9a3decd5f9c07a34a00e2df1ce118",
+      "sha256": "04c00b5e661c78f4fe2f06152ea8eebbba42cb8918fb155563a63a77b07f5cdc",
       "path": "os/tests/test_owner_walk.py"
     }
   ],
