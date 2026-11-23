@@ -196,7 +196,7 @@ After both passes, `git checkout -- reviews/` restored 66 tracked screenshots an
 ## PLAN-GAP
 
 - The examples in HOME-OUTSIDE section 5 use `chrome`. The shipped catalogue names the app `browser`, with `/chrome` as a short name. The new fixtures use `browser`.
-- The new cap covers scopes visible to systemd at the admission snapshot. Multiple launches admitted before their scopes register can temporarily take the active count over the cap. Later admissions count those scopes as soon as they appear. The admission query uses the existing five-second systemd timeout and can delay helper replies during that interval.
+- The new cap covers scopes visible to systemd at the admission snapshot. Multiple launches admitted before their scopes register can temporarily take the active count over the cap. Later admissions count those scopes as soon as they appear. The admission query uses the existing five-second systemd timeout. While systemd's user manager is stalled, each admission blocks the serving loop for up to five seconds, so three or four queued admissions can hold back the desktop's heartbeats long enough for the supervisor to show its transient `unready` notice (RECHECK-6, nit 6). The game isn't touched and nothing latches, and with the manager stalled no app could start anyway. A follow-up after Codex's reset shortens the admission listing's timeout to about one second, since both timeout answers are already safe.
 
 ## Known limits
 
