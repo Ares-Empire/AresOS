@@ -71,6 +71,17 @@ No JUDGMENT-CALLs. The merge check has two PLAN-GAPs. Main advanced from
 Both updates are outside Control. Brief 28a calls for retiring its duplicate
 sweep once the adapted 18c-b suite reaches main.
 
+### CI IDs
+
+| Trigger | Workflow | Run ID | PR check ID |
+|---|---|---:|---:|
+| Code push `15fc3a62` | Control Chrome install | 45092178302 | 137423967649 |
+| Code push `15fc3a62` | Control boundary | 45092178317 | 137423967770 |
+| Dispatch on `fd34fb70` | `control-chrome.yml` | 45098424312 | |
+| Dispatch on `fd34fb70` | `control-chrome-qualification.yml` | 45098424201 | |
+
+Each manual workflow was dispatched once. Linux-tools is monitoring CI.
+
 Left: the lead's second pass and the merge check.
 
 ## Final look 2 — 2026-11-21
