@@ -72,6 +72,7 @@
 - Use Deskflow with a shared clipboard from the laptop to the Mac, with the normal qualification gates. Brightness, volume and mute keys go to the Mac while it has the keyboard (owner, 2026-11-21)
 - Provide a normal terminal with easy tabs. Use Konsole for the hub Terminal and any login terminal, with foot for recovery (owner, 2026-11-13)
 - Ctrl+V pastes in the terminal (owner, 2026-11-18)
+- Release contents aren't locked: anything SAFE and green may ride the next release if it doesn't put that release at risk, otherwise it takes the next one. This replaces the earlier rule that Chrome 28, 28a and 28b reach the laptop together (owner, 2026-11-23)
 - Provide routine signed updates in a terminal without Windows or a USB stick, using the verified local-folder route for tools installs. Stage while the OS runs, restart once, and keep the previous version. Keep the stick and Windows copy for emergencies (owner, 2026-11-14)
 - For a verified-folder install, the owner enters the password only if the prompt's eight-character fingerprint matches `docs/OWNER-TOOLS.md` on GitHub (owner, 2026-11-14)
 - `aresos update` uses a newer installed release without downloading. It fetches only if no newer release is installed. It announces its choice before changing anything (owner, 2026-11-14)
@@ -96,7 +97,7 @@
 5. Run the quick Claude-runs-the-laptop trial on R28 and the full one after tools. Recheck the boot menu and each way back with the owner, and give the owner the post-update hardware checks.
    - Keep the owner's replacement of the temporary recovery passphrase pending until the owner confirms it.
 6. Companions in order, AresOS host, hub companion (package 12 awaits the owner's go), then app-logo entry into the real app. Use data-driven original placeholder art in public and keep the owner's crab in a private add-on.
-7. Package 43 step 6. The OS-owned dispatcher routes the reserved maintenance words to the owner tools and hands every other word unchanged to the Control CLI at `/usr/libexec/aresos-control/cli`. The full path stays as a fallback. Take 43's reviewed handoff if it lands before the cut.
+7. Package 43 step 6. The OS-owned dispatcher routes the reserved maintenance words to the owner tools and hands every other word unchanged to the Control CLI at `/usr/libexec/aresos-control/cli`. It dispatches only the supported desktop maintenance commands, refuses reserved words such as `layout` and `login`, and sends those to the recovery console, where `sudo /var/lib/ares/at` stays the fallback. Take 43's reviewed handoff if it lands before the cut.
 8. The later in-image updater verifies the workflow signature and signed release list, rejects older or foreign images and carries the tools for the next update. The first release arrives by the verified-folder route. Get a council and Fable review for the trust change.
 9. Add backups (26). Adopt Konsole with an opaque profile, keeping foot for recovery and covering the foot-dependent checks and the no-login-terminal decision.
    - If the image takes over the login terminal, start Konsole maximized and remove the owner's interim `.bashrc` hook that starts it from the first foot shell.
