@@ -8,7 +8,7 @@ in `reviews/332-outside-game-design/INPUTS-2.md`: the owner's idea of home style
 `linux-desktop`'s points on video, icons and memory. Review 3 (`reviews/332-outside-game-design/REVIEW-3.md`) found
 it NOT READY on two points: a video could take the bar and the search away, and the second screen and the first
 icons had no place in the build order. This revision applies the lead's four decisions on that review and records
-the owner's answer T498. Both are the last two parts of INPUTS-2. Revision 4 was rechecked twice (`RECHECK-R4.md`, NOT READY on one point the lead fixed; `RECHECK-R4-2.md`, READY), and the lead then fixed three points from CodeRabbit's comments on PR171. Nothing here is
+the owner's answer T498. Both are the last two parts of INPUTS-2. Revision 4 was rechecked twice (`RECHECK-R4.md`, NOT READY on one point the lead fixed; `RECHECK-R4-2.md`, READY), and the lead then fixed three points from CodeRabbit's comments on PR171 (the search's focus by surface, no write after a failed settings read, and a liveness ping for the style switch), and the one blocking point of a third recheck (`aresos-settings` reports `minecraft` to every reader when its file can't be read). Nothing here is
 built. It decides the structure for the hub (`linux-hub`), the desktop (`linux-desktop`) and the supervisor
 (`linux-aresos`).
 
@@ -68,8 +68,10 @@ wait for the lead.
 
 - Finding 2: three more things beyond INPUTS-2 that revision 3 did not list. His laptop keeps the Minecraft world,
   `icon-align` starts on, and the keys on icons.
-- Finding 4: the keep rule when the settings file cannot be read.
-- Finding 5: `view_focus` and `view_alive`, now that two surfaces can hold the keyboard.
+- Finding 4, the keep rule when the settings file cannot be read: decided after the rechecks (section 6).
+- Finding 5, `view_focus` and `view_alive` now that two surfaces can hold the keyboard: decided after the rechecks
+  (`view_focus` names its surface; the switch's liveness check is a `view_ping`). The protocol details go to package
+  6's and 7's briefs (below).
 - Finding 6, last row: a shutdown in a normal style still goes black first today (supervisor `:3221-3222`).
 - Finding 7: what opens in OFF when the helper keeps failing.
 - Finding 8: one test for "has a home".
@@ -461,10 +463,15 @@ is no world change: it ends in `aresos-desktop video` alone.
 - **A laptop that has a home keeps it.** The settings file holds only what he chose, so a new default would reach
   his laptop too (`os/config/usr/libexec/aresos-settings:4-6`). So the supervisor settles it before it reads the
   style. If the file was read cleanly and has no `home` value, and this laptop has had a home, it writes `home =
-  minecraft` once, through `aresos-settings`. If the file can't be read, or has a format this release doesn't know,
-  the supervisor leaves it untouched and uses the Minecraft style for this session when the laptop has had a home
-  (the picture home otherwise), with a notice. A read that failed never leads to a write, so no setting of his is lost. "Has had a home" is the supervisor's own `hub_seen` (supervisor `:1111`), or a home folder in
-  his worlds folder. From then on the file names his style like any choice of his.
+  minecraft` once, through `aresos-settings`. "Read cleanly" means the file parses in a format this release knows; a
+  single unknown name or value doesn't make it unclean (`aresos-settings` ignores it, and drops it at the next write,
+  as today). If the file can't be parsed or has a format this release doesn't know, nobody writes it: `aresos-settings`
+  itself reports `home = minecraft` as the effective value for every reader (the supervisor, the helper and the native
+  home), and the supervisor shows a notice once per session. So every part of the session agrees on the style. The
+  file stays untouched until he picks a style or a setting himself, which replaces it as any `aresos-settings set`
+  does today (`aresos-settings:110-115`). The supervisor's own rule never writes after a failed read. "Has had a
+  home" is the supervisor's own `hub_seen` (supervisor `:1111`), or a home folder in his worlds folder. From then on
+  the file names his style like any choice of his.
 - The rule runs at every supervisor start, so it also mends a file that lost the name after `previous`.
 - **A style change never touches a world's files.** Whatever the setting says, his home is where it was.
 
@@ -489,7 +496,8 @@ is no world change: it ends in `aresos-desktop video` alone.
 - **The shutdown guard is asked only before a game starts** (supervisor `:1967`). A normal style's boot does not
   wait for it, and a shutdown in a normal style has nothing to save: no black screen and no wait.
 - **A boot never begins a first start** (from package 12). While this laptop has no home, a boot starts no world,
-  whatever the setting says. It shows the picture home and sets the style back to Picture. Only his pick opens
+  whatever the setting says. It shows the picture home and, after a clean read that found `minecraft`, sets the style
+  back to Picture; after a failed read it writes nothing. Only his pick opens
   Prism's sign-in.
 
 **Where he picks it.**
@@ -1359,7 +1367,7 @@ ask how soon the world should sleep, with measured wake times.
 | **The world starting by itself after he chose a normal home.** | In OFF only his own request starts it (section 6). Gate 2 shows that this holds across a crash, a new supervisor, an old restart deadline and Prism's own button. |
 | **A normal home with no way to open an app.** | A change to a normal style is refused while no view `home` with the search is connected (section 6). |
 | **A normal home that dies with Minecraft's files.** | In a normal style the boot reads no pin file, makes no instance and starts no Prism. A fault there shows only when he picks the Minecraft world (gate 2, row 8). |
-| **The update that flips the default takes his home away.** | A laptop that has had a home is set to `minecraft` before the style is read, at every supervisor start (section 6). Package 12's VM test shows it. His world's files are not touched either way. |
+| **The update that flips the default takes his home away.** | A laptop that has had a home gets `home = minecraft` written once, before the style is read, when its settings file was read cleanly and names no style; an unreadable file is never written, and `aresos-settings` then reports `minecraft` to everyone (section 6). Package 12's VM test shows both, the unreadable file unchanged byte for byte. His world's files are not touched either way. |
 | **A video that takes the bar and the search down with it.** | The video is not in the program that holds them. It plays in a process, a surface and a scope of its own, under a hard memory limit. A stall, a leak or a crash loses only the video, and the picture shows under it. After a second end or one missed beat the supervisor turns the video off and says so (section 6). Package 3V's tests check the bar and the search during each fault. |
 | **A home that cannot come back.** | A chain, each link independent of the one before: (1) the native home is restarted when it ends, for as long as the session lasts; (2) the world's own hotbar and the mod's search never depend on the native home; (3) in OFF, after the native home's third failed start, and whenever Super finds no view and no awake world, the supervisor opens its message window. It says how to try the bar again (`retry`) and how to start the world (`world on`), and it starts nothing; (4) the same commands work from the recovery terminal; (5) if the world cannot start either, today's recovery window says why. His open apps stay reachable by Alt+Tab throughout. |
 | **A hung search that holds the keyboard.** | Three ways out. The search sends an alive beat from its drawing loop; after three silent seconds the supervisor ends the native home's scope. The recovery key gets a third action, first in line, that kills `aresos-home.scope` through the user manager. It needs no supervisor and no helper, and it is what lets the terminal get the keyboard (`docs/design/COMPONENTS.md:1204-1208`). And Escape or a click outside closes a search that still answers. The program keeps no state of its own, so ending it loses nothing. |
@@ -1450,6 +1458,16 @@ and "centred".
 
 This note's recommendation is question 7 in section 11: two switches, the home style and the look, and no switch for
 each piece.
+
+### Details left for the package briefs (recheck 3 of revision 4, non-blocking)
+
+- **Package 6:** `view_focus` carries `"surface": "search" | "icons"` in the `search_view` row of the protocol table, and the search's close order (section 4) reports `view_focus` false for `search`.
+- **Package 7:**
+  - `view_ping` gets its own row in the protocol table, plus a supervisor request and a helper answer on the status socket, because `world off` can also come from the command line.
+  - The view answers the ping from its drawing loop, so a hung view counts as absent.
+  - A missed ping refuses the switch but never ends the native home; the three-second end applies only to the keyboard beat.
+  - Its test row adds a live native home without the keyboard, where the switch goes through.
+- **Package 12:** its test row adds an unreadable settings file and one of another version. The file stays unchanged byte for byte, the Minecraft style runs, and the notice shows.
 
 ### Known limits (low harm)
 
