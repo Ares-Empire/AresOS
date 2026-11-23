@@ -12,6 +12,7 @@ It needs no browser. The adapter calls, in this order:
 Everything a page wrote reaches a line through `quoted` and nothing else, and
 every address through `public_address`.
 """
+import copy
 import functools
 import hashlib
 import json
@@ -48,8 +49,6 @@ TABLES = frozenset(("table", "grid"))
 PATH_ROLES = frozenset("main navigation banner contentinfo complementary form dialog table".split())
 LISTS = frozenset(("combobox", "listbox"))
 METHODS = frozenset(("get", "post", "dialog"))
-# What the fingerprint keeps of the states: ticked, selected, expanded.
-_STATE_FACTS = frozenset(("checked", "selected", "expanded", "collapsed"))
 
 
 def quoted(text):
@@ -79,14 +78,6 @@ def shown_role(node):
     if node.role and node.role != "text":
         return node.role
     return "text" if node.name or any(type(part) is str and part.strip() for part in node.text) else None
-
-
-def fingerprint(node):
-    """What brief 28a compares before it acts, kept apart from the line Claude saw."""
-    return {"role": shown_role(node), "name": node.name, "title": node.title, "href": node.href,
-            "value": node.value, "unread": node.unread, "filled": node.filled, "chosen": node.chosen,
-            "options": [(option.label, option.value, option.chosen, option.disabled) for option in node.options],
-            "states": sorted(node.states & _STATE_FACTS)}
 
 
 class Text:
@@ -265,8 +256,10 @@ class _Renderer:
                                           node.id if target is None else target)
         start = len(line.text) - len(line.text.lstrip()) if line.inline is None else line.inline
         line.add(" " + reference)
-        # Where the reference ends, what Claude sees of the element, and its fingerprint.
-        line.marks.append((len(line.text), reference, line.text[start:], None if target else fingerprint(node)))
+        # Where the reference ends, what Claude sees of the element, and its
+        # fingerprint: the reader's digest (brief 28a, item 2), never one made
+        # from the line. A fold has none, so no action accepts its reference.
+        line.marks.append((len(line.text), reference, line.text[start:], None if target else node.fingerprint))
 
     def _inline(self, line, node, lead=" "):
         """A link or control inside a sentence or a cell: [role "name" = "value" states reference].
@@ -655,12 +648,12 @@ class _Renderer:
             form = document.nodes.get(entry.target[1])
             fields = self._fields(form) if form is not None else []
             if first not in fields:
-                raise Stale(present_line(self.view, self.references, first))
+                raise stale(self.view, self.references, first)
             return fields[fields.index(first):], False
         _, owner, _, role = entry.target
         parent = self.parent(first)
         if (parent.key if parent else None) != owner or shown_role(first) != role or first.key not in self._parents:
-            raise Stale(present_line(self.view, self.references, first))
+            raise stale(self.view, self.references, first)
         beside = self.content(parent) if parent else self.roots(first.document)
         hidden = []
         for item in beside[beside.index(first):]:
@@ -777,13 +770,103 @@ class _Renderer:
         self.out.add(line)
 
 
-def present_line(view, references, node):
-    """An element's line as it is now, for a refusal's `untrusted_content`."""
-    if shown_role(node) is None:
-        return None
+def stale(view, references, node):
+    """The refusal of a reference with the element's line as it is now, for its `untrusted_content`.
+
+    The line's references and fingerprints ride along as `shown`: whoever gives
+    Claude the line records them (`References.returned`), so it counts as shown
+    (brief 28a, item 2). An element without a line of its own gives none.
+    """
+    if node is None or shown_role(node) is None:
+        return Stale()
     renderer = _Renderer(view, references)
     renderer._own_line(node, 0, [] if shown_role(node) in TABLES else renderer._split(node, False)[0], CUT)
-    return renderer.out.text()
+    return Stale(renderer.out.text(), Text(renderer.out.text(), renderer.out.marks).shown(len(renderer.out.text())))
+
+
+# --- the change report (brief 28a, item 5) -----------------------------------
+
+_UNISSUED = "\x00"
+
+
+class _Unissued:
+    """A stand-in table: a line written with it carries a mark where a reference would stand, and none is issued."""
+
+    def issue(self, *identity):
+        return _UNISSUED
+
+
+def _lines(view, references, wanted=None):
+    """Every element with a line of its own, in the outline's order.
+
+    Yields (identity, the identity of the element it stands under, its line,
+    what the line shows), each line as a refusal's present line writes it
+    (`stale`). `wanted` limits it to those identities.
+    """
+    renderer = _Renderer(view, references)
+    identity = lambda node: None if node is None else (node.document.frame, node.document.document, node.document.reader, node.id)
+    for document in view.documents[:1] + renderer._unanchored():
+        for node, parent in renderer._lined(renderer.roots(document)):
+            key = identity(node)
+            if wanted is not None and key not in wanted:
+                continue
+            renderer.out = _Buffer()
+            renderer._own_line(node, 0, [] if shown_role(node) in TABLES else renderer._split(node, False)[0], CUT)
+            text = renderer.out.text()
+            yield key, identity(parent), text, Text(text, renderer.out.marks).shown(len(text))
+
+
+def changes(before, after, references, limit):
+    """What differs by element between two outlines of one document: (text, the changes left out, what it shows).
+
+    A line `+ ` is a new element, `~ ` one whose line changed (its new line)
+    and `- ` one that is gone (its old line, without references). A new
+    element stands under its new parent: the parent's line comes first, as
+    context without a mark, where it isn't itself in the report. The text is at
+    most `limit` characters and ends at a line end. What it shows (references,
+    lines and fingerprints) is the caller's to record with `returned`.
+    """
+    old = {key: text for key, _, text, _ in _lines(before, _Unissued())}
+    new = [(key, parent, text) for key, parent, text, _ in _lines(after, _Unissued())]
+    present = {key for key, _, _ in new}
+    plan, level = [], {}
+    for key, parent, text in new:
+        if key in old and old[key] == text:
+            continue
+        if key in old:
+            plan.append(("~ ", 0, key))
+            level[key] = 0
+            continue
+        if parent is None:
+            depth = 0
+        elif parent in level:
+            depth = level[parent] + 1
+        else:
+            plan.append(("  ", 0, parent))
+            level[parent], depth = 0, 1
+        plan.append(("+ ", depth, key))
+        level[key] = depth
+    # The lines that are shown, written with the real table: their references are issued and returned.
+    written = {key: (text, shown) for key, _, text, shown in _lines(after, references, {key for _, _, key in plan})}
+    lines = [(mark, "  " * depth + written[key][0], written[key][1]) for mark, depth, key in plan]
+    lines += [("- ", text.replace(" " + _UNISSUED, ""), []) for key, text in old.items() if key not in present]
+    kept, size, shown = [], -1, []
+    for mark, text, marks in lines:
+        if size + 1 + len(mark) + len(text) > limit:
+            break
+        kept.append((mark, text, marks))
+        size += 1 + len(mark) + len(text)
+    while kept and kept[-1][0] == "  ":
+        kept.pop()  # a parent's line without the new element it stood for
+    for _, _, marks in kept:
+        shown += marks
+    total = sum(1 for mark, _, _ in lines if mark != "  ")
+    return "\n".join(mark + text for mark, text, _ in kept), total - sum(1 for mark, _, _ in kept if mark != "  "), shown
+
+
+def present_line(view, references, node):
+    """An element's line as it is now, or None where it has no line of its own."""
+    return stale(view, references, node).line
 
 
 def option_fields(view, references, ref=None, full=False):
@@ -844,7 +927,7 @@ def header(view):
     top = view.top
     return {"url": public_address(view.url), "title": visible(view.title),
             "scroll": "%d/%d" % (top.scroll, top.height) if top else "0/0",
-            "dialog": None if view.dialog is None else visible(view.dialog)}
+            "dialog": None if view.dialog is None else visible({key: view.dialog[key] for key in ('kind', 'text')})}
 
 
 # --- pages ------------------------------------------------------------------
@@ -952,6 +1035,9 @@ class Failure:
         entry = {"tab": self.tab, "error": {"code": self.error.code, "message": str(self.error)}}
         if getattr(self.error, "line", None):
             entry["untrusted_content"] = {"line": self.error.line}
+        if self.error.untrusted_content is not None:
+            # A loss refusal (brief 28a, item 5b): its report beside the fixed message, as the tab's untrusted data.
+            entry.setdefault("untrusted_content", {}).update(copy.deepcopy(self.error.untrusted_content))
         return entry
 
 
@@ -974,6 +1060,11 @@ def fit(parts, measure, references, limit=RESULT_LIMIT):
             end, mid_line = cut(part.text.text, part.start, part.limit, share, part.lines)
             entries.append(part.entry(end, mid_line))
             references.returned(part.view.tab, part.text.shown(end))
+            # The header showed the tab's native dialog, or none (brief 28a, item 5: what a dialog step answers).
+            references.dialog_shown(part.view.tab, part.view.dialog)
         else:
             entries.append(part.entry())
+            # A refusal's present line is shown too (brief 28a, item 2).
+            if getattr(part.error, "line", None):
+                references.returned(part.tab, getattr(part.error, "shown", ()))
     return entries

@@ -180,10 +180,17 @@ class ExtensionErrors(unittest.TestCase):
                 identity=json.loads(data)['id'];self.buffer+=(json.dumps({'id':identity,'ok':False,'error':self.error})+'\n').encode()
             def recv(self,size):value=self.buffer[:size];self.buffer=self.buffer[size:];return value
             def close(self):pass
-        for raw,code,message in [('reload_required: unsaved\u202etext\nnext','reload_required','unsaved\\u202etext\\u000anext'),('page said \u2066hidden','refused','page said \\u2066hidden'),('refused: plain','refused','plain')]:
+        for raw,code,message in [('page said \u2066hidden','refused','page said \\u2066hidden'),('refused: plain','refused','plain')]:
             bridge=Bridge();bridge.connection=Peer(raw)
             with self.assertRaises(Refused) as error:bridge.call('read',tab=1)
             self.assertEqual(error.exception.code,code);self.assertEqual(str(error.exception),message)
+        # Brief 28a, item 5b: a loss refusal never carries the extension's text, escaped or not. Without a
+        # report it still refuses with the service's own sentence, its loss marked unavailable.
+        from aresos_control.chrome.loss import MESSAGE
+        bridge=Bridge();bridge.connection=Peer('reload_required: unsaved\u202etext\nnext')
+        with self.assertRaises(Refused) as error:bridge.call('read',tab=1)
+        self.assertEqual(error.exception.code,'reload_required');self.assertEqual(str(error.exception),MESSAGE)
+        self.assertEqual(error.exception.untrusted_content,{'loss':{'unavailable':True}})
 
 
 class ConnectionDelivery(unittest.TestCase):

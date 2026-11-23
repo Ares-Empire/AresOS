@@ -1,5 +1,6 @@
 // Loaded only by the GitHub Linux-container harness.
 import assert from 'node:assert/strict';
+import {pendingCheck} from './failure.mjs';
 import fs from 'node:fs';
 import {allTabs} from './tabs.mjs';
 import {assertNativeLimit} from './activation-evidence.mjs';
@@ -16,7 +17,7 @@ export async function recheck2Matrices({check,nav,call,target,approval,receiverE
     for(const mode of ['open','closed'])for(const variant of ['same','other','root']){
       setTab(await nativeDonor(getTab()));const id='recheck2-event-'+mode+'-'+variant;
       await nav('review-page&mode=event-reuse&variant='+variant+'&root='+mode+'&id='+id);
-      const result=await call('click',await target('Continue'));
+      const result=await call('click',await target('Continue'),{committed:true});
       assert.equal(receiverEvidence('handler-'+id,'reused event first handler held').count,0);
       assert.equal(receiverEvidence('other-handler-'+id,'reused event other handler held').count,0);
       assert.equal(receiverEvidence(id,'reused event defaults held').count,0);
@@ -48,7 +49,7 @@ export async function recheck2Matrices({check,nav,call,target,approval,receiverE
   });
   await check('GROUP 2 RECHECK2 the owner navigates during the network hold',async()=>{
     const id='recheck2-owner-navigation';await nav('review-page&mode=owner-navigation&id='+id);
-    const pending=call('click',await target('Continue'));
+    const pending=pendingCheck(call('click',await target('Continue')));
     const started=await eventually(()=>fixture.arrivals.find(row=>row.url.includes('case=task-start')&&row.body===id),'owner-navigation start');
     await delay(Math.max(0,started.time+130-Date.now()));ownerKey(true);await pending;
     await eventually(()=>receiverEvidence(id,'owner native navigation').count===1,'owner navigation during hold');
@@ -79,7 +80,7 @@ export async function recheck2Matrices({check,nav,call,target,approval,receiverE
       assert.equal(alone.before.active,false);assert.equal(alone.atHandler.active,false);assert.equal(alone.trusted,false);assert.equal(alone.secure,true);
       assert.equal(receiverEvidence(id+'-alone','known limit autonomous handler').count,1);
       assert.equal(receiverEvidence(id+'-claude','known limit before Claude input').count,0);
-      const result=await call('click',await target('Continue'));
+      const result=await call('click',await target('Continue'),{committed:true});
       const clicked=await eventually(()=>fixture.compatibility.find(row=>row.id===id&&row.phase==='all-native-limit'&&row.cause==='claude'),'Claude native result');
       assert.equal(clicked.trusted,false);assert.equal(clicked.secure,true);assert.equal(receiverEvidence(id+'-claude','known limit after Claude input').count,1);
       // The invisible native step is not falsely described as stopped. The
@@ -103,7 +104,7 @@ export async function recheck2Matrices({check,nav,call,target,approval,receiverE
     for(const route of ['writeText','write','copy','writeText-nav']){
       const id='recheck2c-clipboard-'+route;await nav('review-page&mode=clipboard-report&variant='+route+'&id='+id,'localhost');
       assert.equal(receiverEvidence(id,'clipboard before click').count,0);
-      const result=await call('click',await target('Continue'));await eventually(()=>receiverEvidence(id,'clipboard accepted once').count===1,'native clipboard operation accepted');
+      const result=await call('click',await target('Continue'),{committed:true});await eventually(()=>receiverEvidence(id,'clipboard accepted once').count===1,'native clipboard operation accepted');
       assert.equal(result.untrusted_content.page.clipboard.written,true);assert.equal(result.untrusted_content.page.clipboard.message,'The page wrote to the clipboard.');
       assert.deepEqual(result.untrusted_content.page.clipboard.routes,[route==='writeText-nav'?'writeText':route]);
       assert.doesNotMatch(JSON.stringify(result),/SYNTHETIC_CLIPBOARD_CONTENT_2C/);

@@ -5,6 +5,7 @@ control/chrome/packaging/aresos-control-chrome.tmpfiles, as content the
 service's validator refuses. Until root writes a format 1 list, every Chrome
 read and action must answer chrome_settings_unavailable and reach no page.
 """
+from contextlib import nullcontext
 from pathlib import Path, PurePosixPath
 import os
 import re
@@ -148,35 +149,33 @@ class UnconfiguredChrome:
         if name == 'queued_steps': return []
         raise Refused('refused', 'owner-only excluded-sites setting is unavailable')
 
+    def bounded(self, end):
+        # TimeLeft.bounded only sets a local deadline for any later command.
+        return nullcontext()
+
     def close(self): pass
 
 
 PAGE = 'http://page.invalid/'
+REF = 'kqtvm5'
 REFERENCE = {'session': UnconfiguredChrome.session, 'tab': 1, 'frame': 0, 'document': 'document-1', 'view': 'view-1', 'element': 'e1'}
-TARGET = {'reference': REFERENCE, 'expected': {}}
 PREPARED = object()  # replaced by the approval of an operation the test writes into the store
 
-# Every tool that reads or changes a page, with arguments valid for its input.
+# Every tool that reads or changes a page or tab, or reads browser collections.
 SWEPT = {
     'chrome_prepare_read_typed_fields': {'tab': 1},
     'chrome_read_typed_fields': PREPARED,
-    'chrome_tabs': {}, 'chrome_downloads': {}, 'chrome_bookmarks': {}, 'chrome_history': {},
-    'chrome_take_tab': {'tab': 1}, 'chrome_release_tab': {'tab': 1}, 'chrome_close_tab': {'tab': 1},
-    'chrome_open': {'url': PAGE},
-    'chrome_navigate': {'tab': 1, 'url': PAGE},
     'chrome_read': {'tab': 1},
-    'chrome_find': {'tab': 1, 'text': 'word'},
-    'chrome_read_form': {'tab': 1, 'reference': REFERENCE},
-    'chrome_wait': {'tab': 1},
-    'chrome_click': TARGET,
-    'chrome_fill': {**TARGET, 'text': 'text'},
-    'chrome_select': {**TARGET, 'value': 'one'},
-    'chrome_check': {**TARGET, 'checked': True},
-    'chrome_press': {**TARGET, 'key': 'Enter'},
-    'chrome_scroll': {**TARGET, 'x': 0, 'y': 10},
-    'chrome_upload': {**TARGET, 'path': '/work/fixture.txt'},
-    'chrome_fill_form': {'fields': [{**TARGET, 'text': 'text'}]},
-    'chrome_dialog': {'tab': 1, 'expected': {}, 'accept': False},
+    'chrome_tabs': {},
+    'chrome_open': {'url': PAGE},
+    'chrome_go': {'tab': 1, 'url': PAGE},
+    'chrome_do': {'tab': 1, 'steps': [{'do': 'click', 'ref': REF}]},
+    'chrome_show': {'tab': 1},
+    'chrome_close': {'tabs': [1]},
+    'chrome_take': {'tab': 1, 'seen': REF},
+    'chrome_release': {'tab': 1},
+    'chrome_library': {'kind': 'history'},
+    'chrome_upload': {'tab': 1, 'ref': REF, 'path': '/work/fixture.txt'},
     'chrome_submit': PREPARED,
     'chrome_submit_trusted': PREPARED,
     # Owner-only, but it checks an address against the list.
@@ -189,7 +188,7 @@ ANSWER_ANYWAY = {
     'chrome_sites list': "Owner-only; lists his own read-only sites and 'don't ask again' entries from the service's store.",
     'chrome_sites allow': "Owner-only; adds a 'don't ask again' entry to the service's store from a finished operation's record.",
     'chrome_sites revoke': "Owner-only; takes a 'don't ask again' entry back, which only tightens.",
-    'chrome_notices': "The service's own warning records; he must be able to read them in any state.",
+    'chrome_notices': "Reads committed warnings and can reconcile them against the extension's in-memory step queue without accessing pages or tabs.",
     'chrome_notice_ack': "Marks one of the service's own warning records as seen.",
     'chrome_operation_status': "The service's own record of an operation.",
     'chrome_drop': 'Cancels prepared work in the store; nothing is dispatched.',
@@ -252,16 +251,16 @@ class Sweep(unittest.TestCase):
 
     def test_every_read_and_action_is_refused_and_reaches_no_page(self):
         for name, arguments in SWEPT.items():
+            self.bridge.calls.clear()
             if arguments is PREPARED:
                 arguments = self.prepared('read_typed_fields', self.typed()) if name == 'chrome_read_typed_fields' else self.prepared('submit', self.asking())
             with self.subTest(tool=name):
                 result = self.call(name, arguments)
                 self.assertFalse(result['ok'], result)
                 self.assertEqual(result['error'], {'code': 'chrome_settings_unavailable', 'message': MESSAGE})
+                self.assertEqual(self.bridge.calls, [])
         # The refusals came from the real owner_hosts reading the list's path.
         self.assertEqual({call.args[1] for call in self.read.call_args_list}, {exclusions.SETTING})
-        self.assertNotIn('configure', self.bridge.calls)
-        self.assertLessEqual(set(self.bridge.calls), {'ack_steps', 'queued_steps'})
 
     def test_the_named_tools_answer_without_reaching_a_page(self):
         finished = self.prepared('submit', self.asking(), state='done')

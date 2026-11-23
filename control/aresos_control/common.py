@@ -1,3 +1,4 @@
+import copy
 import hashlib
 import errno
 import json
@@ -25,9 +26,20 @@ def shortened(text, limit=2048):
 
 
 class Refused(Exception):
+    # Structured page data a refusal carries beside its fixed message (brief
+    # 28a, item 5b: Chrome's loss report). A public error copies it under
+    # untrusted_content; it never becomes part of the message.
+    untrusted_content = None
+
     def __init__(self, code, message):
         self.code = code
         super().__init__(shortened(message))
+
+
+def untrusted(exc):
+    """The extra field of a public error: the refusal's untrusted_content, or nothing for every other error."""
+    content = getattr(exc, 'untrusted_content', None)
+    return {} if content is None else {'untrusted_content': copy.deepcopy(content)}
 
 
 def _storage_refusal(exc):

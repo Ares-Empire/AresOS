@@ -11,6 +11,7 @@ import uuid
 
 from ..common import Refused, strict_json_loads, canonical, visible
 from .qualification import version
+from . import loss
 
 LIMIT = 1024 * 1024
 # Brief 28, item 4. A command sent inside `bounded` carries the milliseconds it
@@ -21,6 +22,14 @@ LIMIT = 1024 * 1024
 # connection is closed as a silent socket closes it. The bridge remembers the
 # last GIVEN_UP ids it gave up on.
 GRACE, SOCKET_BOUND, GIVEN_UP = .5, 15, 64
+# Brief 28a, item 5 ("Time"): an input's reply comes after its hold and the
+# collection of page steps, which run after the dispatch with their own bounds.
+# So the bridge waits for it its time plus INPUT_GRACE seconds, and one that
+# still hasn't answered may have run: its outcome is `unknown`, never `expired`,
+# and it is never retried. `expired` for an input means nothing was dispatched.
+INPUTS, INPUT_GRACE = frozenset(('input', 'resume', 'dialog')), 2.0
+GAVE_UP_INPUT = ("No answer came in this input's time and 2 seconds; it may have run. "
+                 "Inspect operation status and never replay it.")
 
 
 class GaveUp(Exception):
@@ -137,7 +146,7 @@ class Bridge(TimeLeft):
             if left <= 0:
                 raise Refused('expired', 'Time ran out before this command was sent; nothing was sent.')
             message['time_left_ms'] = left
-            until = self.end + GRACE
+            until = self.end + (INPUT_GRACE if name in INPUTS else GRACE)
         body = json.dumps(message,separators=(',',':')).encode() + b'\n'
         if len(body) > LIMIT:
             raise Refused('asking_input_too_large', 'Chrome command exceeds its wire bound; use a smaller input.')
@@ -154,6 +163,8 @@ class Bridge(TimeLeft):
                     self.give_up(identity, sent)
                     if event_error is not None:
                         raise Refused('unknown','A Chrome owner event could not be committed; inspect status and never replay an input.') from event_error
+                    if name in INPUTS:
+                        raise Refused('unknown', GAVE_UP_INPUT) from None
                     raise Refused('expired', "No answer came in this command's time; it was given up.") from None
                 if reply.get('event'):
                     try:
@@ -190,6 +201,10 @@ class Bridge(TimeLeft):
                     raw = reply.get('error','refused: Chrome refused input')
                     code, separator, message = raw.partition(':')
                     if not separator: message = raw
+                    # Brief 28a, item 5b: a loss refusal gets the service's own sentence whatever the
+                    # extension wrote, and its report (page labels) only as untrusted data.
+                    if code.strip() == 'reload_required':
+                        raise loss.LossRefused(loss.checked(reply.get('loss')))
                     # Extension errors are literals today; escape them anyway, like page text.
                     # invalid_input comes only from a malformed time_left_ms (brief 28, item 4):
                     # a fault on this side, refused unrun, and the read's call fails with it.

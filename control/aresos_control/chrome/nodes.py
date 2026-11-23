@@ -25,6 +25,7 @@ What the reader sends (section 7 of brief 28 decides 4 and 6):
   reader may send either. White space is as the page shows it, collapsed
   across the formatting's edges.
 """
+import re
 
 ROLES = frozenset((
     # landmarks
@@ -45,10 +46,12 @@ NODE_LIMIT = 20000
 # How deep elements may stand in each other, frames included. The renderer
 # walks the tree by recursion, so a page must not choose its depth.
 DEPTH_LIMIT = 150
+# Brief 28a, item 2: the reader's digest of what an element means, 128 bits in hex.
+FINGERPRINT = re.compile(r"[0-9a-f]{32}")
 
 _NODE_KEYS = frozenset((
     "id parent role name text value unread filled error states href method action hidden "
-    "option_count chosen options title frame").split())
+    "option_count chosen options title frame fingerprint").split())
 _OPTION_KEYS = frozenset(("label", "value", "chosen", "disabled"))
 
 
@@ -93,7 +96,7 @@ class Node:
     """One element as the reader saw it. `children` and `document` are set by the frame."""
     __slots__ = ("id", "parent", "role", "name", "text", "value", "unread", "filled", "error",
                  "states", "href", "method", "action", "hidden", "option_count", "chosen",
-                 "options", "title", "frame", "children", "document", "depth")
+                 "options", "title", "frame", "fingerprint", "children", "document", "depth")
 
     def __init__(self, raw, where):
         _need(type(raw) is dict, where, "a node is an object")
@@ -115,6 +118,8 @@ class Node:
         _need(raw.get("filled") is None or type(raw["filled"]) is bool, where, "filled is true or false")
         _need(raw.get("option_count") is None or _is_int(raw["option_count"]), where, "option_count is a number")
         _need(raw.get("frame") is None or _is_int(raw["frame"]), where, "frame is a frame's id")
+        _need(raw.get("fingerprint") is None or _is_text(raw["fingerprint"]) and FINGERPRINT.fullmatch(raw["fingerprint"]),
+              where, "fingerprint is 32 lowercase hex digits")
 
         self.id = raw["id"]
         self.parent = raw.get("parent")
@@ -136,6 +141,8 @@ class Node:
         self.option_count = raw.get("option_count", len(self.options))
         self.title = raw.get("title") or ""
         self.frame = raw.get("frame")
+        # Without one (a reader before brief 28a) the element can be read but not acted on.
+        self.fingerprint = raw.get("fingerprint")
         self.children = []
         self.document = None
         self.depth = 0
@@ -220,7 +227,10 @@ class View:
         self.tab = raw["tab"]
         self.url = raw.get("url", "")
         self.title = raw.get("title", "")
-        self.dialog = None if dialog is None else {"kind": dialog["kind"], "text": dialog.get("text", "")}
+        self.dialog = None if dialog is None else {
+            "kind": dialog["kind"], "text": dialog.get("text", ""),
+            **{key: dialog[key] for key in ("frame", "frame_url", "effective_url") if key in dialog},
+        }
         self.documents = [Document(frame, "frame %d" % index) for index, frame in enumerate(raw["frames"])]
         self.frames = {}
         for document in self.documents:

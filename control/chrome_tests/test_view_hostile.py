@@ -224,7 +224,7 @@ class Addresses(unittest.TestCase):
         for carrier in carriers:
             with self.subTest(address=carrier):
                 raw = reply(url=carrier, frames=[
-                    frame([node(1, "main"), node(2, "link", 1, name="Go", href=carrier),
+                    frame([node(1, "main"), node(2, "link", 1, name="Go", href=carrier, fingerprint="2" * 32),
                            node(3, "form", 1, name="Send", method="post", action=carrier),
                            node(4, "frame", 1, name="Inner", frame=7),
                            node(5, "p", 1, text=["See ", 6]), node(6, "link", 5, name="here", href=carrier)], url=carrier),
@@ -238,8 +238,10 @@ class Addresses(unittest.TestCase):
                 for text in texts:
                     self.assertNotIn(MARKER, text)
                     self.assertNotIn(MARKER[:10], text)
-                # ... while the table keeps the full address for brief 28a's fingerprint.
-                self.assertEqual(table.resolve("kqtvm2", 412).fingerprint["href"], carrier)
+                # ... while the table keeps the reader's fingerprint, which hashed the full
+                # address (brief 28a, item 2; fingerprint.test.mjs), and nothing of it in the line.
+                self.assertEqual(table.resolve("kqtvm2", 412).fingerprint, "2" * 32)
+                self.assertNotIn(MARKER[:10], table.resolve("kqtvm2", 412).line)
         shown, table = View(reply([node(1, "link", name="Go", href=carriers[1])], url=carriers[3])), references()
         render(shown, table)
         self.assertEqual(render(shown, table, ref="kqtvm1").text,

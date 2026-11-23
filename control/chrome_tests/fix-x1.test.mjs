@@ -7,7 +7,7 @@ import {page} from './outline-dom.mjs';
 const marker='withheld-fixture-text';
 function service(data){
   const result=spawnSync('python3',['control/chrome_tests/x1_service_probe.py'],{input:JSON.stringify(data),encoding:'utf8',
-    env:{...process.env,ARESOS_TEST_CHROME_OUTLINE:'1',PYTHONDONTWRITEBYTECODE:'1',PYTHONPATH:'control:control/chrome_tests'}});
+    env:{...process.env,PYTHONDONTWRITEBYTECODE:'1',PYTHONPATH:'control:control/chrome_tests'}});
   assert.equal(result.status,0,result.stderr);return JSON.parse(result.stdout);
 }
 const typed=[undefined,'text','search','email','url','tel','number','unrecognised'];

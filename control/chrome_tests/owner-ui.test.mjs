@@ -10,7 +10,7 @@ function fixture(){
   const call=async name=>{if(name==='open'){state.rows.push({tab:12,index:state.rows.length,window:5,url:'http://fixture.test/backup'});state.selected=state.rows.length-1;return state.badOpen?{tab:12}:{untrusted_content:{tab:12}};}return {items:state.rows.map((row,index)=>({...row,active:index===state.selected,focused:true,cleanup_pending:row.tab===11&&state.restoring-->0}))};};
   const exec=(command,args)=>{
     state.commands.push([command,...args]);
-    if(args[0]==='key')for(const key of args){if(key==='ctrl+1')state.selected=0;if(key==='ctrl+Tab')state.selected=(state.selected+1)%state.rows.length;if(key==='Delete'&&state.inlineStart!==undefined){state.typed=state.typed.slice(0,state.inlineStart);delete state.inlineStart;}if(key==='Return'&&state.typed!==null)state.rows[state.selected].url=state.typed;if(key==='Return'&&state.toolbarOpen)state.popups=[];if(key==='ctrl+w'){state.rows.splice(state.selected,1);state.selected=Math.min(state.selected,state.rows.length-1);state.rows.forEach((row,index)=>row.index=index);}}
+    if(args[0]==='key')for(const key of args){if(key==='ctrl+1')state.selected=0;if(key==='ctrl+Tab')state.selected=(state.selected+1)%state.rows.length;if(key==='ctrl+t'){state.rows.push({tab:12,index:state.rows.length,window:5,url:'about:blank'});state.selected=state.rows.length-1;}if(key==='Delete'&&state.inlineStart!==undefined){state.typed=state.typed.slice(0,state.inlineStart);delete state.inlineStart;}if(key==='Return'&&state.typed!==null)state.rows[state.selected].url=state.typed;if(key==='Return'&&state.toolbarOpen)state.popups=[];if(key==='ctrl+w'){state.rows.splice(state.selected,1);state.selected=Math.min(state.selected,state.rows.length-1);state.rows.forEach((row,index)=>row.index=index);}}
     if(args[0]==='type'){state.typed=args.at(-1);if(state.inlineSuffix){state.inlineStart=state.typed.length;state.typed+=state.inlineSuffix;}}
     if(args[0]==='getactivewindow')return (state.toolbarOpen?'toolbar-popup':'normal-root')+'\n';
     if(args[0]==='search')return state.nativeWindow+'\n';
@@ -24,6 +24,12 @@ test('owner navigation selects the exact native tab after restoration changes it
   await ui.navigate('http://fixture.test/changed');
   assert.equal(state.rows[1].url,'http://fixture.test/changed');assert.equal(state.rows[0].url,'http://other.test/');
   assert.ok(state.commands.some(args=>args.includes('ctrl+Tab')));assert.equal(state.selected,1);
+});
+test('owner open creates a native tab, keeps existing tabs and rejects an inline history suffix',async()=>{
+  const {state,ui}=fixture();state.inlineSuffix='&id=old';
+  assert.equal(await ui.open('http://fixture.test/?id=new'),12);
+  assert.deepEqual(state.rows.map(row=>row.url),['http://other.test/','http://fixture.test/','http://fixture.test/?id=new']);
+  assert.equal(state.commands.filter(row=>row.includes('Return')).length,1);
 });
 test('owner navigation goes to the tab the row names, not the driver\'s current tab',async()=>{
   const {state,ui}=fixture();
@@ -51,7 +57,8 @@ test('popup cases use the recovered opener rather than a captured retired tab',a
   const stop=Error('stop after independently checking the next case target');
   await assert.rejects(popupMatrices({getTab:()=>current,
     check:async(name,fn)=>{if(name!=='GROUP 8 POST popups never resubmit and ordinary openers stay untouched'){current=8;return;}await fn();},
-    nav:async()=>{},call:async(name,args)=>{if(name==='read'){readTab=args.tab;return {untrusted_content:{tree:JSON.stringify({expected:{name:'Open window'},reference:{tab:args.tab}})}};}return {};},
+    nav:async()=>{},read:async tab=>{readTab=tab;return [{expected:{name:'Open window'},reference:{tab}}];},
+    selectedTarget:async row=>row,call:async()=>({}),
     approval:async()=>{throw stop;},
   }),error=>error===stop);
   assert.equal(readTab,8);
