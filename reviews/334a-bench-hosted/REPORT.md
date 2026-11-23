@@ -37,10 +37,15 @@
 - The bench layers the installed German keyboard profile onto its blank disk. The earlier runs reached greetd's PAM session, then fell back to the text login. The real desktop launcher requires an X11 layout, which the installer supplies on the normal installation path. Reusing the CI overlay would also supply a layout, but would bring its US map, fixtures and debug settings. The bench-only profile is two writes in its Containerfile.
 - Bench concurrency is keyed to the ref and dispatched SHA. A commit-specific group lets the clean and temporary negative commits run together, while repeated dispatches of one commit share a group. The alternatives were serializing with every other OS run or giving every dispatch a group. Existing OS modes keep their groups. Changing this later is one workflow expression.
 
-## PLAN-GAP and known limits
+## PLAN-GAP
 
 - The existing `ci/` build exclusion covered the agent and host runner. The new hosted regressions live under `os/tests/` and needed their own exclusion because the package stage copies the OS context into a raw layer.
-- Each dispatch plays one script with the offline guest. The acceptance probe covers the first-start desktop. The evidence scan matches token-shaped file bytes and has no OCR.
+
+## Known limits
+
+- Each dispatch plays one script with the offline guest. The acceptance probe covers the first-start desktop. Repeated dispatches of the same ref and SHA share one pending slot.
+- The evidence gate scans screenshot bytes for token-shaped strings. It has no OCR, so visible text can escape the scan.
+- A stray manual bench dispatch remains in a guarded ref's history. R29 counts an unknown title as rejected and charges its minutes against the remaining budget. Older guards can stop on such a run. A mixed bench and rehearsal dispatch can take the rehearsal title and use its allowance. Deleting a run removes evidence and is a decision for the OS lead.
 - Normal OS checks retain the suite's existing environment-dependent skips for graphical and namespace harnesses.
 
 ## Open questions
@@ -74,7 +79,17 @@
 - The checks-only rerun on `b0b03755` passed in 33m05s. It printed `Ran 2588 tests in 1782.837s`, `OK (skipped=24)`, and `Live hosted system manager passed: 434 unit files, 421 unit names`. The change since the clean bench run is limited to the client ledger read and its test. [Passing checks-only run](https://github.com/Ares-Empire/AresOS/actions/runs/45089740931)
 - The round used two hosted bench dispatches. No files over 500 MB remained under `.work/`.
 
-### Known limits
+## Review fixes, round 2
 
-- A stray manual bench dispatch remains visible in a guarded ref's history. R29 counts an unknown title as rejected and charges its minutes. Its ledger can continue with the remaining budget. Older guards can stop on such a run. Deleting a run removes evidence and is a decision for the OS lead.
-- The screenshot gate scans file bytes. Visible text in screenshots is outside that scan.
+1. The package 13, release 27, release 28 and release 28 dry-run jobs now run each absence assertion on its own line under `bash -ec`. The regression executes all four extracted Bash blocks. It passes with a clean fixture and refuses every individual CI or bench path, including dangling links at the three installed bench paths. The pending source binding records the updated workflow bytes.
+2. Dispatch tests confirm that each ledger-managed branch can select its rehearsal modes before checking that bench disables them. The evaluator models `success()`, `failure()`, `always()`, `cancelled()` and implicit success. The upload test requires scanned evidence to upload after a failed VM step. [GitHub Actions status functions](https://docs.github.com/en/actions/reference/workflows-and-actions/expressions#status-check-functions)
+3. The Known limits section records the dispatch-history, concurrency and screenshot boundaries from review 2.
+
+### Verified
+
+- Ran `python3 -B -m unittest discover -s os/tests -p test_bench_release_layers.py -v` and `python3 -B -m unittest discover -s os/tests -p test_bench_dispatch.py -v` one module at a time. The modules printed `Ran 3 tests` and `Ran 7 tests`, respectively, and both printed `OK`. `git diff --check` passed.
+- The planted-path regression found 16 false passes across the four original Bash blocks before the fix. Removing the rehearsal bench guard in memory failed the `probe` case on `pkg/16-staged-release`. Adding `success()` to the upload condition in memory failed the case with a failed VM and safe evidence.
+- Submitted one bench with `python3 -B os/ci/bench/dispatch.py --ref pkg/334a-bench-hosted reviews/334a-bench-hosted/bench/session-health.json` and watched it with `gh run watch 45094038830 --exit-status --interval 60`. Commit `fcfb4c13` passed all six steps in 19m20s, with 76.4s in the VM. Image checks printed `IMAGE_CHECKS_PASSED`, `No bench files in 134 raw image layers` and `BENCH_PLANTED_LAYER_REFUSED`. Hosted preflight passed the oversize and token refusal tests. [Bench run 45094038830](https://github.com/Ares-Empire/AresOS/actions/runs/45094038830)
+- Downloaded `bench-evidence` and verified the dispatched SHA, image label, both guest revisions and committed script digest in `run.json`. The guest recorded an active greetd session with labwc and only loopback on both boots. The authenticated helper check passed twice, and the boot ID changed from `8ca54091-c9e2-4de4-a71a-8e4a6d38d2b7` to `29ad58bd-217a-40d9-9f8b-4f2ec9da159b`. `003.png` shows the first-start desktop and Prism setup. The evidence scan printed `Bench evidence safe: 3 files, 63255 bytes` on the runner and on the downloaded files. [Bench artifact](https://github.com/Ares-Empire/AresOS/actions/runs/45094038830/artifacts/14783466326)
+- Ran `gh workflow run 'OS image' --ref pkg/334a-bench-hosted -f checks_only=true` and watched it with `gh run watch 45094038198 --exit-status --interval 60`. The run on `fcfb4c13` passed in 30m58s. It printed `Ran 2589 tests in 1790.699s`, `OK (skipped=24)` and `Live hosted system manager passed: 434 unit files, 419 unit names`. [Checks-only run 45094038198](https://github.com/Ares-Empire/AresOS/actions/runs/45094038198)
+- `find .work -type f -size +500M` listed no files.
