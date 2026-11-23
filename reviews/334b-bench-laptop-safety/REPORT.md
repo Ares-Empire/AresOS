@@ -9,7 +9,9 @@
 
 ### Disk writes and phase peaks
 
-Admission charges measured allocation in the store and current worktree, the new phase’s declared peaks, and a fixed 2 GB allowance for evidence in other worktrees against the **40 GB cap**. It requires **20 GB free on each storage pool receiving writes**. Btrfs subvolumes with the same filesystem UUID share one reserve. When any pool is unknown, admission combines the affected paths and uses the smallest free-space reading. Both limits use decimal bytes. Actual allocation counts by `st_blocks × 512`. Each affected pool gets a 1 MiB coordination allowance. The managed writer charges touched blocks and 64 KiB of metadata per file and rechecks the reserve before each write. Fixed disks are charged at the block-rounded virtual size plus metadata. On Btrfs, the size charge doubles unless the empty file has verified No_COW. A polled directory is charged at its peak plus its declared margin. [Btrfs subvolume storage](https://btrfs.readthedocs.io/en/latest/btrfs-subvolume.html)
+Admission charges measured allocation in the store and current worktree, the new phase’s declared peaks, and a fixed 2 GB allowance for evidence in other worktrees against the **40 GB cap**. It requires **20 GB free on each storage pool receiving writes**. Btrfs subvolumes with the same filesystem UUID share one reserve. When any pool is unknown, admission combines the affected paths and uses the smallest free-space reading. Both limits use decimal bytes. Actual allocation counts by `st_blocks × 512`. Each affected pool gets a 1 MiB coordination allowance.
+
+The managed writer charges touched blocks, fixed disks charge their block-rounded virtual size, and polled directories charge their declared peak. Managed files and fixed disks add 64 KiB of file overhead. Polled directories add their declared margin. All three double the data charge on Btrfs unless the empty output file has verified No_COW. An unknown filesystem type also uses the doubled charge. The kernel file ceiling for polled outputs reserves room for growth between polls at the same copy rate. [Btrfs subvolume storage](https://btrfs.readthedocs.io/en/latest/btrfs-subvolume.html) [Btrfs copy-on-write design](https://btrfs.readthedocs.io/en/latest/dev/dev-btrfs-design.html#copy-on-write-logging)
 
 | Phase output | Write location | Maximum per declared output | Retention |
 | --- | --- | ---: | --- |
@@ -24,7 +26,7 @@ Admission charges measured allocation in the store and current worktree, the new
 | Evidence | Current worktree `.work/bench/<run>/` | 180 MB | Five runs in this worktree. Other worktrees are represented by the fixed 2 GB allowance. |
 | Journal, ownership markers and directory creation | Store and current worktree evidence trees | 1 MiB coordination allowance per affected storage pool | The journal is removed at phase end. Ownership markers stay with their trees. |
 
-The disk limits above are phase charges. A Btrfs disk without verified No_COW must fit twice its block-rounded virtual size plus metadata within its declared peak. The empty synchronization file uses the dev rig’s existing lock location outside the store. Evidence is staged in the same directory as its final name. Managed writes publish after the write completes. Command evidence publishes after a successful workload and confirmed shutdown. A phase declaring 17 GB of build store, 15 GB of builder scratch and 10 GB of base disk is refused before creating outputs, even on an empty store.
+The disk limits above are phase charges. Each declared peak must fit the output’s full charge, including any second copy, metadata and margin. The empty synchronization file uses the dev rig’s existing lock location outside the store. Evidence is staged in the same directory as its final name. Managed writes publish after the write completes. Command evidence publishes after a successful workload whose scope emptied without a forced stop. A phase declaring 17 GB of build store, 15 GB of builder scratch and 10 GB of base disk is refused before creating outputs, even on an empty store.
 
 ## Verified
 
@@ -134,3 +136,22 @@ The separate stand-in game survived every case. Tests sampled every second and u
 
 - The earlier subvolume gap required evidence and the store to reside on different subvolumes of the same Btrfs filesystem. Round 3 adds the shared reserve for that layout. The tests model distinct subvolumes with fixture mountinfo and a fake UUID reader.
 - A hard kill during initial ownership-marker creation can leave a directory that cleanup refuses. Real user-manager containment and pressure timing remain step 6 checks. Real VM and Podman write peaks remain step 7 checks.
+
+## Review fixes, round 4
+
+1. **Copy-on-write accounting.** Managed files, fixed disks and polled outputs share one admission rule. On Btrfs, the bench sets No_COW on the output directory and uses the new empty output as a probe. Verified inheritance allows a single data charge. Missing or unreadable No_COW and an unknown filesystem type require twice the data charge plus the same margin. The polled file ceiling leaves room for both copies when growth passes the polling threshold. With simulated free space at the reserve boundary, a stand-in overwrites previously synced blocks when admission has room for one verified No_COW copy or for two unverified copies. The same command is refused before scope launch when the doubled bound would cross the reserve.
+2. **Forced shutdown.** If killing the pinned scope is required after the foreground command exits, the workload returns 1 after emptiness is confirmed. A fixture holds that shutdown long enough to observe a live descendant and its staged output after foreground exit. The failed phase removes the staging file and keeps the finished `Phase.write` file.
+3. **Test teardown.** The scope fixture signals the launcher and descendant through their owned pidfds. The guardian and watcher fallback can both read the descendant’s handle without consuming it.
+
+### Verification
+
+- Ran `python3 -B -m unittest discover -s os/tests -p 'test_bench_laptop_store.py'` and then the same command for `test_bench_laptop_watch.py`. The final runs printed `Ran 19 tests in 0.841s` and `Ran 21 tests in 10.654s`, both `OK`. An initial watcher run failed when the new fixture writer exited during setup. After correcting the fixture, both modules passed twice. The tests used fixture paths, fixture locks and owned stand-ins.
+- The last watcher run detected falling memory in 0.961 s and stopped the stand-ins after 1.266 s. Rising pressure took 0.965 s to detect and 1.270 s to stop them. Guardian-only SIGKILL took 0.002 s and watcher-only SIGKILL took 0.003 s to stop the stand-ins.
+- `git diff --check` passed. The worktree had no `.work/` files over 500 MB.
+- Dispatched `gh workflow run 'OS image' --ref pkg/334b-bench-laptop-safety -f checks_only=true` for `0b81e629` and watched it with `gh run watch 45119493693 --exit-status --interval 60`. The regression job passed in 44m05s and printed `Ran 2643 tests in 2601.392s`, `OK (skipped=24)` and `Live hosted system manager passed: 437 unit files, 468 unit names`. The model-selection job passed in 21s. [Hosted OS checks-only run 45119493693](https://github.com/Ares-Empire/AresOS/actions/runs/45119493693)
+- On the hosted runner, memory and pressure each took 0.974 s to detect and 1.277 s to stop the stand-ins. Guardian-only SIGKILL took 0.002 s and watcher-only SIGKILL took 0.003 s to stop the stand-ins.
+- Repo privacy passed for `0b81e629`. [Hosted Repo privacy run 45119493461](https://github.com/Ares-Empire/AresOS/actions/runs/45119493461)
+
+### Known limits from review 4
+
+- Initial ownership-marker creation can still be interrupted before the marker is in place. Real user-manager containment and pressure timing remain step 6 checks. Real workload write peaks remain a step 7 check.
