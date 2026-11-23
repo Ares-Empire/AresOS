@@ -22,7 +22,8 @@
     "ScreenLogMixin",
     "SavingTextTestMixin",
     "AutosaveTestAccess",
-    "IntegratedServerTestMixin"
+    "IntegratedServerTestMixin",
+    "EdgeClickTestMixin"
   ],
   "injectors": {
     "defaultRequire": 1

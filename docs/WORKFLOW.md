@@ -1,6 +1,6 @@
 # Workflow: how a change gets built
 
-This is the same shape as nametbd's Codex-era workflow, scaled down: Claude plans and integrates, Codex or Claude agents build, and a fresh reviewer that isn't the builder reviews (Codex while available, otherwise a fresh Claude agent). Roles and owner decisions are in `CLAUDE.md`. Codex's rules are in `AGENTS.md`.
+Claude plans and integrates. Codex or Claude agents build, and an independent, fresh Codex context or Claude agent reviews. Roles and owner decisions are in `CLAUDE.md`. Codex's rules are in `AGENTS.md`.
 
 ## The loop
 
@@ -14,14 +14,14 @@ Work one package at a time. Run up to about three at once only when they touch d
    For risky or foundational packages, run a council on the brief first (`docs/REVIEW.md`).
 3. **Launch (Claude).** Commit the brief to `main`, create the worktree, and start Codex in the background (`run_in_background`, so the harness reports when it exits):
    ```bash
-   git -C /c/Users/owner/AresOS worktree add -b pkg/NN-slug ../AresOS-NN-slug main
-   cd /c/Users/owner/AresOS-NN-slug && codex exec -m "$BUILD_MODEL" -c model_reasoning_effort="xhigh" \
+   git -C ~/AresOS worktree add -b pkg/NN-slug ~/AresOS-NN-slug main
+   cd ~/AresOS-NN-slug && codex exec -m "$BUILD_MODEL" -c model_reasoning_effort="xhigh" \
      -s danger-full-access --json -o ../AresOS-NN-slug.last.md \
      "Read AGENTS.md and briefs/NN-slug.md, then execute the brief fully. Push the branch and open a PR. Do not merge." \
      > ../AresOS-NN-slug.log 2>&1
    ```
    `$BUILD_MODEL` is the model picked for this package (`CLAUDE.md`, "Codex models").
-4. **Review (fresh reviewer).** A reviewer that didn't write the code checks the PR against the brief: Codex while available, otherwise a fresh Claude agent (Opus by default). See "Package review" in `docs/REVIEW.md`.
+4. **Review (fresh reviewer).** An independent Codex context or Claude agent checks the PR against the brief. See "Package review" in `docs/REVIEW.md`.
 5. **Integrate (Claude).** This is not a second full review. Claude:
    - confirms the PR head is the commit that was reviewed
    - reruns the build and tests on it
@@ -48,14 +48,14 @@ Work one package at a time. Run up to about three at once only when they touch d
 
 ## Branches and files
 
-- `main` is always green. Package branches are `pkg/NN-slug`, with worktrees at `C:\Users\owner\AresOS-NN-slug`.
+- `main` is always green. Package branches are `pkg/NN-slug`, with worktrees at `~/AresOS-NN-slug` on the AresOS laptop.
 - `briefs/`: frozen briefs. A changed plan is a new brief, not an edit to one Codex already ran.
 - `reviews/NN-slug/`: the Codex report, reviews and screenshots.
 - `reviews/councils/<date>-<topic>/`: council question, member reports and the chair's verdict.
 - `codex exec` logs stay outside the repo, next to the worktree.
 
-## Budget
+## On the AresOS laptop
 
-- ChatGPT Pro runs until 2026-11-21.
-- Builds use the build model. The frontier model is for councils and hard design questions. Current names are in `CLAUDE.md`.
+- Use `mod/dev/build.sh` and `mod/dev/client-test.sh` for mod checks. Run only the affected OS test modules locally, one at a time, and use hosted checks for the full suite. Follow the laptop rules in `AGENTS.md`.
+- Coordinate shared Codex and Claude usage with `mac-capacity`.
 - On a rate limit, wait and resume. Never retry in a loop.

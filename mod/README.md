@@ -90,9 +90,18 @@ no system install and change no shell setup:
   the top of `run-hub.sh`: keys the outer desktop binds reach it first (Alt+Tab,
   Alt+F4 closes the whole preview, Super+Ctrl+Escape), a single-copy program
   already running outside opens there, D-Bus dialogs (polkit, file choosers)
-  open outside, one screen only, no supervisor, the development client. The
+  open outside, and the development client runs without the supervisor. The
   preview's log is `~/.cache/aresos-dev/run-hub-session.log`. Without
   `--session` the game is a plain window, as before.
+- **Two-screen preview.** Run `mod/dev/run-hub.sh --session --outputs 2` from
+  the checkout root, or `hub-try --outputs 2` once the trial checkout is on
+  this package. `hub-try` supplies `--session` and forwards `--outputs 2`.
+  Nested labwc opens two movable windows with side-by-side outputs
+  (`WLR_WL_OUTPUTS=2`). Put one on the laptop screen and the other on the
+  monitor in the same left-to-right order, then try crossing their shared edge.
+  Use the disposable `AresHub` in the preview checkout's `mod/run/saves/`.
+  The first start creates this dev world if needed. Quit the game or close
+  both preview windows to end the run.
 
 Extra arguments go to Gradle; its daemon switches `--daemon`, `--foreground`,
 `--stop` and `--status`, including their single-dash forms, are refused (exit
@@ -594,7 +603,7 @@ second rename); its pictures go to `../reviews/48-home-menu/screenshots/`.
 
 **Package 56 session tests:** `dev/client-test.sh --session` runs the full suite in headless labwc with the image's `rc.xml` and no autostart. The last test, `FreePointerClientGameTest`, connects a fake helper and drives two small native test windows through private virtual input (`../reviews/56-free-pointer/rig/pointer.py`). It tests focus timing, all four edges slowly/quickly, app switches/close, hover and launch/failure paths, world entry and vanilla gates, and measures flight/FOV in Live, Build and vanilla. Its hover screenshot goes to `../reviews/56-free-pointer/screenshots/`. Without `--session`, the same game callback and flight assertions run; native window checks require `--session`. The lock, room checks, GPU probing and scope cleanup are shared with ordinary client tests.
 
-**Package 328a, the world keeps the pointer:** since package 328 the `--session` compositor has two 1280x720 outputs side by side, like the laptop with its monitor; the game maps on the left one, and the tests' virtual pointers get the layout's size (`ARESOS_POINTER_LAYOUT`). Under Xwayland, capturing the pointer with a visible cursor made labwc park the hidden cursor at the world window's centre, so a click went to the app standing there (`../reviews/328-look-around/PROGRESS.md` has the trace). In the session the cursor is now hidden through XFixes before Minecraft's capture warps it, and letting go shows it and drops the game's X grab (`WorldCapture`); in a connected desktop world the world takes the mouse only with the compositor's focus and the pointer over its window (`PointerRules.mayCapture`); otherwise the pointer stays a normal pointer until a click on the world. The last client test, `WorldKeepsPointerClientGameTest`, checks that rule through the game's callbacks, and with `--session` captures for real with the rig's probe app over the window's centre: the probe must count no motion, click or scroll while the camera turns.
+**Package 328a, the world keeps the pointer.** The headless `dev/client-test.sh --session` compositor has two 1280×720 outputs side by side. The game maps on the left one and virtual input uses the full layout (`ARESOS_POINTER_LAYOUT`). Under Xwayland, capture with a visible cursor could move the pointer to the app above the centre of the world window. The mod hides it through XFixes before the capture warp and releases the X grab when it lets go. `WorldKeepsPointerClientGameTest` checks real capture with the rig's probe app over the world's centre. See the [package 328 report](../reviews/328-look-around/REPORT.md) for traces and tests.
 
 **The rig** (`../reviews/40-real-home/rig/`, a development aid): what only a real
 labwc shows (the window rules, stacking on click, Alt+Tab, minimize, close, and
@@ -607,6 +616,22 @@ compositor's seat, `tl.py` lists and drives its windows through foreign-toplevel
 and CPU load. Every tool refuses `wayland-0` and `:0`. The rig calls Gradle
 directly (`inner.sh`), not through `dev/client-test.sh`, and is for headless use
 only; each script says so in its first comment line.
+
+### Look setting
+
+In an AresOS session's desktop world, choose how to look around by setting one
+`look` line in `config/aresos/settings.properties` in the game's folder.
+Create the file if needed. The game reads it once at start, so restart the
+game after changing it.
+
+- **Installed home:** `~/.local/share/PrismLauncher/instances/AresDesktop/minecraft/config/aresos/settings.properties`
+- **`hub-try`:** `~/AresOS-try/mod/run/config/aresos/settings.properties`
+
+| Setting | What it does |
+| --- | --- |
+| `look = classic` | Default, also used when the line is absent. The focused world captures the pointer to steer when the pointer is over it. Press Esc to free it. |
+| `look = click` | The pointer starts free. Click open world or press a movement key to look around. The starting click just enters look mode. The pointer is free again after 0.8 seconds of stillness, on Esc, or when an app takes focus. |
+| `look = edge` | The pointer stays free. Move it near the left, right or top edge to turn, or use the left and right arrows. A shared edge lets the pointer cross. World clicks use the crosshair. |
 
 ## The town
 

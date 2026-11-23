@@ -26,7 +26,9 @@ tar -cf - -C os ci/image-checks.sh labwc/stage.py labwc/loaded_image.py input-po
     input-portal/data config/usr/share/polkit-1/actions/org.aresos.input-sharing.policy \
     config/usr/share/applications/org.aresos.InputSharing.desktop \
     config/usr/share/applications/org.deskflow.deskflow.desktop |
-    sudo podman run --rm -i --privileged --network=none --entrypoint /usr/bin/bash "$image" -ec '
+    sudo podman run --rm -i --privileged --network=none \
+        -v "$PWD/os/ci/control/chrome_image.py:/tmp/aresos-chrome-image-check.py:ro" \
+        --entrypoint /usr/bin/bash "$image" -ec '
         check_dir=$(mktemp -d)
         tar -xf - -C "$check_dir"
         exec bash "$check_dir/ci/image-checks.sh"
@@ -106,6 +108,7 @@ PY
 # apart from the build (REVIEW-A1 #6); image-checks.sh checked the installed bytes
 # against the record, and vendor_check.py below the record against the wheels.
 expected=$(mktemp -d)
+cmp os/gh.lock.json "$out/manifest/gh.lock.json"
 bash os/build.sh control-tree os control "$expected/root" | tee "$out/control-tree.txt"
 python3 - "$out/manifest/control.json" "$expected/root/usr/share/aresos/manifest/control.json" "$(git rev-parse HEAD)" \
     control/requirements.lock <<'PY'
@@ -138,7 +141,7 @@ if set(installed) != set(lock):
 unpinned = [wheel for wheel in wheels if wheel['sha256'] not in lock[(wheel['name'], wheel['version'])]
             or not wheel['file'].endswith('.whl')]
 assert not unpinned, f"wheels whose SHA-256 is not one of the lock's pins: {unpinned}"
-for key in ('format', 'requirements_lock', 'links', 'directories', 'files'):
+for key in ('format', 'requirements_lock', 'links', 'directories', 'files', 'chrome_build', 'gh'):
     if image[key] != expected[key]:
         if isinstance(expected[key], dict):
             changed = sorted(name for name in image[key].keys() | expected[key].keys()
@@ -149,7 +152,10 @@ assert image['wheels'] and all(name == '/usr/lib/aresos-control' or name.startsw
                                for name in image['vendor']), 'vendored paths outside /usr/lib/aresos-control'
 print(f'Control in the image is this checkout: {len(image["files"])} files from {revision}, '
       f'{len(image["wheels"])} wheels from requirements.lock (sha256 {image["requirements_lock"]})')
+print(f'CONTROL_GH_CHECKOUT_PASS {image["gh"]["version"]} {image["gh"]["binary_sha256"]}')
 PY
+python3 -B os/ci/control/chrome_image.py compare "$out/manifest/control.json" \
+    "$expected/root/usr/share/aresos/manifest/control.json" control | tee "$out/control-chrome-checkout.txt"
 rm -rf "$expected"
 # REVIEW-X1 #1: the vendored tree itself, apart from the build. The wheels the record names (held to the lock just
 # above) come from PyPI again, each with its recorded SHA-256. In a throwaway container of the image, without
