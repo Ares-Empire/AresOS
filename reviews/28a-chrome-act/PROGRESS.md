@@ -1,5 +1,52 @@
 # Package 28a: Chrome acting progress
 
+## 18c-b harness fitted to 28a (2026-11-23)
+
+Scope exception approved by linux-tools, 2026-11-23. The install proof and its
+manual trigger are in `3049e15b`. The Control VM harness and the C8 driver are
+in `0dd0e706`. The changes are confined to CI fixtures, tests and workflow
+configuration.
+
+| Check | Tool calls and evidence |
+|---|---|
+| Install proof cases 1–5 | Successful `tabs` must give a `seen` token, a positive `total` and a nonempty `untrusted_content.list`. This proves the installed or restored copy answers, including after rejecting the probe. The fault case still requires `chrome_unavailable` for a missing or tampered package on a fresh profile. |
+| C3 native host and C4 update | `tabs` selects the unique fixture by its short address and supplies `seen` to `take`. `read({tab})` checks the matching successful `reads` entry, full fixture URL, title and outline text. C4 does this on both switches, with the existing package, host and probe checks. |
+| C5 package fault | The unchanged `tabs` calls still require `chrome_unavailable` on the fresh profile. Restored and installed-copy checks now use the nonempty 28a list. |
+| C6 first use and reboot | `take` replaces `take_tab`. With the placeholder, `tabs`, `read`, `open` and `take` must all return the exact `chrome_settings_unavailable` message. `take` has no `seen` token because the placeholder gates `tabs` too. The page-server arrival check still runs before writing the list. Successful `tabs` uses the new list and count after the write and after reboot. |
+| C6 later | Successful `tabs` supplies the count after each restore and a complete tab list to check that no refused host opened. Fixed hosts, the test host and its subdomain still require `open` to refuse, the fixture receives no request, and `tabs` and `read` still give the exact settings refusal on each invalid list. |
+| C8 managed ask | `open` returns the tab at `data.tab`. `read` with `until` replaces `wait` and checks `until_met`, the exact form URL and the textbox reference. `do` with a `fill` step must run without preparing an approval. A fresh `read` supplies the button reference for `do` with a `click` step, which must reserve one approval. The shared driver passes that approval unchanged to `submit` and checks its question on the prompt. `operation_status` and `drop` retain their contracts. The receiver still checks no arrival before answering, one exact POST for Yes and zero for No. |
+
+For linux-aresos, the changed `os/` files are `os/ci/control/chrome_actions.py`,
+`os/ci/control/sessions.py` and `os/tests/test_control_vm.py`. None is bound by the
+active source bindings, so no pending rebind was needed.
+
+### Verification
+
+| Command | Local result |
+|---|---|
+| `python3 -B -m unittest discover -s os/tests -p 'test_control_vm.py'` | 105 tests, OK |
+| `python3 -B -m unittest discover -s os/tests -p 'test_control_image.py'` | 49 tests, OK |
+| `python3 -B -m unittest discover -s os/tests -p 'test_checkout_sources.py'` | 10 tests, OK |
+| `python3 -B -m unittest discover -s control/chrome/ci/install -p 'test_*.py'` | 31 tests, OK |
+| `PYTHONPATH=control:control/chrome_tests python3 -B -m unittest test_excluded_sites_placeholder test_questions` | 46 tests, OK |
+| `node --test control/chrome_tests/*.test.mjs` | 651 passed, 0 failed, 0 skipped with cached Node 22.15.0 |
+| `PYTHONPATH=control python3 -B control/generate.py --check` | `Generated artifacts match definitions` |
+| `git diff --check` | Passed |
+| `PYTHONPATH=control:control/boundary python3 -B -m unittest test_interactive` | 15 tests, OK |
+| `node --test control/chrome/ci/install/*.test.mjs` | 1 passed, 0 failed, 0 skipped |
+
+No local VM, container or Chrome run. No files over 500 MB under `.work/`.
+
+**JUDGMENT-CALL.** None affecting AresOS. Fixture tabs use distinct paths
+because the 28a list hides query strings. The read still checks the full fixture
+URL, title and page text.
+
+**PLAN-GAP.** The install workflow previously had only a pull-request trigger.
+It now also accepts the requested manual dispatch. All harness checks could be
+expressed with the 28a tools.
+
+**Left.** The lead's control runs.
+
 ## Main merged (2026-11-23)
 
 Draft PR #116 stays stacked on `pkg/28-chrome`. The first push carried the lead's
