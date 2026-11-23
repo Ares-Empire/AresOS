@@ -21,6 +21,8 @@ fails it. `test_control_vm` (103), `test_console_keymap`, `test_everyday_account
 `test_checkout_sources` pass. For the release side: an AresOS install without a static hostname could meet the
 same lock if its name changes while Chrome runs (told linux-aresos).
 
+**Correction (2026-11-23, the lead):** that line never reached the image: the build runtime mounts its own `/etc/hostname` into each RUN step, so the guest still booted as `bazzite` (polkit journal) and package 28's two control runs 45098687521 and 45098699312 failed the same way, with a lock from `ip-10-0-2-15.ec2.internal`. 18c-b's two final greens were luck. The overlay now keeps NetworkManager off the hostname (`/etc/NetworkManager/conf.d/90-aresos-ci-hostname.conf`, `hostname-mode=none`), so the guest keeps one name; test `ChromePassTest.test_the_ci_guest_keeps_one_hostname`.
+
 Left: two green control runs on this head, then PR #76 merges.
 
 ## Chrome start diagnostics
