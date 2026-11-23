@@ -45,6 +45,14 @@ URL, title and page text.
 It now also accepts the requested manual dispatch. All harness checks could be
 expressed with the 28a tools.
 
+### CI dispatches on `4d4b018e`
+
+| Workflow | Run ID |
+|---|---:|
+| `control-chrome-install.yml` | [45099483427](https://github.com/Ares-Empire/AresOS/actions/runs/45099483427) |
+| `os-image.yml`, `check_build=control` | [45099485788](https://github.com/Ares-Empire/AresOS/actions/runs/45099485788) |
+| `os-image.yml`, `check_build=control` | [45099488536](https://github.com/Ares-Empire/AresOS/actions/runs/45099488536) |
+
 **Left.** The lead's control runs.
 
 ## Main merged (2026-11-23)
