@@ -327,10 +327,15 @@ class Session:
         reply = self.create()
         if not reply.ok:
             raise RuntimeError(f"CreateSession2 for {self.name}: {reply.error} {reply.message}")
-        if self.clipboard:
-            self.must(CLIP, "RequestClipboard", V("(oa{sv})", (self.path, {})))
+        # xdg-desktop-portal sends both calls on the same bus without waiting for RequestClipboard.
+        pending = (self.fe.call_async(PORTAL, CLIP, "RequestClipboard", V("(oa{sv})", (self.path, {})))
+                   if self.clipboard else None)
         started = self.must(IC, "Start", V("(oossa{sv})", (self.request, self.path, self.app_id, "", {"capabilities": V("u", self.caps)})))
         self.granted = started.value[1]
+        if pending is not None:
+            reply = wait_for(lambda: pending.get("reply"), 5)
+            if not reply or not reply.ok or not self.granted["clipboard_enabled"]:
+                raise RuntimeError(f"Start did not honor the preceding RequestClipboard for {self.name}")
         self.connect_eis()
         if armed:
             zones, zone_set = self.zones()

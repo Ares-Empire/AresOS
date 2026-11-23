@@ -79,6 +79,10 @@ pub const SWITCH_INTERVAL: Duration = Duration::from_millis(250);
 /// before `ForceRelease` answers that it could not confirm.
 pub const CONFIRM_TIMEOUT: Duration = Duration::from_secs(1);
 
+// Clipboard calls run in bus order. A stalled compositor must give the
+// dispatcher back before an emergency release reaches its pidfd deadline.
+const CLIPBOARD_READ_TIMEOUT: Duration = Duration::from_millis(500);
+
 /// How long a Wayland worker may take to bind what it needs and describe the
 /// screens (the worker itself waits up to 5 seconds for the screens). The
 /// process exits if startup times out, closing even a stuck socket.
@@ -1502,13 +1506,17 @@ impl State {
             mime_type,
             reply: reply_tx,
         });
-        let pipe = reply_rx.await.ok().flatten();
+        let reply = tokio::time::timeout(CLIPBOARD_READ_TIMEOUT, reply_rx).await;
         // Sharing may have gone off, or the session closed, while this call
         // waited for the Wayland thread: the pipe goes out only if neither did.
         // Refused, it is dropped here, and the owner writing into it sees nobody
         // reading.
         self.with_sharing("SelectionRead", may_read).await?;
-        pipe.ok_or_else(|| fdo::Error::Failed("the selection does not offer that type".into()))
+        match reply {
+            Ok(Ok(Some(pipe))) => Ok(pipe),
+            Err(_) => Err(fdo::Error::Timeout("the compositor did not answer the clipboard read".into())),
+            _ => Err(fdo::Error::Failed("the selection does not offer that type".into())),
+        }
     }
 
     // ---- Session.Close and the other ways a session ends --------------------
@@ -2327,7 +2335,9 @@ impl Clipboard {
     }
 }
 
-#[interface(name = "org.freedesktop.impl.portal.Clipboard")]
+// xdg-desktop-portal sends RequestClipboard and then InputCapture.Start without
+// waiting for the former. Finish RequestClipboard before zbus can dispatch Start.
+#[interface(name = "org.freedesktop.impl.portal.Clipboard", spawn = false)]
 impl Clipboard {
     // Spelled lowercase in the spec, unlike every other member.
     #[zbus(property, name = "version")]
@@ -4122,6 +4132,28 @@ mod tests {
         }
         reply.unwrap().send(Some(a_pipe())).unwrap();
         assert!(read.await.unwrap().is_ok());
+    }
+
+    #[tokio::test]
+    async fn a_stalled_compositor_cannot_hold_the_clipboard_dispatcher_indefinitely() {
+        let mut rig = Rig::new();
+        let session = rig.session("stalled_clipboard").await;
+        let state = rig.state.clone();
+        let read = tokio::spawn(async move {
+            state.selection_read(Some(FRONTEND), &session, "text/plain".into()).await
+        });
+        rig.settle().await;
+        let reply = rig.cmds().into_iter().find_map(|cmd| match cmd {
+            WaylandCmd::ClipboardRead { reply, .. } => Some(reply),
+            _ => None,
+        }).expect("the read asked the compositor");
+        let result = tokio::time::timeout(CONFIRM_TIMEOUT, read).await
+            .expect("the clipboard handler returned before the release deadline").unwrap();
+        assert!(matches!(result, Err(fdo::Error::Timeout(_))));
+        let (pipe, write) = rustix::pipe::pipe().unwrap();
+        // No receiver remains for a descriptor the compositor returns late.
+        drop(reply.send(Some(pipe)).unwrap_err());
+        assert_eq!(rustix::io::write(&write, b"x"), Err(rustix::io::Errno::PIPE));
     }
 
     #[tokio::test]
