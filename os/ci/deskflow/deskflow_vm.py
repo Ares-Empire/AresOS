@@ -361,6 +361,9 @@ def daily(disk, work, evidence):
 
 
 def main():
+    if (os.environ.get('GITHUB_ACTIONS') != 'true' or os.environ.get('RUNNER_ENVIRONMENT') != 'github-hosted'
+            or os.environ.get('GITHUB_JOB') != 'check-build'):
+        raise SystemExit('Deskflow requires the hosted check-build job')
     vm_work = pathlib.Path('vm-work').resolve()
     disk, = (vm_work / 'output').rglob('disk.raw')
     work = vm_work / 'deskflow'

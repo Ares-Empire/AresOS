@@ -3,6 +3,7 @@ import contextlib
 import errno
 import io
 import json
+import os
 import pathlib
 import sys
 import tempfile
@@ -17,9 +18,18 @@ import deskflow_vm as vm  # noqa: E402
 
 PRIMARY = {'enabled': True, 'modes': []}
 CUSTOM = {'width': 1022, 'height': 766, 'current': True}
+HOSTED = dict(GITHUB_ACTIONS='true', RUNNER_ENVIRONMENT='github-hosted', GITHUB_JOB='check-build')
 
 
 class DeskflowVMTest(unittest.TestCase):
+    def test_entry_requires_all_hosted_job_markers_before_accessing_vm_work(self):
+        for env in ({}, dict(HOSTED, GITHUB_ACTIONS='false'), dict(HOSTED, RUNNER_ENVIRONMENT='self-hosted'),
+                    dict(HOSTED, GITHUB_JOB='image')):
+            with self.subTest(env=env), patch.dict(os.environ, env, clear=True), patch.object(vm.pathlib, 'Path') as path:
+                with self.assertRaisesRegex(SystemExit, '^Deskflow requires the hosted check-build job$'):
+                    vm.main()
+                path.assert_not_called()
+
     def test_off_refusal_records_the_allowed_deskflow_app_id_at_create_session(self):
         log = ('DEBUG aresos_input_portal::portal: Deskflow requested a session while sharing is off'
                ' app_id="org.deskflow.deskflow"\n'
@@ -306,6 +316,7 @@ class DeskflowVMTest(unittest.TestCase):
                 patch.object(vm, 'regular', return_value={'status': 'passed'}) as regular,
                 patch.object(vm, 'custom', side_effect=[{'status': 'unverified'}, {'status': 'compositor-assertion'}]) as custom,
                 patch.object(vm, 'daily', return_value=[]),
+                patch.dict(os.environ, HOSTED, clear=True),
                 contextlib.redirect_stdout(log),
             ):
                 regular.__name__ = 'regular'
@@ -333,6 +344,7 @@ class DeskflowVMTest(unittest.TestCase):
                 patch.object(vm, 'regular', side_effect=lambda *_: {'status': 'passed'}) as regular,
                 patch.object(vm, 'custom', side_effect=lambda *_: {'status': 'passed'}) as custom,
                 patch.object(vm, 'daily', return_value=['log privacy']),
+                patch.dict(os.environ, HOSTED, clear=True),
                 contextlib.redirect_stdout(io.StringIO()),
             ):
                 regular.__name__ = 'regular'
