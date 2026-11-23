@@ -160,7 +160,10 @@ async fn serve() -> Result<()> {
     // portal authorizes while sharing is on. The process exits when sharing goes
     // off or the last session ends. Until startup the bus side only
     // answers the frontend and refuses sessions.
-    let (state, eis_closed) = portal::State::new(idle_timeout, screens, keymap, gate);
+    let frontend_lookup = zbus::Connection::session()
+        .await
+        .context("failed to connect to the session bus for caller checks")?;
+    let (state, eis_closed) = portal::State::new(idle_timeout, screens, keymap, gate, frontend_lookup);
     let conn = zbus::connection::Builder::session()
         .context("failed to connect to the session bus")?
         .serve_at(PORTAL_PATH, portal::InputCapture::new(state.clone()))
@@ -173,10 +176,8 @@ async fn serve() -> Result<()> {
         .await
         .context("failed to start the D-Bus service")?;
 
-    // The state needs the connection to ask who the frontend is and to emit
-    // signals, and the watch on the frontend has to be in place before the
-    // first session can exist. So both come before the bus name: until the name
-    // is ours, no frontend can reach the interfaces.
+    // Set up signals and the frontend watch before claiming the bus name:
+    // the watch must be in place before the first session can exist.
     state.set_connection(conn.clone());
     let frontend_changes = zbus::fdo::DBusProxy::new(&conn)
         .await

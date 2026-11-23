@@ -79,6 +79,8 @@ pub const SWITCH_INTERVAL: Duration = Duration::from_millis(250);
 /// before `ForceRelease` answers that it could not confirm.
 pub const CONFIRM_TIMEOUT: Duration = Duration::from_secs(1);
 
+const FRONTEND_LOOKUP_TIMEOUT: Duration = Duration::from_millis(250);
+
 // Clipboard calls run in bus order. A stalled compositor must give the
 // dispatcher back before an emergency release reaches its pidfd deadline.
 const CLIPBOARD_READ_TIMEOUT: Duration = Duration::from_millis(500);
@@ -368,8 +370,8 @@ impl std::fmt::Debug for Signal {
 
 /// Where the frontend's bus name is looked up.
 enum Frontend {
-    /// Ask the bus, for every call.
-    Bus,
+    /// Ask the bus on a connection that never serves portal methods.
+    Bus(zbus::Connection),
     /// A test sets the owner, and changes it to hand the name over.
     #[cfg(test)]
     Fixed(std::sync::Mutex<Option<String>>),
@@ -455,6 +457,7 @@ impl State {
         screens: SharedScreens,
         keymap: eis_server::SharedKeymap,
         gate: Gate,
+        frontend_lookup: zbus::Connection,
     ) -> (Self, mpsc::UnboundedReceiver<(String, u32)>) {
         Self::with_trust(
             Spawner::Wayland { idle_timeout },
@@ -465,7 +468,7 @@ impl State {
                 allow_list: PathBuf::from(trust::ALLOWED_APPS_PATH),
                 allow_list_owner: trust::ALLOWED_APPS_OWNER,
                 switch: Switch::installed(),
-                frontend: Frontend::Bus,
+                frontend: Frontend::Bus(frontend_lookup),
                 signals: SignalSink::Bus,
             },
         )
@@ -672,18 +675,22 @@ impl State {
     /// moment is exactly when a stale answer would matter.
     async fn frontend_owner(&self) -> Option<String> {
         match &self.trust.frontend {
-            Frontend::Bus => {
-                let reply = self
-                    .connection()?
-                    .call_method(
+            Frontend::Bus(conn) => {
+                // An inline Clipboard call can fill the serving connection's
+                // method queue. Its lookup reply must bypass that queue.
+                let reply = tokio::time::timeout(
+                    FRONTEND_LOOKUP_TIMEOUT,
+                    conn.call_method(
                         Some("org.freedesktop.DBus"),
                         "/org/freedesktop/DBus",
                         Some("org.freedesktop.DBus"),
                         "GetNameOwner",
                         &(trust::FRONTEND_NAME,),
-                    )
-                    .await
-                    .ok()?;
+                    ),
+                )
+                .await
+                .ok()?
+                .ok()?;
                 reply.body().deserialize::<String>().ok()
             }
             #[cfg(test)]
@@ -2603,6 +2610,13 @@ mod tests {
         }
 
         fn with(allow_list: Option<&str>, frontend: Option<&str>) -> Self {
+            Self::with_frontend(
+                allow_list,
+                Frontend::Fixed(std::sync::Mutex::new(frontend.map(str::to_owned))),
+            )
+        }
+
+        fn with_frontend(allow_list: Option<&str>, frontend: Frontend) -> Self {
             let list = TempList::new(allow_list);
             let workers = Arc::new(std::sync::Mutex::new(Vec::new()));
             let hold_ready = Arc::new(std::sync::atomic::AtomicBool::new(false));
@@ -2621,7 +2635,7 @@ mod tests {
                     allow_list: list.path.clone(),
                     allow_list_owner: list.owner,
                     switch: switch.switch.clone(),
-                    frontend: Frontend::Fixed(std::sync::Mutex::new(frontend.map(str::to_owned))),
+                    frontend,
                     signals: SignalSink::Record {
                         signals: signals.clone(),
                         objects: objects.clone(),
@@ -4154,6 +4168,101 @@ mod tests {
         // No receiver remains for a descriptor the compositor returns late.
         drop(reply.send(Some(pipe)).unwrap_err());
         assert_eq!(rustix::io::write(&write, b"x"), Err(rustix::io::Errno::PIPE));
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_full_clipboard_dispatch_queue_still_answers_release_and_revoke() {
+        use futures_util::StreamExt;
+        use zbus::{
+            Guid, MatchRule, Message, MessageStream,
+            connection::{Builder, socket::Channel},
+            message::{Flags, Type},
+        };
+
+        // Use zbus's real dispatcher with private in-process connections.
+        let guid = Guid::generate();
+        let peer = |socket| Builder::authenticated_socket(socket, guid.clone()).unwrap().p2p();
+        let (lookup, bus) = Channel::pair();
+        let bus = peer(bus).build().await.unwrap();
+        let mut owner_calls = MessageStream::from(&bus);
+        let mut rig = Rig::with_frontend(Some(APP), Frontend::Bus(peer(lookup).build().await.unwrap()));
+        let session = {
+            let setup = busy_session(&mut rig, "queued_clipboard");
+            tokio::pin!(setup);
+            loop {
+                tokio::select! {
+                    (session, _) = &mut setup => break session,
+                    call = owner_calls.next() => {
+                        bus.reply(&call.unwrap().unwrap().header(), &(FRONTEND,)).await.unwrap();
+                    }
+                }
+            }
+        };
+        let (server, client) = Channel::pair();
+        let server = peer(server)
+            .serve_at(PORTAL_PATH, Clipboard::new(rig.state.clone())).unwrap()
+            .serve_at(crate::CONTROL_PATH, Control::new(rig.state.clone())).unwrap()
+            .build().await.unwrap();
+        rig.state.set_connection(server.clone());
+        let client = peer(client).build().await.unwrap();
+        let mut replies = MessageStream::from(&client);
+        let control = |member| {
+            Message::method_call(crate::CONTROL_PATH, member).unwrap()
+                .interface(crate::CONTROL_IFACE).unwrap()
+        };
+
+        for (method, sender, expected) in [
+            ("ForceRelease", FRONTEND, "released 1 capture(s)"),
+            ("Revoke", STRANGER, "sharing is off: closed 1 session(s)"),
+        ] {
+            tokio::time::timeout(crate::release::DEADLINE, async {
+                let rule = MatchRule::builder().msg_type(Type::MethodCall).build();
+                let mut queue = MessageStream::for_match_rule(rule, &server, None).await.unwrap();
+                let clipboard = Message::method_call(PORTAL_PATH, "SetSelection").unwrap()
+                    .interface("org.freedesktop.impl.portal.Clipboard").unwrap()
+                    .sender(sender).unwrap()
+                    .build(&(&session, Results::new())).unwrap();
+                client.send(&clipboard).await.unwrap();
+                let request = owner_calls.next().await.unwrap().unwrap();
+                assert_eq!(request.header().member().unwrap().as_str(), "GetNameOwner");
+                assert_eq!(request.body().deserialize::<String>().unwrap(), trust::FRONTEND_NAME);
+                queue.next().await.unwrap().unwrap();
+
+                // The dispatcher is waiting on authorization. Read each Status
+                // from a second receiver of its queue to prove the queue fills.
+                for _ in 0..queue.max_queued() {
+                    let status = control("Status").with_flags(Flags::NoReplyExpected).unwrap()
+                        .build(&()).unwrap();
+                    client.send(&status).await.unwrap();
+                    let queued = queue.next().await.unwrap().unwrap();
+                    assert_eq!(queued.header().primary().serial_num(), status.header().primary().serial_num());
+                }
+                drop(queue);
+                let request_control = control(method).build(&()).unwrap();
+                client.send(&request_control).await.unwrap();
+                if method == "Revoke" {
+                    rig.set_sharing(false);
+                }
+                bus.reply(&request.header(), &(FRONTEND,)).await.unwrap();
+
+                let reply = replies.next().await.unwrap().unwrap();
+                assert_eq!(reply.header().reply_serial(), Some(clipboard.header().primary().serial_num()));
+                if sender == FRONTEND {
+                    assert_eq!(reply.message_type(), Type::MethodReturn);
+                } else {
+                    assert_eq!(reply.header().error_name().unwrap().as_str(), "org.freedesktop.DBus.Error.AccessDenied");
+                    assert_eq!(reply.body().deserialize::<String>().unwrap(), "only the portal frontend may call this");
+                }
+                while rig.answer_syncs() == 0 {
+                    tokio::time::sleep(Duration::from_millis(1)).await;
+                }
+                let reply = replies.next().await.unwrap().unwrap();
+                assert_eq!(reply.header().reply_serial(), Some(request_control.header().primary().serial_num()));
+                assert_eq!(reply.body().deserialize::<String>().unwrap(), expected);
+            }).await.unwrap_or_else(|_| panic!("{method} did not answer before the release deadline"));
+        }
+        assert_eq!(rig.session_count().await, 0);
+        assert!(!rig.state.gate.is_open());
     }
 
     #[tokio::test]
