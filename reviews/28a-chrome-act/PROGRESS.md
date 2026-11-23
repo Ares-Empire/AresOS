@@ -1,5 +1,78 @@
 # Package 28a: Chrome acting progress
 
+## Main merged (2026-11-23)
+
+Draft PR #116 stays stacked on `pkg/28-chrome`. The first push carried the lead's
+merge `156e3440` and sweep update `15fc3a62`. The merge took package 28 at
+`21a29f18`, which includes main at `17211fb1` and package 18c-b (PR #76).
+It kept 28a's `definitions.py` with the re-ask schema from PR #122. Generated files match.
+
+### Excluded-sites placeholder
+
+The old sweep on `156e3440` reported 21 failures and one error. The
+`chrome_read` error came from pending projection at
+`control/aresos_control/chrome/adapter.py:329`, before dispatch. Projection checks
+`read_owner_hosts()` at line 338 before any live validity or typed-field request.
+The outline also enters the deadline context at line 558 and calls `mode()` at
+line 560. The real `TimeLeft.bounded` at
+`control/aresos_control/chrome/bridge.py:44–51` only sets and restores the local
+deadline. In `mode()`, the list is checked at `adapter.py:295` before the first
+bridge call at line 297. The stand-in now supplies that context.
+
+| Table | Cases |
+|---|---|
+| `SWEPT` (16) | `chrome_prepare_read_typed_fields`, `chrome_read_typed_fields`, `chrome_read`, `chrome_tabs`, `chrome_open`, `chrome_go`, `chrome_do`, `chrome_show`, `chrome_close`, `chrome_take`, `chrome_release`, `chrome_library`, `chrome_upload`, `chrome_submit`, `chrome_submit_trusted`, `chrome_sites readonly` |
+| `ANSWER_ANYWAY` (7) | `chrome_sites list`, `chrome_sites allow`, `chrome_sites revoke`, `chrome_notices`, `chrome_notice_ack`, `chrome_operation_status`, `chrome_drop` |
+
+The tables cover all 19 ordinary Chrome tools and all four commands of the
+owner-only `chrome_sites`. Each swept case checks the exact
+`chrome_settings_unavailable` code and message, and zero bridge calls. The
+exceptions read or update service records. For `chrome_notices`, reconciliation
+can consult the extension's in-memory queue. The `queued_steps` handler
+(`control/chrome/extension/background.js:1120`) reads step maps and makes no
+tab or page request.
+
+Scope exception approved by linux-tools, 2026-11-23. This update fits 18c-b's
+tables and stand-in and checks for bridge traffic per swept case in
+`control/chrome_tests/test_excluded_sites_placeholder.py`.
+
+### Verification
+
+- `PYTHONPATH=control:control/chrome_tests python3 -B -m unittest test_excluded_sites_placeholder test_questions test_exclusions test_extension_stores_nothing test_instruction_rules test_policy test_sites test_unit`
+  reported `Ran 101 tests in 30.033s` and `OK` on the sweep commit.
+- `python3 -B -m unittest discover -s control/chrome_tests` started before the
+  code push and continued running locally. It reported `Ran 784 tests in 5772.752s` and `OK`.
+  Both durable-write sweeps finished, with 9,442 and 2,406 paired faults
+  respectively. No tests were blocked by socket permissions.
+- `node --test control/chrome_tests/*.test.mjs` with the cached Node 22.15.0
+  reported 651 passed, 0 failed, 0 skipped (9.84 s).
+- `PYTHONPATH=control python3 -B control/generate.py --check` printed
+  `Generated artifacts match definitions`.
+- `PYTHONPATH=control:control/chrome_tests python3 -B -m unittest test_build test_publisher test_qualification test_qualification_service`
+  reported `Ran 100 tests in 14.841s` and `OK`. The mocked HTTP error fixtures
+  emitted `ResourceWarning`.
+- `git diff --check` passed for the sweep and this record. No files larger than
+  500 MB were present under `.work/`.
+
+### Scratch mutations
+
+Both changed sweep checks passed before mutation. Each mutation was applied
+separately to a disposable copy and produced exit 1.
+
+| Mutation | Failure |
+|---|---|
+| Remove `UnconfiguredChrome.bounded` | The `chrome_read` sweep case errors with the missing-method `AttributeError`; the other deadline-bound cases fail their exact refusal checks. |
+| Remove `chrome_show` from `SWEPT` | `test_the_two_tables_cover_the_tool_list_exactly` reports `chrome_show` as unclassified. |
+| Insert `tab_context` before the outline gate and catch its refusal | The `chrome_read` sweep case still gets the intended refusal and fails on `['tab_context'] != []`. |
+| Change the validator's refusal message | All 16 swept cases fail the exact message check. |
+
+No JUDGMENT-CALLs. The merge check has two PLAN-GAPs. Main advanced from
+`17211fb1` through `04190916` (PR #169) to `7e161ebc` (hosted bench, PR #168).
+Both updates are outside Control. Brief 28a calls for retiring its duplicate
+sweep once the adapted 18c-b suite reaches main.
+
+Left: the lead's second pass and the merge check.
+
 ## Final look 2 — 2026-11-21
 
 The lead's chain watched fix round 2's passes: pass 1 on `8e1fc2e6` (Chrome `44906182846`, qualification
