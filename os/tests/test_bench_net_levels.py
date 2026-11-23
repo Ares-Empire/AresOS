@@ -37,6 +37,10 @@ def isolated_desk_probe(outside_port, folder):
     try:
         stub.up()
         assert fetch('/') == (200, REPLY)
+        curl = subprocess.run(['curl', '--disable', '--noproxy', '*', '--silent', '--fail', '--max-time', '3',
+                               '--cacert', stub.ca, '--resolve', f'{HOST}:{stub.port}:127.0.0.1',
+                               f'https://{HOST}:{stub.port}/'], capture_output=True, check=True, timeout=5)
+        assert curl.stdout == REPLY
         assert fetch('/wrong') == (503, b'wrong fixture\n')
         assert fetch('/slow') == (200, REPLY)
         try:

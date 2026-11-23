@@ -46,9 +46,13 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == '/slow':
             time.sleep(0.3)
-        self.send_response(503 if self.path == '/wrong' else 200)
+        wrong = self.path == '/wrong'
+        body = b'wrong fixture\n' if wrong else REPLY
+        self.send_response(503 if wrong else 200)
+        # An explicit length lets TLS clients distinguish a complete body from a truncated connection.
+        self.send_header('Content-Length', str(len(body)))
         self.end_headers()
-        self.wfile.write(b'wrong fixture\n' if self.path == '/wrong' else REPLY)
+        self.wfile.write(body)
 
     def log_message(self, *_):
         pass
