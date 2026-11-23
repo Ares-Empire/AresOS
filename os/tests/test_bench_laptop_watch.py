@@ -1,8 +1,11 @@
 from contextlib import ExitStack
+import io
 import os
 from pathlib import Path
+import resource
 import select
 import signal
+import socket
 import subprocess
 import sys
 import tempfile
@@ -14,17 +17,25 @@ from test_bench_laptop_gates import ROOT, fixture, memory, mock_mount, replace_t
 from test_bench_laptop_store import MIB, mock_space, roots
 from laptop import Busy, Cancelled, OwnedScope, UserScopes, Watch
 from laptop_cli import Bench, RunExit
-from store import FixedDisk, PolledDirectory, Store
+from store import FixedDisk, PolledDirectory, RESERVE, Store
 
 WORKER = """
 import os
 from pathlib import Path
 import signal
+import socket
 import subprocess
 import sys
 
 child = subprocess.Popen([sys.executable, '-B', '-c', 'import signal; signal.pause()'])
-Path(sys.argv[1]).write_text(f'{os.getpid()} {child.pid}')
+fd = os.pidfd_open(child.pid)
+try:
+    for channel_fd in sys.argv[2:]:
+        with socket.socket(fileno=int(channel_fd)) as channel:
+            socket.send_fds(channel, [b'worker'], [fd])
+finally:
+    os.close(fd)
+Path(sys.argv[1]).write_text('started')
 signal.pause()
 """
 
@@ -44,12 +55,19 @@ with Path(sys.argv[1]).open('wb', buffering=0) as output:
 INVOCATION = 'a' * 32
 
 
+def receive_handle(channel):
+    label, (fd,), _, _ = socket.recv_fds(channel, 16, 1)
+    os.set_inheritable(fd, False)
+    return label.decode(), fd
+
+
 class StandInScope:
     """The group belongs to our unreaped test launcher, in its own session."""
-    def __init__(self, root, pid, launcher):
+    def __init__(self, root, pid, launcher, descendants):
         self.root = root
         self.pid = pid
         self.launcher = launcher
+        self.descendants = descendants
 
     def stop(self):
         if (self.root / 'stopped').exists():
@@ -64,47 +82,67 @@ class StandInScope:
         except ProcessLookupError:
             pass
         assert select.select([self.launcher], [], [], 5)[0]
-        ids = self.root / 'store/test-disk/worker-ids'
-        if ids.is_file() and len(ids.read_text().split()) == 2:
-            descendant = int(ids.read_text().split()[1])
+        if select.select([self.descendants], [], [], 0)[0]:
+            _, descendant = receive_handle(self.descendants)
             try:
-                fd = os.pidfd_open(descendant)
-            except ProcessLookupError:
-                pass
-            else:
-                try:
-                    assert select.select([fd], [], [], 5)[0]
-                finally:
-                    os.close(fd)
+                assert select.select([descendant], [], [], 5)[0]
+            finally:
+                os.close(descendant)
         (self.root / 'stopped').write_text(str(time.monotonic()))
         return True
 
 
 class StandInScopes:
-    def __init__(self, root, inputs, case):
+    def __init__(self, root, inputs, case, handles, descendants, sender):
         self.root = root
         self.inputs = inputs
         self.case = case
+        self.handles = handles
+        self.descendants = descendants
+        self.sender = sender
 
     def start(self, mode, unit, payload):
         (self.root / 'scope-started').touch()
         return subprocess.Popen(payload, env={'INVOCATION_ID': INVOCATION}, stdin=subprocess.PIPE,
-                                stdout=subprocess.PIPE, start_new_session=True)
+                                stdout=subprocess.PIPE, start_new_session=True,
+                                pass_fds=(self.handles.fileno(), self.sender.fileno()))
 
     def pin(self, unit, pid, invocation, stack):
         assert invocation == INVOCATION
         if self.case == 'scoped-recheck':
             (self.root / 'scope-active').touch()
             memory(self.inputs, 1)
+        if self.case == 'reserve-recheck':
+            (self.root / 'scope-active').touch()
+            (self.root / 'low-space').touch()
         launcher = os.pidfd_open(pid)
         stack.callback(os.close, launcher)
-        return StandInScope(self.root, pid, launcher)
+        socket.send_fds(self.handles, [b'launcher'], [launcher])
+        return StandInScope(self.root, pid, launcher, self.descendants)
 
 
-def run_watcher(root, case):
+def run_watcher(root, case, handles, descendants, sender):
     inputs = fixture(root)
-    store = Store(*roots(root), disk_space=mock_space, mount=mock_mount)
-    scopes = StandInScopes(root, inputs, case)
+    if case == 'bad-memfree':
+        inputs.meminfo.write_text(inputs.meminfo.read_text().replace('MemFree: 1 kB', 'MemFree: 20000000 kB'))
+    if case == 'empty-power':
+        for path in (inputs.power / 'AC').iterdir():
+            path.unlink()
+        (inputs.power / 'AC').rmdir()
+    if case == 'charging-offline':
+        (inputs.power / 'AC/online').write_text('0')
+        battery = inputs.power / 'BAT0'
+        battery.mkdir()
+        (battery / 'type').write_text('Battery')
+        (battery / 'status').write_text('Charging')
+
+    def disk_space(path):
+        if (root / 'low-space').exists():
+            return 1, RESERVE, 4096
+        return mock_space(path)
+
+    store = Store(*roots(root), disk_space=disk_space, mount=mock_mount)
+    scopes = StandInScopes(root, inputs, case, handles, descendants, sender)
 
     def setup(phase):
         phase.write('test-disk', 'overlay', b'fixture')
@@ -122,8 +160,10 @@ def run_watcher(root, case):
             program = """
 import os
 from pathlib import Path
+import resource
 import sys
 disk, outside = map(Path, sys.argv[1:])
+assert resource.getrlimit(resource.RLIMIT_CORE) == (0, 0)
 try:
     outside.write_bytes(b'outside')
 except PermissionError:
@@ -152,21 +192,36 @@ except PermissionError:
 else:
     raise AssertionError('unbudgeted xattr was allowed')
 """
+            _, hard_core = resource.getrlimit(resource.RLIMIT_CORE)
+            resource.setrlimit(resource.RLIMIT_CORE, (hard_core, hard_core))
             return phase.command([sys.executable, '-B', '-c', program, str(disk), str(outside)],
                                  outputs=[FixedDisk('evidence', disk.name, 65536)])
-        ids = phase.destination('test-disk', 'worker-ids')
-        return phase.command([sys.executable, '-B', '-c', WORKER, str(ids)],
-                             outputs=[PolledDirectory('test-disk', ids.name, 256 * 1024, 128 * 1024)])
+        if case == 'interrupted-evidence':
+            phase.write('evidence', 'finished', b'finished')
+            kind, name = 'evidence', 'command-log'
+        else:
+            kind, name = 'test-disk', 'worker-ready'
+        output = phase.destination(kind, name)
+        return phase.command([sys.executable, '-B', '-c', WORKER, str(output),
+                              str(handles.fileno()), str(sender.fileno())],
+                             outputs=[PolledDirectory(kind, name, 256 * 1024, 128 * 1024)])
 
     def graceful(reason):
         (root / 'graceful').write_text(f'{time.monotonic()}\n{reason}\n')
+        if case == 'disk':
+            output, = store.evidence.path.glob('*/.growing.partial')
+            (root / 'allocated-at-stop').write_text(str(output.stat().st_blocks * 512))
 
     fork = os.fork
 
     def record_guardian():
         pid = fork()
         if pid:
-            (root / 'guardian-pid').write_text(str(pid))
+            fd = os.pidfd_open(pid)
+            try:
+                socket.send_fds(handles, [b'guardian'], [fd])
+            finally:
+                os.close(fd)
         return pid
 
     try:
@@ -194,12 +249,34 @@ class WatchTest(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         (self.root / 'tree').mkdir()
+        self.handle_channels = {}
 
-    def child(self, *command):
+    def child(self, *command, pass_fds=()):
         process = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                                   stderr=subprocess.PIPE, text=True)
+                                   stderr=subprocess.PIPE, text=True, pass_fds=pass_fds)
         self.addCleanup(self.reap, process)
         return process
+
+    def start_watcher(self, case, root=None):
+        receiver, sender = socket.socketpair(type=socket.SOCK_SEQPACKET)
+        self.addCleanup(receiver.close)
+        with sender:
+            fd = sender.fileno()
+            watcher = self.child(sys.executable, '-B', __file__, str(root or self.root), case, str(fd),
+                                 pass_fds=(fd,))
+        self.handle_channels[watcher] = receiver
+        return watcher
+
+    def handles(self, watcher):
+        result = {}
+        for _ in range(3):
+            channel = self.handle_channels[watcher]
+            self.assertTrue(select.select([channel], [], [], 5)[0], 'stand-in pidfd was not sent')
+            label, fd = receive_handle(channel)
+            self.addCleanup(os.close, fd)
+            result[label] = fd
+        self.assertEqual(set(result), {'launcher', 'worker', 'guardian'})
+        return result
 
     def reap(self, process):
         if process.poll() is None:
@@ -219,26 +296,23 @@ class WatchTest(unittest.TestCase):
 
     def watch_case(self, cause):
         game = self.child(sys.executable, '-c', 'import signal; signal.pause()')
-        watcher = self.child(sys.executable, '-B', __file__, str(self.root), 'watch')
-        leader, child = map(int, self.wait_result(self.root / 'store/test-disk/worker-ids', watcher).split())
-        handles = [os.pidfd_open(pid) for pid in (leader, child)]
+        watcher = self.start_watcher('watch')
+        self.wait_result(self.root / 'store/test-disk/worker-ready', watcher)
+        handles = self.handles(watcher)
+        workers = [handles['launcher'], handles['worker']]
         try:
             changed = time.monotonic()
             if cause == 'memory':
-                replace_text(self.root / 'meminfo', 'MemTotal: 16384000 kB\nMemAvailable: 1 kB\n')
+                replace_text(self.root / 'meminfo', 'MemTotal: 16384000 kB\nMemFree: 1 kB\nMemAvailable: 1 kB\n')
             elif cause == 'pressure':
                 replace_text(self.root / 'pressure', 'some avg10=90.00 avg60=0.00 avg300=0.00 total=0\n'
                              'full avg10=0.00 avg60=0.00 avg300=0.00 total=0\n')
             elif cause == 'guardian':
-                guardian = os.pidfd_open(int(self.wait_result(self.root / 'guardian-pid', watcher)))
-                try:
-                    signal.pidfd_send_signal(guardian, signal.SIGKILL)
-                finally:
-                    os.close(guardian)
+                signal.pidfd_send_signal(handles['guardian'], signal.SIGKILL)
             else:
                 watcher.kill()
             self.assertEqual(watcher.wait(timeout=5), -signal.SIGKILL if cause == 'watcher' else 1)
-            for fd in handles:
+            for fd in workers:
                 self.assertTrue(select.select([fd], [], [], 5)[0], 'stand-in scope member survived')
             deadline = time.monotonic() + 5
             stopped = self.root / 'stopped'
@@ -267,10 +341,12 @@ class WatchTest(unittest.TestCase):
                 print(f'{cause}: detection {elapsed:.3f}s, stop {ended - changed:.3f}s', flush=True)
             self.assertFalse((store.root / 'test-disk').exists())
         finally:
-            for fd in handles:
+            for fd in workers:
                 if not select.select([fd], [], [], 0)[0]:
-                    signal.pidfd_send_signal(fd, signal.SIGKILL)
-                os.close(fd)
+                    try:
+                        signal.pidfd_send_signal(fd, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
 
     def test_falling_memory_stops_only_the_owned_tree(self):
         self.watch_case('memory')
@@ -286,13 +362,9 @@ class WatchTest(unittest.TestCase):
 
     def test_guardian_loss_keeps_lock_and_disk_until_fallback_confirms_stop(self):
         (self.root / 'hold-stop').touch()
-        watcher = self.child(sys.executable, '-B', __file__, str(self.root), 'watch')
-        self.wait_result(self.root / 'store/test-disk/worker-ids', watcher)
-        guardian = os.pidfd_open(int(self.wait_result(self.root / 'guardian-pid', watcher)))
-        try:
-            signal.pidfd_send_signal(guardian, signal.SIGKILL)
-        finally:
-            os.close(guardian)
+        watcher = self.start_watcher('watch')
+        self.wait_result(self.root / 'store/test-disk/worker-ready', watcher)
+        signal.pidfd_send_signal(self.handles(watcher)['guardian'], signal.SIGKILL)
         self.wait_result(self.root / 'stopping', watcher)
         store = Store(*roots(self.root), disk_space=mock_space, mount=mock_mount)
         try:
@@ -305,33 +377,78 @@ class WatchTest(unittest.TestCase):
         self.assertFalse((store.root / 'test-disk').exists())
 
     def test_exec_boundary_rechecks_memory_after_scope_activation(self):
-        watcher = self.child(sys.executable, '-B', __file__, str(self.root), 'scoped-recheck')
+        watcher = self.start_watcher('scoped-recheck')
         self.assertEqual(watcher.wait(timeout=5), 75, watcher.stderr.read())
         self.assertTrue((self.root / 'scope-active').exists())
         self.assertFalse((self.root / 'store/test-disk').exists())
 
+    def test_reserve_rechecked_after_scope_activation_before_workload_release(self):
+        watcher = self.start_watcher('reserve-recheck')
+        status = watcher.wait(timeout=5)
+        errors = watcher.stderr.read()
+        self.assertEqual(status, 75, errors)
+        self.assertTrue((self.root / 'scope-active').exists())
+        self.assertIn('20 GB', errors)
+        self.assertFalse((self.root / 'store/test-disk').exists())
+
+    def test_contradictory_readings_refuse_with_exit_75(self):
+        for case in ('bad-memfree', 'empty-power', 'charging-offline'):
+            with self.subTest(case=case):
+                root = self.root / case
+                root.mkdir()
+                (root / 'tree').mkdir()
+                watcher = self.start_watcher(case, root=root)
+                self.assertEqual(watcher.wait(timeout=5), 75)
+                self.assertIn('memory' if case == 'bad-memfree' else 'power', watcher.stderr.read())
+                self.assertFalse((root / 'scope-started').exists())
+
     def test_unbounded_command_is_refused_before_scope_starts(self):
-        watcher = self.child(sys.executable, '-B', __file__, str(self.root), 'unbounded')
+        watcher = self.start_watcher('unbounded')
         self.assertEqual(watcher.wait(timeout=5), 2)
         self.assertIn('unbounded bench workload command', watcher.stderr.read())
         self.assertFalse((self.root / 'scope-started').exists())
         self.assertFalse((self.root / 'store/test-disk').exists())
 
     def test_writer_is_stopped_at_polled_peak_within_margin(self):
-        watcher = self.child(sys.executable, '-B', __file__, str(self.root), 'disk')
+        watcher = self.start_watcher('disk')
         self.assertEqual(watcher.wait(timeout=5), 1, watcher.stderr.read())
         self.assertIn('evidence reached its phase peak', (self.root / 'graceful').read_text())
-        output, = (self.root / 'tree/.work/bench').glob('*/growing')
-        self.assertGreaterEqual(output.stat().st_blocks * 512, 256 * 1024)
-        self.assertLess(output.stat().st_blocks * 512, 256 * 1024 + MIB)
+        allocated = int((self.root / 'allocated-at-stop').read_text())
+        self.assertGreaterEqual(allocated, 256 * 1024)
+        self.assertLess(allocated, 256 * 1024 + MIB)
+        self.assertFalse(list((self.root / 'tree/.work/bench').glob('*/growing')))
+        self.assertFalse(list((self.root / 'tree/.work/bench').glob('*/.growing.partial')))
 
     def test_fixed_disk_and_undeclared_writes_are_kernel_bounded(self):
-        watcher = self.child(sys.executable, '-B', __file__, str(self.root), 'fixed')
+        watcher = self.start_watcher('fixed')
         self.assertEqual(watcher.wait(timeout=5), 0, watcher.stderr.read())
         output, = (self.root / 'tree/.work/bench').glob('*/fixed')
         self.assertEqual(output.stat().st_size, 65536)
         self.assertTrue(output.read_bytes().startswith(b'fixture'))
         self.assertFalse((self.root / 'outside').exists())
+
+    def test_watcher_sigkill_recovers_staged_command_evidence_only(self):
+        watcher = self.start_watcher('interrupted-evidence')
+        run = self.root / 'tree/.work/bench'
+        deadline = time.monotonic() + 5
+        while not (staged := list(run.glob('*/.command-log.partial'))):
+            self.assertIsNone(watcher.poll())
+            self.assertLess(time.monotonic(), deadline)
+            time.sleep(0.01)
+        partial, = staged
+        self.assertEqual(self.wait_result(partial, watcher), 'started')
+        handles = self.handles(watcher)
+        self.assertFalse((partial.parent / 'command-log').exists())
+        watcher.kill()
+        self.assertEqual(watcher.wait(timeout=5), -signal.SIGKILL)
+        for fd in handles.values():
+            self.assertTrue(select.select([fd], [], [], 5)[0], 'stand-in survived watcher loss')
+        self.assertTrue(partial.exists())
+        store = Store(*roots(self.root), disk_space=mock_space, mount=mock_mount)
+        store.expire()
+        self.assertEqual((partial.parent / 'finished').read_bytes(), b'finished')
+        self.assertFalse(partial.exists())
+        self.assertFalse((partial.parent / 'command-log').exists())
 
     def test_scope_identity_must_match_invocation_and_launcher_membership(self):
         inputs = fixture(self.root)
@@ -360,7 +477,7 @@ class WatchTest(unittest.TestCase):
             (path / 'cgroup.events').write_text('populated 0\n')
             self.assertFalse(scope.empty(), 'replacement path is not proof of emptiness')
 
-    def test_failed_kill_is_reported_after_confirmed_empty(self):
+    def test_failed_kill_waits_for_confirmed_empty_with_closed_stderr(self):
         with ExitStack() as stack:
             group = os.open(self.root, os.O_RDONLY | os.O_DIRECTORY)
             stack.callback(os.close, group)
@@ -370,25 +487,33 @@ class WatchTest(unittest.TestCase):
             stack.callback(os.close, events)
             scope = OwnedScope(INVOCATION, group, events, -1)
 
-            def recover(_delay):
-                events_path.write_text('populated 0\n')
+            retries = []
 
-            with patch('laptop.sleep', side_effect=recover):
+            def recover(delay):
+                self.assertFalse(scope.empty())
+                retries.append(delay)
+                if len(retries) == 2:
+                    events_path.write_text('populated 0\n')
+
+            closed_stderr = io.StringIO()
+            closed_stderr.close()
+            with patch('laptop.sleep', side_effect=recover), patch('laptop.sys.stderr', closed_stderr):
                 self.assertFalse(scope.stop())
                 self.assertTrue(scope.empty())
+            self.assertEqual(retries, [1, 1])
 
     def test_rechecks_gates_after_phase_setup_before_launch(self):
-        watcher = self.child(sys.executable, '-B', __file__, str(self.root), 'recheck')
+        watcher = self.start_watcher('recheck')
         self.assertEqual(watcher.wait(timeout=5), 75)
         self.assertIn('needs 7 GiB', watcher.stderr.read())
-        self.assertFalse((self.root / 'store/test-disk/worker-ids').exists())
+        self.assertFalse((self.root / 'store/test-disk/worker-ready').exists())
         self.assertFalse((self.root / 'store/test-disk').exists())
 
     def test_signal_during_scope_stop_preserves_disk_until_stop_finishes(self):
         (self.root / 'hold-stop').touch()
-        watcher = self.child(sys.executable, '-B', __file__, str(self.root), 'watch')
-        self.wait_result(self.root / 'store/test-disk/worker-ids', watcher)
-        replace_text(self.root / 'meminfo', 'MemTotal: 16384000 kB\nMemAvailable: 1 kB\n')
+        watcher = self.start_watcher('watch')
+        self.wait_result(self.root / 'store/test-disk/worker-ready', watcher)
+        replace_text(self.root / 'meminfo', 'MemTotal: 16384000 kB\nMemFree: 1 kB\nMemAvailable: 1 kB\n')
         self.wait_result(self.root / 'stopping', watcher)
         watcher.terminate()
         try:
@@ -403,4 +528,7 @@ class WatchTest(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    sys.exit(run_watcher(Path(sys.argv[1]), sys.argv[2]))
+    with socket.socket(fileno=int(sys.argv[3])) as handles:
+        descendants, sender = socket.socketpair(type=socket.SOCK_SEQPACKET)
+        with descendants, sender:
+            sys.exit(run_watcher(Path(sys.argv[1]), sys.argv[2], handles, descendants, sender))

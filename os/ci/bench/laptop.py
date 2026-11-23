@@ -20,10 +20,11 @@ FLOORS = {'vm': 7 * GIB_KIB, 'build': 6 * GIB_KIB}
 MEMORY_MAX = {'vm': '5G', 'build': '5G'}
 SIGNALS = (signal.SIGINT, signal.SIGTERM, signal.SIGHUP)
 KVM_GET_API_VERSION = 0xAE00
-POWER_TYPES = {
-    'Battery', 'UPS', 'Mains', 'USB', 'USB_DCP', 'USB_CDP', 'USB_ACA', 'USB_C',
-    'USB_PD', 'USB_PD_DRP', 'Apple_Brick_ID', 'Wireless', 'USB_FLOAT',
+EXTERNAL_POWER_TYPES = {
+    'Mains', 'USB', 'USB_DCP', 'USB_CDP', 'USB_ACA', 'USB_C', 'USB_PD',
+    'USB_PD_DRP', 'Apple_Brick_ID', 'USB_FLOAT',
 }
+POWER_TYPES = EXTERNAL_POWER_TYPES | {'Battery', 'UPS', 'Wireless'}
 
 
 class Busy(Exception):
@@ -32,6 +33,13 @@ class Busy(Exception):
 
 class Cancelled(Exception):
     """A signal interrupted the bench."""
+
+
+def log_error(message):
+    try:
+        print(f'bench: {message}', file=sys.stderr, flush=True)
+    except (OSError, ValueError):
+        pass
 
 
 def populated(events):
@@ -63,10 +71,12 @@ class Inputs:
             if not match or match[1] in fields:
                 raise ValueError('malformed meminfo')
             fields[match[1]] = (int(match[2]), match[3])
-        available, unit = fields.get('MemAvailable', (0, None))
+        available, available_unit = fields.get('MemAvailable', (0, None))
+        free, free_unit = fields.get('MemFree', (0, None))
         total, total_unit = fields.get('MemTotal', (0, None))
-        if unit != 'kB' or total_unit != 'kB' or not 0 <= available <= total or total == 0:
-            raise ValueError('invalid MemAvailable or MemTotal')
+        if (available_unit != 'kB' or free_unit != 'kB' or total_unit != 'kB' or
+                total == 0 or not 0 <= available <= total or not 0 <= free <= total):
+            raise ValueError('invalid MemAvailable, MemFree or MemTotal')
         return available
 
     def require_memory(self, mode):
@@ -148,18 +158,11 @@ class Inputs:
                 state = (supply / 'online').read_text().strip()
                 if state not in ('0', '1'):
                     raise ValueError('invalid external power state')
-                online |= state == '1'
-        if not internal:
-            return False
+                online |= kind in EXTERNAL_POWER_TYPES and state == '1'
         states = [(supply / 'status').read_text().strip() for supply in internal]
         if any(state not in ('Charging', 'Discharging', 'Not charging', 'Full') for state in states):
             raise ValueError('invalid battery state')
-        if any(state == 'Discharging' for state in states):
-            return True
-        if online or any(state == 'Charging' for state in states):
-            return False
-        # A full battery is not itself proof of external power.
-        return True
+        return not online or 'Discharging' in states
 
     def home_game(self):
         def unreadable(error):
@@ -339,13 +342,11 @@ class OwnedScope:
                     break
                 failed = True
             if not warned and not self.empty():
-                print(f'bench: waiting for scope {self.invocation} to empty',
-                      file=sys.stderr, flush=True)
+                log_error(f'waiting for scope {self.invocation} to empty')
                 warned = True
             sleep(0.05 if not failed else 1)
         if failed:
-            print('bench: scope shutdown failed before the tree was confirmed empty',
-                  file=sys.stderr, flush=True)
+            log_error('scope shutdown failed before the tree was confirmed empty')
         return not failed
 
 
@@ -422,10 +423,10 @@ def scoped_exec(data):
             os.dup2(null.fileno(), 2)
             os.execvpe(command[0], command, env)
     except Busy as error:
-        print(f'bench: {error}', file=sys.stderr, flush=True)
+        log_error(error)
         return 75
     except (OSError, ValueError) as error:
-        print(f'bench: {error}', file=sys.stderr, flush=True)
+        log_error(error)
         return 1
 
 
@@ -440,7 +441,7 @@ def guard(scope, owner, request, launcher, grace):
     return 0 if confirmed else 1
 
 
-def supervise(child, scope, inputs, policy, graceful, disk_reason, launcher):
+def supervise(child, scope, inputs, policy, graceful, disk_reason, launcher, before_release):
     with ExitStack() as stack:
         owner = os.pidfd_open(os.getpid())
         stack.callback(os.close, owner)
@@ -466,6 +467,7 @@ def supervise(child, scope, inputs, policy, graceful, disk_reason, launcher):
                         os._exit(status)
             guardian_fd = os.pidfd_open(guardian)
             stack.callback(os.close, guardian_fd)
+            before_release()
             try:
                 child.stdin.write(b'R')
                 child.stdin.close()
@@ -486,23 +488,25 @@ def supervise(child, scope, inputs, policy, graceful, disk_reason, launcher):
                 deadline = monotonic() + policy.interval
         finally:
             with defer_signals():
+                status = 1
                 try:
-                    os.write(notify, b'K')
-                except BrokenPipeError:
-                    pass
-                if guardian:
-                    _, status = os.waitpid(guardian, 0)
-                else:
-                    status = 1
-                # A guardian may have died before sending the kill or confirming emptiness.
-                confirmed = scope.stop()
-                result = child.wait()
+                    try:
+                        os.write(notify, b'K')
+                    except BrokenPipeError:
+                        pass
+                    if guardian:
+                        _, status = os.waitpid(guardian, 0)
+                finally:
+                    # The guardian may have died before sending the kill or confirming emptiness.
+                    confirmed = scope.stop()
+                    result = child.wait()
         if requested_stop or status or not confirmed:
             return 1
         return result if result in (0, 75) else 1
 
 
-def watch_tree(inputs, mode, command, *, policy, scopes, graceful, env, files, file_limit, disk_reason):
+def watch_tree(inputs, mode, command, *, policy, scopes, graceful, env, files, file_limit, disk_reason,
+               before_release):
     """Admit the scoped helper before either supervisor allows it to exec the workload."""
     inputs.require(mode)
     unit = f'aresos-bench-{uuid4().hex}.scope'
@@ -521,7 +525,7 @@ def watch_tree(inputs, mode, command, *, policy, scopes, graceful, env, files, f
         if not reply:
             return 75 if child.wait() == 75 else 1
         scope = scopes.pin(unit, child.pid, reply.decode('ascii').strip(), stack)
-        return supervise(child, scope, inputs, policy, graceful, disk_reason, launcher)
+        return supervise(child, scope, inputs, policy, graceful, disk_reason, launcher, before_release)
 
 
 def reap_launcher(child):

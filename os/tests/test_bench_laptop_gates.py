@@ -2,6 +2,7 @@ import io
 import os
 from dataclasses import dataclass
 from pathlib import Path
+from types import SimpleNamespace
 import stat
 import sys
 import tempfile
@@ -33,6 +34,10 @@ def fixture(root):
     memory(inputs, 8 * GIB_KIB)
     psi(inputs, 0)
     inputs.kvm.write_text('12')
+    ac = inputs.power / 'AC'
+    ac.mkdir()
+    (ac / 'type').write_text('Mains')
+    (ac / 'online').write_text('1')
     return inputs
 
 
@@ -48,7 +53,7 @@ def replace_text(path, text):
 
 
 def memory(inputs, available):
-    replace_text(inputs.meminfo, f'MemTotal: 16384000 kB\nMemAvailable: {available} kB\n')
+    replace_text(inputs.meminfo, f'MemTotal: 16384000 kB\nMemFree: 1 kB\nMemAvailable: {available} kB\n')
 
 
 def psi(inputs, percent):
@@ -95,7 +100,7 @@ class GatesTest(unittest.TestCase):
 
     def test_battery_and_home_game(self):
         ac, battery, mouse = (self.inputs.power / name for name in ('AC', 'BAT0', 'mouse'))
-        for path, kind in ((ac, 'Mains'), (battery, 'Battery'), (mouse, 'Battery')):
+        for path, kind in ((battery, 'Battery'), (mouse, 'Battery')):
             path.mkdir()
             (path / 'type').write_text(kind)
         (mouse / 'scope').write_text('Device')
@@ -104,6 +109,9 @@ class GatesTest(unittest.TestCase):
         with self.assertRaisesRegex(Busy, 'battery'):
             self.inputs.require('vm')
         (battery / 'status').write_text('Full')
+        with self.assertRaisesRegex(Busy, 'power'):
+            self.inputs.require('vm')
+        (battery / 'status').write_text('Charging')
         with self.assertRaisesRegex(Busy, 'power'):
             self.inputs.require('vm')
         (ac / 'online').write_text('1')
@@ -117,6 +125,19 @@ class GatesTest(unittest.TestCase):
         self.assertEqual(self.inputs.home_game(), 'running')
         self.inputs.require('vm')
 
+    def test_empty_inventory_and_non_ac_or_usb_evidence_are_refused(self):
+        ac = self.inputs.power / 'AC'
+        (ac / 'type').write_text('Wireless')
+        with self.assertRaisesRegex(Busy, 'power'):
+            self.inputs.require('vm')
+        (ac / 'type').write_text('USB_PD')
+        self.inputs.require('vm')
+        (ac / 'online').unlink()
+        (ac / 'type').unlink()
+        ac.rmdir()
+        with self.assertRaisesRegex(Busy, 'power'):
+            self.inputs.require('vm')
+
     def test_unreadable_readings_fail_closed(self):
         self.inputs.meminfo.unlink()
         with self.assertRaisesRegex(Busy, 'memory reading unavailable'):
@@ -128,11 +149,17 @@ class GatesTest(unittest.TestCase):
         self.assertIn('reading unavailable', Watch().reason(self.inputs))
 
     def test_malformed_meminfo_and_psi_refuse(self):
+        valid = self.inputs.meminfo.read_text()
         for bad in (
-            'MemTotal: 16384000 kB\nMemAvailable: 8388608 kB\nMemAvailable: broken\n',
-            'MemTotal: 16384000 kB\nMemAvailable: 20000000 kB\n',
-            'MemTotal: 16384000 kB\nMemAvailable: 8388608\n',
-            'MemTotal: 16384000 kB\nMemAvailable: 8388608 kB\nMemAvailable: 8388608 kB\n',
+            valid + 'MemAvailable: broken\n',
+            valid.replace('8388608 kB', '20000000 kB'),
+            valid.replace('8388608 kB', '8388608'),
+            valid + 'MemAvailable: 8388608 kB\n',
+            valid.replace('MemFree: 1 kB', 'MemFree: 20000000 kB'),
+            valid.replace('MemFree: 1 kB', 'MemFree: -1 kB'),
+            valid.replace('MemFree: 1 kB\n', ''),
+            valid.replace('MemTotal: 16384000 kB\n', ''),
+            valid.replace('MemAvailable: 8388608 kB\n', ''),
         ):
             with self.subTest(bad=bad):
                 self.inputs.meminfo.write_text(bad)
@@ -209,17 +236,22 @@ class GatesTest(unittest.TestCase):
                 self.assertEqual(self.inputs.home_game(), 'unknown')
 
     def test_unsafe_cache_paths_are_refused_before_clean(self):
-        real = self.root / 'cache'
-        real.mkdir()
-        redirect = self.root / 'link'
-        redirect.symlink_to(real, target_is_directory=True)
-        for path in ('relative', '', '/', str(real / '..'), str(redirect), str(redirect / 'child')):
+        worktree = self.root / 'tree'
+        worktree.mkdir()
+        cache = self.inputs.home / '.cache'
+        redirect = self.root / 'redirect'
+        redirect.mkdir()
+        cache.symlink_to(redirect, target_is_directory=True)
+        for path in ('relative', '', '/', str(cache / '..'), str(cache), str(cache / 'child')):
             with self.subTest(path=path), patch.dict(os.environ, {'HOME': str(self.inputs.home),
-                                                               'XDG_CACHE_HOME': path}):
+                                                               'XDG_CACHE_HOME': path}), \
+                    patch('laptop_cli.pwd.getpwuid', return_value=SimpleNamespace(pw_dir=str(self.inputs.home))), \
+                    patch('laptop_cli.native', side_effect=lambda: native(worktree=worktree)):
                 errors = io.StringIO()
                 self.assertEqual(main(['clean'], errors=errors), 2)
                 self.assertIn('bench:', errors.getvalue())
-        self.assertFalse((self.inputs.home / '.cache').exists())
+        self.assertEqual(list(redirect.iterdir()), [])
+        self.assertEqual(list(worktree.iterdir()), [])
 
     def test_scope_argv_is_literal_and_leaves_swap_enabled(self):
         self.assertEqual(scope_command('vm', 'aresos-bench-fixture.scope', ['/tool', '$NAME']), [
@@ -234,10 +266,12 @@ class GatesTest(unittest.TestCase):
     def test_native_paths_and_read_only_status(self):
         worktree = self.root / 'tree'
         worktree.mkdir()
-        with patch.dict(os.environ, {'HOME': str(self.inputs.home), 'XDG_CACHE_HOME': str(self.root / 'cache')}):
-            configs = native()
+        cache = self.inputs.home / '.cache'
+        with patch.dict(os.environ, {'HOME': str(self.inputs.home), 'XDG_CACHE_HOME': str(cache)}), \
+                patch('laptop_cli.pwd.getpwuid', return_value=SimpleNamespace(pw_dir=str(self.inputs.home))):
+            configs = native(worktree=worktree)
         self.assertEqual(configs.store.lock, self.inputs.home / '.cache/aresos-dev/client-test.lock')
-        self.assertEqual(configs.store.root, self.root / 'cache/aresos-bench')
+        self.assertEqual(configs.store.root, cache / 'aresos-bench')
 
         store = Store(configs.store.root, worktree, configs.store.lock, mount=mock_mount)
         bench = Bench(self.inputs, store)
@@ -245,6 +279,7 @@ class GatesTest(unittest.TestCase):
         memory(self.inputs, 6 * GIB_KIB)
         self.assertEqual(main(['status'], bench=bench, output=out), 0)
         self.assertIn('0 / 40,000,000,000 bytes allocated', out.getvalue())
+        self.assertIn('2,000,000,000 bytes charged to the cap', out.getvalue())
         self.assertIn('vm memory: needs 7 GiB available', out.getvalue())
         self.assertIn('build memory: ready', out.getvalue())
         self.assertFalse(store.root.parent.exists())
@@ -257,3 +292,27 @@ class GatesTest(unittest.TestCase):
         with self.assertRaises(SystemExit) as caught, patch('sys.stderr', io.StringIO()):
             main(['clean', '--force'], bench=bench)
         self.assertEqual(caught.exception.code, 2)
+
+    def test_native_rejects_conflicting_home_for_the_same_store(self):
+        worktree = self.root / 'tree'
+        worktree.mkdir()
+        home = self.inputs.home
+        alternate = self.root / 'alternate'
+        alternate.mkdir()
+        with patch('laptop_cli.pwd.getpwuid', return_value=SimpleNamespace(pw_dir=str(home))):
+            # An absent environment and explicit canonical settings share the lock.
+            with patch.dict(os.environ, {}, clear=True):
+                canonical = native(worktree=worktree).store
+            with shared_lock(canonical.lock), patch.dict(os.environ, {'HOME': str(home),
+                                                                     'XDG_CACHE_HOME': str(home / '.cache')}):
+                explicit = native(worktree=worktree).store
+                self.assertEqual(explicit.root, canonical.root)
+                with self.assertRaisesRegex(Busy, 'lock is busy'):
+                    explicit.clean()
+                with patch.dict(os.environ, {'HOME': str(alternate)}):
+                    with self.assertRaisesRegex(ValueError, 'HOME must match'):
+                        native(worktree=worktree)
+                with patch.dict(os.environ, {'XDG_CACHE_HOME': str(alternate)}):
+                    with self.assertRaisesRegex(ValueError, 'XDG_CACHE_HOME must match'):
+                        native(worktree=worktree)
+        self.assertEqual(list(alternate.iterdir()), [])

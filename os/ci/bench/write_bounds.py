@@ -80,6 +80,7 @@ def restrict_writes(files, file_limit):
             finally:
                 os.close(fd)
         resource.setrlimit(resource.RLIMIT_FSIZE, (file_limit, file_limit))
+        resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
         checked(libc.prctl(38, 1, 0, 0, 0))  # PR_SET_NO_NEW_PRIVS
         checked(libc.syscall(RESTRICT_SELF, ruleset, 0))
         restrict_file_operations(libc)

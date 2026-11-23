@@ -1,5 +1,5 @@
 """Descriptor-relative access to the bench's owned data trees."""
-from contextlib import contextmanager
+from contextlib import contextmanager, ExitStack
 import errno
 import os
 from pathlib import Path
@@ -65,9 +65,10 @@ def mount_id(fd):
 
 
 class DataTree:
-    def __init__(self, path, mount=mount_id):
+    def __init__(self, path, mount=mount_id, *, anchor=None):
         self.path = absolute(path)
         self.mount = mount
+        self.anchor = absolute(anchor) if anchor is not None else self.path.parent
 
     def _same_mount(self, parent, fd):
         if os.fstat(parent).st_dev != os.fstat(fd).st_dev or self.mount(parent) != self.mount(fd):
@@ -103,8 +104,16 @@ class DataTree:
 
     @contextmanager
     def root(self, *, create=False):
-        stack_path = self.path.parent
-        with open_directory(stack_path, create=create) as parent:
+        with ExitStack() as stack:
+            parent = stack.enter_context(open_directory(
+                self.anchor, create=create and self.anchor == self.path.parent))
+            for part in self.path.parent.relative_to(self.anchor).parts:
+                if create:
+                    try:
+                        os.mkdir(part, mode=0o700, dir_fd=parent)
+                    except FileExistsError:
+                        pass
+                parent = stack.enter_context(self.entry(parent, part, DIR))
             made = False
             if create:
                 try:

@@ -2,11 +2,12 @@
 import argparse
 import os
 from pathlib import Path
+import pwd
 import sys
 
-from laptop import Busy, Cancelled, Inputs, UserScopes, Watch, watch_tree
-from store import Store
-from store_paths import validate_cache
+from laptop import Busy, Cancelled, Inputs, UserScopes, Watch, log_error, watch_tree
+from store import OTHER_EVIDENCE, Store
+from store_paths import absolute, validate_cache
 
 
 class Bench:
@@ -23,16 +24,19 @@ class Bench:
             status = watch_tree(self.inputs, mode, command.argv, policy=policy,
                                 scopes=UserScopes(self.inputs) if scopes is None else scopes,
                                 files=command.files, file_limit=command.file_limit, disk_reason=phase.disk_reason,
-                                graceful=graceful or (lambda reason: print(f'bench: {reason}', file=sys.stderr)),
+                                before_release=phase.recheck_command_space,
+                                graceful=graceful or log_error,
                                 env={} if env is None else env)
             if status:
                 raise RunExit(status)
+            phase.publish_evidence()
 
     def status(self, output):
         usage, kept, active = self.store.status()
         print(f'Bench data: {sum(usage.values()):,} / {self.store.cap:,} bytes allocated', file=output)
-        for device, size in sorted(usage.items()):
-            print(f'  filesystem {device}: {size:,} bytes', file=output)
+        print(f'  other-worktree evidence allowance: {OTHER_EVIDENCE:,} bytes charged to the cap', file=output)
+        for pool, size in sorted(usage.items()):
+            print(f'  filesystem pool {pool}: {size:,} bytes', file=output)
         for kind, reason in kept:
             print(f'  kept {kind} ({reason})', file=output)
         if not kept:
@@ -50,12 +54,18 @@ class RunExit(Exception):
         self.status = status
 
 
-def native():
-    home = Path.home().absolute()
-    cache = validate_cache(Path(os.environ.get('XDG_CACHE_HOME', home / '.cache')))
-    worktree = Path(__file__).resolve().parents[3]
+def native(*, worktree=None):
+    home = absolute(Path(pwd.getpwuid(os.getuid()).pw_dir))
+    if Path(os.environ.get('HOME', home)) != home:
+        raise ValueError('HOME must match the account home')
+    cache = home / '.cache'
+    if Path(os.environ.get('XDG_CACHE_HOME', cache)) != cache:
+        raise ValueError('XDG_CACHE_HOME must match the account cache directory')
+    validate_cache(cache)
+    if worktree is None:
+        worktree = Path(__file__).resolve().parents[3]
     return Bench(Inputs(home), Store(cache / 'aresos-bench', worktree,
-                                    home / '.cache/aresos-dev/client-test.lock'))
+                                    cache / 'aresos-dev/client-test.lock'))
 
 
 def main(argv=None, *, bench=None, output=None, errors=None):

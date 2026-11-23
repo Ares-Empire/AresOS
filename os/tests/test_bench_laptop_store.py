@@ -7,12 +7,14 @@ import subprocess
 import sys
 import tempfile
 import time
+from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 
 from test_bench_laptop_gates import ROOT, fixture, mock_mount
 from laptop import Busy, Cancelled
 from laptop_cli import Bench, main
-from store import CAP, GB, IDLE, RESERVE, Store
+from store import CAP, GB, IDLE, OTHER_EVIDENCE, RESERVE, Store, space
 from store_paths import MARKER
 
 MIB = 1024 * 1024
@@ -23,7 +25,7 @@ def roots(root):
 
 
 def mock_space(path):
-    return path.stat().st_dev, 80 * GB, 4096
+    return 1, 80 * GB, 4096
 
 
 def write_interrupted_phase(root):
@@ -83,11 +85,29 @@ class StoreTest(unittest.TestCase):
         with self.store.phase({'base-disk': MIB}) as phase:
             path = phase.write('base-disk', 'disk', b'x' * 128 * 1024)
         self.assertTrue(path.exists())
-        self.store.cap = 2 * MIB
+        self.store.cap = OTHER_EVIDENCE + 2 * MIB
         with self.assertRaisesRegex(Busy, '40 GB'):
             with self.store.phase({'evidence': MIB}):
                 self.fail('existing files must count')
         self.assertEqual(CAP, 40_000_000_000)
+
+    def test_subvolumes_with_distinct_devices_share_one_reserve(self):
+        self.store.disk_space = space
+        statvfs = SimpleNamespace(f_fsid=1234, f_bavail=(RESERVE + 2 * MIB) // 4096, f_frsize=4096)
+        with patch('store.os.statvfs', return_value=statvfs), patch.object(
+                Path, 'stat', autospec=True,
+                side_effect=lambda path: SimpleNamespace(st_dev=2 if path == self.store.worktree else 1)):
+            with self.assertRaisesRegex(Busy, '20 GB'):
+                self.store.admit([(self.root, MIB), (self.store.worktree, MIB)])
+            self.assertEqual(space(self.store.worktree)[0], 1234)
+
+    def test_other_worktrees_evidence_allowance_is_charged_without_scanning(self):
+        with self.store.phase({'base-disk': MIB}):
+            pass
+        with patch.object(self.store.data, 'allocated', return_value=35 * GB):
+            self.store.admit([(self.store.root, 2 * GB)])
+            with self.assertRaisesRegex(Busy, '40 GB'):
+                self.store.admit([(self.store.root, 4_900_000_000)])
 
     def test_sparse_allocation_and_writer_preflight(self):
         with self.store.phase({'base-disk': MIB}) as phase:
@@ -279,6 +299,8 @@ class StoreTest(unittest.TestCase):
     def test_cleanup_refuses_same_device_mount_at_root_or_below(self):
         with self.store.phase({'builder-boot': MIB}) as phase:
             keep = phase.write('builder-boot', 'keep', b'fixture')
+        with self.store.phase({'evidence': MIB}) as phase:
+            evidence = phase.write('evidence', 'keep', b'fixture')
         store = self.store.root
         mounted = set()
 
@@ -287,7 +309,7 @@ class StoreTest(unittest.TestCase):
             return 2 if os.fstat(fd).st_ino in mounted else 1
 
         checked = Store(*roots(self.root), disk_space=mock_space, mount=fake_mountinfo)
-        for path in (store, keep.parent, keep):
+        for path in (store, keep.parent, keep, self.store.worktree / '.work'):
             with self.subTest(path=path.name):
                 self.assertEqual(path.stat().st_dev, store.parent.stat().st_dev)
                 mounted.clear()
@@ -296,6 +318,7 @@ class StoreTest(unittest.TestCase):
                     checked.clean()
                 self.assertTrue(keep.is_file())
                 self.assertTrue((store / MARKER).is_file())
+                self.assertTrue(evidence.is_file())
 
 
 if __name__ == '__main__':

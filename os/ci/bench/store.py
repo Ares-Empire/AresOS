@@ -16,6 +16,7 @@ from store_paths import DataTree, existing_parent, mount_id, validate_cache
 GB = 1_000_000_000
 CAP = 40 * GB
 RESERVE = 20 * GB
+OTHER_EVIDENCE = 2 * GB
 IDLE = 7 * 24 * 60 * 60
 COORDINATION = 1024 * 1024
 FILE_OVERHEAD = 64 * 1024
@@ -36,7 +37,7 @@ FILE_NAME = re.compile(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,127}')
 
 def space(path):
     info = os.statvfs(path)
-    return path.stat().st_dev, info.f_bavail * info.f_frsize, info.f_frsize
+    return info.f_fsid, info.f_bavail * info.f_frsize, info.f_frsize
 
 
 def write_record(folder, value):
@@ -79,29 +80,29 @@ class Store:
         self.reserve = reserve
         self.active = root / 'active.json'
         self.data = DataTree(root, mount)
-        self.evidence = DataTree(worktree / '.work/bench', mount)
+        self.evidence = DataTree(worktree / '.work/bench', mount, anchor=worktree)
 
     def usage(self, omit=()):
-        by_device = defaultdict(int)
+        by_pool = defaultdict(int)
         for tree in (self.data, self.evidence):
             if tree.exists():
-                by_device[self.disk_space(tree.path)[0]] += tree.allocated()
+                by_pool[self.disk_space(tree.path)[0]] += tree.allocated()
         for path in omit:
-            by_device[self.disk_space(existing_parent(path))[0]] -= self.data.allocated(path.relative_to(self.root))
-        return by_device
+            by_pool[self.disk_space(existing_parent(path))[0]] -= self.data.allocated(path.relative_to(self.root))
+        return by_pool
 
     def admit(self, targets, omit=()):
-        usage = self.usage(omit)
-        if sum(usage.values()) > self.cap:
+        used = sum(self.usage(omit).values()) + OTHER_EVIDENCE
+        if used > self.cap:
             raise Busy('bench store exceeds the 40 GB cap')
         needs, free = {}, {}
         for path, peak in targets:
-            device, available, _ = self.disk_space(existing_parent(path))
-            needs[device] = needs.get(device, COORDINATION) + peak
-            free[device] = min(free.get(device, available), available)
-        if sum(usage.values()) + sum(needs.values()) > self.cap:
+            pool, available, _ = self.disk_space(existing_parent(path))
+            needs[pool] = needs.get(pool, COORDINATION) + peak
+            free[pool] = min(free.get(pool, available), available)
+        if used + sum(needs.values()) > self.cap:
             raise Busy('disk phase would exceed the 40 GB bench cap')
-        if any(free[device] - peak < self.reserve for device, peak in needs.items()):
+        if any(free[pool] - peak < self.reserve for pool, peak in needs.items()):
             raise Busy('disk phase would leave less than 20 GB free on a filesystem')
 
     @staticmethod
@@ -255,6 +256,8 @@ class Phase:
         self._store = store
         self._open = True
         self._command = None
+        self._command_charges = []
+        self._staged_evidence = {}
         self._polled = {}
 
     def close(self):
@@ -297,7 +300,7 @@ class Phase:
         return output
 
     def command(self, argv, *, outputs=()):
-        """Supply a closed list of private regular files. The workload cannot create any others."""
+        """Bind private regular files named by standalone arguments in argv."""
         if (not self._open or self._command is not None or not isinstance(argv, (list, tuple)) or
                 not argv or any(not isinstance(arg, str) or '\0' in arg for arg in argv) or not argv[0]):
             raise ValueError('invalid bench workload command')
@@ -307,6 +310,12 @@ class Phase:
             if not isinstance(output, (FixedDisk, PolledDirectory)):
                 raise ValueError('unbounded bench workload output')
             path = self.destination(output.kind, output.name)
+            if output.kind == 'evidence':
+                if path.exists() or path.is_symlink():
+                    raise ValueError('bench output already exists')
+                partial = path.with_name(f'.{path.name}.partial')
+                self._staged_evidence[str(path)] = partial
+                path = partial
             _, _, block = self._store.disk_space(path.parent)
             size = output.size if isinstance(output, FixedDisk) else 0
             if isinstance(output, FixedDisk):
@@ -339,13 +348,22 @@ class Phase:
             raise ValueError('fixed disks must fit the command file ceiling')
         if charges:
             self._store.admit(charges)
-        self._command = BoundedCommand(tuple(argv), tuple(files), file_limit)
+        self._command_charges = charges
+        argv = tuple(str(self._staged_evidence.get(arg, arg)) for arg in argv)
+        self._command = BoundedCommand(argv, tuple(files), file_limit)
         return self._command
 
     def workload(self, result):
         if self._command is None or result is not self._command:
             raise ValueError('unbounded bench workload command')
         return self._command
+
+    def recheck_command_space(self):
+        self._store.admit([(self._store.root, 0), *self._command_charges])
+
+    def publish_evidence(self):
+        for final, partial in self._staged_evidence.items():
+            partial.replace(final)
 
     def disk_reason(self):
         for kind, peak in self._polled.items():
