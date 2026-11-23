@@ -340,28 +340,45 @@ class Phase:
             raise ValueError('invalid bench output')
         return self._paths[kind] / name
 
-    def _charge(self, kind, amount):
+    def _check_charge(self, kind, amount, free):
         if self._remaining[kind] < amount:
             raise Busy(f'{kind} write would exceed its phase peak')
-        free = self._store.disk_space(self._paths[kind]).available
         if free - amount < self._store.reserve:
             raise Busy(f'{kind} write would leave less than 20 GB free')
-        self._remaining[kind] -= amount
+
+    @contextmanager
+    def _bounded_file(self, kind, path, disk, peak, margin):
+        copies = 2 if disk.fs_type is None else 1
+        self._check_charge(kind, copies * peak + margin, disk.available)
+        if disk.fs_type == 'btrfs':
+            set_nocow(path.parent)
+        with path.open('xb') as stream:
+            try:
+                # The empty output itself probes what it inherited before any data is written.
+                if disk.fs_type == 'btrfs' and not has_nocow(stream.fileno()):
+                    copies = 2
+                charge = copies * peak + margin
+                self._check_charge(kind, charge, self._store.disk_space(path.parent).available)
+                self._remaining[kind] -= charge
+                yield stream, copies, charge
+            except BaseException:
+                path.unlink()
+                raise
 
     def write(self, kind, name, data, *, offset=0):
         """Write one bounded file; offset permits a sparse prefix without charging its apparent length."""
         if type(data) is not bytes or type(offset) is not int or offset < 0:
             raise ValueError('invalid bench output')
         output = self.destination(kind, name)
-        block = self._store.disk_space(output.parent).block
-        blocks = ((offset % block + len(data) + block - 1) // block) if data else 0
-        self._charge(kind, blocks * block + FILE_OVERHEAD)
         if output.exists() or output.is_symlink():
             raise ValueError('bench output already exists')
         if kind == 'builder-boot' and any(output.parent.iterdir()):
             raise ValueError('a builder boot image is already present')
+        disk = self._store.disk_space(output.parent)
+        block = disk.block
+        blocks = ((offset % block + len(data) + block - 1) // block) if data else 0
         partial = output.with_name(f'.{name}.partial')
-        with partial.open('xb') as stream:
+        with self._bounded_file(kind, partial, disk, blocks * block, FILE_OVERHEAD) as (stream, _, _):
             stream.seek(offset)
             stream.write(data)
             stream.flush()
@@ -393,31 +410,27 @@ class Phase:
             if fixed:
                 if type(size) is not int or size <= 0:
                     raise ValueError('invalid fixed disk size')
-                limit = size
-                allocation = ((size + block - 1) // block) * block
-                charge = allocation + FILE_OVERHEAD
-                if disk.fs_type == 'btrfs':
-                    set_nocow(path.parent)
+                peak = ((size + block - 1) // block) * block
+                margin = FILE_OVERHEAD
             else:
                 if (type(output.peak) is not int or type(output.margin) is not int or
                         output.peak <= 0 or output.margin < FILE_OVERHEAD + block or output.kind in self._polled):
                     raise ValueError('invalid polled directory peak or margin')
-                charge = output.peak + output.margin
-                limit = ((charge - FILE_OVERHEAD) // block) * block
                 if path.parent.stat().st_blocks * 512 + FILE_OVERHEAD > output.margin:
                     raise ValueError('polled directory margin cannot fit its metadata')
-                limit -= block
-                if limit < output.peak:
-                    raise ValueError('polled directory margin cannot fit its block rounding')
-                self._polled[output.kind] = output.peak
+                peak, margin = output.peak, output.margin
             if output.kind == 'builder-boot' and any(path.parent.iterdir()):
                 raise ValueError('a builder boot image is already present')
-            with path.open('xb') as stream:
-                if fixed and disk.fs_type in ('btrfs', None):
-                    if disk.fs_type is None or not has_nocow(stream.fileno()):
-                        charge += allocation
-                self._charge(output.kind, charge)
-                stream.truncate(size)
+            with self._bounded_file(output.kind, path, disk, peak, margin) as (stream, copies, charge):
+                limit = size
+                if fixed:
+                    stream.truncate(size)
+                else:
+                    # Growth between polls consumes the margin at the same copy rate.
+                    limit = ((charge - FILE_OVERHEAD) // (copies * block) - 1) * block
+                    if limit < peak:
+                        raise ValueError('polled directory margin cannot fit its block rounding')
+                    self._polled[output.kind] = peak
             charges.append((path.parent, charge))
             files.append(path)
             limits.append(limit)

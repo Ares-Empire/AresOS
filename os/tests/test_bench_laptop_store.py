@@ -250,6 +250,24 @@ class StoreTest(unittest.TestCase):
                 phase.write('test-disk', 'overlay', b'fixture')
             self.assertEqual(list((self.store.root / 'test-disk').iterdir()), [])
 
+    def test_managed_write_uses_the_same_nocow_charge(self):
+        for flags, copies in ((FS_NOCOW_FL, 1), (0, 2)):
+            with self.subTest(flags=flags):
+                available = 100 * GB
+                self.store.disk_space = lambda path: DiskSpace('1', available, 4096, 'btrfs')
+                with (self.store.phase({'test-disk': MIB}) as phase,
+                      patch('store.set_nocow') as mark_directory,
+                      patch('store.inode_flags', return_value=flags) as read_flags):
+                    available = RESERVE + copies * 4096 + FILE_OVERHEAD - 1
+                    with self.assertRaisesRegex(Busy, '20 GB'):
+                        phase.write('test-disk', 'refused', b'fixture')
+                    available += 1
+                    output = phase.write('test-disk', 'allowed', b'fixture')
+                    self.assertEqual(output.read_bytes(), b'fixture')
+                    self.assertEqual(list(output.parent.iterdir()), [output])
+                    mark_directory.assert_called_with(output.parent)
+                    read_flags.assert_called()
+
     def test_shared_lock_refuses_phase_expiry_and_clean_during_active_store(self):
         with self.store.phase({'test-disk': MIB}) as phase:
             path = phase.write('test-disk', 'fixture', b'fixture')

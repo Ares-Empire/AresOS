@@ -336,11 +336,14 @@ class OwnedScope:
             return False
 
     def stop(self):
+        """Wait for an empty scope and report whether it emptied without intervention."""
         failed = False
+        forced = False
         warned = False
         while not self.empty():
             try:
                 os.write(self.kill, b'1')
+                forced = True
             except OSError:
                 if self.empty():
                     break
@@ -351,7 +354,7 @@ class OwnedScope:
             sleep(0.05 if not failed else 1)
         if failed:
             log_error('scope shutdown failed before the tree was confirmed empty')
-        return not failed
+        return not (failed or forced)
 
 
 def scope_payload(inputs, mode, command, env, files, file_limit):
@@ -444,8 +447,8 @@ def guard(scope, owner, request, launcher, grace):
         if owner not in ready and request in ready and os.read(request, 1) == b'G':
             select.select([owner, launcher], [], [], grace)
     finally:
-        confirmed = scope.stop()
-    return 0 if confirmed else 1
+        clean_exit = scope.stop()
+    return 0 if clean_exit else 1
 
 
 def supervise(child, scope, inputs, policy, graceful, disk_reason, launcher, before_release):
@@ -505,9 +508,9 @@ def supervise(child, scope, inputs, policy, graceful, disk_reason, launcher, bef
                         _, status = os.waitpid(guardian, 0)
                 finally:
                     # The guardian may have died before sending the kill or confirming emptiness.
-                    confirmed = scope.stop()
+                    clean_exit = scope.stop()
                     result = child.wait()
-        if requested_stop or status or not confirmed:
+        if requested_stop or status or not clean_exit:
             return 1
         return result if result in (0, 75) else 1
 
