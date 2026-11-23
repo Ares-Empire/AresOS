@@ -875,3 +875,11 @@ All five decisions above are accepted as written:
 5. No token per view in this package. It goes under Known limits, as a later supervisor change.
 
 Known limit 6 (the tray-resident app) is fixed in step D, as proposed.
+
+## The lead's structural decision after recheck 5 (2026-11-23)
+
+Rechecks 3 to 5 each found the live-launch cap's lifecycle accounting one step behind reality: handoffs, launchers that exit after their child maps a window, failed launches with UNKNOWN scopes, and scopes registering during a restart. The cap stays, and it now reads ground truth instead of inferring it:
+1. **The live-launch cap counts systemd, not records.** At admission, the helper lists the active `app-aresos-*.scope` units (the existing `systemctl list-units` call and `parse_scopes`) and counts those that belong to the asking principal (desktop or views). The helper knows a scope's principal from the unit name it created, kept in a bounded map that's saved with the journal. A scope it didn't create, or no longer knows, counts as a view's, the conservative side. If the list can't be read (UNKNOWN), a view's new launch is refused with the existing `journal_full` code and "too many launches" text. The desktop's isn't refused for that: the world's hotbar must stay able to open apps, and its own record limits still bound it.
+2. **Joining has one rule.** `activate_app` and replays join a launch only while it is still starting: its check is pending, or it was spawned, has shown no window yet, and its window deadline hasn't passed. A failed, ended or closed launch is never joined, whatever its scope state.
+3. **After a restart,** a saved `starting` launch whose scope isn't ACTIVE at reconciliation is marked failed. It is not joinable, and its saved reply stays for replay.
+4. **Launch records stay as ANALYSIS-1 designed them** (per-client tables, no eviction, 8 names, receipts). The launch table may keep entries for replay and joins, but no admission decision reads its states any more.
