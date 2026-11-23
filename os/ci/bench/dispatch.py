@@ -2,6 +2,8 @@
 import argparse
 import json
 import subprocess
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
 
 from script import LEDGER, PATH, LedgerRef, refuse_ledger_ref
 
@@ -14,11 +16,12 @@ def submit(ref, name):
     refuse_ledger_ref(ref, json.loads(LEDGER.read_bytes()))
     subprocess.run(['git', 'check-ref-format', f'refs/heads/{ref}'], check=True)
     # A newly managed branch can have its ledger entry before it reaches main.
-    raw = subprocess.check_output([
-        'gh', 'api', '--method', 'GET', f'repos/{REPO}/contents/os/ci/rehearsal-packages.json',
-        '-H', 'Accept: application/vnd.github.raw+json', '-f', f'ref=refs/heads/{ref}',
-    ])
-    refuse_ledger_ref(ref, json.loads(raw))
+    # The ledger is public, so this read needs no GitHub credential.
+    query = urlencode({'ref': f'refs/heads/{ref}'})
+    request = Request(f'https://api.github.com/repos/{REPO}/contents/os/ci/rehearsal-packages.json?{query}',
+                      headers={'Accept': 'application/vnd.github.raw+json', 'Cache-Control': 'no-cache'})
+    with urlopen(request, timeout=10) as response:
+        refuse_ledger_ref(ref, json.load(response))
     subprocess.run(['gh', 'workflow', 'run', 'os-image.yml', '--repo', REPO, '--ref', ref,
                     '-f', 'check_build=bench', '-f', f'bench_script={name}'], check=True)
 

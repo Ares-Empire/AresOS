@@ -6,6 +6,7 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+from urllib.parse import parse_qs, urlsplit
 
 import yaml
 
@@ -109,11 +110,14 @@ class BenchDispatchTest(unittest.TestCase):
     def test_client_checks_target_ledger_before_submit(self):
         ref = 'pkg/331-release-29'
         ledger = json.dumps({'331': {'branch': ref}}).encode()
-        with patch.object(client.subprocess, 'run') as run, \
-                patch.object(client.subprocess, 'check_output', return_value=ledger) as read:
+        with patch.object(client.subprocess, 'run') as run, patch.object(client, 'urlopen') as read:
+            read.return_value.__enter__.return_value.read.return_value = ledger
             with self.assertRaisesRegex(LedgerRef, 'ledger-managed'):
                 client.submit(ref, BENCH_SCRIPT)
-            self.assertIn(f'ref=refs/heads/{ref}', read.call_args.args[0])
+            request = read.call_args.args[0]
+            self.assertEqual(parse_qs(urlsplit(request.full_url).query), {'ref': [f'refs/heads/{ref}']})
+            self.assertEqual(request.get_method(), 'GET')
+            self.assertFalse(request.has_header('Authorization'))
             self.assertFalse(any(call.args[0][:3] == ['gh', 'workflow', 'run'] for call in run.call_args_list))
             client.submit(BRANCH, BENCH_SCRIPT)
             self.assertEqual(run.call_args.args[0], ['gh', 'workflow', 'run', 'os-image.yml', '--repo', client.REPO,
