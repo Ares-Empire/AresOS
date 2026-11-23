@@ -11,7 +11,8 @@ test('CI latency overlay preserves results native timers and code with absent hi
       async function rules(){return 7;}async function facts(){return 'Synthetic result';}
       async function finishFrames(){return false;}async function collectSteps(){await new Promise(resolve=>setTimeout(resolve,POLICY.holdMs+25));return [];}
       ${modern?'function holdDefaults(){networkHolds.set(1,{});return rules();}async function observation(){return {available:true};}':''}
-      async function dispatch(command){const value=await facts();await collectSteps();return value;}
+      async function content(tab,frame,command,parameters={},document=null,expires=null){return {parameters,expires};}
+      async function dispatch(command,expires=null){if(command.name==='content')return content(1,0,'outline',{},null,expires);const value=await facts();await collectSteps();return value;}
       async function connect() {return null;}`;
     const instrumented=instrumentLatencyBackground(source).replace("import {POLICY} from './policy.js';",'');
     const context=vm.createContext({POLICY:{holdMs:500},messages,performance:{now:()=>++clock},setTimeout:fn=>{timers.push(525);fn();}});
@@ -19,6 +20,9 @@ test('CI latency overlay preserves results native timers and code with absent hi
     assert.equal(await vm.runInContext("dispatch({name:'read'})",context),'Synthetic result');
     assert.deepEqual(timers,[525]);assert(messages.some(row=>row.stage==='post_input_observation_wait'));
     assert(messages.every(row=>row.milliseconds>=0));assert(!JSON.stringify(messages).includes('Synthetic result'));
+    // Brief 28, item 4: a command's time passes through both wrappers.
+    const passed=await vm.runInContext("dispatch({name:'content'},1234)",context);
+    assert.equal(passed.expires,1234);assert.ok('__latency_wire' in passed.parameters);
   }
 });
 

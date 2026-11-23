@@ -85,7 +85,15 @@ def request(value,admin=False):
     stop=Path('/run/aresos-tools/fixture-stop')
     if stop.exists():
         stop.unlink();Path('/out/stop-result.json').write_text(json.dumps(daemon.engine.adapters['chrome'].bridge.call('stop')))
-    return original_request(value,admin)
+    result=original_request(value,admin)
+    # Brief 28, group 14's time cases: the test build holds a tab's reader
+    # replies, or its own reply to one command, back (prepare.mjs). Set after
+    # this request, so that its own looks at pending aren't held.
+    hold=Path('/run/aresos-tools/fixture-hold')
+    if hold.exists():
+        arguments=json.loads(hold.read_text());hold.unlink()
+        Path('/out/fixture-hold.json').write_text(json.dumps(daemon.engine.adapters['chrome'].bridge.call(arguments['command'],**arguments['arguments'])))
+    return result
 daemon.engine.request=request
 daemon.engine.adapters['chrome'].refresh_qualification=False
 bridge=daemon.engine.adapters['chrome'].bridge

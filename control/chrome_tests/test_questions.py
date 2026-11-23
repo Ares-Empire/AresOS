@@ -405,6 +405,23 @@ class Questions(unittest.TestCase):
             self.call('read_typed_fields',approval);self.assertEqual(reads,[])
             self.assertTrue(self.call('read_typed_fields',replacement)['ok']);self.assertEqual(len(reads),1)
 
+    def test_step13d_repaired_question_and_field_description_still_require_exact_echo(self):
+        # The native wire already repaired these strings; Python keeps its exact checks.
+        state,reads=self.typed_browser()
+        state['title']='Page \ufffd'
+        state['frames'][0]['fields'][0]['label']='Draft \ufffd'
+        approval=self.call('prepare_read_typed_fields',{'tab':1})['data']['approval']
+        self.assertIn('Page \ufffd',approval['question'])
+        self.assertIn('Draft \ufffd',approval['question'])
+        for part in ['question','description']:
+            changed=copy.deepcopy(approval)
+            if part=='question':changed['question']+=' '
+            else:changed['description']['untrusted_content']['fields']['frames'][0]['fields'][0]['label']+=' '
+            self.assertFalse(self.call('read_typed_fields',changed)['ok'])
+            self.assertEqual(reads,[])
+        self.assertTrue(self.call('read_typed_fields',approval)['ok'])
+        self.assertEqual(len(reads),1)
+
     def test_post18df_connection_frame_reader_and_element_identity_changes_retire_approval(self):
         for change in ['connection','frame','reader','replacement']:
             state,reads=self.typed_browser();approval=self.call('prepare_read_typed_fields',{'tab':1})['data']['approval']

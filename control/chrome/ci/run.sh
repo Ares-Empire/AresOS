@@ -56,7 +56,12 @@ node control/chrome/ci/prepare.mjs
 FIXTURE_LOG_DIR=/out
 if test "${LATENCY_PROBE:-}" = true && test -d /scratch; then FIXTURE_LOG_DIR=/scratch; fi
 export FIXTURE_LOG_DIR
-runuser -u aresos-tools -- env PYTHONPATH=/workspace/control PYTHONDONTWRITEBYTECODE=1 GITHUB_ACTIONS=true FIXTURE_LOG_DIR="$FIXTURE_LOG_DIR" python3 control/chrome/ci/service.py > "$FIXTURE_LOG_DIR/service.txt" 2>&1 &
+# Brief 28, item 6: the test-only switch that registers chrome_outline. The
+# service and the browser harness (with the proxy and the command it starts)
+# each build their own catalogue, so both lines set it. Only these two: the
+# generated-file check and the Python tests above, and the full suite below,
+# see the catalogue without it (generate.py refuses to run with it set).
+runuser -u aresos-tools -- env PYTHONPATH=/workspace/control PYTHONDONTWRITEBYTECODE=1 GITHUB_ACTIONS=true ARESOS_TEST_CHROME_OUTLINE=1 FIXTURE_LOG_DIR="$FIXTURE_LOG_DIR" python3 control/chrome/ci/service.py > "$FIXTURE_LOG_DIR/service.txt" 2>&1 &
 service_pid=$!
 trap 'kill "$service_pid" 2>/dev/null || true' EXIT
 for attempt in $(seq 1 100); do
@@ -64,7 +69,7 @@ for attempt in $(seq 1 100); do
   sleep .1
 done
 test -S /run/aresos-tools/act.sock
-runuser -u owner -- env GITHUB_ACTIONS=true dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1000x24' bash -c '
+runuser -u owner -- env GITHUB_ACTIONS=true ARESOS_TEST_CHROME_OUTLINE=1 dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1000x24' bash -c '
   openbox > /out/openbox.txt 2>&1 &
   node control/chrome/ci/browser.mjs
 ' 2>&1 | tee /out/browser.txt

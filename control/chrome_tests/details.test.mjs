@@ -61,8 +61,9 @@ test('final F7 the extension waits past the service polkit timeout only for loos
   assert.ok(wait>service+10000,`${wait} must exceed ${service}`);
   const timers=[],posted=[];
   const context=vm.createContext({LOOSEN_WAIT_MS:wait,ownerRequests:new Map(),port:{postMessage:value=>posted.push(value)},crypto:{randomUUID:()=>'request-'+posted.length},
-    setTimeout:(callback,delay)=>{timers.push(delay);return 0},Object,
+    setTimeout:(callback,delay)=>{timers.push(delay);return 0},Object,TextEncoder,
     chrome:{runtime:{id:'fixture',getURL:path=>'chrome-extension://fixture/'+path,onMessage:{addListener:listener=>{context.receive=listener}}}}});
+  vm.runInContext(source.slice(source.indexOf('function wellFormed('),source.indexOf('function safeURL(')),context);
   vm.runInContext(source.slice(source.indexOf('chrome.runtime.onMessage.addListener('),source.indexOf('chrome.tabs.onUpdated.addListener(')),context);
   const sender={id:'fixture',url:'chrome-extension://fixture/details.html',tab:{id:3},frameId:0};
   const cases=[[{command:'list'},10000],[{command:'revoke',id:'x'},10000],[{command:'readonly',site:'https://x.test/',enabled:true},10000],
