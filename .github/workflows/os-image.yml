@@ -186,7 +186,7 @@ jobs:
         run: env -u REHEARSAL_PACKAGE python3 -m unittest discover -s os/tests -p test_ways_back_model.py -k test_reachable_state_space -v
   check-build:
     name: Throwaway image build and checks (never pushed, signed or published)
-    if: github.event_name == 'workflow_dispatch' && github.ref_name != 'pkg/16-staged-release' && (inputs.check_build == 'bench' || (inputs.check_build != '' && !inputs.rehearsal && !inputs.release_13 && !inputs.release_27 && !inputs.release_28 && !inputs.dry_run_28 && !inputs.checks_only && !inputs.switch_from_run))
+    if: github.event_name == 'workflow_dispatch' && inputs.check_build != '' && !inputs.rehearsal && !inputs.release_13 && !inputs.release_27 && !inputs.release_28 && !inputs.dry_run_28 && !inputs.checks_only && !inputs.switch_from_run && (github.ref_name != 'pkg/16-staged-release' || inputs.check_build == 'bench') && (inputs.check_build != 'bench' || (!inputs.probe_run && !inputs.full_model))
     runs-on: ubuntu-24.04
     # check_build=control adds its own VM steps (below) after the build step:
     # tools 20 + build 80 + Control VM pass 16 + Control Chrome VM pass 25 + 15.
@@ -208,12 +208,12 @@ jobs:
       # guard stops a resolve beyond the cap, and any other check build on the
       # branch, before the tools and the build.
       - name: Reserve package 42 resolve budget
-        if: github.ref_name == 'pkg/42-release-28'
+        if: github.ref_name == 'pkg/42-release-28' && inputs.check_build != 'bench'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REHEARSAL_MODE: resolve
         run: python3 os/ci/rehearsal_guard.py ci 120
-      - name: Validate the bench dispatch and exercise the evidence refusals
+      - name: Refuse unsafe bench dispatches and exercise the evidence refusals
         if: inputs.check_build == 'bench'
         env:
           BENCH_SCRIPT: ${{ inputs.bench_script }}

@@ -14,6 +14,7 @@ MAX_STEPS = 32
 MAX_SCRIPT = 32 * 1024
 BOOLEAN_CONFLICTS = ('release_13', 'release_27', 'release_28', 'dry_run_28', 'checks_only', 'full_model')
 STRING_CONFLICTS = ('rehearsal', 'switch_from_run', 'probe_run')
+LEDGER = pathlib.Path(__file__).resolve().parents[1] / 'rehearsal-packages.json'
 
 
 def git(repo, *args):
@@ -27,6 +28,17 @@ def validate_dispatch(event, mode):
     if (any(inputs.get(name) not in (None, '', False, 'false') for name in BOOLEAN_CONFLICTS)
             or any(inputs.get(name) not in (None, '') for name in STRING_CONFLICTS)):
         raise ValueError('Bench dispatch must be exclusive')
+
+
+class LedgerRef(ValueError):
+    pass
+
+
+def refuse_ledger_ref(ref, packages):
+    if not ref or not isinstance(packages, dict) or not packages:
+        raise ValueError('Bench requires a branch and release ledger')
+    if ref in {package['branch'] for package in packages.values()}:
+        raise LedgerRef('Bench dispatch refused on a ledger-managed ref')
 
 
 def parse(raw):
@@ -85,6 +97,9 @@ def dispatch():
     if (os.environ.get('GITHUB_ACTIONS') != 'true' or os.environ.get('GITHUB_EVENT_NAME') != 'workflow_dispatch'
             or os.environ.get('RUNNER_ENVIRONMENT') != 'github-hosted' or os.environ.get('GITHUB_JOB') != 'check-build'):
         raise ValueError('Bench runs only in hosted dispatches')
+    if os.environ.get('GITHUB_REF_TYPE') != 'branch':
+        raise ValueError('Bench requires a branch')
+    refuse_ledger_ref(os.environ['GITHUB_REF_NAME'], json.loads(LEDGER.read_bytes()))
     event = json.loads(pathlib.Path(os.environ['GITHUB_EVENT_PATH']).read_bytes())
     validate_dispatch(event, 'bench')
     sha, name = os.environ['GITHUB_SHA'], os.environ['BENCH_SCRIPT']
@@ -97,6 +112,8 @@ def dispatch():
 if __name__ == '__main__':
     try:
         dispatch()
+    except LedgerRef as error:
+        raise SystemExit(str(error)) from None
     except (KeyError, OSError, ValueError, subprocess.CalledProcessError):
         raise SystemExit('Bench dispatch refused (incompatible inputs or invalid script at dispatched head)') from None
     print('Bench dispatch validated')
