@@ -206,7 +206,7 @@ class Inputs:
         finally:
             os.close(fd)
 
-    def gates(self, mode):
+    def session_gates(self):
         checks = (
             ('Lunar Client', lambda: not self.lunar_running(), 'Lunar Client Java is running'),
             ('power', lambda: not self.on_battery(), 'laptop is on battery or external power is unconfirmed'),
@@ -217,6 +217,10 @@ class Inputs:
                 result[name] = None if check() else reason
             except (OSError, ValueError):
                 result[name] = f'{name} reading unavailable'
+        return result
+
+    def gates(self, mode):
+        result = self.session_gates()
         if mode == 'vm':
             try:
                 result['KVM'] = None if self.kvm_ready() else 'KVM unavailable'
@@ -419,6 +423,9 @@ def scoped_exec(data):
                 return 1
             os.dup2(null.fileno(), 0)
             os.dup2(null.fileno(), 1)
+            for reason in inputs.session_gates().values():
+                if reason:
+                    raise Busy(reason)
             inputs.require_memory(mode)
             os.dup2(null.fileno(), 2)
             os.execvpe(command[0], command, env)

@@ -1,17 +1,19 @@
 """Shared bench disk accounting, write admission and interrupted-phase recovery."""
+from array import array
 from collections import defaultdict
 from contextlib import contextmanager
 from dataclasses import dataclass
+import fcntl
 import json
 import os
 from pathlib import Path
 import re
 import stat
 from time import time
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from laptop import Busy, catch_signals, defer_signals, shared_lock
-from store_paths import DataTree, existing_parent, mount_id, validate_cache
+from store_paths import DataTree, existing_parent, mount_id, open_directory, validate_cache
 
 GB = 1_000_000_000
 CAP = 40 * GB
@@ -33,11 +35,74 @@ RETAINED = {
 IMAGE = {'image', 'base-disk'}
 RUN_ID = re.compile(r'[0-9a-f]{32}')
 FILE_NAME = re.compile(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,127}')
+MOUNTINFO = Path('/proc/self/mountinfo')
+# Linux x86-64 ioctl numbers, matching the workload sandbox's supported architecture.
+BTRFS_IOC_FS_INFO = 0x8400941F
+FS_IOC_GETFLAGS = 0x80086601
+FS_IOC_SETFLAGS = 0x40086602
+FS_NOCOW_FL = 0x00800000
+
+
+@dataclass(frozen=True)
+class DiskSpace:
+    pool: str | None
+    available: int
+    block: int
+    fs_type: str | None = 'ext4'
+
+
+def filesystem_type(fd):
+    mount = str(mount_id(fd))
+    with MOUNTINFO.open(encoding='utf-8', errors='surrogateescape') as stream:
+        for line in stream:
+            if line.partition(' ')[0] == mount:
+                _, _, description = line.partition(' - ')
+                return description.partition(' ')[0] or None
+    return None
 
 
 def space(path):
-    info = os.statvfs(path)
-    return info.f_fsid, info.f_bavail * info.f_frsize, info.f_frsize
+    with open_directory(path) as fd:
+        info = os.fstatvfs(fd)
+        fs_type, pool = None, None
+        try:
+            fs_type = filesystem_type(fd)
+            if fs_type == 'btrfs':
+                data = bytearray(1024)
+                fcntl.ioctl(fd, BTRFS_IOC_FS_INFO, data)
+                # fsid follows the first two u64 fields in btrfs_ioctl_fs_info_args.
+                fsid = bytes(data[16:32])
+                if any(fsid):
+                    pool = str(UUID(bytes=fsid))
+            elif fs_type and info.f_fsid:
+                pool = str(info.f_fsid)
+        except (OSError, ValueError):
+            pass
+    return DiskSpace(pool, info.f_bavail * info.f_frsize, info.f_frsize, fs_type)
+
+
+def inode_flags(fd):
+    flags = array('I', [0])
+    fcntl.ioctl(fd, FS_IOC_GETFLAGS, flags)
+    return flags[0]
+
+
+def set_nocow(path):
+    try:
+        with open_directory(path) as fd:
+            flags = inode_flags(fd)
+            if not flags & FS_NOCOW_FL:
+                fcntl.ioctl(fd, FS_IOC_SETFLAGS, array('I', [flags | FS_NOCOW_FL]))
+    except OSError:
+        # Admission checks what the new file actually inherited.
+        pass
+
+
+def has_nocow(fd):
+    try:
+        return bool(inode_flags(fd) & FS_NOCOW_FL)
+    except OSError:
+        return False
 
 
 def write_record(folder, value):
@@ -86,9 +151,11 @@ class Store:
         by_pool = defaultdict(int)
         for tree in (self.data, self.evidence):
             if tree.exists():
-                by_pool[self.disk_space(tree.path)[0]] += tree.allocated()
+                by_pool[self.disk_space(tree.path).pool] += tree.allocated()
         for path in omit:
-            by_pool[self.disk_space(existing_parent(path))[0]] -= self.data.allocated(path.relative_to(self.root))
+            by_pool[self.disk_space(existing_parent(path)).pool] -= self.data.allocated(path.relative_to(self.root))
+        if None in by_pool:
+            return {'combined': sum(by_pool.values())}
         return by_pool
 
     def admit(self, targets, omit=()):
@@ -97,12 +164,15 @@ class Store:
             raise Busy('bench store exceeds the 40 GB cap')
         needs, free = {}, {}
         for path, peak in targets:
-            pool, available, _ = self.disk_space(existing_parent(path))
-            needs[pool] = needs.get(pool, COORDINATION) + peak
+            disk = self.disk_space(existing_parent(path))
+            pool, available = disk.pool, disk.available
+            needs[pool] = needs.get(pool, 0) + peak
             free[pool] = min(free.get(pool, available), available)
-        if used + sum(needs.values()) > self.cap:
+        if None in needs:
+            needs, free = {None: sum(needs.values())}, {None: min(free.values())}
+        if used + sum(needs.values()) + len(needs) * COORDINATION > self.cap:
             raise Busy('disk phase would exceed the 40 GB bench cap')
-        if any(free[pool] - peak < self.reserve for pool, peak in needs.items()):
+        if any(free[pool] - peak - COORDINATION < self.reserve for pool, peak in needs.items()):
             raise Busy('disk phase would leave less than 20 GB free on a filesystem')
 
     @staticmethod
@@ -273,7 +343,7 @@ class Phase:
     def _charge(self, kind, amount):
         if self._remaining[kind] < amount:
             raise Busy(f'{kind} write would exceed its phase peak')
-        _, free, _ = self._store.disk_space(self._paths[kind])
+        free = self._store.disk_space(self._paths[kind]).available
         if free - amount < self._store.reserve:
             raise Busy(f'{kind} write would leave less than 20 GB free')
         self._remaining[kind] -= amount
@@ -283,7 +353,7 @@ class Phase:
         if type(data) is not bytes or type(offset) is not int or offset < 0:
             raise ValueError('invalid bench output')
         output = self.destination(kind, name)
-        _, _, block = self._store.disk_space(output.parent)
+        block = self._store.disk_space(output.parent).block
         blocks = ((offset % block + len(data) + block - 1) // block) if data else 0
         self._charge(kind, blocks * block + FILE_OVERHEAD)
         if output.exists() or output.is_symlink():
@@ -316,13 +386,18 @@ class Phase:
                 partial = path.with_name(f'.{path.name}.partial')
                 self._staged_evidence[str(path)] = partial
                 path = partial
-            _, _, block = self._store.disk_space(path.parent)
-            size = output.size if isinstance(output, FixedDisk) else 0
-            if isinstance(output, FixedDisk):
+            disk = self._store.disk_space(path.parent)
+            block = disk.block
+            fixed = isinstance(output, FixedDisk)
+            size = output.size if fixed else 0
+            if fixed:
                 if type(size) is not int or size <= 0:
                     raise ValueError('invalid fixed disk size')
                 limit = size
-                charge = ((size + block - 1) // block) * block + FILE_OVERHEAD
+                allocation = ((size + block - 1) // block) * block
+                charge = allocation + FILE_OVERHEAD
+                if disk.fs_type == 'btrfs':
+                    set_nocow(path.parent)
             else:
                 if (type(output.peak) is not int or type(output.margin) is not int or
                         output.peak <= 0 or output.margin < FILE_OVERHEAD + block or output.kind in self._polled):
@@ -335,12 +410,15 @@ class Phase:
                 if limit < output.peak:
                     raise ValueError('polled directory margin cannot fit its block rounding')
                 self._polled[output.kind] = output.peak
-            self._charge(output.kind, charge)
-            charges.append((path.parent, charge))
             if output.kind == 'builder-boot' and any(path.parent.iterdir()):
                 raise ValueError('a builder boot image is already present')
             with path.open('xb') as stream:
+                if fixed and disk.fs_type in ('btrfs', None):
+                    if disk.fs_type is None or not has_nocow(stream.fileno()):
+                        charge += allocation
+                self._charge(output.kind, charge)
                 stream.truncate(size)
+            charges.append((path.parent, charge))
             files.append(path)
             limits.append(limit)
         file_limit = min(limits, default=0)

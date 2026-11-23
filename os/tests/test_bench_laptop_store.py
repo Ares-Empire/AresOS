@@ -10,11 +10,15 @@ import time
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
+from uuid import UUID
 
 from test_bench_laptop_gates import ROOT, fixture, mock_mount
 from laptop import Busy, Cancelled
 from laptop_cli import Bench, main
-from store import CAP, GB, IDLE, OTHER_EVIDENCE, RESERVE, Store, space
+from store import (
+    BTRFS_IOC_FS_INFO, CAP, COORDINATION, DiskSpace, FILE_OVERHEAD, FS_NOCOW_FL, FixedDisk,
+    GB, IDLE, OTHER_EVIDENCE, RESERVE, Store, space,
+)
 from store_paths import MARKER
 
 MIB = 1024 * 1024
@@ -25,7 +29,7 @@ def roots(root):
 
 
 def mock_space(path):
-    return 1, 80 * GB, 4096
+    return DiskSpace('1', 80 * GB, 4096)
 
 
 def write_interrupted_phase(root):
@@ -48,7 +52,9 @@ class StoreTest(unittest.TestCase):
 
     def test_phase_peak_is_checked_before_output_on_each_filesystem(self):
         def filesystems(path):
-            return (2, RESERVE + GB, 4096) if path.is_relative_to(self.store.worktree) else (1, 100 * GB, 4096)
+            if path.is_relative_to(self.store.worktree):
+                return DiskSpace('2', RESERVE + GB, 4096)
+            return DiskSpace('1', 100 * GB, 4096)
 
         store = Store(*roots(self.root), disk_space=filesystems, mount=mock_mount)
         with self.assertRaisesRegex(Busy, '40 GB'):
@@ -57,7 +63,9 @@ class StoreTest(unittest.TestCase):
         self.assertFalse(store.root.exists())
 
         def low_evidence_space(path):
-            return (2, RESERVE, 4096) if path.is_relative_to(store.worktree) else (1, 100 * GB, 4096)
+            if path.is_relative_to(store.worktree):
+                return DiskSpace('2', RESERVE, 4096)
+            return DiskSpace('1', 100 * GB, 4096)
 
         store.disk_space = low_evidence_space
         with self.assertRaisesRegex(Busy, '20 GB'):
@@ -70,18 +78,18 @@ class StoreTest(unittest.TestCase):
         with store.phase({'base-disk': MIB, 'evidence': MIB}) as phase:
             phase.write('base-disk', 'disk', b'fixture')
             phase.write('evidence', 'results.txt', b'PASS')
-        self.assertEqual(set(store.usage()), {1, 2})
+        self.assertEqual(set(store.usage()), {'1', '2'})
 
     def test_same_filesystem_peaks_are_combined_and_old_use_is_counted(self):
         def free(path):
-            return 1, RESERVE + 3 * MIB - 1, 4096
+            return DiskSpace('1', RESERVE + 3 * MIB - 1, 4096)
 
         self.store.disk_space = free
         with self.assertRaisesRegex(Busy, '20 GB'):
             with self.store.phase({'test-disk': MIB, 'podman-tmp': MIB}):
                 self.fail('coexisting writes must fit together')
 
-        self.store.disk_space = lambda path: (1, 100 * GB, 4096)
+        self.store.disk_space = lambda path: DiskSpace('1', 100 * GB, 4096)
         with self.store.phase({'base-disk': MIB}) as phase:
             path = phase.write('base-disk', 'disk', b'x' * 128 * 1024)
         self.assertTrue(path.exists())
@@ -91,15 +99,83 @@ class StoreTest(unittest.TestCase):
                 self.fail('existing files must count')
         self.assertEqual(CAP, 40_000_000_000)
 
-    def test_subvolumes_with_distinct_devices_share_one_reserve(self):
+    def test_btrfs_subvolumes_with_distinct_fsids_share_one_reserve(self):
         self.store.disk_space = space
-        statvfs = SimpleNamespace(f_fsid=1234, f_bavail=(RESERVE + 2 * MIB) // 4096, f_frsize=4096)
-        with patch('store.os.statvfs', return_value=statvfs), patch.object(
-                Path, 'stat', autospec=True,
-                side_effect=lambda path: SimpleNamespace(st_dev=2 if path == self.store.worktree else 1)):
+        uuid = UUID(int=3)
+        mountinfo = self.root / 'mountinfo'
+        mountinfo.write_text('101 1 0:41 /first /mnt/first rw - btrfs /dev/fixture rw,subvolid=256\n'
+                             '102 1 0:42 /second /mnt/second rw - btrfs /dev/fixture rw,subvolid=257\n')
+        evidence_inode = self.store.worktree.stat().st_ino
+
+        def mount(fd):
+            return 102 if os.fstat(fd).st_ino == evidence_inode else 101
+
+        def statvfs(fd):
+            blocks = (RESERVE + 2 * MIB + 4095) // 4096
+            return SimpleNamespace(f_fsid=1000 + mount(fd), f_bavail=blocks, f_frsize=4096)
+
+        def fs_info(_fd, request, data):
+            self.assertEqual(request, BTRFS_IOC_FS_INFO)
+            data[16:32] = uuid.bytes
+
+        with (patch('store.os.fstatvfs', side_effect=statvfs), patch('store.mount_id', side_effect=mount),
+              patch('store.MOUNTINFO', mountinfo), patch('store.fcntl.ioctl', side_effect=fs_info)):
+            for path in (self.root, self.store.worktree):
+                self.assertEqual(space(path).pool, str(uuid))
+                self.store.admit([(path, MIB)])
             with self.assertRaisesRegex(Busy, '20 GB'):
                 self.store.admit([(self.root, MIB), (self.store.worktree, MIB)])
-            self.assertEqual(space(self.store.worktree)[0], 1234)
+
+    def test_unknown_pool_combines_peaks_and_uses_the_lowest_free_space(self):
+        def free(path):
+            if path == self.store.worktree:
+                return DiskSpace(None, 100 * GB, 4096, 'btrfs')
+            return DiskSpace('1', RESERVE + 2 * MIB, 4096)
+
+        self.store.disk_space = free
+        with self.assertRaisesRegex(Busy, '20 GB'):
+            self.store.admit([(self.root, MIB), (self.store.worktree, MIB)])
+
+    def test_fixed_disk_overwrite_at_reserve_boundary_requires_verified_nocow(self):
+        size = MIB
+        cases = (
+            ('btrfs', 0, 1, False),
+            ('btrfs', OSError('attribute unreadable'), 1, False),
+            ('btrfs', 0, 2, True),
+            ('btrfs', FS_NOCOW_FL, 1, True),
+            ('ext4', 0, 1, True),
+        )
+        for fs_type, flags, copies, admitted in cases:
+            with self.subTest(fs_type=fs_type, flags=flags, copies=copies):
+                available = 100 * GB
+                self.store.disk_space = lambda path: DiskSpace('1', available, 4096, fs_type)
+                with self.store.phase({'test-disk': 3 * MIB}) as phase:
+                    disk = phase.destination('test-disk', 'fixed.img')
+                    available = RESERVE + COORDINATION + copies * size + FILE_OVERHEAD
+
+                    def read_flags(fd):
+                        mark_directory.assert_called_once_with(disk.parent)
+                        self.assertTrue(os.path.samestat(os.fstat(fd), disk.stat()))
+                        self.assertEqual(os.fstat(fd).st_size, 0)
+                        if isinstance(flags, OSError):
+                            raise flags
+                        return flags
+
+                    with (patch('store.set_nocow') as mark_directory,
+                          patch('store.inode_flags', side_effect=read_flags) as reader):
+                        argv = ['rewriter', str(disk)]
+                        outputs = [FixedDisk('test-disk', disk.name, size)]
+                        if admitted:
+                            self.assertEqual(phase.command(argv, outputs=outputs).file_limit, size)
+                            phase.recheck_command_space()
+                        else:
+                            with self.assertRaisesRegex(Busy, '20 GB'):
+                                phase.command(argv, outputs=outputs)
+                        if fs_type == 'ext4':
+                            mark_directory.assert_not_called()
+                            reader.assert_not_called()
+                        else:
+                            reader.assert_called_once()
 
     def test_other_worktrees_evidence_allowance_is_charged_without_scanning(self):
         with self.store.phase({'base-disk': MIB}):
@@ -165,7 +241,7 @@ class StoreTest(unittest.TestCase):
         available = 100 * GB
 
         def free(path):
-            return 1, available, 4096
+            return DiskSpace('1', available, 4096)
 
         self.store.disk_space = free
         with self.store.phase({'test-disk': MIB}) as phase:

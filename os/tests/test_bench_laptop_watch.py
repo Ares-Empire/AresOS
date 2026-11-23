@@ -13,11 +13,11 @@ import time
 import unittest
 from unittest.mock import patch
 
-from test_bench_laptop_gates import ROOT, fixture, memory, mock_mount, replace_text
+from test_bench_laptop_gates import ROOT, fixture, memory, mock_mount, process_status, replace_text
 from test_bench_laptop_store import MIB, mock_space, roots
 from laptop import Busy, Cancelled, OwnedScope, UserScopes, Watch
 from laptop_cli import Bench, RunExit
-from store import FixedDisk, PolledDirectory, RESERVE, Store
+from store import DiskSpace, FixedDisk, PolledDirectory, RESERVE, Store
 
 WORKER = """
 import os
@@ -112,6 +112,15 @@ class StandInScopes:
         if self.case == 'scoped-recheck':
             (self.root / 'scope-active').touch()
             memory(self.inputs, 1)
+        if self.case == 'battery-recheck':
+            (self.root / 'scope-active').touch()
+            (self.inputs.power / 'AC/online').write_text('0')
+        if self.case == 'lunar-recheck':
+            (self.root / 'scope-active').touch()
+            process = self.inputs.proc / '1234'
+            process.mkdir()
+            process_status(process)
+            (process / 'exe').symlink_to(self.inputs.home / '.lunarclient/runtime/bin/java')
         if self.case == 'reserve-recheck':
             (self.root / 'scope-active').touch()
             (self.root / 'low-space').touch()
@@ -138,7 +147,7 @@ def run_watcher(root, case, handles, descendants, sender):
 
     def disk_space(path):
         if (root / 'low-space').exists():
-            return 1, RESERVE, 4096
+            return DiskSpace('1', RESERVE, 4096)
         return mock_space(path)
 
     store = Store(*roots(root), disk_space=disk_space, mount=mock_mount)
@@ -150,6 +159,8 @@ def run_watcher(root, case, handles, descendants, sender):
             memory(inputs, 1)
         if case == 'unbounded':
             return [sys.executable, '-c', 'raise Exception("unbounded command executed")']
+        if case in ('battery-recheck', 'lunar-recheck'):
+            return phase.command([sys.executable, '-c', 'raise SystemExit(42)'])
         if case == 'disk':
             output = phase.destination('evidence', 'growing')
             return phase.command([sys.executable, '-B', '-c', GROW, str(output)],
@@ -171,6 +182,10 @@ except PermissionError:
 else:
     raise AssertionError('undeclared write succeeded')
 with disk.open('r+b') as stream:
+    stream.write(b'x' * 65536)
+    stream.flush()
+    os.fsync(stream.fileno())
+    stream.seek(0)
     stream.write(b'fixture')
     stream.flush()
     try:
@@ -381,6 +396,18 @@ class WatchTest(unittest.TestCase):
         self.assertEqual(watcher.wait(timeout=5), 75, watcher.stderr.read())
         self.assertTrue((self.root / 'scope-active').exists())
         self.assertFalse((self.root / 'store/test-disk').exists())
+
+    def test_exec_boundary_refuses_unplugging_after_scope_activation(self):
+        watcher = self.start_watcher('battery-recheck')
+        self.assertEqual(watcher.wait(timeout=5), 75)
+        self.assertIn('battery', watcher.stderr.read())
+        self.assertTrue((self.root / 'scope-active').exists())
+
+    def test_exec_boundary_refuses_lunar_starting_after_scope_activation(self):
+        watcher = self.start_watcher('lunar-recheck')
+        self.assertEqual(watcher.wait(timeout=5), 75)
+        self.assertIn('Lunar Client Java is running', watcher.stderr.read())
+        self.assertTrue((self.root / 'scope-active').exists())
 
     def test_reserve_rechecked_after_scope_activation_before_workload_release(self):
         watcher = self.start_watcher('reserve-recheck')
