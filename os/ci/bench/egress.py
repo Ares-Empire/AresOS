@@ -46,7 +46,8 @@ class Policy:
             home = {ip_network(route, strict=True) for route in routes}
             public = {ip_address(address) for address in reflected}
             dns = IPv4Address(resolver)
-            if (not local or not home or not public or type(identity) is not bytes or not identity
+            if (not local or not home or not any(isinstance(address, IPv4Address) for address in public)
+                    or type(identity) is not bytes or not identity
                     or any(not route.prefixlen for route in home)
                     or any(not address.is_global or address.is_multicast for address in public)):
                 raise ValueError

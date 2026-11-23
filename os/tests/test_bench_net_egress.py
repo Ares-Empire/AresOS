@@ -133,17 +133,17 @@ class BenchEgressTest(unittest.TestCase):
 
     def test_missing_observations_and_contradictions_fail_closed(self):
         for changes in ({'addresses': []}, {'routes': []}, {'reflected': []}, {'identity': b''},
-                        {'routes': ['0.0.0.0/0']}, {'reflected': ['127.0.0.1']},
+                        {'routes': ['0.0.0.0/0']}, {'reflected': ['127.0.0.1']}, {'reflected': ['2600::1']},
                         {'resolver': '192.0.2.2'}, {'routes': ['sensitive-invalid-value']}):
             with self.subTest(changes=changes), self.assertRaisesRegex(
                     Busy, '^laptop egress topology cannot be verified$'):
                 policy(**changes)
 
-    def test_each_laptop_entry_is_refused_before_preparation(self):
+    def test_internet_request_is_refused_before_scoped_preparation(self):
         bench = Bench(Mock(), Mock())
-        for entry in ENTRIES:
-            with self.subTest(entry=entry), self.assertRaisesRegex(Busy, 'hosted only'):
-                bench.run(entry, {}, Mock(), network='internet')
+        for mode in ('vm', 'build'):
+            with self.subTest(mode=mode), self.assertRaisesRegex(Busy, 'hosted only'):
+                bench.run(mode, {}, Mock(), network='internet')
         bench.store.phase.assert_not_called()
         bench.inputs.require.assert_not_called()
 
