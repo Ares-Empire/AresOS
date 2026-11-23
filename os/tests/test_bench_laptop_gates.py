@@ -1,6 +1,8 @@
 import io
 import os
+from dataclasses import dataclass
 from pathlib import Path
+import stat
 import sys
 import tempfile
 import unittest
@@ -8,20 +10,35 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'os/ci/bench'))
-from laptop import Busy, GIB_KIB, Inputs, Watch, scope_command, shared_lock
+from laptop import Busy, GIB_KIB, Inputs, KVM_GET_API_VERSION, Watch, scope_command, shared_lock
 from laptop_cli import Bench, main, native
 from store import Store
+
+
+def mock_mount(_fd):
+    return 1
+
+
+@dataclass(frozen=True)
+class FakeInputs(Inputs):
+    def kvm_ready(self):
+        return self.kvm.read_text() == '12'
 
 
 def fixture(root):
     paths = {name: root / name for name in ('home', 'proc', 'meminfo', 'pressure', 'power', 'cgroups', 'kvm')}
     for name in ('home', 'proc', 'power', 'cgroups'):
         paths[name].mkdir()
-    inputs = Inputs(**paths)
+    inputs = FakeInputs(**paths)
     memory(inputs, 8 * GIB_KIB)
     psi(inputs, 0)
-    inputs.kvm.touch()
+    inputs.kvm.write_text('12')
     return inputs
+
+
+def process_status(path, state='S', uid=None):
+    user = os.getuid() if uid is None else uid
+    (path / 'status').write_text(f'State:\t{state} (fixture)\nUid:\t{user}\t{user}\t{user}\t{user}\n')
 
 
 def replace_text(path, text):
@@ -65,6 +82,7 @@ class GatesTest(unittest.TestCase):
     def test_lunar_matches_only_java_executables_under_either_home_path(self):
         exe = self.inputs.proc / '1234/exe'
         exe.parent.mkdir()
+        process_status(exe.parent)
         (exe.parent / 'cmdline').write_text(str(self.inputs.home / '.lunarclient/runtime/bin/java'))
         for target in ('/usr/bin/java', self.inputs.home / '.lunarclient/launcher',
                        self.inputs.home / '.lunarclient-old/runtime/bin/java'):
@@ -109,6 +127,100 @@ class GatesTest(unittest.TestCase):
             self.inputs.require('vm')
         self.assertIn('reading unavailable', Watch().reason(self.inputs))
 
+    def test_malformed_meminfo_and_psi_refuse(self):
+        for bad in (
+            'MemTotal: 16384000 kB\nMemAvailable: 8388608 kB\nMemAvailable: broken\n',
+            'MemTotal: 16384000 kB\nMemAvailable: 20000000 kB\n',
+            'MemTotal: 16384000 kB\nMemAvailable: 8388608\n',
+            'MemTotal: 16384000 kB\nMemAvailable: 8388608 kB\nMemAvailable: 8388608 kB\n',
+        ):
+            with self.subTest(bad=bad):
+                self.inputs.meminfo.write_text(bad)
+                with self.assertRaisesRegex(Busy, 'memory reading unavailable'):
+                    self.inputs.require('vm')
+        memory(self.inputs, 8 * GIB_KIB)
+        for bad in (
+            'some avg10=0.00 avg60=0.00 avg300=0.00 total=0\n',
+            'full avg10=0.00 avg60=0.00 avg300=0.00 total=0\nsome avg10=0.00 avg60=0.00\n',
+            'full avg10=0.00 avg60=0.00 avg300=0.00 total=0\nsome avg10=0.00 avg60=101.00 avg300=0.00 total=0\n',
+            'some avg10=0.00 avg60=0.00 avg300=0.00 total=0\nsome avg10=1.00 avg60=1.00 avg300=1.00 total=1\n',
+            'some avg10=0.00 avg60=0.00 avg300=0.00 total=0\nfull avg10=1.00 avg60=0.00 avg300=0.00 total=1\n',
+        ):
+            with self.subTest(bad=bad):
+                self.inputs.pressure.write_text(bad)
+                with self.assertRaisesRegex(Busy, 'pressure reading unavailable'):
+                    self.inputs.require('vm')
+
+    def test_owner_permission_error_refuses_but_foreign_and_exited_processes_are_ignored(self):
+        process = self.inputs.proc / '1234'
+        process.mkdir()
+        process_status(process)
+        with patch('laptop.os.readlink', side_effect=PermissionError):
+            with self.assertRaisesRegex(Busy, 'Lunar Client reading unavailable'):
+                self.inputs.require('vm')
+            process_status(process, uid=os.getuid() + 1)
+            self.inputs.require('vm')
+        process_status(process)
+        with self.assertRaisesRegex(Busy, 'Lunar Client reading unavailable'):
+            self.inputs.require('vm')
+        process_status(process, state='Z')
+        self.inputs.require('vm')
+        (process / 'status').unlink()
+        process.rmdir()
+        self.inputs.require('vm')
+
+    def test_unknown_battery_type_and_malformed_power_status_refuse(self):
+        battery = self.inputs.power / 'BAT0'
+        battery.mkdir()
+        kind = battery / 'type'
+        kind.write_text('Mystery')
+        with self.assertRaisesRegex(Busy, 'power reading unavailable'):
+            self.inputs.require('vm')
+        kind.write_text('Battery')
+        (battery / 'status').write_text('Malformed')
+        with self.assertRaisesRegex(Busy, 'power reading unavailable'):
+            self.inputs.require('vm')
+
+    def test_kvm_requires_open_character_device_and_api_version(self):
+        kvm = self.inputs.kvm
+        inputs = Inputs(self.inputs.home, kvm=kvm)
+        self.assertFalse(inputs.kvm_ready(), 'a writable regular file is not KVM')
+        with patch('laptop.os.open', side_effect=PermissionError):
+            with self.assertRaises(PermissionError):
+                inputs.kvm_ready()
+        with patch('laptop.stat.S_ISCHR', return_value=True), patch('laptop.fcntl.ioctl') as ioctl:
+            ioctl.return_value = 11
+            self.assertFalse(inputs.kvm_ready())
+            ioctl.return_value = 12
+            self.assertTrue(inputs.kvm_ready())
+            self.assertEqual(ioctl.call_args.args[1], KVM_GET_API_VERSION)
+            ioctl.side_effect = OSError('fixture ioctl denied')
+            with self.assertRaises(OSError):
+                inputs.kvm_ready()
+
+    def test_missing_or_malformed_game_events_are_unknown(self):
+        game = self.inputs.cgroups / 'aresos-game-fixture.scope'
+        game.mkdir()
+        self.assertEqual(self.inputs.home_game(), 'unknown')
+        for bad in ('populated 2\n', 'frozen 0\n', 'populated 0\npopulated 1\n',
+                    'populated 0\nfrozen wrong\n'):
+            (game / 'cgroup.events').write_text(bad)
+            with self.subTest(bad=bad):
+                self.assertEqual(self.inputs.home_game(), 'unknown')
+
+    def test_unsafe_cache_paths_are_refused_before_clean(self):
+        real = self.root / 'cache'
+        real.mkdir()
+        redirect = self.root / 'link'
+        redirect.symlink_to(real, target_is_directory=True)
+        for path in ('relative', '', '/', str(real / '..'), str(redirect), str(redirect / 'child')):
+            with self.subTest(path=path), patch.dict(os.environ, {'HOME': str(self.inputs.home),
+                                                               'XDG_CACHE_HOME': path}):
+                errors = io.StringIO()
+                self.assertEqual(main(['clean'], errors=errors), 2)
+                self.assertIn('bench:', errors.getvalue())
+        self.assertFalse((self.inputs.home / '.cache').exists())
+
     def test_scope_argv_is_literal_and_leaves_swap_enabled(self):
         self.assertEqual(scope_command('vm', 'aresos-bench-fixture.scope', ['/tool', '$NAME']), [
             '/usr/bin/systemd-run', '--user', '--scope', '--quiet', '--collect',
@@ -127,7 +239,7 @@ class GatesTest(unittest.TestCase):
         self.assertEqual(configs.store.lock, self.inputs.home / '.cache/aresos-dev/client-test.lock')
         self.assertEqual(configs.store.root, self.root / 'cache/aresos-bench')
 
-        store = Store(configs.store.root, worktree, configs.store.lock)
+        store = Store(configs.store.root, worktree, configs.store.lock, mount=mock_mount)
         bench = Bench(self.inputs, store)
         out = io.StringIO()
         memory(self.inputs, 6 * GIB_KIB)

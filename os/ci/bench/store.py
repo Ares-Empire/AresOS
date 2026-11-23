@@ -1,17 +1,17 @@
 """Shared bench disk accounting, write admission and interrupted-phase recovery."""
 from collections import defaultdict
 from contextlib import contextmanager
-import hashlib
+from dataclasses import dataclass
 import json
 import os
 from pathlib import Path
 import re
-import shutil
 import stat
 from time import time
 from uuid import uuid4
 
 from laptop import Busy, catch_signals, defer_signals, shared_lock
+from store_paths import DataTree, existing_parent, mount_id, validate_cache
 
 GB = 1_000_000_000
 CAP = 40 * GB
@@ -34,80 +34,42 @@ RUN_ID = re.compile(r'[0-9a-f]{32}')
 FILE_NAME = re.compile(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,127}')
 
 
-def directory(path):
-    """Allow absent roots, but never follow a redirected store or evidence path."""
-    if path.resolve() != path:
-        raise ValueError('bench data path is redirected')
-    if path.exists() and not path.is_dir():
-        raise ValueError('bench data path is not a directory')
-    return path
-
-
-def existing_parent(path):
-    while not path.exists():
-        path = path.parent
-    return path
-
-
 def space(path):
     info = os.statvfs(path)
     return path.stat().st_dev, info.f_bavail * info.f_frsize, info.f_frsize
 
 
-def allocated(root):
-    """Sum allocated blocks, including directory entries, without crossing a mount or following links."""
-    paths = [root]
-    device = root.lstat().st_dev
-    seen = set()
-    total = 0
-    while paths:
-        path = paths.pop()
-        info = path.lstat()
-        if info.st_dev != device:
-            raise ValueError('mount inside bench data')
-        if info.st_ino in seen:
-            continue
-        seen.add(info.st_ino)
-        total += info.st_blocks * 512
-        if stat.S_ISDIR(info.st_mode):
-            paths.extend(path.iterdir())
-    return total
-
-
-def remove(path):
-    if path.is_symlink() or path.is_file():
-        path.unlink()
-    elif path.exists():
-        allocated(path)  # Refuse nested mounts before descending for deletion.
-        shutil.rmtree(path)
-
-
-def write_record(path, value):
-    temporary = path.with_suffix('.tmp')
-    with temporary.open('x', encoding='utf-8') as stream:
+def write_record(folder, value):
+    fd = os.open('active.tmp', os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=folder)
+    with os.fdopen(fd, 'w', encoding='utf-8') as stream:
         json.dump(value, stream)
         stream.flush()
         os.fsync(stream.fileno())
-    temporary.replace(path)
-    fd = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
-    try:
-        os.fsync(fd)
-    finally:
-        os.close(fd)
+    os.rename('active.tmp', 'active.json', src_dir_fd=folder, dst_dir_fd=folder)
+    os.fsync(folder)
 
 
-def read_record(path):
-    if not stat.S_ISREG(path.lstat().st_mode) or path.stat().st_size > 16 * 1024:
-        raise ValueError('invalid bench record')
-    return json.loads(path.read_text(encoding='utf-8'))
-
-
-def worktree_key(worktree):
-    return hashlib.sha256(os.fsencode(worktree)).hexdigest()
+def read_record(tree):
+    with tree.root() as (_, folder):
+        with tree.entry(folder, 'active.json', os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK) as fd:
+            info = os.fstat(fd)
+            if not stat.S_ISREG(info.st_mode) or info.st_size > 16 * 1024:
+                raise ValueError('invalid bench phase record')
+            record = json.loads(os.read(fd, 16 * 1024 + 1))
+    if not isinstance(record, dict) or record.keys() != {'writes'}:
+        raise ValueError('invalid bench phase record')
+    writes = record['writes']
+    if (not isinstance(writes, list) or
+            any(not isinstance(kind, str) or kind not in LIMITS or kind == 'evidence' for kind in writes)):
+        raise ValueError('invalid bench phase record')
+    if len(set(writes)) != len(writes):
+        raise ValueError('duplicate writes in bench phase record')
+    return writes
 
 
 class Store:
-    def __init__(self, root, worktree, lock, *, disk_space=space, clock=time, cap=CAP, reserve=RESERVE):
+    def __init__(self, root, worktree, lock, *, disk_space=space, clock=time, cap=CAP, reserve=RESERVE,
+                 mount=mount_id):
         self.root = root
         self.worktree = worktree
         self.lock = lock
@@ -116,32 +78,16 @@ class Store:
         self.cap = cap
         self.reserve = reserve
         self.active = root / 'active.json'
-
-    def worktrees(self):
-        roots = {}
-        for record in directory(self.root).glob('worktree-*.json'):
-            worktree = Path(read_record(record))
-            key = worktree_key(worktree)
-            if not worktree.is_absolute() or record.name != f'worktree-{key}.json':
-                raise ValueError('invalid bench evidence registration')
-            evidence = directory(worktree / '.work/bench')
-            roots[key] = evidence
-        return roots
-
-    def evidence(self):
-        roots = set(self.worktrees().values())
-        roots.add(directory(self.worktree / '.work/bench'))
-        return sorted(root for root in roots if root.exists())
+        self.data = DataTree(root, mount)
+        self.evidence = DataTree(worktree / '.work/bench', mount)
 
     def usage(self, omit=()):
         by_device = defaultdict(int)
-        for root in (directory(self.root), *self.evidence()):
-            if root.exists():
-                dev = self.disk_space(root)[0]
-                by_device[dev] += allocated(root)
+        for tree in (self.data, self.evidence):
+            if tree.exists():
+                by_device[self.disk_space(tree.path)[0]] += tree.allocated()
         for path in omit:
-            if path.exists():
-                by_device[self.disk_space(path)[0]] -= allocated(path)
+            by_device[self.disk_space(existing_parent(path))[0]] -= self.data.allocated(path.relative_to(self.root))
         return by_device
 
     def admit(self, targets, omit=()):
@@ -158,65 +104,64 @@ class Store:
         if any(free[device] - peak < self.reserve for device, peak in needs.items()):
             raise Busy('disk phase would leave less than 20 GB free on a filesystem')
 
-    def _path(self, kind):
-        return self.root / 'image' / kind if kind in IMAGE else self.root / kind
+    @staticmethod
+    def _relative(kind):
+        return Path('image', kind) if kind in IMAGE else Path(kind)
 
-    def _recover(self, *, success=False, keep_evidence=False):
-        if not self.active.exists() and not self.active.is_symlink():
+    def _recover(self, *, success=False):
+        try:
+            kinds = read_record(self.data)
+        except FileNotFoundError:
             return
-        record = read_record(self.active)
-        kinds = record['writes']
-        if not isinstance(kinds, list) or any(kind not in LIMITS for kind in kinds):
-            raise ValueError('invalid bench phase record')
         if IMAGE.intersection(kinds) and not success:
-            remove(self.root / 'image')
+            self.data.remove(Path('image'))
         for kind in kinds:
-            if kind == 'evidence':
-                run = record['run']
-                evidence = self.worktrees()[record['worktree']]
-                if not RUN_ID.fullmatch(run):
-                    raise ValueError('invalid bench evidence run')
-                run_path = directory(evidence / run)
-                if keep_evidence and run_path.exists():
-                    for partial in run_path.glob('.*.partial'):
-                        remove(partial)
-                else:
-                    remove(run_path)
-            elif kind not in IMAGE and (kind not in RETAINED or not success):
-                remove(self._path(kind))
-        self.active.unlink()
+            if kind not in IMAGE and (kind not in RETAINED or not success):
+                self.data.remove(self._relative(kind))
+        self.data.remove(Path('active.json'))
+
+    def _runs(self):
+        return [Path(name) for name in self.evidence.names() if RUN_ID.fullmatch(name)]
+
+    def _sweep_evidence(self):
+        for run in self._runs():
+            for name in self.evidence.names(run):
+                if name.startswith('.') and name.endswith('.partial') and FILE_NAME.fullmatch(name[1:-8]):
+                    self.evidence.remove(run / name)
 
     def _prepare(self):
         self._recover()
-        if self.root.exists():
-            for temporary in self.root.glob('*.tmp'):
-                temporary.unlink()
-        build = directory(self._path('build-store'))
-        if build.exists() and self.clock() - build.stat().st_mtime >= IDLE:
-            remove(build)
+        self.data.remove(Path('active.tmp'))
+        self._sweep_evidence()
+        try:
+            with self.data.target(Path('build-store')) as (_, _, fd):
+                info = os.fstat(fd)
+                if not stat.S_ISDIR(info.st_mode):
+                    raise ValueError('invalid bench build store')
+                expired = self.clock() - info.st_mtime >= IDLE
+        except FileNotFoundError:
+            expired = False
+        if expired:
+            self.data.remove(Path('build-store'))
 
     def expire(self):
-        with catch_signals(), shared_lock(self.lock):
-            directory(self.root)
-            with defer_signals():
-                self._prepare()
+        with catch_signals(), shared_lock(self.lock), defer_signals():
+            self._prepare()
+            self._trim_evidence()
 
     def clean(self):
-        with catch_signals(), shared_lock(self.lock):
-            directory(self.root)
-            with defer_signals():
-                for evidence in self.evidence():
-                    remove(evidence)
-                remove(self.root)
+        with catch_signals(), shared_lock(self.lock), defer_signals():
+            self.data.allocated()
+            self.evidence.allocated()
+            self.evidence.remove()
+            self.data.remove()
 
     def status(self):
-        kept = [(kind, rationale) for kind, rationale in RETAINED.items() if (self.root / kind).exists()]
-        evidence = self.evidence()
-        for root in evidence:
-            if root.exists():
-                kept.append(('evidence', 'five most recent runs across worktrees'))
-                break
-        return self.usage(), kept, self.active.is_file()
+        names = self.data.names()
+        kept = [(kind, reason) for kind, reason in RETAINED.items() if kind in names]
+        if self.evidence.exists():
+            kept.append(('evidence', 'five most recent runs in this worktree'))
+        return self.usage(), kept, 'active.json' in names
 
     @contextmanager
     def phase(self, peaks, *, start_check=lambda: None, use_build_store=False):
@@ -227,85 +172,122 @@ class Store:
             raise ValueError('invalid bench phase peaks')
         with catch_signals(), shared_lock(self.lock):
             start_check()
-            directory(self.root)
             self._prepare()
-            key = worktree_key(self.worktree)
-            run = uuid4().hex
-            paths = {kind: self._path(kind) for kind in peaks}
+            paths = {kind: self.root / self._relative(kind) for kind in peaks}
             if 'evidence' in paths:
-                paths['evidence'] = directory(self.worktree / '.work/bench') / run
+                paths['evidence'] = self.evidence.path / uuid4().hex
             replace = {self.root / 'image' for kind in peaks if kind in IMAGE}
             replace.update(paths[kind] for kind in ('build-store', 'builder-boot') if kind in peaks)
             targets = [(self.root, 0), *((path, peaks[kind]) for kind, path in paths.items())]
-            # Check the cap after replacement, and require free space without speculative reclaim credit.
             self.admit(targets, omit=replace)
             for old in replace:
-                remove(old)
+                self.data.remove(old.relative_to(self.root))
             self.admit(targets)
-            self.root.mkdir(parents=True, exist_ok=True)
-            if 'evidence' in paths:
-                registry = self.root / f'worktree-{key}.json'
-                if not registry.exists():
-                    write_record(registry, str(self.worktree))
-            write_record(self.active, {'writes': list(peaks), 'worktree': key, 'run': run})
-            phase = Phase(paths, peaks, self.disk_space, self.reserve)
+            validate_cache(self.root.parent)
+            with defer_signals():
+                with self.data.root(create=True) as (_, folder):
+                    write_record(folder, {'writes': [kind for kind in peaks if kind != 'evidence']})
+                if 'evidence' in paths:
+                    with self.evidence.root(create=True):
+                        pass
+            phase = Phase(paths, peaks, self)
             success = False
             try:
                 for path in paths.values():
-                    directory(path).mkdir(parents=True)
+                    path.mkdir(mode=0o700, parents=True)
                 yield phase
                 success = True
             finally:
                 with defer_signals():
                     phase.close()
-                    self._recover(success=success, keep_evidence=True)
+                    self._recover(success=success)
+                    self._sweep_evidence()
                     if use_build_store or (success and 'build-store' in peaks):
-                        build = directory(self._path('build-store'))
-                        if build.is_dir():
-                            now = self.clock()
-                            os.utime(build, (now, now))
+                        self._touch_build()
                     self._trim_evidence()
 
+    def _touch_build(self):
+        try:
+            with self.data.target(Path('build-store')) as (parent, name, _):
+                now = self.clock()
+                os.utime(name, (now, now), dir_fd=parent, follow_symlinks=False)
+        except FileNotFoundError:
+            pass
+
     def _trim_evidence(self):
-        runs = [directory(run) for root in self.evidence() for run in root.iterdir()
-                if RUN_ID.fullmatch(run.name)]
-        runs.sort(key=lambda run: run.stat().st_mtime_ns, reverse=True)
-        for run in runs[5:]:
-            remove(run)
+        runs = []
+        for run in self._runs():
+            with self.evidence.target(run) as (_, _, fd):
+                info = os.fstat(fd)
+                if not stat.S_ISDIR(info.st_mode):
+                    raise ValueError('invalid bench evidence run')
+                runs.append((info.st_mtime_ns, run))
+        for _, run in sorted(runs, reverse=True)[5:]:
+            self.evidence.remove(run)
+
+
+@dataclass(frozen=True)
+class FixedDisk:
+    kind: str
+    name: str
+    size: int
+
+
+@dataclass(frozen=True)
+class PolledDirectory:
+    kind: str
+    name: str
+    peak: int
+    margin: int
+
+
+@dataclass(frozen=True)
+class BoundedCommand:
+    argv: tuple
+    files: tuple
+    file_limit: int
 
 
 class Phase:
-    def __init__(self, paths, peaks, disk_space, reserve):
+    def __init__(self, paths, peaks, store):
         self._paths = paths
         self._remaining = peaks
-        self._disk_space = disk_space
-        self._reserve = reserve
+        self._store = store
         self._open = True
+        self._command = None
+        self._polled = {}
 
     def close(self):
         self._open = False
 
-    def write(self, kind, name, data, *, offset=0):
-        """Write one bounded file; offset permits a sparse prefix without charging its apparent length."""
+    def destination(self, kind, name):
         if not self._open:
             raise ValueError('bench phase has ended')
-        if not FILE_NAME.fullmatch(name) or type(data) is not bytes or type(offset) is not int or offset < 0:
+        if not isinstance(name, str) or not FILE_NAME.fullmatch(name):
             raise ValueError('invalid bench output')
-        folder = self._paths[kind]
-        _, free, block = self._disk_space(folder)
-        blocks = ((offset % block + len(data) + block - 1) // block) if data else 0
-        charge = blocks * block + FILE_OVERHEAD
-        if self._remaining[kind] < charge:
+        return self._paths[kind] / name
+
+    def _charge(self, kind, amount):
+        if self._remaining[kind] < amount:
             raise Busy(f'{kind} write would exceed its phase peak')
-        if free - charge < self._reserve:
+        _, free, _ = self._store.disk_space(self._paths[kind])
+        if free - amount < self._store.reserve:
             raise Busy(f'{kind} write would leave less than 20 GB free')
-        output = folder / name
+        self._remaining[kind] -= amount
+
+    def write(self, kind, name, data, *, offset=0):
+        """Write one bounded file; offset permits a sparse prefix without charging its apparent length."""
+        if type(data) is not bytes or type(offset) is not int or offset < 0:
+            raise ValueError('invalid bench output')
+        output = self.destination(kind, name)
+        _, _, block = self._store.disk_space(output.parent)
+        blocks = ((offset % block + len(data) + block - 1) // block) if data else 0
+        self._charge(kind, blocks * block + FILE_OVERHEAD)
         if output.exists() or output.is_symlink():
             raise ValueError('bench output already exists')
-        if kind == 'builder-boot' and any(folder.iterdir()):
+        if kind == 'builder-boot' and any(output.parent.iterdir()):
             raise ValueError('a builder boot image is already present')
-        partial = folder / f'.{name}.partial'
-        self._remaining[kind] -= charge
+        partial = output.with_name(f'.{name}.partial')
         with partial.open('xb') as stream:
             stream.seek(offset)
             stream.write(data)
@@ -313,3 +295,62 @@ class Phase:
             os.fsync(stream.fileno())
         partial.replace(output)
         return output
+
+    def command(self, argv, *, outputs=()):
+        """Supply a closed list of private regular files. The workload cannot create any others."""
+        if (not self._open or self._command is not None or not isinstance(argv, (list, tuple)) or
+                not argv or any(not isinstance(arg, str) or '\0' in arg for arg in argv) or not argv[0]):
+            raise ValueError('invalid bench workload command')
+        outputs = tuple(outputs)
+        files, limits, charges = [], [], []
+        for output in outputs:
+            if not isinstance(output, (FixedDisk, PolledDirectory)):
+                raise ValueError('unbounded bench workload output')
+            path = self.destination(output.kind, output.name)
+            _, _, block = self._store.disk_space(path.parent)
+            size = output.size if isinstance(output, FixedDisk) else 0
+            if isinstance(output, FixedDisk):
+                if type(size) is not int or size <= 0:
+                    raise ValueError('invalid fixed disk size')
+                limit = size
+                charge = ((size + block - 1) // block) * block + FILE_OVERHEAD
+            else:
+                if (type(output.peak) is not int or type(output.margin) is not int or
+                        output.peak <= 0 or output.margin < FILE_OVERHEAD + block or output.kind in self._polled):
+                    raise ValueError('invalid polled directory peak or margin')
+                charge = output.peak + output.margin
+                limit = ((charge - FILE_OVERHEAD) // block) * block
+                if path.parent.stat().st_blocks * 512 + FILE_OVERHEAD > output.margin:
+                    raise ValueError('polled directory margin cannot fit its metadata')
+                limit -= block
+                if limit < output.peak:
+                    raise ValueError('polled directory margin cannot fit its block rounding')
+                self._polled[output.kind] = output.peak
+            self._charge(output.kind, charge)
+            charges.append((path.parent, charge))
+            if output.kind == 'builder-boot' and any(path.parent.iterdir()):
+                raise ValueError('a builder boot image is already present')
+            with path.open('xb') as stream:
+                stream.truncate(size)
+            files.append(path)
+            limits.append(limit)
+        file_limit = min(limits, default=0)
+        if any(isinstance(output, FixedDisk) and output.size > file_limit for output in outputs):
+            raise ValueError('fixed disks must fit the command file ceiling')
+        if charges:
+            self._store.admit(charges)
+        self._command = BoundedCommand(tuple(argv), tuple(files), file_limit)
+        return self._command
+
+    def workload(self, result):
+        if self._command is None or result is not self._command:
+            raise ValueError('unbounded bench workload command')
+        return self._command
+
+    def disk_reason(self):
+        for kind, peak in self._polled.items():
+            path = self._paths[kind]
+            tree = self._store.evidence if kind == 'evidence' else self._store.data
+            if tree.allocated(path.relative_to(tree.path)) >= peak:
+                return f'{kind} reached its phase peak'
+        return None

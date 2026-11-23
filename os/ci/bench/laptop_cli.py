@@ -6,6 +6,7 @@ import sys
 
 from laptop import Busy, Cancelled, Inputs, UserScopes, Watch, watch_tree
 from store import Store
+from store_paths import validate_cache
 
 
 class Bench:
@@ -15,12 +16,13 @@ class Bench:
 
     def run(self, mode, peaks, setup, *, policy=Watch(), scopes=None, graceful=None, env=None,
             use_build_store=False):
-        """Set up bounded files, then run one tree. The command must bound any writes it makes itself."""
+        """Set up a phase and run its bounded command."""
         with self.store.phase(peaks, start_check=lambda: self.inputs.require(mode),
                               use_build_store=use_build_store) as phase:
-            command = setup(phase)
-            status = watch_tree(self.inputs, mode, command, policy=policy,
-                                scopes=UserScopes(self.inputs.cgroups) if scopes is None else scopes,
+            command = phase.workload(setup(phase))
+            status = watch_tree(self.inputs, mode, command.argv, policy=policy,
+                                scopes=UserScopes(self.inputs) if scopes is None else scopes,
+                                files=command.files, file_limit=command.file_limit, disk_reason=phase.disk_reason,
                                 graceful=graceful or (lambda reason: print(f'bench: {reason}', file=sys.stderr)),
                                 env={} if env is None else env)
             if status:
@@ -50,7 +52,7 @@ class RunExit(Exception):
 
 def native():
     home = Path.home().absolute()
-    cache = Path(os.environ.get('XDG_CACHE_HOME') or home / '.cache').resolve()
+    cache = validate_cache(Path(os.environ.get('XDG_CACHE_HOME', home / '.cache')))
     worktree = Path(__file__).resolve().parents[3]
     return Bench(Inputs(home), Store(cache / 'aresos-bench', worktree,
                                     home / '.cache/aresos-dev/client-test.lock'))
@@ -60,10 +62,10 @@ def main(argv=None, *, bench=None, output=None, errors=None):
     parser = argparse.ArgumentParser(prog='bench', description=__doc__)
     parser.add_argument('command', choices=('status', 'clean'))
     args = parser.parse_args(argv)
-    bench = native() if bench is None else bench
     output = sys.stdout if output is None else output
     errors = sys.stderr if errors is None else errors
     try:
+        bench = native() if bench is None else bench
         if args.command == 'status':
             bench.status(output)
         else:

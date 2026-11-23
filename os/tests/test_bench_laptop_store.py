@@ -1,4 +1,5 @@
 import io
+import json
 import os
 from pathlib import Path
 import signal
@@ -8,10 +9,11 @@ import tempfile
 import time
 import unittest
 
-from test_bench_laptop_gates import ROOT, fixture
+from test_bench_laptop_gates import ROOT, fixture, mock_mount
 from laptop import Busy, Cancelled
 from laptop_cli import Bench, main
-from store import CAP, GB, IDLE, RESERVE, Store, allocated
+from store import CAP, GB, IDLE, RESERVE, Store
+from store_paths import MARKER
 
 MIB = 1024 * 1024
 
@@ -25,10 +27,11 @@ def mock_space(path):
 
 
 def write_interrupted_phase(root):
-    store = Store(*roots(root), disk_space=mock_space)
+    store = Store(*roots(root), disk_space=mock_space, mount=mock_mount)
     with store.phase({'test-disk': MIB, 'export': MIB, 'evidence': MIB}) as phase:
         for kind in ('test-disk', 'export', 'evidence'):
-            phase.write(kind, 'partial', b'fixture')
+            file = phase.write(kind, 'partial', b'fixture')
+        (file.parent / '.unfinished.partial').write_bytes(b'fixture')
         (root / 'ready').touch()
         signal.pause()
 
@@ -38,14 +41,14 @@ class StoreTest(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(dir=ROOT, prefix='.bench-test-')
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
-        self.store = Store(*roots(self.root), clock=lambda: 2 * IDLE, disk_space=mock_space)
+        self.store = Store(*roots(self.root), clock=lambda: 2 * IDLE, disk_space=mock_space, mount=mock_mount)
         self.store.worktree.mkdir()
 
     def test_phase_peak_is_checked_before_output_on_each_filesystem(self):
         def filesystems(path):
             return (2, RESERVE + GB, 4096) if path.is_relative_to(self.store.worktree) else (1, 100 * GB, 4096)
 
-        store = Store(*roots(self.root), disk_space=filesystems)
+        store = Store(*roots(self.root), disk_space=filesystems, mount=mock_mount)
         with self.assertRaisesRegex(Busy, '40 GB'):
             with store.phase({'build-store': 17 * GB, 'builder-scratch': 15 * GB, 'base-disk': 10 * GB}):
                 self.fail('over-cap phase admitted')
@@ -90,7 +93,8 @@ class StoreTest(unittest.TestCase):
         with self.store.phase({'base-disk': MIB}) as phase:
             disk = phase.write('base-disk', 'disk', b'fixture', offset=2 * GB)
             self.assertGreater(disk.stat().st_size, 2 * GB)
-            self.assertEqual(allocated(disk), disk.stat().st_blocks * 512)
+            self.assertEqual(self.store.data.allocated(disk.relative_to(self.store.root)),
+                             disk.stat().st_blocks * 512)
             self.assertLess(sum(self.store.usage().values()), MIB)
             with self.assertRaisesRegex(Busy, 'phase peak'):
                 phase.write('base-disk', 'too-large', b'a' * MIB)
@@ -184,27 +188,32 @@ class StoreTest(unittest.TestCase):
                 with self.store.phase({'builder-scratch': MIB}):
                     self.assertFalse((self.store.root / 'test-disk').exists())
                     self.assertFalse((self.store.root / 'export').exists())
-                    self.assertFalse(list((self.store.worktree / '.work/bench').iterdir()))
+                    runs = list((self.store.worktree / '.work/bench').glob('*/partial'))
+                    self.assertEqual(len(runs), 1)
+                    self.assertEqual(runs[0].read_bytes(), b'fixture')
+                    self.assertFalse(list(runs[0].parent.glob('.*.partial')))
             else:
                 self.store.clean()
                 self.assertFalse(self.store.root.exists())
                 self.assertFalse((self.store.worktree / '.work/bench').exists())
             ready.unlink()
 
-    def test_retained_evidence_is_counted_pruned_and_cleaned_across_worktrees(self):
+    def test_retained_evidence_is_counted_pruned_and_cleaned_in_current_worktree(self):
         other = self.root / 'other'
         other.mkdir()
-        stores = [self.store, Store(self.store.root, other, self.store.lock, disk_space=mock_space)]
+        stores = [self.store, Store(self.store.root, other, self.store.lock, disk_space=mock_space, mount=mock_mount)]
+        with stores[1].phase({'evidence': MIB}) as phase:
+            other_file = phase.write('evidence', 'results.txt', b'other fixture')
         evidence = []
         for index in range(6):
-            with stores[index % 2].phase({'evidence': MIB}) as phase:
+            with stores[0].phase({'evidence': MIB}) as phase:
                 path = phase.write('evidence', 'results.txt', b'fixture')
                 os.utime(path.parent, (index + 1, index + 1))
                 evidence.append(path)
         self.assertFalse(evidence[0].exists())
         self.assertTrue(all(path.exists() for path in evidence[1:]))
         total = sum(self.store.usage().values())
-        self.assertGreater(total, allocated(self.store.root))
+        self.assertGreater(total, self.store.data.allocated())
         out = io.StringIO()
         self.assertEqual(main(['status'], bench=Bench(fixture(self.root), self.store), output=out), 0)
         self.assertIn(f'{total:,} /', out.getvalue())
@@ -212,6 +221,7 @@ class StoreTest(unittest.TestCase):
         self.store.clean()
         self.assertFalse(any(path.exists() for path in evidence))
         self.assertTrue(self.store.lock.exists())
+        self.assertEqual(other_file.read_bytes(), b'other fixture')
 
     def test_clean_refuses_redirected_evidence_path(self):
         with self.store.phase({'evidence': MIB}) as phase:
@@ -223,6 +233,69 @@ class StoreTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'redirected'):
             self.store.clean()
         self.assertTrue((unrelated / file.parent.name / file.name).is_file())
+
+
+    def test_clean_refuses_unmarked_store_and_evidence(self):
+        for tree in (self.store.data, self.store.evidence):
+            with self.subTest(path=tree.path.name):
+                tree.path.mkdir(parents=True)
+                keeper = tree.path / 'keep'
+                keeper.touch()
+                with self.assertRaisesRegex(ValueError, 'ownership marker'):
+                    self.store.clean()
+                self.assertTrue(keeper.is_file())
+                keeper.unlink()
+                tree.path.rmdir()
+
+    def test_recovery_rejects_planted_paths_and_ignores_legacy_registry(self):
+        outside = self.root / 'outside'
+        outside.mkdir()
+        keeper = outside / 'keep'
+        keeper.touch()
+        with self.store.phase({'builder-boot': MIB}):
+            pass
+        registry = self.store.root / 'worktree-fake.json'
+        registry.write_text(json.dumps(str(outside)))
+        for record in ({'writes': [str(outside)]}, {'writes': ['../outside']},
+                       {'writes': ['export'], 'worktree': str(outside)}):
+            self.store.active.write_text(json.dumps(record))
+            with self.assertRaisesRegex(ValueError, 'phase record'):
+                self.store.expire()
+            self.assertTrue(keeper.is_file())
+        self.store.clean()
+        self.assertTrue(keeper.is_file())
+        self.assertFalse(registry.exists())
+
+    def test_cleanup_unlinks_leaf_symlinks_without_following_them(self):
+        outside = self.root / 'outside'
+        outside.mkdir()
+        keeper = outside / 'keep'
+        keeper.touch()
+        with self.store.phase({'builder-boot': MIB}) as phase:
+            phase.destination('builder-boot', 'link').symlink_to(outside, target_is_directory=True)
+        self.store.clean()
+        self.assertTrue(keeper.is_file())
+
+    def test_cleanup_refuses_same_device_mount_at_root_or_below(self):
+        with self.store.phase({'builder-boot': MIB}) as phase:
+            keep = phase.write('builder-boot', 'keep', b'fixture')
+        store = self.store.root
+        mounted = set()
+
+        def fake_mountinfo(fd):
+            # Model distinct mount IDs for a same-device bind mount.
+            return 2 if os.fstat(fd).st_ino in mounted else 1
+
+        checked = Store(*roots(self.root), disk_space=mock_space, mount=fake_mountinfo)
+        for path in (store, keep.parent, keep):
+            with self.subTest(path=path.name):
+                self.assertEqual(path.stat().st_dev, store.parent.stat().st_dev)
+                mounted.clear()
+                mounted.add(path.stat().st_ino)
+                with self.assertRaisesRegex(ValueError, 'mount'):
+                    checked.clean()
+                self.assertTrue(keep.is_file())
+                self.assertTrue((store / MARKER).is_file())
 
 
 if __name__ == '__main__':
