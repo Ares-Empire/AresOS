@@ -19,17 +19,26 @@
     "18c-b Chrome start diagnostics: failed Chrome actions return their start log and launch result",
     "334a adds the hosted bench dispatch and release exclusions in os-image.yml and check-build.sh. Keep these in the next source rebind.",
     "334a review round 1 tightens bench mode exclusions and checks the dispatched release ledger before image work.",
-    "334a review round 2 makes the four release isolation checks fail closed on every CI and bench path."
+    "334a review round 2 makes the four release isolation checks fail closed on every CI and bench path.",
+    "B321 records the merged OS image workflow, Deskflow owner VM inventory and sharing polkit review"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
     {
-      "sha256": "87bd02b4c8a022ad3bfbf743304501f69107fdcebeb75138055c4206338b9b16",
+      "sha256": "9006f4327635e00f043d0e83874fed89ec768a314342961739c306d6d72bc9f2",
       "path": ".github/workflows/os-image.yml"
     },
     {
       "sha256": "7c16d84fcfb08033da8119c2bb97d272b6cef35efdcafe843dc72e6148823de8",
       "path": "os/ci/control/release_checks.py"
+    },
+    {
+      "sha256": "dd76985796c94b7b3e8b98f321a6c9bead2d3e86762fe1bb00c7bfe6c3475872",
+      "path": "os/ci/owner_vm.py"
+    },
+    {
+      "sha256": "e70a25146dd9d38bd646afca15ed34c663bdb181451a3c20dff195eea0d3707d",
+      "path": "os/ci/polkit-review.json"
     },
     {
       "sha256": "873a08321e9709d278bdd28c2858f857ea9b0f8ff4509c39fb297681ab839ae3",
