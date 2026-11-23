@@ -172,8 +172,9 @@ entry there is the record of how it was.
 - While sharing is On and no Mac is paired, each login starts the pairing server. Anyone who can reach
   the port can open a fingerprint dialog. The dialog defaults to rejection.
 - A program running as the same user can delete the once-per-login marker and open the sharing window again.
+- After Off closes a live session, Deskflow can retry once before it exits. In a fresh login this refusal can
+  open the once-per-login sharing dialog and take focus. The keyboard and pointer are local and sharing is Off.
 - If the launcher exits unexpectedly, its lock is released while the Deskflow core may still be running.
   A subsequent launch can then start a second core.
-- Hosted dispatches 10 and 11 proved that On and Off survive reboot and that the real login arms one
-  guarded server while On and leaves Deskflow stopped while Off. The live VM gate remains open. Its
-  evidence and outstanding blockers are in `PROGRESS.md` under “CI dispatches”.
+- Hosted dispatch 14 passed the full daily-use gate and both reboot checks. The physical display, keyboard
+  and Mac rehearsal remains for the owner. See `PROGRESS.md` under “CI dispatches” and “Laptop test for the owner”.

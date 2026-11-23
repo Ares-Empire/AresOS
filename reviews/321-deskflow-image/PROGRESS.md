@@ -896,13 +896,13 @@ After the final review and release, get the owner's direct OK and have the owner
 
 ## Left, in order
 
-1. Recheck persistence on the head that separates reboot preparation from the X11 input probe. Dispatch 13
-   passed the daily-use boot through the last live Off check. The lead holds dispatch 16. The final Fable review
-   is in `REVIEW-4-FABLE.md`.
-2. The lead sends the final heads for `linux-aresos` and `linux-hub` to read. Both give their read verdicts.
-3. Merge the PR after both reads and resolution of the outstanding hosted VM evidence and review findings.
-4. `linux-aresos` prepares the release after R29.
-5. The owner approves and runs the laptop test above.
+Dispatch 14 closed the VM gate. Dispatch 15 is unused and the lead holds dispatch 16. The Fable review is in
+`REVIEW-4-FABLE.md`.
+
+1. The lead sends the final heads for `linux-aresos` and `linux-hub` to read. Both give their read verdicts.
+2. The lead handles merge after both reads and review sign-off.
+3. `linux-aresos` prepares the release after R29.
+4. The owner approves and runs the laptop test above, including the physical display and Mac checks.
 
 ### For step 3 (done in step 3)
 
@@ -1071,8 +1071,11 @@ What the image gains or changes through this package, for `linux-aresos`'s relea
   in its private runtime folder.
 - **Input portal behaviour (review fixes):** the backend runs on the bus without a Wayland connection. Its worker
   connects only for an authorized session while sharing is On. The backend process exits at Off or when no
-  session is left. Its pin in `os/manifest/input-portal.sha256` is
-  `00e8ff021c7978c6ed7548e050f23734d4e198bcbcebebe8d51157545d28cb57`.
+  session is left. A confirmed release leaves the guarded server available. The emergency fallback uses the
+  private runtime process record and verified pidfds to stop the guarded core and launcher before the frozen
+  backend. Sharing stays On. The owner can open Deskflow again or get the normal start at the next login.
+  Its pin in `os/manifest/input-portal.sha256` is
+  `d0a7de0bf09f29b43a563bf3769c9e116f735a41bb8d3cfcdfdae8705cc08ab1`.
 - **Routing and switch (step 3):** `aresos-input.portal`, `aresos-portals.conf`, the one-ID `allowed-apps`,
   `org.aresos.InputSharing.desktop` and `org.aresos.input-sharing.policy` are root-owned, mode 0644.
   `/usr/bin/aresos-input-sharing` and `/usr/libexec/aresos-input-sharing-set` are root-owned, mode 0755.
@@ -1116,7 +1119,7 @@ and three test fixtures unverified. Dispatch 16 is reserved for the lead.
 | 11 of 12 | Final review, seat and pairing fixes | [45065781890](https://github.com/Ares-Empire/AresOS/actions/runs/45065781890), verified at `64c6661c233c4f72bb933f21858a4ebc083ad81d` (2026-11-22 21:19 CET) | `check_build=deskflow`. **`DESKFLOW_VM_GATE_FAILED`** at 22:29 CET. The image and DRM cases passed their gates. Remote polkit, microphone mute, sandbox refusal, the TLS negative controls, and stopped-backend recovery/restarts remained open. The watch returned 1. |
 | 12 of 16 | Emergency release and VM fixtures | [45074035634](https://github.com/Ares-Empire/AresOS/actions/runs/45074035634), verified at `39e0d6cd14be97431bf8345bf934c94cdf8c383f` | `check_build=deskflow`. **`DESKFLOW_VM_GATE_FAILED`**. The two initial TLS controls failed an assertion about local portal clipboard calls. After a fresh login, the sharing dialog took focus from the Off fixture. The watch returned 1. |
 | 13 of 16 | TLS clipboard and Off fixtures | [45082274952](https://github.com/Ares-Empire/AresOS/actions/runs/45082274952), verified at `e071b38e8913ce37c089cf840d9fe0bce02ec859` | `check_build=deskflow`. **`DESKFLOW_VM_GATE_FAILED`**. The daily-use boot passed every check. The reboot-On fixture waited for an unused X11 recorder and timed out before checking persistence. The watch returned 1. All 18 VM unit tests passed by discovery. |
-| 14 of 16 | Reboot persistence fixture | [45089791226](https://github.com/Ares-Empire/AresOS/actions/runs/45089791226), verified at `453a4f834246c0ee6e146dfd411079a2ba967b1c` | `check_build=deskflow`. In progress. All 19 VM unit tests passed by discovery. |
+| 14 of 16 | Reboot persistence fixture | [45089791226](https://github.com/Ares-Empire/AresOS/actions/runs/45089791226), verified at `453a4f834246c0ee6e146dfd411079a2ba967b1c` | `check_build=deskflow`. **`DESKFLOW_VM_GATE_PASSED`**. All 59 daily-use records passed, both reboot checks passed, and all six DRM boots gave their expected results. The watch returned 0. All 19 VM unit tests passed by discovery. |
 
 ### Local verification for dispatch 12
 
@@ -1136,6 +1139,30 @@ and three test fixtures unverified. Dispatch 16 is reserved for the lead.
   failures. Two full `mod/dev/client-test.sh --keep-screenshots` runs exited 0 after 14m 8s and 14m 4s.
   Both saved 105 screenshots to `.work/321-final/mod-verification/`. The review screenshot paths were restored
   after the copies were verified.
+
+### Dispatch 14 evidence
+
+The guarded entry, `rpm -V deskflow`, image and polkit checks passed. The layer scan passed on all 11
+added layers and the installed backend digest matched `d0a7de0bf09f29b43a563bf3769c9e116f735a41bb8d3cfcdfdae8705cc08ab1`.
+The final fixture discovery used `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s os/tests -p 'test_deskflow_vm.py'`
+and printed `Ran 19 tests` and `OK`. There were no `__pycache__` directories under `os/config` and no files larger than
+500 MB under `.work/`. The local harness tag built for this verification was removed with `--no-prune`.
+[Check-build evidence](https://github.com/Ares-Empire/AresOS/actions/runs/45089791226#artifacts)
+
+| VM case or brief check | Result |
+|---|---|
+| Check 1, `regular-none` and `regular-listener` | Listed-mode cycles, both VT transitions and SetUIInfo hotplug passed with zero backend Wayland connections. The bound listener survived its control boot. |
+| Check 1, `regular-backend` | Modes, geometry, VT and hotplug passed with the real native ID. Terminal launch was refused for its empty ID. Off closed the session and exited the original backend; the next owner had zero Wayland connections. |
+| Check 1, all custom boots | The no-listener boot passed. With a listener or worker, set and disable passed and re-enable reproduced the expected `head_send_state` assertion. No custom check was incomplete. |
+| Check 2 | First login Off, two scoped refusals, one dialog, local crossing, active and inactive local policy, cancellation, invalid arguments, both unsafe switch paths, authenticated On and one armed session passed. The remote shell ran in a real PAM login with `Remote=yes` via `sshd_t`; `pkexec` returned 127. |
+| Check 3 | Motion, buttons, scroll and keys reached only the client. All 20 clipboard transfers in each direction passed. There were 20 SelectionRead and 37 SelectionWrite calls, and 23 frontend descriptors before and after. |
+| Check 4 | The client received both modifier releases before QEMU sent physical key-up. |
+| Check 5 | Capture held after 60 seconds idle. The chord stopped the frozen backend, launcher and core. Sharing stayed On and the next key was local. An explicit hub launch restored capture. |
+| Check 6 | The same core re-armed with a fresh D-Bus backend after the ordinary kill. A fresh frontend and a real relogin each restored a working capture. |
+| Check 7, live Off | Passwordless Off and separate switch removal without revoke closed capture. Input and new clipboard data stayed local. Manual removal ended the original backend in 0.157 seconds. On required a password again. |
+| Check 7, reboot On and Off | The authenticated On setting persisted naturally and the real login armed one guarded server. On the next boot after passwordless Off, the switch was still Off and Deskflow and its worker were stopped. |
+| Check 8 | All 22 binding rows passed. The bwrap namespace and child record, D-Bus AccessDenied reply and refusal naming `org.aresos.UnlistedFixture` were retained. Backend trace and Deskflow Info logs passed the input and clipboard privacy scan. |
+| Check 9 | Pairing and default rejection passed. The server logged the stranger fingerprint mismatch and the client lost its transport. The plaintext handshake failed. Both recipient probes recorded zero input and an unchanged clipboard. The approved peer worked afterward. Both guarded launch paths rejected stale trust and enforced TLS and fingerprint checks with the saved settings disabled. |
 
 ### Dispatch 13 evidence
 
@@ -1305,7 +1332,7 @@ The detailed records are `image/checks.txt`, `image/polkit.txt`, `image/input-po
 
 Dispatch 11 recorded 21 passing rows for the installed image. The microphone-mute probe verified the next
 key at the client before timing out on the mute keysym. Its follow-up status showed the capture still held.
-Dispatches 12 and 13 recorded all 22 rows below, including unchanged windows and focus for microphone mute.
+Dispatches 12, 13 and 14 each recorded all 22 rows below, including unchanged windows and focus for microphone mute.
 
 | Binding | Laptop windows and focus | Capture | Next key |
 |---|---|---|---|
