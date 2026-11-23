@@ -896,12 +896,13 @@ After the final review and release, get the owner's direct OK and have the owner
 
 ## Left, in order
 
-Dispatch 14 closed the VM gate. Dispatch 15 is unused and the lead holds dispatch 16. The Fable review is in
-`REVIEW-4-FABLE.md`.
+Dispatch 14 passed the pre-merge VM gate. Dispatch 15 passed the merged image checks, the output controls
+and both reboot boots. The logout/login case exposed the clipboard negotiation race below. The lead holds
+dispatch 16 for the stable resolve. The Fable review is in `REVIEW-4-FABLE.md`.
 
 1. The lead sends the final heads for `linux-aresos` and `linux-hub` to read. Both give their read verdicts.
-2. The lead handles merge after both reads and review sign-off.
-3. `linux-aresos` prepares the release after R29.
+2. The lead checks the stable Fedora resolve and the final-head VM gate before merge, under the cut conditions in the brief.
+3. `linux-aresos` prepares the release under those conditions.
 4. The owner approves and runs the laptop test above, including the physical display and Mac checks.
 
 ### For step 3 (done in step 3)
@@ -1017,6 +1018,20 @@ The lead sends this list when step 3 ends and at the final head.
 | `os/ci/deskflow/{actions.py,daily_vm.py}` | `233fa378` | Prove local recovery and explicit restart, use the system manager for remote PAM, retain the sandbox reply, and verify TLS refusal and the microphone-mute limit. |
 | `os/ci/deskflow/{actions.py,daily_vm.py}`, `os/tests/test_deskflow_vm.py` | `e071b38e` | Check the rejected recipient's clipboard directly, distinguish the stale-profile dialog from the input recorder, and dismiss the once-per-login sharing dialog after the live Off check. |
 | `os/ci/deskflow/actions.py`, `os/tests/test_deskflow_vm.py` | `453a4f83` | Run the persistence boots on the real login without requiring an unused X11 recorder or reading a monitor from the prior boot. |
+| `.github/workflows/os-image.yml` | `a5e8e724` | Keep B334a and both Control VM passes with the 156-minute Control budget, and retain the Deskflow dispatch and pass. |
+| `os/ci/check-build.sh` | `a5e8e724` | Keep the bench and Control Chrome routes and build-log check alongside the Deskflow pin, layer and VM modes. |
+| `os/ci/check-image.sh` | `a5e8e724` | Mount the read-only Chrome checker in the container that extracts the labwc and Deskflow fixtures. |
+| `os/manifest/ci/16/pending-rebind.json` | `d3d8acea`, `472c020f` | Record the merged workflow, owner VM and polkit review against package 42 and refresh the final bound bytes. |
+| `os/ci/check-build.sh`, `os/tests/test_check_build.py` | `acf7a5b8` | Refuse Deskflow shell modes before host tools run unless all three hosted job markers match. |
+| `os/ci/deskflow/deskflow_vm.py`, `os/tests/test_deskflow_vm.py` | `6a27c3ae` | Apply the same guard at the Python VM entry point. |
+| `os/ci/owner_vm.py`, `os/tests/test_owner_walk.py` | `519b72e4` | Check the exact historical app inventory and require the available Deskflow row for a target declared to carry B321. |
+| `os/deskflow-rpm.sh`, `os/tests/test_check_resolve.py` | `9db6e34b` | Identify and restrict the serving repository, verify the RPM against its pin, and require `updates` in stable mode. |
+| `os/ci/check-resolve.sh`, `os/tests/test_r29_image.py` | `e5618e80` | Write repository evidence to `evidence/resolve/deskflow.txt` and the candidate log. |
+| `os/ci/check-build.sh`, `os/tests/test_labwc_stage.py` | `126a5436` | Pass the selected resolve mode to the pinned base container. |
+| `.github/workflows/os-image.yml` | `e3d194c3` | Add the `resolve-deskflow-stable` dispatch choice. |
+| `os/tests/test_r29_image.py` | `4e02f067` | Verify the R29 candidate and the two reviewed B321 RPM additions as one exact lock. |
+| `os/tests/test_control_image.py` | `2a98bc3f` | Check that the merged source stage extracts Control from the exact revision using its shared archive root. |
+| `os/manifest/input-portal.sha256` | `29e4b8ff` | Pin the byte-identical clean builds of the backend that preserves clipboard negotiation order. |
 
 Not touched in step 1c: `os/Containerfile` (the stage copies the whole `labwc/` folder, so the second patch needs no
 new line; its comment above the stage still says "one upstream fix" and should name both patches when the file is
@@ -1043,6 +1058,52 @@ re-aimed at `aresos2`: R29 carries this package (release plan, 2026-11-21) and g
   `python3 -B reviews/27-first-update-release/rebind.py pending "<B321 note>"` after that commit, and never check out
   `pending-rebind.json` first.
 - Keep the list "Image differences" below complete as the image work lands.
+
+## linux-aresos read fixes
+
+| Finding | Fix | Commits | Verification |
+|---|---|---|---|
+| 2. Merge main | Merged `origin/main` at `7e161ebc`. The workflow keeps the bench dispatch, concurrency and exclusions, Control Chrome and the 156-minute Control budget, plus Deskflow's 150-minute budget and pass. The build script keeps bench and Chrome routes and the Deskflow layer and pin check. The image checker retains the read-only Chrome mount alongside its Deskflow and labwc inputs. | `a5e8e724`, `2a98bc3f` | Bash syntax, bench dispatch and layer regressions, Control image and VM tests, and dispatch 15. |
+| 1. Record package 42's active bindings | Ran `python3 -B reviews/27-first-update-release/rebind.py pending "<B321 note>"` after the merge and refreshed it after the final workflow and owner VM edits. The generated list contains 10 changed files and zero removals. The three B321 source rows cover the OS image workflow, owner VM and polkit review. | `d3d8acea`, `472c020f` | Checkout binding and release tests. |
+| 3. Guard the Deskflow modes | Both shell modes and the Python VM require `GITHUB_ACTIONS=true`, `RUNNER_ENVIRONMENT=github-hosted` and `GITHUB_JOB=check-build` before touching build or VM state. | `acf7a5b8`, `6a27c3ae` | `test_check_build.py` and `test_deskflow_vm.py` exercise missing and incorrect markers. |
+| 4. Keep the release inventories exact | R27 and R28 require their three built-ins. A rehearsal caller with a B321 target passes `expect_deskflow=True` and requires the additional available Deskflow row. | `519b72e4` | `test_owner_walk.py` rejects Deskflow on historical targets and missing, unavailable or extra rows on the B321 target. |
+| 5. Prove the stable repository | `resolve` still permits the exact testing RPM. `check_build=resolve-deskflow-stable` limits the serving repository to Fedora `updates`. A successful match writes `DESKFLOW_RESOLVED repo=… nevra=… sha256=…` after verifying the downloaded bytes. | `9db6e34b`, `e5618e80`, `126a5436`, `e3d194c3`, `4e02f067` | `test_check_resolve.py`, `test_labwc_stage.py` and `test_r29_image.py`. The lead holds dispatch 16 for the live stable resolve. |
+
+### Local verification before dispatch 15
+
+Each OS module ran separately with `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s os/tests -p <file>`.
+Unittest reported 808 tests across 25 modules, with 807 passing and one skip.
+
+| Modules (`test_<name>.py`) | Test counts |
+|---|---|
+| `check_build`, `check_resolve`, `deskflow_vm`, `owner_walk` | 1, 4, 20, 39 |
+| `r29_image`, `labwc_stage`, `input_portal_layers`, `shell_assertions`, `aresos_desktop` | 10, 131, 3, 10, 189 (one skip) |
+| `bench_agent`, `bench_dispatch`, `bench_evidence`, `bench_release_layers`, `bench_script` | 4, 7, 7, 3, 3 |
+| `control_image`, `control_vm` | 49, 103 |
+| `release27`, `release28`, `release28_rehearsal`, `release28_control`, `release_squash_binding` | 41, 94, 44, 15, 7 |
+| `checkout_sources`, `rehearsal_budget`, `ci_api_permissions`, `ci_step_environment` | 10, 6, 4, 4 |
+
+The first Control image discovery run had one stale assertion for the literal source archive path.
+`2a98bc3f` checks the shared archive root and Control's path in the tar extraction. The rerun reported
+`Ran 49 tests` and `OK`. The binding generator is idempotent on the final checkout. Bash syntax,
+scoped whitespace checks, and a YAML comparison of all non-check-build jobs and the bench and
+Control job steps passed.
+
+Control Chrome's install, record and adapter modules passed 68 tests by discovery. `record_build.py check`
+printed `record_build check passed`. The packaging Node cross-check passed one test with a
+checksum-verified Node 22.16.0 binary in a temporary worktree directory.
+
+The dispatched commit has the same backend and local harness as the prior package head. The OS discoveries left no
+`__pycache__` directories under `os/config`.
+
+### Headless mod verification during dispatch 15
+
+Ran `mod/dev/client-test.sh --keep-screenshots .work/321-read-fixes/client-<run> --rerun-tasks build` twice,
+with `<run>` set to 1 and 2. Each invocation ran `runClientGameTest` and `build` in the headless NVIDIA
+session and reported `BUILD SUCCESSFUL` (17m 13s and 17m 10s). Each passed all 106 required server game
+tests and 354 Java unit tests, with six Java platform skips. Both client runs exited 0. The generated
+screenshots remain in the two worktree scratch folders. The tracked screenshots were restored.
+No file under `.work/` exceeds 500 MB.
 
 ## Image differences
 
@@ -1120,6 +1181,51 @@ and three test fixtures unverified. Dispatch 16 is reserved for the lead.
 | 12 of 16 | Emergency release and VM fixtures | [45074035634](https://github.com/Ares-Empire/AresOS/actions/runs/45074035634), verified at `39e0d6cd14be97431bf8345bf934c94cdf8c383f` | `check_build=deskflow`. **`DESKFLOW_VM_GATE_FAILED`**. The two initial TLS controls failed an assertion about local portal clipboard calls. After a fresh login, the sharing dialog took focus from the Off fixture. The watch returned 1. |
 | 13 of 16 | TLS clipboard and Off fixtures | [45082274952](https://github.com/Ares-Empire/AresOS/actions/runs/45082274952), verified at `e071b38e8913ce37c089cf840d9fe0bce02ec859` | `check_build=deskflow`. **`DESKFLOW_VM_GATE_FAILED`**. The daily-use boot passed every check. The reboot-On fixture waited for an unused X11 recorder and timed out before checking persistence. The watch returned 1. All 18 VM unit tests passed by discovery. |
 | 14 of 16 | Reboot persistence fixture | [45089791226](https://github.com/Ares-Empire/AresOS/actions/runs/45089791226), verified at `453a4f834246c0ee6e146dfd411079a2ba967b1c` | `check_build=deskflow`. **`DESKFLOW_VM_GATE_PASSED`**. All 59 daily-use records passed, both reboot checks passed, and all six DRM boots gave their expected results. The watch returned 0. All 19 VM unit tests passed by discovery. |
+| 15 of 16 | OS lead's read fixes | [45100258961](https://github.com/Ares-Empire/AresOS/actions/runs/45100258961), verified at `2a98bc3f72bb8bf38fcbf53ded7c43937d5784c8` | `check_build=deskflow`. **`DESKFLOW_VM_GATE_FAILED`**. The image, polkit, 11 added layers, backend pin, Chrome checker, six DRM cases and both reboot checks gave their expected results. The daily-use boot recorded 58 passes and one failure at logout/login. `gh run watch 45100258961 --exit-status --interval 60` returned 1. |
+
+### Dispatch 15 evidence
+
+The installed backend matched `d0a7de0bf09f29b43a563bf3769c9e116f735a41bb8d3cfcdfdae8705cc08ab1`.
+The image logged `IMAGE_CHECKS_PASSED`, `POLKIT_CHECK_PASSED`, `CONTROL_CHROME_BUNDLE_PASS`,
+`CONTROL_CHROME_BUILD_LOG_PASS` and `INPUT_PORTAL_LAYERS_PASSED 11 added layers`. Each regular case
+observed hotplug through SetUIInfo. `custom-none` passed and the listener and backend cases reproduced
+the documented compositor assertion on custom-mode re-enable. [Run and artifacts](https://github.com/Ares-Empire/AresOS/actions/runs/45100258961#artifacts)
+
+The daily-use boot observed a fresh labwc after logout and found sharing On. The real autostart hook started the
+guarded core. Its first portal session started with `clipboard_enabled=false`. Deskflow retried and armed its
+second session with clipboard access, while the first remained disabled with zero barriers. The fixture timed out
+waiting for the exact one-session inventory. The run did not prove that the relogin auto-start produced one clean
+session or that a client could capture through it. The separate backend and frontend restarts had already passed.
+The VM recovered its fixture to finish both live Off checks and both reboot persistence checks.
+
+The Fedora libportal API sends `RequestClipboard` asynchronously. The frontend forwards it and then sends
+`Start`, and zbus dispatches the two method handlers concurrently by default. The first `Start` can read
+the clipboard flag before the earlier request sets it. The backend now finishes Clipboard methods before
+dispatching the next bus method, so the pipelined request takes effect before `Start`. The Clipboard read wait is
+bounded at 500 ms to give the dispatcher back if the compositor stalls. The VM's inventory check stays exact.
+[libportal 0.10.0](https://github.com/flatpak/libportal/blob/0.10.0/libportal/clipboard.c)
+[xdg-desktop-portal 1.22.1](https://github.com/flatpak/xdg-desktop-portal/blob/1.22.1/src/clipboard.c)
+
+`3348ad2f` implements the ordering and adds a Rust test that a stalled read times out and drops a late descriptor.
+It also makes every clipboard-enabled harness session send `RequestClipboard` and `Start` back-to-back and check both
+the request reply and the grant. `29e4b8ff` pins the new backend
+`e2718cd0aceaa12494b8464ef1c818ba2bbfb063e7db521a80cf07360b56033d`. The real Deskflow post-logout capture
+on the corrected image remains unverified. Dispatch 16 is reserved for the lead's stable resolve.
+
+### Local verification of the dispatch 15 fix
+
+- Two clean `os/input-portal/dev/container.sh build .work/321-read-fixes/final-portal-<run>` invocations each
+  reported `104 passed; 0 failed`. `cmp` returned 0 for the two binaries and `sha256sum -c` matched the new pin
+  for both. An earlier fixture run failed with `InvalidObjectPath`. The test now uses a valid D-Bus path.
+- Two `os/input-portal/harness/run.sh run .work/321-read-fixes/final-portal-<run> .work/321-read-fixes/harness-<run>`
+  invocations, using `HARNESS_IMAGE=localhost/aresos-input-portal-harness:321-step2`, each reported
+  `SUMMARY 137 passed, 0 failed, exit 0`. All containers were rootless and ran sequentially.
+- Ran the same harness with the pre-fix backend after verifying its SHA-256 against dispatch 15.
+  It reproduced the race at test 5 with `Start did not honor the preceding RequestClipboard for clipboard`
+  and ended with `SUMMARY 34 passed, 1 failed, exit 2`.
+- OS discovery passed `test_deskflow_vm.py` (20), `test_input_portal_layers.py` (3), and `test_shell_assertions.py`
+  (10) again. The harness Python syntax and scoped whitespace checks passed. The binding generator produced
+  the same pending record. No `__pycache__` under `os/config` or file over 500 MB under `.work/` remained.
 
 ### Local verification for dispatch 12
 

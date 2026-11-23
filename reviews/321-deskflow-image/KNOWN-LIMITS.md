@@ -59,6 +59,8 @@ entry there is the record of how it was.
   waits one second for labwc's answer to a `wl_display.sync`. A labwc that is busy for longer looks like a stopped
   one: after Off the backend exits, and `--release` kills it. Either way the grab goes with the connection and the
   next Deskflow session starts a fresh backend; nothing reaches the Mac that shouldn't.
+- **A clipboard read can time out when labwc stalls.** The backend gives labwc 500 ms to return the pipe.
+  This lets the D-Bus dispatcher receive the release chord's request even when a clipboard read is waiting.
 - **`--release` signals only `/usr/libexec/aresos-input-portal` of the same user.** A backend run from another path,
   or whose binary was replaced under it (the kernel then names it `... (deleted)`), is refused rather than killed. On
   the image `/usr` is read-only and changes only at a reboot, and the backend is always started from that path.
