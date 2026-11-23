@@ -19,7 +19,7 @@ fi
 base=$(jq -r .reference os/manifest/base.json)
 mkdir -p evidence
 case $mode in
-    resolve)
+    resolve|resolve-deskflow-stable)
         # Package 311: what labwc's build needs today, found on its own locked fedora:44. check-resolve.sh turns
         # this into a candidate lock. A failure here is reported there and does not stop the other resolutions.
         labwc_base=$(jq -r .base.reference os/labwc/labwc.lock.json)
@@ -31,7 +31,7 @@ case $mode in
         # Inventory and resolve inside the pinned base only; no build.
         sudo podman pull "$base"
         sudo podman run --rm --network=host -v "$PWD/os:/tmp/aresos:ro" -v "$PWD/evidence:/evidence" \
-            --entrypoint /usr/bin/bash "$base" /tmp/aresos/ci/check-resolve.sh
+            --entrypoint /usr/bin/bash "$base" /tmp/aresos/ci/check-resolve.sh "$mode"
         # Package 23: the mod jar must build to the same bytes twice.
         bash os/ci/build-mod.sh --twice
         ;;
@@ -147,7 +147,7 @@ case $mode in
         echo CHECK_BUILD_DESKFLOW_PASSED
         ;;
     *)
-        echo "Unknown check-build mode: '$mode' (expected resolve, build, bench, bench-pass, control, control-pass, control-chrome-pass, deskflow or deskflow-pass)" >&2
+        echo "Unknown check-build mode: '$mode' (expected resolve, resolve-deskflow-stable, build, bench, bench-pass, control, control-pass, control-chrome-pass, deskflow or deskflow-pass)" >&2
         exit 2
         ;;
 esac

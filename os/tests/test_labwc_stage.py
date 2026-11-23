@@ -1397,7 +1397,7 @@ class WiringTest(unittest.TestCase):
     def test_the_resolve_check_prints_a_fresh_resolution(self):
         text = (ROOT / 'ci/check-resolve.sh').read_text()
         self.assertIn('stage.py resolve /tmp/aresos/labwc /evidence/labwc-resolved "$out"', text)
-        build = (ROOT / 'ci/check-build.sh').read_text().split('    resolve)\n')[1].split('\n        ;;')[0]
+        build = (ROOT / 'ci/check-build.sh').read_text().split('    resolve|resolve-deskflow-stable)\n')[1].split('\n        ;;')[0]
         self.assertIn('"$labwc_base" /tmp/aresos-labwc/resolve-download.sh', build)
         self.assertLess(build.index('/tmp/aresos-labwc/resolve-download.sh'), build.index('/tmp/aresos/ci/check-resolve.sh'))
 
