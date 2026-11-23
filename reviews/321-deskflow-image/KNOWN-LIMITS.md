@@ -178,3 +178,9 @@ entry there is the record of how it was.
   A subsequent launch can then start a second core.
 - Hosted dispatch 14 passed the full daily-use gate and both reboot checks. The physical display, keyboard
   and Mac rehearsal remains for the owner. See `PROGRESS.md` under “CI dispatches” and “Laptop test for the owner”.
+- **The emergency release trusts a record the owner's own programs can change.** When `--release` has to kill a
+  frozen backend, it first stops the guarded Deskflow launcher and core named in a record in the private runtime
+  folder. A program running as the owner could replace or remove that record, so the kill would aim at another of
+  the owner's processes or leave the core to re-arm. Such a program can already kill the owner's processes or change
+  labwc's settings itself; sandboxed programs cannot reach the folder; PID reuse is caught by start-time checks and
+  pidfds. Later hardening: a launch supervisor that holds the pair's pidfds (final recheck, REVIEW-4-RECHECK.md).
