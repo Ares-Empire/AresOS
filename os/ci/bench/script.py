@@ -6,10 +6,12 @@ import pathlib
 import re
 import subprocess
 
+from network import Level, level
+
 PATH = re.compile(r'reviews/[a-z0-9][a-z0-9_-]*/bench/[a-z0-9][a-z0-9_-]*\.json')
 SHA = re.compile(r'[0-9a-f]{40}')
 CHECKS = {'active_session', 'helper_health'}
-KINDS = {'status', 'shot', 'journal', 'exec', 'wait', 'expect', 'reboot'}
+KINDS = {'status', 'shot', 'journal', 'exec', 'wait', 'expect', 'reboot', 'net'}
 MAX_STEPS = 32
 MAX_SCRIPT = 32 * 1024
 BOOLEAN_CONFLICTS = ('release_13', 'release_27', 'release_28', 'dry_run_28', 'checks_only', 'full_model')
@@ -52,8 +54,9 @@ def parse(raw):
         return result
 
     script = json.loads(raw, object_pairs_hook=unique)
-    if not isinstance(script, dict) or not script.keys() <= {'network', 'steps'} or script.get('network', 'none') != 'none':
-        raise ValueError('Bench script must use network none')
+    if not isinstance(script, dict) or not script.keys() <= {'network', 'steps'}:
+        raise ValueError('Unexpected bench script fields')
+    network = level(script.get('network', 'none'))
     steps = script.get('steps')
     if not isinstance(steps, list) or not 1 <= len(steps) <= MAX_STEPS:
         raise ValueError('Invalid step count')
@@ -62,6 +65,10 @@ def parse(raw):
         if not isinstance(kind, str) or kind not in KINDS:
             raise ValueError('Invalid step kind')
         fields = {'kind'}
+        if kind == 'net':
+            fields.add('state')
+            if network != Level.FAKE or step.get('state') not in ('up', 'down'):
+                raise ValueError('Bench net steps require network fake and state up or down')
         if kind in ('wait', 'expect'):
             fields.add('for')
             if not isinstance(step.get('for'), str) or step['for'] not in CHECKS:
@@ -77,7 +84,7 @@ def parse(raw):
             raise ValueError('Unexpected step fields')
     if sum(step['kind'] == 'reboot' for step in steps) > 1:
         raise ValueError('Bench allows one reboot per dispatch')
-    return steps
+    return network, steps
 
 
 def load(repo, sha, name):
@@ -90,7 +97,7 @@ def load(repo, sha, name):
     if int(git(repo, 'cat-file', '-s', blob)) > MAX_SCRIPT:
         raise ValueError('Bench script exceeds size limit')
     raw = git(repo, 'cat-file', 'blob', blob)
-    return parse(raw), hashlib.sha256(raw).hexdigest()
+    return *parse(raw), hashlib.sha256(raw).hexdigest()
 
 
 def dispatch():
@@ -105,8 +112,11 @@ def dispatch():
     sha, name = os.environ['GITHUB_SHA'], os.environ['BENCH_SCRIPT']
     if event['inputs'].get('bench_script') != name:
         raise ValueError('Bench script input differs from dispatch')
-    steps, digest = load('.', sha, name)
-    return steps, dict(head_sha=sha, script=name, script_sha256=digest, network='none')
+    network, steps, digest = load('.', sha, name)
+    record = dict(head_sha=sha, script=name, script_sha256=digest, network=network)
+    if network == Level.INTERNET:
+        record['nonrepeatable'] = True
+    return steps, record
 
 
 if __name__ == '__main__':

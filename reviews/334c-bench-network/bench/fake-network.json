@@ -1,0 +1,9 @@
+{
+  "network": "fake",
+  "steps": [
+    {"kind": "status"},
+    {"kind": "net", "state": "up"},
+    {"kind": "net", "state": "down"},
+    {"kind": "net", "state": "up"}
+  ]
+}

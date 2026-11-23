@@ -49,7 +49,7 @@ else
 fi
 echo BENCH_PLANTED_LAYER_REFUSED
 
-cp os/ci/bench/{Containerfile,agent.py,evidence.py,aresos-bench.service} os/ci/channel.py "$context/"
+cp os/ci/bench/{Containerfile,agent.py,evidence.py,network.py,aresos-bench.service} os/ci/channel.py "$context/"
 sudo podman build --pull=never --network=none --format=oci -t "$bench" "$context"
 sudo podman image inspect --format '{{ index .Labels "org.opencontainers.image.revision" }}' "$bench" \
     > vm-work/bench-revision

@@ -15,13 +15,14 @@ SCRIPT = 'reviews/334a-bench-hosted/bench/session-health.json'
 
 class BenchScriptTest(unittest.TestCase):
     def test_acceptance_script(self):
-        steps = script.parse((ROOT / SCRIPT).read_bytes())
+        network, steps = script.parse((ROOT / SCRIPT).read_bytes())
+        self.assertEqual(network, 'none')
         self.assertEqual([step['kind'] for step in steps], ['wait', 'expect', 'shot', 'reboot', 'wait', 'expect'])
         self.assertEqual(steps[1], steps[-1])
 
     def test_invalid_scripts(self):
         for document in [
-            {'network': 'internet', 'steps': [{'kind': 'shot'}]},
+            {'network': 'host', 'steps': [{'kind': 'shot'}]},
             {'steps': []},
             {'steps': [{'kind': 'shot'}] * (script.MAX_STEPS + 1)},
             {'steps': [{'kind': 'reboot'}, {'kind': 'reboot'}]},
@@ -51,7 +52,8 @@ class BenchScriptTest(unittest.TestCase):
             path.write_bytes(b'{"steps":[{"kind":"reboot"}]}')
             path.with_name('untracked.json').write_bytes(contents)
             sha = script.git(folder, 'rev-parse', 'HEAD').decode().strip()
-            self.assertEqual(script.load(folder, sha, SCRIPT), ([{'kind': 'shot'}], hashlib.sha256(contents).hexdigest()))
+            self.assertEqual(script.load(folder, sha, SCRIPT),
+                             ('none', [{'kind': 'shot'}], hashlib.sha256(contents).hexdigest()))
             for name in ('linked.json', 'untracked.json', '../session-health.json', 'session-health.json;echo'):
                 bad = f'reviews/334a-bench-hosted/bench/{name}'
                 with self.subTest(bad=bad), self.assertRaises(ValueError):

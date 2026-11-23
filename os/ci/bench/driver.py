@@ -1,4 +1,5 @@
 """Run one hosted bench script with a private QEMU disk and virtio connection."""
+import http.client
 import json
 import os
 import pathlib
@@ -15,6 +16,8 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 from channel import Frames, frame
 from qmp import QMP
 
+from fake_net import NAMESPACE_ENV, REPLY, Stubs, listening, offline_namespace
+from network import Level, NIC, STUB_PORT, qemu_nic, require_loopback
 from script import dispatch, SHA
 
 WORK = pathlib.Path('vm-work').resolve()
@@ -23,6 +26,8 @@ BOOT_ID = re.compile(r'[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}')
 SESSION_FACTS = {'greetd_running', 'initial_login_attempted', 'compositor_running', 'seat_session',
                  'active_greetd_session', 'compositor_in_session'}
 QEMU_ENV = {'PATH': os.defpath, 'LC_ALL': 'C'}
+DISPATCH_ENV = ('GITHUB_ACTIONS', 'GITHUB_EVENT_NAME', 'RUNNER_ENVIRONMENT', 'GITHUB_JOB',
+                'GITHUB_REF_TYPE', 'GITHUB_REF_NAME', 'GITHUB_EVENT_PATH', 'GITHUB_SHA', 'BENCH_SCRIPT')
 
 
 class Failed(Exception):
@@ -30,8 +35,11 @@ class Failed(Exception):
 
 
 class Guest:
-    def __init__(self, work, disk):
+    def __init__(self, work, disk, network=Level.NONE, outside_port=None):
         self.work = work
+        self.network = network
+        self.outside_port = outside_port
+        self.stubs = Stubs(work, STUB_PORT) if network == Level.FAKE else None
         self.overlay = work / 'guest.qcow2'
         self.vars = work / 'vars.fd'
         self.qemu = self.checks = self.qmp_socket = None
@@ -46,6 +54,8 @@ class Guest:
         for path in (qmp, checks):
             path.unlink(missing_ok=True)
         accel = ['-accel', 'kvm', '-cpu', 'host'] if self.accel == 'kvm' else ['-accel', 'tcg,thread=multi', '-cpu', 'max']
+        if self.stubs:
+            self.stubs.up()
         self.qemu = subprocess.Popen([
             'qemu-system-x86_64', '-machine', 'q35', *accel,
             '-smp', str(min(4, len(os.sched_getaffinity(0)))), '-m', '6144',
@@ -53,7 +63,7 @@ class Guest:
             '-drive', f'if=pflash,format=raw,file={self.vars}',
             '-drive', f'file={self.overlay},format=qcow2,if=virtio',
             '-device', 'virtio-vga', '-device', 'qemu-xhci', '-device', 'usb-kbd', '-device', 'usb-tablet',
-            '-display', 'none', '-nic', 'none', '-serial', 'null',
+            '-display', 'none', *qemu_nic(self.network), '-serial', 'null',
             '-qmp', f'unix:{qmp},server=on,wait=off',
             '-device', 'virtio-serial-pci', '-chardev', f'socket,id=bench,path={checks},server=on,wait=off',
             '-device', 'virtserialport,chardev=bench,name=org.aresos.bench', '-no-reboot',
@@ -67,6 +77,8 @@ class Guest:
         if self.incoming.receive() != {'ready': True, 'protocol': 1}:
             raise ValueError('Invalid bench handshake')
         self.checks.settimeout(40)
+        if self.stubs and self.call('setup_fake', certificate=self.stubs.ca.read_text()) != {'configured': True}:
+            raise ValueError('Guest fake network setup failed')
 
     def connect(self, path):
         deadline = time.monotonic() + 30
@@ -95,17 +107,28 @@ class Guest:
             raise ValueError('Invalid guest boot ID')
         if revision != record['head_sha']:
             raise Failed('guest revision differs from dispatched head')
-        if status.get('no_nic') is not True:
-            raise Failed('guest has a network interface besides loopback')
+        no_nic = self.network == Level.NONE
+        if status.get('no_nic') is not no_nic:
+            raise Failed('guest NIC does not match the requested network level')
         if type(status.get('active_session')) is not bool:
             raise ValueError('Invalid session status')
         session = status.get('session')
         if (not isinstance(session, dict) or session.keys() != SESSION_FACTS
                 or not all(type(value) is bool for value in session.values())):
             raise ValueError('Invalid session facts')
-        record['boots'][-1].update(boot_id=boot, revision=revision, no_nic=True,
+        record['boots'][-1].update(boot_id=boot, revision=revision, no_nic=no_nic,
                                   active_session=status['active_session'], session=session)
         return record['boots'][-1]
+
+    def link(self, state):
+        if not self.stubs:
+            raise ValueError('Guest has no fake network')
+        self.monitor.command('set_link', {'name': NIC, 'up': state == 'up'})
+        facts = self.call('probe_fake', state=state, outside_port=self.outside_port)
+        want = dict(carrier=True, stub=state == 'up', stub_unreachable=state == 'down', outside_unreachable=True)
+        if facts != want:
+            raise Failed('guest fake network behavior differed from the fixture')
+        return dict(state=state, **facts)
 
     def screenshot(self, path):
         from PIL import Image
@@ -140,12 +163,16 @@ class Guest:
             except subprocess.TimeoutExpired:
                 self.qemu.kill()
                 self.qemu.wait()
+        if self.stubs:
+            self.stubs.down()
 
 
 def run_step(guest, step, number, record):
     kind = step['kind']
     if kind == 'status':
         return dict(status=guest.status(record).copy())
+    if kind == 'net':
+        return guest.link(step['state'])
     if kind in ('wait', 'expect'):
         check = step['for']
         deadline = time.monotonic() + (150 if kind == 'wait' else 35)
@@ -189,8 +216,7 @@ def run_step(guest, step, number, record):
     return fields
 
 
-def main():
-    steps, record = dispatch()
+def run_guest(steps, record, outside_port=None):
     disk_root = WORK / 'output'
     disks = list(disk_root.rglob('disk.raw'))
     if (len(disks) != 1 or not disks[0].is_relative_to(disk_root) or disks[0].resolve() != disks[0]
@@ -206,7 +232,7 @@ def main():
     try:
         # Keep socket paths short even when Actions uses a long checkout path.
         with tempfile.TemporaryDirectory(prefix='aresos-bench-') as directory:
-            guest = Guest(pathlib.Path(directory), disks[0])
+            guest = Guest(pathlib.Path(directory), disks[0], record['network'], outside_port)
             record['acceleration'] = guest.accel
             try:
                 guest.boot()
@@ -236,6 +262,42 @@ def main():
     finally:
         record['vm_seconds'] = round(time.monotonic() - started, 1)
         (EVIDENCE / 'run.json').write_text(json.dumps(record, indent=2) + '\n')
+
+
+def main():
+    steps, record = dispatch()
+    network = record['network']
+    if network == Level.INTERNET and not sys.argv[1:]:
+        return run_guest(steps, record)
+    if sys.argv[1:2] == ['--offline'] and len(sys.argv) == 3:
+        if network not in (Level.FAKE, Level.NONE):
+            raise ValueError('Hosted offline launcher received an internet script')
+        require_loopback()
+        return run_guest(steps, record, int(sys.argv[2]))
+    if sys.argv[1:]:
+        raise ValueError('Unexpected bench driver arguments')
+    with listening() as outside:
+        with_code = http.client.HTTPConnection('127.0.0.1', outside.server_port, timeout=2)
+        try:
+            with_code.request('GET', '/')
+            reply = with_code.getresponse()
+            if reply.status != 200 or reply.read(64) != REPLY:
+                raise ValueError('Outside bench fixture failed its positive control')
+        finally:
+            with_code.close()
+        command = offline_namespace([sys.executable, '-B', __file__, '--offline', str(outside.server_port)])
+        runtime_env = dict(NAMESPACE_ENV, **{key: os.environ[key] for key in DISPATCH_ENV})
+        status = subprocess.run(command, env=runtime_env, check=False).returncode
+        if status == 0:
+            if outside.connections != 1:
+                print('FAIL traffic reached the outside bench fixture', file=sys.stderr)
+                path = EVIDENCE / 'run.json'
+                result = json.loads(path.read_text())
+                result['outcome'] = 'failed'
+                path.write_text(json.dumps(result, indent=2) + '\n')
+                return 1
+            print('PASS outside listener positive control and no guest traffic')
+        return status if status in (0, 1, 2) else 2
 
 
 if __name__ == '__main__':

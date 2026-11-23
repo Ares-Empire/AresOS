@@ -1,5 +1,5 @@
 FROM localhost/aresos:check
-COPY agent.py channel.py evidence.py /usr/libexec/aresos-bench/
+COPY agent.py channel.py evidence.py network.py /usr/libexec/aresos-bench/
 COPY aresos-bench.service /usr/lib/systemd/system/
 # The installer supplies the keyboard layout on a real disk. The session's
 # keyboard launcher requires it, so seed the same German layout on this disk.

@@ -1,6 +1,6 @@
 [Unit]
 Description=Hosted AresOS bench channel
-After=systemd-logind.service systemd-user-sessions.service
+After=systemd-logind.service systemd-user-sessions.service NetworkManager.service
 
 [Service]
 ExecStart=/usr/bin/python3 -B /usr/libexec/aresos-bench/agent.py

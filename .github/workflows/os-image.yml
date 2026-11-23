@@ -87,10 +87,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REHEARSAL_MODE: checks
         run: python3 os/ci/rehearsal_guard.py ci ${{ github.ref_name == 'pkg/42-release-28' && 60 || 15 }}
-      - name: Install framebuffer regression dependency on disposable runner
+      - name: Install regression dependencies on disposable runner
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends python3-pil python3-yaml
+          sudo apt-get install -y --no-install-recommends python3-pil python3-yaml nftables
       # test_owner_update.ToolsUpdateTest runs the tools' update as root in an
       # unprivileged user and mount namespace (unshare -Urm). Ubuntu 24.04's
       # AppArmor refuses that by default (uid_map: Operation not permitted) and
@@ -250,7 +250,9 @@ jobs:
         timeout-minutes: 20
         env:
           BENCH_SCRIPT: ${{ inputs.bench_script }}
-        run: bash os/ci/check-build.sh bench-pass
+        run: |
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          bash os/ci/check-build.sh bench-pass
       - name: Validate bench evidence for upload
         id: bench-evidence
         if: ${{ !cancelled() && inputs.check_build == 'bench' && steps.bench-vm.outcome != 'skipped' }}

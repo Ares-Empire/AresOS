@@ -15,10 +15,12 @@ import time
 
 from channel import Frames, frame
 from evidence import TOKEN
+from network import GUEST_RELAY, HOST, STUB_PORT
 
 PORT = pathlib.Path('/dev/virtio-ports/org.aresos.bench')
 OUTPUT_LIMIT = 256 * 1024
 VIEW_TOKEN_FILE = 'aresos-bench-view-token'
+FAKE_CA = pathlib.Path('/run/aresos-bench-fake-ca.pem')
 
 
 def captured(argv, timeout=10, *, export=True):
@@ -172,6 +174,55 @@ def journal_output(runtime, output):
     return output
 
 
+def fake_interface():
+    links = set(os.listdir('/sys/class/net')) - {'lo'}
+    if len(links) != 1:
+        raise ValueError('Fake network requires one guest NIC')
+    return links.pop()
+
+
+def setup_fake(certificate):
+    if (not isinstance(certificate, str) or len(certificate) > 4096
+            or not certificate.startswith('-----BEGIN CERTIFICATE-----\n')
+            or not certificate.endswith('-----END CERTIFICATE-----\n')):
+        raise ValueError('Invalid bench CA')
+    link = fake_interface()
+    subprocess.run(['nmcli', '--wait', '5', 'device', 'set', link, 'managed', 'no'], check=True, timeout=6)
+    subprocess.run(['ip', 'link', 'set', 'dev', link, 'up'], check=True, timeout=5)
+    subprocess.run(['ip', 'address', 'replace', '10.0.2.15/24', 'dev', link], check=True, timeout=5)
+    hosts = pathlib.Path('/etc/hosts')
+    row = f'{GUEST_RELAY} {HOST}'
+    if row not in hosts.read_text().splitlines():
+        with hosts.open('a') as output:
+            print(f'\n{row}', file=output)
+    FAKE_CA.write_text(certificate)
+    return {'configured': True}
+
+
+def probe_fake(state, outside_port):
+    if state not in ('up', 'down') or type(outside_port) is not int or not 1024 <= outside_port <= 65535:
+        raise ValueError('Invalid fake network probe')
+    carrier = pathlib.Path('/sys/class/net') / fake_interface() / 'carrier'
+    deadline = time.monotonic() + 8
+    want = '1' if state == 'up' else '0'
+    while carrier.read_text().strip() != want:
+        if time.monotonic() >= deadline:
+            return {'carrier': False}
+        time.sleep(0.2)
+    user, _ = desktop_user()
+    with tempfile.TemporaryDirectory(dir='/run', prefix='aresos-bench-net-') as profile:
+        os.chown(profile, user.pw_uid, user.pw_gid)
+        curl = ('setpriv', '--reuid', str(user.pw_uid), '--regid', str(user.pw_gid), '--clear-groups',
+                '--no-new-privs', '--inh-caps=-all', '--ambient-caps=-all', '--bounding-set=-all',
+                'env', '-i', f'HOME={profile}', 'PATH=/usr/bin:/usr/sbin',
+                'curl', '--disable', '--noproxy', '*', '--silent', '--fail', '--max-time', '3')
+        code, output = captured([*curl, '--cacert', str(FAKE_CA), f'https://{HOST}:{STUB_PORT}/'])
+        # The destination port belongs to the hosted parent fixture.
+        outside, _ = captured([*curl, f'http://{GUEST_RELAY}:{outside_port}/'], export=False)
+    return {'carrier': True, 'stub': code == 0 and output == 'bench fixture\n',
+            'stub_unreachable': code in (7, 28), 'outside_unreachable': outside in (7, 28)}
+
+
 def action(request):
     verb = request['action']
     if verb == 'status':
@@ -186,6 +237,10 @@ def action(request):
         # The session UID can read its launch state. Export only the exit code.
         code, _ = captured(as_desktop(*argv, session=True), timeout=30, export=False)
         return dict(code=code)
+    if verb == 'setup_fake':
+        return setup_fake(request['certificate'])
+    if verb == 'probe_fake':
+        return probe_fake(request['state'], request['outside_port'])
     if verb == 'journal':
         code, output = captured(['journalctl', '-b', '-u', 'greetd.service', '-n', '80', '--no-pager', '-o', 'cat'])
         return dict(code=code, output=journal_output(desktop_user()[1], output))

@@ -106,6 +106,8 @@ class BenchDispatchTest(unittest.TestCase):
             script = checkout / 'os/ci/bench/script.py'
             script.parent.mkdir(parents=True)
             script.write_bytes((ROOT / script.relative_to(checkout)).read_bytes())
+            network = script.with_name('network.py')
+            network.write_bytes((ROOT / network.relative_to(checkout)).read_bytes())
             ledger = json.loads(LEDGER.read_bytes())
             ledger['331'] = {'branch': managed[-1]}
             (script.parents[1] / LEDGER.name).write_text(json.dumps(ledger))
