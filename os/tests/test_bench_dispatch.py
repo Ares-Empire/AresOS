@@ -25,11 +25,18 @@ WORLD = dict(UPDATE_INPUTS, **{'github.ref_name': BRANCH, 'inputs.rehearsal': ''
                              'inputs.check_build': 'bench', 'needs.image.result': 'skipped'})
 
 
-def enabled(step, world, *, cancelled=False):
+def enabled(step, world, *, status='success'):
     condition = step.get('if', 'success()').strip()
     if condition.startswith('${{'):
         condition = condition[3:-2].strip()
-    return bool(workflow_expression(condition.replace('cancelled()', str(cancelled)), world))
+    statuses = {'success()': status == 'success', 'failure()': status == 'failure',
+                'cancelled()': status == 'cancelled', 'always()': True}
+    # Actions adds an implicit success check only if the condition has no status function.
+    if not any(call in condition for call in statuses):
+        condition = f'success() && ({condition})'
+    for call, value in statuses.items():
+        condition = condition.replace(call, str(value))
+    return bool(workflow_expression(condition, world))
 
 
 class BenchDispatchTest(unittest.TestCase):
@@ -61,16 +68,25 @@ class BenchDispatchTest(unittest.TestCase):
         def jobs(**overrides):
             return {name for name, job in JOBS.items() if enabled(job, dict(WORLD, **overrides))}
 
-        branches = [BRANCH, *(package['branch'] for package in json.loads(LEDGER.read_bytes()).values())]
+        branches = {BRANCH: ['probe']}
+        for package in json.loads(LEDGER.read_bytes()).values():
+            modes = [mode for mode, title in package.get('titles', {}).items()
+                     if title == f'Two-disk rehearsal ({mode})']
+            branches[package['branch']] = modes or ['probe']
         conflicts = {name: True for name in BOOLEAN_CONFLICTS}
-        conflicts.update(rehearsal='release-28', probe_run='123', switch_from_run='123')
-        self.assertEqual(conflicts.keys(), set(BOOLEAN_CONFLICTS) | set(STRING_CONFLICTS))
-        for branch in branches:
+        conflicts.update(probe_run='123', switch_from_run='123')
+        self.assertEqual(conflicts.keys() | {'rehearsal'}, set(BOOLEAN_CONFLICTS) | set(STRING_CONFLICTS))
+        for branch, rehearsals in branches.items():
             with self.subTest(branch=branch):
                 self.assertEqual(jobs(**{'github.ref_name': branch}), {'check-build'})
             for name, value in conflicts.items():
                 with self.subTest(branch=branch, conflict=name):
                     self.assertEqual(jobs(**{'github.ref_name': branch, f'inputs.{name}': value}), set())
+            for rehearsal in rehearsals:
+                with self.subTest(branch=branch, rehearsal=rehearsal):
+                    dispatch = {'github.ref_name': branch, 'inputs.rehearsal': rehearsal}
+                    self.assertIn('rehearsal', jobs(**dispatch, **{'inputs.check_build': ''}))
+                    self.assertEqual(jobs(**dispatch), set())
         # A prior successful image is another path into the switch job.
         self.assertEqual(jobs(**{'needs.image.result': 'success'}), {'check-build'})
         self.assertEqual(jobs(**{'github.event_name': 'push'}), set())
@@ -139,7 +155,8 @@ class BenchDispatchTest(unittest.TestCase):
                     with self.subTest(outcome=outcome, safe=safe, cancelled=cancelled):
                         world = dict(WORLD, **{'steps.bench-vm.outcome': outcome,
                                               'steps.bench-evidence.outputs.safe': safe})
-                        self.assertEqual(enabled(scan, world, cancelled=cancelled),
+                        status = 'cancelled' if cancelled else 'failure' if outcome == 'failure' else 'success'
+                        self.assertEqual(enabled(scan, world, status=status),
                                          not cancelled and outcome != 'skipped')
-                        active_uploads = [step for step in uploads if enabled(step, world, cancelled=cancelled)]
+                        active_uploads = [step for step in uploads if enabled(step, world, status=status)]
                         self.assertEqual(active_uploads, [upload] if not cancelled and safe == 'true' else [])
