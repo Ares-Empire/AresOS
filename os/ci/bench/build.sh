@@ -62,4 +62,6 @@ sudo podman run --rm --privileged --security-opt label=type:unconfined_t \
     -v /var/lib/containers/storage:/var/lib/containers/storage \
     "$builder" --type raw --rootfs btrfs --use-librepo=True "$bench"
 sudo chmod -R a+rX vm-work/output
+# The next hosted step creates an unprivileged network namespace for offline QEMU.
+sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 echo BENCH_DISK_READY
