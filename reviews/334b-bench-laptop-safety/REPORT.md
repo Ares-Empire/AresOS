@@ -2,14 +2,14 @@
 
 ## Done
 
-- `os/ci/bench/laptop.py` uses the dev rig’s client-test lock and its Lunar Java check. Bench runs refuse a busy lock, inadequate memory, battery operation or missing VM-mode KVM with exit 75. The run checks the gates before phase setup and immediately before launch. The home-screen game is reported from its populated cgroup.
-- One transient user scope runs under `aresos-bench.slice` with a 5 GiB cap, CPU weight 10, nice 10 and `oom_score_adj=1000`. The launcher leaves swap enabled. A separate guardian outside that slice retains the shared lock until the scope empties. It watches a PID handle for the bench caller and stops the scope if the caller dies. The memory watcher requests graceful shutdown through a callback and the guardian bounds the grace period. [systemd scope settings](https://www.freedesktop.org/software/systemd/man/259/systemd.scope.html)
-- `os/ci/bench/store.py` admits the sum of coexisting writes across filesystems. It journals the phase before creating its output directories and recovers abandoned outputs at the next run or expiry check. Normal completion, failure and catchable signals delete the ephemeral files. One image generation and its base disk, one builder boot image, and five evidence runs are retained across worktrees. A build store expires at the next locked run or expiry check after seven idle days.
-- `os/ci/bench/bench status` reads allocated bytes by filesystem, retention and gate results. `bench clean` takes the same lock and removes the store and bench evidence from registered worktrees. `AGENTS.md` records the shared store exception and one-copy rule.
+- `os/ci/bench/laptop.py` uses the dev rig’s client-test lock and its Lunar Java check. A busy lock, inadequate or invalid memory readings, unconfirmed external power, running Lunar Java or missing VM-mode KVM refuse the run with exit 75. The scoped helper checks memory again just before exec. The home-screen game is reported from its cgroup events.
+- One transient user scope runs under `aresos-bench.slice` with a 5 GiB cap, CPU weight 10, nice 10 and `oom_score_adj=1000`. The launcher leaves swap enabled and sets both core dump limits to zero. The watcher requests graceful shutdown and the guardian limits its duration. Each can stop the pinned cgroup if the other dies. The surviving process retains the shared lock until it confirms the cgroup is empty. [systemd scope settings](https://www.freedesktop.org/software/systemd/man/259/systemd.scope.html) [systemd core dump handling](https://www.freedesktop.org/software/systemd/man/latest/systemd-coredump.html)
+- `os/ci/bench/store.py` admits coexisting declared writes against the cap and each affected storage pool’s reserve. It journals the phase before creating its output directories, then rechecks space before releasing the scoped workload. It deletes ephemeral output at phase end and recovers abandoned output at the next locked phase or expiry check. The store retains one image generation with its base disk and one builder boot image. The current worktree retains its five newest evidence runs. A build store expires at the next locked phase or expiry check after seven idle days.
+- `bench status` reports measured allocation by storage pool, the fixed allowance against the cap, retention and gate results. The native store and lock both use the account’s canonical home, with the lock outside the store. `bench clean` takes that lock and removes the store and the current worktree’s bench evidence. `AGENTS.md` records the shared store exception and one-copy rule.
 
 ### Disk writes and phase peaks
 
-The global cap is **40 GB allocated** and the reserve is **20 GB free on each filesystem receiving writes**. Both use decimal bytes. The phase declares a peak for every applicable row. It may declare smaller peaks. Existing files count by `st_blocks × 512` and the check adds 1 MiB per affected filesystem for bookkeeping. The managed writer charges touched blocks and a 64 KiB per-file metadata allowance before creating a file. It also rechecks the free-space reserve before each write.
+Admission charges measured allocation in the store and current worktree, the new phase’s declared peaks, and a fixed 2 GB allowance for evidence in other worktrees against the **40 GB cap**. It requires **20 GB free on each storage pool receiving writes**, including when Btrfs subvolumes share a pool. Both limits use decimal bytes. Actual allocation counts by `st_blocks × 512`. Each affected pool gets a 1 MiB coordination allowance. The managed writer charges touched blocks and 64 KiB of metadata per file and rechecks the reserve before each write. A fixed disk is charged at its full virtual size plus metadata. A polled directory is charged at its peak plus its declared margin. [Btrfs subvolume storage](https://btrfs.readthedocs.io/en/latest/btrfs-subvolume.html)
 
 | Phase output | Write location | Maximum per declared output | Retention |
 | --- | --- | ---: | --- |
@@ -21,10 +21,10 @@ The global cap is **40 GB allocated** and the reserve is **20 GB free on each fi
 | Builder boot image | Store `builder-boot/` | 1 GB | One copy |
 | Builder scratch disk | Store `builder-scratch/` | 15 GB | Phase end |
 | Test overlay | Store `test-disk/` | 10 GB | Test end, including failures and signals |
-| Evidence | Worktree `.work/bench/<run>/` | 180 MB | Five runs across worktrees |
-| Journal, worktree registrations and directory creation | Store and evidence trees | 1 MiB coordination allowance per affected filesystem | Journal removed at phase end. Registry retained until clean. |
+| Evidence | Current worktree `.work/bench/<run>/` | 180 MB | Five runs in this worktree. Other worktrees are represented by the fixed 2 GB allowance. |
+| Journal, ownership markers and directory creation | Store and current worktree evidence trees | 1 MiB coordination allowance per affected storage pool | The journal is removed at phase end. Ownership markers stay with their trees. |
 
-The empty synchronization file uses the dev rig’s existing lock location outside the store. File staging uses same-directory renames. A phase declaring 17 GB of build store, 15 GB of builder scratch and 10 GB of base disk is refused before creating outputs, even on an empty store.
+The empty synchronization file uses the dev rig’s existing lock location outside the store. Evidence is staged in the same directory as its final name. Managed writes publish after the write completes. Command evidence publishes after a successful workload and confirmed shutdown. A phase declaring 17 GB of build store, 15 GB of builder scratch and 10 GB of base disk is refused before creating outputs, even on an empty store.
 
 ## Verified
 
@@ -89,3 +89,27 @@ The separate stand-in game survived every case. Tests sampled every second and u
 - Build-cache expiry runs during the next locked phase or explicit expiry check. This package adds no scheduled seven-day cleanup.
 - Step 6 still owns real user-manager behavior, workload containment, laptop pressure and stop timing, KVM behavior and adoption of the shared lock by `mod/dev/build.sh` and `mod/dev/run-hub.sh`. Step 7 still owns verification of real write peaks and storage bounds for VM and Podman. The regular-file contract and synthetic polling case use Linux x86-64, Landlock ABI 3 or later and seccomp. Fixed disks in the same command must fit its common file-size ceiling.
 - The watcher and guardian cover either process dying independently. Simultaneous loss of both remains outside this round's tests.
+
+## Review fixes, round 2
+
+1. **Gate readings.** Require all three memory counters in kB, with `MemFree` and `MemAvailable` between zero and the positive `MemTotal`. The power gate requires an online mains or USB supply and refuses when a system battery is discharging. An empty inventory, charging with offline external power and out-of-bounds memory each return 75 before scope launch.
+2. **Shutdown.** Closed stderr cannot interrupt the retry loop. The guardian and watcher fallback keep ownership of shutdown until the pinned scope is confirmed empty. A test forces two failed kills with closed stderr and a populated scope before allowing shutdown to complete.
+3. **Disk admission.** Use `statvfs().f_fsid` to combine writes sharing a space pool. Check free space again after scope activation and before granting permission to exec. Charge the fixed 2 GB allowance against the cap. The tests simulate distinct devices sharing a pool, a 35 GB store and a drop in available space after activation. [Btrfs subvolume storage](https://btrfs.readthedocs.io/en/latest/btrfs-subvolume.html)
+4. **Core dumps.** Set the soft and hard `RLIMIT_CORE` to zero for every workload. The fixed-disk stand-in reads back both limits without crashing. [systemd core dump handling](https://www.freedesktop.org/software/systemd/man/latest/systemd-coredump.html)
+5. **Evidence mounts.** Traverse from the opened worktree root through `.work` and `bench` with descriptor-relative mount checks. The same-device fake-mount test puts a mount boundary on `.work` and confirms the evidence survives `clean`.
+6. **Evidence recovery.** Give commands writable `.partial` files and publish them after successful exit and confirmed scope shutdown. The hard-kill test removes the staged command file during recovery and keeps the completed `Phase.write` file.
+7. **Canonical lock and store.** Use the password database home for both `.cache/aresos-bench` and `.cache/aresos-dev/client-test.lock`. Absent variables and explicit matching values resolve to the same lock. Conflicting `HOME` or `XDG_CACHE_HOME` values are refused. Two accepted setups contend for the same fixture lock.
+8. **Test isolation.** The test launchers open pidfds for their owned children and pass the descriptors over fixture Unix sockets. The unsafe-cache cleanup tests use a fixture home and worktree.
+
+### Verification
+
+- Ran `python3 -B -m unittest discover -s os/tests -p 'test_bench_laptop_<name>.py'` one module at a time. The final runs reported `Ran 14 tests in 0.025s` for `gates`, `Ran 16 tests in 0.754s` for `store` and `Ran 16 tests in 8.855s` for `watch`, each with `OK`. The tests used only fixture locks, stores, proc and sys inputs and stand-ins they started.
+- Locally, falling available memory took 0.975 s to detect and 1.278 s to stop the scope members. Rising pressure took 0.968 s to detect and 1.271 s to stop them. Guardian-only and watcher-only SIGKILL each took 0.002 s to stop the scope members. The stand-in game survived each case.
+- `git diff --check` passed. `find .work -type f -size +500M -print` listed no files.
+- Dispatched `gh workflow run 'OS image' --ref pkg/334b-bench-laptop-safety -f checks_only=true` for `6d2a1db1`. Watched `45109390834` with `gh run watch 45109390834 --exit-status --interval 60`. The regression job passed in 44m21s and printed `Ran 2635 tests in 2620.395s`, `OK (skipped=24)` and `Live hosted system manager passed: 437 unit files, 468 unit names`. All 46 bench tests passed. The model-selection job passed in 23s and selected the bounded slice. [Hosted checks-only run](https://github.com/Ares-Empire/AresOS/actions/runs/45109390834)
+- On the hosted runner, the memory and pressure changes each took 0.970 s to detect. The scope members stopped after 1.271 s for memory and 1.272 s for pressure. Either single-process SIGKILL took 0.002 s to stop the scope members.
+
+### Known limits from review 2
+
+- The 2 GB allowance estimates retained evidence across other worktrees. Actual evidence across several worktrees can exceed that allowance. Cleanup and pruning are confined to the current worktree. Build-cache expiry runs on the next locked phase or explicit expiry check.
+- Step 6 still owns the real user-manager, KVM, pressure and shared-lock adoption checks. Step 7 still owns real VM and Podman disk peaks. The loss tests cover the watcher and guardian dying independently.
