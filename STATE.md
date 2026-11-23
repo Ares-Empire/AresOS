@@ -27,18 +27,30 @@
 - Keep the stock Bazzite fallback frozen and its automatic updates off throughout the trial. Re-enable them only if the owner returns to stock for good (owner, 2026-10-24)
 - The stock backup keeps its own tested keyboard layout. If the very first AresOS boot after switching fails, use F12 → Windows → get help, since there can briefly be two look-alike stock entries (owner, 2026-10-25)
 - Keep fitting photos, the physical drive serial and raw install records private. The maintainer's disk inventory stands in for the firmware-screen check. For a physical install, keep the staged checkpoints and send each step's record to the maintainer before continuing. Confirm encryption status and save the matching recovery key if encrypted. Stop on unknown or encrypted status for owner review. [Install guardrails](docs/INSTALL.md) (owner, 2026-11-07)
-- For real disk, partition, boot, firmware or system software changes, explain the action and risk and wait for explicit approval. Claude may carry out approved steps with the owner supplying any password and doing the hands-on steps. Read-only checks need no approval. Codex never runs disk or boot tools on the real laptop (owner, 2026-11-08)
-- The daily account can install and use Flatpak and Homebrew and is an administrator behind the owner's password. Sudo asks every time, with no cached sudo or polkit approval and no passwordless bypass. Keep the spare recovery admin. Image or firmware changes use the signed route or the owner's own explicit admin action (owner, 2026-11-09)
+- For real disk, partition, boot, firmware or system software changes, explain the action and risk and wait for explicit approval. Claude may carry out approved steps. The owner supplies passwords and does hands-on steps (owner, 2026-11-08)
+- Read-only checks need no approval. Codex never runs disk or boot tools on the real laptop (owner, 2026-11-08)
+- Ask once per Windows system tool before installing it (integrator, 2026-10-21)
+- Relayed answers cover branch work only. Get approval for real laptop changes directly from the owner (integrator, 2026-11-21)
+- The installer creates `ares-recovery` first as admin at UID 1000 and reserves UID 1001 for the owner's daily account. Keep both [account names and IDs](docs/design/OS-BASE.md#image-delivery-decision) (owner, 2026-10-22)
+- The daily account has admin rights behind the owner's password and can install and use apps with Flatpak and Homebrew. Keep the spare recovery admin (owner, 2026-11-09)
+- Sudo asks every time. Sudo and polkit approvals never cache, and there is no passwordless bypass (owner, 2026-11-09)
+- Keep image and firmware tools out of the daily account's ordinary admin prompt. Use the signed release route or the owner's explicit `sudo` (owner, 2026-11-09)
 - Ship Google Chrome in the image. It is the everyday browser and Control's Chrome target (owner, 2026-11-09)
 - On a hung shutdown, wait ten minutes without progress, force off only under the emergency card's conditions, then use Windows and get help (owner, 2026-11-09)
 - Use one normal Claude Code session as the owner, with ordinary coding, commands, GitHub, MCP, skills and plugins. Offer app features as CLI and MCP tools, Mail and Chrome first. Keep service credentials out of Claude. [Control decisions 21, 24 and 25](docs/control/PLAN.md) (owner, 2026-11-08)
 - Use Claude Code's own approval prompt on the laptop or through phone Remote Control, even with skip-permissions. Put the service question first and bind the exact send, delete, payment, unsubscribe or submit for approval. Claude cannot supply or replay consent. Validate inputs, use least access and mark untrusted content. Fix risks that can cause real harm and record low-harm limits (owner, 2026-11-11)
+- A matching `PermissionRequest` allow hook can approve a managed ask. Keep asking tools out of the owner's hook matches (integrator, 2026-11-12)
 - Chrome uses a light tool in the normal browser with no proxy or certificate. Ask on clear sends. An ordinary click can let a page send on its own, as in Claude in Chrome (owner, 2026-11-08)
-- For Chrome, use text first without screenshots, show link addresses, ask before reading typed form text, and close the owner's tabs only on request. Guard unsaved typing before leaving or closing a tab. Loosening Chrome's policy takes a fresh admin password (owner, 2026-11-13)
+- For Chrome, use text first without screenshots, show link addresses, ask before reading typed form text, and close the owner's tabs only on request. Loosening Chrome's policy takes a fresh admin password (owner, 2026-11-13)
+- Before leaving or closing a Chrome tab, report unsaved typing and playing media. Get the owner's approval in chat if their typing would be lost (owner, 2026-11-13)
 - Tools use Downloads and Documents. A stopped Control service stays quiet in sessions that never used it (owner, 2026-11-13)
 - Choose Codex or Claude builders per task and allowance. Use Opus by default for Claude builders and Fable for hard work or work that resists normal attempts (owner, 2026-11-09)
 - Use Fable for actual design (owner, 2026-11-13)
-- Every package gets a fresh reviewer independent of the builder. Use a fresh Codex context while available, with Opus by default for a Claude review and Fable for high-stakes reviews and final reviews before the laptop. Bring hard-to-undo or feel-changing calls to the owner before merge (owner, 2026-11-11)
+- Codex builders get full access in their assigned worktree. Reviews run read-only (integrator, 2026-10-21)
+- Every package gets a fresh reviewer independent of the builder. Use a fresh Codex context while available, Opus by default for Claude reviews, and Fable for high-stakes or final laptop reviews (owner, 2026-11-11)
+- Bring hard-to-undo choices or changes to how AresOS feels to the owner before merge (owner, 2026-11-11)
+- Only the integrator merges, after a fresh SAFE review of the current head, passing checks and the owner's answers to judgment calls (integrator, 2026-10-21)
+- Get `mac-capacity` approval to use the active API promo for Fable design or reviews. Carry the route and expiry into the next handoff while it is active (integrator, 2026-11-21)
 - For briefs, get a Claude review followed by a cross-model review (owner, 2026-11-18)
 - Use real Minecraft as the first shell. Normal Minecraft stays a separate app with normal rules. Generate icons automatically from installed apps. Never commit Mojang or Supercell assets. Load vanilla textures and fonts at runtime (owner, 2026-10-21)
 - The owner picks the Nether seed and home spot after exploring. Keep old saves when changing home (owner, 2026-10-21)
@@ -61,22 +73,31 @@
 - Provide a normal terminal with easy tabs. Use Konsole for the hub Terminal and any login terminal, with foot for recovery (owner, 2026-11-13)
 - Ctrl+V pastes in the terminal (owner, 2026-11-18)
 - Provide routine signed updates in a terminal without Windows or a USB stick, using the verified local-folder route for tools installs. Stage while the OS runs, restart once, and keep the previous version. Keep the stick and Windows copy for emergencies (owner, 2026-11-14)
-- One `aresos update` goes forward to a newer installed release or fetches a new one, and announces which operation it will do first. The separate inner update may replace a newer installed version from an older boot and must tell the owner before restart (owner, 2026-11-14)
+- For a verified-folder install, the owner enters the password only if the prompt's eight-character fingerprint matches `docs/OWNER-TOOLS.md` on GitHub (owner, 2026-11-14)
+- `aresos update` uses a newer installed release without downloading. It fetches only if no newer release is installed. It announces its choice before changing anything (owner, 2026-11-14)
+- The separate inner update may replace a newer installed version from an older boot and must tell the owner before restart (owner, 2026-11-14)
+- Throwaway CI images need no approval if they are never pushed to a registry or pinned (owner, 2026-11-07)
 - Private releases may be published and pinned without asking again once the required reviews, checks and rehearsal pass. The owner still controls installation on the laptop, spending and making anything public (owner, 2026-11-19)
 - From R29 on, a release candidate may be uploaded privately before its VM rehearsal. The pin waits for passing rehearsal and final review. Board T480 (owner, 2026-11-21)
 - Use repo-relative paths or `owner` in home paths. Commit no secrets, real usernames or personal material (owner, 2026-11-15)
-- In everything committed, including messages, briefs, reports and handoffs, write the owner in place of the owner's name. Leads enforce this as well as the path privacy check. Board T433 (owner, 2026-11-20)
-- Use a hidden rootless test desk with opt-in networking and verified egress before real internet. Allow a laptop bench VM only if it fits, with a memory watcher, 40 GB cap and automatic cleanup. Read-only hardware checks after updates and about ten minutes of owner checks per release are approved. Boards T499–T502 (owner, 2026-11-22)
+- The repo is public. Write `the owner` in everything committed, including commit messages. Leads enforce this by hand because the privacy check cannot catch names. Board T433 (owner, 2026-11-20)
+- Use a hidden rootless test desk with an opt-in private simulated network. Real internet requires verified egress. Board T499 (owner, 2026-11-22)
+- A laptop bench VM must fit and work, with a memory watcher, 40 GB cap and automatic cleanup. Board T500 (owner, 2026-11-22)
+- Read-only hardware checks after updates and about ten minutes of owner checks per release are approved. Boards T501–T502 (owner, 2026-11-22)
 
 ## Next in order
 
 1. Deskflow and R29. Finish B321's qualification and B331's cut, rehearsal and pin. Finish B334a's hosted bench in parallel with review and merge order agreed with the OS lead. [Deskflow brief](briefs/321-deskflow-image.md) · [Bench brief](briefs/334-test-bench.md) · [OS handoff](HANDOFF.md)
 2. Hub try-out follow-ups and memory (T364). Try B328's controls and time boot-to-home (T362). Study swap and SSD wear, prefetch on wake and Prism's memory. Follow B332's world-off and sleep gates. Brief 23c for monitor placement, native laptop home and Super search, then trial it on the laptop. [B332 brief](briefs/332-outside-game-design.md) · [53/23c agreements](briefs/53-laptop-home-build.md#agreements-carried-from-state)
+   - Keep terminal `lunar` as the owner's launcher until the owner tries launching Lunar from the hub on a release with hub support.
 3. Tools. Finish Chrome 28/28a/28b, then the owner sitting (Mail onboarding first and Chrome's excluded hosts before use), adapters, Aresium and the first Minecraft tool alongside. [Chrome sequencing](briefs/28b-chrome-his-tabs.md#agreements-carried-from-state)
 4. Normal OS pieces in the Minecraft look. Build the remaining frame looks, layouts, per-output covering, app switching and overview. Use a separate review on the password window's checked path. Desktop shortcuts and the app wheel open hub and locally installed apps by full path. [Component build order](docs/design/COMPONENTS.md#6-what-each-look-costs-and-the-build-order)
+   - Build frame looks B and C after the shared look B texture work. Keep the reviewed Ares-Crown pin through R29. Explain each open design choice to the owner through `board ask`.
 5. Run the quick Claude-runs-the-laptop trial on R28 and the full one after tools. Recheck the boot menu and each way back with the owner, and give the owner the post-update hardware checks.
+   - Keep the owner's replacement of the temporary recovery passphrase pending until the owner confirms it.
 6. Companions in order, AresOS host, hub companion (package 12 awaits the owner's go), then app-logo entry into the real app. Use data-driven original placeholder art in public and keep the owner's crab in a private add-on.
 7. Package 43 step 6. The OS-owned dispatcher routes the reserved maintenance words to the owner tools and hands every other word unchanged to the Control CLI at `/usr/libexec/aresos-control/cli`. The full path stays as a fallback. Take 43's reviewed handoff if it lands before the cut.
 8. The later in-image updater verifies the workflow signature and signed release list, rejects older or foreign images and carries the tools for the next update. The first release arrives by the verified-folder route. Get a council and Fable review for the trust change.
 9. Add backups (26). Adopt Konsole with an opaque profile, keeping foot for recovery and covering the foot-dependent checks and the no-login-terminal decision.
+   - If the image takes over the login terminal, start Konsole maximized and remove the owner's interim `.bashrc` hook that starts it from the first foot shell.
 10. Later, more app tools, Minecraft player stages, a Claude Code help terminal and a second AresOS design. Open follow-ups include the legacy installer picker pin and same-drive fallback media, existing-instance memory setting migration, and a full boot-to-home, app, shutdown and Windows-return trial.
