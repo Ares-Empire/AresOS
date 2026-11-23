@@ -65,3 +65,27 @@ The separate stand-in game survived every case. Tests sampled every second and u
 ## Open questions
 
 - Step 6 will set the final build cap and watcher thresholds from laptop measurements. Step 7 will set the release-to-laptop phase peaks.
+
+## Review fixes, round 1
+
+1. **Start gates.** Validate all memory and PSI rows, including duplicate and contradictory readings. Lunar detection checks the process's recorded UIDs under a pinned proc directory before reading its executable. Unreadable owner executables and unknown power types cause a refusal. VM mode requires opening a character device and getting KVM API version 12. The scoped helper reads the memory floor again after activation and immediately before exec. Gate refusals return 75.
+2. **Scope ownership.** The helper waits for permission to exec. The launcher checks its invocation ID, manager-reported cgroup and the membership of its own PID before granting permission. Shutdown signals the pinned cgroup through `cgroup.kill`. It confirms emptiness from pinned `cgroup.events` or kernel removal of that same cgroup. A failed kill is reported as a run failure once emptiness is confirmed. An unconfirmed tree keeps the lock and disk cleanup held. [systemd scope launcher](https://github.com/systemd/systemd/blob/main/src/run/run.c) [Linux cgroup v2](https://docs.kernel.org/admin-guide/cgroup-v2.html)
+3. **Guardian loss.** The watcher has its own cgroup descriptors and stops the tree if the guardian exits early. The guardian holds its copy of the shared lock if the watcher dies. The guardian-only SIGKILL test confirms lock contention and disk retention while the fallback is waiting for shutdown.
+4. **Bounded workloads.** A phase must create a bounded command before it can launch. Managed writes use `Phase.write`. Raw disks are charged at full virtual size plus metadata. A polled directory is charged at its peak plus its margin and supplies a precreated file. Landlock restricts writes to the declared regular files, and the kernel enforces a hard file-size ceiling. The helper also blocks operations that could bypass that ceiling or delegate host writes. At the directory peak the watcher requests an immediate kill. The fixtures exercised a growing writer, an unbounded command, a fixed disk and an undeclared destination. [Landlock kernel documentation](https://docs.kernel.org/userspace-api/landlock.html)
+5. **Deletion.** Cache paths are validated before use. Store and evidence roots carry ownership markers. Cleanup uses directory descriptors and rejects symlink traversal and mount boundaries, including same-device bind mounts. Recovery accepts only store-relative output kinds. The worktree registry is gone. Each worktree counts, prunes and cleans only its own evidence. Existing unmarked directories are refused.
+6. **Game state.** A missing or malformed events file for a game scope yields `unknown` unless another game scope is confirmed running.
+7. **Evidence recovery.** Recovery sweeps unfinished staging files from this worktree and preserves files completed by `Phase.write`. Explicit clean removes this worktree's entire evidence directory.
+
+### Verification
+
+- Ran `python3 -B -m unittest discover -s os/tests -p 'test_bench_laptop_<name>.py'` separately for `gates`, `store` and `watch`. They printed `Ran 12 tests in 0.017s`, `Ran 14 tests in 0.719s` and `Ran 13 tests in 7.851s`, all with `OK`. Cleanup used fake mount IDs for same-device bind mounts. All tests used fixture paths, a temporary lock and only the processes they started.
+- The local stand-in memory reading took 0.969 s to detect and 1.275 s to stop both scope members. The pressure reading took 0.972 s to detect and 1.276 s to stop them. Either guardian-only or watcher-only SIGKILL took 0.002 s to stop the owned stand-ins and left the stand-in game running.
+- `git diff --check` passed. `find .work -type f -size +500M -print` listed no files.
+- Dispatched `gh workflow run 'OS image' --ref pkg/334b-bench-laptop-safety -f checks_only=true` for `85addb36`. Watched run `45104958316` with `gh run watch 45104958316 --exit-status --interval 60`. The regression job passed in 31m11s and printed `Ran 2628 tests in 1803.956s`, `OK (skipped=24)` and `Live hosted system manager passed: 434 unit files, 421 unit names`. The model-selection job passed in 15s. [Hosted checks-only run](https://github.com/Ares-Empire/AresOS/actions/runs/45104958316)
+- On the hosted runner, memory took 0.977 s to detect and 1.279 s to stop the stand-ins. Pressure took 0.976 s to detect and 1.278 s to stop them. Guardian-only SIGKILL took 0.001 s and watcher-only SIGKILL took 0.002 s to stop the stand-ins.
+
+### Known limits from review 1
+
+- Build-cache expiry runs during the next locked phase or explicit expiry check. This package adds no scheduled seven-day cleanup.
+- Step 6 still owns real user-manager behavior, workload containment, laptop pressure and stop timing, KVM behavior and adoption of the shared lock by `mod/dev/build.sh` and `mod/dev/run-hub.sh`. Step 7 still owns verification of real write peaks and storage bounds for VM and Podman. The regular-file contract and synthetic polling case use Linux x86-64, Landlock ABI 3 or later and seccomp. Fixed disks in the same command must fit its common file-size ceiling.
+- The watcher and guardian cover either process dying independently. Simultaneous loss of both remains outside this round's tests.
