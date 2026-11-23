@@ -101,13 +101,16 @@ class ChromePassTest(unittest.TestCase):
     def actions(self):
         return load(CONTROL_CI / 'chrome_actions.py', f'chrome_actions_{id(self)}')
 
-    def test_the_ci_guest_has_a_static_hostname(self):
-        # Without one the guest starts as the fallback name and NetworkManager later sets the network's name.
+    def test_the_ci_guest_keeps_one_hostname(self):
+        # The guest boots as the fallback name and NetworkManager later set the network's name (reverse DNS).
         # Chrome removes its profile lock only when the lock names the current host, so a Chrome that lived
-        # across that change leaves a lock that every later start refuses as "another computer"
-        # (control run 45000490818). The laptop has a static hostname; the guest mirrors that.
+        # across that change left a lock that every later start refused as "another computer" (control runs
+        # 45000490818 and 45098687521). Writing /etc/hostname in a RUN step doesn't reach the image (the
+        # build runtime mounts its own /etc/hostname there), so NetworkManager is kept off the hostname instead.
         containerfile = (ROOT / 'os/ci/overlay/Containerfile').read_text()
-        self.assertIn("printf 'aresos-ci\\n' > /etc/hostname", containerfile)
+        self.assertIn("printf '[main]\\nhostname-mode=none\\n' > /etc/NetworkManager/conf.d/90-aresos-ci-hostname.conf",
+                      containerfile)
+        self.assertNotIn('/etc/hostname', containerfile)
 
     def test_c1_requires_control_json_to_be_0644(self):
         chrome = self.actions()
