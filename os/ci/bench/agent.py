@@ -1,8 +1,10 @@
 """Guest-only service. The virtio channel never carries launch credentials."""
+from contextlib import nullcontext
 import json
 import os
 import pathlib
 import pwd
+import secrets
 import signal
 import socket
 import stat
@@ -12,13 +14,15 @@ import tempfile
 import time
 
 from channel import Frames, frame
+from evidence import TOKEN
 
 PORT = pathlib.Path('/dev/virtio-ports/org.aresos.bench')
 OUTPUT_LIMIT = 256 * 1024
+VIEW_TOKEN_FILE = 'aresos-bench-view-token'
 
 
-def captured(argv, timeout=10):
-    with tempfile.TemporaryFile() as output:
+def captured(argv, timeout=10, *, export=True):
+    with (tempfile.TemporaryFile() if export else nullcontext(subprocess.DEVNULL)) as output:
         with subprocess.Popen(['prlimit', f'--fsize={OUTPUT_LIMIT + 1}', '--', *argv],
                               stdin=subprocess.DEVNULL, stdout=output, stderr=subprocess.STDOUT,
                               start_new_session=True) as child:
@@ -30,6 +34,8 @@ def captured(argv, timeout=10):
                     os.killpg(child.pid, signal.SIGKILL)
                 except ProcessLookupError:
                     pass
+        if not export:
+            return code, ''
         output.seek(0)
         raw = output.read(OUTPUT_LIMIT + 1)
         if len(raw) > OUTPUT_LIMIT:
@@ -112,17 +118,29 @@ def status():
                 no_nic=os.listdir('/sys/class/net') == ['lo'])
 
 
+def start_desktop(runtime):
+    token = secrets.token_urlsafe(32)
+    with tempfile.NamedTemporaryFile(dir=runtime, prefix='.aresos-bench-', delete=False, mode='w') as private:
+        private.write(token)
+    os.replace(private.name, runtime / VIEW_TOKEN_FILE)
+    desktop = '/usr/libexec/aresos-desktop'
+    os.execve(desktop, [desktop, 'session'], dict(os.environ, ARESOS_VIEW_TOKEN=token))
+
+
+def runtime_identity(runtime):
+    return json.loads((runtime / 'aresos/desktop-runtime.json').read_bytes())
+
+
 def probe_helper(runtime):
-    # A fresh SETUP session has no game connection. Authenticate the same way the
-    # game would, issue only list_apps, and project the result to the exit code.
-    identity = json.loads((runtime / 'aresos/desktop-runtime.json').read_bytes())
+    instance = runtime_identity(runtime)['instance']
+    token = (runtime / VIEW_TOKEN_FILE).read_text()
     with socket.socket(socket.AF_UNIX) as helper:
         helper.settimeout(3)
         helper.connect(str(runtime / 'aresos/shell.sock'))
         incoming = Frames(helper.recv)
 
         def request(op, **fields):
-            helper.sendall(frame(dict(protocol='aresos-shell/1.1', id=op, op=op, **fields)))
+            helper.sendall(frame(dict(protocol='aresos-shell/1.2', id=op, op=op, **fields)))
             for _ in range(32):
                 reply = incoming.receive()
                 if reply.get('id') == op:
@@ -131,11 +149,27 @@ def probe_helper(runtime):
                     return reply
             raise ValueError('No matching helper reply')
 
-        request('hello', major=1, minor=1, requires=['list_apps'],
-                instance=identity['instance'], nonce=identity['nonce'])
+        request('hello', major=1, minor=2, requires=['list_apps'], role='view', view='bench-health',
+                instance=instance, token=token)
         reply = request('list_apps')
         return (isinstance(reply.get('revision'), str)
                 and isinstance(reply.get('apps'), list) and bool(reply['apps']))
+
+
+def journal_output(runtime, output):
+    # Check before sending over virtio, including a live credential joined to other text.
+    nonce = token = None
+    try:
+        nonce = runtime_identity(runtime)['nonce']
+    except FileNotFoundError:
+        pass
+    try:
+        token = (runtime / VIEW_TOKEN_FILE).read_text()
+    except FileNotFoundError:
+        pass
+    if TOKEN.search(output.encode()) or any(secret and secret in output for secret in (nonce, token)):
+        raise ValueError('Credential-shaped guest journal output')
+    return output
 
 
 def action(request):
@@ -143,17 +177,18 @@ def action(request):
     if verb == 'status':
         return status()
     if verb == 'health':
-        code, _ = captured(as_desktop(sys.executable, '-B', __file__, '--probe-helper'))
+        code, _ = captured(as_desktop(sys.executable, '-B', __file__, '--probe-helper'), export=False)
         return dict(healthy=code == 0)
     if verb == 'exec':
         argv = request['argv']
         if not isinstance(argv, list) or not argv or not all(isinstance(arg, str) for arg in argv):
             raise ValueError('Invalid command')
-        code, output = captured(as_desktop(*argv, session=True), timeout=30)
-        return dict(code=code, output=output)
+        # The session UID can read its launch state. Export only the exit code.
+        code, _ = captured(as_desktop(*argv, session=True), timeout=30, export=False)
+        return dict(code=code)
     if verb == 'journal':
         code, output = captured(['journalctl', '-b', '-u', 'greetd.service', '-n', '80', '--no-pager', '-o', 'cat'])
-        return dict(code=code, output=output)
+        return dict(code=code, output=journal_output(desktop_user()[1], output))
     if verb == 'reboot':
         # Leave time to acknowledge the request over virtio before systemd stops us.
         code, _ = captured(['systemd-run', '--quiet', '--on-active=2s', '--timer-property=AccuracySec=100ms',
@@ -190,6 +225,8 @@ def serve():
 
 
 if __name__ == '__main__':
+    if sys.argv[1:] == ['--start-desktop']:
+        start_desktop(pathlib.Path(os.environ['XDG_RUNTIME_DIR']))
     if sys.argv[1:] == ['--probe-helper']:
         try:
             healthy = probe_helper(pathlib.Path(os.environ['XDG_RUNTIME_DIR']))

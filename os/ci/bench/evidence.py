@@ -8,14 +8,16 @@ import sys
 MAX_TOTAL = 179_999_999
 MAX_TEXT = 1024 * 1024
 MAX_SHOT = 8 * 1024 * 1024
-NUMBERED = re.compile(r'0(?:0[1-9]|[12][0-9]|3[0-2])\.(?:png|(?:exec|journal)\.txt)')
+NUMBERED = re.compile(r'0(?:0[1-9]|[12][0-9]|3[0-2])\.(?:png|journal\.txt)')
 TOKEN = re.compile(
     rb'(?i)(?:gh[pousr]_[a-z0-9]{20,}|github_pat_[a-z0-9_]{20,}|glpat-[a-z0-9_-]{20,}'
     rb'|(?:AKIA|ASIA)[A-Z0-9]{16}|xox[baprs]-[a-z0-9-]{12,}|sk-(?:proj-)?[a-z0-9_-]{20,}'
     rb'|AIza[a-z0-9_-]{35}|eyJ[a-z0-9_-]{8,}\.[a-z0-9_-]{10,}\.[a-z0-9_-]{10,}'
     rb'|-----BEGIN [A-Z ]*PRIVATE KEY-----|\bbearer[ \t]+[a-z0-9._=+/-]{12,}'
-    rb'|\b(?:nonce|password|api[_ -]?key|(?:access|view|launch|refresh)[_ -]?(?:token|nonce))'
+    rb'|\b(?:aresos_)?(?:nonce|password|api[_ -]?key|(?:access|view|launch|refresh)[_ -]?(?:token|nonce))'
     rb'["\']?\s*[:=]\s*["\']?[a-z0-9_./=+-]{12,})'
+    # The supervisor uses token_urlsafe(24), and the bench view uses token_urlsafe(32).
+    rb'|(?<![a-zA-Z0-9_-])(?:[a-zA-Z0-9_-]{32}|[a-zA-Z0-9_-]{43})(?![a-zA-Z0-9_-])'
 )
 
 

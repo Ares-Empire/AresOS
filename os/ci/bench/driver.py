@@ -22,6 +22,7 @@ EVIDENCE = pathlib.Path('evidence/bench').resolve()
 BOOT_ID = re.compile(r'[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}')
 SESSION_FACTS = {'greetd_running', 'initial_login_attempted', 'compositor_running', 'seat_session',
                  'active_greetd_session', 'compositor_in_session'}
+QEMU_ENV = {'PATH': os.defpath, 'LC_ALL': 'C'}
 
 
 class Failed(Exception):
@@ -37,7 +38,7 @@ class Guest:
         self.sequence = 0
         self.accel = 'kvm' if os.access('/dev/kvm', os.R_OK | os.W_OK) else 'tcg'
         subprocess.run(['qemu-img', 'create', '-f', 'qcow2', '-F', 'raw', '-b', str(disk), str(self.overlay)],
-                       check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                       check=True, env=QEMU_ENV, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         shutil.copyfile('/usr/share/OVMF/OVMF_VARS_4M.fd', self.vars)
 
     def boot(self):
@@ -56,7 +57,7 @@ class Guest:
             '-qmp', f'unix:{qmp},server=on,wait=off',
             '-device', 'virtio-serial-pci', '-chardev', f'socket,id=bench,path={checks},server=on,wait=off',
             '-device', 'virtserialport,chardev=bench,name=org.aresos.bench', '-no-reboot',
-        ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        ], env=QEMU_ENV, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         self.qmp_socket = self.connect(qmp)
         self.monitor = QMP(self.qmp_socket)
         self.monitor.command('qmp_capabilities')
@@ -178,11 +179,14 @@ def run_step(guest, step, number, record):
             raise Failed('reboot retained the old boot ID')
         return dict(boot_id=new)
     reply = guest.call(kind, **({'argv': step['argv']} if kind == 'exec' else {}))
-    name = f'{number:03d}.{kind}.txt'
-    (EVIDENCE / name).write_text(reply['output'], encoding='utf-8')
+    fields = {}
+    if kind == 'journal':
+        name = f'{number:03d}.journal.txt'
+        (EVIDENCE / name).write_text(reply['output'], encoding='utf-8')
+        fields['file'] = name
     if reply['code'] != 0:
         raise Failed(f'{kind} returned a failure')
-    return dict(file=name)
+    return fields
 
 
 def main():

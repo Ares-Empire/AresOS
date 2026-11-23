@@ -1,10 +1,12 @@
 FROM localhost/aresos:check
-COPY agent.py channel.py /usr/libexec/aresos-bench/
+COPY agent.py channel.py evidence.py /usr/libexec/aresos-bench/
 COPY aresos-bench.service /usr/lib/systemd/system/
 # The installer supplies the keyboard layout on a real disk. The session's
 # keyboard launcher requires it, so seed the same German layout on this disk.
 RUN mkdir -p /usr/lib/systemd/system/multi-user.target.wants /etc/X11/xorg.conf.d && \
     printf 'Section "InputClass"\n Identifier "system-keyboard"\n MatchIsKeyboard "on"\n Option "XkbLayout" "de"\nEndSection\n' > /etc/X11/xorg.conf.d/00-keyboard.conf && \
     printf 'KEYMAP=de\n' > /etc/vconsole.conf && \
+    grep -Fxq '/usr/libexec/aresos-desktop session &' /usr/share/aresos/labwc/autostart && \
+    sed -i 's|^/usr/libexec/aresos-desktop session &$|/usr/bin/python3 -B /usr/libexec/aresos-bench/agent.py --start-desktop \&|' /usr/share/aresos/labwc/autostart && \
     ln -s ../aresos-bench.service /usr/lib/systemd/system/multi-user.target.wants/aresos-bench.service && \
     bootc container lint

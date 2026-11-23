@@ -20,15 +20,15 @@ class BenchEvidenceTest(unittest.TestCase):
         (self.folder / 'run.json').write_text('{}\n')
 
     def test_bounded_regular_files_pass(self):
-        (self.folder / '001.exec.txt').write_text('pass\n')
+        (self.folder / '001.journal.txt').write_text('pass\n')
         self.assertEqual(evidence.scan(self.folder), (2, 8))
 
     def test_oversize_file_and_aggregate_are_refused(self):
-        with (self.folder / '001.exec.txt').open('wb') as stream:
+        with (self.folder / '001.journal.txt').open('wb') as stream:
             stream.truncate(evidence.MAX_TEXT + 1)
         with self.assertRaisesRegex(ValueError, 'size cap'):
             evidence.scan(self.folder)
-        (self.folder / '001.exec.txt').write_text('1234')
+        (self.folder / '001.journal.txt').write_text('1234')
         with patch.object(evidence, 'MAX_TOTAL', 6), self.assertRaisesRegex(ValueError, 'size cap'):
             evidence.scan(self.folder)
 
@@ -36,7 +36,7 @@ class BenchEvidenceTest(unittest.TestCase):
         tokens = [b'ghp_' + b'x' * 36, b'Bearer ' + b'x' * 30, b'"nonce": "' + b'x' * 32 + b'"']
         for token in tokens:
             with self.subTest(prefix=token[:4]):
-                (self.folder / '001.exec.txt').write_bytes(token)
+                (self.folder / '001.journal.txt').write_bytes(token)
                 with self.assertRaisesRegex(ValueError, 'Token-shaped'):
                     evidence.scan(self.folder)
         flag = self.folder.parent / 'output'
@@ -47,10 +47,18 @@ class BenchEvidenceTest(unittest.TestCase):
         self.assertEqual(flag.read_bytes(), b'')
         self.assertNotIn(tokens[-1], result.stderr)
 
+    def test_bare_and_environment_launch_nonce_are_refused(self):
+        nonce = b'Z9_gKl2sU7mVcY4On0pkC2wR5eXzA6-d'
+        for message in (nonce, b'ARESOS_LAUNCH_NONCE=' + nonce):
+            with self.subTest(labelled=message != nonce):
+                (self.folder / '001.journal.txt').write_bytes(message + b'\n')
+                with self.assertRaisesRegex(ValueError, 'Token-shaped'):
+                    evidence.scan(self.folder)
+
     def test_links_are_refused(self):
         outside = self.folder.parent / 'outside'
         outside.write_text('text')
-        path = self.folder / '001.exec.txt'
+        path = self.folder / '001.journal.txt'
         path.symlink_to(outside)
         with self.assertRaisesRegex(ValueError, 'regular files'):
             evidence.scan(self.folder)
@@ -69,6 +77,11 @@ class BenchEvidenceTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Unexpected'):
             evidence.scan(self.folder)
         nested.rmdir()
-        os.mkfifo(self.folder / '001.exec.txt')
+        os.mkfifo(self.folder / '001.journal.txt')
         with self.assertRaisesRegex(ValueError, 'regular files'):
+            evidence.scan(self.folder)
+
+    def test_raw_exec_output_is_refused(self):
+        (self.folder / '001.exec.txt').write_text('unchecked guest output\n')
+        with self.assertRaisesRegex(ValueError, 'Unexpected'):
             evidence.scan(self.folder)
