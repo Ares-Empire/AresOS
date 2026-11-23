@@ -273,6 +273,7 @@ class OpenAppsTest(ViewBase):
         for number in range(shell.MAX_VIEW_LAUNCHES):
             reply = self.call(helper, filler, 'open_app', f'fill-{number}', app_id='terminal')
             self.assertEqual(reply.get('state'), 'starting', reply)
+            self.active_units.add(self.launch_for(helper, filler.client, f'fill-{number}').entry['unit'])
 
         check = shell.LaunchCheck(from_view=True)
         with mock.patch.object(helper.checks, 'start', return_value=check) as checks, \
@@ -462,21 +463,87 @@ class OpenAppsTest(ViewBase):
         self.assertEqual((joined['launch_id'], joined['state']), (again['launch_id'], 'starting'))
         self.assertEqual(self.popen.call_count, 2)
 
-    def test_a_live_process_without_a_window_still_counts_after_the_start_timeout(self):
+    def test_an_expired_start_is_not_joined_even_before_tick(self):
         helper = self.start(tracked=True)
         desktop, _ = self.hello13(helper)
         laptop = self.view(helper)
         opened = self.call(helper, laptop, 'open_app', 'slow-window', app_id='terminal')
         self.now[0] += shell.WINDOW_TIMEOUT + 1
+        fresh = self.ask(helper, desktop, 'restore', app='terminal')
+        self.assertEqual(fresh['state'], 'starting')
+        self.assertNotEqual(fresh['launch_id'], opened['launch_id'])
         helper.tick()
-        joined = self.ask(helper, desktop, 'restore', app='terminal')
-        self.assertEqual((joined['launch_id'], joined['error']), (opened['launch_id'], 'no_window'))
-        self.assertEqual(self.popen.call_count, 1)
-        self.launch_for(helper, laptop.client, 'slow-window').process.code = 0
+        replay = self.call(helper, laptop, 'open_app', 'slow-window', app_id='terminal')
+        self.assertEqual((replay['launch_id'], replay['error']), (opened['launch_id'], 'no_window'))
+        self.assertEqual(self.popen.call_count, 2)
+
+    def test_a_failed_laptop_launch_with_an_unknown_scope_is_not_joined(self):
+        helper = self.start(tracked=True)
+        laptop = self.view(helper)
+        desktop, _ = self.hello13(helper)
+        opened = self.call(helper, laptop, 'open_app', 'laptop-start', app_id='terminal')
+        launch = self.launch_for(helper, laptop.client, 'laptop-start')
+        launch.process.code = 1
+        self.scope_answer = (1, '')
+        helper.tick()
+        self.assertEqual((launch.entry['state'], launch.scope), ('failed', shell.UNKNOWN))
+        fresh = self.ask(helper, desktop, 'after-failure', app='terminal')
+        self.assertEqual(fresh['state'], 'starting')
+        self.assertNotEqual(fresh['launch_id'], opened['launch_id'])
+        self.assertEqual(self.launch_for(helper, desktop.client, 'after-failure').origin[0], shell.DESKTOP)
+        replay = self.call(helper, laptop, 'open_app', 'laptop-start', app_id='terminal')
+        self.assertEqual((replay['launch_id'], replay['error']), (opened['launch_id'], 'launch_failed'))
+        self.assertEqual(self.popen.call_count, 2)
+
+    def test_a_cleanly_ended_launcher_is_not_a_join_target(self):
+        helper = self.start(tracked=True)
+        laptop = self.view(helper)
+        desktop, _ = self.hello13(helper)
+        opened = self.call(helper, laptop, 'open_app', 'handoff', app_id='browser')
+        launch = self.launch_for(helper, laptop.client, 'handoff')
+        self.active_units.add(launch.entry['unit'])
+        launch.process.code = 0
         helper.tick()
         self.scope_pass(helper)
-        self.assertEqual(self.ask(helper, desktop, 'after-exit', app='terminal')['state'], 'starting')
+        # The original reply can still follow a handoff window, but its launcher has exited.
+        self.assertEqual((launch.entry['state'], launch.scope), ('starting', shell.ACTIVE))
+        fresh = self.ask(helper, desktop, 'fresh')
+        self.assertEqual(fresh['state'], 'starting')
+        self.assertNotEqual(fresh['launch_id'], opened['launch_id'])
         self.assertEqual(self.popen.call_count, 2)
+
+    def test_a_scope_registering_after_reconcile_counts_on_the_next_admission(self):
+        helper = self.start(tracked=True)
+        laptop, _ = self.hello13(helper, view='laptop')
+        opened = self.call(helper, laptop, 'open_app', 'interrupted', app_id='terminal')
+        unit = self.launch_for(helper, laptop.client, 'interrupted').entry['unit']
+        self.assertEqual(self.ask(helper, laptop, 'joined', app='terminal')['launch_id'], opened['launch_id'])
+        self.active_units = {f'app-aresos-unmapped-{n}.scope' for n in range(shell.MAX_VIEW_LAUNCHES - 1)}
+        self.active_units.add('unrelated-active.scope')
+
+        restarted = self.start(tracked=True)
+        laptop, _ = self.hello13(restarted, view='laptop')
+        desktop, _ = self.hello13(restarted)
+        self.assertEqual(restarted.journal.scope_owners[unit], 'view')
+        self.assertNotIn(unit, restarted.watched_units())
+        for request_id in ('interrupted', 'joined'):
+            replay = self.ask(restarted, laptop, request_id, app='terminal')
+            self.assertEqual((replay['state'], replay['error'], replay['launch_id']),
+                             ('failed', 'launch_uncertain', opened['launch_id']))
+        fresh = self.ask(restarted, desktop, 'fresh', app='terminal')
+        self.assertEqual(fresh['state'], 'starting')
+        self.assertNotEqual(fresh['launch_id'], opened['launch_id'])
+        self.active_units.add(self.launch_for(restarted, desktop.client, 'fresh').entry['unit'])
+
+        # The new listing sees the late unit even though there is no launch tracker to poll.
+        self.active_units.add(unit)
+        refusal = self.call(restarted, laptop, 'open_app', 'next', app_id='notepad')
+        self.assertEqual(refusal.get('error'), 'journal_full', refusal)
+        self.assertEqual(self.popen.call_count, 2)
+        self.active_units.remove(unit)
+        reply = self.call(restarted, laptop, 'open_app', 'next', app_id='notepad')
+        self.assertEqual(reply.get('state'), 'starting', reply)
+        self.assertEqual(self.popen.call_count, 3)
 
     def churn_view_history(self, helper):
         for number in range(shell.MAX_VIEWS):

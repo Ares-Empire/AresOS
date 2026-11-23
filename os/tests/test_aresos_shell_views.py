@@ -190,7 +190,7 @@ class AuthenticationTest(ViewBase):
     def test_build_reads_the_token_once_and_children_get_only_public_environment(self):
         env = dict(os.environ, ARESOS_VIEW_TOKEN=TOKEN, ARESOS_LAUNCH_NONCE=NONCE,
                    ARESOS_DESKTOP_INSTANCE=INSTANCE, NOTIFY_SOCKET='/run/fake', WAYLAND_DISPLAY='test-display')
-        launcher = shell.ScopeLauncher(popen=self.popen, environ=env)
+        launcher = shell.ScopeLauncher(popen=self.popen, run=self.systemctl, environ=env)
         with mock.patch.object(shell, 'desktop_directories', return_value=()), \
                 mock.patch.object(shell, 'flatpak_deployments', return_value=()):
             helper, _ = shell.build(REGISTRY, INSTANCE, NONCE, self.journal, environ=env, launcher=launcher,
@@ -299,6 +299,8 @@ class LaunchIsolationTest(ViewBase):
                 reply = self.call(helper, conn, 'open_app', f'o-{index}', app_id='terminal')
                 self.assertIn(reply.get('error'), (None, 'journal_full'))
                 started += reply['ok']
+                if reply['ok']:
+                    self.active_units.add(self.launch_for(helper, conn.client, f'o-{index}').entry['unit'])
             helper.disconnected(conn)
         self.assertEqual(busy, 2)
         self.assertEqual(started, shell.MAX_VIEW_LAUNCHES)
@@ -307,11 +309,12 @@ class LaunchIsolationTest(ViewBase):
         with pathlib.Path(self.journal).open() as handle:
             saved = json.load(handle)
         self.assertEqual(len(saved['active_launches']), shell.MAX_VIEW_LAUNCHES)
+        self.assertEqual(saved['scope_owners'], dict.fromkeys(self.active_units, 'view'))
         self.assertEqual(list(saved['view_launches']), ['rotating-0'])
         # The desktop's room is its own.
         self.assertEqual(self.call(helper, desktop, 'open_app', 'own', app_id='terminal')['state'], 'starting')
-        # The cap is the launch table's: it holds across a restart, and gives room back when an app ends.
-        self.active_units = {launch.entry['unit'] for launch in helper.launch_entries()}
+        # Scope ownership survives a restart, and the next admission sees an ended scope without a watcher pass.
+        self.active_units.add(self.launch_for(helper, desktop.client, 'own').entry['unit'])
         restarted = self.start()
         late = self.view(restarted, 'rotating-1')
         refusal = self.call(restarted, late, 'open_app', 'late', app_id='terminal')
@@ -320,12 +323,8 @@ class LaunchIsolationTest(ViewBase):
                          (False, 'journal_full', 'too many launches in the last few minutes; try again shortly'))
         self.assertEqual(self.popen.call_count, shell.MAX_VIEW_LAUNCHES + 1)
         ended = next(launch for launch in helper.launch_entries() if launch.origin[0] != shell.DESKTOP)
-        ended.process.code = 0
         self.active_units.remove(ended.entry['unit'])
-        helper.tick()
-        self.scope_pass(helper)
-        late = self.view(helper, 'rotating-1')
-        self.assertEqual(self.call(helper, late, 'open_app', 'late', app_id='terminal')['state'], 'starting')
+        self.assertEqual(self.call(restarted, late, 'open_app', 'late', app_id='terminal')['state'], 'starting')
 
     def test_a_reviewed_launch_holds_a_view_slot_after_its_launcher_exits(self):
         helper = self.start(tracked=True)
@@ -344,32 +343,42 @@ class LaunchIsolationTest(ViewBase):
         for number in range(shell.MAX_VIEW_LAUNCHES - 1):
             reply = self.call(helper, laptop, 'open_app', f'filler-{number}', app_id='notepad')
             self.assertEqual(reply.get('state'), 'starting', reply)
+            self.active_units.add(self.launch_for(helper, laptop.client, f'filler-{number}').entry['unit'])
         launch.process.code = 0
         helper.tick()
         self.assertIsNone(launch.process)
 
-        # The second view has room in its replay table, so only the shared live cap can refuse it.
-        for status, answer in ((shell.ACTIVE, None), (shell.UNKNOWN, (1, ''))):
-            with self.subTest(scope=status):
-                self.scope_answer = answer
-                helper.watcher.check()
-                helper.tick()
-                reply = self.call(helper, other, 'open_app', 'next', app_id='notepad')
-                self.assertEqual((reply['ok'], reply.get('error'), reply.get('message')),
-                                 (False, 'journal_full', 'too many launches in the last few minutes; try again shortly'))
-                self.assertEqual(launch.scope, status)
-                self.assertEqual(self.popen.call_count, shell.MAX_VIEW_LAUNCHES)
+        # The second view has replay room. Admission sees the child before any watcher pass sees its scope.
+        reply = self.call(helper, other, 'open_app', 'next', app_id='notepad')
+        self.assertEqual((reply['ok'], reply.get('error'), reply.get('message')),
+                         (False, 'journal_full', 'too many launches in the last few minutes; try again shortly'))
+        self.assertEqual(self.popen.call_count, shell.MAX_VIEW_LAUNCHES)
 
-        self.scope_answer = None
         self.active_units.remove(unit)
-        helper.windows.gone(3)
-        helper.windows_changed()
-        self.scope_pass(helper)
-        self.assertEqual(launch.scope, shell.GONE)
-        self.assertNotIn(unit, helper.watched_units())
         reply = self.call(helper, other, 'open_app', 'next', app_id='notepad')
         self.assertEqual(reply.get('state'), 'starting', reply)
         self.assertEqual(self.popen.call_count, shell.MAX_VIEW_LAUNCHES + 1)
+        self.assertEqual((launch.entry['state'], launch.handles), ('focused', {3}))
+
+    def test_unreadable_scope_list_refuses_a_view_and_allows_the_desktop(self):
+        helper = self.start()
+        laptop, desktop = self.view(helper), self.desktop(helper)
+        for number, answer in enumerate(((1, ''), (0, 'not a scope list'), OSError('busy'),
+                                         (0, 'app-aresos-other.scope loaded unexpected running'))):
+            with self.subTest(answer=answer):
+                self.scope_answer = answer
+                reply = self.call(helper, laptop, 'open_app', 'retry', app_id='terminal')
+                self.assertEqual((reply['protocol'], reply['ok'], reply.get('error'), reply.get('message')),
+                                 (WIRE, False, 'journal_full',
+                                  'too many launches in the last few minutes; try again shortly'))
+                self.assertNotIn((laptop.client, 'retry'), helper.journal.entries)
+                self.assertEqual(self.popen.call_count, number)
+                reply = self.call(helper, desktop, 'open_app', f'desktop-{number}', app_id='terminal')
+                self.assertEqual(reply.get('state'), 'starting', reply)
+        self.scope_answer = None
+        reply = self.call(helper, laptop, 'open_app', 'retry', app_id='terminal')
+        self.assertEqual(reply.get('state'), 'starting', reply)
+        self.assertEqual(self.popen.call_count, 5)
 
     def test_ended_single_instance_handoffs_leave_room_for_laptop_home(self):
         helper = self.start(tracked=True)
@@ -384,10 +393,11 @@ class LaunchIsolationTest(ViewBase):
             reply = self.call(helper, view, 'open_app', request_id, app_id=WEB.id)
             self.assertEqual(reply.get('state'), 'starting', reply)
             launch = self.launch_for(helper, view.client, request_id)
+            self.active_units.add(launch.entry['unit'])
             launch.process.code = 0
-            self.scope_pass(helper)
+            self.active_units.remove(launch.entry['unit'])
+            helper.tick()
             self.assertIsNone(launch.process)
-            self.assertEqual(launch.scope, shell.GONE)
             self.assertEqual(launch.handles, {3})
             self.assertIn(launch.entry['state'], ('focused', 'background'))
 
@@ -396,7 +406,8 @@ class LaunchIsolationTest(ViewBase):
         self.assertEqual(self.popen.call_count, shell.MAX_VIEW_LAUNCHES + 2)
         self.assertEqual(self.call(helper, laptop, 'open_app', 'handoff-0', app_id=WEB.id)['state'], 'focused')
 
-        # When the other view's history gives way, its ended handoffs have no replies left to update.
+        # The watcher can retire the ended trackers after their replay histories give way.
+        self.scope_pass(helper)
         helper.disconnected(other)
         self.now[0] += shell.REPLAY_HORIZON
         for number in range(shell.MAX_VIEW_NAMES - 1):
@@ -504,6 +515,7 @@ class LaunchIsolationTest(ViewBase):
     def test_restart_with_slow_discovery_preserves_the_window_wait(self):
         helper = self.start(tracked=True)
         launch = self.call(helper, self.view(helper), 'open_app', 'web', app_id=WEB.id)
+        self.active_units.add(self.launch_for(helper, 'view:laptop-home', 'web').entry['unit'])
         catalogue = self.discovery()
         restarted = self.start(tracked=True, catalogue=catalogue)
         view = self.view(restarted)

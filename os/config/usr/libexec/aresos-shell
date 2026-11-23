@@ -142,6 +142,8 @@ MAX_VIEW_NAMES = 2 * MAX_VIEWS
 RECEIPT_LIMIT = 64
 # Live launches that views started, under whatever names: the view token is one principal.
 MAX_VIEW_LAUNCHES = VIEW_JOURNAL_LIMIT
+# Room for the live scopes and recent names that systemd may not have registered yet.
+SCOPE_OWNER_LIMIT = 2 * (JOURNAL_LIMIT + MAX_VIEW_LAUNCHES)
 DESKTOP = 'desktop'
 # Well beyond the mod's 45-second open timeout, the only window in which it resends a request ID.
 REPLAY_HORIZON = 600.0
@@ -2246,6 +2248,7 @@ class Journal:
         self.entries = {}
         self.view_clients = {}
         self.saved_launches = []
+        self.scope_owners = {}
         self.load()
 
     def load(self):
@@ -2274,10 +2277,9 @@ class Journal:
                     self.load_client(client, records, now)
         launches = data.get('active_launches')
         if isinstance(launches, list):
-            # Each saved launch is live or still has a replay record that follows its outcome.
-            live_limit = JOURNAL_LIMIT + MAX_VIEW_LAUNCHES
+            # Each tracker has a known unit or a replay record that follows its outcome.
             replay_limit = JOURNAL_LIMIT + MAX_VIEW_NAMES * VIEW_JOURNAL_LIMIT
-            for item in launches[:live_limit + replay_limit]:
+            for item in launches[:SCOPE_OWNER_LIMIT + replay_limit]:
                 if not isinstance(item, list) or len(item) != 3:
                     continue
                 client, request_id, entry = item
@@ -2288,6 +2290,31 @@ class Journal:
                         and all(isinstance(entry.get(field), str)
                                 for field in ('app_id', 'launch_id', 'state', 'unit'))):
                     self.saved_launches.append(((client, request_id), entry))
+        owners = data.get('scope_owners')
+        if isinstance(owners, dict):
+            for unit, owner in owners.items():
+                if len(self.scope_owners) == SCOPE_OWNER_LIMIT:
+                    break
+                if is_app_scope(unit) and len(unit) <= 255 and owner in (DESKTOP, 'view'):
+                    self.scope_owners[unit] = owner
+        elif 'scope_owners' not in data:
+            # Older journals saved the unit and client together on each original launch.
+            for (client, _), entry in (*self.saved_launches, *self.entries.items()):
+                unit = entry.get('unit')
+                if (not entry.get('joined') and isinstance(unit, str) and len(unit) <= 255
+                        and is_app_scope(unit) and len(self.scope_owners) < SCOPE_OWNER_LIMIT):
+                    self.scope_owners[unit] = DESKTOP if client == DESKTOP else 'view'
+
+    def remember_scope(self, unit, client, active):
+        owners = self.scope_owners
+        if len(owners) == SCOPE_OWNER_LIMIT:
+            # Preserve the names in the current listing and leave room for scopes still registering.
+            # If the list is unreadable, forgetting a view's name leaves its classification unchanged.
+            oldest_view = next((name for name, owner in owners.items() if owner == 'view'), next(iter(owners)))
+            discard = (next((name for name in owners if name not in active), oldest_view)
+                       if active is not None else oldest_view)
+            del owners[discard]
+        owners[unit] = DESKTOP if client == DESKTOP else 'view'
 
     def load_client(self, client, launches, now):
         for request_id, entry in (launches.items() if isinstance(launches, dict) else ()):
@@ -2373,7 +2400,7 @@ class Journal:
         clients = {DESKTOP: {}}
         for (client, request_id), entry in self.entries.items():
             clients.setdefault(client, {})[request_id] = entry
-        data = {'instance': self.instance, 'launches': clients.pop(DESKTOP)}
+        data = {'instance': self.instance, 'launches': clients.pop(DESKTOP), 'scope_owners': self.scope_owners}
         if clients:
             data['view_launches'] = {client.removeprefix('view:'): entries for client, entries in clients.items()}
         if launches:
@@ -2475,6 +2502,18 @@ class Launch:
     adopting: bool = False
     ambiguous: bool = False
     closing: float | None = None
+    exited: bool = False
+
+    def still_starting(self, now):
+        if self.entry['state'] != 'starting' or self.entry.get('settled') or self.handles or self.exited:
+            return False
+        if self.deadline is None or now >= self.deadline:
+            return False
+        # A process can exit between ticks. For a recovered start, only a known end stops its window wait.
+        return self.process.poll() is None if self.process is not None else self.scope != GONE
+
+    def may_be_running(self):
+        return self.process is not None or self.scope in (ACTIVE, UNKNOWN)
 
 
 @dataclasses.dataclass
@@ -2541,6 +2580,10 @@ ENDED_STATES = frozenset({'inactive', 'failed'})
 LIST_SCOPES = [SYSTEMCTL, '--user', 'list-units', '--type=scope', '--all', '--no-legend', '--plain', '--no-pager']
 
 
+def is_app_scope(unit):
+    return unit.startswith('app-aresos-') and unit.endswith('.scope')
+
+
 def parse_scopes(text):
     """Unit name to ACTIVE state from `systemctl list-units --plain --no-legend`, or None if any line is odd."""
     states = {}
@@ -2566,14 +2609,19 @@ def classify(state):
     return UNKNOWN
 
 
-def query_scopes(units, run=subprocess.run, timeout=SCOPE_TIMEOUT):
-    """One batched call for all units: each is ACTIVE, GONE or UNKNOWN (the call failed or made no sense)."""
+def list_scopes(run=subprocess.run, timeout=SCOPE_TIMEOUT):
+    """Read the user manager's scope list. None means there is no trustworthy list."""
     try:
         done = run(LIST_SCOPES, capture_output=True, text=True, timeout=timeout, stdin=subprocess.DEVNULL,
                    env=child_environment(os.environ))
     except (OSError, ValueError, subprocess.SubprocessError):
-        return {unit: UNKNOWN for unit in units}
-    states = parse_scopes(done.stdout) if done.returncode == 0 and isinstance(done.stdout, str) else None
+        return None
+    return parse_scopes(done.stdout) if done.returncode == 0 and isinstance(done.stdout, str) else None
+
+
+def query_scopes(units, run=subprocess.run, timeout=SCOPE_TIMEOUT):
+    """Read one list for all watched units. Each is ACTIVE, GONE or UNKNOWN."""
+    states = list_scopes(run, timeout)
     if states is None:
         return {unit: UNKNOWN for unit in units}
     # A transient scope started with --collect disappears from a complete, valid list once it has ended.
@@ -3324,7 +3372,8 @@ class Helper:
     def save_launches(self):
         referenced = self.referenced_launches()
         self.journal.save([launch for launch in self.launch_entries()
-                           if launch.entry['launch_id'] in referenced or self.launch_alive(launch)])
+                           if launch.entry['launch_id'] in referenced
+                           or (launch.entry['unit'] in self.journal.scope_owners and launch.may_be_running())])
 
     def referenced_launches(self):
         return {entry.get('launch_id') for entry in self.journal.entries.values()}
@@ -3343,12 +3392,12 @@ class Helper:
     def reconcile(self, entries):
         """Never relaunch after a restart: reconcile saved launches and replay records.
 
-        One batched scope query (not one per launch) says which apps still run; an unknown answer decides nothing
-        and leaves the launch to the scope watcher.
+        A saved start can only resume its window wait if systemd confirms its scope.
         """
         saved = {entry['launch_id'] for _, entry in self.journal.saved_launches}
         units = {entry['unit'] for _, entry in entries.values()
-                 if entry['launch_id'] in saved or (entry['state'] not in FINAL and not entry.get('settled'))
+                 if entry['launch_id'] in saved or entry['state'] in ('launching', 'starting')
+                 or (entry['state'] not in FINAL and not entry.get('settled'))
                  or (self.is_discovered(entry) and entry['state'] != 'failed')}
         states = query_scopes(units, self.watcher.run, self.watcher.timeout) if units else {}
         changed = False
@@ -3359,19 +3408,19 @@ class Helper:
             tracked_scope = (entry['launch_id'] in saved or discovered or self.windows is None
                              or entry['state'] in ('launching', 'starting'))
             launch = Launch(key, entry, scope=scope if tracked_scope else None)
-            if scope == ACTIVE and entry.pop('uncertain', None):
+            if entry.pop('uncertain', None):
                 self.journal.touch(entry)
                 changed = True
-            if entry['state'] == 'launching':
-                if scope == GONE:
+            if entry['state'] in ('launching', 'starting'):
+                if scope != ACTIVE:
                     entry.update(state='failed', error='launch_uncertain',
                                  message='the helper restarted while starting this app; it was not retried')
-                else:
+                    self.journal.touch(entry)
+                    changed = True
+                elif entry['state'] == 'launching':
                     entry['state'] = 'starting'
-                    if scope == UNKNOWN:
-                        entry['uncertain'] = True  # if it turns out gone, it never surely started
-                self.journal.touch(entry)
-                changed = True
+                    self.journal.touch(entry)
+                    changed = True
             unresolved = entry['state'] not in FINAL and not entry.get('settled')
             if unresolved and self.windows is not None:
                 if entry['state'] == 'starting':
@@ -3405,6 +3454,7 @@ class Helper:
                     self.update_join(entry, origin)
                     changed = True
         if changed or saved:
+            self.prune_launches()
             self.save_launches()
         self.journal.saved_launches.clear()
 
@@ -3844,7 +3894,7 @@ class Helper:
     def retain_launch_definitions(self):
         """Keep uninstalled definitions while in use, with view-only retention outside desktop ownership."""
         in_use = [(launch.origin[0], launch.entry['app_id']) for launch in self.launch_entries()
-                  if launch.entry['state'] not in FINAL or self.launch_alive(launch)]
+                  if launch.entry['state'] not in FINAL or launch.may_be_running()]
         desktop = {app_id for client, app_id in in_use if client == DESKTOP}
         active = {app_id for _, app_id in in_use}
         retained = {}
@@ -3949,12 +3999,27 @@ class Helper:
                         for key in waiting['requests'] if key != origin)
         return self.journal.room(client, reserved)
 
-    def spawn_room(self, client):
-        """Count live processes and scopes for this role, even after their replies have expired."""
+    def active_app_scopes(self):
+        states = list_scopes(self.watcher.run, self.watcher.timeout)
+        if states is None:
+            return None
+        active = set()
+        for unit, state in states.items():
+            if is_app_scope(unit):
+                status = classify(state)
+                if status == UNKNOWN:
+                    return None
+                if status == ACTIVE:
+                    active.add(unit)
+        return active
+
+    def spawn_room(self, client, active):
+        """Only the current systemd listing decides how many live scopes this principal has."""
         desktop = client == DESKTOP
+        if active is None:
+            return desktop
         limit = JOURNAL_LIMIT if desktop else MAX_VIEW_LAUNCHES
-        live = sum(self.launch_alive(launch) for launch in self.launch_entries()
-                   if (launch.origin[0] == DESKTOP) == desktop)
+        live = sum((self.journal.scope_owners.get(unit) == DESKTOP) == desktop for unit in active)
         return live < limit
 
     def activation_target(self, app_id):
@@ -3979,12 +4044,8 @@ class Helper:
                     if key[0] == DESKTOP and origin[0] != DESKTOP:
                         waiting.setdefault('desktop_screen', screen)
             return True
-        # A start to join has shown no window yet. One whose windows all closed is over, though its process may
-        # stay (a tray): for it the app is started again, as open_app does, and the running instance shows itself.
-        starting = next((launch.entry for launch in group.running.values()
-                         if not launch.handles and launch.entry['state'] != 'closed'
-                         and ((launch.entry['state'] in ('launching', 'starting') and not launch.entry.get('settled'))
-                              or self.launch_alive(launch))), None)
+        now = self.clock()
+        starting = next((launch.entry for launch in group.running.values() if launch.still_starting(now)), None)
         if starting is None:
             return False
         for key, conns in requests.items():
@@ -4145,9 +4206,13 @@ class Helper:
             LOG.warning('%s not opened: %s', app_id, reason)
             return self.record(key, {'app_id': app_id, 'launch_id': None, 'state': 'failed',
                                      'error': 'unavailable', 'reason': reason, 'message': reason, **hint})
-        if not self.spawn_room(key[0]):
+        active = self.active_app_scopes()
+        if not self.spawn_room(key[0], active):
             # Refused and not recorded, as a full journal is: the same ID may be sent again once an app has ended.
-            LOG.warning('%s not opened: too many apps that this role started are still running', app_id)
+            if active is None:
+                LOG.warning('%s not opened: the scope list is unreadable', app_id)
+            else:
+                LOG.warning('%s not opened: this role reached its active scope limit', app_id)
             return self.journal_full_reply(key, app_id)
         launch_id = secrets.token_hex(8)
         unit = self.launcher.unit(app, launch_id)
@@ -4157,12 +4222,14 @@ class Helper:
         self.journal.touch(entry)
         launch = Launch(key, entry)
         self.add_launch(launch)
-        # Save the launch and its first reply together before spawning.
+        # A scope can show up after the next reconciliation, so save its owner before spawning.
+        self.journal.remember_scope(unit, key[0], active)
         self.record(key, dict(entry))
         try:
             process = self.launcher.spawn(app, argv, directory, launch_id)
         except (OSError, ValueError, subprocess.SubprocessError) as error:
             LOG.error('could not start %s (%s, errno %s)', app.id, *exception_type(error))
+            self.journal.scope_owners.pop(unit, None)
             entry.update(state='failed', error='launch_failed', message='could not start the app')
             self.journal.touch(entry)
             self.sync_launch_reply(launch)
@@ -4265,8 +4332,6 @@ class Helper:
         entry.update(fields)
         if state == 'failed':
             LOG.warning('%s failed after starting: %s', entry['app_id'], fields.get('message') or fields.get('error'))
-        if state in ('focused', 'background'):
-            entry.pop('uncertain', None)  # a window confirms the app started
         self.journal.touch(entry)
         has_reply = self.sync_launch_reply(launch)
         joined = [other for other, record in self.journal.entries.items()
@@ -4299,22 +4364,12 @@ class Helper:
         self.sync_launch_reply(launch)
         self.save_launches()
 
-    def confirmed(self, launch):
-        """Its app is seen running (scope or window): an interrupted start is no longer in doubt."""
-        if launch.entry.pop('uncertain', None):
-            self.journal.touch(launch.entry)
-            self.sync_launch_reply(launch)
-            self.save_launches()
-
     def end_of_scope(self, entry):
         """What a launch becomes once its scope is gone and no process of ours can say how it ended."""
         app = self.apps.get(entry['app_id'])
         single = self.is_discovered(entry) or (app is not None and app.instance == 'single')
         if self.windows is not None and self.is_discovered(entry) and not self.catalogue_complete():
             return None, {}  # the first scan may still let a window confirm this launch
-        if entry.get('uncertain'):
-            return 'failed', {'error': 'launch_uncertain',
-                              'message': 'the helper restarted while starting this app; it was not retried'}
         if self.windows is None:
             # A one-process app has closed; a handed-over app's answer can't change any more.
             return ('settled', {}) if single else ('closed', {})
@@ -4323,18 +4378,16 @@ class Helper:
         # With window tracking, windows decide the rest (a handed-over launch waits for its window).
         return None, {}
 
-    def launch_alive(self, launch):
-        # Keep the slot until tick hands liveness from the process to the scope watcher.
-        return launch.process is not None or launch.scope in (ACTIVE, UNKNOWN)
-
     def prune_launches(self):
         referenced = self.referenced_launches()
         removed = False
         for app_id, group in list(self.app_launches.items()):
             for launch_id, launch in list(group.running.items()):
                 entry = launch.entry
-                if (launch.process is None and not self.launch_alive(launch)
-                        and (entry['state'] in FINAL or entry.get('settled') or launch_id not in referenced)):
+                has_reply = launch_id in referenced
+                replay_live = launch.may_be_running() and (has_reply or entry['unit'] in self.journal.scope_owners)
+                awaiting_outcome = has_reply and entry['state'] not in FINAL and not entry.get('settled')
+                if not (replay_live or awaiting_outcome):
                     del group.running[launch_id]
                     removed = True
             if not group.running and not group.checking:
@@ -4342,7 +4395,7 @@ class Helper:
         return removed
 
     def watched_launches(self):
-        """Watch live or unconfirmed scopes, even after the window or reply has gone."""
+        """Watch scopes for launch outcomes and for replay after the launcher or reply is gone."""
         return {launch.entry['unit']: launch for launch in self.launch_entries()
                 if launch.scope in (ACTIVE, UNKNOWN)}
 
@@ -4361,12 +4414,10 @@ class Helper:
                 # A running systemd-run may still be registering its scope.
                 if launch.process is None or (state != GONE and self.is_discovered(entry)):
                     launch.scope = state
-                if state == ACTIVE:
-                    self.confirmed(launch)
                 # A launch result with its own process is ended by that process, never by the list.
                 if state != GONE or launch.process is not None:
                     continue
-                del watched[unit]  # A later queued failure cannot make this scope live again.
+                del watched[unit]  # Later queued errors cannot resume a completed window wait.
                 if entry['state'] in FINAL or entry.get('settled'):
                     continue
                 state_after, fields = self.end_of_scope(entry)
@@ -4391,8 +4442,9 @@ class Helper:
             if code is None:
                 continue
             launch.process = None
+            launch.exited = True
             if launch.scope is None:
-                # A child can keep the scope alive after the launcher exits, regardless of the reply state.
+                # Keep the origin ID replayable if a child outlives the launcher.
                 launch.scope = UNKNOWN
             entry = launch.entry
             if entry['state'] != 'starting':
@@ -4412,14 +4464,12 @@ class Helper:
             # A single-instance app hands the launch to its running instance and exits 0.
         for launch in self.launch_entries():
             if launch.deadline is not None and now >= launch.deadline:
-                launch.deadline = None
                 entry = launch.entry
                 if entry['state'] == 'starting':
                     if self.is_discovered(entry):
                         # No instance contract: a clean early exit can hand over to a resident process. With
                         # a live/unknown scope keep waiting; once it is gone the usual bounded window wait ends.
-                        if not self.catalogue_complete() or self.launch_alive(launch):
-                            launch.deadline = now + self.window_timeout
+                        if not self.catalogue_complete() or launch.may_be_running():
                             continue
                     self.set_state(launch, 'failed', error='no_window',
                                    message='no matching window appeared')

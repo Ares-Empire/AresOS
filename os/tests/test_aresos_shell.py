@@ -504,17 +504,18 @@ class LaunchTest(Base):
         self.assertEqual((again['launch_id'], again['state']), (first['launch_id'], 'starting'))
         self.assertEqual(self.popen.call_count, 1)
 
-    def test_without_window_tracking_a_restart_closes_launches_whose_scope_ended(self):
+    def test_without_window_tracking_a_restart_fails_starts_whose_scope_ended(self):
         helper = self.helper(missing=())
         conn = self.connect(helper)
         terminal = self.request(helper, conn, 'open_app', 'o-1', app_id='terminal')
         self.request(helper, conn, 'open_app', 'o-2', app_id='browser')
         restarted = self.helper(missing=())
         conn = self.connect(restarted)
-        # foot is one process per launch: its ended scope means it closed. Chrome hands over, so it stays as it was.
+        # Both requests were starting at restart. Neither has an active scope to confirm it, even for Chrome.
         again = self.request(restarted, conn, 'open_app', 'o-1', app_id='terminal')
-        self.assertEqual((again['state'], again['launch_id']), ('closed', terminal['launch_id']))
-        self.assertEqual(self.request(restarted, conn, 'open_app', 'o-2', app_id='browser')['state'], 'starting')
+        self.assertEqual((again['state'], again['launch_id'], again['error']),
+                         ('failed', terminal['launch_id'], 'launch_uncertain'))
+        self.assertEqual(self.request(restarted, conn, 'open_app', 'o-2', app_id='browser')['error'], 'launch_uncertain')
         self.assertEqual(self.popen.call_count, 2)
 
     def test_a_full_journal_refuses_new_launches_and_keeps_every_replayable_answer(self):
@@ -550,6 +551,7 @@ class LaunchTest(Base):
         for number in range(shell.JOURNAL_LIMIT):
             self.request(helper, conn, 'open_app', f'o-{number}', app_id='browser' if number % 4 == 0 else 'terminal')
         self.active_units = {entry['unit'] for entry in helper.journal.entries.values()}  # all still running
+        self.systemctl_calls.clear()
         restarted = self.helper(missing=())
         conn = self.connect(restarted)
         self.assertEqual(len(restarted.watched_units()), shell.JOURNAL_LIMIT)
@@ -601,7 +603,7 @@ class LaunchTest(Base):
         for number in range(1, shell.JOURNAL_LIMIT):
             self.request(helper, conn, 'open_app', f'o-{number}', app_id='terminal')
         self.now[0] += shell.REPLAY_HORIZON * 10
-        self.active_units = {f'app-aresos-terminal-{first["launch_id"]}.scope'}
+        self.active_units = {launch.entry['unit'] for launch in helper.launch_entries()}
         for current in (helper, self.helper()):
             conn = self.connect(current)
             self.assertEqual(self.request(current, conn, 'open_app', 'n-1', app_id='notepad')['error'], 'journal_full')
@@ -615,6 +617,7 @@ class LaunchTest(Base):
         for number in range(shell.JOURNAL_LIMIT):
             reply = self.request(helper, conn, 'open_app', f'live-{number}', app_id='terminal')
             self.assertEqual(reply.get('state'), 'starting', reply)
+        self.active_units = {launch.entry['unit'] for launch in helper.launch_entries()}
 
         # The window waits time out and their replies expire while the processes keep running.
         self.now[0] += shell.WINDOW_TIMEOUT + 1
@@ -628,12 +631,23 @@ class LaunchTest(Base):
         refused = self.request(helper, conn, 'open_app', 'next', app_id='notepad')
         self.assertEqual(refused.get('error'), 'journal_full', refused)
         self.assertEqual(self.popen.call_count, shell.JOURNAL_LIMIT)
-        next(helper.launch_entries()).process.code = 0
-        helper.tick()
-        self.scope_pass(helper)
+        self.active_units.remove(next(helper.launch_entries()).entry['unit'])
         retry = self.request(helper, conn, 'open_app', 'next', app_id='notepad')
         self.assertEqual(retry.get('state'), 'starting', retry)
         self.assertEqual(self.popen.call_count, shell.JOURNAL_LIMIT + 1)
+
+    def test_scope_owner_map_keeps_active_names_and_is_bounded_on_disk(self):
+        journal = shell.Journal(self.journal, INSTANCE, self.clock)
+        live = 'app-aresos-terminal-live.scope'
+        with mock.patch.object(shell, 'SCOPE_OWNER_LIMIT', 3):
+            journal.remember_scope(live, shell.DESKTOP, set())
+            for number in range(4):
+                journal.remember_scope(f'app-aresos-terminal-{number}.scope', 'view:laptop-home', {live})
+            journal.save([])
+            reloaded = shell.Journal(self.journal, INSTANCE, self.clock)
+        self.assertEqual(reloaded.scope_owners, {
+            live: shell.DESKTOP, 'app-aresos-terminal-2.scope': 'view', 'app-aresos-terminal-3.scope': 'view',
+        })
 
     def test_a_launch_interrupted_by_a_crash_is_reconciled_not_retried(self):
         units = {'o-dead': 'app-aresos-terminal-dead.scope', 'o-alive': 'app-aresos-notepad-alive.scope'}
@@ -775,21 +789,20 @@ class ScopeWatcherTest(Base):
         with open(self.journal) as handle:
             return json.load(handle)['launches']
 
-    def test_a_running_scope_clears_doubt_so_the_end_is_a_normal_close(self):
+    def test_a_scope_seen_running_later_cannot_change_a_failed_restart_reply(self):
         unit = 'u1.scope'
         self.scope_answer = subprocess.TimeoutExpired(shell.LIST_SCOPES, 5)  # unknown at start-up
         helper = self.restarted_with({'o-1': {'app_id': 'terminal', 'launch_id': 't1', 'state': 'launching',
                                               'unit': unit}})
-        self.assertTrue(helper.journal.entries[shell.DESKTOP, 'o-1'].get('uncertain'))
+        self.assertEqual(helper.journal.entries[shell.DESKTOP, 'o-1']['error'], 'launch_uncertain')
         self.scope_answer = None
         self.active_units = {unit}  # then seen running
         self.scope_pass(helper)
-        self.assertNotIn('uncertain', helper.journal.entries[shell.DESKTOP, 'o-1'])
-        self.assertNotIn('uncertain', self.journal_on_disk()['o-1'])
+        self.assertEqual(self.journal_on_disk()['o-1']['state'], 'failed')
         self.active_units = set()  # then gone
         self.scope_pass(helper)
         entry = helper.journal.entries[shell.DESKTOP, 'o-1']
-        self.assertEqual((entry['state'], entry.get('error')), ('closed', None))
+        self.assertEqual((entry['state'], entry.get('error')), ('failed', 'launch_uncertain'))
 
     def test_a_running_scope_at_start_up_clears_a_persisted_doubt(self):
         self.active_units = {'u1.scope'}
@@ -801,23 +814,23 @@ class ScopeWatcherTest(Base):
         self.scope_pass(helper)
         self.assertEqual(helper.journal.entries[shell.DESKTOP, 'o-1']['state'], 'closed')
 
-    def test_a_window_clears_doubt_so_its_close_is_normal(self):
+    def test_a_window_can_be_tracked_without_reviving_a_failed_restart_reply(self):
         self.scope_answer = subprocess.TimeoutExpired(shell.LIST_SCOPES, 5)
         helper = self.restarted_with({'o-1': {'app_id': 'notepad', 'launch_id': 'n1', 'state': 'launching',
                                               'unit': 'u1.scope'}}, tracked=True)
-        self.assertTrue(helper.journal.entries[shell.DESKTOP, 'o-1'].get('uncertain'))
+        self.assertEqual(helper.journal.entries[shell.DESKTOP, 'o-1']['error'], 'launch_uncertain')
         for handle, app_id, active in ((1, 'aresos-desktop', False), (2, 'org.kde.kwrite', True)):
             self.windows.new(handle)
             self.windows.app_id(handle, app_id)
             self.windows.state(handle, active)
             self.windows.done(handle)
         helper.windows_changed()
-        self.assertEqual(helper.journal.entries[shell.DESKTOP, 'o-1']['state'], 'focused')
-        self.assertNotIn('uncertain', self.journal_on_disk()['o-1'])
+        self.assertEqual(helper.catalogue_windows.of('notepad')[0].handle, 2)
+        self.assertEqual(self.journal_on_disk()['o-1']['state'], 'failed')
         self.windows.gone(2)
         helper.windows_changed()
         entry = helper.journal.entries[shell.DESKTOP, 'o-1']
-        self.assertEqual((entry['state'], entry.get('error')), ('closed', None))
+        self.assertEqual((entry['state'], entry.get('error')), ('failed', 'launch_uncertain'))
 
     def test_unknown_answers_keep_the_launch_until_a_real_gone(self):
         unit = 'app-aresos-terminal-t1.scope'
@@ -837,18 +850,19 @@ class ScopeWatcherTest(Base):
         self.assertEqual(helper.journal.entries[shell.DESKTOP, 'o-1']['state'], 'closed')
         self.assertEqual(helper.watched_units(), {})
 
-    def test_an_unknown_answer_at_start_up_decides_nothing(self):
+    def test_an_unknown_answer_at_start_up_fails_both_kinds_of_saved_start(self):
         self.scope_answer = subprocess.TimeoutExpired(shell.LIST_SCOPES, 5)
         helper = self.restarted_with({
             'o-1': {'app_id': 'terminal', 'launch_id': 't1', 'state': 'launching', 'unit': 'u1.scope'},
             'o-2': {'app_id': 'notepad', 'launch_id': 'n1', 'state': 'starting', 'unit': 'u2.scope'}})
         entries = helper.journal.entries
-        self.assertEqual((entries[shell.DESKTOP, 'o-1']['state'], entries[shell.DESKTOP, 'o-2']['state']), ('starting', 'starting'))
+        for request_id in ('o-1', 'o-2'):
+            entry = entries[shell.DESKTOP, request_id]
+            self.assertEqual((entry['state'], entry['error']), ('failed', 'launch_uncertain'))
         self.scope_answer = None  # both turn out gone
         self.scope_pass(helper)
-        # The interrupted launch never surely started; the other one ran and ended.
-        self.assertEqual((entries[shell.DESKTOP, 'o-1']['state'], entries[shell.DESKTOP, 'o-1']['error']), ('failed', 'launch_uncertain'))
-        self.assertEqual(entries[shell.DESKTOP, 'o-2']['state'], 'closed')
+        self.assertEqual(helper.watched_units(), {})
+        self.assertEqual(self.journal_on_disk()['o-2']['error'], 'launch_uncertain')
         self.popen.assert_not_called()
 
     def test_tracking_lost_after_a_restart_still_ends_focused_and_background_launches(self):
@@ -1158,6 +1172,7 @@ class WindowTest(Base):
 
     def test_a_restarted_helper_adopts_windows_for_launches_still_starting(self):
         self.open('notepad', 'o-1')
+        self.active_units.add(self.launch_for(self.helper_, shell.DESKTOP, 'o-1').entry['unit'])
         restarted = shell.Helper(str(REGISTRY), INSTANCE, NONCE, self.journal, launcher=self.launcher(),
                                  windows=shell.Windows(clock=self.clock), activate=self.activate, clock=self.clock,
                                  executable=lambda path: True)
@@ -1418,8 +1433,9 @@ class StartupTest(Base):
                 'o-1': {'app_id': 'notepad', 'launch_id': 'n1', 'state': 'focused', 'unit': 'u1'},
                 'o-2': {'app_id': 'terminal', 'launch_id': 't1', 'state': 'background', 'unit': 'u2'},
                 'o-3': {'app_id': 'notepad', 'launch_id': 'n2', 'state': 'launching', 'unit': 'u3'},
-                'o-4': {'app_id': 'browser', 'launch_id': 'b1', 'state': 'starting', 'unit': 'u4'},
+                'o-4': {'app_id': 'browser', 'launch_id': 'b1', 'state': 'starting', 'unit': 'u4.scope'},
             }}, handle)
+        self.active_units = {'u4.scope'}
         client_end, server_end = socket.socketpair()
         self.addCleanup(client_end.close)
         self.addCleanup(server_end.close)
