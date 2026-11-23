@@ -5,7 +5,9 @@ from pathlib import Path
 import pwd
 import sys
 
+from egress import REFUSAL, require_laptop_network
 from laptop import Busy, Cancelled, Inputs, UserScopes, Watch, log_error, watch_tree
+from network import Level
 from store import OTHER_EVIDENCE, Store
 from store_paths import absolute, validate_cache
 
@@ -16,8 +18,9 @@ class Bench:
         self.store = store
 
     def run(self, mode, peaks, setup, *, policy=Watch(), scopes=None, graceful=None, env=None,
-            use_build_store=False):
+            use_build_store=False, network=Level.NONE):
         """Set up a phase and run its bounded command."""
+        require_laptop_network(network)
         with self.store.phase(peaks, start_check=lambda: self.inputs.require(mode),
                               use_build_store=use_build_store) as phase:
             command = phase.workload(setup(phase))
@@ -47,6 +50,7 @@ class Bench:
             for gate, reason in self.inputs.gates(mode).items():
                 print(f'  {mode} {gate}: {reason or "ready"}', file=output)
         print(f'  home-screen game: {self.inputs.home_game()}', file=output)
+        print(f'  network: {REFUSAL}', file=output)
 
 
 class RunExit(Exception):

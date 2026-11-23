@@ -8,10 +8,12 @@ import json
 import os
 from pathlib import Path
 import re
+import secrets
 import stat
 from time import time
 from uuid import UUID, uuid4
 
+from egress import RECORD_SIZE, code_version, record_matches, record_pass
 from laptop import Busy, catch_signals, defer_signals, shared_lock
 from store_paths import DataTree, existing_parent, mount_id, open_directory, validate_cache
 
@@ -26,11 +28,13 @@ LIMITS = {
     'image': 7 * GB, 'base-disk': 10 * GB, 'build-store': 17 * GB, 'builder-boot': GB,
     'test-disk': 10 * GB, 'export': 7 * GB, 'builder-scratch': 15 * GB, 'podman-tmp': 17 * GB,
     'evidence': 180_000_000,
+    'egress': COORDINATION,
 }
 RETAINED = {
     'image': 'newest image and base disk',
     'build-store': 'build cache, expires after seven idle days',
     'builder-boot': 'one builder boot image for reuse',
+    'egress': 'egress proof bound to code and network',
 }
 IMAGE = {'image', 'base-disk'}
 RUN_ID = re.compile(r'[0-9a-f]{32}')
@@ -234,6 +238,35 @@ class Store:
             kept.append(('evidence', 'five most recent runs in this worktree'))
         return self.usage(), kept, 'active.json' in names
 
+    def save_egress(self, policy, results):
+        key = secrets.token_bytes(32)
+        record = record_pass(key, code_version(), policy, results)
+        with self.phase({'egress': COORDINATION}) as phase:
+            phase.write('egress', 'key', key).chmod(0o600)
+            phase.write('egress', 'record.json', record).chmod(0o600)
+
+    def egress_matches(self, policy):
+        def read(name, limit):
+            with self.data.target(Path('egress', name)) as (parent, name, pinned):
+                with self.data.entry(parent, name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK) as fd:
+                    info = os.fstat(fd)
+                    if (not stat.S_ISREG(info.st_mode) or not os.path.samestat(info, os.fstat(pinned))
+                            or info.st_uid != os.getuid() or info.st_nlink != 1 or info.st_mode & 0o077):
+                        raise ValueError('Invalid bench egress file')
+                    return os.read(fd, limit + 1)
+
+        try:
+            if 'egress' in read_record(self.data):
+                return False
+        except FileNotFoundError:
+            pass
+        except (OSError, ValueError):
+            return False
+        try:
+            return record_matches(read('record.json', RECORD_SIZE), read('key', 32), code_version(), policy)
+        except (OSError, ValueError):
+            return False
+
     @contextmanager
     def phase(self, peaks, *, start_check=lambda: None, use_build_store=False):
         """Admit the sum of all coexisting output peaks before creating writable paths."""
@@ -248,7 +281,7 @@ class Store:
             if 'evidence' in paths:
                 paths['evidence'] = self.evidence.path / uuid4().hex
             replace = {self.root / 'image' for kind in peaks if kind in IMAGE}
-            replace.update(paths[kind] for kind in ('build-store', 'builder-boot') if kind in peaks)
+            replace.update(paths[kind] for kind in ('build-store', 'builder-boot', 'egress') if kind in peaks)
             targets = [(self.root, 0), *((path, peaks[kind]) for kind, path in paths.items())]
             self.admit(targets, omit=replace)
             for old in replace:
