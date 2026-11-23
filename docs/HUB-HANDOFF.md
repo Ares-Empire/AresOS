@@ -6,19 +6,20 @@ Written Fri 2026-11-20 13:50 by `linux-hub` (Claude Opus 5.5), before a clear at
 
 ## Resume here
 
-Updated Sat 2026-11-21 22:31 (by `date`) by `linux-hub` (Claude Opus 5.5). R28 runs on the laptop since 18:00; the owner's first try-out and his answers are in the section below.
+Updated Mon 2026-11-23 10:45 (by `date`) by `linux-hub`. R29 is cut around 27 Nov from whatever is on main then (`linux-aresos` sends a cut line a day ahead).
 
-1. **B327 is merged** (PR142, `4dd5288b`): tutorial toasts off in the home, nothing breaks in Live, Build mode in the Esc menu, "Start a new home…", the Terminal's look, and the town keeper changes nothing with desktop mode off. Reviews: Codex `gpt-6.2-astra` NOT SAFE, fixed, `gpt-6.2-sol` recheck SAFE. It rides R29 (`linux-aresos` has the jar note).
-2. **B328 (look around without holding a button)** is on `pkg/328-look-around` (`~/AresOS-328-look-around`). Step 328a (the click leak, and the check of finding 5) runs on one Opus agent since 19:35. Then 328b (click to look), 328c (edge turning), 328d (switch and two-screen trial), one fresh agent each, as the week allows. Its final review: Codex Sol (Astra only for security, `mac-capacity` 2026-11-21).
-3. **The design note `docs/design/HOME-OUTSIDE.md` is READY** (B332): the home's parts outside the game. Fable 5.2 wrote and revised it on the API promo, $38.62 in all; reviews: Fable NOT READY, Codex NOT READY, four targeted Codex rechecks, the last READY (`reviews/332-outside-game-design/`). The owner answered its questions (T482–T485). `linux-desktop` leads its packages 3a/3b, 4 and 5 and writes their briefs.
-4. **Next for the hub, in order:**
-   - **Package 2 of the note:** open and active marks on the hotbar, and a left click brings an app back (`apps_state`, `activate_app`). It depends on no gate and can be briefed now.
-   - **Package 1** (the helper for the session) with `linux-aresos`; **package 6** (search outside).
-   - **The helper's log goes to tty1 on R28** (its stderr is inherited; nothing is recorded). Send it to the journal in the next hub package that touches `aresos-shell`.
-   - **T364, the sleeping-world study,** must pass the note's gates (section 13) before packages 7 and 9.
-   - **Boot-to-home timing (T362)** on the owner's next restart.
-5. **Budgets (Sat evening):** the Claude week and Codex are both over pace. One Opus agent and one Codex job at a time for this lead; Fable only on the API promo with `mac-capacity`'s go (about $120 left, expires 29 Nov 01:00).
-6. **Direct pushes to main are refused** by the auto-mode check, so docs travel in PRs.
+1. **On main since R28:**
+   - B327 (try-out fixes, `4dd5288b`);
+   - B328a (the world keeps the pointer, `92cf365a`);
+   - B328 (two look-around prototypes behind `look = classic | click | edge`, `17211fb1`);
+   - the design note `docs/design/HOME-OUTSIDE.md` with home styles (this PR).
+2. **PR150 (B333, open apps and bring back, `aresos-shell/1.3`):** SAFE after six fix rounds; the launch cap now counts systemd's scopes (`reviews/333-open-apps/`). It conflicted with B328's pointer changes; the lead merged main into it by hand, so a small fresh review of that merge and green CI come before the merge.
+3. **Waiting for Codex's reset (Wed ~14:49):**
+   - edge mode's up/down arrows (it can look up but not back down; before the owner's trial);
+   - the admission listing's timeout cut from 5 s to about 1 s (RECHECK-6, nit 6).
+4. **The owner's decisions (2026-11-22):** home styles, with a fresh AresOS starting on a normal picture home (T493); icons dragged freely with an alignment setting (T494); a starter icon column (T498); "switchable" as a guideline, built as a fourth look, "Normal". All of it is in HOME-OUTSIDE.
+5. **Next for the hub:** the owner's trial of the look modes (`hub-try --outputs 2`, after the arrows); HOME-OUTSIDE's package 1 with `linux-aresos` and package 6 (search outside); T364's study for the gates; board T486 (Alt+Tab then Esc leaves the world without keys) and T515 (build and run-hub take the client-test lock).
+6. **Budgets:** the Claude week ran tight (87% on Mon morning); Codex is empty until Wed ~14:49; the API promo is nearly spent until it refills around 29 Nov. Direct pushes to main are refused, so docs travel in PRs.
 
 ## Where things stand
 
