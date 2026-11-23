@@ -10,7 +10,7 @@ import unittest
 
 from test_bench_laptop_gates import ROOT, fixture, memory, psi
 from test_bench_laptop_store import MIB, mock_space, roots
-from laptop import Watch
+from laptop import Cancelled, Watch
 from laptop_cli import Bench, RunExit
 from store import Store
 
@@ -44,6 +44,11 @@ class StandInScopes:
         return child
 
     def stop(self, unit):
+        if (self.root / 'hold-stop').exists():
+            (self.root / 'stopping').write_text('waiting\n')
+            deadline = time.monotonic() + 5
+            while not (self.root / 'finish-stop').exists() and time.monotonic() < deadline:
+                time.sleep(0.01)
         signal.pidfd_send_signal(self.descendant, signal.SIGKILL)
         select.select([self.descendant], [], [], 5)
         os.close(self.descendant)
@@ -69,6 +74,9 @@ def run_watcher(root, recheck):
                                  policy=Watch(interval=1.0, grace=0.3))
     except RunExit as error:
         return error.status
+    except Cancelled as error:
+        print(error, file=sys.stderr)
+        return 1
     return 0
 
 
@@ -164,6 +172,24 @@ class WatchTest(unittest.TestCase):
         self.assertEqual(watcher.wait(timeout=5), 75)
         self.assertIn('needs 7 GiB', watcher.stderr.read())
         self.assertFalse((self.root / 'worker-ids').exists())
+        self.assertFalse((self.root / 'store/test-disk').exists())
+
+    def test_signal_during_scope_stop_preserves_disk_until_stop_finishes(self):
+        (self.root / 'hold-stop').touch()
+        watcher = self.child(sys.executable, '-B', __file__, str(self.root), 'watch')
+        self.wait_result(self.root / 'worker-ids', watcher)
+        (self.root / 'meminfo.new').write_text('MemAvailable: 1 kB\n')
+        (self.root / 'meminfo.new').replace(self.root / 'meminfo')
+        self.wait_result(self.root / 'stopping', watcher)
+        watcher.terminate()
+        try:
+            with self.assertRaises(subprocess.TimeoutExpired):
+                watcher.wait(timeout=0.15)
+            self.assertTrue((self.root / 'store/test-disk/overlay').exists())
+        finally:
+            (self.root / 'finish-stop').touch()
+        self.assertEqual(watcher.wait(timeout=5), 1)
+        self.assertIn('interrupted by SIGTERM', watcher.stderr.read())
         self.assertFalse((self.root / 'store/test-disk').exists())
 
 

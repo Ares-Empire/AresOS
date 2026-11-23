@@ -147,7 +147,7 @@ class Watch:
 
     def __post_init__(self):
         if (self.floor_kib <= 0 or not 0 <= self.pressure_percent <= 100 or
-                not 0 < self.interval <= 2 or not math.isfinite(self.grace) or self.grace <= 0):
+                not 1 <= self.interval <= 2 or not math.isfinite(self.grace) or self.grace <= 0):
             raise ValueError('invalid memory watcher settings')
 
     def reason(self, inputs):
@@ -191,6 +191,15 @@ def catch_signals():
     finally:
         for sig, handler in previous.items():
             signal.signal(sig, handler)
+
+
+@contextmanager
+def defer_signals():
+    previous = signal.pthread_sigmask(signal.SIG_BLOCK, SIGNALS)
+    try:
+        yield previous
+    finally:
+        signal.pthread_sigmask(signal.SIG_SETMASK, previous)
 
 
 def scope_command(mode, unit, command):
@@ -243,6 +252,8 @@ def guard(inputs, mode, unit, command, env, scopes, owner, request, grace):
     if select.select([owner, request], [], [], 0)[0]:
         return 1
     inputs.require(mode)
+    if select.select([owner, request], [], [], 0)[0]:
+        return 1
     child = scopes.start(mode, unit, command, env)
     try:
         with_fd = os.pidfd_open(child.pid)
@@ -271,22 +282,24 @@ def watch_tree(inputs, mode, command, *, policy, scopes, graceful, env):
     request, notify = os.pipe()
     guardian = None
     try:
-        guardian = os.fork()
-        if guardian == 0:
-            result = 1
-            try:
-                os.close(notify)
-                os.setsid()
-                for sig in SIGNALS:
-                    signal.signal(sig, signal.SIG_IGN)
-                result = guard(inputs, mode, unit, command, env, scopes, owner, request, policy.grace)
-            except Busy as error:
-                print(f'bench: {error}', file=sys.stderr, flush=True)
-                result = 75
-            except (OSError, RuntimeError, subprocess.SubprocessError) as error:
-                print(f'bench: {error}', file=sys.stderr, flush=True)
-            finally:
-                os._exit(result)
+        with defer_signals() as mask:
+            guardian = os.fork()
+            if guardian == 0:
+                result = 1
+                try:
+                    os.close(notify)
+                    os.setsid()
+                    for sig in SIGNALS:
+                        signal.signal(sig, signal.SIG_IGN)
+                    signal.pthread_sigmask(signal.SIG_SETMASK, mask)
+                    result = guard(inputs, mode, unit, command, env, scopes, owner, request, policy.grace)
+                except Busy as error:
+                    print(f'bench: {error}', file=sys.stderr, flush=True)
+                    result = 75
+                except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
+                    print(f'bench: {error}', file=sys.stderr, flush=True)
+                finally:
+                    os._exit(result)
         guardian_fd = os.pidfd_open(guardian)
         try:
             deadline = monotonic() + policy.interval
@@ -303,9 +316,11 @@ def watch_tree(inputs, mode, command, *, policy, scopes, graceful, env):
         finally:
             os.close(guardian_fd)
     finally:
-        os.close(notify)
-        os.close(request)
-        os.close(owner)
-        if guardian:
-            _, status = os.waitpid(guardian, 0)
+        # Disk cleanup can begin only after the guardian has stopped all writers.
+        with defer_signals():
+            os.close(notify)
+            os.close(request)
+            os.close(owner)
+            if guardian:
+                _, status = os.waitpid(guardian, 0)
     return os.waitstatus_to_exitcode(status)

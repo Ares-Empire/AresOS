@@ -97,6 +97,9 @@ class StoreTest(unittest.TestCase):
             self.assertFalse((disk.parent / 'too-large').exists())
             with self.assertRaises(ValueError):
                 phase.write('base-disk', '../outside', b'fixture')
+        with self.assertRaisesRegex(ValueError, 'phase has ended'):
+            phase.write('base-disk', 'late-write', b'fixture')
+        self.assertFalse((disk.parent / 'late-write').exists())
 
     def test_replacement_scratch_and_expiry(self):
         with self.store.phase({'image': MIB, 'base-disk': MIB, 'build-store': MIB}) as phase:

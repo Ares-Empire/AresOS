@@ -7,12 +7,11 @@ import os
 from pathlib import Path
 import re
 import shutil
-import signal
 import stat
 from time import time
 from uuid import uuid4
 
-from laptop import Busy, SIGNALS, catch_signals, shared_lock
+from laptop import Busy, catch_signals, defer_signals, shared_lock
 
 GB = 1_000_000_000
 CAP = 40 * GB
@@ -28,7 +27,7 @@ LIMITS = {
 RETAINED = {
     'image': 'newest image and base disk',
     'build-store': 'build cache, expires after seven idle days',
-    'builder-boot': 'one verified builder boot image',
+    'builder-boot': 'one builder boot image for reuse',
 }
 IMAGE = {'image', 'base-disk'}
 RUN_ID = re.compile(r'[0-9a-f]{32}')
@@ -105,15 +104,6 @@ def read_record(path):
 
 def worktree_key(worktree):
     return hashlib.sha256(os.fsencode(worktree)).hexdigest()
-
-
-@contextmanager
-def finish_cleanup():
-    previous = signal.pthread_sigmask(signal.SIG_BLOCK, SIGNALS)
-    try:
-        yield
-    finally:
-        signal.pthread_sigmask(signal.SIG_SETMASK, previous)
 
 
 class Store:
@@ -208,13 +198,13 @@ class Store:
     def expire(self):
         with catch_signals(), shared_lock(self.lock):
             directory(self.root)
-            with finish_cleanup():
+            with defer_signals():
                 self._prepare()
 
     def clean(self):
         with catch_signals(), shared_lock(self.lock):
             directory(self.root)
-            with finish_cleanup():
+            with defer_signals():
                 for evidence in self.evidence():
                     remove(evidence)
                 remove(self.root)
@@ -258,14 +248,16 @@ class Store:
                 if not registry.exists():
                     write_record(registry, str(self.worktree))
             write_record(self.active, {'writes': list(peaks), 'worktree': key, 'run': run})
+            phase = Phase(paths, peaks, self.disk_space, self.reserve)
             success = False
             try:
                 for path in paths.values():
                     directory(path).mkdir(parents=True)
-                yield Phase(paths, peaks, self.disk_space, self.reserve)
+                yield phase
                 success = True
             finally:
-                with finish_cleanup():
+                with defer_signals():
+                    phase.close()
                     self._recover(success=success, keep_evidence=True)
                     if use_build_store or (success and 'build-store' in peaks):
                         build = directory(self._path('build-store'))
@@ -288,9 +280,15 @@ class Phase:
         self._remaining = peaks
         self._disk_space = disk_space
         self._reserve = reserve
+        self._open = True
+
+    def close(self):
+        self._open = False
 
     def write(self, kind, name, data, *, offset=0):
         """Write one bounded file; offset permits a sparse prefix without charging its apparent length."""
+        if not self._open:
+            raise ValueError('bench phase has ended')
         if not FILE_NAME.fullmatch(name) or type(data) is not bytes or type(offset) is not int or offset < 0:
             raise ValueError('invalid bench output')
         folder = self._paths[kind]
@@ -304,6 +302,8 @@ class Phase:
         output = folder / name
         if output.exists() or output.is_symlink():
             raise ValueError('bench output already exists')
+        if kind == 'builder-boot' and any(folder.iterdir()):
+            raise ValueError('a builder boot image is already present')
         partial = folder / f'.{name}.partial'
         self._remaining[kind] -= charge
         with partial.open('xb') as stream:
