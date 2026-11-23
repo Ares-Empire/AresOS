@@ -1488,3 +1488,7 @@ password, and that tells him more rather than less. Say what you chose in the re
 - On the laptop: one test suite at a time, `pkg28b-` names for scripts and `/tmp` paths, and check free memory
   first.
 - Name your model in a commit trailer.
+
+## Agreements carried from STATE
+
+- The three capability packages (28, 28a and 28b) ship together once all are merged. The R29 browser-side integration can ship earlier with the exclusion gate closed. Before live use, do Mail onboarding first and have the owner set Chrome's excluded hosts in the T298 sitting. The list is root-owned and persists across updates and `previous`.

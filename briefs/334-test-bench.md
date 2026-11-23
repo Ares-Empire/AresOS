@@ -118,3 +118,8 @@ swap or the OOM killer, and stop the VM when done. The VM never mounts his home 
    acceptance tests. Say which step gives value first.
 6. **Owner decides**, each with your advice.
 7. **Known limits.**
+
+## Agreements carried from STATE
+
+- The owner approved the hidden rootless desk (T499), with opt-in networking and real internet only after verified egress. The laptop VM is approved if it fits and works, behind a memory watcher and a 40 GB cap with automatic cleanup (T500). Read-only hardware checks after updates and about ten minutes of the owner's time per release are approved (T501–T502). See [the bench design](../docs/design/TEST-BENCH.md).
+- Build the hosted pass first as B334a. It can merge before B331 once reviewed and green. Coordinate workflow changes with the OS lead and B321 so the subsequent merge retains the bench, Deskflow and release modes.

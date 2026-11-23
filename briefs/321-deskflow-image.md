@@ -136,3 +136,8 @@ The release and its rehearsal (`linux-aresos`). The Mac controlling the laptop (
 ## Read first
 
 `CLAUDE.md`, `AGENTS.md`, `briefs/316-input-portal.md`, `reviews/316-input-portal/PROGRESS.md` (the list, each "What the code doesn't show", the final triage), `KNOWN-LIMITS.md` and `BRIEF-RECHECK.md` there, `reviews/321-deskflow-image/BRIEF-REVIEW.md`, `os/input-portal/UPSTREAM.md` and `build.sh`, `os/Containerfile` (311's stages) and `os/labwc/`, `os/config/usr/bin/aresos-session`, `os/config/usr/share/aresos/labwc/rc.xml`, `os/ci/check-build.sh` (the `control` mode) and `os/ci/vm.py`, `os/README.md` on `packages.lock.json`, and `docs/design/CONTROL.md` "The bar".
+
+## Agreements carried from STATE
+
+- B321 is the first priority after R28 and can ride R29, superseding the separate-release timing above. Before merge, require the final reviewed handoff and the OS lead's clean `os/` read, a green Deskflow VM on the final head, a resolve of the reviewed NEVRA and SHA-256 from Fedora stable `updates`, and observed unplug/replug in the VM or separately owner-approved laptop proof. The pinned RPM from `updates-testing` is for check builds only. If B321 is off main and a condition is missing when R29 is otherwise ready, it rides R30 and R29 keeps 311's reviewed `aresos1` pin. If B321 has merged and a condition fails later, the OS lead chooses whether to wait or revert and requalify the cut.
+- Hand the OS lead the exact expected image changes. The second labwc patch uses 311's normalized and loaded-image hashes and the exact installed payload and RPM verification checks. Coordinate `rc.xml` before changing it and record the bound `vm.py` change in pending-rebind.
