@@ -95,6 +95,18 @@ class DeskflowVMTest(unittest.TestCase):
             with self.assertRaisesRegex(AssertionError, 'rejected peer clipboard changed'):
                 actions.daily_clip({'op': 'unchanged-recipient'})
 
+    def test_reboot_checks_prepare_the_real_login_without_an_x11_recorder(self):
+        session = {'home': pathlib.Path('/home/owner'), 'pid': 101}
+        with (patch.object(actions, 'session', None), patch.object(actions, 'daily_state', {}),
+              patch.object(actions, 'connect_session', return_value=session),
+              patch.object(actions, 'active_primary', return_value=True), patch.object(actions, 'randr', return_value={}),
+              patch.object(actions, 'guest_command', return_value=Mock(returncode=0, stdout='on\n')),
+              patch.object(actions, 'current_owner', return_value=None), patch.object(actions, 'start_tools') as tools):
+            result = actions.daily_prepare({'mode': 'reboot'})
+        tools.assert_not_called()
+        self.assertEqual(result['switch'], 'on')
+        self.assertEqual(result['labwc_pid'], 101)
+
     def test_hotplug_fails_if_drm_moves_without_labwc(self):
         for connected in (True, False):
             for original in (None, {'card1-Virtual-1'}):

@@ -691,7 +691,6 @@ def daily_prepare(request):
     if mode != 'relogin':
         daily_state.update(root=root, processes={}, helper_reports=[], clip_markers=[])
         require(guest_command('mkdir', '-p', str(root)))
-        start_tools()
     else:
         # The frontend monitor follows the new bus, even if the headless peer survived the old login.
         if x_command('xdotool', 'getdisplaygeometry').returncode == 0:
@@ -703,6 +702,7 @@ def daily_prepare(request):
     source = session['home'] / '.config/Deskflow'
     daily_state['source'] = source
     if mode == 'initial':
+        start_tools()
         assert not SWITCH.exists() and not core_pids()
         require(guest_command('mkdir', '-p', str(source)))
         # Deskflow 1.27 reads screen names from the main profile before parsing the layout links.
@@ -751,9 +751,10 @@ def daily_server(request):
         daily_state.update(backend_pid=backend, core_pid=pid)
         # The monitor header identifies the unique bus sender. The cgroup alone would also match a process that
         # never made the call, so check the sender credentials against the running core.
-        calls = [line.split() for line in probe_log('portal-profile').splitlines() if line.endswith('CreateSession2')]
-        sender = calls[-1][3] if calls and calls[-1][0] == 'mc' else None
+        sender = None
         if request.get('monitor', True):
+            calls = [line.split() for line in probe_log('portal-profile').splitlines() if line.endswith('CreateSession2')]
+            sender = calls[-1][3] if calls and calls[-1][0] == 'mc' else None
             assert sender and sender.startswith(':') and backend_pid(sender) == pid, (
                 'D-Bus credentials did not identify the scoped core as the CreateSession2 caller')
         return dict(returncode=0, session=path, scope=scope, pid=pid, backend=backend, owner=owner,
