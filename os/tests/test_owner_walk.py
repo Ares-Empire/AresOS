@@ -1863,6 +1863,28 @@ class ReleaseRulesTest(unittest.TestCase):
             with self.subTest(entry=entry):
                 self.assertIs(password_set(entry), expected)
 
+    def test_release_rules_require_the_exact_target_app_inventory(self):
+        historical = {'browser': True, 'notepad': True, 'terminal': True}
+        deskflow = {**historical, 'org-deskflow-deskflow': True}
+        guest = Mock()
+        value = dict(ares_in_wheel=True, sudo_all_with_password=True, sudo_keeps_no_ticket=True, sudo_n_refused=True,
+                     ares_password_set=True, chrome_started=True, aresos_shell_executable=True,
+                     session_path=vm.SYSTEM_PATH, hub_terminal_argv=vm.HUB_TERMINAL)
+        with patch.object(vm.td, 'save'):
+            for stage in ('release-27', 'release-28'):
+                with self.subTest(stage=stage):
+                    guest.capture_json.return_value = dict(value, aresos_shell=historical)
+                    vm.release_rules(guest, stage)
+                    guest.capture_json.return_value = dict(value, aresos_shell=deskflow)
+                    with self.assertRaisesRegex(AssertionError, 'STOP: aresos-shell apps'):
+                        vm.release_rules(guest, stage)
+            vm.release_rules(guest, 'release-with-b321', expect_deskflow=True)
+            for apps in (historical, dict(deskflow, unexpected=True), {**deskflow, 'org-deskflow-deskflow': False}):
+                with self.subTest(apps=apps):
+                    guest.capture_json.return_value = dict(value, aresos_shell=apps)
+                    with self.assertRaisesRegex(AssertionError, 'STOP: aresos-shell apps'):
+                        vm.release_rules(guest, 'release-with-b321', expect_deskflow=True)
+
 
 class TerminalPathTest(unittest.TestCase):
     """Rehearsal run 5 (43120759117) typed the PATH probe right after Ctrl+Alt+F1 and it never ran."""

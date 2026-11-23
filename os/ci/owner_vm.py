@@ -1472,8 +1472,8 @@ print(json.dumps(out))
 '''
 
 
-def release_rules(guest, stage):
-    """Package 21's rules on the updated laptop state, after the owner set the password."""
+def release_rules(guest, stage, *, expect_deskflow=False):
+    """Check package 21's rules with the exact app inventory of the rehearsal target."""
     value = guest.capture_json(stage + '-rules', sw.framed('python3 -c ' + shlex.quote(RULES)))
     td.save(stage + '-package21-rules', value)
     for name in ('ares_in_wheel', 'sudo_all_with_password', 'sudo_keeps_no_ticket', 'sudo_n_refused',
@@ -1482,7 +1482,9 @@ def release_rules(guest, stage):
     assert value['session_path'] == SYSTEM_PATH, 'STOP: the session lost the system PATH'
     assert value['hub_terminal_argv'] == HUB_TERMINAL, "STOP: the hub's terminal does not read his PATH"
     builtins = {'browser': True, 'notepad': True, 'terminal': True}
-    assert value['aresos_shell'] in (builtins, {**builtins, 'org-deskflow-deskflow': True}), 'STOP: aresos-shell apps'
+    if expect_deskflow:
+        builtins['org-deskflow-deskflow'] = True
+    assert value['aresos_shell'] == builtins, 'STOP: aresos-shell apps'
     return value
 
 
