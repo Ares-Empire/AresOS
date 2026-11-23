@@ -896,9 +896,9 @@ After the final review and release, get the owner's direct OK and have the owner
 
 ## Left, in order
 
-1. Close the TLS recipient and live Off checks in the daily-use VM. Dispatch 12 passed the emergency release,
-   restart sequence, remote polkit, sandbox ID refusal, and the binding table. The lead holds dispatch 16.
-   The final Fable review is in `REVIEW-4-FABLE.md`.
+1. Recheck persistence on the head that separates reboot preparation from the X11 input probe. Dispatch 13
+   passed the daily-use boot through the last live Off check. The lead holds dispatch 16. The final Fable review
+   is in `REVIEW-4-FABLE.md`.
 2. The lead sends the final heads for `linux-aresos` and `linux-hub` to read. Both give their read verdicts.
 3. Merge the PR after both reads and resolution of the outstanding hosted VM evidence and review findings.
 4. `linux-aresos` prepares the release after R29.
@@ -1016,6 +1016,7 @@ The lead sends this list when step 3 ends and at the final head.
 | `os/manifest/input-portal.sha256` | `c5f1515b` | Pin the backend that stops guarded Deskflow during a pidfd fallback. |
 | `os/ci/deskflow/{actions.py,daily_vm.py}` | `233fa378` | Prove local recovery and explicit restart, use the system manager for remote PAM, retain the sandbox reply, and verify TLS refusal and the microphone-mute limit. |
 | `os/ci/deskflow/{actions.py,daily_vm.py}`, `os/tests/test_deskflow_vm.py` | `e071b38e` | Check the rejected recipient's clipboard directly, distinguish the stale-profile dialog from the input recorder, and dismiss the once-per-login sharing dialog after the live Off check. |
+| `os/ci/deskflow/actions.py`, `os/tests/test_deskflow_vm.py` | `453a4f83` | Run the persistence boots on the real login without requiring an unused X11 recorder or reading a monitor from the prior boot. |
 
 Not touched in step 1c: `os/Containerfile` (the stage copies the whole `labwc/` folder, so the second patch needs no
 new line; its comment above the stage still says "one upstream fix" and should name both patches when the file is
@@ -1114,7 +1115,8 @@ and three test fixtures unverified. Dispatch 16 is reserved for the lead.
 | 10 of 12 | Final review, layout fix | [45059202351](https://github.com/Ares-Empire/AresOS/actions/runs/45059202351), verified at `a8c2ee301c35bcb4c8f132674c1027c5e5556e30` (2026-11-22 20:10 CET) | `check_build=deskflow`. **`DESKFLOW_VM_GATE_FAILED`** at 21:16 CET. The image, DRM cases and reboot persistence passed. Inactive polkit, the SSH PAM check and pairing failed. The watch returned 1. |
 | 11 of 12 | Final review, seat and pairing fixes | [45065781890](https://github.com/Ares-Empire/AresOS/actions/runs/45065781890), verified at `64c6661c233c4f72bb933f21858a4ebc083ad81d` (2026-11-22 21:19 CET) | `check_build=deskflow`. **`DESKFLOW_VM_GATE_FAILED`** at 22:29 CET. The image and DRM cases passed their gates. Remote polkit, microphone mute, sandbox refusal, the TLS negative controls, and stopped-backend recovery/restarts remained open. The watch returned 1. |
 | 12 of 16 | Emergency release and VM fixtures | [45074035634](https://github.com/Ares-Empire/AresOS/actions/runs/45074035634), verified at `39e0d6cd14be97431bf8345bf934c94cdf8c383f` | `check_build=deskflow`. **`DESKFLOW_VM_GATE_FAILED`**. The two initial TLS controls failed an assertion about local portal clipboard calls. After a fresh login, the sharing dialog took focus from the Off fixture. The watch returned 1. |
-| 13 of 16 | TLS clipboard and Off fixtures | [45082274952](https://github.com/Ares-Empire/AresOS/actions/runs/45082274952), verified at `e071b38e8913ce37c089cf840d9fe0bce02ec859` | `check_build=deskflow`. In progress. The 18 tests in `test_deskflow_vm.py` passed by discovery. |
+| 13 of 16 | TLS clipboard and Off fixtures | [45082274952](https://github.com/Ares-Empire/AresOS/actions/runs/45082274952), verified at `e071b38e8913ce37c089cf840d9fe0bce02ec859` | `check_build=deskflow`. **`DESKFLOW_VM_GATE_FAILED`**. The daily-use boot passed every check. The reboot-On fixture waited for an unused X11 recorder and timed out before checking persistence. The watch returned 1. All 18 VM unit tests passed by discovery. |
+| 14 of 16 | Reboot persistence fixture | [45089791226](https://github.com/Ares-Empire/AresOS/actions/runs/45089791226), verified at `453a4f834246c0ee6e146dfd411079a2ba967b1c` | `check_build=deskflow`. In progress. All 19 VM unit tests passed by discovery. |
 
 ### Local verification for dispatch 12
 
@@ -1134,6 +1136,25 @@ and three test fixtures unverified. Dispatch 16 is reserved for the lead.
   failures. Two full `mod/dev/client-test.sh --keep-screenshots` runs exited 0 after 14m 8s and 14m 4s.
   Both saved 105 screenshots to `.work/321-final/mod-verification/`. The review screenshot paths were restored
   after the copies were verified.
+
+### Dispatch 13 evidence
+
+The image checks, guarded desktop entry, `rpm -V deskflow`, polkit, all 11 added layers and the installed
+backend digest passed. [Check-build evidence](https://github.com/Ares-Empire/AresOS/actions/runs/45082274952#artifacts)
+
+| VM case or brief check | Result |
+|---|---|
+| Check 1, regular boots | All three passed listed-mode cycles, VT and SetUIInfo hotplug. The real backend boot proved the scoped native ID, empty-ID terminal refusal and original backend exit after Off. |
+| Check 1, custom boots | The no-listener boot passed. With a listener or worker the custom mode set and disabled, and re-enable reproduced the expected `head_send_state` assertion. |
+| Check 2 | First login Off, native refusals, one dialog, local crossing, inactive and active polkit, genuine remote polkit (`Remote=yes`, `sshd_t`, `pkexec` 127), cancellation, invalid arguments, unsafe paths and password-authenticated On all passed. One native session stayed armed. |
+| Check 3 | Real input passed, and 20 clipboard transfers each way kept the frontend at 23 descriptors. There were 20 SelectionRead and 37 SelectionWrite calls. |
+| Check 4 | Normal release balanced the two modifiers at the client before physical key-up. |
+| Check 5 | Capture held for 60 seconds idle. The chord stopped the frozen backend, launcher and core with sharing still On. The next key was local. Explicit hub launch restored a working capture. |
+| Check 6 | Passed the ordinary backend kill and same-core reconnect, frontend replacement and separate real relogin. Each restored a working capture. |
+| Check 7, live Off | Passwordless Off and separate removal without revoke both closed capture and delivered the next key locally. New clipboard data stayed local. Manual removal ended the original backend in 0.202 seconds. On required a password again. |
+| Check 7, reboot On and Off | The On boot reached the real login, then preparation timed out waiting for the X11 recorder window. No persistence assertion ran. The Off boot was not reached. The reboot proof uses the switch, native guarded session, backend connections and real policy. The recorder only observes live input, so `453a4f83` skips it on those two boots. |
+| Check 8 | All 22 binding rows passed. The bwrap information, D-Bus AccessDenied and app-ID-specific refusal were retained. Backend trace and Deskflow Info logs passed the privacy scan. |
+| Check 9 | Real pairing controls passed. The stranger's certificate was refused, its transport closed, and the plaintext handshake failed. Both recipient probes counted zero input and an unchanged clipboard; the approved peer then received keyboard and clipboard. Both launch paths rejected stale trust and enforced TLS and fingerprint checks with the saved settings disabled. |
 
 ### Dispatch 12 evidence
 
@@ -1284,7 +1305,7 @@ The detailed records are `image/checks.txt`, `image/polkit.txt`, `image/input-po
 
 Dispatch 11 recorded 21 passing rows for the installed image. The microphone-mute probe verified the next
 key at the client before timing out on the mute keysym. Its follow-up status showed the capture still held.
-Dispatch 12 recorded all 22 rows below, including unchanged windows and focus for microphone mute.
+Dispatches 12 and 13 recorded all 22 rows below, including unchanged windows and focus for microphone mute.
 
 | Binding | Laptop windows and focus | Capture | Next key |
 |---|---|---|---|
