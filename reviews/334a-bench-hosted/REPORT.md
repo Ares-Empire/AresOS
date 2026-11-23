@@ -46,3 +46,35 @@
 ## Open questions
 
 - The next rehearsal will incorporate the pending source binding. The later bench packages cover laptop operation and other network levels.
+
+## Review fixes, round 1
+
+1. `exec` still runs as the desktop user. The agent discards stdout and stderr in the guest and sends only the exit code. The evidence gate refuses raw `exec` files and detects bare and `ARESOS_LAUNCH_NONCE=` credentials. The agent checks journal text before it crosses virtio, including matches against live credentials embedded in longer text.
+2. The bench layer generates a fresh view token at session startup and gives it to the real helper through the desktop supervisor's environment. Health uses the named `bench-health` view and sends `list_apps` over `aresos-shell/1.2`. A test with the real helper server rejects an incorrect token, passes with the provisioned token and then reads from the original desktop connection.
+3. The hosted client checks the release ledger in the local checkout and reads the pushed branch's public ledger without credentials before submission. The workflow independently checks the dispatched checkout's ledger before starting image work. The package 331 entry is already present on its release branch, so the client covers it before that ledger reaches main.
+4. The check-build job applies the release, dry-run, rehearsal, checks-only and switch exclusions to bench. Bench also requires an empty probe-run input and a false full-model flag.
+5. The dispatch tests evaluate the job conditions with conflicting inputs and exercise the workflow's actual guard command. They evaluate the scan and upload conditions on the steps that handle `evidence/bench/`, including failure, skip and cancellation states.
+6. `qemu-img` and QEMU receive `PATH` and `LC_ALL` from a fixed allow-list. A subprocess test supplies synthetic runner variables and checks the environment both commands receive.
+
+### Verified
+
+- Ran `python3 -B -m unittest discover -s os/tests -p 'test_bench_<module>.py'` one module at a time. The agent (4), dispatch (7), evidence (7) and script (3) modules each printed `OK`. `bash -n os/ci/bench/build.sh` and `git diff --check` exited zero.
+- The client command `python3 -B os/ci/bench/dispatch.py --ref pkg/331-release-29 reviews/334a-bench-hosted/bench/session-health.json` printed `Bench dispatch refused on a ledger-managed ref` and exited 1 before submission.
+- Submitted the hosted benches with `python3 -B os/ci/bench/dispatch.py --ref pkg/334a-bench-hosted reviews/334a-bench-hosted/bench/session-health.json`. Submitted checks-only with `gh workflow run 'OS image' --ref pkg/334a-bench-hosted -f checks_only=true`. Watched each with `gh run watch <id> --exit-status --interval 60`.
+
+| Bench dispatch | Dispatched commit | Result | Dispatch elapsed | VM elapsed | Evidence bytes |
+| --- | --- | --- | ---: | ---: | ---: |
+| [45086521725](https://github.com/Ares-Empire/AresOS/actions/runs/45086521725) | `1fe72cb0` | Pass, all six steps | 20m19s | 64.3s | 65,682 |
+| [45086546954](https://github.com/Ares-Empire/AresOS/actions/runs/45086546954) | `da6ff51f` | Expected failure at step 2, helper health | 46m20s | 74.9s | 873 |
+
+- The clean run verified an active greetd session with labwc and only loopback on both boots. `helper_health` passed twice and the boot ID changed. I inspected `003.png`, which shows the first-start desktop. [Clean evidence](https://github.com/Ares-Empire/AresOS/actions/runs/45086521725/artifacts/14780202619)
+- The broken helper passed import and `--list` in image checks, which printed `IMAGE_CHECKS_PASSED`. The VM printed `PASS 001 wait` and `FAIL 002 expect (helper_health did not pass)`. Commit `651ab2fa` restored the helper. [Broken-helper evidence](https://github.com/Ares-Empire/AresOS/actions/runs/45086546954/artifacts/14781452108)
+- Both runs scanned 134 plain-image layers and printed `BENCH_PLANTED_LAYER_REFUSED`. I matched both `run.json` records to the dispatch SHA, image revision, guest revision and committed script digest, and reran the evidence scan on the downloaded files.
+- The first checks-only dispatch ran 2,588 tests and reported `FAILED (failures=8, skipped=24)`. The failures came from the job-token audit detecting the client ledger read through `gh api`. Commit `b0b03755` switched this read to a public GET without credentials. [Initial checks-only run](https://github.com/Ares-Empire/AresOS/actions/runs/45086520794)
+- The checks-only rerun on `b0b03755` passed in 33m05s. It printed `Ran 2588 tests in 1782.837s`, `OK (skipped=24)`, and `Live hosted system manager passed: 434 unit files, 421 unit names`. The change since the clean bench run is limited to the client ledger read and its test. [Passing checks-only run](https://github.com/Ares-Empire/AresOS/actions/runs/45089740931)
+- The round used two hosted bench dispatches. No files over 500 MB remained under `.work/`.
+
+### Known limits
+
+- A stray manual bench dispatch remains visible in a guarded ref's history. R29 counts an unknown title as rejected and charges its minutes. Its ledger can continue with the remaining budget. Older guards can stop on such a run. Deleting a run removes evidence and is a decision for the OS lead.
+- The screenshot gate scans file bytes. Visible text in screenshots is outside that scan.
