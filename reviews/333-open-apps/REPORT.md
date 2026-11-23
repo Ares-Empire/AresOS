@@ -12,13 +12,30 @@
 - Recheck 1 moved executable checks, processes, scopes and window tracking into the helper's per-app launch state. The helper saves live launches alongside the replay journal and recovers them across restart.
 - Step A gives the desktop and each admitted view name separate launch records and activation receipts. View hello admits up to eight names. Package 53a's rewritten test checks that all five view names retain their replies across reconnect and restart.
 - Step B lets a live launch answer for its origin's request ID after the reply is gone.
-- Step C checks the live launch table before spawning and caps new starts at 32 live launches across views and 256 for the desktop. The cap uses the existing `journal_full` reply.
 - Step D starts a tray-resident app again after its last window closes. A second bring-back joins the new start while it waits for a window.
-- The live caps count a launch's own process or scope. A handoff with an ended process and a gone scope can still follow the shared window for its saved replies. Once it has no replies to update, the helper drops that tracker from memory and the saved journal.
 - When a view's quota blocks a launch at check completion, a joined desktop request reuses the check under the desktop's quota. The view receives `journal_full`. The desktop keeps its own request ID and screen hint and can still restore a window that appeared during the check.
-- Recheck 4 closes the gap between the launcher exiting and the scope watcher taking over. The slot stays occupied through `ACTIVE` and `UNKNOWN` and is released when the watcher reports `GONE`, even if a window or saved reply is still tracked.
+- The sixth fix reads systemd's active `app-aresos-*.scope` units on each new launch admission. A bounded journal map records who started each scope. Unknown names count toward the shared view cap of 32. The desktop has its own cap of 256. An unreadable list returns the existing `journal_full` reply for views and allows desktop launches within their replay limits.
+- Bring-back joins pending checks and windowless starts that are still within their window deadline. Discovered apps can still complete a handoff after that deadline and update existing replies. A saved start with a scope that is absent or unconfirmed at restart becomes a replayable `launch_uncertain` failure. A scope can register later and count toward the cap at the next admission. The scope watcher still follows outcomes and keeps origin IDs available for replay while their apps run.
 
 ## Verified
+
+### Sixth fix (RECHECK-5)
+
+Each local command used `python3 reviews/333-open-apps/headless.py <filename>` with a private home, runtime, state directory, headless labwc compositor and D-Bus session.
+
+| Filename | Output |
+|---|---|
+| `test_aresos_shell_open_apps.py` | `Ran 27 tests in 3.183s`, `OK` |
+| `test_aresos_shell_views.py` | `Ran 35 tests in 1.436s`, `OK` |
+| `test_aresos_shell.py` | `Ran 77 tests in 21.860s`, `OK` |
+
+- The tests exercise both RECHECK-5 sequences, including replay of the failed start and its joined request after restart. They also exercise a fresh activation after an expired start or a clean launcher exit, a live child whose scope counts immediately, ended handoffs that continue following their shared window, and an unreadable list that refuses a view and allows the desktop. The 1.2 refusal retains its error code and text.
+- All tests listed under invariants I1–I8 in the third-fix table passed. The desktop-cap test also fills the cap after the originating replies expire, and the owner-map test verifies its bound and persistence under churn.
+- In the first runs, an authentication fixture used the private session's real scope listing and a restart fixture omitted the scope for the window it was meant to adopt. They now supply the successful scope listings for those cases. The final shell module run printed the existing unclosed-socket `ResourceWarning` messages. `git diff --check` passed. The worktree's `.work/` had zero files over 500 MB.
+
+The first hosted run on `6e7bbe29` printed `Ran 2523 tests in 2761.680s` and `FAILED (failures=1, skipped=24)`. A resident Discord handoff lost its existing reply grace period when its launcher exited and the next scope check found it gone. Commit `899cabbb` restores that grace period with a separate retry time for window tracking. Its regression test checks that a fresh activation starts independently after the deadline and that the original request can still finish its handoff. [First hosted run](https://github.com/Ares-Empire/AresOS/actions/runs/45135676493)
+
+`gh workflow run 'OS image' --ref pkg/333-open-apps -f checks_only=true` dispatched the final checks on `899cabbb`. `gh run watch 45142256338 --exit-status --interval 60` exited 0. The regression job printed `Ran 2524 tests in 1798.131s` and `OK (skipped=24)`. The Discord handoff case and the new regression both passed. The hosted system manager check reported 434 unit files and 421 unit names. The ways-back source check passed and the full model step was skipped. [Final hosted run](https://github.com/Ares-Empire/AresOS/actions/runs/45142256338)
 
 ### Fifth fix (RECHECK-4)
 
@@ -164,7 +181,7 @@ After both passes, `git checkout -- reviews/` restored 66 tracked screenshots an
 
 ## Not verified
 
-- The fifth-fix regression feeds simulated window events and `systemctl list-units` output to the helper in the private session. The scenario was not exercised with a real launcher and child in a user scope.
+- The sixth-fix regressions use simulated window events and `systemctl list-units` output in the private session. A real launcher exiting after its child maps a window and restart during real scope registration still need a live-session check.
 - Bringing back the owner's real Chrome window with its tabs and trying the marks in the owner's live home. The headless restore check uses two stand-in windows and the actual helper and compositor.
 - Whether the installed Chrome turns a fresh invocation into a new window with its current settings.
 
@@ -174,11 +191,12 @@ After both passes, `git checkout -- reviews/` restored 66 tracked screenshots an
 - The lead approved eight view names with replay tables. A ninth name can take the place of one that has been disconnected for ten minutes. The five-name eviction rule would forget recent replies. The table count bounds the replay state, and changing it later is a constant change.
 - The lead approved a two-minute horizon for 64 activation receipts per client and a ten-minute horizon for launch records. A ten-minute receipt horizon would need a larger table to admit the same rate of bring-backs. Two minutes covers the mod's 45-second retry window. Changing these limits later is a constant change.
 - The lead approved 32 live launches across all view names and 256 for the desktop. Four separate quotas of 32 would permit 128 view-started apps. Updating a live limit later is a constant change with the same wire reply.
+- The scope-owner map holds 576 names, twice the combined cap, to retain live scopes and recent names during registration. At capacity it prefers to discard names missing from the active listing. With an unreadable list it prefers to discard a view name since the default attribution is already a view. Immediate removal of absent names would lose the principal of a late-registering scope. Adjusting the map's size is a constant change.
 
 ## PLAN-GAP
 
 - The examples in HOME-OUTSIDE section 5 use `chrome`. The shipped catalogue names the app `browser`, with `/chrome` as a short name. The new fixtures use `browser`.
-- The live caps govern new spawns. Restart reconciliation can recover more than 32 view-started launches from a pre-fix journal. Those launches count toward the cap while they remain live. The loader allows space for 288 live launches and up to 512 other launch trackers with saved replies. The restart test covers a journal written at the live cap.
+- The new cap covers scopes visible to systemd at the admission snapshot. Multiple launches admitted before their scopes register can temporarily take the active count over the cap. Later admissions count those scopes as soon as they appear. The admission query uses the existing five-second systemd timeout and can delay helper replies during that interval.
 
 ## Known limits
 
@@ -188,13 +206,12 @@ After both passes, `git checkout -- reviews/` restored 66 tracked screenshots an
 - Right click sends the usual launch command. A new window depends on the app. The reviewed Chrome command has no explicit new-window flag.
 - The helper journals and starts the origin of a pending-check join before it saves the joining request ID. A restart between these writes can lose the joining ID. The retry can join a surviving launch, restore an existing window, or start a fresh launch if both have gone.
 - A ninth view name gets `busy` until a name has been disconnected for ten minutes. AresOS has one view program today. Names without records are held in memory for the lifetime of the helper.
-- All views share 32 live launches. While that limit is in use, view requests to start a process are refused. The desktop has its own allowance, and a visible window can still be brought back.
+- All views share a cap of 32 active scopes, and the desktop has a cap of 256 when the list is readable. When a launch is refused, a visible window can still be brought back.
 - A client that fills its 64 activation receipts gets `journal_full` until a settled receipt is two minutes old. Each client has its own receipt limit.
 - A settled receipt is eligible for removal after two minutes. A resend after removal is a new request. The mod resends within 45 seconds, and laptop home never resends an open.
 - A holder of the shared view token can take a view's name, replace its connection and share its tables. A separate token per view would require a later supervisor change.
 - `journal_full` says “too many launches in the last few minutes” when the live launch cap is reached too.
 - When a launch outlives its saved reply, that request stops getting `app_state` events. A resend of the origin ID returns the launch's current state.
-- The desktop can start up to 256 live launches. A live launch counts even after its reply expires.
 - A tray-resident app that ignores a second start can leave the launch waiting for a window. The helper reports `no_window` after 30 seconds.
 - Restore traffic can grow helper memory while labwc is stalled and the whole session is already stalled. Growth stops when labwc answers.
 - In the half second after a tray app's last window closes, a click can report success without opening a window. A second click opens it.
