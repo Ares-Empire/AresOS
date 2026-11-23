@@ -1,5 +1,16 @@
 # Package 28a: Chrome acting progress
 
+## Recheck and main merged (2026-11-23, the lead, `linux-tools`)
+
+Recheck (Codex gpt-6.2-sol, read-only, on `0af96bc6`): **28a: SAFE**, preserved in [RECHECK-MERGE.md](RECHECK-MERGE.md);
+its two NITs are known limits. Package 28 merged to main as `11d22cd4` (PR #72, squash). PR #116 now targets main, and
+main is merged here: the 44 files where both sides changed are, on main, exactly package 28's final version
+(`8f3053a1`), which this branch already contained, so 28a's side was kept; `control/generate.py` and
+`control/chrome/ci/run.sh`, where the merge had brought back 28's test-only outline switch that 28a removed, were
+restored to 28a's version. `control/` equals `0af96bc6`; main's own changes (the test bench and others) came in.
+`generate.py --check`, `test_control_vm` (109), `test_control_image`, `test_checkout_sources`, `test_release28` and
+the gate and question tests pass.
+
 ## Merge look and control-build fixes (2026-11-23, the lead, `linux-tools`)
 
 The merge look (Codex gpt-6.2-sol, read-only, on `741e0426`) said **28: SAFE, 28a: CHANGES-NEEDED**, preserved in

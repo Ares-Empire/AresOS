@@ -49,3 +49,11 @@ The note decides the structure for both sides; `linux-desktop` adds its OS detai
 - **Plain, short sentences.** Prefer a table or a short list where it helps. State decisions as decisions, not menus. Mark anything you assume but couldn't verify in the code as an assumption.
 - **The safety bar** (the project's decision 24): design against real harm (lost work, a dead session, a home that can't come back). Low-harm edge cases go under "Known limits".
 - **Length:** as long as the decisions need and no longer; about 400 to 700 lines is the expected range.
+
+## Agreements carried from STATE
+
+- Use the build split in [HOME-OUTSIDE.md](../docs/design/HOME-OUTSIDE.md). The session-lived helper is the one source via `aresos-shell/1.3`. The native home draws the picture, bar, search, app menu and toasts. Keep both bars, use left click to open or return to apps, and reserve the bar's height on each output where it shows.
+- World Off closes Minecraft and Prism. World Off (package 7) and sleep (package 9) wait for section 13's gates, including T364. Study swap and SSD wear with `linux-aresos`, and prefetch on wake. Judge coverage by the usable area of the world's output. Keep the realtime-thread demotion after confirmed freeze and the check before thaw for audio backends that can create realtime threads. The real R28 PipeWire session had none.
+- **T493.** Fresh installs start with the normal picture home. The Minecraft world is an option.
+- **T494.** Drag desktop icons freely. Optional alignment straightens rows and grids and evens their spacing. With alignment off, icons stay where dropped.
+- **T498.** The first normal home shows a picture and a bar with the starter apps pinned. Those apps also appear in one top-left icon column. Each icon can be removed with a right click.

@@ -6,6 +6,19 @@ the additional limits accepted while building 28a: what happens, its harm, and w
 accepted under decision 24. Browser coverage and unfinished acceptance remain in
 [PROGRESS.md](PROGRESS.md).
 
+## Merge look and recheck (2026-11-23)
+
+- **The sweep's `notices` case** leaves its queue-reconciliation branch unexercised. Today's path reads only the
+  extension's in-memory queue (zero bridge calls, confirmed by both reviews); a future page lookup in that branch
+  would need its own sweep case. Low harm. ([MERGE-LOOK.md](MERGE-LOOK.md), finding 2)
+- **C8's question match is a CI matcher, not a terminal model.** It removes whitespace and the prompt's box-drawing
+  border on both sides, so a space or `│` inside a URL, a split `operation_id`, or the full question in transcript
+  text above a cut prompt would still pass, and a wrap drawn with another character would fail. The pinned fixture
+  uses an ASCII URL and Claude Code wraps with `│`; the owner's live sitting checks the real question at his terminal
+  size first. ([RECHECK-MERGE.md](RECHECK-MERGE.md), NIT 1)
+- **`GuestImportsTest` reads the Containerfile as text,** so a commented-out or misdirected COPY line would satisfy
+  it; the control build itself fails if the module is missing. ([RECHECK-MERGE.md](RECHECK-MERGE.md), NIT 2)
+
 ## Final look 2 (2026-11-21)
 
 - When the first look after a click's reply sees both a native alert and queued activation uncertainty,

@@ -1,0 +1,6 @@
+[customizations.kernel]
+append = "console=tty0 console=ttyS0,115200n8"
+
+[[customizations.filesystem]]
+mountpoint = "/"
+minsize = "28 GiB"

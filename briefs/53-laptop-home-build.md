@@ -25,7 +25,7 @@ Board brief 306, board #335. This is a handoff from `linux-hub` (2026-11-17) to 
 
 ## linux-aresos and 23c
 
-- **Step 4 belongs to `linux-aresos`.** That is the supervisor making the view token and starting and stopping the laptop home with 23c's screens. It is package 23c (STATE.md "Package 23c", the release after next).
+- **Step 4 belongs to `linux-aresos`.** That is the supervisor making the view token and starting and stopping the laptop home with 23c's screens. It is package 23c. See "Agreements carried from STATE" below.
 - **Image work:** ask `linux-aresos` for gtk4-layer-shell, JetBrains Mono and the Mesa vendor pin in the image. Step 3 only checks that they are there.
 - **Before step 5:**
   - ask `linux-aresos` whether the supervisor's `search` command goes in with 23c or after it, since both change `aresos-desktop`;
@@ -41,7 +41,7 @@ Board brief 306, board #335. This is a handoff from `linux-hub` (2026-11-17) to 
 
 ## Models and reviews
 
-**Codex ends Sat 2026-11-21.** Until then the plan below holds. After that, builds and reviews go to Claude agents (Opus by default), as CLAUDE.md says.
+Codex and Claude are available. Follow the current model and review rules for new work. The choices below record how package 53 was staffed.
 
 - **Lead:** Opus, kept light. Builds and reviews run on Codex.
 - **Builders for steps 1, 2 and 5:** Codex `gpt-6.1-sol` `xhigh`, run with `< /dev/null`. These steps are data and rules with tight briefs, so Sol fits.
@@ -175,3 +175,14 @@ Board T358's three follow-ups were built as brief 322 (Codex gpt-6.2-sol high, s
 with PR134 (`reviews/322-helper-followups/`): review 1 (gpt-6.2-sol) SAFE, `linux-aresos` read the os/ diff, hosted OS
 regressions green on the code commit (run 44911039176). Two notes went to the REPORT's Known limits. **Nothing of
 this lead's is open.** Package 53's step 4 and the laptop trial belong to 23c (`linux-aresos`).
+
+## Agreements carried from STATE
+
+Use these agreements for 23c (package 53 step 4) and the two-screen trial (step 6). The image dependencies are in B323 and ride R29. 23c wires up the native GTK/Cairo home from 53f.
+
+- Place the maximized world below other windows on the enabled external monitor at boot, move it there within seconds of a hotplug, and return it to the laptop screen on unplug. Lid closed counts as monitor-only. Pick the larger enabled non-eDP output, first connected on a tie. On the other screen show the laptop home with the plain `#0d0d10` fallback. Ordinary apps open on the pointer's output. Check the live placement at the laptop trial.
+- Confirm the reserved-keybind design in a private labwc rig. The supervisor watches outputs and invokes `ForEach` on `aresos-desktop` with `MoveToOutput` and re-Maximize via virtual keyboard. Keep the startup cover on every output and the guardian's `aresos.black` rule and coverage exclusion.
+- Create one `ARESOS_VIEW_TOKEN` per session under the section 5 contract, with its private runtime record and `PRIVATE_ENVIRONMENT`. Omit `view_token` and `nonce` from the CI overlay's session report and allowlist assertion fields. Keep the cross-screen focus-return exception scoped to a connected view.
+- Start the laptop home with the layer library preloaded and Mesa EGL/Intel Vulkan selected. In the booted VM, as the daily user, require `LAPTOP_HOME_DECODER decoded in bubblewrap`. Test the 2, 10 and 30 second restart delays. On the fullscreen fallback, preserve world focus or launch the fallback under the cover, since labwc focuses a new window before its rules run.
+- 23c owns the `Super_L` on-release binding and `aresos-desktop search`, superseding the keybind assignment to 53d above. Start the helper with SIGUSR1 ignored and signal only the supervisor's own live child after `desktop_connected`. Return success with no action if the helper or world is absent or the state is outside IN_WORLD. In the private labwc rig use marker commands, a private runtime directory and scrubbed display variables and LABWC_PID. Test a lone tap, pre-held key, unbound chord and bound chord without calling real autostart or the real supervisor.
+- Search results open on the world's screen. Warp the pointer there just before launching. If the first window maps elsewhere and is focused, move it with the reserved binding. Leave any window the owner moved where it is. Coordinate `rc.xml` changes with `linux-hub` and `linux-desktop`.
