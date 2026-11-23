@@ -1067,3 +1067,4 @@ slice passed `git diff --check a78a6574`. The cap file matches
   - unchanged: tabs, read, open, drop, operation_status, notices, notice_ack, upload, submit, submit_trusted, read_typed_fields and prepare_read_typed_fields.
   - Replies: tabs gives `seen`, `total` and a rendered list (no `data.items`); read gives the outline (no `untrusted_content.tree`).
   - C6's first-use refusal set is tabs, read, open and take, with the exact `chrome_settings_unavailable` and zero page-server arrivals; the PASS names are unchanged. The lead's read of 28a's os/ part: clean (chrome_actions.py, sessions.py, test_control_vm.py).
+- **B321's os/ read 2 (2026-11-23): CLEAN at `52c99893`** (`B321-LEAD-READ-2.md`). B321 merges after dispatch 16, which runs the stable re-resolve and gives the corrected portal binary (`29e4b8ff`) its hosted relogin proof. Any later os/ change comes back to the lead.

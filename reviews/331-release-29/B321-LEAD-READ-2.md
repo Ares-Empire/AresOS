@@ -1,0 +1,11 @@
+Read-only recheck of B321 at `52c99893`, the current head of [PR 133](https://github.com/Ares-Empire/AresOS/pull/133).
+
+- All three pending-rebind hashes match the checkout bytes. The guard and generator agree across all 270 active R28 bindings, with 10 pending rows and zero removals. `toolchain.json` and `rc.xml` are absent from the pending list. `os/manifest/ci/16/pending-rebind.json:26`
+- The main merge preserves B334a’s Bench routes and exclusions, the Control Chrome pass, its 156-minute job budget, and the read-only Chrome checker mount. `.github/workflows/os-image.yml:189`, `.github/workflows/os-image.yml:247`, `os/ci/check-image.sh:30`
+- Both Deskflow shell modes and the Python VM entry point refuse before touching build or VM state unless all three hosted job markers match. R27 and R28 require exactly their three historical apps. B321’s image check requires Deskflow as the fourth. `os/ci/check-build.sh:13`, `os/ci/deskflow/deskflow_vm.py:363`, `os/ci/owner_vm.py:1475`, `os/ci/image-checks.sh:558`
+- Stable resolve requires Fedora `updates`, excludes Deskflow from the other repositories, and records the serving repo after checking the downloaded RPM’s NEVRA and SHA-256. The resolver fixtures passed with in-memory stand-ins. Live Fedora resolution remains unverified. `os/deskflow-rpm.sh:32`, `os/ci/check-resolve.sh:270`. [DNF5 repository exclusions](https://dnf5.readthedocs.io/en/stable/dnf5.conf.5.html#excludepkgs)
+- The image builder’s portal inputs match `3348ad2f`, and the `29e4b8ff` binary pin matches the SHA-256 recorded for both clean builds. Dispatch 15 used the prior binary and failed at relogin. The corrected image still lacks a hosted relogin result. The OS diff contains only the main merge and the reviewed fixes and tests. `os/manifest/input-portal.sha256:1`, `reviews/321-deskflow-image/PROGRESS.md:1184`, `reviews/321-deskflow-image/PROGRESS.md:1209`
+
+The stock checkout suite hit seven expected scratch-directory errors. The active binding check passed using Git’s checkout filters in place of its scratch replay. The targeted hosted-guard and inventory tests also passed.
+
+CLEAN
