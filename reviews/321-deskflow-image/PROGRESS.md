@@ -1032,6 +1032,7 @@ The lead sends this list when step 3 ends and at the final head.
 | `os/tests/test_r29_image.py` | `4e02f067` | Verify the R29 candidate and the two reviewed B321 RPM additions as one exact lock. |
 | `os/tests/test_control_image.py` | `2a98bc3f` | Check that the merged source stage extracts Control from the exact revision using its shared archive root. |
 | `os/manifest/input-portal.sha256` | `29e4b8ff` | Pin the byte-identical clean builds of the backend that preserves clipboard negotiation order. |
+| `os/manifest/input-portal.sha256` | `c9ad371b` | Pin clipboard fix 2 at `81bdc5c1abd1e97e1a02c1ec4edd4c37745c022e6670abce1d332508452b0fda`. |
 
 Not touched in step 1c: `os/Containerfile` (the stage copies the whole `labwc/` folder, so the second patch needs no
 new line; its comment above the stage still says "one upstream fix" and should name both patches when the file is
@@ -1226,6 +1227,27 @@ on the corrected image remains unverified. Dispatch 16 is reserved for the lead'
 - OS discovery passed `test_deskflow_vm.py` (20), `test_input_portal_layers.py` (3), and `test_shell_assertions.py`
   (10) again. The harness Python syntax and scoped whitespace checks passed. The binding generator produced
   the same pending record. No `__pycache__` under `os/config` or file over 500 MB under `.work/` remained.
+
+### Clipboard fix 2
+
+`0fb299fb` keeps `RequestClipboard` ahead of `Start` and checks the sender against the current frontend
+owner on a separate D-Bus connection. A lookup that exceeds 250 ms refuses the call. The new unit test
+fills zbus's method queue while Clipboard authorization is pending. It checks that normal release
+and Off via revoke receive compositor-confirmed replies within the release deadline, and that
+the non-frontend caller is denied. The harness still sends the two negotiation calls back-to-back,
+as in the test 5 reproduction above. [Saved review](REVIEW-5-CLIPBOARD.md)
+
+- Two clean `os/input-portal/dev/container.sh build` runs (outputs under
+  `.work/321-clipboard-fix-2/backend-{1,2}`) each reported `105 passed; 0 failed; 0 ignored`.
+  `cmp` returned 0 and `sha256sum -c` matched both binaries to the new pin.
+- Two `os/input-portal/harness/run.sh run` runs used
+  `HARNESS_IMAGE=localhost/aresos-input-portal-harness:321-step2` and the matching clean build of each
+  binary. Evidence is under `.work/321-clipboard-fix-2/harness-{1,2}`. Each reported
+  `SUMMARY 137 passed, 0 failed, exit 0`. For tests 1 through 10 the counts in each run were
+  18, 8, 9, 8, 3, 8, 15, 20, 7 and 28, plus 13 setup, isolation and review checks.
+- Builds and harness runs used sequential throwaway rootless containers. The `.work/` check found
+  zero files over 500 MB. Deskflow relogin on the corrected image remains unverified. CI dispatch count
+  for this fix is zero.
 
 ### Local verification for dispatch 12
 
