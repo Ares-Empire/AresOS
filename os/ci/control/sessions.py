@@ -14,7 +14,7 @@ import subprocess
 import time
 
 from interactive_driver import Terminal, options
-from interactive_model import Model, texts
+from interactive_model import Model
 
 OWNER = pwd.getpwnam('ares')
 HOME = pathlib.Path(OWNER.pw_dir)
@@ -209,9 +209,7 @@ def session(evidence, steps, flags, answers, before_turn=None, turn_seconds=180,
                 terminal.save(f'settled-{index + 1}', terminal.screen())
                 assert model.error is None, model.error
                 if step.get('prepare'):
-                    prepared = model.script.results.get(f'prepare-{index}')
-                    approval = json.loads(next(text for text in texts(prepared['content'])
-                                               if text.startswith('{')))['data']['approval']
+                    approval = model.script.prepared_approval(index)
                     question = approval['question']
                     if answer in ('Yes', 'No'):
                         asked = next(path for number, path in saved(screens, f'*-answer-{answer}')

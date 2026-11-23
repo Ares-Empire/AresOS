@@ -479,7 +479,7 @@ class Pages:
                     body, kind = b'<!doctype html><title>Chrome pass</title><p>An ordinary page.</p>', 'text/html'
                 elif path.path in ('/form-yes', '/form-no'):
                     body = (f'<!doctype html><title>Chrome form</title><form method="post" action="{path.path}">'
-                            '<label>Test message <input name="message" required></label>'
+                            '<label for="message">Test message</label><input id="message" name="message" required>'
                             '<button>Submit test message</button></form>').encode()
                     kind = 'text/html'
                 else:
@@ -952,8 +952,8 @@ def hand_over(url, label):
 def his_page(step):
     """An ordinary page of the page server in a tab of his, opened by hand-over, arrived at the server."""
     _, _, pages = fixtures()
-    opened = hand_over(f'{ADDRESS}/browse?step={step}', step)
-    eventually(lambda: pages.seen(f'step={step}'), f'his page {step} arrives at the page server', 60)
+    opened = hand_over(f'{ADDRESS}/browse/{step}', step)
+    eventually(lambda: pages.seen(f'/browse/{step}'), f'his page {step} arrives at the page server', 60)
     return opened
 
 
@@ -979,11 +979,21 @@ def list_state():
 
 def tabs_listed():
     result = tool('tabs', {})
-    data = result['json'] or {}
-    if result['returncode'] == 0 and data.get('ok') is True and (data.get('data') or {}).get('items'):
+    answer = result['json'] or {}
+    data = answer.get('data', {})
+    if result['returncode'] == 0 and answer.get('ok') is True and data.get('seen') and data.get('total', 0) > 0 \
+            and data.get('untrusted_content', {}).get('list', '').strip():
         return data
-    STATE['last_tabs'] = data or result['stderr'][-500:]
+    STATE['last_tabs'] = answer or result['stderr'][-500:]
     return None
+
+
+def tab_rows(listed):
+    """Parse the complete list for the small fixture profile. Quoted titles can contain escaped quotes."""
+    listing = listed['untrusted_content']['list']
+    rows = re.findall(r'^ +([0-9]+) (?:his|claude|taken) (?:[\w*]+ )*"(?:[^"\\]|\\.)*" (\S+)$', listing, re.M)
+    expect(listed['cursor'] is None and len(rows) == listed['total'], f'expected a complete fixture tab list: {listed}')
+    return [(int(tab), address) for tab, address in rows]
 
 
 def sites_first_use(request):
@@ -995,7 +1005,8 @@ def sites_first_use(request):
     expect(LIST.read_bytes() == placeholder(tmpfiles), 'the placeholder is still in place')
     before = list_state()
     target = f'{ADDRESS}/browse?step=first-use'
-    calls = {'tabs': {}, 'read': {'tab': 1}, 'open': {'url': target}, 'take_tab': {'tab': 1}}
+    # A first-use take cannot get a seen token. The settings gate must answer before take's live tab checks.
+    calls = {'tabs': {}, 'read': {'tab': 1}, 'open': {'url': target}, 'take': {'tab': 1}}
     answers = {}
     for name, value in calls.items():
         result = tool(name, value)
@@ -1016,9 +1027,9 @@ def sites_first_use(request):
     except Failure as error:
         raise Failure(f'{error}; the last answer: {STATE.get("last_tabs")}') from error
     summary = dict(refusals=answers, page_server_hits=len(pages.seen('step=first-use')), before=before, list=after,
-                   tabs=len(listed['data']['items']))
+                   tabs=listed['total'])
     return dict(returncode=0, summary=summary, files=control().files_out({'chrome/c6-first-use.json': dict(
-        summary, tab_titles=[item.get('title') for item in listed['data']['items']])}))
+        summary, tab_list=listed['untrusted_content']['list'])}))
 
 
 def sites_after_reboot(request):
@@ -1028,7 +1039,7 @@ def sites_after_reboot(request):
     chrome, record, info, times = start_his_chrome('after-reboot')
     his_page('his-tab-after-reboot')
     listed = eventually(tabs_listed, 'tabs lists his tabs after the reboot', 90, interval=1)
-    summary = dict(list=now, seconds_after_start=times, tabs=len(listed['data']['items']), host=one_host(chrome))
+    summary = dict(list=now, seconds_after_start=times, tabs=listed['total'], host=one_host(chrome))
     return dict(returncode=0, summary=summary, files=control().files_out({
         'chrome/c6-after-reboot.json': summary, 'chrome/chrome-after-reboot.txt': chrome_log(chrome)}))
 
@@ -1084,9 +1095,28 @@ def page_tab(step=PAGE_STEP):
         listed = eventually(tabs_listed, 'tabs lists his tabs', 60, interval=1)
     except Failure as error:
         raise Failure(f'{error}; the last answer: {STATE.get("last_tabs")}') from error
-    items = [item for item in listed['data']['items'] if item.get('url') == f'{ADDRESS}/browse?step={step}']
-    expect(len(items) == 1, f'one tab of his shows the page server: {[item.get("url") for item in listed["data"]["items"]]}')
-    return items[0]['tab'], listed
+    rows = tab_rows(listed)
+    tabs = [tab for tab, address in rows if address == f'{ADDRESS}/browse/{step}']
+    expect(len(tabs) == 1, f'one tab shows the fixture page for {step}: {rows}')
+    return tabs[0], listed
+
+
+def read_tab(data, tab):
+    """A successful outer read may still contain a tab-level refusal."""
+    page, = data['reads']
+    expect(page['tab'] == tab and 'error' not in page, f'the requested tab was read: {page}')
+    return page
+
+
+def read_fixture_page(step, tab, listed):
+    # Taking an owner tab keeps its document. Use the list that identified the tab for the take.
+    taken = control().answered(tool('take', {'tab': tab, 'seen': listed['seen']}))['data']
+    expect(taken['tab'] == tab and not taken.get('owner_dialog'), f'the fixture tab was taken: {taken}')
+    page = read_tab(control().answered(tool('read', {'tab': tab}))['data'], tab)
+    content = page['untrusted_content']
+    expect(content['url'] == f'{ADDRESS}/browse/{step}' and content['title'] == 'Chrome pass'
+           and 'An ordinary page.' in content['outline'], f"the page server's page is read: {content}")
+    return taken, page
 
 
 def probe_refused(link):
@@ -1136,24 +1166,19 @@ def native_host(request):
                                                             peer_uids=[uid])],
            f"chrome.sock's one connection joins the service ({unit}) and the host as {OWNER} ({host['pid']}): {ends}")
     tab, listed = page_tab()
-    arrived = len(pages.seen(f'step={PAGE_STEP}'))
-    # A read needs the tab in the Claude group (the extension's requireTab); taking an owner tab keeps its document.
-    taken = control().answered(tool('take_tab', {'tab': tab})).get('data')
-    result = tool('read', {'tab': tab})
-    page = control().answered(result)['data']
+    arrived = len(pages.seen(f'/browse/{PAGE_STEP}'))
+    taken, page = read_fixture_page(PAGE_STEP, tab, listed)
     content = page['untrusted_content']
-    expect(content.get('url') == f'{ADDRESS}/browse?step={PAGE_STEP}' and content.get('title') == 'Chrome pass'
-           and 'An ordinary page.' in json.dumps(content), f"the page server's page is read: {content}")
     refusal = probe_refused(link)
     after = one_host(chrome)
     expect(after['pid'] == host['pid'], f'the same host is still the only one: {host} {after}')
     expect(tabs_listed(), f'ours still answers after the probe was refused: {STATE.get("last_tabs")}')
     summary = dict(peer_uid=uid, host=dict(pid=host['pid'], in_chrome_scope=host['in_chrome_scope']),
-                   service=dict(pid=int(unit['MainPID']), user=unit['User']), tabs=len(listed['data']['items']),
+                   service=dict(pid=int(unit['MainPID']), user=unit['User']), tabs=listed['total'],
                    read=dict(tab=tab, characters=page.get('characters'), title=content.get('title')),
-                   page_server_requests_by_read=len(pages.seen(f'step={PAGE_STEP}')) - arrived, probe=refusal)
+                   page_server_requests_by_read=len(pages.seen(f'/browse/{PAGE_STEP}')) - arrived, probe=refusal)
     return dict(returncode=0, summary=summary, files=control().files_out({'chrome/c3-host.json': dict(
-        summary, connections=ends, manifest=manifest, taken=taken, tree=content.get('tree', '')[:4000])}))
+        summary, connections=ends, manifest=manifest, taken=taken, outline=content['outline'][:4000])}))
 
 
 # --- C6 sites, the later part -------------------------------------------------------------------------------------
@@ -1299,7 +1324,7 @@ def sites_later(request):
         after = list_state()
         expect(after == before, f'{label}: restored, the hash equal to the one before: {before} {after}')
         listed = eventually(tabs_listed, f'{label}: tabs lists his tabs again', 60, interval=1)
-        restored.append(dict(part=label, sha256=after['sha256'], tabs=len(listed['data']['items'])))
+        restored.append(dict(part=label, sha256=after['sha256'], tabs=listed['total']))
     try:
         owner = control().run([*control().as_user(OWNER), '/usr/bin/python3', '-I', '-S', '-c', WRITE_PROBE, str(LIST),
                                str(LIST_FOLDER)], timeout=60)
@@ -1329,9 +1354,9 @@ def sites_later(request):
         time.sleep(2)
         expect(not pages.seen('step=c6-excluded'), f'the page server received nothing: {pages.seen("step=c6-excluded")}')
         listed = eventually(tabs_listed, 'tabs lists his tabs with the test host on the list', 60, interval=1)
-        hosts = [str(item.get('url')) for item in listed['data']['items']]
-        expect(not [url for url in hosts if any(host in url for host in [*fixed, TEST_HOST])],
-               f'no tab opened on a refused host: {hosts}')
+        addresses = [address for _, address in tab_rows(listed)]
+        expect(not [address for address in addresses if any(host in address for host in [*fixed, TEST_HOST])],
+               f'no tab opened on a refused host: {addresses}')
         tee(EMPTY_LIST)
         restore('test host')
         os.chmod(LIST, 0o660)
@@ -1626,18 +1651,14 @@ def update_switch(label, current, previous, link, probe):
     listed = link.call('all')
     expect(listed['ok'] and {row['id'] for row in listed['value']} & considered == expected, f'current IDs: {listed}')
     his_page(label)
-    tab, _ = page_tab(label)
-    actions = control()
-    actions.answered(tool('take_tab', {'tab': tab}))
-    page = actions.answered(tool('read', {'tab': tab}))['data']['untrusted_content']
-    expect(page['title'] == 'Chrome pass' and page['url'] == f'{ADDRESS}/browse?step={label}'
-           and 'An ordinary page.' in page['tree'], f'the current extension reads the local page: {page}')
+    tab, tabs = page_tab(label)
+    _, page = read_fixture_page(label, tab, tabs)
     host = one_host(chrome)
     expect(host['in_chrome_scope'], f'the new Chrome scope owns the connected host: {host}')
     refusal = probe_refused(link)
     expect(one_host(chrome)['pid'] == host['pid'] and tabs_listed(), 'the current host still answers')
     return dict(current=current['id'], previous=previous['id'], version=info['version'], seconds_after_start=times,
-                read=page['title'], host_pid=host['pid'], manifest=manifest['allowed_origins'], probe=refusal)
+                read=page['untrusted_content']['title'], host_pid=host['pid'], manifest=manifest['allowed_origins'], probe=refusal)
 
 
 def update(request):
@@ -1982,10 +2003,11 @@ FORM_BUTTON = 'Submit test message'
 
 
 def form_target(page, label, role):
-    rows = [json.loads(line) for line in page['untrusted_content']['tree'].splitlines() if line.startswith('{')]
-    targets = [row for row in rows if row['expected'].get('name') == label and row['expected'].get('role') == role]
+    prefix = re.escape(f'{role} "{label}"')
+    outline = page['untrusted_content']['outline']
+    targets = re.findall(rf'^ *{prefix}(?: [^\n]*)? ([a-z]{{5}}[0-9]+)$', outline, re.M)
     expect(len(targets) == 1, f'the form has one {role} named {label}')
-    return {key: targets[0][key] for key in ('reference', 'expected')}
+    return targets[0]
 
 
 def mcp_data(result, texts):
@@ -2000,6 +2022,14 @@ def form_model(url):
     from interactive_model import Model, Script, texts, tool as tool_use
 
     class FormScript(Script):
+        def prepared_approval(self, index):
+            result = mcp_data(self.results[f'prepare-{index}'], texts)
+            expect('error' not in result and [step['outcome'] for step in result['steps']] == ['prepared']
+                   and len(result['prepared']) == 1, f'the submit click reserved exactly one operation: {result}')
+            prepared, = result['prepared']
+            expect(prepared['state'] == 'reserved', f'the submit click is reserved: {prepared}')
+            return prepared['approval']
+
         def respond(self, request):
             for message in request.get('messages', []):
                 content = message.get('content')
@@ -2017,20 +2047,26 @@ def form_model(url):
 
             if 'form-open' not in self.results:
                 return issue('open', {'url': url}, 'form-open')
-            tab = data('form-open')['untrusted_content']['tab']
+            tab = data('form-open')['tab']
             if 'form-wait' not in self.results:
-                return issue('wait', {'tab': tab, 'element': {'name': FORM_FIELD, 'role': 'textbox'},
-                                      'timeout_ms': 8000}, 'form-wait')
+                return issue('read', {'tab': tab, 'until': {'text': FORM_FIELD}, 'timeout_ms': 6000}, 'form-wait')
             if 'form-fill' not in self.results:
-                page = data('form-wait')
-                expect(page.get('condition_met') and page['untrusted_content']['url'] == url,
+                page = read_tab(data('form-wait'), tab)
+                expect(page.get('until_met') is True and page['untrusted_content']['url'] == url,
                        'the guarded test form has loaded in the tab Claude opened')
-                return issue('fill', dict(form_target(page, FORM_FIELD, 'textbox'), text=FORM_TEXT), 'form-fill')
-            expect(not data('form-fill').get('approval'), 'filling a plain text field is free')
+                field = form_target(page, FORM_FIELD, 'textbox')
+                return issue('do', {'tab': tab, 'steps': [{'do': 'fill', 'ref': field, 'text': FORM_TEXT}]}, 'form-fill')
+            filled = data('form-fill')
+            expect(filled['tab'] == tab and 'error' not in filled and not filled['prepared']
+                   and [step['outcome'] for step in filled['steps']] == ['done'],
+                   f'filling a plain text field ran without approval: {filled}')
             if 'form-filled-view' not in self.results:
                 return issue('read', {'tab': tab}, 'form-filled-view')
             if 'prepare-0' not in self.issued:
-                self.steps[0]['prepare']['input'] = form_target(data('form-filled-view'), FORM_BUTTON, 'button')
+                page = read_tab(data('form-filled-view'), tab)
+                expect(page['untrusted_content']['url'] == url, 'the filled view is still the fixture form')
+                button = form_target(page, FORM_BUTTON, 'button')
+                self.steps[0]['prepare']['input'] = {'tab': tab, 'steps': [{'do': 'click', 'ref': button}]}
             return super().respond(request)
 
     def create(steps, evidence, port):
@@ -2058,7 +2094,7 @@ def ask_form(request):
     managed = sha256(managed_path)
     expect(managed == json.loads(RECORD.read_text())['files'][managed_path]['sha256'],
            'Claude Code uses the shipped managed settings')
-    sessions_.user_settings([f'mcp__chrome__{verb}' for verb in ('open', 'wait', 'fill', 'read', 'click')])
+    sessions_.user_settings([f'mcp__chrome__{verb}' for verb in ('open', 'read', 'do')])
     out = RUN / 'c8'
     rows, expected, errors, files, folders = {}, [], [], {}, {}
     for answer in ('Yes', 'No'):
@@ -2067,7 +2103,7 @@ def ask_form(request):
         folder = out / case
         folders[f'chrome/c8-{case}.tar.gz'] = folder
         step = dict(prompt=f'CHROME_FORM_ASK_{answer.upper()}', send='mcp__chrome__submit',
-                    prepare={'name': 'mcp__chrome__click', 'input': None})
+                    prepare={'name': 'mcp__chrome__do', 'input': None})
         try:
             before = form_arrivals(pages, expected)
             result = sessions_.session(folder, [step], sessions_.NORMAL, [answer], terminal_height=120,
