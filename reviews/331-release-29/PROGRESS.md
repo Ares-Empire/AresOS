@@ -1050,3 +1050,8 @@ exited 1 with `STOP: rerun the historical R29 baseline preflight on the current 
 The incoming B334 design note has a whitespace-only line. The post-merge
 slice passed `git diff --check a78a6574`. The cap file matches
 `1ac63562` byte for byte. There are no files over 500 MB in `.work/`.
+
+## Late-package slice reviewed 2026-11-23 (the lead)
+
+- **REVIEW-12** (fresh Codex `gpt-6.2-sol` high, at `0f8b6870`): SAFE. 18c-b, B329, B330 and the mod changes of 327, 328a and 328 are classified.
+- **Waiting for the cut:** B321 (Deskflow (c)) under item 6's four conditions, and any later merges such as B334a (bench) and further mod changes. Then the cut slice, the resolve, the dry run, the rerun of the baseline preflight (3 of its 73 inputs changed in this slice), and the publish gate.
