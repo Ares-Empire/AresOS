@@ -100,15 +100,16 @@ Our own Empire apps get API tools (below). Everything else goes through the Chro
 ## One-time codes, suggested when needed (owner, 2026-11-25)
 
 The owner's idea, written down so it isn't lost; not scoped yet. A phone offers a sign-in code from a fresh SMS or
-mail right above the keyboard. Laptops mostly don't (Windows not at all), and even phones miss codes that arrive in
-Gmail and other mail apps. AresOS should do it for every mail account he has, whichever program or website he reads
-it in: notice a new mail with a code, and offer the code at the moment a field asks for one.
+mail right above the keyboard. Laptops mostly don't (Windows at best offers to copy a code it spots in a
+notification), and even phones miss codes that arrive in Gmail and other mail apps. AresOS should do it for every
+mail account he has, whichever program or website he reads it in: notice a new mail with a code, and offer the code
+at the moment a field asks for one.
 
 | Feature | Tool | Effect | State |
 |---|---|---|---|
 | Find codes in new mail, in every account | a code watcher in the tool service, on the accounts Mail already holds; it needs the same IMAP IDLE piece as "New mail arrives" under Mail | read | later |
 | Chrome: when a code field gets focus (`autocomplete="one-time-code"`, the code words of the credential-word list, a row of single-digit boxes), a small suggestion under the field shows the code, the sender and its age; one click or Tab fills it, every box of a split field included | our Chrome extension | change, on his own click | later: needs our script in his tabs before he uses them, which section 6 of [`CONTROL.md`](../design/CONTROL.md) rules out today ("Nothing of ours watches a tab of his before the first read"), so it is the owner's call |
-| Other apps (native and Flatpak): a fresh code shows as a toast; a key copies or types the newest code. Later perhaps a suggestion like the iPhone's bar over the keyboard, through an input method (check what labwc supports) | `aresos-toast` ([`HOME-OUTSIDE.md`](../design/HOME-OUTSIDE.md)); today's toast lets clicks pass through, so the action is a key | change, on his own key | later |
+| Other apps (native and Flatpak): a fresh code shows as a toast; a key types the newest code into the focused field. Later perhaps a suggestion like the iPhone's bar over the keyboard, through an input method (check what labwc supports) | `aresos-toast` ([`HOME-OUTSIDE.md`](../design/HOME-OUTSIDE.md)); today's toast lets clicks pass through, so the action is a key | change, on his own key | later |
 | Mail he reads only in a browser (Gmail, Outlook and others on the web) | the account route below | read | later |
 | Move the code mail to the Trash once the code is used, as iOS offers | the code watcher, on his own setting | delete | later, optional |
 | Codes from SMS | for example an iPhone Shortcuts automation that passes code messages to the laptop through Aresus | | maybe later: an iPhone doesn't share SMS with Linux |
@@ -134,9 +135,15 @@ route that covers every program reads the account:
 - Codes go from the tool service to his screen only, never to Claude, its tools or its session. The reader never
   reads a code field and Claude never types a code (section 6 of [`CONTROL.md`](../design/CONTROL.md)); filling
   stays his own click or key, never an action on `act.sock`.
-- Offer only fresh codes (a few minutes old) and show the sender. Prefer the code whose sender matches the site, so
-  a bank's code isn't offered on a look-alike site; phones do this with domain-bound codes
-  (`@example.com #123456`).
+- Offer only fresh codes (a few minutes old) and show the sender. In Chrome, offer a code only where its sender
+  matches the site, and keep it out of the page until his click, so a look-alike site can neither be offered a
+  bank's code nor read it from the suggestion; phones do this with domain-bound codes (`@example.com #123456`).
+- Type the code rather than copy it: the clipboard is open to every program of his, Claude Code's terminal
+  included. Where copying is the only way, clear the clipboard soon after.
+- Open question: Claude can already read a code mail through `mail_read` and `mail_search`, while a sign-in code
+  reaching Claude is never an accepted limit (section 6 of [`CONTROL.md`](../design/CONTROL.md), owner,
+  2026-11-11). Whether the Mail tool should hide codes from Claude, and how, is open; it matters with or without
+  this feature.
 - Codes are found by local rules (the usual formats, English and German wording). Mail text never goes to an outside
   AI for this.
 - The suggestion and the toast use AresOS's own look.
