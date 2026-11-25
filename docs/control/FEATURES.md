@@ -97,6 +97,50 @@ Our own Empire apps get API tools (below). Everything else goes through the Chro
 | Minecraft stage 2: Claude as a survival player in his world | the stage 1 tool plus a planning loop | change | later: after stage 1 |
 | Minecraft stage 3: a Claude player genuinely pro at modern PvP, not just the sword. Owner's list: pearl and wind charge; mace (also mace and axe against shields); water and trident (riptide); crystal; totems (also refilling from the inventory); spear, elytra and mace; sword; shield; blocks; cobwebs; rails; TNT minecarts; TNT and fishing rod. In his words: "I wanna see some form of claude minecraft player a pro at all of that genuinely beating pro pvpers" | kit by kit: each mechanic a coded module with exact physics from the game code (trajectories, explosion, fall and mace damage, totem timing); the mod reads the exact game state every tick (no screen reading); a fast learned policy for movement and combo choice, trained by self-play in a sped-up world (`/tick sprint`, a headless server or a stripped combat simulator); Claude designs the modules and the training, and analyses recorded fights | change | later: research, no rush, after stages 1 and 2. Benchmarks: him first, then pro players who agree, on his own server. Self-play training needs GPU compute, which is spending, so it's the owner's call when we get there. Singleplayer or his own server only: bots get banned on public servers |
 
+## One-time codes, suggested when needed (owner, 2026-11-25)
+
+The owner's idea, written down so it isn't lost; not scoped yet. A phone offers a sign-in code from a fresh SMS or
+mail right above the keyboard. Laptops mostly don't (Windows not at all), and even phones miss codes that arrive in
+Gmail and other mail apps. AresOS should do it for every mail account he has, whichever program or website he reads
+it in: notice a new mail with a code, and offer the code at the moment a field asks for one.
+
+| Feature | Tool | Effect | State |
+|---|---|---|---|
+| Find codes in new mail, in every account | a code watcher in the tool service, on the accounts Mail already holds; it needs the same IMAP IDLE piece as "New mail arrives" under Mail | read | later |
+| Chrome: when a code field gets focus (`autocomplete="one-time-code"`, the code words of the credential-word list, a row of single-digit boxes), a small suggestion under the field shows the code, the sender and its age; one click or Tab fills it, every box of a split field included | our Chrome extension | change, on his own click | later: needs our script in his tabs before he uses them, which section 6 of [`CONTROL.md`](../design/CONTROL.md) rules out today ("Nothing of ours watches a tab of his before the first read"), so it is the owner's call |
+| Other apps (native and Flatpak): a fresh code shows as a toast; a key copies or types the newest code. Later perhaps a suggestion like the iPhone's bar over the keyboard, through an input method (check what labwc supports) | `aresos-toast` ([`HOME-OUTSIDE.md`](../design/HOME-OUTSIDE.md)); today's toast lets clicks pass through, so the action is a key | change, on his own key | later |
+| Mail he reads only in a browser (Gmail, Outlook and others on the web) | the account route below | read | later |
+| Move the code mail to the Trash once the code is used, as iOS offers | the code watcher, on his own setting | delete | later, optional |
+| Codes from SMS | for example an iPhone Shortcuts automation that passes code messages to the laptop through Aresus | | maybe later: an iPhone doesn't share SMS with Linux |
+
+**Mail read in a browser (explored 2026-11-25).** The code arrives at the mail server, not at a program, so the
+route that covers every program reads the account:
+
+1. **The account, signed in once in AresOS (the route to build).** The Mail tool already keeps accounts in the tool
+   service (`aresos admin mail account …`) and reads them over IMAP. A code watcher there sees every new mail,
+   whether he reads it in Chrome, in a mail program or not at all. This is the owner's "sign in centrally" idea,
+   without a browser. The gap: Gmail and Outlook.com don't let other programs sign in with the normal password; they
+   need a Google or Microsoft sign-in (OAuth) or an app password, and today's Mail tool signs in with a password
+   only. A Google and Microsoft sign-in is the main new piece. Their mail APIs (Gmail API, Microsoft Graph) are an
+   alternative to IMAP behind the same sign-in.
+2. **Our Chrome extension reading an open webmail tab (fallback).** Works for webmail with no IMAP, but only while
+   that tab is open, and it watches a tab of his, which needs the same owner's call as the Chrome suggestion above.
+3. **A hidden browser signed in to the webmail (last resort).** Works with any site, but it keeps a full sign-in on
+   disk, breaks when the site changes its pages, costs memory on a 16 GB laptop, and Google often blocks sign-ins
+   from automated browsers. Only for a provider with neither IMAP nor an API.
+
+**Rules carried from the control design.** A code is a credential:
+
+- Codes go from the tool service to his screen only, never to Claude, its tools or its session. The reader never
+  reads a code field and Claude never types a code (section 6 of [`CONTROL.md`](../design/CONTROL.md)); filling
+  stays his own click or key, never an action on `act.sock`.
+- Offer only fresh codes (a few minutes old) and show the sender. Prefer the code whose sender matches the site, so
+  a bank's code isn't offered on a look-alike site; phones do this with domain-bound codes
+  (`@example.com #123456`).
+- Codes are found by local rules (the usual formats, English and German wording). Mail text never goes to an outside
+  AI for this.
+- The suggestion and the toast use AresOS's own look.
+
 ## Chrome
 
 The light tool (decision 25): our extension in his normal Chrome, no proxy and no certificate. It asks before
