@@ -10,7 +10,7 @@ A review covers exactly the commit it looked at. Anything pushed later isn't cov
 
 ## Package review (every package)
 
-After Codex opens a PR, one fresh reviewer checks it: a new read-only `codex-job` (never a continued build job). Its report is its answer. On the AresOS laptop, use the raw `codex exec` fallback in `~/aresync/TOOLS.md` instead (read-only, `-o` to the same file) until codex-job's Linux test run has passed; the same goes for councils below.
+After Codex opens a PR, one fresh reviewer checks it: a new read-only `codex-job` (never a continued build job). Its report is its answer. On the AresOS laptop, use the raw `codex exec` fallback in `~/aresync/TOOLS.md` instead (read-only, `-o` to a scratch file, moved into place when it finished nonempty) until codex-job's Linux test run has passed; the same goes for councils below.
 
 ```bash
 WT=~/AresOS-NN-slug
@@ -18,7 +18,7 @@ codex-job start aresos-bNN-review -C "$WT" -m "$REVIEW_MODEL" --effort high -s r
   --prompt "You review PR #N of AresOS. Read AGENTS.md, briefs/NN-slug.md and reviews/NN-slug/REPORT.md, then the diff (git diff main...HEAD). Find what is wrong, missing compared to the brief, or will break in the game. Look hardest for things that fail silently: tests pass, but the game behaves wrong. For each finding give severity (blocking / should-fix / nit), where it is, why it matters, and the fix. End with one line: SAFE or CHANGES-NEEDED."
 ```
 
-Once its wait exits 0, save turn 1 as `$WT/reviews/NN-slug/REVIEW.md` (TOOLS.md → "Saving a report"). For the re-check of fixes, continue the same review job and save turn 2 as `REVIEW-2.md`.
+Once its wait exits 0, save turn 1 as `$WT/reviews/NN-slug/REVIEW.md` (TOOLS.md → "Saving a report"). For each re-check of fixes, continue the same review job and save that turn (`codex-job status` shows its number) as the next `REVIEW-N.md`.
 
 - Blocking findings become a short follow-up brief, and Codex fixes them on the same branch.
 - The reviewer then checks only those fixes plus anything they touched. It doesn't start a fresh hunt.
