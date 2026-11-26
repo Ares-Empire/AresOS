@@ -15,6 +15,7 @@ CHROME_CHECKS = ('chrome_links', 'chrome_bundle', 'chrome_other_ids', 'chrome_si
 CHROME_FIRST_USE = 'os/ci/release29_chrome_probe.py'
 POLKIT_REVIEW = 'os/ci/polkit-review.json'
 GH_LOCK = 'os/gh.lock.json'
+GUEST_HOSTNAME = 'aresos-rehearsal'
 SITES = r28.SITES
 STAGED_SITES = '/var/lib/aresos-r29-rehearsal-sites.json'
 SYNTHETIC_SITES = r28.SITES_LIST.encode() + b'\n'
@@ -47,6 +48,33 @@ def capture(guest, stage, vm, source):
     value = guest.capture_json(stage, vm.sw.framed('python3 -c ' + shlex.quote(source)))
     vm.td.save(stage, value)
     return value
+
+
+HOSTNAME = '''import json, os, pathlib, subprocess
+command=['/usr/bin/hostnamectl']
+out=dict(initialized=@INITIALIZE@)
+try:
+    assert os.getuid()==0, 'expected the installed guest root console'
+    if @INITIALIZE@:
+        subprocess.run(command+['--static','--transient','set-hostname',@HOSTNAME@],
+                       capture_output=True, check=True, timeout=20)
+    for kind in ('static','transient'):
+        out[kind]=subprocess.check_output(command+['--'+kind,'hostname'],text=True,timeout=20).strip()
+    out['file']=pathlib.Path('/etc/hostname').read_text()
+except (AssertionError, OSError, subprocess.SubprocessError) as error:
+    out['error']=str(error)
+print(json.dumps(out))
+'''
+
+
+def installed_hostname(guest, stage, vm):
+    # Set it on the first reachable boot of the installed stock. Each later
+    # deployment must inherit it through /etc without a repair masking drift.
+    initialize = stage == 'stock'
+    source = r28.program(HOSTNAME, initialize=initialize, hostname=GUEST_HOSTNAME)
+    value = capture(guest, stage + '-hostname', vm, source)
+    assert value == dict(initialized=initialize, static=GUEST_HOSTNAME, transient=GUEST_HOSTNAME,
+                         file=GUEST_HOSTNAME + '\n'), 'STOP: installed guest hostname differs at ' + stage + ': ' + json.dumps(value)
 
 
 def control(guest, stage, vm, *, expected_sites=None):

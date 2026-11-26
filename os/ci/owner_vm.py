@@ -194,6 +194,9 @@ class Guest(td.Guest):
                 boot_stall(self, getattr(self, 'boot_purpose', self.mode))
             raise
         self.owner_signed_in = True
+        if self.mode == 'installed' and os.environ.get('REHEARSAL_PACKAGE') == '331':
+            import release29_probes
+            release29_probes.installed_hostname(self, self.boot_purpose, sys.modules[__name__])
         self.keyboard_device()
         owner_xhci.checkpoint(self, 'boot-' + str(self.boot_number) + '-begin')
         if not self.network_up:

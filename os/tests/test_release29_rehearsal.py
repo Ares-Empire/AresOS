@@ -82,6 +82,26 @@ def prepare_fixture(root, stack):
 
 
 class RegistryTest(unittest.TestCase):
+    def test_installed_login_checks_hostname_before_the_walk_continues(self):
+        guest = object.__new__(vm.Guest)
+        guest.network_up = True
+        guest.boot_purpose = 'stock'
+        guest.boot_number = 1
+        for mode, package, expected in (('installed', '331', ['root', 'hostname', 'keyboard']),
+                                        ('live', '331', ['root', 'keyboard']),
+                                        ('installed', '42', ['root', 'keyboard'])):
+            events = []
+            guest.mode = mode
+            with self.subTest(mode=mode, package=package), patch.dict(os.environ, REHEARSAL_PACKAGE=package), \
+                    patch.object(vm.td.Guest, 'login', side_effect=lambda: events.append('root')), \
+                    patch.object(guest, 'keyboard_device', side_effect=lambda: events.append('keyboard')), \
+                    patch.object(vm.owner_xhci, 'checkpoint'), \
+                    patch.object(probes, 'installed_hostname', side_effect=lambda *_: events.append('hostname')) as check:
+                guest.login()
+                self.assertEqual(events, expected)
+                if 'hostname' in expected:
+                    check.assert_called_once_with(guest, 'stock', vm)
+
     def test_r29_native_runner_tools_require_the_exact_hosted_walk(self):
         for mode in auth.R29_WALK_MODES:
             with self.subTest(mode=mode), patch.dict(os.environ, ENV | {'REHEARSAL_MODE': mode}, clear=True), \
@@ -471,6 +491,8 @@ class Release29Session(Release28Session):
             rel = f'usr/share/aresos/apps/{app}.json'
             self.write('/' + rel, (ROOT / 'os/config' / rel).read_text())
         self.tee_calls = 0
+        self.hostname_sets = []
+        self.transient = 'initial-network-name'
         self.now = 0
         self.owners[str(self.Path(probes.STAGED_SITES))] = (0, 0)
         self.passwordless = {'org.aresos.rehearsal.unreviewed'} if fault == 'polkit' else set()
@@ -478,6 +500,10 @@ class Release29Session(Release28Session):
 
     def start(self, release, stage):
         self.release = release
+        self.transient = 'changed-by-network' if (stage, self.fault) == ('final-29', 'transient-hostname-drift') \
+            else self.Path('/etc/hostname').read_text().strip()
+        if (stage, self.fault) == ('previous-28', 'static-hostname-drift'):
+            self.write('/etc/hostname', 'wrong-static\n')
         self.foot, self.vt = 1, 'tty3'
         self.write('/usr/share/aresos/labwc/rc.xml', f'<labwc_config><theme><name>{probes.THEMES[release]}</name></theme></labwc_config>')
         if release == '29':
@@ -527,6 +553,7 @@ class Release29Session(Release28Session):
         record_path.write_text(json.dumps(record))
 
     def probe_modules(self, modules, allowed):
+        modules['subprocess'].SubprocessError = subprocess.SubprocessError
         def readlink(path):
             if path == '/proc/50/cwd':
                 return '/var/home/recovery' if self.fault == 'cwd' else '/var/home/ares'
@@ -569,7 +596,18 @@ class Release29Session(Release28Session):
         while '=' in words[0]:
             words = words[1:]
         status, stdout, stderr = 0, '', ''
-        if words[:3] == ['/usr/bin/python3', '-I', '-']:
+        if words[0] == '/usr/bin/hostnamectl':
+            if words[1:4] == ['--static', '--transient', 'set-hostname']:
+                self.expect(words[4:] == ['aresos-rehearsal'])
+                self.hostname_sets.append(words[4])
+                self.write('/etc/hostname', words[4] + '\n')
+                self.transient = words[4]
+            elif words[1:] == ['--static', 'hostname']:
+                stdout = self.Path('/etc/hostname').read_text()
+            else:
+                self.expect(words[1:] == ['--transient', 'hostname'])
+                stdout = self.transient + '\n'
+        elif words[:3] == ['/usr/bin/python3', '-I', '-']:
             self.expect(kw['input'] == (ROOT / probes.CONTROL_CHECKER).read_text())
             self.expect(tuple(words[3:]) == (probes.SERVICE_CHECKS if self.release == '28'
                                            else probes.SERVICE_CHECKS + probes.CHROME_CHECKS))
@@ -762,6 +800,9 @@ class RouteModel:
         assert condition, 'Model route was out of order'
 
     def historical_stage(self, *_args, **_kwargs):
+        guest = SimpleNamespace(stage='stock')
+        guest.capture_json = lambda name, script: self.probe(guest, name, script)
+        probes.installed_hostname(guest, guest.stage, self.vm)
         ids = {row['container-image-reference-digest']: vm.ke.key(row) for row in self.rows.values()}
         return self.route, ids, None, None
 
@@ -794,6 +835,12 @@ class RouteModel:
         guest.keys.side_effect = lambda keys: self.keys(keys)
         guest.poweroff.side_effect = lambda name: guest.process.poll.configure_mock(return_value=0)
         self.guests.append(guest)
+        try:
+            probes.installed_hostname(guest, stage, self.vm)
+        except AssertionError:
+            guest.close(stage)
+            self.audit.check(stage, guest)
+            raise
         return guest
 
     def keys(self, keys):
@@ -974,6 +1021,29 @@ class CandidateRouteTest(unittest.TestCase):
                        ('r29-update-reboot-save-gate', 'probe'), ('r29-update-reboot', 'reboot'), ('release-29', 'F12 Bazzite'),
                        ('release-29-no-foot-check', 'check'), ('release-29-terminal', 'probe'), ('release-29-check', 'check')]
             self.assertEqual([event for event in model.events if event in ordered], ordered)
+
+    def test_hostname_is_set_once_and_verified_on_every_candidate_route_boot(self):
+        with self.model() as model:
+            model.run_route()
+            self.assertEqual(model.session.hostname_sets, ['aresos-rehearsal'])
+            self.assertTrue(model.saved['stock-hostname']['initialized'])
+            for stage in ('release-28', 'release-29', 'previous-28', 'final-29'):
+                self.assertEqual(model.saved[stage + '-hostname'], dict(initialized=False, static='aresos-rehearsal',
+                                 transient='aresos-rehearsal', file='aresos-rehearsal\n'))
+                start = model.events.index((stage, 'F12 Bazzite'))
+                self.assertEqual(model.events[start + 1], (stage + '-hostname', 'probe'))
+            self.assertLess(model.events.index(('release-29-hostname', 'probe')),
+                            model.events.index(('release-29-chrome-first-use', 'probe')))
+        for fault, stage, kind, value in (
+            ('static-hostname-drift', 'previous-28', 'static', 'wrong-static'),
+            ('transient-hostname-drift', 'final-29', 'transient', 'changed-by-network'),
+        ):
+            with self.subTest(fault=fault), self.model(fault) as model:
+                with self.assertRaisesRegex(AssertionError, 'installed guest hostname differs at ' + stage):
+                    model.run_route()
+                self.assertEqual(model.saved[stage + '-hostname'][kind], value)
+                self.assertEqual(model.session.hostname_sets, ['aresos-rehearsal'])
+                self.assertNotIn('release-29-deployment-walk', model.saved)
 
     def test_submitted_probes_follow_the_chrome_gate_and_game_order(self):
         with self.model('masked-ordering') as model:
