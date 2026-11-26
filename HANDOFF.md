@@ -1,17 +1,17 @@
 # Handoff
 
-Baton from `linux-aresos`, 2026-11-23. Read after [STATE.md](STATE.md) and overwrite when handing the session on.
+Baton from `linux-aresos`, 2026-11-26. Read after [STATE.md](STATE.md) and overwrite when handing the session on.
 
-## PAUSED (owner via mac-capacity, 2026-11-23 evening)
+## Resumed (the owner via mac-capacity, 2026-11-26)
 
-Start nothing new, neither Claude nor Codex, until the owner says when and how much AresOS gets again (mac-capacity relays it). The R29 cut waits for that word too, even once Deskflow is in Fedora stable. Everything of this lead's is committed and pushed. Nothing is running.
-
-**Changed since the notes below (2026-11-23):**
-- **Merged on main:** B334a (the bench, `7e161ebc`), B334b (`4d62823a`), Chrome 28 (`11d22cd4`) and 28a (`db7ad4bf`). Their handoffs, 28a's tool map (take_tab becomes take; C6's refusal set is tabs, read, open and take) and the summary lines are in B331's PROGRESS.md, for the late-package slice.
-- **B321:** the lead's os/ read is clean at `111ea084` (`B321-LEAD-READ-2.md`). It merges only after dispatch 16 is green with the stable `updates` re-resolve and the relogin case.
-- **The rehearsal guest:** it must get a static hostname at runtime, before Chrome first runs (NetworkManager renames an unnamed guest, and Chrome's profile lock then blocks it). This is in B331's PROGRESS.md.
-- **Board T527:** before the rehearsal, find why Prism failed once in control run 45130548969 attempt 2 (state RECOVERY, prism_failed).
-- **The owner's own steps, still open:** his T497 commands. One copies aresync's global-CLAUDE.md to ~/.claude/CLAUDE.md; the other adds the T480 line in ~/AresOS-t480/CLAUDE.md, a prepared branch `docs/t480-owner-decides`, which the lead then commits and merges. Also the PUBLIC_TERMS secret for aresync's public-terms check.
+- **Budget:** Claude gets about 70% of the week for all three AresOS leads, starting slowly: one agent per lead at a time, fresh agents with short handoffs, about 2–3% of the week per day for this lead until mac-capacity says more. Ask mac-capacity before any Fable agent. Codex is plentiful (raw `codex exec`).
+- **R29 with Deskflow comes first.** `deskflow-1.27.0-1.fc44` is in F44 testing and moves to stable on its own around Sat 28 Nov (Bodhi FEDORA-2026-614dafa1ba). Then linux-desktop runs B321's stable `updates` re-resolve and dispatch 16 and merges, and the lead names the cut. The owner also wants B333 (PR150, open apps and bring back) and T528 (edge look can't look back down) in R29 if they are SAFE and merged before the cut (linux-hub). Renew the jar pin at the cut. If Fedora is late, R29 ships without B321 and R30 follows.
+- **Cut line sent** to linux-desktop and linux-hub on 2026-11-26: what rides, their handoffs, os/ reads first, the jar pin from main's Mod run.
+- **B321's os/:** clean through `111ea084`. Codex read 2 covered `52c99893`. The lead read the clipboard fix 2 delta after it (separate lookup connection, 250 ms timeout, new portal pin; a failed lookup still refuses). Any os/ change after `bc4c1034` comes back to the lead.
+- **T527 closed** (check on `docs/t527-prism-check`): keep the rehearsal. The walk saves explain, desktop.log, the user journal and the Prism log before stopping on RECOVERY (any reason but quit). There is no automatic retry; the lead decides any rerun.
+- **T547 closed:** user ares already has the remote-control settings. A per-user line for the install guide follows after R29.
+- **Running:** B331 step 6b (Codex `gpt-6.2-sol` xhigh, log `../AresOS-331-step6b.log`): merge main (B334a/b, Chrome 28/28a), classify Chrome 28/28a, C6's refusal set with `take`, the guest's static hostname, the T527 diagnostics. Next: a fresh Codex Astra review, then commit allowances for one same-head check and one baseline preflight and dispatch them in that order.
+- **The owner's own steps, still open:** his T497 commands. One copies aresync's global-CLAUDE.md to ~/.claude/CLAUDE.md (T548). The other adds the T480 line in ~/AresOS-t480/CLAUDE.md, a prepared branch `docs/t480-owner-decides`, which the lead then commits and merges. Also the PUBLIC_TERMS secret for aresync's public-terms check.
 
 ## Resume B331 on `pkg/331-release-29` (draft PR #144)
 
