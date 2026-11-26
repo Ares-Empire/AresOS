@@ -228,6 +228,7 @@ After both passes, `git checkout -- reviews/` restored 66 tracked screenshots an
 - A tray-resident app that ignores a second start can leave the launch waiting for a window. The helper reports `no_window` after 30 seconds.
 - Restore traffic can grow helper memory while labwc is stalled and the whole session is already stalled. Growth stops when labwc answers.
 - In the half second after a tray app's last window closes, a click can report success without opening a window. A second click opens it.
+- The native click-to-look check's retries (RECHECK-7, two nits): fresh moves can supply the turn if the first batch's camera change were lost while it still reset the stillness timer, and the three seconds bound when a retry starts, not a slow socket read inside one. Test-only; the check still fails when the camera never turns while captured.
 
 ## Open questions
 
