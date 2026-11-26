@@ -1236,3 +1236,79 @@ All 319 hashes matched the raw files and Git checkout replay. The two new
 status records appear in the [fixture diagnostics](diagnostics/step4-probes.json).
 Real-boot proof remains with the hosted rehearsal. There are no files over
 500 MB in `.work/`.
+
+## Live ISO requalified 2026-11-26
+
+The R29 baseline preflight at `5fd70c8c` stopped in **Inspect the exact
+pinned live ISO** with `Official checksum changed: STOP`. Bazzite replaced
+`bazzite-nvidia-open-stable-live-amd64.iso` on 2026-11-25 at 16:56 GMT.
+[Run 45882047120](https://github.com/Ares-Empire/AresOS/actions/runs/45882047120)
+
+The first download with `curl --continue-at -` matched Bazzite's
+`Content-Length` of **9102135296 bytes** and SHA-256
+`062c93ac13838557e9e8cdff01940aa4a65186049ae6f0179cf5111411fa1396`.
+The legacy publisher checksum also matched its existing pin.
+[Live publisher checksum](https://download.bazzite.gg/bazzite-nvidia-open-stable-live-amd64.iso-CHECKSUM)
+[Legacy publisher checksum](https://download.bazzite.gg/bazzite-nvidia-open-stable-amd64.iso-CHECKSUM)
+
+`7z x -so -tIso` extracted `LiveOS/squashfs.img` from the verified ISO.
+`unsquashfs -p 1 -strict-errors -cat` read
+`var/lib/containers/storage/overlay-images/images.json` from that
+SquashFS 4.0 image in user space. The following is the output of
+`stock_image.embedded_rows`. `stock_image.check_embedded` accepted it
+against the refreshed pin.
+
+```json
+[
+  {
+    "names": ["ghcr.io/ublue-os/bazzite-nvidia-open:stable"],
+    "digest": "sha256:98a6a6a31670cbfa005866c6d6de2e768409dd7cb9db25f324b20cc55294fb89"
+  }
+]
+```
+
+The install reference records the checksum under **Dated sources and
+limits** as rehearsal evidence. The equality test requires the exact
+checksum there and enforces the fresh-install hold. The stock image
+fixture now uses fields from the observed index.
+
+### Baseline inputs
+
+Two of the 73 input hashes changed from `5fd70c8c`.
+
+- `os/manifest/installer-isos.json`
+- `os/manifest/ci/331/host-walk.json`
+
+`python3 reviews/27-first-update-release/rebind.py pending` reported
+`pending: 25 bound files differ from the active bindings, 0 removed`.
+`python3 reviews/331-release-29/walk-host.py` printed
+`PASS package 331 synthetic baseline and candidate host walk with 319 sources`.
+All 319 hashes matched the raw checkout and Git checkout replay. The earlier
+baseline receipt was refused with
+`STOP: rerun the historical R29 baseline preflight on the current inputs`.
+
+### Local verification
+
+Ran `python3 -m unittest discover -s os/tests -p <module>.py` from the repo
+root, one module at a time. Temporary files were under `.work/` and
+Python bytecode writes were disabled.
+All 278 tests across 11 modules passed.
+
+| Module | Result |
+| --- | --- |
+| `test_stock_image.py` | `Ran 29 tests in 0.136s`, `OK` |
+| `test_installer_download.py` | `Ran 12 tests in 0.320s`, `OK` |
+| `test_installer_webui.py` | `Ran 9 tests in 0.005s`, `OK` |
+| `test_two_disk_vm.py` | `Ran 32 tests in 0.183s`, `OK` |
+| `test_checkout_sources.py` | `Ran 10 tests in 1.058s`, `OK` |
+| `test_owner_equality.py` | `Ran 12 tests in 104.123s`, `OK` |
+| `test_owner_path.py` | `Ran 51 tests in 1.752s`, `OK` |
+| `test_release29.py` | `Ran 39 tests in 66.675s`, `OK` |
+| `test_release29_rehearsal.py` | `Ran 29 tests in 41.674s`, `OK` |
+| `test_release29_workflow.py` | `Ran 15 tests in 0.133s`, `OK` |
+| `test_owner_walk.py` | `Ran 40 tests in 623.625s`, `OK` |
+
+The served Web UI and historical install and boot still need hosted proof.
+This step used zero workflow dispatches. The ISO, the SquashFS and every
+other temporary file from this step were removed. There are no files over
+500 MB in `.work/`.

@@ -786,7 +786,7 @@
       "path": "os/manifest/ci/42/host-walk.json"
     },
     {
-      "sha256": "1cd232035fdf317522612281b3d59596f5111ba692c5db2d2050fe9145fcf260",
+      "sha256": "cf0067a533f5040893407cf36bd01b13692176f73706ca780d4a73ccb977a857",
       "path": "os/manifest/installer-isos.json"
     },
     {
@@ -1186,7 +1186,7 @@
       "path": "os/tests/test_owner_entry.py"
     },
     {
-      "sha256": "23c4da91d08619ef8b1c37ca8f25c16f7dd9ba82e8135dd6c754f561c62050a4",
+      "sha256": "85a4b5c878e299b08f25269f5a2d945f9ea37d71d617e598856c9b7254593539",
       "path": "os/tests/test_owner_equality.py"
     },
     {

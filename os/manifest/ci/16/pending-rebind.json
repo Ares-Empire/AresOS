@@ -35,7 +35,8 @@
     "334a review round 1 tightens bench mode exclusions and checks the dispatched release ledger before image work.",
     "334a review round 2 makes the four release isolation checks fail closed on every CI and bench path.",
     "331 step 6b: merge the hosted bench and Chrome 28/28a with the guarded R29 modes and both sets of notes.",
-    "331 step 6b: bind the Chrome first-use gate, guest hostname, and desktop recovery evidence."
+    "331 step 6b: bind the Chrome first-use gate, guest hostname, and desktop recovery evidence.",
+    "331: requalified the rehearsal-only live ISO after the upstream replacement on 2026-11-25 (062c93ac, 9102135296 bytes, embedded stock 98a6a6a3)"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -108,11 +109,15 @@
       "path": "os/config/usr/libexec/aresos-desktop"
     },
     {
+      "sha256": "cf0067a533f5040893407cf36bd01b13692176f73706ca780d4a73ccb977a857",
+      "path": "os/manifest/installer-isos.json"
+    },
+    {
       "sha256": "7172613c5998a2f53f2632cb66586e8db514f079a0e2205912336b71371bebbe",
       "path": "os/tests/test_ci_step_environment.py"
     },
     {
-      "sha256": "23c4da91d08619ef8b1c37ca8f25c16f7dd9ba82e8135dd6c754f561c62050a4",
+      "sha256": "85a4b5c878e299b08f25269f5a2d945f9ea37d71d617e598856c9b7254593539",
       "path": "os/tests/test_owner_equality.py"
     },
     {
