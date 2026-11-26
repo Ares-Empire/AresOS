@@ -133,6 +133,7 @@ KEEP_WINDOW = 3.0
 # Pause between the end of one scope check and the start of the next (one batched systemctl call each).
 SCOPE_CHECK = 5.0
 SCOPE_TIMEOUT = 5.0
+ADMISSION_SCOPE_TIMEOUT = 1.0
 JOURNAL_LIMIT = 256
 MAX_VIEWS = 4
 VIEW_JOURNAL_LIMIT = 32
@@ -4001,7 +4002,8 @@ class Helper:
         return self.journal.room(client, reserved)
 
     def active_app_scopes(self):
-        states = list_scopes(self.watcher.run, self.watcher.timeout)
+        # Admission runs on the serving loop, where each wait can delay desktop heartbeats.
+        states = list_scopes(self.watcher.run, ADMISSION_SCOPE_TIMEOUT)
         if states is None:
             return None
         active = set()

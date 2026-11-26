@@ -3,6 +3,7 @@ from itertools import product
 import json
 import os
 import pathlib
+import subprocess
 import unittest
 from unittest import mock
 
@@ -363,10 +364,15 @@ class LaunchIsolationTest(ViewBase):
     def test_unreadable_scope_list_refuses_a_view_and_allows_the_desktop(self):
         helper = self.start()
         laptop, desktop = self.view(helper), self.desktop(helper)
-        for number, answer in enumerate(((1, ''), (0, 'not a scope list'), OSError('busy'),
-                                         (0, 'app-aresos-other.scope loaded unexpected running'))):
+        run = mock.Mock(wraps=helper.watcher.run)
+        helper.watcher.run = run
+        answers = ((1, ''), (0, 'not a scope list'), OSError('busy'),
+                   (0, 'app-aresos-other.scope loaded unexpected running'),
+                   subprocess.TimeoutExpired(shell.LIST_SCOPES, 1.0))
+        for number, answer in enumerate(answers):
             with self.subTest(answer=answer):
                 self.scope_answer = answer
+                run.reset_mock()
                 reply = self.call(helper, laptop, 'open_app', 'retry', app_id='terminal')
                 self.assertEqual((reply['protocol'], reply['ok'], reply.get('error'), reply.get('message')),
                                  (WIRE, False, 'journal_full',
@@ -375,10 +381,18 @@ class LaunchIsolationTest(ViewBase):
                 self.assertEqual(self.popen.call_count, number)
                 reply = self.call(helper, desktop, 'open_app', f'desktop-{number}', app_id='terminal')
                 self.assertEqual(reply.get('state'), 'starting', reply)
+                self.assertEqual([call.kwargs['timeout'] for call in run.call_args_list], [1.0, 1.0])
+        run.reset_mock()
+        unit = 'app-aresos-test.scope'
+        helper.watcher.watch({unit})
+        helper.watcher.check()
+        run.assert_called_once()
+        self.assertEqual(run.call_args.kwargs['timeout'], shell.SCOPE_TIMEOUT)
+        self.assertEqual(helper.watcher.take(), [{unit: shell.UNKNOWN}])
         self.scope_answer = None
         reply = self.call(helper, laptop, 'open_app', 'retry', app_id='terminal')
         self.assertEqual(reply.get('state'), 'starting', reply)
-        self.assertEqual(self.popen.call_count, 5)
+        self.assertEqual(self.popen.call_count, len(answers) + 1)
 
     def test_ended_single_instance_handoffs_leave_room_for_laptop_home(self):
         helper = self.start(tracked=True)
