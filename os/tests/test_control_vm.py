@@ -1346,7 +1346,7 @@ class FixRoundOneTest(unittest.TestCase):
         order = [restart.index(text) for text in (
             "'systemctl', 'stop', 'greetd.service'", "'loginctl', 'terminate-user', 'ares'",
             'GREETD_RUNFILE.unlink(', "'systemctl', 'start', 'greetd.service'", 'checks.wait_session()',
-            'checks.desktop_session()')]
+            'checks.desktop_session(diagnostics=diagnostics)')]
         self.assertEqual(order, sorted(order))
         checks = ast.parse((ROOT / 'os/ci/overlay/checks.py').read_text())
         defined = {node.name for node in checks.body if isinstance(node, ast.FunctionDef)}
@@ -1354,6 +1354,38 @@ class FixRoundOneTest(unittest.TestCase):
         # Armed first, then the desktop, then the fresh session (agreed change 6: "armed before a fresh session").
         arm = source[source.index('    def arm_failure(first):'):source.index('    def clean_baseline(first):')]
         self.assertLess(arm.index('wait_failed()'), arm.index('desktop_with_service_failed('))
+
+    def test_prism_failure_explanation_is_saved_on_first_observation_without_changing_the_verdict(self):
+        with mock.patch.object(sys, 'path', [str(ROOT / 'os/ci')] + sys.path):
+            checks = load(ROOT / 'os/ci/overlay/checks.py', 'prism_failure_checks')
+        state = dict(state='RECOVERY', reason='prism_failed')
+        for failed_explain in (False, True):
+            diagnostics, events = {}, []
+
+            def run(*argv, **kwargs):
+                events.append(argv[-1])
+                if argv[-1] == 'status':
+                    return dict(returncode=0, stdout=json.dumps(state))
+                self.assertEqual(kwargs, {'timeout': 10})
+                if failed_explain:
+                    raise subprocess.TimeoutExpired(argv, kwargs['timeout'])
+                return dict(returncode=0, stdout='x' * 5000 + 'Prism exited', stderr='')
+
+            def processes():
+                self.assertIn('prism_failed_explain', diagnostics)
+                return []
+
+            with self.subTest(failed_explain=failed_explain), mock.patch.object(checks, 'run', side_effect=run), \
+                    mock.patch.object(checks, 'processes', side_effect=processes), mock.patch.object(checks.time, 'sleep'):
+                with self.assertRaisesRegex(AssertionError, 'prism_failed'):
+                    checks.desktop_session(diagnostics=diagnostics)
+                self.assertEqual(events, ['status', 'explain'] + ['status'] * 89)
+                explain = diagnostics['prism_failed_explain']
+                if failed_explain:
+                    self.assertIn('timed out', explain['error'])
+                else:
+                    self.assertEqual(len(explain['stdout']), 4096)
+                    self.assertTrue(explain['stdout'].endswith('Prism exited'))
 
     def test_the_static_checks_cover_the_runner_and_the_mail_flows(self):
         # REVIEW-A1 #9: a typo in these showed only in a 50-minute control run.

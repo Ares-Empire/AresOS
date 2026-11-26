@@ -19,8 +19,8 @@ EXPORTS = {'backend.json': '/run/aresos-backend.json',
            'power-events.json': '/run/aresos-power-events.json'}
 
 
-def run(*args, **kwargs):
-    result = subprocess.run(args, capture_output=True, text=True, timeout=300, **kwargs)
+def run(*args, timeout=300, **kwargs):
+    result = subprocess.run(args, capture_output=True, text=True, timeout=timeout, **kwargs)
     return dict(returncode=result.returncode, stdout=result.stdout, stderr=result.stderr)
 
 
@@ -82,11 +82,25 @@ def processes():
     return rows
 
 
-def desktop_session():
+def desktop_session(*, diagnostics=None):
     """Package 23: the desktop supervisor, the app helper and Prism run as ares in the session, nothing as root."""
+    command = ('runuser', '-u', 'ares', '--', 'env', '-i', 'HOME=/var/home/ares', 'XDG_RUNTIME_DIR=/run/user/1001',
+               '/usr/libexec/aresos-desktop')
     for _ in range(90):
-        status = run('runuser', '-u', 'ares', '--', 'env', '-i', 'HOME=/var/home/ares', 'XDG_RUNTIME_DIR=/run/user/1001',
-                     '/usr/libexec/aresos-desktop', 'status')
+        status = run(*command, 'status')
+        if diagnostics is not None and 'prism_failed_explain' not in diagnostics and status['returncode'] == 0:
+            try:
+                observed = json.loads(status['stdout'])
+            except ValueError:
+                observed = None  # The verdict still uses the last status below.
+            if isinstance(observed, dict) and (observed.get('state'), observed.get('reason')) == ('RECOVERY', 'prism_failed'):
+                try:
+                    explain = run(*command, 'explain', timeout=10)
+                    explain['stdout'] = explain['stdout'][-4096:]
+                    explain['stderr'] = explain['stderr'][-512:]
+                except (OSError, subprocess.SubprocessError) as error:
+                    explain = dict(error=str(error)[-512:])
+                diagnostics['prism_failed_explain'] = explain
         rows = processes()
         prism = [r for r in rows if r['exe'].startswith('/usr/lib/prismlauncher/') or
                  any('/usr/lib/prismlauncher/' in part for part in r['cmdline'][:1])]

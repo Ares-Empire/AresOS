@@ -396,24 +396,24 @@ def terminal(guest, stage, vm):
     return probes.open_terminal(guest, stage, vm)
 
 
-SAVE_GATE = '''import json,subprocess
-command=@COMMAND@
-state=json.loads(subprocess.check_output(command+['status'],text=True))
+SAVE_GATE = '''
+state=json.loads(subprocess.check_output(DESKTOP+['status'],text=True,timeout=20))
 mode,reason=state.get('state'),state.get('reason')
 closed=state.get('ready') is False and 'jvm_pid' in state and state['jvm_pid'] is None
 if closed and (mode,reason)==('RECOVERY','quit'):
-    message=subprocess.check_output(command+['explain'],text=True).splitlines()
+    message=subprocess.check_output(DESKTOP+['explain'],text=True,timeout=20).splitlines()
     closed='Minecraft was closed. Nothing is wrong.' in message
-print(json.dumps(dict(state=mode,reason=reason,safe=closed and (mode=='SETUP' or (mode,reason)==('RECOVERY','quit')))))
+out=dict(state=mode,reason=reason,safe=closed and (mode=='SETUP' or (mode,reason)==('RECOVERY','quit')))
+if evidence:=recovery_evidence(state):
+    out['recovery']=evidence
+print(json.dumps(out))
 '''
 
 
 def save_gate(vm, guest, stage):
     # The rehearsal stays in SETUP. An open or indeterminate world needs the
     # guide's normal close and acknowledgement before the owner can continue.
-    source = r28.program(SAVE_GATE, command=[*r28.AS_ARES, '/usr/libexec/aresos-desktop'])
-    state = guest.capture_json(stage + '-save-gate', vm.sw.framed('python3 -c ' + shlex.quote(source)))
-    vm.td.save(stage + '-save-gate', state)
+    state = probes.capture(guest, stage + '-save-gate', vm, probes.recovery_source() + SAVE_GATE)
     assert state['safe'] is True, 'STOP: get Help before restarting R28 without a confirmed normal Minecraft close'
 
 
@@ -607,7 +607,7 @@ def complete_candidate(vm, audit, password, hashed, route, release, qualifying, 
         probes.session(guest, stage, vm, '29')
         probes.control(guest, stage, vm, expected_sites=update['sites'])
         print('CONTROL_CHROME_SITES_REBOOT_PASS')
-        r28.game_scope(guest, stage, vm)
+        r28.game_scope(guest, stage, vm, recovery_source=probes.recovery_source())
         console.logout(stage + '-logout')
     finally:
         vm.finish(guest, audit, stage)

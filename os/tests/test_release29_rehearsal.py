@@ -493,6 +493,7 @@ class Release29Session(Release28Session):
         self.tee_calls = 0
         self.hostname_sets = []
         self.transient = 'initial-network-name'
+        self.recovery_commands = []
         self.now = 0
         self.owners[str(self.Path(probes.STAGED_SITES))] = (0, 0)
         self.passwordless = {'org.aresos.rehearsal.unreviewed'} if fault == 'polkit' else set()
@@ -607,6 +608,24 @@ class Release29Session(Release28Session):
             else:
                 self.expect(words[1:] == ['--transient', 'hostname'])
                 stdout = self.transient + '\n'
+        elif words == ['/usr/libexec/aresos-desktop', 'explain']:
+            self.expect(command[:4] == ['runuser', '-u', 'ares', '--'] and kw['timeout'] == 10)
+            self.recovery_commands.append('explain')
+            stdout, stderr = b'x' * 5200 + b'Prism could not start', b''
+        elif words[:4] == ['/usr/bin/tail', '-c', '4096', '--']:
+            self.expect(command[:4] == ['runuser', '-u', 'ares', '--'] and kw['timeout'] == 10)
+            name = pathlib.Path(words[-1]).name
+            self.expect(name in ('desktop.log', 'PrismLauncher-0.log'))
+            self.recovery_commands.append(name)
+            if self.fault == 'recovery-save-gate' and name == 'PrismLauncher-0.log':
+                status, stdout, stderr = 1, b'', b'No such file'
+            else:
+                stdout, stderr = (name + ' tail').encode(), b''
+        elif words[0] == '/usr/bin/journalctl':
+            self.expect(words[1:] == ['--boot=0', '--no-pager', '--lines=120', '--output=short-monotonic', '_UID=1001']
+                        and kw['timeout'] == 10)
+            self.recovery_commands.append('journal')
+            stdout, stderr = b'j' * 5100 + b'Current boot of the daily user', b''
         elif words[:3] == ['/usr/bin/python3', '-I', '-']:
             self.expect(kw['input'] == (ROOT / probes.CONTROL_CHECKER).read_text())
             self.expect(tuple(words[3:]) == (probes.SERVICE_CHECKS if self.release == '28'
@@ -886,10 +905,23 @@ class RouteModel:
                     state.update(state='IN_WORLD', ready=True)
 
         def run(argv, **kw):
-            if name.endswith('-save-gate') and argv[:-1] == [*walk.r28.AS_ARES, '/usr/libexec/aresos-desktop']:
+            if argv == [*walk.r28.AS_ARES, '/usr/libexec/aresos-desktop', 'status']:
+                if (name, self.fault) == ('r29-update-reboot-save-gate', 'recovery-save-gate'):
+                    state.update(state='RECOVERY', reason='jvm_failed')
+                if (name, self.fault) == ('release-29-desktop-status', 'prism-failed'):
+                    state.update(state='RECOVERY', reason='prism_failed')
+                if name.endswith('-game-scope'):
+                    if self.session.jvm and self.fault == 'recovery-game-scope':
+                        state.update(state='RECOVERY', reason='prism_failed')
+                    elif not self.session.jvm:
+                        state.update(state='RECOVERY', reason='killed')
+                    else:
+                        state.update(jvm_pid=4242)
+                return subprocess.CompletedProcess(argv, 0, json.dumps(state), '')
+            if name.endswith('-save-gate') and state['reason'] == 'quit' \
+                    and argv == [*walk.r28.AS_ARES, '/usr/libexec/aresos-desktop', 'explain']:
                 message = 'Minecraft was closed. Nothing is wrong.\n' if self.fault == 'normal-close' else 'Other message\n'
-                output = json.dumps(state) if argv[-1] == 'status' else message
-                return subprocess.CompletedProcess(argv, 0, output, '')
+                return subprocess.CompletedProcess(argv, 0, message, '')
             return process(argv, **kw)
 
         process = self.session.run
@@ -1061,6 +1093,7 @@ class CandidateRouteTest(unittest.TestCase):
                              dict(refusals=refusals, page_server_hits=0))
             self.assertTrue(saved['release-29-chrome-first-use']['opened'])
             self.assertEqual(saved['release-29-chrome-first-use']['page_server_hits'], 0)
+            self.assertEqual(saved['final-29-game-scope']['recoveries']['after']['reason'], 'killed')
             self.assertEqual(model.session.tee_calls, 1)
             self.assertFalse(model.session.Path(probes.STAGED_SITES).exists())
             self.assertEqual(model.session.Path(probes.SITES).read_bytes(), probes.SYNTHETIC_SITES)
@@ -1176,6 +1209,37 @@ class CandidateRouteTest(unittest.TestCase):
         wrong = dict(receipt['probe_settings'], control_checks={'28': list(probes.SERVICE_CHECKS)})
         with self.assertRaisesRegex(AssertionError, 'probe settings differ'):
             walk.check_host_receipt(dict(receipt, probe_settings=wrong))
+
+    def test_unexpected_desktop_recovery_retains_bounded_evidence_and_stops_without_retry(self):
+        names = ['explain', 'desktop.log', 'journal', 'PrismLauncher-0.log']
+        for fault, probe, boot, message, next_step in (
+            ('prism-failed', 'release-29-desktop-status', 'release-29', 'prism_failed',
+             ('release-29-chrome-first-use', 'probe')),
+            ('recovery-save-gate', 'r29-update-reboot-save-gate', 'release-28', 'Minecraft close',
+             ('r29-update-reboot', 'reboot')),
+            ('recovery-game-scope', 'final-29-game-scope', 'final-29', 'prism_failed',
+             ('final-unattended-windows', 'Windows marker')),
+        ):
+            with self.subTest(fault=fault), self.model(fault) as model:
+                with self.assertRaisesRegex(AssertionError, 'STOP: .*' + message):
+                    model.run_route()
+                row = model.saved[probe]
+                if 'game-scope' in probe:
+                    row = row['recoveries']['before']
+                evidence = row.get('recovery', row.get('evidence'))
+                self.assertEqual(list(evidence), names)
+                self.assertEqual(model.session.recovery_commands[:4], names)
+                self.assertEqual(len(evidence['explain']['output']), 4096)
+                self.assertTrue(evidence['explain']['output'].endswith('Prism could not start'))
+                self.assertEqual(len(evidence['journal']['output']), 4096)
+                self.assertEqual(evidence['desktop.log']['output'], 'desktop.log tail')
+                if fault == 'recovery-save-gate':
+                    self.assertEqual(evidence['PrismLauncher-0.log'], dict(status=1, output='', stderr='No such file'))
+                else:
+                    self.assertEqual(evidence['PrismLauncher-0.log']['output'], 'PrismLauncher-0.log tail')
+                self.assertNotIn(next_step, model.events)
+                self.assertNotIn(('release-29-retry', 'F12 Bazzite'), model.events)
+                self.assertEqual(model.events[-1], (boot, 'audit'))
 
     def test_failed_start_may_retry_once_after_the_r28_save_gate(self):
         with self.model('recovery') as model:

@@ -508,16 +508,20 @@ AS_ARES=@AS_ARES@
 lock=json.loads(pathlib.Path('/usr/share/aresos/minecraft/desktop.lock.json').read_text())
 instance='/var/home/ares/.local/share/PrismLauncher/instances/'+lock['instance']
 pause='/tmp/aresos-release28-jvm.paused'
-def status():
+recoveries={}
+def status(phase):
     done=subprocess.run(AS_ARES+['/usr/libexec/aresos-desktop','status'],capture_output=True,text=True)
-    return json.loads(done.stdout) if done.returncode==0 else dict(error=done.stderr[-400:])
+    state=json.loads(done.stdout) if done.returncode==0 else dict(error=done.stderr[-400:])
+    if @WATCH_RECOVERY@ and (evidence:=recovery_evidence(state)):
+        recoveries[phase]=dict(reason=state.get('reason'),evidence=evidence)
+    return state
 wrapper=subprocess.Popen(AS_ARES+['INST_ID='+lock['instance'],'INST_DIR='+instance,'/usr/libexec/aresos-desktop-java',lock['java']['path'],
     '-XX:+UnlockDiagnosticVMOptions','-XX:+PauseAtStartup','-XX:PauseAtStartupFile='+pause,'-version'],
     cwd=instance+'/minecraft',stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
 state={}
 for n in range(120):
-    state=status()
-    if state.get('jvm_pid') or wrapper.poll() is not None: break
+    state=status('before')
+    if recoveries or state.get('jvm_pid') or wrapper.poll() is not None: break
     time.sleep(.5)
 out=dict(state_before=state)
 jvm=state.get('jvm_pid')
@@ -535,7 +539,8 @@ except subprocess.TimeoutExpired:
 out['wrapper_exit']=wrapper.returncode
 out['wrapper_output']=output.decode(errors='replace')[-1000:]
 time.sleep(2)
-out['state_after']=status()
+out['state_after']=status('after')
+if recoveries: out['recoveries']=recoveries
 print(json.dumps(out))
 '''
 
@@ -751,9 +756,13 @@ def open_terminal(guest, stage, vm):
     return opened
 
 
-def game_scope(guest, stage, vm):
-    value = guest.capture_json(stage + '-game-scope', vm.sw.framed('python3 -c ' + shlex.quote(program(JVM, as_ares=AS_ARES))))
+def game_scope(guest, stage, vm, *, recovery_source=''):
+    source = recovery_source + program(JVM, as_ares=AS_ARES, watch_recovery=bool(recovery_source))
+    value = guest.capture_json(stage + '-game-scope', vm.sw.framed('python3 -c ' + shlex.quote(source)))
     vm.td.save(stage + '-game-scope', value)
+    for phase, recovery in value.get('recoveries', {}).items():
+        assert phase == 'after' and recovery['reason'] == 'killed', \
+            f"STOP: desktop recovery during the game scope probe at {stage} ({recovery['reason']})"
     assert value.get('in_scope') is True and value.get('memory_high') == MEMORY_HIGH, \
         "STOP: the JVM is not in its game scope with 23d's memory.high: " + json.dumps({k: value.get(k) for k in ('unit', 'cgroup', 'memory_high')})
     assert value['wrapper_exit'] == 128 + 9, 'STOP: the game scope was not ended'

@@ -77,6 +77,48 @@ def installed_hostname(guest, stage, vm):
                          file=GUEST_HOSTNAME + '\n'), 'STOP: installed guest hostname differs at ' + stage + ': ' + json.dumps(value)
 
 
+DESKTOP_RECOVERY = '''import json, subprocess
+AS_ARES=@AS_ARES@
+DESKTOP=AS_ARES+['/usr/libexec/aresos-desktop']
+
+def recovery_evidence(state):
+    if state.get('state')!='RECOVERY' or state.get('reason')=='quit':
+        return None
+    limit=4096
+    files={
+        'explain': DESKTOP+['explain'],
+        'desktop.log': AS_ARES+['/usr/bin/tail','-c',str(limit),'--','/var/home/ares/.local/state/aresos/desktop.log'],
+        'journal': ['/usr/bin/journalctl','--boot=0','--no-pager','--lines=120','--output=short-monotonic','_UID=1001'],
+        'PrismLauncher-0.log': AS_ARES+['/usr/bin/tail','-c',str(limit),'--',
+            '/var/home/ares/.local/share/PrismLauncher/logs/PrismLauncher-0.log'],
+    }
+    result={}
+    for name, command in files.items():
+        try:
+            done=subprocess.run(command,capture_output=True,timeout=10)
+            result[name]=dict(status=done.returncode,output=done.stdout[-limit:].decode(errors='ignore'),
+                              stderr=done.stderr[-512:].decode(errors='ignore'))
+        except (OSError, subprocess.SubprocessError) as error:
+            result[name]=dict(error=str(error)[-512:])
+    return result
+'''
+
+
+def recovery_source():
+    return r28.program(DESKTOP_RECOVERY, as_ares=r28.AS_ARES)
+
+
+def desktop_health(guest, stage, vm):
+    value = capture(guest, stage + '-desktop-status', vm, recovery_source() + '''
+state=json.loads(subprocess.check_output(DESKTOP+['status'],text=True,timeout=20))
+out=dict(state=state.get('state'),reason=state.get('reason'))
+if evidence:=recovery_evidence(state):
+    out['recovery']=evidence
+print(json.dumps(out))
+''')
+    assert 'recovery' not in value, f"STOP: desktop recovery at {stage} ({value['reason']})"
+
+
 def control(guest, stage, vm, *, expected_sites=None):
     names = SERVICE_CHECKS if expected_sites is None else SERVICE_CHECKS + CHROME_CHECKS
     source = pathlib.Path(CONTROL_CHECKER).read_text()
@@ -249,6 +291,7 @@ def open_terminal(guest, stage, vm):
 
 
 def session(guest, stage, vm, release):
+    desktop_health(guest, stage, vm)
     fonts = FONTS_29 if release == '29' else FONTS
     value = capture(guest, stage + '-session', vm, r28.program(r28.SESSION, as_ares=r28.AS_ARES, fonts=list(fonts)))
     assert value['labwc'] == 1 and value['theme'] == THEMES[release] and value['themerc'], 'STOP: running labwc theme differs at ' + stage
