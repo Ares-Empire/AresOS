@@ -1323,3 +1323,10 @@ The served Web UI and historical install and boot still need hosted proof.
 This step used zero workflow dispatches. The ISO, the SquashFS and every
 other temporary file from this step were removed. There are no files over
 500 MB in `.work/`.
+
+## Hosted proof after the ISO requalification (the lead, 2026-11-26)
+
+- **Checks 5:** run 45887122194 at `2dd94cd4` PASSED: the regressions and the full ways-back model.
+- **Historical baseline preflight:** run 45891398742 at `2dd94cd4`, attempt 1, PASSED in about 98 minutes with the requalified live ISO (`062c93ac…`, 9102135296 bytes). `python3 os/ci/release29_walk.py check-receipt` on its `release-29-baseline-receipt` printed `PASS recorded historical R29 baseline matches the current inputs`. The receipt artifact expires 2026-12-26 and the evidence artifact (about 22 MB) on 2026-11-29.
+- **Ledger:** checks 5 of 5 and release-29-baseline 3 of 3 are spent, within the minute cap of 990. The publish caps stay 0.
+- **Next:** this proves everything R29 can test before B321. The cut slice merges main (B333 `4038b149`, B343 `70364fa9` and B321 once Deskflow is stable), which changes bound baseline inputs, so the cut needs one more checks run and one more baseline preflight before the private upload. If Fedora is late, the fallback cut does the same without B321.
