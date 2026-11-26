@@ -142,15 +142,16 @@ removed. [Fedora release RPM](https://dl.fedoraproject.org/pub/fedora/linux/rele
 
 ## Left in order
 
-1. Lead recheck of the source guard and step 2's labwc exception at the draft PR head.
-2. Review step 3 slice B on the pushed head.
-3. Step 4 adds the remaining guest probes, Control and Chrome checks and the local host receipt.
-4. Step 5 wires the hosted gates, runner allowlists and receipt with closed caps. The lead
-   dispatches hosted checks and the read-only historical baseline preflight.
-5. Step 6 takes the named main cut and the reviewed handoffs for 18c-b, B330, B329
-   and B321 as applicable. The lead settles package 43 under the brief.
-6. Steps 7–12 handle resolve and dry run, publish approval, release record,
-   candidate tools and guides, qualifying rehearsal and the final pin.
+1. Review pre-cut step 6b on the draft PR head.
+2. Settle B321 under the four cut conditions in the brief, take the named main
+   cut and classify any remaining image differences. Apply the brief's decision
+   on package 43 at the cut.
+3. Resolve the cut, verify the reproducible jar and refresh its pin. Run the
+   hosted checks and dry run, and repeat the historical baseline preflight
+   using the final bound inputs before private upload.
+4. After lead approval, publish privately and record the signed release.
+   Prepare the candidate tools and guides, qualify the signed digest in the
+   rehearsal and complete the final review and pin.
 
 ## Limits
 
@@ -1079,3 +1080,120 @@ slice passed `git diff --check a78a6574`. The cap file matches
   - **Gates:** neither package gates the release beyond the owner's live sitting (C8 before his never-list). 28b isn't in R29.
   - **Owner-summary line:** "Chrome: Claude's Chrome tools get faster and leaner. Pages come as a compact outline with short references, and one call can do several steps and report only what changed. They stay off until you write your never-list in a short sitting with Claude."
   - **Known CI flakes:** C11's GitHub rate limit (control pass only; retry in R30), and board T527 (prism_failed once in control-ordinary).
+
+## Done · step 6b · 2026-11-26
+
+- Merged main through `9b07a957` and kept R29's guarded workflow modes
+  alongside B334a's bench. The bench reads the shared release ledger and
+  refuses managed refs before tools or image work. Kept both parents' pending
+  notes and recomputed the file hashes. Cherry-picked the
+  [T527 investigation](T527-PRISM-CHECK.md) from `4d3d375d`.
+- Bound Chrome 28 (`11d22cd4`) and 28a (`db7ad4bf`) in the R29 image
+  comparison. It requires the exact installed Python modules, regenerated
+  catalogue, MCP instructions and CLI help, the reviewed
+  `CONTROL_CHROME_BUILD`, and the CRX payload and manifests with one
+  per-build extension ID. The install-map and bundle checks verify the
+  image bytes and metadata. The comparison also checks
+  `control/settings/ask-rules.json` against the pre-28 source byte for byte.
+- B334a and B334b add no installed image paths. The source tests account for
+  the separate bench layer, the release context exclusions and the release
+  build's cleanup of its staging directory. The context guard accepts the
+  exact new bench test exclusion and still catches neighbouring paths.
+- C6 now checks `tabs`, `read`, `open` and `take`. The deployment receipt
+  records all four `chrome_settings_unavailable` replies and zero page
+  requests. The three Chrome PASS names stay the same.
+- The guest sets `aresos-rehearsal` at the first authenticated installed
+  stock boot, before enabling the network or opening Chrome. Each later
+  boot reads `/etc/hostname` and checks its static and transient names,
+  including the first R29 boot, the return to R28 and the forward boot.
+  A mismatch stops the walk before any hostname repair.
+- On unexpected desktop recovery, the walk retains bounded `explain`,
+  `desktop.log`, current-boot daily-user journal and Prism log output
+  before stopping. The recovery decision remains with the lead. The
+  Control check saves the first `prism_failed` explanation in its ordinary
+  evidence and keeps its existing verdict.
+
+**Owner summary.** Chrome: Claude's Chrome tools get faster and leaner. Pages come as a compact outline with short references, and one call can do several steps and report only what changed. They stay off until you write your never-list in a short sitting with Claude.
+
+### Historical baseline
+
+Compared the 73 input hashes from run 45073317069 at `1ac63562` with the
+recorded Git checkout and this slice. Six bound paths changed.
+
+- `.github/workflows/os-image.yml`
+- `os/ci/owner_vm.py`
+- `os/ci/release28_walk.py`
+- `os/ci/release29_probes.py`
+- `os/ci/release29_walk.py`
+- `os/manifest/ci/331/host-walk.json`
+
+The lead needs a fresh historical baseline preflight on the final cut before
+private upload. [Run 45073317069](https://github.com/Ares-Empire/AresOS/actions/runs/45073317069)
+
+### Verified locally
+
+Ran `python3 -m unittest discover -s os/tests -p <module>.py` from the
+repository root, one affected module at a time, with temporary files under
+`.work/331-step6b/tmp` and bytecode writes disabled. The latest runs total
+667 passing tests across 30 modules.
+
+| Module | Result |
+| --- | --- |
+| `test_bench_dispatch.py` | `Ran 7 tests in 0.246s`, `OK` |
+| `test_bench_evidence.py` | `Ran 7 tests in 0.036s`, `OK` |
+| `test_bench_release_layers.py` | `Ran 3 tests in 0.169s`, `OK` |
+| `test_bench_script.py` | `Ran 3 tests in 0.027s`, `OK` |
+| `test_build_tools.py` | `Ran 6 tests in 0.160s`, `OK` |
+| `test_checkout_sources.py` | `Ran 10 tests in 1.115s`, `OK` |
+| `test_ci_api_permissions.py` | `Ran 4 tests in 5.038s`, `OK` |
+| `test_ci_step_environment.py` | `Ran 4 tests in 25.666s`, `OK` |
+| `test_control_image.py` with `-k InstallMapTest -k ChromeImageTest -k ChromePrivateScanTest -k GhImageTest` | `Ran 38 tests in 2.689s`, `OK` |
+| `test_control_vm.py` | `Ran 110 tests in 3.206s`, `OK` |
+| `test_installer_webui.py` | `Ran 9 tests in 0.005s`, `OK` |
+| `test_owner_capabilities.py` | `Ran 6 tests in 0.183s`, `OK` |
+| `test_owner_counter_flush.py` | `Ran 7 tests in 0.053s`, `OK` |
+| `test_owner_devices_native.py` | `Ran 14 tests in 2.125s`, `OK` |
+| `test_owner_media.py` | `Ran 6 tests in 0.384s`, `OK` |
+| `test_owner_reset.py` | `Ran 5 tests in 0.015s`, `OK` |
+| `test_owner_staged_release.py` | `Ran 7 tests in 0.067s`, `OK` |
+| `test_owner_walk.py` | `Ran 40 tests in 638.806s`, `OK` |
+| `test_rehearsal_auth.py` | `Ran 9 tests in 0.189s`, `OK` |
+| `test_rehearsal_budget.py` | `Ran 6 tests in 0.128s`, `OK` |
+| `test_release27.py` | `Ran 41 tests in 6.891s`, `OK` |
+| `test_release28.py` | `Ran 94 tests in 65.896s`, `OK` |
+| `test_release28_rehearsal.py` | `Ran 44 tests in 36.492s`, `OK` |
+| `test_release29.py` | `Ran 39 tests in 65.784s`, `OK` |
+| `test_release29_rehearsal.py` | `Ran 29 tests in 41.428s`, `OK` |
+| `test_release29_workflow.py` | `Ran 15 tests in 0.136s`, `OK` |
+| `test_stock_image.py` | `Ran 29 tests in 0.165s`, `OK` |
+| `test_tools_local_wiring.py` | `Ran 42 tests in 58.741s`, `OK` |
+| `test_two_disk_vm.py` | `Ran 32 tests in 0.193s`, `OK` |
+| `test_ways_back_model.py` with `-k test_hosted_checks_explore_the_slice_and_a_parallel_job_the_full_model_when_selected` | `Ran 1 test in 0.043s`, `OK` |
+
+The first image-profile run after the merge exposed the unrecognised B334a
+ignore pattern. The first combined run exposed a misplaced assertion in the
+new bench fixture. The final image-profile run passed and printed
+`IMAGE_DIFF_PASSED` for 182, 182, 179 and 184 paths. The historical model
+printed `PASS historical R29 baseline through confirmed R28 with tools v5`.
+The R29 rehearsal model printed `CONTROL_CHROME_FILES_PASS`,
+`CONTROL_CHROME_SITES_FIRST_USE_PASS` and `CONTROL_CHROME_SITES_REBOOT_PASS`.
+
+`python3 reviews/331-release-29/walk-host.py` printed
+`PASS package 331 synthetic baseline and candidate host walk with 319 sources`.
+The source rows match the raw checkout and Git checkout replay. The
+[fixture diagnostics](diagnostics/step4-probes.json) retain 47 passing
+observations and 20 refusals. Recomputing pending bindings found 24 changed
+rows and zero removals. The R29 source guard passed against main at
+`9b07a957`. The rehearsal cap and dispatch ledger compare byte for byte
+with the pre-slice branch.
+
+`python3 -B os/ci/release29_walk.py check-receipt .work/331-baseline/release-29-baseline.json`
+exited 1 with `STOP: rerun the historical R29 baseline preflight on the current inputs`.
+
+### Limits
+
+The local tests use fixtures. The signed image comparison, hostname
+persistence through real VM boots, and Prism failure capture in a hosted
+guest still need hosted proof. B321 and the remaining cut changes are
+scheduled at the cut. This slice used zero dispatches and zero uploads.
+There are no files over 500 MB in `.work/`.

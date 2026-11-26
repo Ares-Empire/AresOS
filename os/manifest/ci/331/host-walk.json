@@ -27,7 +27,14 @@
       ]
     },
     "chrome_first_use": "os/ci/release29_chrome_probe.py",
+    "chrome_first_use_refusals": {
+      "tabs": "chrome_settings_unavailable",
+      "read": "chrome_settings_unavailable",
+      "open": "chrome_settings_unavailable",
+      "take": "chrome_settings_unavailable"
+    },
     "chrome_sites_sha256": "673486749b60050004d1c31e7cd99976b19a67e2ac67b5f45f90f20b75f3dee1",
+    "guest_hostname": "aresos-rehearsal",
     "themes": {
       "28": "Ares-Crown",
       "29": "AresOS"
@@ -92,7 +99,7 @@
       "previous-28-check",
       "final-29-check"
     ],
-    "probe_count": 51,
+    "probe_count": 60,
     "result": "passed"
   },
   "inherited_from": "os/manifest/ci/42/host-walk.json",
@@ -103,7 +110,7 @@
       "path": ".gitattributes"
     },
     {
-      "sha256": "5df767d1bebf69b88917655a8dbab81715b20ecb9629dfd8d38fdda15fbad749",
+      "sha256": "1aa8db4571bb5a727352ef3a277b748ab32b54a434b0a9a23878e11a9e8082f9",
       "path": ".github/workflows/os-image.yml"
     },
     {
@@ -115,7 +122,7 @@
       "path": "briefs/14zze-checkout-bytes.md"
     },
     {
-      "sha256": "a6b2110cdb635c5f13bf8afe6c047d13e54c187f1cf2fbd820379c9048359d84",
+      "sha256": "bbcb0557cd49fc57b6b13e6ebdf6ba702fa9561b4c8372afacf8887d70473d66",
       "path": "control/chrome/extension/background.js"
     },
     {
@@ -155,7 +162,7 @@
       "path": "control/chrome/extension/popup.js"
     },
     {
-      "sha256": "d25ddb098beb190019750a8302276fc7acc2a95900ad5ebe3dba43cc35568f0c",
+      "sha256": "362144b27d8b02d89059849dbdf2489a53a9cb59d47ad048eda6c6c28ebb7761",
       "path": "control/chrome/extension/reader.js"
     },
     {
@@ -311,7 +318,7 @@
       "path": "os/ci/owner_read_diagnostics.py"
     },
     {
-      "sha256": "52d4d02fda1a11d775954eba5a58b93d2f76e48753ad7f08a9d92acf65411e64",
+      "sha256": "850aa758207e509708a2960203562941a0efd96ef95ffb7f3570ce3f52956884",
       "path": "os/ci/owner_vm.py"
     },
     {
@@ -347,19 +354,19 @@
       "path": "os/ci/rehearsal_guard.py"
     },
     {
-      "sha256": "f4fdd7d9a1649f1323384439d8d1a1807468b23a63405585b9aa62544fbd4f6c",
+      "sha256": "e5d3332e7da0f6a7860db3e8e9f196e4e4a8ec8437114f0100d322df4c8c6e61",
       "path": "os/ci/release28_walk.py"
     },
     {
-      "sha256": "644915e2895c05289f49723f9b06af8ecb47295551810da18b8b1f79578c9e39",
+      "sha256": "96f9e542d1e76de8efc6b6e9af76c663e121619e89939a6fb2854476aea48e83",
       "path": "os/ci/release29_chrome_probe.py"
     },
     {
-      "sha256": "9d486494fc282fa4ef58bd6a94d527ace81aac45e39b7342bb578491dd793b3a",
+      "sha256": "eb6ba0246df500acf23358d9772be3adc789f2b5cf875065e0d6413c62e588dd",
       "path": "os/ci/release29_probes.py"
     },
     {
-      "sha256": "e4dd0522efa375727950c6849a20c120fc5910104719e5e920459cd7e278a102",
+      "sha256": "cd9db75dd777c5cb66de4a6d37dcc68ec348d1495ffc27040bcef8b2bc2fb707",
       "path": "os/ci/release29_walk.py"
     },
     {
@@ -1307,7 +1314,7 @@
       "path": "os/tests/test_release28_rehearsal.py"
     },
     {
-      "sha256": "32d2a49edf7d9808f5a8b0e49ba628d912d511ca592c783d2543c7829602650b",
+      "sha256": "a562b1f378606fbd5ce58f8cebbb205ac9a54c3656f76a1a392456613ab4489c",
       "path": "os/tests/test_release29_rehearsal.py"
     },
     {
@@ -1367,7 +1374,7 @@
       "path": "reviews/27-first-update-release/walk-host.py"
     },
     {
-      "sha256": "fc2e6fa94fe094553f96a3f1413a188e6e49fcd51df25585c9953e7436ea675b",
+      "sha256": "773026c8feb13f6dd8d5e1f8bb3a6f3987afa24d99ebe92c8785854f710825cb",
       "path": "reviews/331-release-29/walk-host.py"
     },
     {

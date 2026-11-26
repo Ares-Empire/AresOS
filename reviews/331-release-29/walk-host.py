@@ -37,7 +37,7 @@ def diagnostics():
             successful = {name: guest_paths(model, value) for name, value in model.saved.items() if name.endswith((
                 '-control', '-control-login', '-session', '-terminal', '-terminal-path', '-package21-rules',
                 '-polkit-sweep', '-sites-stage', '-sites-placeholder', '-sites-hash', '-game-scope',
-                '-chrome-first-use', '-prism-handler', '-deployment-walk'))}
+                '-chrome-first-use', '-prism-handler', '-deployment-walk', '-hostname', '-desktop-status'))}
             candidate = dict(stages=[stage for stage, event in model.events if event == 'F12 Bazzite'],
                              audits=[stage for stage, event in model.events if event == 'audit'],
                              checks=[stage for stage, event in model.events if event == 'check'],
@@ -47,6 +47,11 @@ def diagnostics():
         cases = {fault: (message, 'release-28-terminal') for fault, (message, _) in TERMINAL_FAILURES.items()}
         cases.update({fault: (message, name) for fault, (message, _, name) in CONTROL_FAILURES.items()})
         cases['prism-default'] = ('Prism callback handler differs', 'release-29-prism-handler')
+        cases['prism-failed'] = ('desktop recovery.*prism_failed', 'release-29-desktop-status')
+        cases['recovery-save-gate'] = ('Minecraft close', 'r29-update-reboot-save-gate')
+        cases['recovery-game-scope'] = ('desktop recovery.*prism_failed', 'final-29-game-scope')
+        cases['static-hostname-drift'] = ('hostname differs at previous-28', 'previous-28-hostname')
+        cases['transient-hostname-drift'] = ('hostname differs at final-29', 'final-29-hostname')
         for fault, (message, name) in cases.items():
             with test.model(fault) as model:
                 try:

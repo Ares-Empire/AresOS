@@ -38,7 +38,8 @@ def gh_version():
 def receipt_settings():
     return dict(control_checker=CONTROL_CHECKER, control_checks={
         '28': list(SERVICE_CHECKS), '29': list(SERVICE_CHECKS + CHROME_CHECKS)},
-        chrome_first_use=CHROME_FIRST_USE, chrome_sites_sha256=hashlib.sha256(SYNTHETIC_SITES).hexdigest(),
+        chrome_first_use=CHROME_FIRST_USE, chrome_first_use_refusals=REFUSALS,
+        chrome_sites_sha256=hashlib.sha256(SYNTHETIC_SITES).hexdigest(), guest_hostname=GUEST_HOSTNAME,
         themes=THEMES, fonts={'28': FONTS, '29': FONTS_29}, prism_handler={PRISM_MIME: PRISM_DESKTOP},
         polkit_review=POLKIT_REVIEW, gh_version=gh_version(),
         game_memory_high=r28.MEMORY_HIGH)
