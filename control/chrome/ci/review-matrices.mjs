@@ -1,10 +1,57 @@
 import assert from 'node:assert/strict';
+import {pendingCheck} from './failure.mjs';
 import {assertOwnerOverlap} from './owner-evidence.mjs';
-import {completeIngress} from './ingress-scan.mjs';
+import {auditRows,boundaryLog,completeIngress} from './ingress-scan.mjs';
 import {setTimeout as delay} from 'node:timers/promises';
 import {allTabs} from './tabs.mjs';
 import {createHash} from 'node:crypto';
 import fs from 'node:fs';
+
+// Brief 28a, item 5b: a loss refusal carries the service's fixed sentence; what
+// would be lost (labels, whose typing, media, frames that couldn't be inspected)
+// is only in error.untrusted_content.loss, and never a field's value.
+const LOSS_MESSAGE='This action may discard work. Nothing was done; inspect the loss report.';
+function lossReport(result,act){
+  assert.equal(result.ok,false,JSON.stringify(result));assert.equal(result.error.code,'reload_required');
+  assert.equal(result.error.message,LOSS_MESSAGE);
+  const report=result.error.untrusted_content.loss;assert.equal(report.act,act,JSON.stringify(report));return report;
+}
+// The old message's words for the report's fields, and its choice: ask the
+// owner first for his typing, playing media or a frame nobody could inspect.
+const lostFields=report=>report.fields.map(field=>field.description+' (typed by '+(field.by==='claude'?'Claude':'the owner')+')');
+const asksOwner=report=>report.fields.some(field=>field.by==='owner')||report.media||report.frames_uninspected>0;
+const onlyField=(report,field)=>{assert.deepEqual(lostFields(report),[field],JSON.stringify(report));assert.equal(report.more_fields+report.frames_uninspected,0);assert.equal(report.media,false);};
+
+const navigationMethods=new Set(['Page.reload','Page.navigate','Page.navigateToHistoryEntry']);
+export function navigationTrace(offset,tab,expected,starts=[],log=boundaryLog){
+  const rows=auditRows(offset,['command','method','protocol_command','protocol_event'],log);
+  const sequence=rows.flatMap(row=>{
+    if(row.phase==='begin'&&['prepare_control','navigate'].includes(row.command))return [row.command];
+    // cdp() dispatches are flat. preloadCommand() wraps its separate calls.
+    const dispatch=row.protocol_command??row;
+    return dispatch.phase==='dispatched'&&navigationMethods.has(dispatch.method)?[dispatch.method]:[];
+  });
+  assert.deepEqual(sequence,expected,'guard, navigation and native dispatch in order');
+  if(starts.length){
+    // The dispatch rows omit the tab. Chrome's start events identify it even
+    // if the next navigation supersedes the first document before it finishes.
+    const addresses=new Set(starts.map(([,url])=>url));
+    const observed=rows.flatMap(({protocol_event:event})=>
+      event?.method==='Page.frameStartedNavigating'&&addresses.has(event.params.url)
+        ?[[event.source.tabId,event.params.navigationType,event.params.url]]:[]);
+    assert.deepEqual(observed,starts.map(([type,url])=>[tab,type,url]),'navigation starts in order in the exact tab');
+  }
+}
+
+export async function guardedOtherTabClick({rpc,call,childTarget,eventually}){
+  const old=await eventually(childTarget,'other tab reader');
+  const first=await rpc('click',old);assert.equal(first.ok,false);assert.equal(first.error.code,'stale_reference');
+  const fresh=await eventually(async()=>{
+    const current=await childTarget();
+    return current&&current.reference.document!==old.reference.document&&current;
+  },'guarded other tab document changed');
+  await call('click',fresh);
+}
 
 export async function guardedHandoffClick({rpc,call,target,eventually,receiverEvidence,id}){
   const before=await target('Ready');
@@ -25,10 +72,10 @@ export async function guardedHandoffClick({rpc,call,target,eventually,receiverEv
   assert.equal(receiverEvidence(id,'first guarded act after handoff').count,1);
 }
 
-export async function reviewMatrices({check,nav,call,rpc,target,read,counts,eventually,approval,receiverEvidence,fixture,getTab,ownerKey,ownerType,ownerChooseFile,admin,ownerNavigate,ownerDismiss,nativeDonor,closeNativeDonor,setTab,lifecycle}){
+export async function reviewMatrices({check,nav,call,rpc,target,read,counts,eventually,approval,receiverEvidence,fixture,getTab,selectedTarget,ownerKey,ownerType,ownerChooseFile,admin,observe,ownerNavigate,ownerCloseTab,ownerDismiss,nativeDonor,closeNativeDonor,setTab,lifecycle}){
   await check('GROUP 2 RECHECK Claude timer fires inside the owner Enter mark',async()=>{
     const id='recheck-owner-overlap';await nav('review-page&mode=owner-overlap&id='+id);
-    const pending=call('click',await target('Continue'));
+    const pending=pendingCheck(call('click',await target('Continue')));
     const start=await eventually(()=>fixture.arrivals.find(row=>row.url.includes('case=task-start')&&row.body===id),'Claude timer started');
     await delay(Math.max(0,start.time+130-Date.now()));ownerKey(true);const result=await pending;
     await eventually(()=>counts('owner-'+id)===1,'his immediate Enter arrival');
@@ -56,7 +103,7 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       const id='review-dialog-'+kind+'-'+origin+'-'+accept;await nav('review-page&mode=native-dialog&dialog='+kind+'&id='+id);await delay(600);
       if(origin==='claude'){const opened=await rpc('click',await target('Continue'));assert.ok(opened.ok||opened.error.code==='unknown',JSON.stringify(opened));}
       else if(origin==='owner')ownerKey();else await fixture.mutate(id,'review-change');
-      const dialog=await eventually(async()=>(await call('read',{tab:getTab()})).untrusted_content.dialog,'native '+kind+' from '+origin);assert.equal(dialog.kind,kind);assert.equal(dialog.unguarded,undefined,'ordinary dialogs must retain their private return hold');assert.equal(receiverEvidence(id,'native dialog open').count,0);
+      const dialog=await eventually(async()=>(await call('read',{tab:getTab()},{nativeDialog:true})).untrusted_content.dialog,'native '+kind+' from '+origin);assert.equal(dialog.kind,kind);assert.equal(dialog.unguarded,undefined,'ordinary dialogs must retain their private return hold');assert.equal(receiverEvidence(id,'native dialog open').count,0);
       const answer=await call('dialog',{tab:getTab(),expected:dialog,accept,...(kind==='prompt'?{text:'Synthetic answer'}:{})});
       assert.ok(!answer.approval,'the ordinary native answer has already happened');assert.ok(answer.followups?.some(row=>row.approval),'its resumed submission has a separate held approval');
       assert.equal(receiverEvidence(id,'after native answer').count,0,'answering cannot approve the resumed form');
@@ -69,7 +116,7 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
     for(const variant of ['blank','srcdoc'])for(const kind of ['alert','confirm','prompt']){
       const id='review-inline-dialog-'+variant+'-'+kind;await nav('review-page&mode=inline-dialog&variant='+variant+'&dialog='+kind+'&id='+id);await delay(600);
       const opened=await rpc('click',await target('Continue'));assert.ok(opened.ok||opened.error.code==='unknown',JSON.stringify(opened));
-      const dialog=await eventually(async()=>(await call('read',{tab:getTab()})).untrusted_content.dialog,'inline '+variant+' '+kind);assert.equal(dialog.kind,kind);assert.notEqual(dialog.frame,0);assert.equal(dialog.unguarded,undefined);assert.equal(receiverEvidence(id,'inline native dialog open').count,0);
+      const dialog=await eventually(async()=>(await call('read',{tab:getTab()},{nativeDialog:true})).untrusted_content.dialog,'inline '+variant+' '+kind);assert.equal(dialog.kind,kind);assert.notEqual(dialog.frame,0);assert.equal(dialog.unguarded,undefined);assert.equal(receiverEvidence(id,'inline native dialog open').count,0);
       const answer=await call('dialog',{tab:getTab(),expected:dialog,accept:true,...(kind==='prompt'?{text:'Inline answer'}:{})});assert.equal(receiverEvidence(id,'inline native answered with hold').count,0);await approval(answer,id);
     }
   });
@@ -79,31 +126,36 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       assert.equal(typeof session,'string');
       await call('release_tab',{tab});await eventually(async()=>(await allTabs(call)).items.some(row=>row.tab===tab&&!row.controlled&&!row.cleanup_pending),'owner tab fully released');
       await ownerNavigate('http://fixture.test:8765/?case=review-page&mode=preexisting-dialog&dialog='+kind+'&id='+id);await delay(600);
-      const started=Date.now(),taken=await call('take_tab',{tab});assert.ok(Date.now()-started<15000,'handoff is bounded before the transport deadline');assert.equal(taken.untrusted_content.owner_dialog,true);assert.match(taken.untrusted_content.ask_owner,/answer the dialog yourself/);assert.equal(receiverEvidence(id,'bounded handoff').count,0);
+      const last=observe('audit').at(-1)?.seq??0;
+      const started=Date.now(),taken=await call('take_tab',{tab});assert.ok(Date.now()-started<15000,'handoff is bounded before the transport deadline');
+      assert.equal(taken.owner_dialog,true);assert.match(taken.ask_owner,/answer the dialog yourself/);assert.equal(receiverEvidence(id,'bounded handoff').count,0);
+      const audit=observe('audit').filter(row=>row.seq>last);
+      assert.deepEqual(audit.map(row=>row.summary),['Chrome free-input context committed','Chrome free input recorded']);
+      const [dispatch,record]=audit;assert.ok(dispatch.operation_id);assert.equal(record.operation_id,dispatch.operation_id);
       try{fs.unlinkSync('/out/control-status.json');}catch(error){if(error.code!=='ENOENT')throw error;}
       await lifecycle({fixture:'control_status'});const status=await eventually(()=>fs.existsSync('/out/control-status.json')&&JSON.parse(fs.readFileSync('/out/control-status.json')),'native debugger snapshot after handoff');
       assert.equal(status.debugger_targets.find(row=>row.tab===tab)?.attached,false,'no debugger remains attached behind the native dialog');
       ownerDismiss();await eventually(()=>counts(id)===1,'owner answers the preexisting dialog');assert.equal(receiverEvidence(id,'owner answer').count,1);
-      await eventually(async()=>(await read()).some(row=>row.expected.name==='Ready'),'read recovers without restarting Chrome');assert.equal((await call('tabs')).session,session);
-      assert.equal((await call('operation_status',{operation_id:taken.operation_id})).operation.state,'done');
+      await eventually(async()=>(await call('read',{tab})).untrusted_content.outline.includes('"Ready"'),'read recovers without restarting Chrome');assert.equal((await call('tabs')).session,session);
+      assert.equal((await call('operation_status',{operation_id:dispatch.operation_id})).operation.state,'done');
       await guardedHandoffClick({rpc,call,target,eventually,receiverEvidence,id});
     }
   });
   await check('GROUP 4 REVIEW borrowed native dialogs always ask bind the answer and never replay',async()=>{
     for(const kind of ['alert','confirm','prompt'])for(const variant of kind==='prompt'?['direct','conversion-message','conversion-default','changed-dialog']:['direct','conversion-message','changed-dialog']){
       setTab(await nativeDonor(getTab()));const tab=getTab(),id='review-borrowed-'+kind+'-'+variant;await nav('review-page&mode=borrowed-dialog&dialog='+kind+'&variant='+variant+'&id='+id);await delay(600);await fixture.mutate(id,'review-change');
-      const dialog=await eventually(async()=>(await call('read',{tab})).untrusted_content.dialog,'borrowed '+kind);assert.equal(dialog.unguarded,true);
+      const dialog=await eventually(async()=>(await call('read',{tab},{nativeDialog:true})).untrusted_content.dialog,'borrowed '+kind);assert.equal(dialog.unguarded,true);
       const prepared=await call('dialog',{tab,expected:dialog,accept:true,...(kind==='prompt'?{text:'Chosen prompt'}:{})});assert.ok(prepared.approval);assert.match(prepared.approval.question,/outside the page guard/);assert.match(prepared.approval.question,/continuation isn't held/);assert.equal(receiverEvidence(id,'borrowed question').count,0);
       const changed=structuredClone(prepared.approval);changed.description.untrusted_content.input.accept=false;assert.equal((await rpc('submit',changed)).ok,false);assert.equal((await rpc('submit_trusted',prepared.approval)).ok,false);assert.equal(receiverEvidence(id,'borrowed unapproved answers refused').count,0);
       if(variant==='changed-dialog'){
         ownerDismiss();await eventually(async()=>!(await call('read',{tab})).untrusted_content.dialog,'owner closed first borrowed dialog');await fixture.mutate(id,'review-change');
-        const replacement=await eventually(async()=>(await call('read',{tab})).untrusted_content.dialog,'replacement borrowed dialog');assert.notEqual(replacement.id,dialog.id);assert.equal(replacement.unguarded,true);
+        const replacement=await eventually(async()=>(await call('read',{tab},{nativeDialog:true})).untrusted_content.dialog,'replacement borrowed dialog');assert.notEqual(replacement.id,dialog.id);assert.equal(replacement.unguarded,true);
         const stale=await rpc('submit',prepared.approval);assert.ok(!stale.ok||stale.data.operation.state==='failed');assert.equal(receiverEvidence(id,'changed dialog approval refused').count,0);
         await approval(await call('dialog',{tab,expected:replacement,accept:true,...(kind==='prompt'?{text:'Replacement answer'}:{})}),id);
       }else if(variant==='direct')await approval(prepared,id);
       else{
         await call('submit',prepared.approval);assert.equal(receiverEvidence(id,'borrowed approved before outer dialog').count,0);await call('submit',prepared.approval);assert.equal(receiverEvidence(id,'borrowed approval repeated before outer dialog').count,0);
-        const outer=await eventually(async()=>(await call('read',{tab})).untrusted_content.dialog,'outer native after string conversion');assert.equal(outer.unguarded,undefined);assert.notEqual(outer.id,dialog.id);
+        const outer=await eventually(async()=>(await call('read',{tab},{nativeDialog:true})).untrusted_content.dialog,'outer native after string conversion');assert.equal(outer.unguarded,undefined);assert.notEqual(outer.id,dialog.id);
         const answered=await call('dialog',{tab,expected:outer,accept:true,...(kind==='prompt'?{text:'Outer answer'}:{})});assert.ok(!answered.approval);assert.equal(receiverEvidence(id,'outer native answered with hold').count,0);await approval(answered,id);
       }
       await closeNativeDonor();
@@ -119,8 +171,9 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
   });
   await check('GROUP 3 REVIEW owner chosen attachments show byte digests and bind identical metadata replacements',async()=>{
     const id='review-owner-file';await nav('review-page&mode=owner-file&id='+id);
-    const opening=call('click',await target('File'));opening.catch(()=>{});await ownerChooseFile();await opening;
-    await eventually(async()=>(await read()).some(row=>row.expected.name==='File'&&row.expected.value?.length===1),'owner chosen File is installed');
+    const opening=pendingCheck(call('click',await target('File')));await ownerChooseFile();await opening;
+    const picked=await eventually(()=>fixture.compatibility.find(row=>row.id===id&&row.phase==='owner-file-change'&&row.files.length===1),'owner chosen File is installed');
+    assert.equal(picked.files[0].name,'owner-picked.txt');
     const first=await call('click',await target('Submit'));assert.ok(first.approval);
     assert.doesNotMatch(JSON.stringify(first.approval.description),/GOOD|EVIL/,'file bytes must never enter the approval or binding');
     for(const text of ['owner-picked.txt','4 bytes',createHash('sha256').update('GOOD').digest('hex')])assert.ok(first.approval.question.includes(text),first.approval.question);
@@ -141,12 +194,11 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
     for(const outside of [false,true]){
       const id='review-cross-tab-'+outside;await nav('review-page&mode=cross-tab&id='+id);await call('click',await target('Open window'));
       const child=await eventually(async()=>(await allTabs(call)).items.find(row=>row.url?.includes('mode=cross-tab-inner&id='+id)),'controlled other tab');
-      const childTarget=async()=>{const page=await call('read',{tab:child.tab});const row=page.untrusted_content.tree.split('\n').filter(line=>line.startsWith('{')).map(JSON.parse).find(row=>row.expected.name==='Ready');return row&&{reference:row.reference,expected:row.expected};};
-      const old=await eventually(childTarget,'other tab reader');const first=await rpc('click',old);assert.equal(first.ok,false);assert.equal(first.error.code,'stale_reference');
-      await call('click',await eventually(childTarget,'guarded other tab'));
+      const childTarget=async()=>{const rows=await read(child.tab);return selectedTarget(rows.find(row=>row.expected.name==='Ready'),rows);};
+      await guardedOtherTabClick({rpc,call,childTarget,eventually});
       if(outside)await call('release_tab',{tab:child.tab});
       await call('click',await target('Continue'));
-      if(outside){await eventually(()=>counts(id)===1,'outside document takes native path');await call('take_tab',{tab:child.tab});await call('close_tab',{tab:child.tab,discard_unsaved:true});}
+      if(outside){await eventually(()=>counts(id)===1,'outside document takes native path');await ownerCloseTab(child.tab);}
       else{
         assert.equal(counts(id),0,'the other controlled document cannot take the source native path');
         await call('read',{tab:child.tab});let cursor,prepared;
@@ -176,7 +228,7 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
     for(const native of [false,true])for(const mode of ['open','closed'])for(const composed of [false,true])for(const cancel of [false,true]){
       setTab(await nativeDonor(getTab()));
       const id='review-fallback-'+native+'-'+mode+'-'+composed+'-'+cancel;await nav('review-page&mode=shadow-fallback&variant='+mode+'&composed='+composed+'&cancel='+cancel+'&native='+native+'&id='+id);
-      const result=await call('click',await target('Continue'));assert.equal(receiverEvidence('handler-'+id,'borrowed native handler held').count,0,'borrowed native event never reaches the asking handler');
+      const result=await call('click',await target('Continue'),{committed:true});assert.equal(receiverEvidence('handler-'+id,'borrowed native handler held').count,0,'borrowed native event never reaches the asking handler');
       assert.equal(receiverEvidence(id,'native default stopped before approval').count,0);assert.ok(result.followups.some(row=>row.stopped));assert.ok(!result.followups.some(row=>row.approval),'activations never resume');
       assert.ok(result.untrusted_content.steps.every(step=>step.kind==='activation'));await approval(await call('click',await target('Delete')),id);
       await closeNativeDonor();console.log('REVIEW P5 borrowed native',id,'receiver',counts(id),'handler',counts('handler-'+id));
@@ -216,7 +268,7 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
   await check('GROUP 2 REVIEW owner mark exact form submitter and unconsumed delayed work',async()=>{
     for(const variant of ['other-form','other-submitter','delayed-unconsumed']){
       const id='review-owner-'+variant;await nav('review-page&mode=owner-mark&variant='+variant+'&id='+id);
-      const pending=call('click',await target('Continue'));
+      const pending=pendingCheck(call('click',await target('Continue')));
       const start=await eventually(()=>fixture.arrivals.find(row=>row.url.includes('case=task-start')&&row.body===id),'Claude start');
       await delay(Math.max(0,start.time+130-Date.now()));ownerKey();await approval(await pending,id);
       console.log('REVIEW P20 RECEIVER0/1/1',id);
@@ -230,10 +282,10 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       await call('take_tab',{tab});const before=await target('Continue');const first=await rpc('click',before);assert.equal(first.ok,false);assert.equal(first.error.code,'reload_required');assert.equal(counts('loaded-'+id),1);
       const repeat=await rpc('click',{...before,discard_unsaved:true});assert.equal(repeat.ok,false);assert.equal(repeat.error.code,'stale_reference');await eventually(()=>counts('loaded-'+id)===2,'explicit guarded reload');
     }
-    // Final F6: chrome_navigate direction=reload in a taken tab gives the same
-    // report, reloads only on the explicit repeat, and a clean tab just reloads.
+    // Final F6: a requested reload in a taken tab uses the first-input guard.
     for(const mode of ['dirty','web-audio','clean']){
-      const id='final-navigate-reload-'+mode,tab=getTab();await call('release_tab',{tab});await ownerNavigate('http://fixture.test:8765/?case=take-state&id='+id+'&mode='+mode);
+      const id='final-navigate-reload-'+mode,tab=getTab(),url='http://fixture.test:8765/?case=take-state&id='+id+'&mode='+mode;
+      await call('release_tab',{tab});await ownerNavigate(url,{tab});
       await eventually(()=>counts('loaded-'+id)===1,'owner page loaded');
       if(mode==='web-audio'){ownerKey();await eventually(()=>counts('playing-'+id)===1,'Web Audio playback started');await delay(500);}
       await call('take_tab',{tab});
@@ -242,20 +294,28 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       // Audio row just played in this same tab: a clean tab waits that out.
       if(mode==='clean')await delay(3500);
       if(mode!=='clean'){
-        const first=await rpc('navigate',{tab,direction:'reload'});assert.equal(first.ok,false,JSON.stringify(first));assert.equal(first.error.code,'reload_required');
-        assert.match(first.error.message,mode==='dirty'?/Reloading this tab would lose unsaved typing in field "Draft"/:/media that is playing/);assert.doesNotMatch(first.error.message,/Saved/,'labels only, never values');await delay(500);assert.equal(counts('loaded-'+id),1,'the owner page stays until the explicit repeat');
+        const offset=boundaryLog.size(),first=await rpc('navigate',{tab,direction:'reload'});const report=lossReport(first,'first_input');
+        navigationTrace(offset,tab,['prepare_control']);
+        if(mode==='dirty')assert.equal(report.fields[0]?.description,'field "Draft"',JSON.stringify(report));else assert.equal(report.media,true,JSON.stringify(report));
+        assert.doesNotMatch(JSON.stringify(first.error),/Saved/,'labels only, never values');await delay(500);assert.equal(counts('loaded-'+id),1,'the owner page stays until the explicit repeat');
       }
-      const reloaded=await rpc('navigate',{tab,direction:'reload',...(mode==='clean'?{}:{discard_unsaved:true})});assert.equal(reloaded.ok,true,JSON.stringify(reloaded));
+      const offset=boundaryLog.size(),reloaded=await rpc('navigate',{tab,direction:'reload',...(mode==='clean'?{}:{discard_unsaved:true})});assert.equal(reloaded.ok,true,JSON.stringify(reloaded));
       await eventually(()=>counts('loaded-'+id)===2,'navigate reload '+mode);
+      navigationTrace(offset,tab,['prepare_control','Page.reload'],[['reload',url]]);
+      if(mode==='dirty'){
+        const offset=boundaryLog.size(),refused=await rpc('navigate',{tab,direction:'reload'});
+        onlyField(lossReport(refused,'reload'),'field "Draft" (typed by the owner)');
+        navigationTrace(offset,tab,['navigate']);assert.equal(counts('loaded-'+id),2);
+      }
     }
-    // discard_unsaved (lead, 2026-11-14): chrome_navigate to an address gives
-    // the same report in a taken tab and goes only with the flag.
+    // A requested address in a taken tab follows its guarded reload.
     // Step 8: before the act, the run records Chrome's own flags for the tab
     // (the `audible` the report reads, and muted), so a run tells the product
     // (the report) apart from the harness (which tab the owner played in).
     const soundRow=async(id,tab)=>{const row=(await allTabs(call)).items.find(row=>row.tab===tab);console.log(id,'tab before the act',JSON.stringify({tab,url:row?.url,audible:row?.audible,muted:row?.muted,controlled:row?.controlled,active:row?.active}));return row;};
     for(const mode of ['dirty','web-audio','clean']){
-      const id='final-discard-navigate-url-'+mode,next=id+'-next',tab=getTab();await call('release_tab',{tab});await ownerNavigate('http://fixture.test:8765/?case=take-state&id='+id+'&mode='+mode,{tab});
+      const id='final-discard-navigate-url-'+mode,next=id+'-next',tab=getTab(),before='http://fixture.test:8765/?case=take-state&id='+id+'&mode='+mode;
+      await call('release_tab',{tab});await ownerNavigate(before,{tab});
       await eventually(()=>counts('loaded-'+id)===1,'owner page loaded');
       if(mode==='web-audio'){ownerKey();await eventually(()=>counts('playing-'+id)===1,'Web Audio playback started');await delay(500);}
       await call('take_tab',{tab});const url='http://fixture.test:8765/?case=take-state&id='+next+'&mode=clean';
@@ -264,15 +324,17 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       if(mode!=='clean'){
         if(mode==='web-audio')await soundRow(id,tab);
         // Before its first reload a taken tab's text fields count as unsaved.
-        const first=await rpc('navigate',{tab,url});assert.equal(first.ok,false,JSON.stringify(first));assert.equal(first.error.code,'reload_required');
-        assert.match(first.error.message,/Navigating this tab away would lose unsaved typing in field "Draft"/);assert.doesNotMatch(first.error.message,/Saved/,'labels only, never values');
-        if(mode==='web-audio')assert.match(first.error.message,/media that is playing/);
-        await delay(500);assert.equal(counts('loaded-'+next),0,'the owner page stays until the explicit repeat');
+        const offset=boundaryLog.size(),first=await rpc('navigate',{tab,url});const report=lossReport(first,'first_input');
+        navigationTrace(offset,tab,['prepare_control']);
+        assert.equal(report.fields[0]?.description,'field "Draft"',JSON.stringify(report));assert.doesNotMatch(JSON.stringify(first.error),/Saved/,'labels only, never values');
+        if(mode==='web-audio')assert.equal(report.media,true,JSON.stringify(report));
+        await delay(500);assert.equal(counts('loaded-'+id),1);assert.equal(counts('loaded-'+next),0,'the owner page stays until the explicit repeat');
       }
-      const moved=await rpc('navigate',{tab,url,...(mode==='clean'?{}:{discard_unsaved:true})});assert.equal(moved.ok,true,JSON.stringify(moved));
+      const offset=boundaryLog.size(),moved=await rpc('navigate',{tab,url,...(mode==='clean'?{}:{discard_unsaved:true})});assert.equal(moved.ok,true,JSON.stringify(moved));
       await eventually(()=>counts('loaded-'+next)===1,'navigate to an address '+mode);
+      navigationTrace(offset,tab,['prepare_control','Page.reload','navigate','Page.navigate'],[['reload',before],['differentDocument',url]]);
     }
-    // discard_unsaved: chrome_close_tab gives the same report in a tab Claude
+    // discard_unsaved: chrome_close gives the same report in a tab Claude
     // opened, whose reader watched from the start, and closes only with the flag.
     const main=getTab();
     for(const mode of ['dirty','web-audio','clean']){
@@ -295,10 +357,10 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
           await call('take_tab',{tab});await soundRow(id,tab);
         }
         if(mode!=='clean'){
-          const first=await rpc('close_tab',{tab});assert.equal(first.ok,false,JSON.stringify(first));assert.equal(first.error.code,'reload_required');
-          if(mode==='dirty')assert.match(first.error.message,/Closing this tab would lose unsaved typing in field "Draft" \(typed by the owner\)\./);
-          else{assert.match(first.error.message,/^Closing this tab would lose /);assert.match(first.error.message,/media that is playing/);}
-          assert.doesNotMatch(first.error.message,/Saved/,'labels only, never values');
+          const first=await rpc('close_tab',{tab});const report=lossReport(first,'close');
+          if(mode==='dirty')onlyField(report,'field "Draft" (typed by the owner)');
+          else assert.equal(report.media,true,JSON.stringify(report));
+          assert.doesNotMatch(JSON.stringify(first.error),/Saved/,'labels only, never values');
           await delay(300);assert.ok((await allTabs(call)).items.some(row=>row.tab===tab&&row.controlled),'the tab stays open and controlled until the explicit repeat');
         }
         const closed=await rpc('close_tab',{tab,...(mode==='clean'?{}:{discard_unsaved:true})});assert.equal(closed.ok,true,JSON.stringify(closed));
@@ -316,21 +378,60 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
         const second=await rpc('navigate',{tab,url:page(2),discard_unsaved:true});assert.equal(second.ok,true,JSON.stringify(second));
         await eventually(async()=>await address()===page(2)&&counts('loaded-'+id+'-2')===1,'second page loaded');
         if(mode==='dirty'){
-          const back=await rpc('navigate',{tab,direction:'back'});assert.equal(back.ok,false,JSON.stringify(back));assert.equal(back.error.code,'reload_required');
-          assert.match(back.error.message,/Going back in this tab would lose unsaved typing in field "Draft" \(typed by the owner\)\. Nothing was done\. Tell the owner/);assert.doesNotMatch(back.error.message,/Unsaved|Saved/,'labels only, never values');
+          const back=await rpc('navigate',{tab,direction:'back'});const report=lossReport(back,'back');
+          onlyField(report,'field "Draft" (typed by the owner)');assert.equal(asksOwner(report),true);assert.doesNotMatch(JSON.stringify(back.error),/Unsaved|Saved/,'labels only, never values');
           await delay(500);assert.equal(await address(),page(2),'the page stays until the explicit repeat');
         }
         const back=await rpc('navigate',{tab,direction:'back',...(mode==='dirty'?{discard_unsaved:true}:{})});assert.equal(back.ok,true,JSON.stringify(back));
         await eventually(async()=>await address()===page(1),'back '+mode);
         if(mode==='dirty'){
-          // The first page comes back from the back-forward cache or loads again;
-          // either way it holds unsaved typing or can't be inspected.
-          const forward=await rpc('navigate',{tab,direction:'forward'});assert.equal(forward.ok,false,JSON.stringify(forward));assert.equal(forward.error.code,'reload_required');
-          assert.match(forward.error.message,/Going forward in this tab would lose /);await delay(500);assert.equal(await address(),page(1),'the page stays until the explicit repeat');
-          const moved=await rpc('navigate',{tab,direction:'forward',discard_unsaved:true});assert.equal(moved.ok,true,JSON.stringify(moved));
-          await eventually(async()=>await address()===page(2),'forward dirty');
+          const offset=boundaryLog.size(),forward=await rpc('navigate',{tab,direction:'forward'});
+          const firstInput=forward.error?.untrusted_content?.loss?.act==='first_input';
+          const report=lossReport(forward,firstInput?'first_input':'forward');
+          assert.ok(asksOwner(report),'the restored draft or uninspected frame requires disclosure');
+          navigationTrace(offset,tab,[firstInput?'prepare_control':'navigate']);
+          await delay(500);assert.equal(await address(),page(1),'the restored page stays after refusal');
+          const acknowledge=boundaryLog.size();
+          const moved=await rpc('navigate',{tab,direction:'forward',discard_unsaved:true});
+          if(firstInput&&!moved.ok){
+            assert.equal(moved.error.code,'refused');
+            assert.match(moved.error.message,/request method is unknown/);
+            navigationTrace(acknowledge,tab,['prepare_control']);
+            assert.equal(await address(),page(1),'unknown request method leaves the restored page in place');
+          }else{
+            assert.equal(moved.ok,true,JSON.stringify(moved));
+            await eventually(async()=>await address()===page(2),'forward dirty');
+            const guarded=firstInput?['prepare_control','Page.reload']:[];
+            const starts=firstInput?[['reload',page(1)]]:[];
+            navigationTrace(acknowledge,tab,[...guarded,'navigate','Page.navigateToHistoryEntry'],[...starts,['historyDifferentDocument',page(2)]]);
+          }
         }
       }finally{await call('close_tab',{tab,discard_unsaved:true});setTab(main);}
+    }
+    // A watched document with two same-document history entries exercises
+    // Forward's own discard check regardless of how Chrome restores a prior document.
+    {
+      const id='final-discard-forward',url='http://fixture.test:8765/?case=take-state&id='+id+'&mode=dirty';
+      const {tab}=await call('open',{url}),next=url+'#second';
+      const address=async()=>(await allTabs(call)).items.find(row=>row.tab===tab)?.url;
+      try{
+        await eventually(()=>counts('loaded-'+id)===1,'watched draft loaded');
+        await call('navigate',{tab,url:next,discard_unsaved:true});
+        await eventually(async()=>await address()===next,'second history entry created');
+        await call('navigate',{tab,direction:'back',discard_unsaved:true});
+        await eventually(async()=>await address()===url,'back kept the watched document');
+        const offset=boundaryLog.size(),forward=await rpc('navigate',{tab,direction:'forward'});
+        onlyField(lossReport(forward,'forward'),'field "Draft" (typed by the owner)');
+        assert.doesNotMatch(JSON.stringify(forward.error),/Unsaved|Saved/);
+        navigationTrace(offset,tab,['navigate']);
+        await delay(500);assert.equal(await address(),url,'the watched draft stays until the explicit repeat');
+        const acknowledged=boundaryLog.size();
+        const moved=await rpc('navigate',{tab,direction:'forward',discard_unsaved:true});assert.equal(moved.ok,true,JSON.stringify(moved));
+        await eventually(async()=>await address()===next,'forward arrived at the second entry');
+        assert.equal(moved.data.tab,tab);
+        navigationTrace(acknowledged,tab,['navigate','Page.navigateToHistoryEntry']);
+        assert.equal(counts('loaded-'+id),1,'the history move never reloaded the document');
+      }finally{await call('close_tab',{tab,discard_unsaved:true});}
     }
     // Step 5: an untouched editor in a Claude tab holds nothing; Claude's own
     // typing is marked as his and may go without asking the owner.
@@ -341,9 +442,9 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       try{
         if(mode==='typed-by-claude'){
           await call('fill',{...await target('Notes'),text:'Claude notes'});
-          const first=await rpc('navigate',{tab,url:next});assert.equal(first.ok,false,JSON.stringify(first));assert.equal(first.error.code,'reload_required');
-          assert.match(first.error.message,/Navigating this tab away would lose unsaved typing in editor "Notes" \(typed by Claude\)\. Nothing was done\. All of it is Claude's own typing/);
-          assert.doesNotMatch(first.error.message,/Claude notes/,'labels only, never values');await delay(500);assert.equal(counts('loaded-'+id+'-next'),0,'the page stays until the explicit repeat');
+          const first=await rpc('navigate',{tab,url:next});const report=lossReport(first,'navigate');
+          onlyField(report,'editor "Notes" (typed by Claude)');assert.equal(asksOwner(report),false);
+          assert.doesNotMatch(JSON.stringify(first.error),/Claude notes/,'labels only, never values');await delay(500);assert.equal(counts('loaded-'+id+'-next'),0,'the page stays until the explicit repeat');
         }
         const moved=await rpc('navigate',{tab,url:next,...(mode==='typed-by-claude'?{discard_unsaved:true}:{})});assert.equal(moved.ok,true,JSON.stringify(moved));
         await eventually(()=>counts('loaded-'+id+'-next')===1,'editor '+mode);
@@ -359,9 +460,9 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       try{
         await call('fill',{...await target('Headline'),text:'Claude headline'});
         await eventually(()=>counts('react-synced-'+id)>=1,'the page kept the default in step with Claude\'s typing');
-        const first=await rpc('navigate',{tab,url:next});assert.equal(first.ok,false,JSON.stringify(first));assert.equal(first.error.code,'reload_required');
-        assert.match(first.error.message,/Navigating this tab away would lose unsaved typing in field "Headline" \(typed by Claude\)\. Nothing was done\. All of it is Claude's own typing/);
-        assert.doesNotMatch(first.error.message,/Claude headline/,'labels only, never values');await delay(500);assert.equal(counts('loaded-'+id+'-next'),0,'the page stays until the explicit repeat');
+        const first=await rpc('navigate',{tab,url:next});const report=lossReport(first,'navigate');
+        onlyField(report,'field "Headline" (typed by Claude)');assert.equal(asksOwner(report),false);
+        assert.doesNotMatch(JSON.stringify(first.error),/Claude headline/,'labels only, never values');await delay(500);assert.equal(counts('loaded-'+id+'-next'),0,'the page stays until the explicit repeat');
         // The page empties value and default, as React does on a reset.
         await call('click',await target('Continue'));await eventually(()=>counts('react-reset-'+id)===1,'the page emptied the field');await delay(600);
         const moved=await rpc('navigate',{tab,url:next});assert.equal(moved.ok,true,JSON.stringify(moved));
@@ -378,9 +479,9 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       await eventually(()=>counts('loaded-'+id)===2,'watched reload');await delay(500);
       ownerType('Owner headline');
       await eventually(()=>fixture.arrivals.some(row=>row.url==='/receive?case=react-synced-'+id&&row.body==='trusted'),'the owner\'s trusted typing reached the React-style field');await delay(300);
-      const first=await rpc('navigate',{tab,url:next});assert.equal(first.ok,false,JSON.stringify(first));assert.equal(first.error.code,'reload_required');
-      assert.match(first.error.message,/Navigating this tab away would lose unsaved typing in field "Headline" \(typed by the owner\)\. Nothing was done\. Tell the owner/);
-      assert.doesNotMatch(first.error.message,/Owner headline/,'labels only, never values');await delay(500);assert.equal(counts('loaded-'+id+'-next'),0,'the page stays until the explicit repeat');
+      const first=await rpc('navigate',{tab,url:next});const report=lossReport(first,'navigate');
+      onlyField(report,'field "Headline" (typed by the owner)');assert.equal(asksOwner(report),true);
+      assert.doesNotMatch(JSON.stringify(first.error),/Owner headline/,'labels only, never values');await delay(500);assert.equal(counts('loaded-'+id+'-next'),0,'the page stays until the explicit repeat');
       const moved=await rpc('navigate',{tab,url:next,discard_unsaved:true});assert.equal(moved.ok,true,JSON.stringify(moved));
       await eventually(()=>counts('loaded-'+id+'-next')===1,'the flag moves on');
     }
@@ -390,16 +491,18 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
     await fixture.mutate(id,'review-change');await eventually(()=>counts(id)===1,'script POST');
     await eventually(async()=>(await allTabs(call)).items.some(row=>row.tab===tab&&row.url==='http://fixture.test:8765/post-document?case='+id),'script POST committed in the exact owner tab');
     await call('take_tab',{tab});const refused=await rpc('click',await target('Continue'));assert.equal(refused.ok,false);assert.match(refused.error.message,/form submission|request method/);assert.equal(counts(id),1);
-    await nav('review-page&mode=script-popup&id=review-script-popup');await call('click',await target('Open window'));await eventually(()=>counts('review-script-popup')===1,'popup script POST');
+    // Leave the POST directly. A public go would require the very reload just refused above.
+    const next='http://fixture.test:8765/?case=review-page&mode=script-popup&id=review-script-popup';
+    await ownerNavigate(next,{tab});await call('click',await target('Open window'));await eventually(()=>counts('review-script-popup')===1,'popup script POST');
     const child=await eventually(async()=>(await allTabs(call)).items.find(row=>row.url?.includes('/post-document?case=review-script-popup')),'POST popup exists');
-    const page=await call('read',{tab:child.tab});const row=page.untrusted_content.tree.split('\n').filter(line=>line.startsWith('{')).map(JSON.parse).find(row=>row.expected.name==='Continue');assert.ok(row);
-    const popupRefused=await rpc('click',{reference:row.reference,expected:row.expected});assert.equal(popupRefused.ok,false);assert.match(popupRefused.error.message,/form submission|request method/);assert.equal(counts('review-script-popup'),1);await call('close_tab',{tab:child.tab,discard_unsaved:true});
+    const rows=await read(child.tab);const row=rows.find(row=>row.expected.name==='Continue');assert.ok(row);
+    const popupRefused=await rpc('click',await selectedTarget(row,rows));assert.equal(popupRefused.ok,false);assert.match(popupRefused.error.message,/form submission|request method/);assert.equal(counts('review-script-popup'),1);await call('close_tab',{tab:child.tab,discard_unsaved:true});
   });
   await check('GROUP 8 REVIEW no-op checks and isolated choices leave the owner tab selected',async()=>{
     const tab=getTab();await nav('features&id=review-noop');await call('check',{...await target('Tick'),checked:true});
     const owner=(await call('open',{url:'about:blank'})).untrusted_content.tab;assert.ok(Number.isInteger(owner));await call('release_tab',{tab:owner});
     const active=async()=>(await allTabs(call)).items.find(row=>row.active&&row.focused)?.tab;assert.equal(await active(),owner);
-    const result=await call('check',{...await target('Tick'),checked:true});assert.equal(result.untrusted_content.no_change,true);assert.equal(result.untrusted_content.dispatched,false);assert.equal(await active(),owner);
+    const result=await call('check',{...await target('Tick'),checked:true},{committed:true});assert.equal(result.untrusted_content.no_change,true);assert.equal(result.untrusted_content.dispatched,false);assert.equal(await active(),owner);
     await call('select',{...await target('Choice'),value:'b'});assert.equal(await active(),owner,'isolated selection cannot take focus');
     assert.equal((await allTabs(call)).items.find(row=>row.tab===tab).active,false);
     await call('take_tab',{tab:owner});await call('close_tab',{tab:owner,discard_unsaved:true});
@@ -412,7 +515,7 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
     await ownerNavigate('http://fixture.test:8765/?case=compose');await call('take_tab',{tab});
   });
   await check('GROUP 5 REVIEW page outcome records the actual post-input notice',async()=>{
-    await nav('review-page&mode=notice&id=review-notice');const result=await call('click',await target('Continue'));
+    await nav('review-page&mode=notice&id=review-notice');const result=await call('click',await target('Continue'),{committed:true});
     assert.match(JSON.stringify(result.untrusted_content.page),/ERROR: the change failed/);
   });
 }

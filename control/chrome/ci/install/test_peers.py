@@ -20,9 +20,12 @@ ROOT = Path(__file__).resolve().parents[4]
 PROOF = ROOT / 'control/chrome/ci/install/proof.py'
 
 
-def functions(path, names, namespace):
+def functions(path, names, namespace, class_name=None):
     tree = ast.parse(path.read_text())
-    nodes = [node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name in names]
+    body = tree.body
+    if class_name:
+        body = next(node.body for node in body if isinstance(node, ast.ClassDef) and node.name == class_name)
+    nodes = [node for node in body if isinstance(node, ast.FunctionDef) and node.name in names]
     assert {node.name for node in nodes} == set(names)
     exec(compile(ast.Module(body=nodes, type_ignores=[]), str(path), 'exec'), namespace)
     return namespace
@@ -31,6 +34,20 @@ def functions(path, names, namespace):
 class Peers(unittest.TestCase):
     def peers(self):
         return functions(PROOF, ['service_peers'], {'subprocess': subprocess})['service_peers']
+
+    def test_connected_requires_a_nonempty_28a_tab_list(self):
+        connected = functions(PROOF, ['connected'], {}, class_name='Proof')['connected']
+        listed = {'seen': 'tab-list-token', 'total': 1, 'cursor': None, 'version_notice': None,
+                  'untrusted_content': {'list': 'window 1 (in front)\n  42 his * "Chrome pass" about:…'}}
+        proof = SimpleNamespace(tool=Mock(return_value={'ok': True, 'data': listed}))
+        self.assertTrue(connected(proof))
+        proof.tool.assert_called_once_with('tabs')
+        for answer in ({'ok': True, 'data': {'items': [{'tab': 42}]}},
+                       {'ok': True, 'data': {**listed, 'total': 0, 'untrusted_content': {'list': ''}}},
+                       {'ok': False, 'error': {'code': 'chrome_unavailable'}}):
+            with self.subTest(answer=answer):
+                proof.tool.return_value = answer
+                self.assertFalse(connected(proof))
 
     def test_exact_server_endpoint_and_established_state_at_both_bind_names(self):
         rows = [

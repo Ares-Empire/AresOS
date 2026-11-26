@@ -11,7 +11,7 @@ import urllib.error
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from aresos_control.chrome import adapter
-from aresos_control.chrome.adapter import Chrome, view_identity
+from aresos_control.chrome.adapter import Chrome
 from aresos_control.chrome.bridge import Bridge
 from aresos_control.chrome.policy import CORE_GROUPS, HOSTS
 from aresos_control.chrome import qualification as q
@@ -47,12 +47,10 @@ class Service(unittest.TestCase):
         self.engine.store.write({'chrome:qualification': {'format': 1, 'entries': list(entries)}}, 'chrome_fixture', 'Synthetic qualification state')
 
     def call(self, verb, args=None, admin=False):
-        return self.engine.request({'v':1, 'method':'call', 'action':'chrome_'+verb, 'arguments':args or {}}, admin)
+        return test_engine.fixture_call(self.engine, verb, args, admin)
 
     def target(self):
-        frame = self.peer.facts['frames'][0]
-        return {'reference': {'session': self.peer.session, 'tab': 1, 'frame': 0, 'document': frame['document'],
-                              'view': view_identity(self.peer.facts), 'element': 'e1'}, 'expected': copy.deepcopy(frame['target'])}
+        return test_engine.fixture_target(self.chrome, self.peer)
 
     def restart_from_image(self, shipped):
         """Start the service again, keeping its store, from an installed image whose shipped copy is shipped."""
@@ -144,7 +142,7 @@ class Service(unittest.TestCase):
         self.assert_activation('check', {'role':'checkbox'}, {'checked':True})
 
     def test_conservative_list_choice_asks_then_dispatches_once(self):
-        self.assert_activation('select', {'role':'combobox'}, {'value':'b'})
+        self.assert_activation('select', {'role':'combobox','options':[{'value':'b','label':'B','disabled':False}]}, {'value':'b'})
 
     def test_conservative_enter_control_asks_then_dispatches_once(self):
         self.assert_activation('press', {}, {'key':'Enter'})
@@ -193,7 +191,7 @@ class Service(unittest.TestCase):
         self.peer.version = '999.0.1.0'
         for action in [action for action in ACTIONS if action.app == 'chrome']:
             with self.subTest(action=action.name):
-                result = self.call(action.verb)
+                result = self.engine.request({'v': 1, 'method': 'call', 'action': action.name, 'arguments': {}})
                 self.assertIn('not qualified', result['pending']['chrome_version_notice'])
 
     def test_runtime_connection_refresh_for_uncovered_version_once_and_daily_caller(self):

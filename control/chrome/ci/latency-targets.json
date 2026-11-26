@@ -2,14 +2,15 @@
   "format": 1,
   "status": "lead-approved",
   "basis": "Set by mac-aresos-control, 2026-11-13; briefs/20-post-18d-g.md (47740f9b, 9fc7a9da)",
+  "navigate_basis": "Set by linux-tools, 2026-11-20 (package 28a, step 4), from 100 / 150 ms: chrome_go returns once the page has arrived and been quiet for 150 ms (brief 28), which brief 20's navigate left to a second, untimed call. PR #27's rule for a call dominated by a fixed wait (reviews/20-chrome/REPORT.md, \"Latency proposal\"): the wait plus that margin on the rest, about 250 ms of poll and quiet waits plus 1.75 x / 2.1 x the work (run 44705819383 measured 310 to 334 ms median, 317 to 339 ms p95).",
   "ceilings_ms": {
     "read": {
       "median_ms": 35,
       "p95_ms": 60
     },
     "navigate": {
-      "median_ms": 100,
-      "p95_ms": 150
+      "median_ms": 400,
+      "p95_ms": 450
     },
     "free_click": {
       "median_ms": 650,

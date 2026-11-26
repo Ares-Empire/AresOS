@@ -53,6 +53,15 @@ from aresos_control.chrome.sites import KINDS
 original_kind_scope=KINDS['gmail_send']['scope']
 original_request=daemon.engine.request
 def request(value,admin=False):
+    if admin and value.get('method')=='fixture_observe':
+        observation=value.get('observe')
+        if observation=='audit':
+            rows=[{key:row[key] for key in ('seq','action','summary','operation_id')}
+                  for row in daemon.engine.store.iter_audit() if row['action']=='chrome_take_tab']
+            return {'ok':True,'data':rows}
+        if observation in {'tabs','page'}:
+            arguments={'tab':value['tab']} if observation=='page' else {}
+            return {'ok':True,'data':bridge.call('fixture_observe_'+observation,**arguments)}
     kind=Path('/run/aresos-tools/fixture-kind')
     if kind.exists():
         mode=kind.read_text();kind.unlink()
@@ -85,7 +94,15 @@ def request(value,admin=False):
     stop=Path('/run/aresos-tools/fixture-stop')
     if stop.exists():
         stop.unlink();Path('/out/stop-result.json').write_text(json.dumps(daemon.engine.adapters['chrome'].bridge.call('stop')))
-    return original_request(value,admin)
+    result=original_request(value,admin)
+    # Brief 28, group 14's time cases: the test build holds a tab's reader
+    # replies, or its own reply to one command, back (prepare.mjs). Set after
+    # this request, so that its own looks at pending aren't held.
+    hold=Path('/run/aresos-tools/fixture-hold')
+    if hold.exists():
+        arguments=json.loads(hold.read_text());hold.unlink()
+        Path('/out/fixture-hold.json').write_text(json.dumps(daemon.engine.adapters['chrome'].bridge.call(arguments['command'],**arguments['arguments'])))
+    return result
 daemon.engine.request=request
 daemon.engine.adapters['chrome'].refresh_qualification=False
 bridge=daemon.engine.adapters['chrome'].bridge

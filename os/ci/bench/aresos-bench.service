@@ -1,0 +1,10 @@
+[Unit]
+Description=Hosted AresOS bench channel
+After=systemd-logind.service systemd-user-sessions.service
+
+[Service]
+ExecStart=/usr/bin/python3 -B /usr/libexec/aresos-bench/agent.py
+TimeoutStopSec=5
+
+[Install]
+WantedBy=multi-user.target

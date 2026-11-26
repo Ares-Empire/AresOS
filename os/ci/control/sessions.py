@@ -106,6 +106,17 @@ def flat(text):
     return re.sub(r'\s+', ' ', text)
 
 
+def squeeze(text):
+    """Text without whitespace or box-drawing characters: Claude Code wraps a long question inside its prompt's
+    border, so the full question is compared with both removed (seen in run 45011020590's C8 screens)."""
+    return re.sub(r'[\s\u2500-\u257f]+', '', text)
+
+
+def question_position(screen, question):
+    """Where the whole service question starts on the prompt screen, or -1 if any of it is missing."""
+    return squeeze(screen).find(squeeze(question)) if squeeze(question) else -1
+
+
 def settle(model, deadline, seconds=SETTLE):
     """The turn is over when no model request came for `seconds` after the last one (bounded by deadline). Returns
     when the last request was seen."""
@@ -209,17 +220,16 @@ def session(evidence, steps, flags, answers, before_turn=None, turn_seconds=180,
                 terminal.save(f'settled-{index + 1}', terminal.screen())
                 assert model.error is None, model.error
                 if step.get('prepare'):
-                    prepared = model.script.results.get(f'prepare-{index}')
-                    approval = json.loads(next(text for text in texts(prepared['content'])
-                                               if text.startswith('{')))['data']['approval']
+                    approval = model.script.prepared_approval(index)
                     question = approval['question']
                     if answer in ('Yes', 'No'):
                         asked = next(path for number, path in saved(screens, f'*-answer-{answer}')
                                      if number > first_screen).read_text()
-                        position = flat(asked).find(flat(question)[:40])
-                        assert position >= 0, ('the service question is not on the prompt', question)
+                        # The whole question, not a prefix: what Yes authorizes must be on the screen (C8).
+                        position = question_position(asked, question)
+                        assert position >= 0, ('the full service question is not on the prompt', question)
                         for key in ('operation_id', 'description'):
-                            assert position < flat(asked).find(key) or key not in asked, ('question not first', key)
+                            assert position < squeeze(asked).find(key) or key not in asked, ('question not first', key)
                 else:
                     approval = None
                 result = model.script.results.get(f'send-{index}')

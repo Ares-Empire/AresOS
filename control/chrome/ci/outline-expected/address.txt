@@ -1,0 +1,20 @@
+h1 "Address fixture"
+p
+  link "Video link" REF1
+p
+  link "Sign-in link" REF2
+p
+  link "Reset link" REF3
+p
+  link "Fragment link" REF4
+p
+  link "Token link" REF5
+p
+  link "Random link" REF6
+form "Marker form" → GET http://fixture.test:8765/receive?… REF7
+  textbox "Query" REF8
+  button "Search" REF9
+frame "Marker frame" REF10
+frame "Address frame"
+  p "Address frame text"
+  link "Frame marker link" REF11

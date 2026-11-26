@@ -6,19 +6,25 @@ Written Fri 2026-11-20 13:50 by `linux-hub` (Claude Opus 5.5), before a clear at
 
 ## Resume here
 
-Updated Sat 2026-11-21 22:31 (by `date`) by `linux-hub` (Claude Opus 5.5). R28 runs on the laptop since 18:00; the owner's first try-out and his answers are in the section below.
+Written Mon 2026-11-23 18:41 (by `date`) by `linux-hub`. **The hub is stopped on the owner's word (via `mac-capacity`, Mon ~18:20): start nothing, Claude or Codex, until he says when and how much.** Nothing of the hub is running: no Codex job, no agent and no scheduled check-in.
 
-1. **B327 is merged** (PR142, `4dd5288b`): tutorial toasts off in the home, nothing breaks in Live, Build mode in the Esc menu, "Start a new home…", the Terminal's look, and the town keeper changes nothing with desktop mode off. Reviews: Codex `gpt-6.2-astra` NOT SAFE, fixed, `gpt-6.2-sol` recheck SAFE. It rides R29 (`linux-aresos` has the jar note).
-2. **B328 (look around without holding a button)** is on `pkg/328-look-around` (`~/AresOS-328-look-around`). Step 328a (the click leak, and the check of finding 5) runs on one Opus agent since 19:35. Then 328b (click to look), 328c (edge turning), 328d (switch and two-screen trial), one fresh agent each, as the week allows. Its final review: Codex Sol (Astra only for security, `mac-capacity` 2026-11-21).
-3. **The design note `docs/design/HOME-OUTSIDE.md` is READY** (B332): the home's parts outside the game. Fable 5.2 wrote and revised it on the API promo, $38.62 in all; reviews: Fable NOT READY, Codex NOT READY, four targeted Codex rechecks, the last READY (`reviews/332-outside-game-design/`). The owner answered its questions (T482–T485). `linux-desktop` leads its packages 3a/3b, 4 and 5 and writes their briefs.
-4. **Next for the hub, in order:**
-   - **Package 2 of the note:** open and active marks on the hotbar, and a left click brings an app back (`apps_state`, `activate_app`). It depends on no gate and can be briefed now.
-   - **Package 1** (the helper for the session) with `linux-aresos`; **package 6** (search outside).
-   - **The helper's log goes to tty1 on R28** (its stderr is inherited; nothing is recorded). Send it to the journal in the next hub package that touches `aresos-shell`.
-   - **T364, the sleeping-world study,** must pass the note's gates (section 13) before packages 7 and 9.
-   - **Boot-to-home timing (T362)** on the owner's next restart.
-5. **Budgets (Sat evening):** the Claude week and Codex are both over pace. One Opus agent and one Codex job at a time for this lead; Fable only on the API promo with `mac-capacity`'s go (about $120 left, expires 29 Nov 01:00).
-6. **Direct pushes to main are refused** by the auto-mode check, so docs travel in PRs.
+1. **On main since R28:**
+   - B327 (try-out fixes);
+   - B328a (the world keeps the pointer);
+   - B328 (the look-around prototypes behind `look = classic | click | edge`, classic by default);
+   - HOME-OUTSIDE revision 2.
+
+   All of it rides R29 (cut about 27 Nov, `linux-aresos`).
+2. **PR150, B333 (open apps and bring back, `aresos-shell/1.3`):** reviewed SAFE, plus a SAFE review of the lead's hand merge of main into it.
+   - **What blocks it:** `ClickToLookClientGameTest`'s native check fails in 2 of 3 runs on the merged branch. The camera doesn't turn on the first motion. Main and 328's own branch are green, and 333 touches no motion path, so the likely cause is moves sent before the pointer lock is live.
+   - **The fix** is ready as a Codex prompt (`~/AresOS-333-fix-7.prompt.txt`): steady the test, add a unit test, fix three comments, run two full passes. Then a targeted recheck and the merge. If R29 is cut first, it rides R30.
+3. **PR171, HOME-OUTSIDE revision 4 (home styles):** the owner's T493, T494 and T498, plus "switchable" as the "Normal" look. Rechecks found one last point, which the lead fixed in `b9febd1b`: a `set` after a failed settings read keeps `home = minecraft`. That fix needs one tiny targeted recheck, then the merge. It is docs only.
+4. **Follow-ups (board T528, T529, T515, T486):**
+   - edge mode's up/down arrows (it can look up but not back down), before the owner's trial;
+   - the admission listing's timeout from 5 s to 1 s;
+   - build and run-hub taking the client-test lock;
+   - Alt+Tab then Esc leaving the world without keys.
+5. **Budgets when this stopped:** the Claude week was at 90%. Codex was empty until Wed ~14:49. The API key is refused until 1 Dec (the org's $200 monthly limit).
 
 ## Where things stand
 

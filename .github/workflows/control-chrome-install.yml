@@ -4,6 +4,7 @@ name: Control Chrome install
 # extension by policy from a file: address; nothing is published. Read-only, no secrets; the proof
 # itself runs without a network.
 on:
+  workflow_dispatch:
   pull_request:
     paths:
       - 'control/chrome/packaging/**'

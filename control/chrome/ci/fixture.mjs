@@ -3,7 +3,11 @@ import fs from 'node:fs';
 import {compatibilityScript} from './compatibility.mjs';
 import {popupPage,POPUP_GATE} from './popups.mjs';
 import {passwordPage} from './password-fixtures.mjs';
+import {unreadPage} from './unread-fixtures.mjs';
 import {reviewPage} from './review-fixtures.mjs';
+import {efficiencyPage} from './efficiency-fixtures.mjs';
+import {actPage} from './act-fixtures.mjs';
+import {outlinePage} from './outline-fixtures.mjs';
 // A React-style controlled field: the page keeps its default (the value
 // attribute) in step with every edit, as React does, and Continue resets both.
 // It reports a synced, non-empty field and the reset to the receiver.
@@ -53,10 +57,14 @@ export async function fixtures(options={}) {
     // Mutation channels belong to the current fixture document. Old SSEs must
     // not exhaust Chrome's six HTTP/1.1 connections and hide later receivers.
     const lateBindingChild=kind==='review-page'&&url.searchParams.get('mode')==='late-binding-child';
-    if(!['draft-inner','password-inner'].includes(kind)&&!lateBindingChild)for(const [id,stream]of streams){stream.end();streams.delete(id);}
+    const outlineChild=['outline-state','password-outline'].includes(kind)&&url.searchParams.get('mode')==='child';
+    if(!['draft-inner','password-inner'].includes(kind)&&!lateBindingChild&&!outlineChild)for(const [id,stream]of streams){stream.end();streams.delete(id);}
     let body,script='';
     if(kind==='latency'){body='<textarea aria-label="Draft">Synthetic latency draft</textarea><button type="button">Continue</button><button type="button">Send</button>';script="document.querySelectorAll('button')[0].onclick=()=>{if(navigator.clipboard)navigator.clipboard.writeText('Synthetic latency clipboard').catch(()=>{});};document.querySelectorAll('button')[1].onclick=()=>{const draft=document.querySelector('textarea');fetch('/receive?case=latency-'+"+JSON.stringify(url.searchParams.get('id'))+",{method:'POST',body:draft.value});draft.defaultValue='';draft.value='';};";}
     else if(kind==='destination-sink'){res.end(page('<p>Destination sink</p>'));return;}
+    else if(kind.startsWith('act-')){const act=actPage(url);if(!act){res.writeHead(404);res.end('Unknown act fixture');return;}({body,script}=act);}
+    else if(kind.startsWith('efficiency-')){const efficiency=efficiencyPage(url);if(!efficiency){res.writeHead(404);res.end('Unknown efficiency fixture');return;}({body,script}=efficiency);}
+    else if(kind.startsWith('outline-')||kind==='password-outline'){const outline=outlinePage(url);if(!outline)throw Error('Unknown outline fixture');({body,script}=outline);}
     else if(kind==='review-page'){const review=reviewPage(url);if(!review)throw Error('Unknown review fixture');({body,script}=review);}
     else if(['popup-opener','popup-start','popup-child'].includes(kind)){
       const popup=popupPage(url);res.end(page(popup.body,popup.script));return;
@@ -85,6 +93,12 @@ export async function fixtures(options={}) {
       script=`fetch('/receive?case=loaded-${id}',{method:'POST'});${mode==='dirty'?"document.querySelector('input').value='Unsaved';":''}${mode==='react'?reactField(id):''}${mode==='blank-editor'?"const child=document.createElement('iframe');document.body.append(child);child.contentDocument.designMode='on';child.contentDocument.body.textContent='Unsaved iframe draft';":''}document.querySelector('#play').onclick=()=>{${mode==='detached-media'?"const media=new Audio('/tone.wav');media.loop=true;globalThis.fixtureMedia=media;return media.play().then(()=>fetch('/receive?case=playing-"+id+"',{method:'POST'}));":mode==='web-audio'?"const audio=new AudioContext(),oscillator=audio.createOscillator();oscillator.connect(audio.destination);oscillator.start();globalThis.fixtureMedia=audio;return audio.resume().then(()=>fetch('/receive?case=playing-"+id+"',{method:'POST'}));":"return document.querySelector('audio').play().then(()=>fetch('/receive?case=playing-"+id+"',{method:'POST'}));"}};`;
     } else if(kind==='features') {
       body='<form><input aria-label="First" name="first" value="Original first"><input aria-label="Second" name="second" value="Original second"><select name="choice" aria-label="Choice"><option value="a">First option</option><option value="b">Second option</option><option value="c" disabled>Disabled option</option></select><input type="hidden" name="hidden" value="Hidden field"><input type="checkbox" name="tick" aria-label="Tick"></form><a href="/download?id='+url.searchParams.get('id')+'">Download fixture</a><p>Findable synthetic paragraph</p>';
+      if(url.searchParams.get('id')==='tools')script=`
+        const report=()=>fetch('/compat-report',{method:'POST',body:JSON.stringify({id:'tools',phase:'fields',
+          first:document.querySelector('[name=first]').value,second:document.querySelector('[name=second]').value,
+          hidden:document.querySelector('[name=hidden]').value})});
+        document.querySelector('form').addEventListener('input',report);report();
+      `;
     } else if(kind==='compose') {
       body='<label>Message<textarea aria-label="Message">Existing synthetic draft</textarea></label><button>Send</button><p aria-label="Preview">Read-only preview</p>';
       script=`document.querySelector('button').onclick=()=>fetch('/receive?case=compose',{method:'POST',body:document.querySelector('textarea').value});`;
@@ -168,7 +182,7 @@ export async function fixtures(options={}) {
       script="document.querySelector('button').onclick=()=>{const api=globalThis[Symbol.for('aresos.chrome.page.v1')];for(const name of ['stop','arm','resume','drop']){try{api?.[name]?.('page-invented-epoch');}catch{}}document.querySelector('form').submit();};";
     } else if(kind==='binding') {
       const id=url.searchParams.get('id')||'binding',mode=url.searchParams.get('mode')||'form';
-      if(mode==='form')body='<form action="/receive?case='+id+'" method="post" target="sink"><input name="visible" aria-label="Visible" value="Original"><input type="hidden" name="hidden" value="Hidden original"><input type="password" aria-label="Private sign-in" value="SENTINEL_PRIVATE_PASSWORD_20"><button type="submit">Submit</button></form><iframe name="sink" hidden></iframe>';
+      if(mode==='form')body='<form action="/receive?case='+id+'" method="post" target="sink"><input name="visible" aria-label="Visible" value="Original">'+(id==='question'?'<input name="second" aria-label="Visible" value="Second original">':'')+'<input type="hidden" name="hidden" value="Hidden original"><input type="password" aria-label="Private sign-in" value="SENTINEL_PRIVATE_PASSWORD_20"><button type="submit" aria-label="Submit">'+(id==='question'?'':'Submit')+'</button></form><iframe name="sink" hidden></iframe>';
       else body='<div contenteditable="true" aria-label="Message">Existing sibling draft</div><section role="region" aria-label="Recipients"><input aria-label="Recipient" value="recipient@example.invalid"><button type="button">Send</button></section><p aria-label="Message preview">Original read-only preview</p>';
       script=`if(${JSON.stringify(mode)}!=='form')document.querySelector('button').onclick=()=>fetch('/receive?case='+${JSON.stringify(id)},{method:'POST',body:document.querySelector('[contenteditable]').textContent+' / '+document.querySelector('[aria-label="Message preview"]').textContent});`;
     } else if(kind==='page-dialog') {
@@ -181,6 +195,9 @@ export async function fixtures(options={}) {
     } else if(kind==='upload') {
       const id=url.searchParams.get('id')||'upload';body='<input type="file" aria-label="Upload"><textarea aria-label="Message">Existing draft independent of upload</textarea><button type="button">Send</button>';
       script=`document.querySelector('[type=file]').onchange=async event=>fetch('/receive?case='+${JSON.stringify(id)},{method:'POST',body:await event.target.files[0].text()});document.querySelector('button').onclick=()=>fetch('/receive?case=after-upload',{method:'POST',body:document.querySelector('textarea').value});`;
+    } else if(kind==='password-unread') {
+      // Brief 28, group 14's password fixtures (unread-fixtures.mjs).
+      const unread=unreadPage(url);if(!unread){res.writeHead(404);res.end('Unknown unread fixture');return;}({body,script}=unread);
     } else if(kind==='password-matrix'||kind==='password-inner') {
       ({body,script}=passwordPage(kind==='password-inner'));
     } else if(kind==='excluded') {
@@ -266,10 +283,13 @@ export async function fixtures(options={}) {
       body='<button aria-label="">●</button><textarea aria-label="Autosave"></textarea>';
       script="document.querySelector('button').onclick=()=>fetch('/receive?case=residual-click',{method:'POST',body:'ordinary click'});document.querySelector('textarea').oninput=e=>fetch('/receive?case=residual-autosave',{method:'POST',body:e.target.value});";
     } else {res.statusCode=404;res.end('Unknown synthetic fixture');return;}
-    const mutationId=!lateBindingChild&&(['review-page','binding','page-dialog','upload','draft-inner','stop-modal'].includes(kind)||kind==='site'&&url.searchParams.get('id')?.startsWith('adapter-bind-'))?url.searchParams.get('id'):null;
+    // Only the asking parent mutates. Its child shares the reporting id and
+    // would otherwise replace the parent's SSE with a handler that has no reviewChange.
+    const mutationId=!lateBindingChild&&!(kind==='password-outline'&&url.searchParams.get('mode')==='child')&&(['outline-state','password-outline','review-page','binding','page-dialog','upload','draft-inner','stop-modal'].includes(kind)||kind==='efficiency-h1'&&url.searchParams.get('id')||['act-f4','act-address','act-stage'].includes(kind)&&url.searchParams.get('id')||kind==='password-unread'&&url.searchParams.get('mode')==='late'||kind==='site'&&url.searchParams.get('id')?.startsWith('adapter-bind-'))?url.searchParams.get('id'):null;
     if(mutationId)script+=`;new EventSource('/events?id='+${JSON.stringify(mutationId)}).onmessage=event=>{
       const mutation=JSON.parse(event.data),change=mutation.change,form=document.querySelector('form'),button=document.querySelector('button');
       if(change==='review-change')globalThis.reviewChange();
+      if(change.startsWith('act-'))globalThis.actChange(change);
       if(change==='label')button.textContent='Changed label';
       if(change==='element')button.replaceWith(button.cloneNode(true));
       if(change==='visible')document.querySelector('[name=visible]').value='Changed visible';

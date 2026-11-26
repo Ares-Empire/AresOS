@@ -12,7 +12,7 @@ from .adapters import NothingLeft, Uncertain
 from .blobs import Blobs
 from .boundary import Boundary
 from .requests import envelope, changing, UPLOAD_CHUNK, DOWNLOAD_CHUNK
-from .common import CHUNK_SIZE, FILE_LIMIT, RESULT_LIMIT, Refused, approval_input, approval_order, canonical, cleanup, digest, require_question, validate, visible, storage_refusal
+from .common import CHUNK_SIZE, FILE_LIMIT, RESULT_LIMIT, Refused, approval_input, approval_order, canonical, cleanup, digest, require_question, validate, visible, storage_refusal, untrusted
 from .definitions import APPS, BY_NAME, tools_for
 from .storage import Store
 from .results import Observations
@@ -748,25 +748,28 @@ class Engine:
         previous_request = getattr(self.store, 'in_request', False)
         self.store.in_request = True
         try:
-            self.store.observations = Observations()
-            self.pending(resolve_checks=False)
-            try:
-                if not isinstance(request, dict) or request.get('action') not in {'control_archive', 'control_restore_confirm'}:
-                    self.store.flush_notices()
-            except Exception as exc:
-                self.store.remember_storage(exc)
-                self.store.observations.storage(exc)
-            result = self._admitted_request(request, admin)
-            if isinstance(request, dict) and str(request.get('action','')).startswith('chrome_'):
-                chrome = self.adapters['chrome']
-                if chrome.bridge.version:
-                    try:
-                        notice = chrome.qualification.switches(chrome.bridge.version)['notice']
-                        if notice:
-                            result.setdefault('pending', {})['chrome_version_notice'] = notice
-                    except Exception as exc:
-                        self.store.observations.storage(exc)
-            return self.store.observations.finish(result, self.store)
+            # Brief 28, item 4: chrome_read has one deadline, from before the
+            # first look at pending to the response; no other request has one.
+            with self.adapters['chrome'].call_time(request):
+                self.store.observations = Observations()
+                self.pending(resolve_checks=False)
+                try:
+                    if not isinstance(request, dict) or request.get('action') not in {'control_archive', 'control_restore_confirm'}:
+                        self.store.flush_notices()
+                except Exception as exc:
+                    self.store.remember_storage(exc)
+                    self.store.observations.storage(exc)
+                result = self._admitted_request(request, admin)
+                if isinstance(request, dict) and str(request.get('action','')).startswith('chrome_'):
+                    chrome = self.adapters['chrome']
+                    if chrome.bridge.version:
+                        try:
+                            notice = chrome.qualification.switches(chrome.bridge.version)['notice']
+                            if notice:
+                                result.setdefault('pending', {})['chrome_version_notice'] = notice
+                        except Exception as exc:
+                            self.store.observations.storage(exc)
+                return self.store.observations.finish(result, self.store)
         finally:
             self.store.in_request = previous_request
 
@@ -791,7 +794,7 @@ class Engine:
             return self._request(request, admin)
         except Refused as exc:
             self.store.observations.storage(exc)
-            return {'ok': False, 'error': {'code': exc.code, 'message': str(exc)}, 'pending': self.pending(resolve_checks=False)}
+            return {'ok': False, 'error': {'code': exc.code, 'message': str(exc), **untrusted(exc)}, 'pending': self.pending(resolve_checks=False)}
         except Exception as exc:
             self.store.observations.storage(exc)
             storage = storage_refusal(exc)
@@ -890,6 +893,7 @@ class Engine:
             message = str(exc) if isinstance(exc, Refused) else "Invalid input or unsupported server data; inspect the tool schema and operation status."
             if app == "mail":
                 message = self.adapters["mail"].transport.scrub(message)
-            return {"ok": False, "error": {"code": getattr(exc, "code", "invalid_input"), "message": message}, "pending": self.pending(app, resolve_checks=False)}
+            return {"ok": False, "error": {"code": getattr(exc, "code", "invalid_input"), "message": message, **untrusted(exc)},
+                    "pending": self.pending(app, resolve_checks=False)}
         except Exception:
             return {"ok": False, "error": {"code": "internal_error", "message": "Request failed unexpectedly; inspect operation status before repeating changes."}, "pending": self.pending(app, resolve_checks=False)}

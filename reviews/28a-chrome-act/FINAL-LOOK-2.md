@@ -1,0 +1,25 @@
+**Codex gpt-6.2-astra, xhigh — November 21, 2026.** Fresh second final look at PR #116, detached at `57b63f08`. I read `AGENTS.md`, the Control safety bar, the relevant sections of `briefs/28a-chrome-act.md` from `origin/main`, `FINAL-LOOK-1.md`, the round‑2 decisions in `PROGRESS.md`, and the diff from `4e54ca1e`.
+
+**Verification.** All 312 focused Node tests passed. The 122-test Python run reported 5 failures and 37 errors when the sandbox denied fixture socket sends. All 122 passed with an in-memory byte stream carrying the same serialized messages. I also probed ordinary dropdowns, a missing top document, and a late native alert. The two green hosted passes are supplied evidence. `git diff --check` passed. Final `git status` showed a clean detached worktree.
+
+### Eight prior items
+
+- **Package 3 — CLOSED.** A late uncertain activation now updates the dispatched operation and puts its ID in the batch’s `unknown` list. The regression checks public status for that exact ID. `control/aresos_control/chrome/doing.py:429`, `control/chrome_tests/test_doing.py:424`
+- **Package 4 — CLOSED.** A released Claude-opened tab can close after inspection or discard. Owner-opened tabs and excluded sites remain protected even with discard set. `control/chrome/extension/background.js:1223`, `control/chrome_tests/background.test.mjs:193`
+- **Package 6 — CLOSED.** The unwatched editable button keeps its button role, withholds its typed name and prepares an activation question with zero input dispatched. `control/aresos_control/chrome/adapter.py:998`, `control/chrome_tests/outline.test.mjs:56`, `control/chrome_tests/test_operation_projection.py:457`
+- **Package 8 — CLOSED.** The report now records both round‑1b passes, including the previously missing `44897514055` and `44897516771`. The helper mapping and description-comparison test are present. `reviews/28a-chrome-act/REPORT.md:44`, `reviews/28a-chrome-act/HARNESS-MAP.md:224`, `control/chrome_tests/test_instruction_rules.py:52`
+- **First final look 1 — CLOSED.** The released popup containing a draft stayed open with a readerless `about:blank` frame, an empty frame list and a missing frame list. Each produced a discard report requiring owner OK. Only the explicit discard closed it. `control/chrome/extension/background.js:764`, `control/chrome/extension/background.js:1228`, `control/chrome_tests/background.test.mjs:210`
+- **First final look 2 — CLOSED.** A protected descendant blocks both native option-text fallbacks before the label or value reaches the outline, choices, acting reply or fingerprint. Adding it during arming also prevents selection. `control/chrome/extension/reader.js:302`, `control/chrome/extension/reader.js:412`, `control/chrome_tests/outline.test.mjs:100`, `control/chrome_tests/background.test.mjs:934`
+- **First final look 3 — CLOSED.** The outer editor keeps its visible note. Changing only the withheld button text leaves both the editor’s rich identity and fingerprint identical. `control/chrome/extension/reader.js:226`, `control/chrome/extension/reader.js:240`, `control/chrome_tests/outline.test.mjs:67`
+- **First final look 4 — CLOSED.** With the frame surviving, the child removed, or the top document replaced, the batch and status both report `unknown` for the click and the fill stays withheld. My transient missing-top-document probe gave the same result. `control/aresos_control/chrome/adapter.py:1183`, `control/aresos_control/chrome/doing.py:401`, `control/chrome_tests/test_doing.py:404`
+
+**Frozen asking path.** The eight named adapter functions and the approved conservative classifier caller matched `4e54ca1e` byte for byte. I found no further departure or new route around a question. `PYTHONPATH=control python3 control/generate.py --check` passed, and `cmp` confirmed `control/settings/ask-rules.json` is byte-identical to `origin/main`.
+
+**Judgment and plan gaps.** Refusing the whole list is proportionate when a native fallback would cross protected content. Eight ordinary rich-option cases retained their labels and values across watched and unwatched pages. Both plan gaps are accurately recorded. A blank URL can contain a draft, and a queued activation can outlive its document. `reviews/28a-chrome-act/PROGRESS.md:43`
+
+### New findings
+
+1. **NIT — A late native alert can hide queued uncertainty.** When the first look after the click reply saw both an alert and `activation_unknown`, the dialog branch returned first. My probe showed `done` in both the batch and status, with an empty `unknown` list. The alert was visible and the next step stayed withheld. Checking the queued uncertainty before that return would preserve the warning. `control/aresos_control/chrome/doing.py:398`
+2. **NIT — The report still calls round‑2 CI pending.** The supplied round‑2 results supersede that line, including the final-head Chrome and qualification passes `44914563232` and `44914566119`. `reviews/28a-chrome-act/REPORT.md:535`
+
+SAFE

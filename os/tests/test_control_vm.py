@@ -44,6 +44,88 @@ def layer(home):
                 load(CONTROL_CI / 'sessions.py', f'control_sessions_{id(home)}'))
 
 
+class GuestImportsTest(unittest.TestCase):
+    """What the control layer's guest code imports must be in the image (control runs 45099485788, 45099488536)."""
+
+    @staticmethod
+    def top_level_names(path):
+        names = set()
+        for node in ast.parse(path.read_text()).body:
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                names.add(node.name)
+            elif isinstance(node, (ast.Import, ast.ImportFrom)):
+                names.update((alias.asname or alias.name).split('.')[0] for alias in node.names)
+            elif isinstance(node, (ast.Assign, ast.AnnAssign)):
+                targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+                names.update(target.id for target in targets if isinstance(target, ast.Name))
+        return names
+
+    def test_every_sessions_name_actions_uses_exists(self):
+        tree = ast.parse((CONTROL_CI / 'actions.py').read_text())
+        used = {node.attr for node in ast.walk(tree) if isinstance(node, ast.Attribute)
+                and isinstance(node.value, ast.Name) and node.value.id == 'sessions'}
+        missing = used - self.top_level_names(CONTROL_CI / 'sessions.py')
+        self.assertTrue(used)
+        self.assertFalse(missing, f'actions.py uses sessions names that sessions.py lacks: {sorted(missing)}')
+
+    def test_the_storage_suite_gets_every_control_module_its_tests_import(self):
+        # actions.py runs STORAGE_TESTS from the copied chrome_tests; follow their imports through chrome_tests and
+        # require a COPY for every top-level control/ module they reach (test_engine imports response_checks).
+        storage = next(node.value for node in ast.parse((CONTROL_CI / 'actions.py').read_text()).body
+                       if isinstance(node, ast.Assign) and any(getattr(t, 'id', None) == 'STORAGE_TESTS'
+                                                               for t in node.targets))
+        queue, seen, needed = [element.value for element in storage.elts], set(), set()
+        while queue:
+            name = queue.pop()
+            path = ROOT / 'control/chrome_tests' / f'{name}.py'
+            if name in seen or not path.is_file():
+                continue
+            seen.add(name)
+            for node in ast.walk(ast.parse(path.read_text())):
+                modules = ([alias.name for alias in node.names] if isinstance(node, ast.Import)
+                           else [node.module] if isinstance(node, ast.ImportFrom) and node.module and not node.level
+                           else [])
+                for module in (module.split('.')[0] for module in modules):
+                    if (ROOT / 'control/chrome_tests' / f'{module}.py').is_file():
+                        queue.append(module)
+                    elif (ROOT / 'control' / f'{module}.py').is_file():
+                        needed.add(module)
+        self.assertIn('test_engine', seen)
+        containerfile = (CONTROL_CI / 'Containerfile').read_text()
+        for module in sorted(needed):
+            with self.subTest(module=module):
+                self.assertIn(f'COPY control/{module}.py /usr/libexec/aresos-ci/control/storage-suite/', containerfile)
+
+
+class C8QuestionTest(unittest.TestCase):
+    """C8 requires the whole service question on the prompt screen, not a prefix (28a merge look, finding 1)."""
+
+    QUESTION = ("On http://localhost:18766/form-yes, page 'Chrome form', as the page shows it, submit 'Submit test "
+                "message' to http://localhost:18766/form-yes (post, 2 fields, 0 hidden) in target '_self'; text next "
+                "to Send: 'Test message Submit test message'?")
+    # The layout of run 45011020590's C8 screen: the question wraps inside the prompt's border.
+    SCREEN = ("On http://localhost:18766/form-yes, page 'Chrome form', as the page shows it, submit 'Submit test "
+              "message' to\n   │ http://localhost:18766/form-yes (post, 2 fields, 0 hidden) in target '_self'; text "
+              "next to Send: 'Test message\n   │  Submit test message'?\n operation_id:\n   │ ab:cd\n description:\n")
+
+    def setUp(self):
+        home = pathlib.Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, home)
+        _, self.sessions = layer(home)
+
+    def test_the_wrapped_full_question_is_found_before_the_details(self):
+        position = self.sessions.question_position(self.SCREEN, self.QUESTION)
+        self.assertGreaterEqual(position, 0)
+        self.assertLess(position, self.sessions.squeeze(self.SCREEN).find('operation_id'))
+
+    def test_a_cut_question_fails_even_when_its_start_and_yes_no_show(self):
+        cut = self.SCREEN.split(' to\n')[0] + ' …\n 1. Yes\n 2. No\n'
+        self.assertGreaterEqual(self.sessions.flat(cut).find(self.sessions.flat(self.QUESTION)[:40]), 0)
+        self.assertEqual(self.sessions.question_position(cut, self.QUESTION), -1)
+        self.assertEqual(self.sessions.question_position(self.SCREEN.replace('form-yes (post', 'form-no (post'),
+                                                         self.QUESTION), -1)
+
+
 class LayerHookTest(unittest.TestCase):
     """Agreed change 8: checks.py loads a later layer's actions from actions.d and keeps its own first."""
 
@@ -101,13 +183,16 @@ class ChromePassTest(unittest.TestCase):
     def actions(self):
         return load(CONTROL_CI / 'chrome_actions.py', f'chrome_actions_{id(self)}')
 
-    def test_the_ci_guest_has_a_static_hostname(self):
-        # Without one the guest starts as the fallback name and NetworkManager later sets the network's name.
+    def test_the_ci_guest_keeps_one_hostname(self):
+        # The guest boots as the fallback name and NetworkManager later set the network's name (reverse DNS).
         # Chrome removes its profile lock only when the lock names the current host, so a Chrome that lived
-        # across that change leaves a lock that every later start refuses as "another computer"
-        # (control run 45000490818). The laptop has a static hostname; the guest mirrors that.
+        # across that change left a lock that every later start refused as "another computer" (control runs
+        # 45000490818 and 45098687521). Writing /etc/hostname in a RUN step doesn't reach the image (the
+        # build runtime mounts its own /etc/hostname there), so NetworkManager is kept off the hostname instead.
         containerfile = (ROOT / 'os/ci/overlay/Containerfile').read_text()
-        self.assertIn("printf 'aresos-ci\\n' > /etc/hostname", containerfile)
+        self.assertIn("printf '[main]\\nhostname-mode=none\\n' > /etc/NetworkManager/conf.d/90-aresos-ci-hostname.conf",
+                      containerfile)
+        self.assertNotIn('/etc/hostname', containerfile)
 
     def test_c1_requires_control_json_to_be_0644(self):
         chrome = self.actions()
@@ -526,12 +611,13 @@ class ChromePassTest(unittest.TestCase):
 
     def test_c8_uses_the_current_button_reference_and_checks_the_exact_post(self):
         chrome = self.actions()
-        row = dict(reference={'tab': 42, 'element': 'v3'},
-                   expected={'name': chrome.FORM_BUTTON, 'role': 'button'})
-        page = dict(untrusted_content={'tree': json.dumps(row)})
-        self.assertEqual(chrome.form_target(page, chrome.FORM_BUTTON, 'button'), row)
+        row = f'  button "{chrome.FORM_BUTTON}" qwert3\n'
+        page = dict(untrusted_content={'outline': row})
+        self.assertEqual(chrome.form_target(page, chrome.FORM_BUTTON, 'button'), 'qwert3')
         with self.assertRaises(chrome.Failure):
             chrome.form_target(page, chrome.FORM_BUTTON, 'textbox')
+        with self.assertRaises(chrome.Failure):
+            chrome.form_target(dict(untrusted_content={'outline': row + row}), chrome.FORM_BUTTON, 'button')
         expected = dict(path='/form-yes', fields={'message': [chrome.FORM_TEXT]})
         pages = mock.Mock()
         pages.arrivals.return_value = [expected]
@@ -544,7 +630,7 @@ class ChromePassTest(unittest.TestCase):
         chrome = self.actions()
         url, tab = f'{chrome.ADDRESS}/form-yes', 42
         step = dict(prompt='FORM_TEST', send='mcp__chrome__submit',
-                    prepare={'name': 'mcp__chrome__click', 'input': None})
+                    prepare={'name': 'mcp__chrome__do', 'input': None})
         path = str(ROOT / 'control/boundary')
         with mock.patch.object(sys, 'path', [path, *sys.path]):
             model = chrome.form_model(url)([step], self.folder, 0)
@@ -559,20 +645,72 @@ class ChromePassTest(unittest.TestCase):
             messages.append({'role': 'user', 'content': [
                 {'type': 'tool_result', 'tool_use_id': identifier, 'content': json.dumps(dict(ok=True, data=data))}]})
 
-        field = dict(reference={'element': 'input'}, expected={'name': chrome.FORM_FIELD, 'role': 'textbox'})
-        button = dict(reference={'element': 'fresh'}, expected={'name': chrome.FORM_BUTTON, 'role': 'button'})
+        field = f'  textbox "{chrome.FORM_FIELD}" required qwert1'
+        button = f'  button "{chrome.FORM_BUTTON}" qwert3'
         self.assertEqual(response(), ('mcp__chrome__open', {'url': url}, 'form-open'))
-        reply('form-open', dict(operation_id='open-op', untrusted_content={'tab': tab}))
-        self.assertEqual(response()[1]['tab'], tab)
-        reply('form-wait', dict(condition_met=True, untrusted_content={'url': url, 'tree': json.dumps(field)}))
-        self.assertEqual(response(), ('mcp__chrome__fill', dict(field, text=chrome.FORM_TEXT), 'form-fill'))
-        reply('form-fill', dict(operation_id='fill-op'))
+        reply('form-open', dict(tab=tab, loaded=True, untrusted_content={'url': url}))
+        self.assertEqual(response(), ('mcp__chrome__read', {'tab': tab, 'until': {'text': chrome.FORM_FIELD},
+                                                           'timeout_ms': 6000}, 'form-wait'))
+        reply('form-wait', dict(reads=[dict(tab=tab, until_met=True, untrusted_content={'url': url, 'outline': field})]))
+        self.assertEqual(response(), ('mcp__chrome__do', {'tab': tab, 'steps': [
+            {'do': 'fill', 'ref': 'qwert1', 'text': chrome.FORM_TEXT}]}, 'form-fill'))
+        reply('form-fill', dict(tab=tab, steps=[{'do': 'fill', 'outcome': 'done'}], prepared=[]))
         self.assertEqual(response(), ('mcp__chrome__read', {'tab': tab}, 'form-filled-view'))
-        reply('form-filled-view', dict(untrusted_content={'tree': json.dumps(button)}))
-        self.assertEqual(response(), ('mcp__chrome__click', button, 'prepare-0'))
+        reply('form-filled-view', dict(reads=[dict(tab=tab, untrusted_content={'url': url, 'outline': button})]))
+        self.assertEqual(response(), ('mcp__chrome__do', {'tab': tab, 'steps': [
+            {'do': 'click', 'ref': 'qwert3'}]}, 'prepare-0'))
         approval = dict(question='Submit this form?', operation_id='ask-op', description={'action': 'chrome_submit'})
-        reply('prepare-0', dict(approval=approval))
+        reply('prepare-0', dict(tab=tab, steps=[{'do': 'click', 'outcome': 'prepared'}],
+                                prepared=[dict(state='reserved', approval=approval)]))
         self.assertEqual(response(), ('mcp__chrome__submit', approval, 'send-0'))
+        self.assertEqual(model.script.prepared_approval(0), approval)
+
+    def test_c3_and_c4_take_the_fixture_tab_with_seen_and_read_its_outline(self):
+        chrome = self.actions()
+        step = 'c4-b'
+        address = f'{chrome.ADDRESS}/browse/{step}'
+        listed = dict(seen='tab-list-token', total=3, cursor=None, untrusted_content={'list': '\n'.join([
+            'window 1 (in front)', f'  41 his no "A \\"quoted\\" title" {chrome.ADDRESS}/browse/other',
+            f'  42 his * "Chrome pass" {address}', '  group Claude',
+            '    43 claude "New Tab" chrome:…'])})
+        page = dict(tab=42, untrusted_content={'url': address, 'title': 'Chrome pass',
+                                               'outline': 'text "An ordinary page."'})
+        actions = mock.Mock()
+        actions.answered.side_effect = lambda value: value
+        with mock.patch.object(chrome, 'control', return_value=actions), mock.patch.object(chrome, 'tool') as tool:
+            tool.side_effect = [dict(returncode=0, json=dict(ok=True, data=listed)),
+                                dict(data={'tab': 42}), dict(data={'reads': [page]})]
+            tab, tabs = chrome.page_tab(step)
+            self.assertEqual(chrome.read_fixture_page(step, tab, tabs), ({'tab': 42}, page))
+            self.assertEqual(tool.call_args_list, [mock.call('tabs', {}),
+                mock.call('take', {'tab': 42, 'seen': 'tab-list-token'}), mock.call('read', {'tab': 42})])
+        with self.assertRaises(chrome.Failure):
+            chrome.tab_rows({**listed, 'total': 4, 'cursor': 'tab-list-token.3'})
+        with self.assertRaises(chrome.Failure):
+            chrome.read_tab({'reads': [{'tab': 42, 'error': {'code': 'take_first'}}]}, 42)
+
+    def test_c6_first_use_requires_the_same_refusal_for_all_four_tools(self):
+        chrome = self.actions()
+        chrome.LIST = self.folder / 'chrome-excluded-sites.json'
+        chrome.LIST.write_bytes(b'{"format":0}')
+        chrome.CODE = ROOT / 'control'
+        message = chrome.settings_message((chrome.CODE / 'aresos_control/chrome/exclusions.py').read_text())
+        pages, actions = mock.Mock(), mock.Mock()
+        response = dict(ok=False, error=dict(code='chrome_settings_unavailable', message=message))
+        pages.seen.return_value = []
+        with mock.patch.object(chrome, 'fixtures', return_value=(None, None, pages)), \
+                mock.patch.object(chrome, 'placeholder', return_value=chrome.LIST.read_bytes()), \
+                mock.patch.object(chrome, 'TMPFILES', chrome.LIST), mock.patch.object(chrome, 'list_state'), \
+                mock.patch.object(chrome, 'control', return_value=actions), mock.patch.object(chrome.time, 'sleep'), \
+                mock.patch.object(chrome, 'tool', return_value={'json': response}) as tool, \
+                mock.patch.object(chrome.subprocess, 'run', side_effect=RuntimeError('reached the root write')):
+            with self.assertRaisesRegex(RuntimeError, 'reached the root write'):
+                chrome.sites_first_use({})
+        self.assertEqual(tool.call_args_list, [mock.call('tabs', {}), mock.call('read', {'tab': 1}),
+            mock.call('open', {'url': f'{chrome.ADDRESS}/browse?step=first-use'}), mock.call('take', {'tab': 1})])
+        self.assertEqual(actions.refused.call_args_list, [mock.call({'json': response}, 'chrome_settings_unavailable')] * 4)
+        self.assertTrue(all(call == mock.call('step=first-use') for call in pages.seen.call_args_list))
+        pages.seen.assert_called()
 
     def test_c6s_line_needs_its_first_use_and_its_reboot(self):
         for failing, kept in ((('chrome-sites-first-use',), 'CONTROL_CHROME_SITES_REBOOT_PASS'),
@@ -810,7 +948,7 @@ class SessionPiecesTest(unittest.TestCase):
         self.assertEqual(json.loads(outputs['PermissionRequest'])['hookSpecificOutput']['decision'],
                          {'behavior': 'allow'})
 
-    def test_the_layer_carries_the_session_pieces_unchanged(self):
+    def test_the_layer_carries_the_shared_session_pieces(self):
         containerfile = (CONTROL_CI / 'Containerfile').read_text()
         for source in ('os/ci/control/sessions.py', 'os/ci/control/own-hook.py', 'control/boundary/interactive_driver.py',
                        'control/boundary/interactive_model.py', 'control/ci/image/mail_flows.py'):

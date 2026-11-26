@@ -2,17 +2,56 @@
 import json
 import base64
 import binascii
+from collections import OrderedDict
+from contextlib import contextmanager
 import select
 import socket
+import time
 import uuid
 
 from ..common import Refused, strict_json_loads, canonical, visible
 from .qualification import version
+from . import loss
 
 LIMIT = 1024 * 1024
+# Brief 28, item 4. A command sent inside `bounded` carries the milliseconds it
+# has left (`time_left_ms`), and the bridge waits for its reply that long plus
+# GRACE seconds, then gives it up. A late reply is dropped by its id and never
+# passes for the next command's. If it still hasn't come SOCKET_BOUND seconds
+# after its command was sent (the daemon's settimeout on this socket), the
+# connection is closed as a silent socket closes it. The bridge remembers the
+# last GIVEN_UP ids it gave up on.
+GRACE, SOCKET_BOUND, GIVEN_UP = .5, 15, 64
+# Brief 28a, item 5 ("Time"): an input's reply comes after its hold and the
+# collection of page steps, which run after the dispatch with their own bounds.
+# So the bridge waits for it its time plus INPUT_GRACE seconds, and one that
+# still hasn't answered may have run: its outcome is `unknown`, never `expired`,
+# and it is never retried. `expired` for an input means nothing was dispatched.
+INPUTS, INPUT_GRACE = frozenset(('input', 'resume', 'dialog')), 2.0
+GAVE_UP_INPUT = ("No answer came in this input's time and 2 seconds; it may have run. "
+                 "Inspect operation status and never replay it.")
 
 
-class Bridge:
+class GaveUp(Exception):
+    """No reply came in a command's time plus GRACE."""
+
+
+class TimeLeft:
+    """The end (a time.monotonic() value) by which the commands sent now must answer; None sends them without time."""
+    end = None
+
+    @contextmanager
+    def bounded(self, end):
+        """Inside, every command carries the time left to `end`, or to an earlier end already in force."""
+        previous = self.end
+        self.end = end if previous is None else min(previous, end)
+        try:
+            yield
+        finally:
+            self.end = previous
+
+
+class Bridge(TimeLeft):
     def __init__(self):
         self.connection = None
         self.session = self.version = self.connection_identity = None
@@ -22,9 +61,12 @@ class Bridge:
         self.buffer = b''
         self.events = []
         self.on_event = lambda event: self.events.append(event)
+        # Commands given up on: id -> when their reply is overdue, None once it came.
+        self.given_up = OrderedDict()
 
-    def read(self):
+    def read(self, until=None):
         while b'\n' not in self.buffer:
+            self.wait(until)
             chunk = self.connection.recv(65536)
             if not chunk:
                 raise Refused('transport_error', 'Chrome host disconnected; inspect committed operations, never retry an input.')
@@ -32,7 +74,39 @@ class Bridge:
             if len(self.buffer) > LIMIT:
                 raise Refused('invalid_input', 'Chrome message exceeds 1 MiB; read a smaller view.')
         line, self.buffer = self.buffer.split(b'\n', 1)
-        return strict_json_loads(line)
+        message = strict_json_loads(line)
+        # A late reply has come, here or in the daemon's loop between requests
+        # (which passes it to on_event, where a message without an event does
+        # nothing). Bridge.call drops it by its id.
+        if type(message) is dict and not message.get('event') and self.late(message):
+            self.given_up[message['id']] = None
+        return message
+
+    def late(self, message):
+        """A reply to a command this bridge gave up on."""
+        return type(message.get('id')) is str and message['id'] in self.given_up
+
+    def wait(self, until):
+        """Wait for the socket until `until`, or until a given-up reply is overdue.
+
+        With neither, nothing waits here and recv's own socket bound applies, as
+        before brief 28. GaveUp at `until`; at the overdue point a timeout, which
+        closes the connection like the socket's own.
+        """
+        overdue = min((at for at in self.given_up.values() if at is not None), default=None)
+        if until is None and overdue is None:
+            return
+        limit = min(at for at in (until, overdue) if at is not None)
+        if select.select([self.connection], [], [], max(0, limit - time.monotonic()))[0]:
+            return
+        if overdue is not None and time.monotonic() >= overdue:
+            raise TimeoutError('A Chrome command given up on never answered within the socket bound.')
+        raise GaveUp()
+
+    def give_up(self, identity, sent):
+        self.given_up[identity] = sent + SOCKET_BOUND
+        while len(self.given_up) > GIVEN_UP:
+            self.given_up.popitem(last=False)
 
     def accept(self, connection, peer=None):
         if self.connection is not None:
@@ -44,6 +118,7 @@ class Bridge:
                 raise Refused('permission_denied', 'One native host already controls this Chrome session.')
             self.close()
         self.connection, self.buffer = connection, b''
+        self.given_up.clear()
         try:
             hello = self.read()
             if (type(hello) is not dict or set(hello) != {'event','session','version'} or hello['event'] != 'hello' or
@@ -64,16 +139,33 @@ class Bridge:
         if self.connection is None:
             raise Refused('chrome_unavailable', 'Chrome is not connected; open Chrome with the installed extension, then read again.')
         identity = uuid.uuid4().hex
-        body = json.dumps({'id':identity,'command':{'name':name,**arguments}},separators=(',',':')).encode() + b'\n'
+        message = {'id':identity,'command':{'name':name,**arguments}}
+        until = None
+        if self.end is not None:
+            left = int((self.end - time.monotonic()) * 1000)
+            if left <= 0:
+                raise Refused('expired', 'Time ran out before this command was sent; nothing was sent.')
+            message['time_left_ms'] = left
+            until = self.end + (INPUT_GRACE if name in INPUTS else GRACE)
+        body = json.dumps(message,separators=(',',':')).encode() + b'\n'
         if len(body) > LIMIT:
             raise Refused('asking_input_too_large', 'Chrome command exceeds its wire bound; use a smaller input.')
         try:
             self.connection.sendall(body)
+            sent = time.monotonic()
             assembled = bytearray()
             total = None
             event_error = None
             while True:
-                reply = self.read()
+                try:
+                    reply = self.read(until)
+                except GaveUp:
+                    self.give_up(identity, sent)
+                    if event_error is not None:
+                        raise Refused('unknown','A Chrome owner event could not be committed; inspect status and never replay an input.') from event_error
+                    if name in INPUTS:
+                        raise Refused('unknown', GAVE_UP_INPUT) from None
+                    raise Refused('expired', "No answer came in this command's time; it was given up.") from None
                 if reply.get('event'):
                     try:
                         self.on_event(reply)
@@ -83,6 +175,8 @@ class Bridge:
                         event_error = event_error or exc
                     continue
                 if reply.get('id') != identity:
+                    if self.late(reply):
+                        continue  # dropped by its id
                     raise Refused('transport_error', 'Chrome response identity changed; inspect status, never retry.')
                 if 'chunk' in reply:
                     chunk = reply['chunk']
@@ -107,8 +201,14 @@ class Bridge:
                     raw = reply.get('error','refused: Chrome refused input')
                     code, separator, message = raw.partition(':')
                     if not separator: message = raw
+                    # Brief 28a, item 5b: a loss refusal gets the service's own sentence whatever the
+                    # extension wrote, and its report (page labels) only as untrusted data.
+                    if code.strip() == 'reload_required':
+                        raise loss.LossRefused(loss.checked(reply.get('loss')))
                     # Extension errors are literals today; escape them anyway, like page text.
-                    raise Refused(code if code in {'stale_reference','stale_approval','reload_required','owner_signin','refused','permission_denied','unknown','transport_error'} else 'refused', visible(message.strip()))
+                    # invalid_input comes only from a malformed time_left_ms (brief 28, item 4):
+                    # a fault on this side, refused unrun, and the read's call fails with it.
+                    raise Refused(code if code in {'stale_reference','stale_approval','reload_required','owner_signin','refused','permission_denied','unknown','transport_error','expired','invalid_input'} else 'refused', visible(message.strip()))
                 return reply['data']
         except (OSError, ValueError, binascii.Error, TypeError) as exc:
             self.close()
@@ -120,3 +220,4 @@ class Bridge:
         self.connection = None
         self.session = self.version = self.connection_identity = self.peer = None
         self.buffer = b''
+        self.given_up.clear()

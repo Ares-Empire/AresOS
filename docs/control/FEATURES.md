@@ -59,7 +59,7 @@ as his own user under the permissions he sets; our tools only add safe saving an
 |---|---|---|---|
 | Read, change, create, rename, move and delete files in his home and projects | Claude Code's own file tools and terminal | as in normal Claude Code | first (decisions 17 and 24): as his own user, as on any OS |
 | Save a mail attachment | `mail_attachment_save` (rule 4.4) | change | first: into the folder named (`~/Downloads` by default) under a safe name, never over an existing file, never into a hidden folder or a start-up place, without execute bits |
-| Chrome's own downloads | Chrome, as normal; `chrome_downloads` lists them | read | first: Chrome saves them where it always does (decision 25) |
+| Chrome's own downloads | Chrome, as normal. `chrome_library` with `kind: downloads` lists them | read | first: Chrome saves them where it always does (decision 25) |
 | Attach or upload a local file | `mail_compose`, `chrome_upload` (rule 4.4) | change | first: the question shows the real path and the hash, and exactly those bytes are sent |
 | Run terminal commands | Claude Code's terminal | as in normal Claude Code | first, under his permissions; Claude Code's sandbox is an option he can turn on (`sandbox.enabled`, then `autoAllowBashIfSandboxed: true`, decision 17); it keeps commands away from the tool service only with `allowUnsandboxedCommands: false`, no excluded commands, Unix sockets not allowed and the service's socket folder denied for reads, and even then best-effort (CONTROL.md section 7) |
 | Start the session with skip-permissions | `claude --dangerously-skip-permissions` | | first (decisions 23 and 24): sends, deletes and submits through our tools still ask (managed ask rules) |
@@ -97,6 +97,57 @@ Our own Empire apps get API tools (below). Everything else goes through the Chro
 | Minecraft stage 2: Claude as a survival player in his world | the stage 1 tool plus a planning loop | change | later: after stage 1 |
 | Minecraft stage 3: a Claude player genuinely pro at modern PvP, not just the sword. Owner's list: pearl and wind charge; mace (also mace and axe against shields); water and trident (riptide); crystal; totems (also refilling from the inventory); spear, elytra and mace; sword; shield; blocks; cobwebs; rails; TNT minecarts; TNT and fishing rod. In his words: "I wanna see some form of claude minecraft player a pro at all of that genuinely beating pro pvpers" | kit by kit: each mechanic a coded module with exact physics from the game code (trajectories, explosion, fall and mace damage, totem timing); the mod reads the exact game state every tick (no screen reading); a fast learned policy for movement and combo choice, trained by self-play in a sped-up world (`/tick sprint`, a headless server or a stripped combat simulator); Claude designs the modules and the training, and analyses recorded fights | change | later: research, no rush, after stages 1 and 2. Benchmarks: him first, then pro players who agree, on his own server. Self-play training needs GPU compute, which is spending, so it's the owner's call when we get there. Singleplayer or his own server only: bots get banned on public servers |
 
+## One-time codes, suggested when needed (owner, 2026-11-25)
+
+The owner's idea, written down so it isn't lost; not scoped yet. A phone offers a sign-in code from a fresh SMS or
+mail right above the keyboard. Laptops mostly don't (Windows at best offers to copy a code it spots in a
+notification), and even phones miss codes that arrive in Gmail and other mail apps. AresOS should do it for every
+mail account he has, whichever program or website he reads it in: notice a new mail with a code, and offer the code
+at the moment a field asks for one.
+
+| Feature | Tool | Effect | State |
+|---|---|---|---|
+| Find codes in new mail, in every account | a code watcher in the tool service, on the accounts Mail already holds; it needs the same IMAP IDLE piece as "New mail arrives" under Mail | read | later |
+| Chrome: when a code field gets focus (`autocomplete="one-time-code"`, the code words of the credential-word list, a row of single-digit boxes), a small suggestion under the field shows the code, the sender and its age; one click or Tab fills it, every box of a split field included | our Chrome extension | change, on his own click | later: needs our script in his tabs before he uses them, which section 6 of [`CONTROL.md`](../design/CONTROL.md) rules out today ("Nothing of ours watches a tab of his before the first read"), so it is the owner's call |
+| Other apps (native and Flatpak): a fresh code shows as a toast; a key types the newest code into the focused field. Later perhaps a suggestion like the iPhone's bar over the keyboard, through an input method (check what labwc supports) | `aresos-toast` ([`HOME-OUTSIDE.md`](../design/HOME-OUTSIDE.md)); today's toast lets clicks pass through, so the action is a key | change, on his own key | later |
+| Mail he reads only in a browser (Gmail, Outlook and others on the web) | the account route below | read | later |
+| Move the code mail to the Trash once the code is used, as iOS offers | the code watcher, on his own setting | delete | later, optional |
+| Codes from SMS | for example an iPhone Shortcuts automation that passes code messages to the laptop through Aresus | | maybe later: an iPhone doesn't share SMS with Linux |
+
+**Mail read in a browser (explored 2026-11-25).** The code arrives at the mail server, not at a program, so the
+route that covers every program reads the account:
+
+1. **The account, signed in once in AresOS (the route to build).** The Mail tool already keeps accounts in the tool
+   service (`aresos admin mail account …`) and reads them over IMAP. A code watcher there sees every new mail,
+   whether he reads it in Chrome, in a mail program or not at all. This is the owner's "sign in centrally" idea,
+   without a browser. The gap: Gmail and Outlook.com don't let other programs sign in with the normal password; they
+   need a Google or Microsoft sign-in (OAuth) or an app password, and today's Mail tool signs in with a password
+   only. A Google and Microsoft sign-in is the main new piece. Their mail APIs (Gmail API, Microsoft Graph) are an
+   alternative to IMAP behind the same sign-in.
+2. **Our Chrome extension reading an open webmail tab (fallback).** Works for webmail with no IMAP, but only while
+   that tab is open, and it watches a tab of his, which needs the same owner's call as the Chrome suggestion above.
+3. **A hidden browser signed in to the webmail (last resort).** Works with any site, but it keeps a full sign-in on
+   disk, breaks when the site changes its pages, costs memory on a 16 GB laptop, and Google often blocks sign-ins
+   from automated browsers. Only for a provider with neither IMAP nor an API.
+
+**Rules carried from the control design.** A code is a credential:
+
+- Codes go from the tool service to his screen only, never to Claude, its tools or its session. The reader never
+  reads a code field and Claude never types a code (section 6 of [`CONTROL.md`](../design/CONTROL.md)); filling
+  stays his own click or key, never an action on `act.sock`.
+- Offer only fresh codes (a few minutes old) and show the sender. In Chrome, offer a code only where its sender
+  matches the site, and keep it out of the page until his click, so a look-alike site can neither be offered a
+  bank's code nor read it from the suggestion; phones do this with domain-bound codes (`@example.com #123456`).
+- Type the code rather than copy it: the clipboard is open to every program of his, Claude Code's terminal
+  included. Where copying is the only way, clear the clipboard soon after.
+- Open question: Claude can already read a code mail through `mail_read` and `mail_search`, while a sign-in code
+  reaching Claude is never an accepted limit (section 6 of [`CONTROL.md`](../design/CONTROL.md), owner,
+  2026-11-11). Whether the Mail tool should hide codes from Claude, and how, is open; it matters with or without
+  this feature.
+- Codes are found by local rules (the usual formats, English and German wording). Mail text never goes to an outside
+  AI for this.
+- The suggestion and the toast use AresOS's own look.
+
 ## Chrome
 
 The light tool (decision 25): our extension in his normal Chrome, no proxy and no certificate. It asks before
@@ -106,38 +157,41 @@ in Chrome ([`CONTROL.md`](../design/CONTROL.md) section 6).
 | Feature | Tool | Effect | State |
 |---|---|---|---|
 | List tabs with titles and addresses | `chrome_tabs` | read | first |
-| Take one of the owner's tabs into the Claude group; give it back | `chrome_take_tab`, `chrome_release_tab` | change | first |
-| Open a page in a new Claude tab; close a Claude tab | `chrome_open`, `chrome_close_tab` | change | first |
-| Back, forward, reload, go to any web address (his, from a page, or one Claude wrote) | `chrome_navigate` | change | first, free (decision 25; data in an address isn't held); only `https:`, `http:` and `about:blank`, never `javascript:`, `data:`, `file:`, `chrome:` or app schemes |
-| Read the page as structure with positions; paged; text search | `chrome_read`, `chrome_find` | read | first; text read by the extension's own script, never screenshots; password fields excluded before anything is read |
-| Read one form with all its options | `chrome_read_form` | read | first |
+| Bring a tab and its window to the front, for the owner to look, sign in or answer a dialog | `chrome_show` | change | first |
+| Take one of the owner's tabs into the Claude group; give it back | `chrome_take`, `chrome_release` | change | first |
+| Open a page in a new Claude tab; close a Claude tab | `chrome_open`, `chrome_close` | change | first |
+| Back, forward, reload, go to any web address (his, from a page, or one Claude wrote) | `chrome_go`; `chrome_open` with a link's `ref` | change | first, free (decision 25; data in an address isn't held); only `https:`, `http:` and `about:blank`, never `javascript:`, `data:`, `file:`, `chrome:` or app schemes |
+| Read the page as structure with positions; paged; text search | `chrome_read` (`find` for text search, `until` to wait for text) | read | first; text read by the extension's own script, never screenshots; password fields excluded before anything is read |
+| Read one form with all its options | `chrome_read` with the form's `ref` | read | first |
 | Frames from other sites, shadow DOM, dialogs on the page | `chrome_read` | read | first |
-| Click, type, choose from lists, tick boxes, press keys, scroll | `chrome_click`, `chrome_fill`, `chrome_select`, `chrome_check`, `chrome_press`, `chrome_scroll` | change | first, free, except the asking cases below, which are prepared instead of run; every input is classified by what it would activate (a click, Enter or Space on a focused control, a key, filling, choosing, ticking) |
-| Fill a whole form in one call | `chrome_fill_form` | change | first |
-| Searches on any site (a search form sent as an address) | `chrome_fill`, `chrome_press` | change | first, free |
-| Submit a form (a submit button, Enter in a form's field, a submission the page's script starts while handling Claude's click, key, filling, choosing or ticking) | the action, then `chrome_submit` | send | first: asks before it runs; the question shows the site, the button, the destination and every field as the page shows it; it runs only if the page still shows that, checked right before the input; a stopped submission resumes once, as the same kind of submission, without repeating Claude's input |
-| Click a control labelled send, post, publish, reply, comment, buy, pay, order, book, subscribe, delete, remove, discard, clear, empty or trash (and the German words) | the action, then `chrome_submit` | send or delete | first: asks before the click |
-| Enter, Ctrl+Enter or Cmd+Enter in a message or compose field | `chrome_press`, then `chrome_submit` | send | first: asks; line breaks in Claude's text go in through `chrome_fill`, never as Enter |
-| Delete or Backspace outside text editing (on a selected item, card or object) | `chrome_press`, then `chrome_submit` | delete | first: asks (decision 14) |
-| A control without a label that deletes something kept only in the browser | the ordinary click | change | free (decision 14, the gap accepted) |
+| Read up to five tabs in one call, to compare them | `chrome_read` (`tabs`) | read | first |
+| Click, type, choose from lists, tick boxes, press keys, scroll | `chrome_do` (steps `click`, `fill`, `select`, `check`, `press`, `scroll`) | change | first, free, except the asking cases below, which are prepared instead of run; every input is classified by what it would activate (a click, Enter or Space on a focused control, a key, filling, choosing, ticking) |
+| Fill a whole form in one call | `chrome_do` | change | first |
+| Several steps in one call (click, type, choose, tick, press, scroll, answer a dialog, wait), with what they changed | `chrome_do` | change | first: each step as its own action would run it; the call stops at the first step that asks |
+| Searches on any site (a search form sent as an address) | `chrome_do` | change | first, free |
+| Submit a form (a submit button, Enter in a form's field, a submission the page's script starts while handling Claude's click, key, filling, choosing or ticking) | `chrome_do`, then `chrome_submit` | send | first: asks before it runs; the question shows the site, the button, the destination and every field as the page shows it; it runs only if the page still shows that, checked right before the input; a stopped submission resumes once, as the same kind of submission, without repeating Claude's input |
+| Click a control labelled send, post, publish, reply, comment, buy, pay, order, book, subscribe, delete, remove, discard, clear, empty or trash (and the German words) | `chrome_do`, then `chrome_submit` | send or delete | first: asks before the click |
+| Enter, Ctrl+Enter or Cmd+Enter in a message or compose field | `chrome_do` (`press`, or `fill` for line breaks), then `chrome_submit` | send | first: asks; line breaks in Claude's text go in through `chrome_do`'s `fill` step, never as Enter |
+| Delete or Backspace outside text editing (on a selected item, card or object) | `chrome_do` (`press`), then `chrome_submit` | delete | first: asks (decision 14) |
+| A control without a label that deletes something kept only in the browser | `chrome_do` (`click`) | change | free (decision 14, the gap accepted) |
 | The page's own script activating a send, buy or delete control while handling Claude's input | | | stopped before delivery and reported to Claude, never resumed; if the action is wanted, Claude acts on the control itself, which asks |
 | A page that sends on its own after an ordinary action (autosave, an icon button that posts, typing indicators, read receipts) | | | not held, as with Claude in Chrome (decision 25) |
-| Page dialogs (alert, confirm, prompt) | `chrome_dialog` | change | first; accepting a confirmation with a listed word asks on its own, unless the approved operation named exactly that confirmation in advance (an adapter) |
+| Page dialogs (alert, confirm, prompt) | `chrome_do` (`dialog`) | change | first; accepting a confirmation with a listed word asks on its own, unless the approved operation named exactly that confirmation in advance (an adapter) |
 | Upload a local file | `chrome_upload`, then `chrome_submit` | send | first: asks; the question shows the path and the hash, and the field gets exactly that copy |
-| Downloads: list them and where Chrome saved them | `chrome_downloads` | read | first; Chrome downloads as normal |
-| Bookmarks and history: find addresses | `chrome_bookmarks`, `chrome_history` | read | first |
+| Downloads: list them and where Chrome saved them | `chrome_library` (`kind: downloads`) | read | first; Chrome downloads as normal |
+| Bookmarks and history: find addresses | `chrome_library` (`kind: bookmarks` or `history`) | read | first |
 | Drop a prepared operation | `chrome_drop` | change | first |
 | "Don't ask again" for a kind of action | `chrome_submit_trusted` | send, free | first, for kinds a site adapter names ("GitHub: star"), bound to site, account and parameters and checked against the page; set and revoked only by the owner; never for deleting or paying, and WhatsApp messages ask each time (decisions 15 and 16); for mail see Mail |
 | See and revoke "don't ask again" entries; mark sites read-only | `chrome_sites`; the extension's details page | owner | owner: Claude can't write these lists |
 | Popups and new tabs a page opens | joins the Claude group | | first |
 | Sign in to a site | | owner | owner: Claude stops and asks him to sign in; password values are never read and passwords never pass through Claude |
-| Pay, order, transfer money | the action, then `chrome_submit` | send | first, always asking (decision 15) |
+| Pay, order, transfer money | `chrome_do`, then `chrome_submit` | send | first, always asking (decision 15) |
 | Stop Claude in Chrome at once | the Stop button in the extension's popup | owner | first: ends control, sends nothing |
 | Calls, Safe Browsing, his own extensions, Chrome's updates | | | work as normal: Chrome isn't changed |
 | Drag and drop, hover menus | `chrome_drag`, `chrome_hover` | change | later: after the tool-user rounds show where they're needed |
 | Canvas editors and maps (text drawn, not in the page structure) | site adapter, or a last-resort picture | | later: per site, as the rounds show |
 | Save or print a page as PDF | `chrome_export_pdf` to an allowed folder | change | later |
-| Add and remove bookmarks | `chrome_bookmarks` | change | later |
+| Add and remove bookmarks | | change | later |
 | Windows: move tabs between windows | | | later |
 | Site adapters | per site | | first: Gmail, WhatsApp Web, GitHub, his bank (read-only), Gemini and Deezer (decisions 9 and 25) |
 | Gmail in Chrome: send a mail | `chrome_submit` through the Gmail adapter | send | first, asking, the question reading like a mail (To, Cc, Bcc, subject, text, attachments from the compose); "don't ask again" bound to an exact recipient set, compared with the compose at the moment of sending (decision 15) |

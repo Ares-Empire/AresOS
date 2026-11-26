@@ -20,7 +20,7 @@ function readerFixture(security) {
   const input=new Input();
   const document={title:'Fixture',childNodes:[],querySelectorAll:()=>[input],getElementById:()=>null,addEventListener(){},dispatchEvent(){}};
   const style={display:'block',visibility:'visible',get webkitTextSecurity(){return security();}};
-  const context=vm.createContext({document,Element,HTMLElement:Element,HTMLInputElement:Input,
+  const context=vm.createContext({document,TextEncoder,Element,HTMLElement:Element,HTMLInputElement:Input,
     HTMLTextAreaElement:class extends Element{},HTMLSelectElement:class extends Element{},HTMLButtonElement:class extends Element{},
     Node:{TEXT_NODE:3},MutationObserver:class {observe(){}takeRecords(){return [];}},
     chrome:{dom:{openOrClosedShadowRoot:()=>null},runtime:{id:'fixture',sendMessage:async()=>({}),onMessage:{addListener(fn){listener=fn;}}}},

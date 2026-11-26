@@ -30,12 +30,16 @@
     "331 REVIEW-10: bind qualification to the named publish artifact and require the exact R29 runner for both walk modes.",
     "331: refresh bindings for the fresh evidence directory fix and reset regression.",
     "Package 331 merges main through package 328 and refreshes the late-package review bindings.",
-    "Package 331 checks the merged Chrome, frame, Prism and mod deltas, extends the image context guard and refreshes the host walk."
+    "Package 331 checks the merged Chrome, frame, Prism and mod deltas, extends the image context guard and refreshes the host walk.",
+    "334a adds the hosted bench dispatch and release exclusions in os-image.yml and check-build.sh. Keep these in the next source rebind.",
+    "334a review round 1 tightens bench mode exclusions and checks the dispatched release ledger before image work.",
+    "334a review round 2 makes the four release isolation checks fail closed on every CI and bench path.",
+    "331 step 6b: merge the hosted bench and Chrome 28/28a with the guarded R29 modes and both sets of notes."
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
     {
-      "sha256": "5df767d1bebf69b88917655a8dbab81715b20ecb9629dfd8d38fdda15fbad749",
+      "sha256": "1aa8db4571bb5a727352ef3a277b748ab32b54a434b0a9a23878e11a9e8082f9",
       "path": ".github/workflows/os-image.yml"
     },
     {

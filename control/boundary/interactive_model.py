@@ -34,7 +34,7 @@ def tool(name, inputs, identifier):
 class Script:
     """Steps: prompt, optional prepare={name,input}, send=name, approval=dict.
 
-    With prepare, copy data.approval unchanged out of its successful tool result.
+    With prepare, copy the approval unchanged via prepared_approval (normally data.approval).
     Without prepare the boundary fixture uses the fixed approval, as in 18d.
     """
     def __init__(self, steps):
@@ -43,6 +43,14 @@ class Script:
         self.finished = set()
         self.continuations = []
         self.results = {}
+
+    def prepared_approval(self, index):
+        result = self.results[f'prepare-{index}']
+        assert not result.get('is_error'), result
+        payloads = [json.loads(s) for s in texts(result['content']) if s.startswith('{')]
+        approvals = [p['data']['approval'] for p in payloads if p.get('ok') and 'approval' in p.get('data', {})]
+        assert len(approvals) == 1, payloads
+        return approvals[0]
 
     def respond(self, request):
         messages = request.get('messages', [])
@@ -62,14 +70,7 @@ class Script:
             self.issued.add(prepare_id)
             return [tool(step['prepare']['name'], step['prepare']['input'], prepare_id)]
         if send_id not in self.issued:
-            approval = step.get('approval')
-            if step.get('prepare'):
-                result = self.results[prepare_id]
-                assert not result.get('is_error'), result
-                payloads = [json.loads(s) for s in texts(result['content']) if s.startswith('{')]
-                approvals = [p['data']['approval'] for p in payloads if p.get('ok') and 'approval' in p.get('data', {})]
-                assert len(approvals) == 1, payloads
-                approval = approvals[0]
+            approval = self.prepared_approval(index) if step.get('prepare') else step.get('approval')
             assert isinstance(approval, dict)
             self.issued.add(send_id)
             return [tool(step['send'], approval, send_id)]

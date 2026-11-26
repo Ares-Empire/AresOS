@@ -9,17 +9,21 @@ import {completeIngress,protocolEvents} from './ingress-scan.mjs';
 import {animatedDefaultMatrix} from './animated-default-matrix.mjs';
 import {lateBindingMatrix} from './late-binding-matrix.mjs';
 import {lateReaderMatrix} from './late-reader-matrix.mjs';
+import {outlineReadMatrix} from './outline-read.mjs';
+import {outlineAskingMatrix} from './outline-asking.mjs';
+import {unreadMatrix} from './unread-matrix.mjs';
 import {destinationMatrix} from './destination-matrix.mjs';
 import {recheck3Matrices} from './recheck3-matrices.mjs';
 import {recheck2Matrices} from './recheck2-matrices.mjs';
 import {reviewMatrices} from './review-matrices.mjs';
 import {popupMatrices} from './popups.mjs';
+import {actMatrix,refOf} from './act-matrix.mjs';
 import {collectSiteResults} from './site-results.mjs';
 import {receiverSnapshot} from './receiver-evidence.mjs';
 import {allTabs} from './tabs.mjs';
-import {failBrowserCase} from './failure.mjs';
+import {pendingCheck,recordCheck,writePartialResults,assertChecksPassed} from './failure.mjs';
 
-export async function matrices({call,read,nav,target,counts,eventually,tab,setTab:syncTab=()=>{},fixture,admin,rpc,caller,ownerNavigate,ownerOpenPopup,popupEvidence,popupControl,nativeDonor,closeNativeDonor,ownerKey,ownerType,ownerChooseFile,ownerDismiss,ownerHistory,ownerBookmark,lifecycle,restoreControl,stopClick,baseline,isolationAfter}) {
+export async function matrices({call,read,readPage,nav,settled,target,selectedTarget,counts,eventually,tab,setTab:syncTab=()=>{},fixture,admin,observe,rpc,caller,ownerNavigate,ownerCloseTab,ownerOpenTab,ownerClickPage,ownerOpenPopup,popupEvidence,popupControl,nativeDonor,closeNativeDonor,ownerKey,ownerType,ownerChooseFile,ownerDismiss,ownerHistory,ownerBookmark,lifecycle,restoreControl,stopClick,baseline,isolationAfter,envelopeResults,smokeResults}) {
   const results=[];let trustOperation;const shard=process.env.BROWSER_SHARD||null;
   // The owner helpers (ownerNavigate and the others) close over the driver's
   // own current tab, so a matrix that moves to another tab tells the driver
@@ -31,12 +35,9 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,setTa
   async function check(name,fn,block='core') {
     if(name==='GROUP 1 what asks word/label/key matrix')block='word';
     if(!runs(block))return;
-    try {await fn();results.push({name,passed:true});console.log(name,'PASS');}
-    catch(error){results.push({name,passed:false,error:String(error.stack)});console.error(name,'FAIL',error.stack);
-      // A failed/incomplete inventory cannot qualify. Retain the first failure
-      // and return its evidence promptly; successful runs still require every case.
-      failBrowserCase(results,baseline,error);
-    }
+    const row=await recordCheck(results,name,fn);
+    if(row.passed)console.log(name,'PASS');
+    else writePartialResults(results,baseline);
   }
   async function approval(result,id) {
     const prepared=result.approval ? result:result.followups?.find(item=>item.approval);
@@ -66,14 +67,17 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,setTa
     }
   });
   if(runs('core'))await destinationMatrix({check:inBlock('core'),nav,call,target,approval,fixture,receiverEvidence,eventually});
-  if(runs('core'))await lateReaderMatrix({check:inBlock('core'),nav,call,rpc,read,target,fixture,eventually,ownerNavigate,getTab:()=>tab});
-  if(runs('core'))await lateBindingMatrix({check:inBlock('core'),call,rpc,read,target,fixture,eventually,ownerNavigate,getTab:()=>tab});
+  if(runs('core'))await lateReaderMatrix({check:inBlock('core'),nav,call,readPage,fixture,ownerNavigate,getTab:()=>tab});
+  if(runs('core'))await lateBindingMatrix({check:inBlock('core'),call,rpc,read:readPage,target,fixture,eventually,ownerNavigate,getTab:()=>tab});
   if(runs('core'))await animatedDefaultMatrix({check:inBlock('core'),nav,call,target,approval,receiverEvidence,eventually,fixture,getTab:()=>tab,setTab,nativeDonor,closeNativeDonor});
-  if(process.env.DESTINATION_PROBE==='true'){console.log('Post-18d destination and late-reader probes; not full acceptance');return [];}
+  if(process.env.DESTINATION_PROBE==='true'){console.log('Post-18d destination and late-reader probes; not full acceptance');assertChecksPassed([...smokeResults,...results]);return;}
   if(runs('recheck3'))await recheck3Matrices({check:inBlock('recheck3'),nav,call,rpc,target,approval,receiverEvidence,fixture,eventually,getTab:()=>tab,setTab,nativeDonor,closeNativeDonor});
   if(runs('recheck2'))await recheck2Matrices({check:inBlock('recheck2'),nav,call,rpc,target,approval,receiverEvidence,fixture,eventually,getTab:()=>tab,setTab,nativeDonor,closeNativeDonor,ownerKey,lifecycle,restoreControl});
-  if(runs('review'))await reviewMatrices({check:inBlock('review'),nav,call,rpc,target,read,counts,eventually,approval,receiverEvidence,fixture,getTab:()=>tab,setTab,ownerKey,ownerType,ownerChooseFile,admin,ownerNavigate,ownerDismiss,nativeDonor,closeNativeDonor,lifecycle});
-  if(runs('recheck2'))await popupMatrices({check:inBlock('recheck2'),call,rpc,nav,counts,eventually,getTab:()=>tab,setTab,fixture,ownerOpenPopup,popupEvidence,popupControl,approval});
+  if(runs('review'))await reviewMatrices({check:inBlock('review'),nav,call,rpc,target,read,counts,eventually,approval,receiverEvidence,fixture,getTab:()=>tab,setTab,selectedTarget,ownerKey,ownerType,ownerChooseFile,admin,observe,ownerNavigate,ownerCloseTab,ownerDismiss,nativeDonor,closeNativeDonor,lifecycle});
+  if(runs('recheck2'))await popupMatrices({check:inBlock('recheck2'),call,rpc,nav,counts,eventually,getTab:()=>tab,setTab,fixture,ownerOpenPopup,popupEvidence,popupControl,approval,read,selectedTarget});
+  // Brief 28a, groups 14 and 15 (act-matrix.mjs): the new tools, at the end of the recheck2 shard, the
+  // shortest of the long shards; its last case restarts the service and Chrome.
+  if(runs('recheck2'))await actMatrix({check:inBlock('recheck2'),call,rpc,nav,counts,eventually,fixture,admin,lifecycle,restoreControl,ownerNavigate,ownerOpenTab,ownerClickPage,ownerType,ownerKey,ownerDismiss,getTab:()=>tab,setTab});
   await check('GROUP 7 native compatibility inside and outside Claude tabs',async()=>{
     await nav('native-compat&id=controlled');
     const controlled=await measureCompatibility({id:'controlled',fixture,eventually,start:async()=>call('click',await target('Continue'))});
@@ -95,7 +99,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,setTa
       const id='taken-'+mode;await call('release_tab',{tab});await ownerNavigate('http://fixture.test:8765/?case=take-state&id='+id+'&mode='+mode);
       await eventually(()=>counts('loaded-'+id)===1,'taken page initial load');
       if(mode==='media'){ownerKey();await eventually(()=>counts('playing-'+id)===1,'native media started');}
-      await call('take_tab',{tab});const before=await target('Continue');await read();await read();assert.equal(counts('loaded-'+id),1,'taking and reading never reload');
+      await call('take_tab',{tab});const before=await target('Continue');await readPage();await readPage();assert.equal(counts('loaded-'+id),1,'taking and reading never reload');
       const first=await rpc('click',before);assert.equal(first.ok,false);
       if(mode==='clean')assert.equal(first.error.code,'stale_reference');
       else{assert.equal(first.error.code,'reload_required');assert.equal(counts('loaded-'+id),1,'dirty and playing pages are preserved until explicit repeat');const repeated=await rpc('click',{...before,discard_unsaved:true});assert.equal(repeated.ok,false);assert.equal(repeated.error.code,'stale_reference');}
@@ -103,9 +107,10 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,setTa
     }
     await call('release_tab',{tab});await ownerNavigate('http://fixture.test:8765/?case=take-post');ownerKey();
     await eventually(()=>counts('taken-post')===1,'one native POST loaded the document');await call('take_tab',{tab});const denied=await rpc('click',await target('Continue'));assert.equal(denied.ok,false);assert.match(denied.error.message,/form submission|request method/);await delay(150);assert.equal(counts('taken-post'),1,'refusal must not resubmit POST');
-    await call('navigate',{tab,url:'http://fixture.test:8765/?case=features&id=post-history',discard_unsaved:true});await eventually(async()=>String((await call('read',{tab})).untrusted_content.url).includes('id=post-history'),'GET after POST');assert.equal((await rpc('navigate',{tab,direction:'back'})).ok,false);assert.equal(counts('taken-post'),1,'history must not resubmit POST');
+    const get='http://fixture.test:8765/?case=features&id=post-history';await ownerNavigate(get,{tab});await settled(get,tab);
+    const back=await rpc('navigate',{tab,direction:'back'});assert.equal(back.ok,false);assert.match(back.error.message,/form-loaded history entry.*resubmit/);assert.equal(counts('taken-post'),1,'history must not resubmit POST');
   });
-  if(runs('adapters'))results.push(...await collectSiteResults(()=>(import('./sites/matrices.mjs').then(({siteMatrices})=>siteMatrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,lifecycle})))));
+  if(runs('adapters'))results.push(...await collectSiteResults(()=>(import('./sites/matrices.mjs').then(({siteMatrices})=>siteMatrices({call,read,nav,settled,target,selectedTarget,counts,eventually,tab,fixture,admin,rpc,lifecycle})))));
   await check('GROUP 1 submit compose deletion and free-input matrix',async()=>{
     for(const tag of ['default','submit','override','external','empty','invalid','clobbered'])for(const key of ['click','Enter','Space','field']){
       const id='submit-'+tag+'-'+key;await nav('action-matrix&mode=submit&id='+id+'&tag='+tag);
@@ -126,20 +131,26 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,setTa
     const link=await call('click',await target('Read more'));assert.ok(!link.approval);await eventually(()=>counts('free')===2,'ordinary link stays free');
   });
   await check('GROUP 1 what asks word/label/key matrix',async()=>{
-    let cases=0;const wordCases=[];
+    const routes=[],wordCases=[];
     for(const word of words)for(const label of ['name','aria','title','value','labelledby','hidden_labelledby','label','role','formaction']){
       if(shard&&wordShard(words.indexOf(word),['name','aria','title','value','labelledby','hidden_labelledby','label','role','formaction'].indexOf(label))!==shard)continue;
-      const id='word-'+word+'-'+label;await setup({id,mode:'word',word,label});
+      const id='word-'+word+'-'+label;
+      const ready=setup({id,mode:'word',word,label});
       for(const route of ['click','Enter','Space']){
-        const row=(await read()).find(row=>row.expected.role==='button'||row.expected.name==='Continue');assert.ok(row);
-        const args={reference:row.reference,expected:row.expected};
-        const result=route==='click'?await call('click',args):await call('press',{...args,key:route});
-        await approval(result,id+'-'+route);wordCases.push(id+'-'+route);cases++;
+        const name=id+'-'+route;
+        await recordCheck(routes,name,async()=>{
+          await ready;
+          const rows=await read();const row=rows.find(row=>row.expected.role==='button'||row.expected.name==='Continue');assert.ok(row);
+          const args=await selectedTarget(row,rows);
+          const result=route==='click'?await call('click',args):await call('press',{...args,key:route});
+          await approval(result,name);wordCases.push(name);
+        });
       }
-      if(cases%81===0)console.log('GROUP 1 WORD_PROGRESS',cases,'strict receiver cases passed');
+      if(routes.length%81===0)console.log('GROUP 1 WORD_PROGRESS',wordCases.length,'strict receiver cases passed');
     }
-    assert.deepEqual(wordCases,wordInventory(words,shard));
     fs.writeFileSync('/out/word-cases.json',JSON.stringify(wordCases));
+    await recordCheck(routes,'exact word inventory',()=>assert.deepEqual(wordCases,wordInventory(words,shard)));
+    assertChecksPassed(routes);
   });
   await check('GROUP 1 Unicode word matching agrees across service and guard',async()=>{
     for(const [index,word]of ['ſend','veröﬀentlichen','beﬅellen'].entries()){
@@ -209,7 +220,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,setTa
   await check('GROUP 2 owner synchronous task delayed work and in-flight interleavings',async()=>{
     for(const [id,busy,after] of [['owner-sync',0,130],['owner-replay',0,130],['owner-flight',250,60],['owner-after-limit',0,650]]){
       await nav('owner-task&id='+id+'&busy='+busy+'&delay=100'+(id==='owner-replay'?'&replay=1':''));
-      const continued=call('click',await target('Continue'));
+      const continued=pendingCheck(call('click',await target('Continue')));
       let record;const deadline=Date.now()+5000;
       while(!record&&Date.now()<deadline){record=fixture.arrivals.find(row=>row.url.includes('case=task-start')&&row.body===id);if(!record)await delay(5);}
       assert.ok(record);await delay(Math.max(0,record.time+after-Date.now()));ownerKey();const result=await continued;await delay(150);
@@ -222,7 +233,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,setTa
   await check('GROUP 2 after his mark timers never exempt forms submitters or validation repairs',async()=>{
     for(const variant of ['same-submitter','other-form','other-submitter']){
       const id='owner-timer-'+variant;await nav('owner-timer&id='+id+'&variant='+variant);
-      const continued=call('click',await target('Continue'));
+      const continued=pendingCheck(call('click',await target('Continue')));
       let record;const deadline=Date.now()+5000;while(!record&&Date.now()<deadline){record=fixture.arrivals.find(row=>row.url.includes('case=task-start')&&row.body===id);if(!record)await delay(5);}assert.ok(record);
       await delay(Math.max(0,record.time+130-Date.now()));ownerKey();
       await approval(await continued,id);
@@ -231,7 +242,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,setTa
   await check('GROUP 2 uncancellable self navigation is stopped before its source document changes',async()=>{
     tab=await nativeDonor(tab);
     const id='fresh-self';await nav('fresh-activation&id='+id+'&cancel=false&target=self');
-    const result=await call('click',await target('Continue'));
+    const result=await call('click',await target('Continue'),{committed:true});
     assert.equal(counts('handler-'+id),0);assert.equal(receiverEvidence(id,'self default held').count,0);
     assert.ok(result.untrusted_content.steps.some(step=>step.kind==='activation'));
     assert.ok(result.followups.some(item=>item.stopped));assert.ok(!result.followups.some(item=>item.approval),'activation never resumes');
@@ -244,7 +255,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,setTa
       await fixture.mutate(id,change);await delay(100);
       const result=await rpc('submit',prepared.approval);assert.ok(!result.ok||result.data.operation.state==='failed',JSON.stringify(result));assert.equal(counts(id),0);
     }
-    await nav('binding&id=before-input-change');const waiting=await call('click',await target('Submit'));await lifecycle({fixture:'arm_delay',milliseconds:650});const pending=rpc('submit',waiting.approval);await eventually(()=>fs.existsSync('/out/arm-ready.json'),'private arming barrier');await fixture.mutate('before-input-change','hidden');const refused=await pending;assert.ok(!refused.ok||refused.data.operation.state==='failed');assert.equal(counts('before-input-change'),0);
+    await nav('binding&id=before-input-change');const waiting=await call('click',await target('Submit'));await lifecycle({fixture:'arm_delay',milliseconds:650});const pending=pendingCheck(rpc('submit',waiting.approval));await eventually(()=>fs.existsSync('/out/arm-ready.json'),'private arming barrier');await fixture.mutate('before-input-change','hidden');const refused=await pending;assert.ok(!refused.ok||refused.data.operation.state==='failed');assert.equal(counts('before-input-change'),0);
     await nav('binding&mode=sibling&id=sibling');const prepared=await call('click',await target('Send'));
     assert.match(JSON.stringify(prepared.approval),/Existing sibling draft/);await fixture.mutate('sibling','text');await delay(100);
     const changed=await rpc('submit',prepared.approval);assert.ok(!changed.ok||changed.data.operation.state==='failed');assert.equal(counts('sibling'),0);
@@ -301,32 +312,52 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,setTa
   await check('GROUP 5 question fields, hidden values, password label, upload path and hash',async()=>{
     await nav('binding&id=question');const prepared=await call('click',await target('Submit'));const text=JSON.stringify(prepared.approval);
     assert.match(text,/Hidden original/);assert.match(text,/Private sign-in/);assert.doesNotMatch(text,/SENTINEL_PRIVATE_PASSWORD_20/);assert.match(prepared.approval.question,/hidden/);
+    const rows=await read(),same=rows.filter(row=>row.expected.name==='Visible'&&row.expected.role==='textbox');
+    assert.equal(same.length,2);
+    const second=await selectedTarget(same[1],rows);
+    if(second.ref){
+      const descriptions=prepared.approval.description.untrusted_content.page_state.form.fields
+        .filter(field=>field.label==='Visible').map(field=>field.description);
+      assert.deepEqual(descriptions,['"Visible" (1 of 2)','"Visible" (2 of 2)']);
+      const entered=await call('press',{...second,key:'Enter'});
+      assert.match(entered.approval.question,/'Visible' \(2 of 2\) using Enter/);
+      assert.equal(entered.approval.description.untrusted_content.page_state.target.description,descriptions[1]);
+      assert.equal(receiverEvidence('question','distinct field descriptions before approval').count,0);
+      await call('drop',{operation_id:entered.approval.operation_id});
+    }
     await nav('upload&id=upload-bytes');await call('fill',{...await target('Message'),text:'Draft Claude typed before the unrelated upload'});fs.mkdirSync('/home/owner/Downloads',{recursive:true});fs.writeFileSync('/home/owner/Downloads/fixture.txt','Exact synthetic upload bytes');
-    const upload=caller('upload',{...await target('Upload'),path:'/home/owner/Downloads/fixture.txt'});assert.ok(upload.ok,JSON.stringify(upload));
+    const upload=await caller('upload',{...await target('Upload'),path:'/home/owner/Downloads/fixture.txt'});assert.ok(upload.ok,JSON.stringify(upload));
     assert.match(upload.data.approval.question,/sha256/);assert.match(upload.data.approval.question,/fixture.txt/);await approval(upload.data,'upload-bytes');
     assert.equal(fixture.arrivals.find(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')==='upload-bytes').body,'Exact synthetic upload bytes');
     const send=await call('click',await target('Send'));await fixture.mutate('upload-bytes','text');await delay(100);const changed=await rpc('submit',send.approval);assert.ok(!changed.ok||changed.data.operation.state==='failed');assert.equal(counts('after-upload'),0);
   });
   await check('GROUP 6 exclusions through frame, popup, redirect, taking and history',async()=>{
-    await nav('frame-excluded');assert.doesNotMatch(JSON.stringify(await read()),/EXCLUDED_PAGE_SENTINEL_20/);
+    await nav('frame-excluded');assert.doesNotMatch(JSON.stringify(await readPage()),/EXCLUDED_PAGE_SENTINEL_20/);
     await nav('popup-excluded');await call('click',await target('Continue'));await delay(250);
     const tabs=await allTabs(call);const excludedPopups=tabs.items.filter(item=>item.url?.includes('approval.test'));assert.equal(excludedPopups.length,1,'excluded popup must exist');for(const item of excludedPopups){const result=await rpc('take_tab',{tab:item.tab});assert.equal(result.ok,false);}
     await ownerNavigate('http://fixture.test:8765/?case=compose');await call('take_tab',{tab});
     await call('navigate',{tab,url:'http://fixture.test:8765/?case=redirect',discard_unsaved:true});await delay(400);const redirected=await rpc('read',{tab});assert.equal(redirected.ok,false);
     await ownerNavigate('http://approval.test:8765/?case=excluded');assert.equal((await rpc('take_tab',{tab})).ok,false);
     await ownerNavigate('http://fixture.test:8765/?case=compose');await call('take_tab',{tab});
-    const back=await rpc('navigate',{tab,direction:'back'});assert.equal(back.ok,false);assert.doesNotMatch(JSON.stringify(await read()),/EXCLUDED_PAGE_SENTINEL_20/);
+    const back=await rpc('navigate',{tab,direction:'back'});assert.equal(back.ok,false);assert.doesNotMatch(JSON.stringify(await readPage()),/EXCLUDED_PAGE_SENTINEL_20/);
   });
   await check('GROUP 7 all password kinds across open closed and cross-site roots',async()=>{
-    await nav('password-matrix');assert.doesNotMatch(JSON.stringify(await read()),/SENTINEL_PRIVATE_PASSWORD_20/);
+    await nav('password-matrix');const page=await readPage(tab,{full:true});
+    assert.doesNotMatch(JSON.stringify(page.pages),/SENTINEL_PRIVATE_PASSWORD_20/);
+    const forms=await Promise.all(page.text.split('\n').filter(line=>/^\s*form\b/.test(line))
+      .map(line=>refOf(line,'form')).map(ref=>readPage(tab,{ref})));
+    assert.equal(forms.length,6,'one public form for each root and frame');
     for(const prefix of ['top','cross'])for(let index=0;index<3;index++){
-      const selected=await target('Submit '+prefix+' '+index),id='password-'+prefix+'-'+index;
-      const form=await call('read_form',{tab,reference:selected.reference});assert.doesNotMatch(JSON.stringify(form),/SENTINEL_PRIVATE_PASSWORD_20/);
+      const label='Submit '+prefix+' '+index,selected=await target(label),id='password-'+prefix+'-'+index;
+      const form=forms.find(form=>form.text.includes('button "'+label+'"'));
+      assert.ok(form,'the public form contains '+label);
+      assert.doesNotMatch(JSON.stringify(form.pages),/SENTINEL_PRIVATE_PASSWORD_20/);
+      assert.match(form.text,/Public draft/,'a typed field empty when the reader met its root is read once the page fills it');
       const prepared=await call('click',selected);assert.doesNotMatch(JSON.stringify(prepared),/SENTINEL_PRIVATE_PASSWORD_20/);
       await approval(prepared,id);
     }
-    await call('click',await target('Show'));await call('click',await target('Show cross'));assert.doesNotMatch(JSON.stringify(await read()),/SENTINEL_PRIVATE_PASSWORD_20/);
-    await call('release_tab',{tab});await call('take_tab',{tab});assert.doesNotMatch(JSON.stringify(await read()),/SENTINEL_PRIVATE_PASSWORD_20/);
+    await call('click',await target('Show'));await call('click',await target('Show cross'));assert.doesNotMatch(JSON.stringify(await readPage(tab,{full:true})),/SENTINEL_PRIVATE_PASSWORD_20/);
+    await call('release_tab',{tab});await call('take_tab',{tab});assert.doesNotMatch(JSON.stringify(await readPage(tab,{full:true})),/SENTINEL_PRIVATE_PASSWORD_20/);
     const ingress=completeIngress(fs.readFileSync('/out/browser-boundary.jsonl','utf8'));
     assert.ok(ingress.some(row=>row?.reader_ingress),'test build must record sensitive native getter ingress');
     const protocol=protocolEvents(ingress);assert.ok(protocol.length,'test build must audit incoming protocol events');
@@ -334,7 +365,8 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,setTa
     for(const file of ['browser-boundary.jsonl','tool.jsonl','service.txt'])assert.doesNotMatch(file==='browser-boundary.jsonl'?JSON.stringify(completeIngress(fs.readFileSync('/out/'+file,'utf8'))):fs.readFileSync('/out/'+file,'utf8'),/SENTINEL_PRIVATE_PASSWORD_20/,file);
   });
   await check('GROUP 6 schemes links and forward routes',async()=>{
-    await nav('features&id=repeat-reload');let previous=(await target('First')).reference.document;
+    const repeat='http://fixture.test:8765/?case=features&id=repeat-reload';await ownerNavigate(repeat,{tab});await settled(repeat,tab);
+    let previous=(await target('First')).reference.document;
     for(let index=0;index<2;index++){await call('navigate',{tab,direction:'reload'});await eventually(async()=>{const fresh=(await target('First')).reference.document;if(fresh===previous)return false;previous=fresh;return true;},'fresh guarded GET reload');}
     for(const method of ['get','post'])for(const override of [false,true]){
       const id='excluded-form-'+method+'-'+override;
@@ -438,8 +470,8 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,setTa
     for(const [verb,label,args]of [['fill','Amount',{text:'1'}],['click','Continue',{}],['upload','File',{path:'/fixture.txt'}]]){const reply=await rpc(verb,{...await target(label),...args});notice(reply);assert.equal(reply.error.code,'readonly_site');}
     await nav('site&id=conservative-gmail','gmail');const generic=await call('click',await target('Send'));assert.equal(generic.approval.description.untrusted_content.page_state.adapter,null);assert.equal((await rpc('submit_trusted',generic.approval)).ok,false);assert.equal(counts('conservative-gmail-Send'),0);
     await approval(generic,'conservative-gmail-Send');
-    await nav('password-matrix');assert.doesNotMatch(JSON.stringify(await read()),/SENTINEL_PRIVATE_PASSWORD_20/);
-    const show=await call('click',await target('Show'));assert.ok(show.approval);await call('submit',show.approval);assert.doesNotMatch(JSON.stringify(await read()),/SENTINEL_PRIVATE_PASSWORD_20/);
+    await nav('password-matrix');assert.doesNotMatch(JSON.stringify(await readPage(tab,{full:true})),/SENTINEL_PRIVATE_PASSWORD_20/);
+    const show=await call('click',await target('Show'));assert.ok(show.approval);await call('submit',show.approval);assert.doesNotMatch(JSON.stringify(await readPage(tab,{full:true})),/SENTINEL_PRIVATE_PASSWORD_20/);
     for(const file of ['browser-boundary.jsonl','tool.jsonl','service.txt'])assert.doesNotMatch(file==='browser-boundary.jsonl'?JSON.stringify(completeIngress(fs.readFileSync('/out/'+file,'utf8'))):fs.readFileSync('/out/'+file,'utf8'),/SENTINEL_PRIVATE_PASSWORD_20/,file);
     await lifecycle({fixture:'qualification',mode:'password_exclusion'});
     assert.equal((await rpc('read',{tab})).ok,false);
@@ -453,30 +485,43 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,setTa
   });
   await check('VIEW representative long article/form complete paging',async()=>{
     await setup({id:'long',mode:'long'});let cursor,tree='',pages=0;const started=Date.now();
-    do{const page=await call('read',{tab,...(cursor?{cursor}:{})});assert.ok(page.untrusted_content.tree.length<=16000);tree+=page.untrusted_content.tree;cursor=page.cursor;pages++;}while(cursor);
+    do{const page=await call('read',{tab,...(cursor?{cursor}:{})},{fullOutline:true});assert.ok(page.untrusted_content.tree.length<=16000);tree+=page.untrusted_content.tree;cursor=page.cursor;pages++;}while(cursor);
     assert.match(tree,/Paragraph 119/);assert.match(tree,/Field 79/);
     const measurement={characters:tree.length,utf8_bytes:Buffer.byteLength(tree),pages,milliseconds:Date.now()-started,token_estimate:Math.ceil(tree.length/4)};
     fs.writeFileSync('/out/view-measurements.json',JSON.stringify(measurement,null,2));console.log('VIEW MEASURED',JSON.stringify(measurement));
   });
   await check('FEATURE tools forms options find wait fill_form scroll and full catalogues',async()=>{
-    await nav('features&id=tools');const first=await target('First');const form=await call('read_form',{tab,reference:first.reference});
-    assert.match(JSON.stringify(form),/Hidden field/);assert.match(JSON.stringify(form),/Disabled option/);assert.match(JSON.stringify(form),/Second option/);
+    await nav('features&id=tools');
+    const page=await readPage(tab,{full:true}),form=await readPage(tab,{ref:refOf(page.text,'form')});
+    const fields=()=>fixture.compatibility.filter(row=>row.id==='tools'&&row.phase==='fields');
+    await eventually(()=>fields().some(row=>row.hidden==='Hidden field'),'the page has the hidden value');
+    assert.match(form.text,/hidden: "hidden"/);assert.doesNotMatch(JSON.stringify([page.pages,form.pages]),/Hidden field/);
+    assert.match(form.text,/option "Disabled option".*disabled/);assert.match(form.text,/option "Second option"/);
     for(const value of ['missing','c'])assert.equal((await rpc('select',{...await target('Choice'),value})).ok,false);
     const found=await call('find',{tab,text:'Findable synthetic paragraph'});assert.match(found.untrusted_content.tree,/Findable synthetic paragraph/);
     assert.equal((await call('wait',{tab,text:'Findable synthetic paragraph',timeout_ms:500})).condition_met,true);
     assert.equal((await call('wait',{tab,text:'Never present sentinel',timeout_ms:50})).condition_met,false);
     const filled=await call('fill_form',{fields:[{...await target('First'),text:'Changed first'},{...await target('Second'),text:'Changed second'}]});assert.equal(filled.remaining,0);
-    assert.match(JSON.stringify(await read()),/Changed first/);assert.match(JSON.stringify(await read()),/Changed second/);
+    const changed=await readPage(tab,{full:true});
+    assert.match(changed.text,/Changed first/);assert.match(changed.text,/Changed second/);
+    await eventually(()=>fields().some(row=>row.first==='Changed first'&&row.second==='Changed second'&&row.hidden==='Hidden field'),'the page received both fills and its hidden value is intact');
     await call('scroll',{...await target('First'),x:0,y:80});
     for(let index=0;index<12;index++){
       await nav('features&id=catalogue-'+index);ownerBookmark();await delay(100);
       const download=await call('click',await target('Download fixture'));assert.ok(!download.approval);
     }
     for(const verb of ['downloads','history','bookmarks']){
-      let cursor,items=[],total;
-      do{const page=await call(verb,{text:verb==='downloads'?'synthetic-':'fixture.test',limit:2,...(cursor?{cursor}:{})});assert.ok(page.items.length<=2);total??=page.total;assert.equal(page.total,total,'one immutable catalogue snapshot');items.push(...page.items);cursor=page.cursor;}while(cursor);
-      assert.equal(items.length,total,verb+' every snapshot item');assert.equal(new Set(items.map(item=>item.id)).size,total,verb+' no repeated catalogue items');assert.ok(items.length>=12,verb+' complete catalogue: '+items.length);
-      if(verb==='downloads')assert.ok(items.every(item=>item.filename?.includes('synthetic-')));
+      const text=verb==='downloads'?'synthetic-':'fixture.test';
+      let next,entries=[],expected;
+      do{
+        const page=await call('chrome_library',{kind:verb,text,limit:2,...(next?{cursor:next}:{})});
+        assert.equal(page.kind,verb);assert.ok(page.untrusted_content.items.length<=2);
+        expected??=page.total;assert.equal(page.total,expected,'one immutable library snapshot');
+        entries.push(...page.untrusted_content.items);next=page.cursor;
+      }while(next);
+      assert.equal(entries.length,expected,verb+' every library item');assert.ok(entries.length>=12);
+      assert.ok(entries.every(item=>typeof item.ref==='string'));
+      if(verb==='downloads')assert.ok(entries.every(item=>item.file.includes('synthetic-')));
     }
   });
   await check('GROUP 8 actual popup Stop button drops all prepared work',async()=>{
@@ -512,13 +557,19 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,setTa
       console.log('GROUP 9 CUT',id,'receiver',before,JSON.stringify(replay));
     }
   });
+  // Brief 28, group 14, at the end of the core shard, after every case of brief 20 that uses the tab: the new read's
+  // cases (outline-read.mjs), then the password cases (unread-matrix.mjs), whose last step leaves a submission stopped.
+  if(runs('core'))await outlineReadMatrix({check:inBlock('core'),call,rpc,nav,target,getTab:()=>tab,setTab,lifecycle,restoreControl,fixture,eventually,envelopeResults});
+  if(runs('core'))await unreadMatrix({check:inBlock('core'),call,rpc,nav,target,counts,approval,fixture,eventually,ownerNavigate,ownerKey,ownerType,getTab:()=>tab});
+  if(runs('core'))await outlineAskingMatrix({check:inBlock('core'),call,rpc,read,fixture,eventually,ownerNavigate,getTab:()=>tab});
   await check('GROUP 7 no listening port after tool suite',async()=>isolationAfter());
   const precedence=fs.existsSync('/out/chrome-precedence.json')?JSON.parse(fs.readFileSync('/out/chrome-precedence.json')):null;
   const qualified=verdicts(results,baseline,adapters,precedence);
   fs.writeFileSync('/out/qualification-result.json',JSON.stringify(qualified,null,2));
   fs.writeFileSync('/out/matrices.json',JSON.stringify(results,null,2));
+  // The qualification observer recognises this final error after both evidence files exist.
+  assertChecksPassed([...smokeResults,...results],'Strict owner-input and page-forgery regressions failed');
   if(shard){
     fs.writeFileSync('/out/shard-complete.json',JSON.stringify({shard,baseline,adapters,head:process.env.RUNTIME_COMMIT||process.env.GITHUB_SHA,run:process.env.GITHUB_RUN_ID,install:process.env.INSTALL_MODE}));
   }else assertComplete(results,qualified);
-  return results.filter(item=>!item.passed);
 }
