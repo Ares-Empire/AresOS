@@ -6,8 +6,8 @@ import java.util.List;
 /**
  * Package 328c, prototype B ("edge turning"), the part that needs no game. With {@code look = edge} the cursor is always
  * free in a session's connected desktop world. The view turns while the cursor rests near the left, right or top edge of
- * the world's window (labwc keeps it maximized on its output), faster the nearer it is, and the left and right arrow
- * keys turn too. Where another output touches an edge, that part of the edge does not turn: the cursor passes through
+ * the world's window (labwc keeps it maximized on its output), faster the nearer it is. Left and Right turn the view,
+ * and Up and Down tilt it. Where another output touches an edge, that part of the edge does not turn: the cursor passes through
  * to the other screen. The client ({@code EdgeLook}) feeds it the window, the outputs and the cursor once a frame.
  */
 public final class EdgeTurn {
@@ -18,7 +18,7 @@ public final class EdgeTurn {
     /** A frame longer than this turns as if it took this long, so a hitch or a save never swings the view round. */
     public static final double LONGEST_FRAME_S = 0.1;
     /** The arrow keys' codes (GLFW's, which Minecraft uses). Q (drop) and E (inventory) stay vanilla's. */
-    public static final int LEFT_ARROW = 263, RIGHT_ARROW = 262;
+    public static final int LEFT_ARROW = 263, RIGHT_ARROW = 262, UP_ARROW = 265, DOWN_ARROW = 264;
 
     private EdgeTurn() { }
 
@@ -98,15 +98,12 @@ public final class EdgeTurn {
         return !edges(x, y, width, height, shared).still();
     }
 
-    /** The arrow keys turn at the top speed as well; together with an edge, never faster than the top speed. */
-    public static Rate keys(Rate edges, boolean leftArrow, boolean rightArrow) {
+    /** Yaw combines with the side bands. Holding exactly one pitch arrow overrides the top band at full speed. */
+    public static Rate keys(Rate edges, boolean leftArrow, boolean rightArrow, boolean upArrow, boolean downArrow) {
         double yaw = edges.yaw() + ((rightArrow ? 1 : 0) - (leftArrow ? 1 : 0)) * EDGE_TURN_DEG_PER_S;
-        return new Rate(Math.clamp(yaw, -EDGE_TURN_DEG_PER_S, EDGE_TURN_DEG_PER_S), edges.pitch());
-    }
-
-    /** Which way a key turns: -1 left, 1 right, 0 not at all (every key but the two arrows, Q and E among them). */
-    public static int direction(int key) {
-        return key == LEFT_ARROW ? -1 : key == RIGHT_ARROW ? 1 : 0;
+        int tilt = (downArrow ? 1 : 0) - (upArrow ? 1 : 0);
+        double pitch = tilt == 0 ? edges.pitch() : tilt * EDGE_TURN_DEG_PER_S;
+        return new Rate(Math.clamp(yaw, -EDGE_TURN_DEG_PER_S, EDGE_TURN_DEG_PER_S), pitch);
     }
 
     /**

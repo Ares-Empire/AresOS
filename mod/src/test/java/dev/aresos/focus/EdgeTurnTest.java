@@ -5,6 +5,7 @@ import dev.aresos.focus.EdgeTurn.Range;
 import dev.aresos.focus.EdgeTurn.Rate;
 import dev.aresos.focus.EdgeTurn.Shared;
 import org.junit.jupiter.api.Test;
+import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
 
@@ -82,21 +83,35 @@ class EdgeTurnTest {
                 new Box(0, -H, 0, H), new Box(200, 200, 400, 300))));
     }
 
-    @Test void theArrowsTurnAtTheTopSpeedAndQAndEDoNot() {
-        assertEquals(new Rate(-MAX, 0), EdgeTurn.keys(Rate.STILL, true, false));
-        assertEquals(new Rate(MAX, 0), EdgeTurn.keys(Rate.STILL, false, true));
-        assertEquals(Rate.STILL, EdgeTurn.keys(Rate.STILL, true, true));
-        assertEquals(Rate.STILL, EdgeTurn.keys(Rate.STILL, false, false));
+    @Test void leftAndRightCombineWithTheSideBands() {
+        assertEquals(new Rate(-MAX, 0), EdgeTurn.keys(Rate.STILL, true, false, false, false));
+        assertEquals(new Rate(MAX, 0), EdgeTurn.keys(Rate.STILL, false, true, false, false));
+        assertEquals(Rate.STILL, EdgeTurn.keys(Rate.STILL, true, true, false, false));
+        assertEquals(Rate.STILL, EdgeTurn.keys(Rate.STILL, false, false, false, false));
         // With an edge: never faster than the top speed, and an opposite key cancels it.
-        assertEquals(new Rate(-MAX, -MAX), EdgeTurn.keys(new Rate(-MAX, -MAX), true, false));
-        assertEquals(new Rate(0, 0), EdgeTurn.keys(new Rate(MAX, 0), true, false));
-        assertEquals(-MAX, EdgeTurn.keys(new Rate(-MAX / 2, 0), true, false).yaw(), 1e-9);
-        // The arrows are GLFW's codes; Q (drop) and E (inventory) keep their vanilla meaning.
-        assertEquals(-1, EdgeTurn.direction(263));
-        assertEquals(1, EdgeTurn.direction(262));
-        assertEquals(0, EdgeTurn.direction('Q'));
-        assertEquals(0, EdgeTurn.direction('E'));
-        assertEquals(0, EdgeTurn.direction('A'));
+        assertEquals(new Rate(-MAX, -MAX), EdgeTurn.keys(new Rate(-MAX, -MAX), true, false, false, false));
+        assertEquals(Rate.STILL, EdgeTurn.keys(new Rate(MAX, 0), true, false, false, false));
+        assertEquals(-MAX, EdgeTurn.keys(new Rate(-MAX / 2, 0), true, false, false, false).yaw(), 1e-9);
+    }
+
+    @Test void oneTiltArrowOverridesTheTopBandAtFullSpeedAndBothLeaveTheBand() {
+        assertEquals(new Rate(0, -MAX), EdgeTurn.keys(Rate.STILL, false, false, true, false));
+        assertEquals(new Rate(0, MAX), EdgeTurn.keys(Rate.STILL, false, false, false, true));
+        assertEquals(Rate.STILL, EdgeTurn.keys(Rate.STILL, false, false, true, true));
+        var top = EdgeTurn.edges(W / 2.0, 0, W, H, Shared.NONE);
+        assertEquals(new Rate(0, -MAX), EdgeTurn.keys(top, false, false, true, false));
+        assertEquals(new Rate(0, MAX), EdgeTurn.keys(top, false, false, false, true));
+        assertEquals(top, EdgeTurn.keys(top, false, false, true, true));
+        var partway = EdgeTurn.edges(W / 2.0, EDGE_PX / 2.0, W, H, Shared.NONE);
+        assertEquals(partway, EdgeTurn.keys(partway, false, false, true, true));
+        assertEquals(new Rate(MAX, MAX), EdgeTurn.keys(top, false, true, false, true));
+    }
+
+    @Test void theArrowCodesMatchGlfw() {
+        assertEquals(GLFW.GLFW_KEY_LEFT, EdgeTurn.LEFT_ARROW);
+        assertEquals(GLFW.GLFW_KEY_RIGHT, EdgeTurn.RIGHT_ARROW);
+        assertEquals(GLFW.GLFW_KEY_UP, EdgeTurn.UP_ARROW);
+        assertEquals(GLFW.GLFW_KEY_DOWN, EdgeTurn.DOWN_ARROW);
     }
 
     @Test void aFrameTurnsByItsTimeAndAHitchNeverSwingsTheView() {
