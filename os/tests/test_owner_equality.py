@@ -160,10 +160,7 @@ class EqualityTest(unittest.TestCase):
         guide, reference, card = [
             (ROOT / 'docs' / name).read_text() for name in ('INSTALL.md', 'INSTALL-REFERENCE.md', 'EMERGENCY.md')
         ]
-        _, _, source_notes = reference.partition('\n## Dated sources and limits\n')
-        checksum = f'The rehearsal-only live ISO has SHA-256 `{live["sha256"]}`.'
-        self.assertIn(checksum, source_notes.splitlines())
-        for page in (guide, reference.replace('\n' + checksum + '\n', '\n', 1), card):
+        for page in (guide, reference, card):
             self.assertNotIn('installer-isos.json', page)
             for key in ('sha256', 'filename', 'url', 'checksum_source'):
                 self.assertNotIn(live[key], page)

@@ -141,6 +141,4 @@ Disconnect the external charger or move the laptop only if safe without touching
 
 ## Dated sources and limits
 
-The rehearsal-only live ISO has SHA-256 `062c93ac13838557e9e8cdff01940aa4a65186049ae6f0179cf5111411fa1396`.
-
 New label/Fn/token checks are dated **2026-10-26** above and in step 9. Hardware/source reasoning inherited from packages 10–14 retains its original dates in their reports. Source inspection never closes physical/followability gates. [Dated source review and inherited catalogue](../reviews/15-owner-path/SOURCES.md) retains the full source catalogue and earlier limitations. [Record API sources](INSTALL-RECORD.md#sources-and-limits) cover inventory comparisons. [Current status/evidence](INSTALL-STATUS.md#current-gates) links the qualification reports. **Return to step 1** ([start checklist](INSTALL.md#1-backups-recovery-and-windows-preparation)).

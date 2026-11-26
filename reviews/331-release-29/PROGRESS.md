@@ -1267,10 +1267,21 @@ against the refreshed pin.
 ]
 ```
 
-The install reference records the checksum under **Dated sources and
-limits** as rehearsal evidence. The equality test requires the exact
-checksum there and enforces the fresh-install hold. The stock image
-fixture now uses fields from the observed index.
+The stock image fixture now uses fields from the observed index.
+
+**Lead correction (2026-11-26):** this step first also added the live
+ISO's checksum to `docs/INSTALL-REFERENCE.md` and loosened
+`test_owner_equality.py` to allow it, following the lead's prompt, which
+pointed at R28's older requalification (3ae3716a). Since R28 (6ae4da41)
+the live ISO is rehearsal-only and must stay out of the owner's guide,
+reference and card, which
+`test_rehearsal_iso_is_absent_from_the_owner_route_and_the_install_hold_precedes_the_erase`
+enforces. The lead restored both files to their `5fd70c8c` bytes, set
+their pending and host-receipt hashes back, and reran
+`rebind.py pending` (unchanged), `test_owner_equality.py` and
+`test_stock_image.py` (both `OK`). All 319 host-receipt hashes match
+the checkout. A requalification changes only
+`os/manifest/installer-isos.json`, its stock fixture and the bindings.
 
 ### Baseline inputs
 
