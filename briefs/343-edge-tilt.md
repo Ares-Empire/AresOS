@@ -4,7 +4,7 @@ Board brief 343, board item T528. Two small follow-ups, both for release 29 (the
 
 **Builder:** Codex `gpt-6.2-sol` `xhigh`: rules and tests on a small, well-mapped change. **Review:** a fresh read-only Codex context after the build. **This brief's review:** one Codex review before the build (a small follow-up; Claude's week is tight, so no Claude round): `reviews/343-edge-tilt/BRIEF-REVIEW-1.md`, NOT READY on the two-pass rule, fixed with its three should-fixes.
 
-**Start from `main` once PR150 (package 333) has merged:** item 2 changes 333's code. Branch `pkg/343-edge-tilt`, worktree `~/AresOS-343-edge-tilt`.
+**Branch `pkg/343-edge-tilt`, worktree `~/AresOS-343-edge-tilt`.** Item 2 changes package 333's code: the lead merges `main` into this branch once PR150 has merged, before the build starts. Check that `os/config/usr/libexec/aresos-shell` has `SCOPE_TIMEOUT` and the admission's `list_scopes` call; if not, stop and say so.
 
 ## 1. Edge look can look back down
 
