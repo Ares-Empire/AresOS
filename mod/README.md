@@ -631,7 +631,7 @@ game after changing it.
 | --- | --- |
 | `look = classic` | Default, also used when the line is absent. The focused world captures the pointer to steer when the pointer is over it. Press Esc to free it. |
 | `look = click` | The pointer starts free. Click open world or press a movement key to look around. The starting click just enters look mode. The pointer is free again after 0.8 seconds of stillness, on Esc, or when an app takes focus. |
-| `look = edge` | The pointer stays free. Move it near the left, right or top edge to turn, or use the left and right arrows. A shared edge lets the pointer cross. World clicks use the crosshair. |
+| `look = edge` | The pointer stays free. Move it near the left, right or top edge to turn. Left and Right turn the view, and Up and Down tilt it even at the top edge. A shared edge lets the pointer cross. World clicks use the crosshair. |
 
 ## The town
 

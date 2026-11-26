@@ -19,6 +19,7 @@ import dev.aresos.test.mixin.WindowTestAccess;
 import dev.aresos.world.DesktopWorld;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
+import net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.input.MouseButtonInfo;
@@ -42,8 +43,8 @@ import static dev.aresos.test.WorldKeepsPointerClientGameTest.released;
  * or the pointer has left the world; the arrow keys turn and Q and E stay vanilla's; a click acts on what the crosshair
  * aims at without a capture; nothing turns or acts while an app is in front. With {@code client-test.sh --session},
  * also the real cursor under Xwayland and labwc (package 328a's rig): at the left edge the view turns left, at the
- * edge beside the second output it does not turn and the cursor crosses. Last in the suite, so the screenshot
- * numbering of the others stays.
+ * edge beside the second output it does not turn and the cursor crosses. Package 343 also checks up and down tilt
+ * with the cursor parked on the top edge, and uses unnumbered screenshots to keep the suite's numbering.
  */
 public final class EdgeTurnClientGameTest implements FabricClientGameTest {
     private static final int LEFT = GLFW.GLFW_MOUSE_BUTTON_LEFT, RIGHT = GLFW.GLFW_MOUSE_BUTTON_RIGHT;
@@ -85,6 +86,8 @@ public final class EdgeTurnClientGameTest implements FabricClientGameTest {
         finally {
             context.getInput().releaseKey(EdgeTurn.LEFT_ARROW);
             context.getInput().releaseKey(EdgeTurn.RIGHT_ARROW);
+            context.getInput().releaseKey(EdgeTurn.UP_ARROW);
+            context.getInput().releaseKey(EdgeTurn.DOWN_ARROW);
             context.runOnClient(client -> {
                 client.mouseHandler.releaseMouse();
                 KeyMapping.releaseAll();
@@ -117,12 +120,10 @@ public final class EdgeTurnClientGameTest implements FabricClientGameTest {
             check(!client.mouseHandler.isMouseGrabbed(), "A grab took the mouse with look = edge");
 
             // The arrows are free in the home: no key of vanilla, Fabric API or AresOS is bound to them by default.
-            check(EdgeTurn.LEFT_ARROW == GLFW.GLFW_KEY_LEFT && EdgeTurn.RIGHT_ARROW == GLFW.GLFW_KEY_RIGHT,
-                    "EdgeTurn's arrows are not GLFW's");
+            var arrows = List.of("key.keyboard.left", "key.keyboard.right", "key.keyboard.up", "key.keyboard.down");
             for (var key : client.options.keyMappings) {
                 String bound = key.saveString();
-                check(!bound.equals("key.keyboard.left") && !bound.equals("key.keyboard.right"),
-                        key.getName() + " is bound to " + bound + ", which edge turning uses");
+                check(!arrows.contains(bound), key.getName() + " is bound to " + bound + ", which edge turning uses");
             }
             check(client.options.keyDrop.saveString().equals("key.keyboard.q")
                     && client.options.keyInventory.saveString().equals("key.keyboard.e"), "Q and E are not drop and inventory");
@@ -192,6 +193,7 @@ public final class EdgeTurnClientGameTest implements FabricClientGameTest {
         context.getInput().releaseKey(EdgeTurn.LEFT_ARROW);
         check(after[0] < before[0] - 1, "The left arrow did not turn left: " + before[0] + " -> " + after[0]);
         checkStill(context, "the arrows released");
+        arrowTilt(context, w, h);
 
         // Q drops and E opens the inventory as in vanilla. Nothing turns under a screen, and closing it takes no mouse.
         context.runOnClient(client -> client.player.getInventory().setItem(
@@ -206,8 +208,10 @@ public final class EdgeTurnClientGameTest implements FabricClientGameTest {
         context.waitFor(client -> client.gui.screen() != null);
         moveTo(context, 1, h / 2.0);
         context.getInput().holdKey(EdgeTurn.LEFT_ARROW);
-        checkStill(context, "a screen open with the cursor at the edge and an arrow held");
+        context.getInput().holdKey(EdgeTurn.DOWN_ARROW);
+        checkStill(context, "the inventory open with the cursor at the edge and Left and Down held");
         context.getInput().releaseKey(EdgeTurn.LEFT_ARROW);
+        context.getInput().releaseKey(EdgeTurn.DOWN_ARROW);
         context.runOnClient(client -> {
             client.gui.setScreen(null);
             check(!client.mouseHandler.isMouseGrabbed() && HomeScreen.freePointer(client), "Closing the inventory took the mouse");
@@ -280,6 +284,45 @@ public final class EdgeTurnClientGameTest implements FabricClientGameTest {
         context.runOnClient(client -> check(!client.mouseHandler.isMouseGrabbed() && !HomeScreen.ignoresMouse(client),
                 "The helper's return to the world took the mouse or left it ignored"));
         AresOs.LOGGER.info("328c: edges, pass-through, leave, arrows, Q and E, clicks and an app in front passed");
+    }
+
+    private static void arrowTilt(ClientGameTestContext context, int width, int height) {
+        var input = context.getInput();
+        double middle = width / 2.0;
+        context.runOnClient(client -> client.player.setXRot(0));
+        moveTo(context, middle, 0);
+        context.waitFor(client -> client.player.getXRot() < -15);
+
+        // At the topmost pixel, adding the opposite arrow to the band would leave the view stuck looking up.
+        input.holdKey(EdgeTurn.DOWN_ARROW);
+        context.waitFor(client -> client.player.getXRot() == 90);
+        checkStill(context, "Down held at the lower pitch limit with the cursor on the top edge");
+        tiltScreenshot(context, "343-down-at-top-edge");
+        input.releaseKey(EdgeTurn.DOWN_ARROW);
+
+        input.holdKey(EdgeTurn.UP_ARROW);
+        context.waitFor(client -> client.player.getXRot() < -15);
+        moveTo(context, middle, height / 2.0);
+        context.runOnClient(client -> client.player.setXRot(-60));
+        context.waitFor(client -> client.player.getXRot() == -90);
+        checkStill(context, "Up held at the upper pitch limit away from the bands");
+        tiltScreenshot(context, "343-up-at-upper-limit");
+
+        input.holdKey(EdgeTurn.DOWN_ARROW);
+        context.runOnClient(client -> client.player.setXRot(0));
+        checkStill(context, "both tilt arrows held away from the bands");
+        moveTo(context, middle, 0);
+        context.waitFor(client -> client.player.getXRot() < -15);
+        moveTo(context, middle, height / 2.0);
+        input.releaseKey(EdgeTurn.UP_ARROW);
+        input.releaseKey(EdgeTurn.DOWN_ARROW);
+        context.runOnClient(client -> client.player.setXRot(0));
+        AresOs.LOGGER.info("343: Down beat the top band, Up and Down reached the pitch limits, and both left the band in control");
+    }
+
+    private static void tiltScreenshot(ClientGameTestContext context, String name) {
+        context.takeScreenshot(TestScreenshotOptions.of(name).disableCounterPrefix()
+                .withDestinationDir(Path.of(System.getProperty("aresos.edgeTiltReviewDir"))));
     }
 
     /** The real cursor: the left edge turns, the edge beside the second output lets it through, and it never captures. */

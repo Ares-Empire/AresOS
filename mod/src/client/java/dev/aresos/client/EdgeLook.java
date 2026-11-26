@@ -14,9 +14,9 @@ import java.util.List;
 /**
  * Package 328c, prototype B ("edge turning"), with {@code look = edge} in {@link LookMode#FILE}. In a session's connected
  * desktop world the cursor is always free: the world never takes the mouse, so the pointer crosses to the other output
- * like any other. The view turns while the cursor rests near the world's left, right or top edge, and while an arrow
- * key is held ({@link EdgeTurn} holds the rules and the tunables). Movement keys walk and fly as in classic, in the
- * direction the camera faces.
+ * like any other. The view turns while the cursor rests near the world's left, right or top edge. Left and Right
+ * turn the view, and Up and Down tilt it ({@link EdgeTurn} holds the rules and the tunables). Movement keys walk and
+ * fly as in classic, in the direction the camera faces.
  *
  * <p>Nothing here captures or lets go. Every grab finds the pointer free ({@link HomeScreen#freePointer}) and is refused
  * at the head of {@code grabMouse}, as behind an app in package 56. A click on the world goes on through vanilla's own
@@ -77,8 +77,10 @@ public final class EdgeLook {
         // The world ignores the mouse and the keys while an app is in front, and a screen or overlay has them.
         if (player == null || client.gui.screen() != null || client.gui.overlay() != null || HomeScreen.appInFront()) return;
         var window = client.getWindow();
-        var turn = EdgeTurn.keys(edges(client, now), InputConstants.isKeyDown(window, EdgeTurn.LEFT_ARROW),
-                InputConstants.isKeyDown(window, EdgeTurn.RIGHT_ARROW)).over(seconds);
+        var turn = EdgeTurn.keys(edges(client, now),
+                InputConstants.isKeyDown(window, EdgeTurn.LEFT_ARROW), InputConstants.isKeyDown(window, EdgeTurn.RIGHT_ARROW),
+                InputConstants.isKeyDown(window, EdgeTurn.UP_ARROW), InputConstants.isKeyDown(window, EdgeTurn.DOWN_ARROW))
+                .over(seconds);
         if (!turn.still()) player.turn(turn.yaw() / DEGREES_PER_TURN_UNIT, turn.pitch() / DEGREES_PER_TURN_UNIT);
     }
 
