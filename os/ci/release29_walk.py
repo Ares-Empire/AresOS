@@ -573,6 +573,7 @@ def complete_candidate(vm, audit, password, hashed, route, release, qualifying, 
             assert 'Previous AresOS queued for the next start ' + release in vm.result_lines(previous)
             shape(vm, guest, 'r29-previous-queued', stock, back, d29, retained, queued=True)
             title(vm, console, 'r29-previous', back)
+            probes.desktop_health(guest, 'r29-previous-reboot', vm)
             console.run('reboot', 'r29-previous-reboot')
             break
         finally:
@@ -607,6 +608,8 @@ def complete_candidate(vm, audit, password, hashed, route, release, qualifying, 
         probes.session(guest, stage, vm, '29')
         probes.control(guest, stage, vm, expected_sites=update['sites'])
         print('CONTROL_CHROME_SITES_REBOOT_PASS')
+        # The game scope probe deliberately ends its JVM and checks that recovery itself.
+        probes.desktop_health(guest, stage + '-before-game-scope', vm)
         r28.game_scope(guest, stage, vm, recovery_source=probes.recovery_source())
         console.logout(stage + '-logout')
     finally:

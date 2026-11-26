@@ -418,6 +418,10 @@
         }
       }
     },
+    "r29-previous-reboot-desktop-status": {
+      "state": "SETUP",
+      "reason": "setup"
+    },
     "previous-28-hostname": {
       "initialized": false,
       "static": "aresos-rehearsal",
@@ -727,6 +731,10 @@
           "stderr": ""
         }
       }
+    },
+    "final-29-before-game-scope-desktop-status": {
+      "state": "SETUP",
+      "reason": "setup"
     },
     "final-29-game-scope": {
       "state_before": {

@@ -99,7 +99,7 @@
       "previous-28-check",
       "final-29-check"
     ],
-    "probe_count": 60,
+    "probe_count": 62,
     "result": "passed"
   },
   "inherited_from": "os/manifest/ci/42/host-walk.json",
@@ -366,7 +366,7 @@
       "path": "os/ci/release29_probes.py"
     },
     {
-      "sha256": "cd9db75dd777c5cb66de4a6d37dcc68ec348d1495ffc27040bcef8b2bc2fb707",
+      "sha256": "a5896cd5a39faa1a622bdb04224e5925a8f43c9600ba6ff335a06cf36436ca21",
       "path": "os/ci/release29_walk.py"
     },
     {
@@ -1314,7 +1314,7 @@
       "path": "os/tests/test_release28_rehearsal.py"
     },
     {
-      "sha256": "a562b1f378606fbd5ce58f8cebbb205ac9a54c3656f76a1a392456613ab4489c",
+      "sha256": "540af6dcd3e2f63bc33bfb2d4f407fad143a0be4763e54bd6a243080cdc049c3",
       "path": "os/tests/test_release29_rehearsal.py"
     },
     {

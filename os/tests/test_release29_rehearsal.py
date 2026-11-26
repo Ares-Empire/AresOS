@@ -910,6 +910,10 @@ class RouteModel:
                     state.update(state='RECOVERY', reason='jvm_failed')
                 if (name, self.fault) == ('release-29-desktop-status', 'prism-failed'):
                     state.update(state='RECOVERY', reason='prism_failed')
+                if (name, self.fault) == ('r29-previous-reboot-desktop-status', 'recovery-before-previous-reboot'):
+                    state.update(state='RECOVERY', reason='prism_failed')
+                if (name, self.fault) == ('final-29-before-game-scope-desktop-status', 'recovery-before-game-scope'):
+                    state.update(state='RECOVERY', reason='jvm_failed')
                 if name.endswith('-game-scope'):
                     if self.session.jvm and self.fault == 'recovery-game-scope':
                         state.update(state='RECOVERY', reason='prism_failed')
@@ -1125,6 +1129,14 @@ class CandidateRouteTest(unittest.TestCase):
             self.assertLess(order.index('final-29-control'), order.index('final-29-control-login'))
             self.assertLess(order.index('final-29-control-login'), order.index('final-29-game-scope'))
             self.assertNotIn('release-29-game-scope', saved)
+            for checkpoint, before, after in (
+                ('r29-previous-reboot', ('r29-previous-title', 'title'), ('r29-previous-reboot', 'reboot')),
+                ('final-29-before-game-scope', ('final-29-control-login', 'probe'), ('final-29-game-scope', 'probe')),
+            ):
+                status = checkpoint + '-desktop-status'
+                start = model.events.index(before)
+                self.assertEqual(model.events[start + 1:start + 3], [(status, 'probe'), after])
+                self.assertEqual(saved[status], dict(state='SETUP', reason='setup'))
 
     def test_historical_r28_control_guard_does_not_follow_wants(self):
         with self.model('wanted-control') as model:
@@ -1215,6 +1227,10 @@ class CandidateRouteTest(unittest.TestCase):
         for fault, probe, boot, message, next_step in (
             ('prism-failed', 'release-29-desktop-status', 'release-29', 'prism_failed',
              ('release-29-chrome-first-use', 'probe')),
+            ('recovery-before-previous-reboot', 'r29-previous-reboot-desktop-status', 'release-29',
+             'desktop recovery at r29-previous-reboot \\(prism_failed\\)', ('r29-previous-reboot', 'reboot')),
+            ('recovery-before-game-scope', 'final-29-before-game-scope-desktop-status', 'final-29',
+             'desktop recovery at final-29-before-game-scope \\(jvm_failed\\)', ('final-29-game-scope', 'probe')),
             ('recovery-save-gate', 'r29-update-reboot-save-gate', 'release-28', 'Minecraft close',
              ('r29-update-reboot', 'reboot')),
             ('recovery-game-scope', 'final-29-game-scope', 'final-29', 'prism_failed',
@@ -1224,7 +1240,7 @@ class CandidateRouteTest(unittest.TestCase):
                 with self.assertRaisesRegex(AssertionError, 'STOP: .*' + message):
                     model.run_route()
                 row = model.saved[probe]
-                if 'game-scope' in probe:
+                if probe == 'final-29-game-scope':
                     row = row['recoveries']['before']
                 evidence = row.get('recovery', row.get('evidence'))
                 self.assertEqual(list(evidence), names)
@@ -1239,6 +1255,7 @@ class CandidateRouteTest(unittest.TestCase):
                     self.assertEqual(evidence['PrismLauncher-0.log']['output'], 'PrismLauncher-0.log tail')
                 self.assertNotIn(next_step, model.events)
                 self.assertNotIn(('release-29-retry', 'F12 Bazzite'), model.events)
+                self.assertNotIn('release-29-deployment-walk', model.saved)
                 self.assertEqual(model.events[-1], (boot, 'audit'))
 
     def test_failed_start_may_retry_once_after_the_r28_save_gate(self):
