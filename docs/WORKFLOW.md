@@ -14,8 +14,9 @@ Work one package at a time. Run up to about three at once only when they touch d
    For risky or foundational packages, run a council on the brief first (`docs/REVIEW.md`).
 3. **Launch (Claude).** Commit the brief to `main`, create the worktree, and start Codex as a `codex-job` in the background (`run_in_background`; `--wait` wakes Claude when the run ends):
    ```bash
-   git -C ~/AresOS worktree add -b pkg/NN-slug ~/AresOS-NN-slug main
-   codex-job start aresos-bNN-build -C ~/AresOS-NN-slug -m "$BUILD_MODEL" --effort xhigh -s danger-full-access --wait \
+   WT=~/AresOS-NN-slug
+   git -C ~/AresOS worktree add -b pkg/NN-slug "$WT" main &&
+   codex-job start aresos-bNN-build -C "$WT" -m "$BUILD_MODEL" --effort xhigh -s danger-full-access --wait \
      --prompt "Read AGENTS.md and briefs/NN-slug.md, then execute the brief fully. Push the branch and open a PR. Do not merge."
    ```
    `$BUILD_MODEL` is the model picked for this package (`CLAUDE.md`, "Codex models"). Steering, stopping and fix rounds (`codex-job continue`): `~/aresync/TOOLS.md` → codex-job. On the AresOS laptop, use the `codex exec` fallback there until codex-job's Linux test run has passed.
