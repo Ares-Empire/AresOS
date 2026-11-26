@@ -6,25 +6,17 @@ Written Fri 2026-11-20 13:50 by `linux-hub` (Claude Opus 5.5), before a clear at
 
 ## Resume here
 
-Written Mon 2026-11-23 18:41 (by `date`) by `linux-hub`. **The hub is stopped on the owner's word (via `mac-capacity`, Mon ~18:20): start nothing, Claude or Codex, until he says when and how much.** Nothing of the hub is running: no Codex job, no agent and no scheduled check-in.
+Written Thu 2026-11-26 20:30 (by `date`) by `linux-hub`. The hub resumed on the owner's word (via `mac-capacity`, Thu 18:25): B333 and T528 in R29, then the R30 pieces outside the game. Nothing of the hub is running: no Codex job, no agent and no scheduled check-in.
 
-1. **On main since R28:**
-   - B327 (try-out fixes);
-   - B328a (the world keeps the pointer);
-   - B328 (the look-around prototypes behind `look = classic | click | edge`, classic by default);
-   - HOME-OUTSIDE revision 2.
-
-   All of it rides R29 (cut about 27 Nov, `linux-aresos`).
-2. **PR150, B333 (open apps and bring back, `aresos-shell/1.3`):** reviewed SAFE, plus a SAFE review of the lead's hand merge of main into it.
-   - **What blocks it:** `ClickToLookClientGameTest`'s native check fails in 2 of 3 runs on the merged branch. The camera doesn't turn on the first motion. Main and 328's own branch are green, and 333 touches no motion path, so the likely cause is moves sent before the pointer lock is live.
-   - **The fix** is ready as a Codex prompt (`~/AresOS-333-fix-7.prompt.txt`): steady the test, add a unit test, fix three comments, run two full passes. Then a targeted recheck and the merge. If R29 is cut first, it rides R30.
-3. **PR171, HOME-OUTSIDE revision 4 (home styles):** the owner's T493, T494 and T498, plus "switchable" as the "Normal" look. Rechecks found one last point, which the lead fixed in `b9febd1b`: a `set` after a failed settings read keeps `home = minecraft`. That fix needs one tiny targeted recheck, then the merge. It is docs only.
-4. **Follow-ups (board T528, T529, T515, T486):**
-   - edge mode's up/down arrows (it can look up but not back down), before the owner's trial;
-   - the admission listing's timeout from 5 s to 1 s;
-   - build and run-hub taking the client-test lock;
-   - Alt+Tab then Esc leaving the world without keys.
-5. **Budgets when this stopped:** the Claude week was at 90%. Codex was empty until Wed ~14:49. The API key is refused until 1 Dec (the org's $200 monthly limit).
+1. **Merged Thu 26 Nov, all for R29** (the cut comes after B321's Deskflow merge, likely Sat 28 Nov, `linux-aresos`):
+   - **B333** (PR150, `4038b149`): open apps in the hotbar with open, active and hidden marks; a left click brings an app back, a right click opens a new window (`aresos-shell/1.3`). The last blocker was the native ClickToLook check, which read the yaw one tick before Minecraft applied the queued motion (a test timing fault, not the product). Codex `gpt-6.2-sol` fixed it (`5a6bfb9b`, two green passes); RECHECK-7 SAFE.
+   - **B343** (PR177, `70364fa9`, board T528): in edge look, Up and Down tilt the view, and one tilt arrow wins over the top band; launch admission lists scopes with a one-second timeout. Brief review NOT READY (two-pass rule), fixed; build Codex `gpt-6.2-sol` `xhigh`; REVIEW-1 SAFE.
+   - **Design note 332, revision 4** (PR171, `84d7ca4c`, docs only): home styles. Rechecks 5 and 6; two package-12 notes are on the board (T557).
+   - `linux-aresos` read both `os/` diffs (CLEAN) and has both handoffs. **Jar pin for R29:** main `70364fa9`, Mod run 45884009751, jar `4846c24fbdd5fd69000bd68a4bac26a011aba6e3c6c8f8324852978aba00ab5f` (both builds match).
+2. **Next, after the cut (`mac-capacity`'s plan):** the R30 pieces outside the game with `linux-desktop`, following `docs/design/HOME-OUTSIDE.md`: the picture home and the world-off switch, the monitor behaviour, the bar over full-screen apps. `linux-desktop` leads packages 3a/3b, 4 and 5; the hub has package 1 (the helper for the session) with `linux-aresos`, package 2 (done: B333), package 6 (search outside), and T364's study for the note's gates (section 13).
+3. **Also open (board):** T486 (Alt+Tab then Esc leaves the world without keys), T515 (build and run-hub take the client-test lock), T362 (boot-to-home timing), T364 (sleeping world), T410 (review `linux-desktop`'s component study), and the owner's trial of the look modes (`hub-try --outputs 2`, now with Up/Down in edge).
+4. **Budgets (Thu 26 Nov):** the three AresOS leads share 55% of the Claude week; about 2% a day for the hub, one agent at a time, ask `mac-capacity` before any Fable agent. Codex is plentiful: every build and review today ran on Codex `gpt-6.2-sol`, no Claude agent.
+5. **How Codex ran today:** raw `codex exec` with the `CLAUDE*` variables unset (`~/aresync/TOOLS.md`, fallback), since AresOS keeps its own recipes until `codex-job` passes its Linux run. Ask reviewers for repo-relative links (CodeRabbit flagged that `path:line` links inside `reviews/` don't resolve on GitHub; low harm).
 
 ## Where things stand
 
