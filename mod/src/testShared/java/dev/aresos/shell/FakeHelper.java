@@ -17,11 +17,13 @@ import java.util.function.Function;
 
 /**
  * A scripted aresos-shell helper on a real Unix socket. It never starts anything; it counts launches. It speaks 1.0
- * by default. Minor 1 adds catalogue details, paging and apps_changed. Minor 2 also accepts publish_home.
+ * by default. Minor 1 adds catalogue details, paging and apps_changed. Minor 2 accepts publish_home and
+ * minor 3 can offer the app window state and activation capabilities.
  *
  * It lives in its own source folder because the unit tests and the client game tests both use it (build.gradle).
  */
 public final class FakeHelper implements AutoCloseable {
+    private static final Gson JSON = new Gson();
     public static final String INSTANCE = "desk-test";
     public static final String NONCE = "nonce-for-tests-0123456789";
     public final Path path;
@@ -191,7 +193,11 @@ public final class FakeHelper implements AutoCloseable {
                 reply.addProperty("major", 1);
                 reply.addProperty("minor", agreed);
                 var offered = new JsonArray();
-                capabilities.forEach(offered::add);
+                capabilities.forEach(capability -> {
+                    if (!Set.of("apps_state", "activate_app").contains(capability)
+                            || agreed >= 3 && message.getAsJsonArray("capabilities").contains(new JsonPrimitive(capability)))
+                        offered.add(capability);
+                });
                 if (minor >= 1) DETAIL_CAPABILITIES.forEach(offered::add);
                 if (agreed >= 2) {
                     offered.add("views");
@@ -253,6 +259,14 @@ public final class FakeHelper implements AutoCloseable {
                 for (var field : known.entrySet()) reply.add(field.getKey(), field.getValue());
                 reply.addProperty("ok", !"failed".equals(string(known, "state")));
             }
+            case "activate_app" -> {
+                if (negotiated.getOrDefault(channel, 0) < 3 || !capabilities.contains(op)) {
+                    reply.addProperty("ok", false);
+                    reply.addProperty("error", "unknown_operation");
+                } else {
+                    reply.addProperty("state", "activated");
+                }
+            }
             default -> {
                 if (!Set.of("heartbeat", "world_ready").contains(op)) {
                     reply.addProperty("ok", false);
@@ -267,10 +281,7 @@ public final class FakeHelper implements AutoCloseable {
         var message = new JsonObject();
         message.addProperty("id", "e-" + UUID.randomUUID());
         message.addProperty("event", event);
-        fields.forEach((key, value) -> {
-            if (value instanceof Boolean flag) message.addProperty(key, flag);
-            else message.addProperty(key, String.valueOf(value));
-        });
+        fields.forEach((key, value) -> message.add(key, JSON.toJsonTree(value)));
         send(current, message);
     }
 

@@ -1,6 +1,7 @@
 package dev.aresos.client.mixin;
 
 import dev.aresos.client.HomePointer;
+import dev.aresos.client.HotbarAppMarks;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -26,6 +27,7 @@ public abstract class HotbarPointerMixin {
         if (slot >= 0) graphics.blitSprite(RenderPipelines.GUI_TEXTURED,
                 Identifier.withDefaultNamespace("hud/hotbar_selection"),
                 graphics.guiWidth() / 2 - 92 + slot * 20, graphics.guiHeight() - 23, 24, 23);
+        HotbarAppMarks.draw(Minecraft.getInstance(), graphics);
     }
 
     // Reuse the game's name line, including its font, rarity, backdrop and position. Hover never changes the held slot.

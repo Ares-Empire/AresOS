@@ -25,13 +25,13 @@ import java.util.concurrent.atomic.AtomicLong;
  * definition, so the Linux mod never runs a command itself. One background thread connects, says hello, lists apps
  * and then reads replies and events, reconnecting with backoff when the helper is missing or restarts.
  *
- * The client offers minor 2. Minor 1 adds catalogue details, paging and refresh. Minor 2 lets the desktop send
- * its town to helpers that offer home_state, hear Super's shell_search and name the world's screen in open_app.
+ * Minor 1 adds catalogue details, paging and refresh. Minor 2 adds home_state, shell_search and the world screen
+ * hint. Minor 3 adds the running-window snapshot and activation of existing app windows.
  * Listeners only ever get a complete app list.
  */
 public final class ShellClient implements AutoCloseable {
     public static final int MAJOR = 1;
-    public static final int MINOR = 2;
+    public static final int MINOR = 3;
     /** The client's own version. hello carries it; later messages carry the minor the helper agreed to. */
     public static final String PROTOCOL = protocol(MINOR);
     public static final int MAX_MESSAGE = 64 * 1024;
@@ -49,7 +49,7 @@ public final class ShellClient implements AutoCloseable {
     // none is required, which keeps a 1.0 helper compatible.
     static final List<String> CAPABILITIES = List.of("list_apps", "open_app", "app_state", "shell_focus",
             "world_ready", "heartbeat", "windows", "app_details", "apps_changed", "list_paging", "shell_covered",
-            "home_state", "shell_search");
+            "home_state", "shell_search", "apps_state", "activate_app");
     static final List<String> REQUIRES = List.of("list_apps", "open_app");
     private static final Gson JSON = new Gson();
     private static final System.Logger LOG = System.getLogger("aresos");
@@ -64,6 +64,7 @@ public final class ShellClient implements AutoCloseable {
     }
     public record Focus(boolean foreground, String reason, String appId, boolean activated) { }
     public record Launch(String requestId, String launchId, String state) { }
+    public record AppWindows(int windows, boolean active, boolean hidden) { }
     public enum State { STARTING, CONNECTED, UNAVAILABLE, INCOMPATIBLE, CLOSED }
     public record Status(State state, String detail) { }
     public record Settings(Duration replyTimeout, Duration openTimeout, Duration heartbeat, Duration firstRetry,
@@ -113,16 +114,18 @@ public final class ShellClient implements AutoCloseable {
         private final String id, appId;
         /** Where the app should open ({@link #SCREEN_WORLD}), or null for where the pointer is. Kept for every resend. */
         private final String screen;
+        private final boolean bringBack;
         private final CompletableFuture<Launch> future;
         // Writer-owned: publication callbacks can queue a normal send before startup queues its replay.
         private Connection lastSent;
         /** The helper started the program and waits for its window: a deadline after this is no missing answer. */
         private volatile boolean starting;
 
-        PendingOpen(String id, String appId, String screen, CompletableFuture<Launch> future) {
+        PendingOpen(String id, String appId, String screen, boolean bringBack, CompletableFuture<Launch> future) {
             this.id = id;
             this.appId = appId;
             this.screen = screen;
+            this.bringBack = bringBack;
             this.future = future;
         }
         String id() { return id; }
@@ -265,13 +268,32 @@ public final class ShellClient implements AutoCloseable {
      * Null leaves the place to the helper. The hint is part of 1.2: a helper that agreed to less never sees it.
      */
     public CompletableFuture<Launch> open(String appId, String screen) {
+        return open(appId, screen, false);
+    }
+
+    /** Focus an open window or start the app, using the same open request on older helpers. */
+    public CompletableFuture<Launch> activate(String appId, String screen) {
+        return open(appId, screen, true);
+    }
+
+    public boolean canActivateApps() {
+        var current = connection;
+        return !closed && current != null && current.activateApp;
+    }
+
+    public Map<String, AppWindows> appWindows() {
+        var current = connection;
+        return closed || current == null ? Map.of() : current.appWindows;
+    }
+
+    private CompletableFuture<Launch> open(String appId, String screen, boolean bringBack) {
         if (screen != null && !SCREEN_WORLD.equals(screen)) throw new IllegalArgumentException("unknown screen: " + screen);
         var future = new CompletableFuture<Launch>();
         if (connection == null) {
             future.completeExceptionally(notConnected());
             return future;
         }
-        var open = new PendingOpen("o-" + session + "-" + ids.incrementAndGet(), appId, screen, future);
+        var open = new PendingOpen("o-" + session + "-" + ids.incrementAndGet(), appId, screen, bringBack, future);
         opens.put(open.id(), open);
         // One deadline, two meanings (package 40): a helper that never answered, or one that started the program and
         // is still waiting for a window it can tell is this program's. The second is said as what it is.
@@ -364,6 +386,7 @@ public final class ShellClient implements AutoCloseable {
                     : "unavailable" + (detail == null ? "" : " (" + clip(detail) + ")");
             case "launch_failed" -> "it failed to start";
             case "no_window" -> "no window appeared";
+            case "activation_refused", "activation_timeout" -> "its window could not be brought back";
             case "launch_uncertain" -> "the app helper restarted while opening it";
             case "journal_full" -> "too many launches just now, try again shortly";
             case "incompatible_version", "not_authorized" -> "app helper incompatible";
@@ -453,6 +476,8 @@ public final class ShellClient implements AutoCloseable {
             // The reply names the lower minor of the two sides. A helper that claims more than ours is held to ours.
             current.minor = Math.clamp(number(reply, "minor"), 0, MINOR);
             current.homeState = current.minor >= 2 && offered.contains("home_state");
+            current.activateApp = current.minor >= 3 && offered.contains("activate_app");
+            current.appsState = current.minor >= 3 && offered.contains("apps_state");
             windows = offered.contains("windows") && offered.contains("app_state");
             var listed = firstList(current);
             var snapshot = listed == null ? null : keep(current, listed);
@@ -511,7 +536,7 @@ public final class ShellClient implements AutoCloseable {
         var message = new JsonObject();
         message.addProperty("protocol", PROTOCOL);
         message.addProperty("id", open.id());
-        message.addProperty("op", "open_app");
+        message.addProperty("op", open.bringBack && current.activateApp ? "activate_app" : "open_app");
         message.addProperty("app_id", open.appId());
         // An older helper calls the key malformed and would open nothing; without it the app opens where the pointer is.
         if (open.screen != null && current.minor >= 2) message.addProperty("screen", open.screen);
@@ -823,6 +848,9 @@ public final class ShellClient implements AutoCloseable {
         if (message.has("event")) {
             switch (String.valueOf(text(message, "event"))) {
                 case "apps_changed" -> appsChanged(current);
+                case "apps_state" -> {
+                    if (current.appsState) current.appWindows = parseAppsState(message);
+                }
                 case "app_state" -> {
                     String id = String.valueOf(text(message, "request_id"));
                     var open = opens.get(id);
@@ -864,6 +892,19 @@ public final class ShellClient implements AutoCloseable {
         else if (watching.containsKey(id)) lateUpdate(id, message);
     }
 
+    static Map<String, AppWindows> parseAppsState(JsonObject message) {
+        var snapshot = new HashMap<String, AppWindows>();
+        if (message.get("apps") instanceof JsonArray apps) {
+            for (var value : apps) {
+                if (!(value instanceof JsonObject app)) continue;
+                String id = text(app, "id");
+                int count = number(app, "windows");
+                if (id != null && count > 0) snapshot.put(id, new AppWindows(count, bool(app, "active"), bool(app, "hidden")));
+            }
+        }
+        return Map.copyOf(snapshot);
+    }
+
     private void setCovered(boolean now) {
         if (covered == now) return;
         covered = now;
@@ -885,7 +926,7 @@ public final class ShellClient implements AutoCloseable {
             return;
         }
         boolean opened = switch (state) {
-            case "focused", "background", "closed" -> true;
+            case "focused", "background", "closed", "activated" -> true;
             case "starting" -> !windows;
             default -> false;
         };
@@ -1048,6 +1089,8 @@ public final class ShellClient implements AutoCloseable {
         /** Our own minor until the helper's hello reply, then the one both sides speak. */
         volatile int minor = MINOR;
         boolean homeState;
+        boolean activateApp, appsState;
+        volatile Map<String, AppWindows> appWindows = Map.of();
         // Home transfers belong to the writer. A fresh connection has no lastHome or in-progress parts.
         HomeState lastHome;
         HomeTransfer homeTransfer;

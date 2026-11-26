@@ -793,9 +793,9 @@ class ScreenHintTest(SearchBase):
         blocking.set()
         self.assertIsNone(self.open(helper, conn, screen='world'))
         self.assertIsNone(self.open(helper, conn, screen='world'))
-        self.assertEqual(helper.checking['desktop', 'o-1']['screen'], 'world')
+        self.assertEqual(dict(helper.pending_checks())['desktop', 'o-1']['screen'], 'world')
         release.set()
-        helper.checking['desktop', 'o-1']['check'].done.wait(5)
+        dict(helper.pending_checks())['desktop', 'o-1']['check'].done.wait(5)
         helper.tick()
         replies = [message for message in conn.sent if message.get('id') == 'o-1']
         self.assertEqual(len(replies), 2)

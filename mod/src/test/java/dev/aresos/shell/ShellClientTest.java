@@ -1,6 +1,7 @@
 package dev.aresos.shell;
 
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import dev.aresos.catalogue.LinuxAppCatalogue;
 import dev.aresos.client.launch.LinuxAppLauncher;
 import dev.aresos.config.AppDefinition;
@@ -52,9 +53,9 @@ class ShellClientTest {
         var apps = connect().apps();
         var hello = helper.received("hello").getFirst();
         // hello carries the client's own version; after a 1.0 helper's reply everything else says 1.0.
-        assertEquals("aresos-shell/1.2", hello.get("protocol").getAsString());
+        assertEquals("aresos-shell/1.3", hello.get("protocol").getAsString());
         assertEquals(1, hello.get("major").getAsInt());
-        assertEquals(2, hello.get("minor").getAsInt());
+        assertEquals(3, hello.get("minor").getAsInt());
         assertEquals(FakeHelper.INSTANCE, hello.get("instance").getAsString());
         assertEquals(FakeHelper.NONCE, hello.get("nonce").getAsString());
         var capabilities = hello.getAsJsonArray("capabilities").asList().stream().map(value -> value.getAsString()).toList();
@@ -64,7 +65,7 @@ class ShellClientTest {
         client.world("AresOS");
         FakeHelper.await(() -> !helper.received("world_ready").isEmpty(), "world_ready");
         for (var message : helper.received) {
-            assertEquals(message == hello ? "aresos-shell/1.2" : "aresos-shell/1.0", message.get("protocol").getAsString());
+            assertEquals(message == hello ? "aresos-shell/1.3" : "aresos-shell/1.0", message.get("protocol").getAsString());
             assertTrue(message.get("id").getAsString().matches("[A-Za-z0-9._:-]{1,128}"));
         }
         assertFalse(client.detailed());
@@ -82,6 +83,57 @@ class ShellClientTest {
         }
         assertEquals(List.of("minecraft:black_concrete", "minecraft:writable_book", "minecraft:compass"),
                 definitions.stream().map(AppDefinition::look).toList());
+    }
+
+    @Test void appWindowSnapshotAndRestoreUseThe13Examples() throws Exception {
+        var caps = new ArrayList<>(helper.capabilities);
+        caps.addAll(List.of("apps_state", "activate_app"));
+        helper.capabilities = caps;
+        helper.minor = 3;
+        helper.launchState = "focused";
+        var expected = example13("activate-app-request");
+        helper.override = request -> {
+            if (!"activate_app".equals(FakeHelper.string(request, "op"))) return null;
+            var reply = example13("activate-app-reply");
+            reply.add("id", request.get("id"));
+            return reply;
+        };
+        connect();
+        assertTrue(client.canActivateApps());
+        helper.raw(example13("apps-state-event").toString());
+        FakeHelper.await(() -> client.appWindows().size() == 3, "three app marks");
+        assertEquals(Map.of("browser", new ShellClient.AppWindows(2, true, false),
+                "notepad", new ShellClient.AppWindows(1, false, true),
+                "terminal", new ShellClient.AppWindows(1, false, false)), client.appWindows());
+        var result = join(client.activate("browser", ShellClient.SCREEN_WORLD));
+        assertEquals("activated", result.state());
+        expected.addProperty("id", result.requestId());
+        assertEquals(expected, helper.received("activate_app").getFirst());
+        assertEquals(0, helper.launches.get());
+        join(client.open("terminal"));
+        assertEquals(1, helper.launches.get());
+        helper.drop();
+        FakeHelper.await(() -> client.appWindows().isEmpty(), "disconnect to clear the marks");
+    }
+
+    @Test void anOlderHelperReceivesOpenAndKeepsTheWorldScreenHint() throws Exception {
+        helper.minor = 2;
+        helper.launchState = "focused";
+        connect();
+        assertFalse(client.canActivateApps());
+        join(client.activate("terminal", ShellClient.SCREEN_WORLD));
+        assertEquals(1, helper.launches.get());
+        assertTrue(helper.received("activate_app").isEmpty());
+        assertEquals("world", FakeHelper.string(helper.received("open_app").getFirst(), "screen"));
+    }
+
+    private static JsonObject example13(String name) {
+        try (var stream = ShellClientTest.class.getResourceAsStream("/shell-1.3/" + name + ".json")) {
+            return JsonParser.parseString(new String(stream.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8))
+                    .getAsJsonObject();
+        } catch (IOException error) {
+            throw new java.io.UncheckedIOException(error);
+        }
     }
 
     @Test void incompatibleHelpersBlockLaunches() throws Exception {
@@ -129,7 +181,7 @@ class ShellClientTest {
         var launcher = new LinuxAppLauncher(() -> null);
         var app = new AppDefinition("notepad", "Notepad", List.of("notepad.exe"), "minecraft:paper", true);
         var failure = assertThrows(CompletionException.class, () -> launcher.launch(app).toCompletableFuture().join());
-        assertTrue(failure.getCause().getMessage().contains("aresos-shell/1.2"));
+        assertTrue(failure.getCause().getMessage().contains("aresos-shell/1.3"));
         assertEquals("app helper unavailable", LinuxAppLauncher.reason(failure));
         assertThrows(IOException.class, () -> new LinuxAppCatalogue().listApps());
     }

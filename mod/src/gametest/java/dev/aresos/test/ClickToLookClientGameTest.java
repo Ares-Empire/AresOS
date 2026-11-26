@@ -239,13 +239,24 @@ public final class ClickToLookClientGameTest implements FabricClientGameTest {
         // read them before it judges the stillness (the second full run once let go here first).
         try { Thread.sleep(ClickLook.LOOK_RELEASE_MS + 200); }
         catch (InterruptedException error) { Thread.currentThread().interrupt(); throw new RuntimeException(error); }
+        long turnDeadline = System.nanoTime() + Duration.ofSeconds(3).toNanos();
         context.waitTicks(2);
         float turned = context.computeOnClient(client -> client.player.getYRot()) - yaw;
+        boolean captured = context.computeOnClient(WorldKeepsPointerClientGameTest::captured);
+        // Fabric can resume between polling native motion and applying it to yaw. Give the client time to turn.
+        while (captured && Math.abs(turned) <= 1 && System.nanoTime() < turnDeadline) {
+            rig.input("rel 12 0");
+            lastMove = System.nanoTime();
+            context.waitTick();
+            turned = context.computeOnClient(client -> client.player.getYRot()) - yaw;
+            captured = context.computeOnClient(WorldKeepsPointerClientGameTest::captured);
+        }
         String state = context.computeOnClient(client -> "grabbed=" + client.mouseHandler.isMouseGrabbed()
                 + " mode=" + GLFW.glfwGetInputMode(client.getWindow().handle(), GLFW.GLFW_CURSOR)
                 + " xFocused=" + WorldKeepsPointerClientGameTest.xFocused(client) + " active=" + client.isWindowActive()
                 + " free=" + HomeScreen.freePointer(client) + " focusIn=" + rig.focusIn + " focusOut=" + rig.focusOut);
-        check(Math.abs(turned) > 1, "Look mode did not steer the camera (turned " + turned + "; " + state + ")");
+        check(captured && Math.abs(turned) > 1,
+                "Look mode did not steer the camera while captured (turned " + turned + "; " + state + ")");
 
         // Stillness ends it through 328a's release; the pointer reappears where the click was.
         waitReal(context, client -> released(client) && WorldCapture.settled(), "stillness to end the native look mode");
