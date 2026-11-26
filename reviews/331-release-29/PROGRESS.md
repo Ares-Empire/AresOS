@@ -152,6 +152,10 @@ removed. [Fedora release RPM](https://dl.fedoraproject.org/pub/fedora/linux/rele
 4. After lead approval, publish privately and record the signed release.
    Prepare the candidate tools and guides, qualify the signed digest in the
    rehearsal and complete the final review and pin.
+5. In R30, address REVIEW-13 finding 2 by requiring full branch refs in the
+   historical R13, R27 and R28 job conditions and excluding `release_27`
+   from R13 selection. Today `os/ci/publish.sh` refuses same-named tags
+   before registry operations.
 
 ## Limits
 
@@ -1197,3 +1201,38 @@ persistence through real VM boots, and Prism failure capture in a hosted
 guest still need hosted proof. B321 and the remaining cut changes are
 scheduled at the cut. This slice used zero dispatches and zero uploads.
 There are no files over 500 MB in `.work/`.
+
+## Done · step 6b fix · 2026-11-26
+
+For REVIEW-13 finding 1, the R29 walk checks desktop health immediately
+before rebooting into `previous` and on the forward boot just before the
+game-scope probe. That probe deliberately kills its JVM and already checks
+the resulting recovery.
+At either new checkpoint, unexpected recovery saves bounded `explain`,
+`desktop.log`, the current-boot daily-user journal and the Prism log before
+stopping without a retry. The fixtures check the order and cover both
+`prism_failed` and `jvm_failed`.
+
+The refreshed local host receipt binds the walk and test changes. The two
+historical baseline inputs changed again since `f93fe4de` are
+`os/ci/release29_walk.py` and `os/manifest/ci/331/host-walk.json`. The same
+six paths still differ from run 45073317069. Running
+`python3 -B os/ci/release29_walk.py check-receipt .work/331-baseline/release-29-baseline.json`
+exited 1 with `STOP: rerun the historical R29 baseline preflight on the current inputs`.
+
+Ran `python3 -m unittest discover -s os/tests -p <module>.py` from the repo
+root, one module at a time, with temporary files under `.work/331-step6b-fix/tmp`.
+
+| Module | Result |
+| --- | --- |
+| `test_release29.py` | `Ran 39 tests in 69.620s`, `OK` |
+| `test_release29_rehearsal.py` | `Ran 29 tests in 42.565s`, `OK` after correcting the test's evidence lookup |
+| `test_release29_workflow.py` | `Ran 15 tests in 0.134s`, `OK` |
+| `test_owner_walk.py` | `Ran 40 tests in 619.480s`, `OK` |
+
+`python3 reviews/331-release-29/walk-host.py` printed
+`PASS package 331 synthetic baseline and candidate host walk with 319 sources`.
+All 319 hashes matched the raw files and Git checkout replay. The two new
+status records appear in the [fixture diagnostics](diagnostics/step4-probes.json).
+Real-boot proof remains with the hosted rehearsal. There are no files over
+500 MB in `.work/`.
