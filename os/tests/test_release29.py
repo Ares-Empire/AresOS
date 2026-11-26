@@ -28,7 +28,7 @@ import release_diff as rd
 
 ROOT = r28.ROOT
 R28 = json.loads((ROOT / rd.PREVIOUS_29).read_text())
-MAIN = '17211fb1203a53d64653e49429a7fdecee39a69b'
+MAIN = 'db7ad4bf0b488a3bdcb9d6b1a323ae32bd4fbfff'
 PROFILE_HEAD = MAIN  # The merged image inputs, before a cut-specific jar pin.
 REAL_GIT = rd.git
 FONT_64 = rd.FONT_CACHES + '50471fd4bd417ff5c0731b6a17aa3708-le64.cache-9'
@@ -104,6 +104,21 @@ class CurrentMainTest(unittest.TestCase):
         tar, = [shlex.split(line) for line in build.splitlines() if line.strip().startswith('tar -xzf')]
         self.assertEqual(tar[-2:], ['*/mod/*', 'AresOS-$revision/control'])
         self.assertEqual(paths, set(rd.IMAGE_SOURCES_29))
+
+    def test_bench_sources_stay_out_of_the_release_image(self):
+        for change in ('7e161ebc', '4d62823a'):
+            with self.subTest(change=change):
+                changed = rd.git('diff', '--name-only', change + '^', change, '--', 'os', 'control', 'mod',
+                                 text=True).splitlines()
+                self.assertTrue(changed)
+                self.assertTrue(all(path == 'os/.containerignore' or path == 'os/ci/check-build.sh'
+                                    or path == 'os/manifest/ci/16/pending-rebind.json'
+                                    or path.startswith(('os/ci/bench/', 'os/tests/test_bench_'))
+                                    for path in changed), changed)
+        ignored = rd.git_bytes(MAIN, 'os/.containerignore').decode().splitlines()
+        self.assertTrue({'ci/', 'manifest/ci/', 'tests/test_bench_*', 'tests/__pycache__/'} <= set(ignored))
+        self.assertIn(b'test ! -e /tmp/aresos/ci', rd.git_bytes(MAIN, 'os/Containerfile'))
+        self.assertIn(b'rm -rf /tmp/aresos ', rd.git_bytes(MAIN, 'os/build.sh'))
 
     def test_git_diff_uses_modes_and_labwc_and_disallows_the_old_build_exception(self):
         path = 'os/minecraft/desktop.lock.json'
@@ -528,6 +543,10 @@ class ImageDiffTest(unittest.TestCase):
             files = json.load(stream)
         self.assertEqual(files[rd.CONTROL_RECORD]['rule'], 'control')
         self.assertEqual(set(result['control']['install_changes']), set(rd.CONTROL_CHANGES_29))
+        self.assertTrue(result['control']['ask_rules_unchanged'])
+        self.assertEqual(result['control']['chrome_build'], rd.CHROME_BUILD_29)
+        for rel, reason in rd.CONTROL_CHANGES_29.items():
+            self.assertEqual(files[rel]['reason'], reason)
         self.assertTrue(result['control']['vendor_unchanged'])
         self.assertEqual(files[rd.GH_BINARY_29]['rule'], 'build')
         self.assertEqual(files[rd.GH_RECORD_29]['rule'], 'manifest')
@@ -588,6 +607,55 @@ class ImageDiffTest(unittest.TestCase):
         _, result = self.diff()
         self.assertEqual(result['control']['error'], 'invalid Chrome CRX signature')
         self.assertIn(rel, result['unexplained'])
+
+    def test_control_rejects_a_stale_build_hash_or_edited_ask_rules(self):
+        record = json.loads((self.roots['new'] / rd.CONTROL_RECORD).read_bytes())
+        record['chrome_build'] = '0' * 64
+        self.write('new', rd.CONTROL_RECORD, json.dumps(record))
+        self.write('new', rd.CHROME_CODE_29 + '/build-id.json', json.dumps({'build': record['chrome_build']}))
+        _, result = self.diff()
+        self.assertEqual(result['control']['error'], 'Chrome build differs from the reviewed 28/28a inputs')
+        git_bytes = rd.git_bytes
+        with patch.object(rd, 'git_bytes', side_effect=lambda commit, path:
+                          git_bytes(commit, path) + b'\n' if (commit, path) == (PROFILE_HEAD, rd.ASK_RULES_29)
+                          else git_bytes(commit, path)):
+            _, result = self.diff('changed-ask-rules')
+        self.assertEqual(result['control']['error'], 'Chrome 28/28a ask-rules.json differs from pre-28 bytes')
+
+    def test_control_rejects_missing_view_wrong_catalogue_mode_and_neighbour_code(self):
+        prefix = 'usr/libexec/aresos-control/'
+        for rel, change, problem in (
+            ('aresos_control/chrome/view.py', lambda path: path.unlink(), 'Control metadata'),
+            ('generated/chrome-tools.json', lambda path: path.chmod(0o755), 'Control metadata'),
+            ('aresos_control/chrome/extra.py', lambda path: path.write_bytes(b'# extra module\n'), 'Control extra'),
+        ):
+            path = self.roots['new'] / prefix / rel
+            original = path.read_bytes() if path.exists() else None
+            with self.subTest(rel=rel):
+                change(path)
+                _, result = self.diff(path.name)
+                self.assertIn(problem, result['control']['error'])
+            if original is None:
+                path.unlink()
+            else:
+                self.write('new', prefix + rel, original)
+
+    def test_control_rejects_another_extension_id_even_with_matching_policy_files(self):
+        from control import chrome_image
+
+        record = json.loads((self.roots['new'] / rd.CONTROL_RECORD).read_bytes())
+        extension = record['chrome_extension']
+        before = extension['id']
+        after = ('b' if before[0] == 'a' else 'a') + before[1:]
+        extension['id'] = after
+        for name in set(chrome_image.NAMES) - {'extension.crx'}:
+            rel = rd.CHROME_BUNDLE_29 + '/' + name
+            raw = (self.roots['new'] / rel).read_bytes().replace(before.encode(), after.encode())
+            self.write('new', rel, raw)
+            extension['files']['/' + rel]['sha256'] = rd.file_sha256(self.roots['new'] / rel)
+        self.write('new', rd.CONTROL_RECORD, json.dumps(record))
+        _, result = self.diff()
+        self.assertEqual(result['control']['error'], 'recorded extension ID differs')
 
     def test_control_rejects_vendor_drift_even_with_matching_file_record(self):
         rel = 'usr/lib/aresos-control/vendor/fixture.py'
@@ -886,9 +954,11 @@ class ImageDiffTest(unittest.TestCase):
         real_git('-C', checkout, 'init', '--quiet')
         (checkout / '.gitignore').write_bytes(rd.git_bytes(PROFILE_HEAD, '.gitignore') + b'\n.env\n')
         ignored = ('os/.env', 'os/config/var/log/dnf5.log', 'os/tests/ci/.env')
-        untracked = ('os/private-notes.txt', 'os/tests/audit notes.txt')
+        untracked = ('os/private-notes.txt', 'os/tests/audit notes.txt', 'os/tests/sub/test_bench_local.py',
+                     'os/tests/test_benchmark.py', 'os/tests/__pycache__-extra/local.py')
         edited = ('os/tests/fixture.txt', 'os/look/example.txt')
-        excluded = ('os/ci/local-fixture.txt', 'os/manifest/ci/.env', 'os/release/local.txt', 'os/README.md')
+        excluded = ('os/ci/local-fixture.txt', 'os/manifest/ci/.env', 'os/release/local.txt', 'os/README.md',
+                    'os/tests/test_bench_local.py', 'os/tests/__pycache__/bench.pyc')
         for rel in (*edited, *excluded):
             path = checkout / rel
             path.parent.mkdir(parents=True, exist_ok=True)

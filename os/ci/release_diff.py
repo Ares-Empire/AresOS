@@ -1811,22 +1811,62 @@ GH_LICENCE_29 = 'usr/share/licenses/gh/LICENSE'
 CHROME_BUNDLE_29 = 'usr/share/aresos/chrome'
 CHROME_CODE_29 = 'usr/libexec/aresos-control/chrome'
 CHROME_SITES_29 = 'var/lib/aresos-control/chrome-excluded-sites.json'
+CHROME_READ_29 = '28 (#72, 11d22cd4)'
+CHROME_ACT_29 = '28a (#116, db7ad4bf)'
+CHROME_LATE_29 = f'{CHROME_READ_29} and {CHROME_ACT_29}'
+CHROME_BUILD_29 = 'f00a8cf72e2b88ba7a19a7e0224343e8fe2bc9923fff7e353d04c71fabc24ba0'
+ASK_RULES_29 = 'control/settings/ask-rules.json'
+CHROME_SOURCE_CHANGES_29 = {
+    'aresos_control/chrome/adapter.py': (CHROME_LATE_29, 'serve the compact read and consolidated action tools'),
+    'aresos_control/chrome/address.py': (CHROME_READ_29, 'render the page address in the read outline'),
+    'aresos_control/chrome/bridge.py': (CHROME_LATE_29, 'pass read deadlines and action results across the browser bridge'),
+    'aresos_control/chrome/credentials.py': (CHROME_READ_29, 'keep credentials out of the page view'),
+    'aresos_control/chrome/deadline.py': (CHROME_LATE_29, 'carry the shared time budget through reads and actions'),
+    'aresos_control/chrome/definitions.py': (CHROME_LATE_29, 'define the compact read and renamed and consolidated Chrome tools'),
+    'aresos_control/chrome/descriptions.py': (CHROME_ACT_29, 'describe the new tool fields to the caller'),
+    'aresos_control/chrome/doing.py': (CHROME_ACT_29, 'run ordered do steps and report the resulting changes'),
+    'aresos_control/chrome/going.py': (CHROME_ACT_29, 'handle go navigation and report its outcome'),
+    'aresos_control/chrome/loss.py': (CHROME_ACT_29, 'report lost references as untrusted page data'),
+    'aresos_control/chrome/nodes.py': (CHROME_LATE_29, 'normalize page nodes for reading and acting'),
+    'aresos_control/chrome/projection.py': (CHROME_ACT_29, 'project operation results into the compact tool replies'),
+    'aresos_control/chrome/references.py': (CHROME_LATE_29, 'assign short page references and resolve them for actions'),
+    'aresos_control/chrome/tablist.py': (CHROME_ACT_29, 'render the tab list and its seen token for take'),
+    'aresos_control/chrome/view.py': (CHROME_LATE_29, 'render compact outlines and changes to the page view'),
+    'aresos_control/common.py': (CHROME_ACT_29, 'carry structured untrusted content beside a refusal'),
+    'aresos_control/daemon.py': (CHROME_ACT_29, 'preserve that untrusted content in the daemon error envelope'),
+    'aresos_control/definitions.py': (CHROME_ACT_29, 'declare Chrome loss errors and update MCP discovery instructions'),
+    'aresos_control/engine.py': (CHROME_LATE_29, 'start the read deadline at admission and forward untrusted refusal data'),
+    'generated/chrome-tools.json': (CHROME_ACT_29, 'regenerate the Chrome catalogue for the changed tool schemas'),
+    'generated/chrome-instructions.txt': (CHROME_ACT_29, 'regenerate MCP instructions for the leaner Chrome tool surface'),
+    'generated/cli-help.txt': (CHROME_ACT_29, 'regenerate CLI help for the renamed and consolidated Chrome tools'),
+}
 CONTROL_CHANGES_29 = {
+    **{'usr/libexec/aresos-control/' + path: f'{package}: control/{path} to {reason}'
+       for path, (package, reason) in CHROME_SOURCE_CHANGES_29.items()},
     'usr/libexec/aresos-control/aresos_control/chrome/exclusions.py':
-        'read the first-boot exclusion list from /var/lib and refuse Chrome calls until setup',
-    CHROME_CODE_29 + '/build-id.json': 'bind Chrome qualification to the committed Control build hash',
-    CHROME_CODE_29 + '/host': 'native messaging executable wrapper named in native-host.json',
-    CHROME_CODE_29 + '/native_host.py': 'native messaging relay to the local Control service',
-    CHROME_BUNDLE_29: 'parent directory of the per-build Chrome extension and manifests',
-    CHROME_BUNDLE_29 + '/extension.crx': 'signed CRX3 of the committed Chrome extension payload',
-    CHROME_BUNDLE_29 + '/native-host.json': 'allow the build extension ID to reach the native messaging host',
-    CHROME_BUNDLE_29 + '/policy.json': 'force-install and pin the build extension ID in Chrome',
-    CHROME_BUNDLE_29 + '/update.xml': 'link the build extension ID and version to its signed CRX',
-    'etc/opt/chrome/policies/managed/aresos.json': 'managed policy link to the build policy under /usr/share',
-    'etc/opt/chrome/native-messaging-hosts/org.aresos.chrome.json': 'native host link to the build manifest under /usr/share',
-    'usr/share/polkit-1/actions/org.aresos.control.chrome-loosen.policy': 'require administrator authentication for Chrome rule loosening',
-    'usr/lib/tmpfiles.d/aresos-control-chrome.conf': 'create the closed format-0 exclusion list at first boot and retain existing contents',
-    CONTROL_RECORD: 'bind the install map, managed links, Chrome build and signed bundle, and gh lock',
+        '18c-b (#76): read the first-boot exclusion list from /var/lib and refuse Chrome calls until setup',
+    CHROME_CODE_29 + '/build-id.json':
+        f'18c-b (#76), {CHROME_LATE_29}: control/chrome/build.py hashes the updated installed inputs for CONTROL_CHROME_BUILD',
+    CHROME_CODE_29 + '/host': '18c-b (#76): native messaging executable wrapper named in native-host.json',
+    CHROME_CODE_29 + '/native_host.py': '18c-b (#76): native messaging relay to the local Control service',
+    CHROME_BUNDLE_29: '18c-b (#76): parent directory of the per-build Chrome extension and manifests',
+    CHROME_BUNDLE_29 + '/extension.crx':
+        f'18c-b (#76), {CHROME_LATE_29}: pack.py signs reader.js and background.js with the rest of the exact extension payload',
+    CHROME_BUNDLE_29 + '/native-host.json':
+        '18c-b (#76): pack.py renders the native-host.json template with this CRX public key’s extension ID as the allowed origin',
+    CHROME_BUNDLE_29 + '/policy.json':
+        '18c-b (#76): pack.py renders the policy.json template to force-install and pin this CRX public key’s extension ID',
+    CHROME_BUNDLE_29 + '/update.xml':
+        '18c-b (#76): pack.py renders the update.xml template with this CRX public key’s extension ID and manifest version',
+    'etc/opt/chrome/policies/managed/aresos.json': '18c-b (#76): managed policy link to the build policy under /usr/share',
+    'etc/opt/chrome/native-messaging-hosts/org.aresos.chrome.json':
+        '18c-b (#76): native host link to the build manifest under /usr/share',
+    'usr/share/polkit-1/actions/org.aresos.control.chrome-loosen.policy':
+        '18c-b (#76): require administrator authentication for Chrome rule loosening',
+    'usr/lib/tmpfiles.d/aresos-control-chrome.conf':
+        '18c-b (#76): create the closed format-0 exclusion list at first boot and retain existing contents',
+    CONTROL_RECORD: f'18c-b (#76), {CHROME_LATE_29}: os/build.sh records the exact install map, source revision, '
+                    'managed links, chrome_build and chrome_extension (including the per-build extension ID), and gh lock',
 }
 CHROME_LINK_PARENTS_29 = {
     'etc/opt', 'etc/opt/chrome', 'etc/opt/chrome/policies', 'etc/opt/chrome/policies/managed',
@@ -1934,19 +1974,23 @@ def changed_build_context29():
     if not paths:
         return []
     exclusions = []
+    excludes_bench_tests = False
     for line in git_bytes('HEAD', 'os/.containerignore').decode('utf-8-sig').splitlines():
         rule = line.strip()
         if not rule or rule.startswith('#'):
             continue
-        # The reviewed ignore file uses literal paths. Until other patterns are reviewed,
-        # assume any local path could be copied if the rules use globbing or negation.
+        if rule == 'tests/test_bench_*':
+            excludes_bench_tests = True
+            continue
+        # Every other reviewed rule is a literal path. Unknown patterns fail closed.
         if any(char in rule for char in '*?[]!\\'):
             return sorted(paths)
         path = posixpath.normpath(rule.lstrip('/'))
         if path != '.':
             exclusions.append('os/' + path)
-    return sorted(path for path in paths if not any(path == rule or path.startswith(rule + '/')
-                                                    for rule in exclusions))
+    return sorted(path for path in paths
+                  if not (excludes_bench_tests and path.startswith('os/tests/test_bench_'))
+                  and not any(path == rule or path.startswith(rule + '/') for rule in exclusions))
 
 
 def verify_source29(previous, main_base):
@@ -2244,6 +2288,9 @@ class Classifier29(Classifier28):
         from cryptography.exceptions import InvalidSignature
 
         old, new = (json.loads(self.read(side, CONTROL_RECORD)) for side in ('old', 'new'))
+        assert git_bytes(self.revisions['new'], ASK_RULES_29) == git_bytes('11d22cd4^', ASK_RULES_29), \
+            'Chrome 28/28a ask-rules.json differs from pre-28 bytes'
+        assert new['chrome_build'] == CHROME_BUILD_29, 'Chrome build differs from the reviewed 28/28a inputs'
         assert old['requirements_lock'] == new['requirements_lock'], '18c-b leaves the Control wheel lock unchanged'
         assert old['wheels'] == new['wheels'] and old['vendor'] == new['vendor'], 'Control vendor differs from R28'
         inventory = self.policy['inventory']
@@ -2276,9 +2323,10 @@ class Classifier29(Classifier28):
         before, after = typed['old'], typed['new']
         changed = {path for path in before.keys() | after.keys() if before.get(path) != after.get(path)}
         assert changed == CONTROL_CHANGES_29.keys() and changed <= after.keys(), \
-            'Control delta differs from the 18c-b handoff: ' + ', '.join(sorted(changed ^ CONTROL_CHANGES_29.keys()))
+            'Control delta differs from the 18c-b and 28/28a handoffs: ' + ', '.join(sorted(changed ^ CONTROL_CHANGES_29.keys()))
         self.control_evidence = dict(chrome_build=new['chrome_build'], chrome_extension=bundle, gh=new['gh'],
-                                     install_changes=sorted(changed), wheels_unchanged=True, vendor_unchanged=True)
+                                     install_changes=sorted(changed), ask_rules_unchanged=True,
+                                     wheels_unchanged=True, vendor_unchanged=True)
         return {path: after[path] for path in changed}
 
     def gh_problems(self, new):
@@ -2375,7 +2423,7 @@ class Classifier29(Classifier28):
                 and self.manifest_matches('new', rel, after):
             return 'build' if rel in (MOD_JAR, GH_BINARY_29) else 'manifest', self.MANIFEST_REASONS[rel]
         if rel in CONTROL_CHANGES_29 and rel in self.control_entries():
-            return 'control', '18c-b (#76): ' + CONTROL_CHANGES_29[rel]
+            return 'control', CONTROL_CHANGES_29[rel]
         if rel in CHROME_LINK_PARENTS_29 and before is None and plain_directory(after) and self.control_entries():
             return 'control', '18c-b (#76): root-owned parent of a managed Chrome policy or host link'
         if rel == UPDATERS and all(plain_file(value, 0o644) for value in (before, after)) and self.audit_rows():
