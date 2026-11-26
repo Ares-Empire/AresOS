@@ -472,7 +472,10 @@ is no world change: it ends in `aresos-desktop video` alone.
   file stays untouched until he picks a style or a setting himself, which replaces it as any `aresos-settings set`
   does today (`aresos-settings:110-115`). When `set` replaces a file it couldn't read cleanly, it also writes `home =
   minecraft`, unless the setting he is changing is `home`. So his first change of any other setting keeps the session's
-  Minecraft style; on a laptop with no home, the next boot then sets Picture, as below. The supervisor's own rule never writes after a failed read. "Has had a
+  Minecraft style; on a laptop with no home, the next boot then sets Picture, as below. From package 12, `set` holds a
+  lock on the settings folder across its read, merge and write, so two changes at once can't undo each other: the
+  second reads what the first wrote (today two overlapping `set`s can lose one value). The supervisor's own rule never
+  writes after a failed read. "Has had a
   home" is the supervisor's own `hub_seen` (supervisor `:1111`), or a home folder in his worlds folder. From then on
   the file names his style like any choice of his.
 - The rule runs at every supervisor start, so it also mends a file that lost the name after `previous`.
@@ -502,7 +505,8 @@ is no world change: it ends in `aresos-desktop video` alone.
   whatever the setting says. After a clean read that found `minecraft`, it shows the picture home and sets the style
   back to Picture. After a failed read it writes nothing: every reader then gets `minecraft`, so the native home shows
   the Minecraft style with the world closed (the picture and the bar, no icons or starter pins, and "Start the
-  Minecraft world" as the menu's first row), and the supervisor is in OFF (`quit`) for this session (section 7's table): the style is Minecraft, and no world starts until he picks it. Only his pick opens
+  Minecraft world" as the menu's first row), and the supervisor is in OFF (`quit`) for this session (the supervisor's
+  states table below): the style is Minecraft, and no world starts until he picks it. Only his pick opens
   Prism's sign-in.
 
 **Where he picks it.**
@@ -562,7 +566,9 @@ the program that will hold the home, also on a change to Video.
   the Minecraft world, and they are back if he backs out.
 - **He can back out of it.** A first start that ends without a home puts the style back to Picture and tells him in
   one line. That holds when he closes the sign-in and when the setup fails; a failure also opens today's message
-  window with the reason. The supervisor learns that he closed the sign-in from Prism's exit, and acts ten seconds
+  window with the reason. After a failed settings read the back-out writes nothing, as the boot doesn't: the file
+  stays as it is, and the supervisor goes to OFF (`quit`) with the same line, so every reader still gets the Minecraft
+  style with the world closed. The supervisor learns that he closed the sign-in from Prism's exit, and acts ten seconds
   after it (supervisor `:196`, `:2478-2480`). Picking the Minecraft world again starts over.
 
 ### The picture
@@ -845,7 +851,7 @@ each picture is one sandboxed child (laptop home `:214-278`).
 | the same | his request, not admitted | OFF, with a pending start |
 | OFF with a pending start | a later sample admits it | STARTING |
 | OFF with a pending start | world off, `stop`, `logout`, a shutdown, the session's end | OFF, and the pending start is gone |
-| SETUP, on a laptop with no home yet (from package 12) | it ends without a home | OFF (`off`), and the style is Picture again |
+| SETUP, on a laptop with no home yet (from package 12) | it ends without a home | OFF (`off`), and the style is Picture again; after a failed settings read, OFF (`quit`) and nothing written |
 
 **OFF starts nothing by itself.**
 
@@ -1466,13 +1472,16 @@ each piece.
 
 ### Details left for the package briefs (recheck 3 of revision 4, non-blocking)
 
-- **Package 6:** `view_focus` carries `"surface": "search" | "icons"` in the `search_view` row of the protocol table, and the search's close order (section 4) reports `view_focus` false for `search`.
+- **Package 6:** `view_focus` carries `"surface": "search" | "icons"` in the `search_view` row of the protocol table, and the search's close order (section 5) reports `view_focus` false for `search`.
 - **Package 7:**
   - `view_ping` gets its own row in the protocol table, plus a supervisor request and a helper answer on the status socket, because `world off` can also come from the command line.
   - The view answers the ping from its drawing loop, so a hung view counts as absent.
   - A missed ping refuses the switch but never ends the native home; the three-second end applies only to the keyboard beat.
   - Its test row adds a live native home without the keyboard, where the switch goes through.
-- **Package 12:** its test row adds an unreadable settings file and one of another version (the file stays unchanged byte for byte, the Minecraft style runs, and the notice shows), a laptop that has had a home and has no settings file (`home = minecraft` is written), and a first `set look C` after a failed read (the new file holds `look` and `home = minecraft`).
+- **Package 12:** its test row adds an unreadable settings file and one of another version (the file stays unchanged byte for byte, the Minecraft style runs, and the notice shows), a laptop that has had a home and has no settings file (`home = minecraft` is written), and a first `set look C` after a failed read (the new file holds `look` and `home = minecraft`, and the visible style
+  doesn't change). The failed-read rows run on both laptops: one that has had a home (the boot starts the world) and a
+  fresh one (the boot stays in OFF (`quit`), and a SETUP that ends without a home goes back to OFF (`quit`) with the
+  bytes unchanged). One more row: two `set`s at once, from a failed read and from a clean one, both land.
 
 ### Known limits (low harm)
 
