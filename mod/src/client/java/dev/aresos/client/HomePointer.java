@@ -35,7 +35,7 @@ public final class HomePointer {
             return true;
         }
         if (!HomeScreen.freePointer(client) || client.gui.screen() != null || client.gui.overlay() != null) return false;
-        // Package 328c: with look = edge and the world in front, the free pointer's clicks go on to Minecraft.
+        // With look = edge and the world in front, clicks outside the app shortcuts go on to Minecraft.
         boolean worldActs = !HomeScreen.ignoresMouse(client);
         if (action != GLFW.GLFW_PRESS) return !worldActs;
         int slot = hoveredSlot(client);

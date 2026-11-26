@@ -19,6 +19,19 @@
 
 ## Verified
 
+### Native click-to-look follow-up after merging PR166
+
+`WAYLAND_DEBUG=server mod/dev/client-test.sh --session` reproduced the zero-degree failure with Minecraft grabbed and focused. Labwc sent `locked()` at 17:40:12.236709 UTC. It received the first relative move at 17:40:12.238502 UTC and the twentieth at 17:40:12.554021 UTC, forwarding all 20 to Xwayland under the same lock. A focused run with temporary motion logging reproduced the failure at the second tick. Minecraft had accumulated 152.12 units of horizontal motion, and yaw was still −32.25°. On the third tick, yaw reached −9.43° with the pointer still captured.
+
+The native test keeps the deliberate hitch and retries small relative moves for up to three seconds afterward. It requires a turn greater than one degree while captured and still checks release and cursor restoration. `PointerRulesTest` covers both secondary-click outcomes on an app slot in edge mode. Updated `EdgeLook`, `HomePointer` and `PointerRules` to document the app shortcuts and Minecraft's fallback.
+
+| Command | Pass 1 | Pass 2 |
+|---|---|---|
+| `mod/dev/build.sh --rerun-tasks` | `All 106 required tests passed :)`, `BUILD SUCCESSFUL in 2m 57s` | `All 106 required tests passed :)`, `BUILD SUCCESSFUL in 2m 46s` |
+| `mod/dev/client-test.sh --session` | `333 open app checks passed`, `BUILD SUCCESSFUL in 16m 36s` | `333 open app checks passed`, `BUILD SUCCESSFUL in 16m 31s` |
+
+All four commands exited 0 on the first attempt. Each build recorded 363 unit tests, six platform skips and zero failures. Both native runs turned 22.82° and confirmed the click position, the second output and the key-start position. `git checkout -- reviews/` restored 64 tracked screenshots. Cleanup removed 25 generated untracked screenshots. `git diff --check` passed and `.work/` contains zero files over 500 MB.
+
 ### Sixth fix (RECHECK-5)
 
 Each local command used `python3 reviews/333-open-apps/headless.py <filename>` with a private home, runtime, state directory, headless labwc compositor and D-Bus session.

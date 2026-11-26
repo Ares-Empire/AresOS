@@ -33,6 +33,11 @@ class PointerRulesTest {
         assertEquals(VANILLA, PointerRules.click(false, true, true, true));
     }
 
+    @Test void secondaryAppClicksInEdgeModeUseTheHelperWhenItCanActivate() {
+        assertEquals(NEW_WINDOW, PointerRules.click(true, false, true, true, true, true));
+        assertEquals(VANILLA, PointerRules.click(true, false, true, true, false, true));
+    }
+
     @Test void aDesktopWorldTakesTheMouseOnlyWithTheFocusAndThePointerOnIt() {
         for (int bits = 0; bits < 8; bits++) {
             boolean desktop = (bits & 1) != 0, focused = (bits & 2) != 0, over = (bits & 4) != 0;

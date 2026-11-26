@@ -21,10 +21,6 @@ public final class PointerRules {
         return click(free, primary, false, appSlot, false, false);
     }
 
-    /**
-     * {@code worldActs}: package 328c's edge turning with the world in front, where the free pointer's clicks act on what
-     * the crosshair aims at. A primary click on an app slot still opens the app; any other click is Minecraft's.
-     */
     public static Click click(boolean free, boolean primary, boolean appSlot, boolean worldActs) {
         return click(free, primary, false, appSlot, false, worldActs);
     }
@@ -34,7 +30,11 @@ public final class PointerRules {
         return click(free, primary, secondary, appSlot, canActivate, false);
     }
 
-    /** Both rules together: package 333's slot clicks come first, then package 328c's {@code worldActs}. */
+    /**
+     * App slot shortcuts take priority when the pointer is free. A primary click opens or brings back the app, and a
+     * secondary click opens a new window when the helper offers {@code activate_app}. With {@code worldActs} (edge
+     * turning and the world in front), other clicks act on what the crosshair aims at.
+     */
     public static Click click(boolean free, boolean primary, boolean secondary, boolean appSlot, boolean canActivate,
                               boolean worldActs) {
         if (!free) return Click.VANILLA;
