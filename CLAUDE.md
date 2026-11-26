@@ -13,7 +13,7 @@ The workflow is nametbd's Codex-era workflow (branch `archive/codex-era-workflow
 
 - **Owner (the user):** holds the vision and makes the calls under "Owner decides" below.
 - **Claude (me):** planner, orchestrator and integrator. I cut the design into small packages, write the briefs, launch Codex, check its work, merge, and keep the docs true.
-- **Codex:** the builder. One Codex job per package (`codex-job`, see `~/aresync/TOOLS.md`), in its own git worktree. It builds, tests, and opens a PR. It never merges.
+- **Codex:** the builder. One Codex job per package or package step (`codex-job`, see `~/aresync/TOOLS.md`), in its own git worktree. It builds, tests, and opens a PR. It never merges.
 
 **Claude agents may build packages too** (owner, 2026-11-09: "we could work with claude agents too", to use his Claude allowance). They get the same brief, worktree, branch and AGENTS.md rules as Codex. Pick Codex or a Claude agent per package by fit and remaining allowance. Claude agents run on Opus by default. For a hard AresOS task or a problem that resists normal attempts, use Fable 5.2 (owner, 2026-11-09: "in the dev of an own OS I could imagine hard tasks"). Design work (how something looks, feels or is laid out) runs on Fable agents (owner, 2026-11-13: "if you do actual design work use fable agents").
 
