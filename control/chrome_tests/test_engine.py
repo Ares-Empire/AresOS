@@ -1,18 +1,23 @@
 import copy
 import errno
+import hashlib
 import json
 from pathlib import Path
 import sys
 import tempfile
 import unittest
+from contextlib import nullcontext
 from unittest.mock import patch
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from aresos_control.engine import Engine
-from aresos_control.chrome.adapter import view_identity
+from aresos_control.definitions import BY_NAME
 from aresos_control.chrome.policy import HOSTS
 from test_policy import entry
 import qualification_fixture
+from response_checks import check_responses
+
+check_responses()
 
 ROOT=Path(__file__).resolve().parents[2]
 WORK=ROOT/'.work/20-chrome'; WORK.mkdir(parents=True,exist_ok=True)
@@ -21,24 +26,121 @@ WORK=ROOT/'.work/20-chrome'; WORK.mkdir(parents=True,exist_ok=True)
 qualification_fixture.install(WORK/'fixture-runtime')
 
 
+def fixture_target(chrome, browser):
+    """Record the one element the in-memory peer showed before the tested action."""
+    frame = browser.facts['frames'][0]
+    refs = chrome.references
+    refs.connect(browser.session)
+    ref = refs.issue(1, frame['frame'], frame['document'], browser.reader, 1)
+    refs.returned(1, [(ref, '', browser.fingerprint())])
+    return {'tab': 1, 'ref': ref}
+
+
+def fixture_call(engine, verb, args=None, admin=False, *, public=False):
+    args = args or {}
+    def request(name, arguments):
+        return engine.request({'v': 1, 'method': 'call', 'action': 'chrome_'+name, 'arguments': arguments}, admin)
+    if not public and verb in {'click','press','fill','select','check','scroll','dialog'}:
+        if verb == 'dialog':
+            dialog = args['expected']
+            engine.adapters['chrome'].references.dialog_shown(args['tab'], dialog)
+        step = {'do': verb, **{key: args[key] for key in ('ref','key','text','value','checked','y','accept') if key in args}}
+        result = request('do', {'tab': args['tab'], 'steps': [step],
+                                **({'discard_unsaved': args['discard_unsaved']} if 'discard_unsaved' in args else {})})
+        if not result['ok']:
+            return result
+        data = result['data']
+        [outcome] = data['steps']
+        if 'code' in outcome:
+            return {**result, 'ok': False, 'error': {key: outcome[key] for key in ('code','message')}}
+        return {**result, 'data': data['prepared'][0] if data['prepared'] else data}
+    if verb == 'navigate':
+        return request('go', args)
+    result = request(verb, args)
+    if not public and verb == 'read' and result['ok'] and 'error' in result['data']['reads'][0]:
+        return {**result, 'ok': False, 'error': result['data']['reads'][0]['error']}
+    return result
+
+
+def declared(chrome):
+    """Brief 28a, step 1d: every result the new tools' entries give validates against its tool's declared result.
+
+    Wraps this adapter's entries (`going`, `small`, `doing`, `upload`); a call
+    that returns also had an input the public schema takes.
+    """
+    from aresos_control.common import validate
+    def wrap(method, name):
+        def run(*args):
+            result = method(*args)
+            action = BY_NAME[name(*args)]
+            validate(args[-1], action.input, action.name)
+            validate(result, action.result, action.name + ' result')
+            return result
+        return run
+    chrome.going = wrap(chrome.going, lambda verb, args: 'chrome_' + verb)
+    chrome.small = wrap(chrome.small, lambda verb, args: 'chrome_' + verb)
+    chrome.doing = wrap(chrome.doing, lambda args: 'chrome_do')
+    chrome.upload = wrap(chrome.upload, lambda args: 'chrome_upload')
+    return chrome
+
+
+def undescribed(value):
+    """A description's page facts without item 3b's field descriptions: what the binding holds."""
+    if isinstance(value,dict):return {key:undescribed(item) for key,item in value.items() if key!='description'}
+    if isinstance(value,list):return [undescribed(item) for item in value]
+    return value
+
+
 class Browser:
     session='fixture-session'; version='157.0.1.0'; connection_identity='fixture-connection'
+    reader='fixture-reader'
     def __init__(self):
         self.dispatched=[]
+        self.addresses={}
         target={'element':'e1','role':'button','name':'Send','label':'Send','title':'','href':None,'states':{},'editable':False,'search':False,'submit':False,'box':{'x':1,'y':1,'width':30,'height':30},'onscreen':True}
         self.facts={'session':self.session,'tab':1,'url':'https://fixture.test/','title':'Fixture','frames':[
             {'frame':0,'document':'document-1','url':'https://fixture.test/','title':'Fixture','revision':1,'scroll':{},
              'target':target,'rows':[target],'form':None,'editable':[{'element':'e2','label':'Body','value':'Existing draft'}],'item':'Fixture item',
              'adapter':{'account':None}}],'dialog':None}
+    def fingerprint(self):
+        return hashlib.md5(json.dumps(self.facts['frames'][0]['target'], sort_keys=True).encode()).hexdigest()
+    def bounded(self, until):
+        return nullcontext()
     def call(self,name,**args):
         if name=='validity':return {'document':self.facts['frames'][0]['document'],'control':self.facts.get('control'),'element_present':True}
         if name=='configure': return {'configured':True}
         if name=='ack_steps': return {'acknowledged':True}
         if name=='queued_steps': return []
-        if name in {'facts','read'}: return copy.deepcopy(self.facts)
-        if name=='tab_context':return {'tab':args['tab'],'url':self.facts['url'],'session':self.session}
-        if name=='open':self.dispatched.append((name,args));return {'tab':2,'session':self.session}
-        if name=='tabs': return {'items':[{'tab':1,'url':self.facts['url'],'title':'Fixture'}]}
+        if name in {'facts','read','outline'}:
+            result=copy.deepcopy(self.facts)
+            for frame in result['frames']:
+                if 'rows' in frame:
+                    frame['view_digest'] = hashlib.sha256(json.dumps(frame.pop('rows'), sort_keys=True).encode()).hexdigest()
+                frame.update(reader=self.reader, fingerprint=self.fingerprint())
+                if name=='outline':
+                    frame.update(scroll=0,height=100,omitted=0,watched=True)
+                    if 'target' in frame:
+                        target=frame['target']
+                        frame['nodes']=[{'id':1,'role':target['role'],'name':target['name'],'fingerprint':frame['fingerprint']}]
+                    else:
+                        frame['nodes']=[]
+            if name=='outline':
+                result.update(tab=args['tab'],url=self.addresses.get(args['tab'],result['url']))
+            return result
+        if name=='tab_context':return {'tab':args['tab'],'url':self.addresses.get(args['tab'],self.facts['url']),'session':self.session,'control':self.facts.get('control','fixture-control')}
+        if name=='page_state':
+            tab=args['tab']; url=self.addresses.get(tab,self.facts['url'])
+            return {'tab':tab,'document':self.facts['frames'][0]['document'],'address':hashlib.sha256(url.encode()).hexdigest(),
+                    'ready':True,'token':url,'dialog':False,'queued':False}
+        if name=='open':
+            self.dispatched.append((name,args));self.addresses[2]='about:blank';return {'tab':2,'session':self.session}
+        if name=='navigate' and 'url' in args:
+            self.addresses[args['tab']]=args['url']
+        if name=='close_tab':
+            self.dispatched.append((name,args));return {'closed':args['tab']}
+        if name=='tabs':
+            return {'session':self.session,'tabs':[{'tab':1,'window':1,'whose':'claude','group':True,
+                'title':'Fixture','url':self.addresses.get(1,self.facts['url'])}]}
         self.dispatched.append((name,args))
         return {'checked':True,'dispatched':True,'steps':[]}
     def close(self): pass
@@ -56,11 +158,10 @@ class Operations(unittest.TestCase):
         self.engine.store.write({'chrome:qualification':record},'chrome_test_setup','Synthetic qualification, test store only')
     def tearDown(self):
         self.engine.close();self.mock.stop();self.temp.cleanup()
-    def call(self,verb,args=None,admin=False):
-        return self.engine.request({'v':1,'method':'call','action':'chrome_'+verb,'arguments':args or {}},admin)
+    def call(self,verb,args=None,admin=False,*,public=False):
+        return fixture_call(self.engine,verb,args,admin,public=public)
     def target(self):
-        frame=self.browser.facts['frames'][0]
-        return {'reference':{'session':self.browser.session,'tab':1,'frame':0,'document':frame['document'],'view':view_identity(self.browser.facts),'element':'e1'},'expected':copy.deepcopy(frame['target'])}
+        return fixture_target(self.chrome,self.browser)
     def prepare(self):
         result=self.call('click',self.target());self.assertTrue(result['ok'],result)
         return result['data']['approval']
@@ -103,8 +204,24 @@ class Operations(unittest.TestCase):
         self.engine.store.write({'chrome:readonly:fixture.test':True},'chrome_test_readonly','Synthetic read-only restriction')
         result=self.call('click',self.target());self.assertFalse(result['ok']);self.assertEqual(len(attempts),2)
 
+    def prepare_do(self):
+        import re
+        from test_doing import Steps
+        self.browser=Steps()
+        self.chrome.bridge=self.browser
+        self.browser.change(5,name='Send',text=['Send'])
+        self.browser.change(3,value='Existing draft')
+        read=self.call('read',{'tab':1},public=True)
+        self.assertTrue(read['ok'],read)
+        outline=read['data']['reads'][0]['untrusted_content']['outline']
+        ref=re.search(r'(?m)^\s*button "Send" ([b-df-hj-np-tv-z]{5}\d+)$',outline).group(1)
+        result=self.call('do',{'tab':1,'steps':[{'do':'click','ref':ref}]},public=True)
+        self.assertTrue(result['ok'],result)
+        self.assertEqual([step['outcome'] for step in result['data']['steps']],['prepared'],result)
+        return result['data']['prepared'][0]['approval']
+
     def test_group1_approval_first_exact_and_dispatch_once(self):
-        approval=self.prepare();self.assertEqual(self.browser.dispatched,[])
+        approval=self.prepare_do();self.assertEqual(self.browser.dispatched,[])
         self.assertEqual(list(approval),['question','operation_id','description'])
         wrong={**approval,'question':'Changed'};self.assertFalse(self.call('submit',wrong)['ok']);self.assertEqual(self.browser.dispatched,[])
         sent=self.call('submit',approval);self.assertTrue(sent['ok'],sent)
@@ -147,7 +264,13 @@ class Operations(unittest.TestCase):
         self.assertIn("isn't visible to the tool",approval['question'])
         # The extension receives the committed binding verbatim, independent of prior unrelated approvals.
         self.call('submit',approval)
-        self.assertEqual(self.browser.dispatched[0][1]['binding']['editable'],state['editable'])
+        # Item 3b: the description names each field; the binding the extension gets holds none of those names.
+        # Item 3 (28a step 1b): the description shows the frame's address in the public form, the binding keeps it whole.
+        from aresos_control.chrome.projection import addresses
+        self.assertEqual(addresses(self.browser.dispatched[0][1]['binding']['editable']),undescribed(state['editable']))
+        self.assertEqual(self.browser.dispatched[0][1]['binding']['editable'][0]['url'],'https://fixture.test/')
+        self.assertEqual(state['editable'][0]['fields'][0]['description'],'"Body"')
+        self.assertNotIn('description',str(self.browser.dispatched[0][1]['binding']))
 
     def test_failed_upload_staging_releases_copy_and_idle_cleanup_expires_old_copies(self):
         import os,time

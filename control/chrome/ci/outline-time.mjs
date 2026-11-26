@@ -1,6 +1,5 @@
 // Brief 28, item 4 and group 14's time cases, through the real transports: the
-// MCP proxy and the aresos command (call.py), never a fake bridge. They read with
-// chrome_outline, which the test-only switch registers in this container. They
+// MCP proxy and the aresos command (call.py). They read with chrome_read and
 // run in the core shard right after GROUP 1, while nothing is pending yet, so
 // the approval of the last case is the first row of a result's pending page;
 // they leave nothing pending or unacknowledged, and stay outside the named
@@ -19,7 +18,8 @@ const run=promisify(execFile);
 
 // One call through the proxy or the command; call.py times the call alone.
 // Asynchronous, so the fixture server in this process keeps serving.
-async function through(route,verb,args){
+async function through(route,args){
+  const verb='read';
   const {stdout}=await run('python3',['control/chrome/ci/call.py',...(route==='command'?['--command']:[]),'--timed',verb,JSON.stringify(args)],{encoding:'utf8',env:{...process.env,GITHUB_ACTIONS:'true'},maxBuffer:16*1024*1024});
   const out=JSON.parse(stdout);
   fs.appendFileSync('/out/outline-time.jsonl',JSON.stringify({route,verb,args,seconds:out.seconds,ok:out.result.ok,
@@ -54,7 +54,7 @@ export async function outlineTime({call,nav,target,eventually,getTab}){
 
     // until on a text that never comes: until_met false, inside the deadline.
     for(const route of ['proxy','command']){
-      const {result,seconds}=await through(route,'outline',{tab:tabs[0],until:{text:'Never on this page '+route},timeout_ms:6000});
+      const {result,seconds}=await through(route,{tab:tabs[0],until:{text:'Never on this page '+route},timeout_ms:6000});
       const entry=own(result,tabs[0],1);
       assert.equal(entry.until_met,false);
       assert.ok(seconds<CALL_SECONDS,route+': '+seconds+' s');
@@ -64,7 +64,7 @@ export async function outlineTime({call,nav,target,eventually,getTab}){
 
     // Five tabs, the third's reader holds its replies back past its share.
     const readerHold={tab:tabs[2],ms:4000,duration:5000},heldAt=await hold('fixture_hold_reader',readerHold);
-    const five=await through('command','outline',{tabs});
+    const five=await through('command',{tabs});
     assert.equal(five.result.ok,true,JSON.stringify(five.result));
     assert.deepEqual(five.result.data.reads.map(row=>row.tab),tabs);
     assert.deepEqual(five.result.data.reads[2].error,{code:'not_read',message:NOT_READ});
@@ -72,21 +72,21 @@ export async function outlineTime({call,nav,target,eventually,getTab}){
     assert.ok(five.seconds<CALL_SECONDS,'five tabs: '+five.seconds+' s');
     // The next call on the same connection gets its own answer, while the
     // held reply is still out; then the held tab, after the reply came late.
-    own((await through('proxy','outline',{tab:tabs[3]})).result,tabs[3],4);
+    own((await through('proxy',{tab:tabs[3]})).result,tabs[3],4);
     await holdOver(heldAt,readerHold);
-    own((await through('proxy','outline',{tab:tabs[2]})).result,tabs[2],3);
+    own((await through('proxy',{tab:tabs[2]})).result,tabs[2],3);
     console.log('GROUP 14 TIME five tabs with one held reader PASS',five.seconds);
 
     // An extension that overruns its time: its reply to the outline is held
     // past the bridge's wait. The bridge gives it up, the read says not_read,
     // and the late reply is dropped by its id while the next call waits.
     await hold('fixture_hold_reply',{command:'outline',tab:tabs[1],ms:9000});
-    const late=await through('proxy','outline',{tab:tabs[1]});
+    const late=await through('proxy',{tab:tabs[1]});
     assert.equal(late.result.ok,true,JSON.stringify(late.result));
     assert.deepEqual(late.result.data.reads[0].error,{code:'not_read',message:NOT_READ});
     assert.ok(late.seconds<CALL_SECONDS,'held reply: '+late.seconds+' s');
-    own((await through('command','outline',{tab:tabs[4]})).result,tabs[4],5);
-    own((await through('proxy','outline',{tab:tabs[1]})).result,tabs[1],2);
+    own((await through('command',{tab:tabs[4]})).result,tabs[4],5);
+    own((await through('proxy',{tab:tabs[1]})).result,tabs[1],2);
     console.log('GROUP 14 TIME a reply held past the bridge is given up and drained PASS',late.seconds);
 
     // An approval outstanding whose frame doesn't answer: the read still ends
@@ -95,7 +95,7 @@ export async function outlineTime({call,nav,target,eventually,getTab}){
     const prepared=await call('click',await target('Send'));assert.ok(prepared.approval,JSON.stringify(prepared));
     reserved=prepared.approval.operation_id;
     const checkHold={tab:getTab(),ms:6000,duration:5000,commands:['ready']},checkAt=await hold('fixture_hold_reader',checkHold);
-    const blocked=await through('proxy','outline',{tab:tabs[4]});
+    const blocked=await through('proxy',{tab:tabs[4]});
     own(blocked.result,tabs[4],5);
     const row=blocked.result.pending.items.find(item=>item.operation_id===reserved);
     assert.ok(row,'nothing older is pending: '+JSON.stringify(blocked.result.pending));

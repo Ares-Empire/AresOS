@@ -39,12 +39,19 @@
   // Chrome reads the base target only from the first HTML <base> that has one;
   // a <base> in SVG or another namespace is an ordinary element to it.
   const htmlBase=node=>isElement(node)&&node.namespaceURI==='http://www.w3.org/1999/xhtml'&&node.localName==='base';
+  // While `outline` fingerprints every node (brief 28a, item 2), the base
+  // target and each form's implicit submitter are looked up once, not once
+  // for each link and field: each lookup walks the whole page.
+  let outlineMemo=null;
   function documentBaseTarget(){
+    if(outlineMemo&&'base' in outlineMemo)return outlineMemo.base;
+    let found=null;
     for(const base of documentQueryAll?documentQueryAll.call(document,'base[target]'):document.querySelectorAll?.('base[target]')||[]){
       const target=htmlBase(base)?elementAttribute.call(base,'target'):null;
-      if(target!==null)return target;
+      if(target!==null){found=target;break;}
     }
-    return null;
+    if(outlineMemo)outlineMemo.base=found;
+    return found;
   }
   function browsingTarget(element,attribute,explicit=element.getAttribute(attribute)) {
     if(attribute==='target'&&svgLink(element)){
@@ -200,8 +207,8 @@
     return ids.get(element);
   };
   function text(node, includeHidden=false, composed=false) {
-    if(node.nodeType===Node.TEXT_NODE)return node.parentElement&&password(node.parentElement)?'':node.textContent;
-    if (!(isElement(node)) || ['SCRIPT','STYLE','NOSCRIPT','INPUT','TEXTAREA','SELECT'].includes(node.tagName) || password(node)) return '';
+    if(node.nodeType===Node.TEXT_NODE)return node.parentElement&&(insideWithheldButton(node.parentElement)||password(node.parentElement))?'':node.textContent;
+    if (!(isElement(node)) || ['SCRIPT','STYLE','NOSCRIPT','INPUT','TEXTAREA','SELECT'].includes(node.tagName) || insideWithheldButton(node) || password(node)) return '';
     if (!includeHidden && (node.hidden || getComputedStyle(node).display === 'none' || getComputedStyle(node).visibility === 'hidden')) return '';
     if(node.tagName==='IMG')return node.getAttribute('alt')||'';
     const assigned=composed&&node.tagName==='SLOT'?node.assignedNodes?.():null;
@@ -217,8 +224,8 @@
       ((fromContent ? text(element) : element.getAttribute('placeholder') || '') || element.getAttribute('title') || ''))).replace(/\s+/g, ' ').trim();
   }
   function editableText(node) {
-    if(node.nodeType===Node.TEXT_NODE)return node.parentElement&&password(node.parentElement)?'':node.textContent;
-    if(!(isElement(node))||password(node)||['SCRIPT','STYLE','NOSCRIPT','INPUT','TEXTAREA','SELECT'].includes(node.tagName))return '';
+    if(node.nodeType===Node.TEXT_NODE)return node.parentElement&&(insideWithheldButton(node.parentElement)||password(node.parentElement))?'':node.textContent;
+    if(!(isElement(node))||insideWithheldButton(node)||password(node)||['SCRIPT','STYLE','NOSCRIPT','INPUT','TEXTAREA','SELECT'].includes(node.tagName))return '';
     const style=getComputedStyle(node);if(node.hidden||style.display==='none'||style.visibility==='hidden')return '';
     if(node.tagName==='BR')return '\n';
     let result='';
@@ -231,8 +238,8 @@
     return result;
   }
   function richIdentity(node){
-    if(node.nodeType===Node.TEXT_NODE)return node.parentElement&&password(node.parentElement)?'':node.textContent;
-    if(!(isElement(node)))return null;
+    if(node.nodeType===Node.TEXT_NODE)return node.parentElement&&(insideWithheldButton(node.parentElement)||password(node.parentElement))?'':node.textContent;
+    if(!(isElement(node))||insideWithheldButton(node))return null;
     if(password(node))return {element:id(node),password:true};
     if(['SCRIPT','STYLE','NOSCRIPT','INPUT','TEXTAREA','SELECT'].includes(node.tagName))return null;
     const style=getComputedStyle(node);if(node.hidden||style.display==='none'||style.visibility==='hidden')return null;
@@ -273,8 +280,14 @@
       for(let index=0;index<16;index++){let word=0;for(let part=0;part<4;part++){const position=offset+index*4+part;let byte=position<bytes.length?bytes[position]:position===bytes.length?128:0;if(position>=size-8)byte=Number((BigInt(bytes.length)*8n>>BigInt((size-1-position)*8))&255n);word=(word<<8)|byte;}words[index]=word;}
       for(let index=16;index<64;index++){const x=words[index-15],y=words[index-2];words[index]=(words[index-16]+(rotate(x,7)^rotate(x,18)^(x>>>3))+words[index-7]+(rotate(y,17)^rotate(y,19)^(y>>>10)))>>>0;}
       let[a,b,c,d,e,f,g,h]=hash;
-      for(let index=0;index<64;index++){const first=(h+(rotate(e,6)^rotate(e,11)^rotate(e,25))+((e&f)^(~e&g))+constants[index]+words[index])>>>0,second=((rotate(a,2)^rotate(a,13)^rotate(a,22))+((a&b)^(a&c)^(b&c)))>>>0;[a,b,c,d,e,f,g,h]=[(first+second)>>>0,a,b,c,(d+first)>>>0,e,f,g];}
-      for(const[index,value]of[a,b,c,d,e,f,g,h].entries())hash[index]=(hash[index]+value)>>>0;
+      // An outline hashes every node. Keep the rounds scalar rather than
+      // allocating and unpacking 64 arrays for each block of each node.
+      for(let index=0;index<64;index++){
+        const first=(h+(rotate(e,6)^rotate(e,11)^rotate(e,25))+((e&f)^(~e&g))+constants[index]+words[index])>>>0,second=((rotate(a,2)^rotate(a,13)^rotate(a,22))+((a&b)^(a&c)^(b&c)))>>>0;
+        h=g;g=f;f=e;e=(d+first)>>>0;d=c;c=b;b=a;a=(first+second)>>>0;
+      }
+      hash[0]=(hash[0]+a)>>>0;hash[1]=(hash[1]+b)>>>0;hash[2]=(hash[2]+c)>>>0;hash[3]=(hash[3]+d)>>>0;
+      hash[4]=(hash[4]+e)>>>0;hash[5]=(hash[5]+f)>>>0;hash[6]=(hash[6]+g)>>>0;hash[7]=(hash[7]+h)>>>0;
     }
     return hash.map(value=>value.toString(16).padStart(8,'0')).join('');
   }
@@ -286,6 +299,10 @@
   function safeValue(element, traced=true) {
     // The exclusion is repeated immediately before EACH value/text read.
     if (password(element)) return {password: true};
+    // The existing unread-form guard also keeps a submission from using the
+    // selected value when its label or value could not be read for approval.
+    if(unreadOptions(element))return {password:true,unknown_history:true};
+    if(insideWithheldButton(element))return {};
     if(unknownHistory(element)&&typedField(element))return {typed_text:true,unknown_history:true,value_status:filledStatus(element)};
     if(!watched&&html(element,HTMLInputElement,'input')&&element.type==='hidden')return {unknown_history:true,value_status:'not_read'};
     let value;
@@ -304,6 +321,8 @@
   // (brief 28, item 1, the history rule): its value is not read, the asking
   // read may list it, and Claude doesn't type into it.
   const unknownHistory=element=>!watched||privacy.lateFields.has(element);
+  const withheldButtonText=element=>!watched&&html(element,HTMLButtonElement,'button')&&element.isContentEditable;
+  const insideWithheldButton=element=>!watched&&withheldButtonText(element.closest?.('button'));
   function typedField(element) {
     // This shared predicate controls normal reads, approval scope and reload warnings.
     return html(element,HTMLTextAreaElement,'textarea')||html(element,HTMLInputElement,'input')&&!['hidden','password','checkbox','radio','date','datetime-local','month','week','time','range','color','file','button','submit','reset','image'].includes(element.type);
@@ -317,7 +336,13 @@
     return element.validity?.badInput||!copy.validity.valueMissing?'filled':'empty';
   }
   function typedFields() {
-    return {document:documentId,reader:readerInstance,fields:all().filter(element=>typedField(element)&&!password(element)&&unknownHistory(element)).map((element,index)=>({element:id(element),label:name(element)||(html(element,HTMLTextAreaElement,'textarea')?'textarea ':'single-line field ')+(index+1),type:element.type}))};
+    // An unnamed field keeps its numbered label for the binding and says it has
+    // no name, so the question calls it unnamed and counts it among its kind
+    // (brief 28a, item 3b), never as a label the page could also have written.
+    return {document:documentId,reader:readerInstance,fields:all().filter(element=>typedField(element)&&!password(element)&&unknownHistory(element)).map((element,index)=>{
+      const label=name(element);
+      return {element:id(element),label:label||(html(element,HTMLTextAreaElement,'textarea')?'textarea ':'single-line field ')+(index+1),type:element.type,...(label?{}:{unnamed:true})};
+    })};
   }
   function readTypedFields(message) {
     if(message.approved!==true||!message.operation||typedReads.has(message.operation))throw Error('refused: typed fields require a fresh one-call approval');
@@ -356,10 +381,10 @@
     if(element.namespaceURI!==XHTML)return null;
     if(tag==='input')return element.type==='hidden'?null:inputRoles.get(element.type)||'textbox';
     if(tag==='select')return element.multiple||element.size>1?'listbox':'combobox';
-    if(element.isContentEditable)return 'textbox';
     // Native controls still take the value/withholding path under presentation roles.
     if(tag==='textarea')return 'textbox';
     if(tag==='button')return 'button';
+    if(element.isContentEditable)return 'textbox';
     if(word==='presentation'||word==='none')return null;
     if(tag==='header'||tag==='footer')return element.parentElement?.localName==='body'?(tag==='header'?'banner':'contentinfo'):null;
     if(tag==='section')return element.hasAttribute('aria-label')||element.hasAttribute('aria-labelledby')?'region':null;
@@ -383,7 +408,16 @@
   }
   // The elements that hold a field's error text (shown with the field while it is invalid).
   const errorParts=element=>{const root=element.getRootNode();return (element.getAttribute('aria-errormessage')||element.getAttribute('aria-describedby')||'').split(/\s+/).map(key=>key&&root.getElementById?.(key)).filter(Boolean);};
-  const optionFacts=option=>({label:squeeze(text(option)),value:String(option.value??''),chosen:option.selected===true,disabled:!!option.matches(':disabled')});
+  const optionLabel=option=>option.getAttribute('label')||option.text;
+  function unreadOptions(element){
+    if(!html(element,HTMLSelectElement,'select'))return false;
+    // Both native fallbacks can read descendant text. If a fallback is unsafe,
+    // the whole list is unread so approval cannot bind a silently blank label.
+    const withheld=node=>password(node)||insideWithheldButton(node)||unknownHistory(node)&&typedField(node);
+    return Array.from(element.options).some(option=>withheld(option)||
+      option.firstElementChild&&(!option.getAttribute('label')||!option.hasAttribute('value'))&&Array.from(option.querySelectorAll('*')).some(withheld));
+  }
+  const optionFacts=option=>({label:optionLabel(option),value:String(option.value??''),chosen:option.selected===true,disabled:!!option.matches(':disabled')});
   const composedChildren=node=>{const assigned=node.localName==='slot'?node.assignedNodes?.():null;return assigned?.length?assigned:shadow(node)?.childNodes||node.childNodes;};
   // Fills a node's own facts. True when the element's content is its value or
   // nothing the outline reads, so its children get no nodes.
@@ -402,8 +436,9 @@
     }
     if(tag==='iframe'){const frame=chrome.runtime.getFrameId?.(node);if(Number.isInteger(frame)&&frame>0)out.frame=frame;return true;}
     if(tag==='select'){
+      if(unreadOptions(node)){out.unread=true;return true;}
       const options=[...node.options];
-      out.option_count=options.length;out.chosen=options.filter(option=>option.selected).map(option=>squeeze(text(option))).join(', ');
+      out.option_count=options.length;out.chosen=options.filter(option=>option.selected).map(optionLabel).join(', ');
       out.options=options.slice(0,OPTION_LIMIT).map(optionFacts);
       return true;
     }
@@ -419,10 +454,52 @@
     }
     return input||tag==='img'||tag==='progress'||tag==='meter';
   }
+  // Brief 28a, items 0 and 2: page text as the native wire repairs it (lone
+  // surrogates become U+FFFD, valid pairs stay), for the fingerprint's hash only.
+  const wellFormed=value=>typeof value.toWellFormed==='function'?value.toWellFormed():Array.from(value,c=>c.length===1&&c.charCodeAt(0)>=0xd800&&c.charCodeAt(0)<=0xdfff?'\ufffd':c).join('');
+  // Brief 28a, item 2: what an element means, for the check before an action.
+  // `outline` (every node), `facts` (the target) and `observe` (the element
+  // acted on) all take it from here, so the read and the check can't drift
+  // apart. It is taken from the element, not from a line: a name or value a
+  // line cut, and a link's whole address, count whole. Left out on purpose:
+  // where the element sits (its box, on screen or not) and the states
+  // disabled, required and invalid. A password-kind field means only that it
+  // is one, and an unread field only that it is unread: nothing the password
+  // rule keeps out is read for it.
+  function meaning(element){
+    if(password(element))return ['password'];
+    const tag=element.localName,kind=outlineRole(element,tag),aria=key=>element.getAttribute('aria-'+key),native=element.namespaceURI===XHTML;
+    const dialog=element.closest('dialog,[role=dialog],[role=alertdialog]');
+    let value=null;
+    if(html(element,HTMLInputElement,'input')&&element.type==='file')value=['files',[...element.files].map(file=>String(file.name))];
+    else{const safe=safeValue(element,false);if(safe.password)return ['password'];if(safe.unknown_history)value=['unread'];else if('value' in safe)value=['value',safe.value];}
+    return [kind,name(element,contentNamed.has(kind)),element.labels?.length?squeeze([...element.labels].map(node=>text(node,true)).join(' ')):'',element.getAttribute('title')||'',
+      hyperlinkAddress(element),hyperlink(element)?browsingTarget(element,'target'):null,submitsForm(element),!!implicitSubmitter(element),editableTarget(element),searchTarget(element),
+      dialog?[id(dialog),role(dialog)]:null,
+      native&&tag==='input'&&['checkbox','radio'].includes(element.type)?element.checked===true:aria('checked'),
+      native&&tag==='option'?element.selected===true:aria('selected'),
+      native&&tag==='details'?element.open===true:aria('expanded'),
+      html(element,HTMLSelectElement,'select')?[...element.options].map(option=>{const facts=optionFacts(option);return [facts.label,facts.value,facts.chosen];}):null,
+      value];
+  }
+  // Its short digest: 128 bits of SHA-256 over the repaired JSON of `meaning`.
+  // The service only stores and compares these.
+  let fingerprintEncoder;
+  function fingerprint(element){
+    const text=JSON.stringify(meaning(element),(key,value)=>typeof value==='string'?wellFormed(value):value);
+    // Sibling containers often have identical meanings. Read every element
+    // freshly, but hash each distinct byte string only once in this outline.
+    const known=outlineMemo?.digests.get(text);
+    if(known!==undefined)return known;
+    const digest=sha256((fingerprintEncoder??=new TextEncoder()).encode(text)).slice(0,32);
+    outlineMemo?.digests.set(text,digest);
+    return digest;
+  }
   function outline(budget){
     // The background passes what is left of the tab's nodes; a frame never gets more than the limit.
     const limit=Number.isInteger(budget)&&budget>=0?Math.min(budget,NODE_LIMIT):NODE_LIMIT;
     const mark=traces.length;
+    outlineMemo={forms:new Map(),digests:new Map()};
     try{
       let modal=null;const errors=new Set();
       for(const element of all()){
@@ -440,7 +517,14 @@
         const style=getComputedStyle(node);
         // A form's named controls can shadow hidden with an element. Read the
         // native state so a control called "hidden" cannot hide its form.
-        if(html(node,HTMLElement)&&(elementHidden?elementHidden.call(node):node.hidden)||style.display==='none'||style.visibility==='hidden')return;
+        if(html(node,HTMLElement)&&(elementHidden?elementHidden.call(node):node.hidden)||style.visibility==='hidden')return;
+        if(tag==='area'&&hyperlink(node)){
+          // Chrome gives the area no layout box. Its hit region belongs to the image.
+          const image=mappedImage(node);
+          if(!image||image.hidden||getComputedStyle(image).visibility!=='visible')return;
+          const {width,height}=elementBox(node,image);
+          if(!width||!height)return;
+        }else if(style.display==='none')return;
         if(kept){flush(owner);const label=name(node,false);owner.parts.push({element:node,out:{role:'password',...(label?{name:label}:{}),unread:true},parts:[]});return;}
         if(tag==='br'){owner.run+=owner.pre?'\n':' ';return;}
         const role=outlineRole(node,tag);
@@ -461,7 +545,7 @@
       // Document order: a parent stands before its children.
       function emit(record,parent){
         if(nodes.length>=limit){lost(record);return false;}
-        const out={id:number(record.element),parent,...record.out};nodes.push(out);
+        const out={id:number(record.element),parent,...record.out,fingerprint:fingerprint(record.element)};nodes.push(out);
         const parts=[];
         for(const part of record.parts){
           if(typeof part==='string')parts.push(part);
@@ -476,7 +560,7 @@
       for(const part of top.parts)if(typeof part!=='string')emit(part,null);
       return {document:documentId,reader:readerInstance,watched,origin:globalThis.origin,url:location.href,title:document.title,
         scroll:Math.max(0,Math.round(scrollY)||0),height:Math.max(0,Math.round(document.documentElement?.scrollHeight)||0),omitted,nodes};
-    }finally{traces.length=mark;}
+    }finally{traces.length=mark;outlineMemo=null;}
   }
   // Every option of one list field, for a read of that field by its reference.
   // A number names an element only for the reader instance that gave it: a
@@ -484,7 +568,7 @@
   function fieldOptions(message){
     if(message.document!==documentId||message.reader!==readerInstance)throw Error('stale_reference: the document or its reader is new; read again');
     const key=message.element,element=Number.isInteger(key)&&key>0?elements.get('e'+key):null;
-    if(!element?.isConnected||!html(element,HTMLSelectElement,'select')||password(element))throw Error('stale_reference: the list field is gone or is not read; read again');
+    if(!element?.isConnected||!html(element,HTMLSelectElement,'select')||password(element)||unreadOptions(element))throw Error('stale_reference: the list field is gone or is not read; read again');
     return [...element.options].map(optionFacts);
   }
   // The reader's part of page_state: what moves whenever a read of this
@@ -516,7 +600,7 @@
     const safe=safeValue(element);
     return {element: id(element), name: element.getAttribute('name') || '', label: name(element), type: element.type || element.getAttribute('role') || 'editable',
       hidden: element.type === 'hidden', checked:!!element.checked, disabled:element.matches(':disabled'), multiple:!!element.multiple, readOnly:!!element.readOnly, ...safe,
-      ...(html(element,HTMLSelectElement,'select') && !safe.password ? {options: [...element.options].map(option => ({label: text(option), value: option.value, selected: option.selected, disabled: option.matches(':disabled')}))} : {})};
+      ...(html(element,HTMLSelectElement,'select') && !safe.password ? {options: [...element.options].map(option => ({label: optionLabel(option), value: option.value, selected: option.selected, disabled: option.matches(':disabled')}))} : {})};
   }
   function formFacts(form, submitter) {
     if (!form) return null;
@@ -531,7 +615,11 @@
   }
   function implicitSubmitter(element) {
     if(!(html(element,HTMLInputElement,'input')) || !element.form || ['button','submit','image','checkbox','radio','file','hidden','range','color'].includes(element.type))return null;
-    return [...element.getRootNode().querySelectorAll('button,input')].find(control=>control.form===element.form&&['submit','image'].includes(control.type)) || null;
+    const root=element.getRootNode(),forms=outlineMemo?.forms.get(root);
+    if(forms?.has(element.form))return forms.get(element.form);
+    const found=[...root.querySelectorAll('button,input')].find(control=>control.form===element.form&&['submit','image'].includes(control.type)) || null;
+    if(outlineMemo){if(!forms)outlineMemo.forms.set(root,new Map());outlineMemo.forms.get(root).set(element.form,found);}
+    return found;
   }
   function mappedImage(area){
     if(area.tagName!=='AREA')return null;
@@ -547,9 +635,9 @@
     if(shape==='poly'&&coords.length>=6&&coords.length%2===0){let inside=false;for(let i=0,j=coords.length-2;i<coords.length;j=i,i+=2)if((coords[i+1]>y)!==(coords[j+1]>y)&&x<(coords[j]-coords[i])*(y-coords[i+1])/(coords[j+1]-coords[i+1])+coords[i])inside=!inside;return inside;}
     return false;
   }
-  function targetFacts(element) {
+  // Where an element is on the screen; an image map's area lies inside its image.
+  function elementBox(element,image=mappedImage(element)) {
     let box = element.getBoundingClientRect();
-    const image=mappedImage(element);
     if(image){
       const bounds=image.getBoundingClientRect(),shape=(element.getAttribute('shape')||'rect').toLowerCase(),coords=(element.getAttribute('coords')||'').split(/[ ,]+/).map(Number);
       let left=0,top=0,right=bounds.width,bottom=bounds.height;
@@ -561,10 +649,20 @@
       left=Math.max(0,left);top=Math.max(0,top);right=Math.min(bounds.width,right);bottom=Math.min(bounds.height,bottom);
       box={x:bounds.x+left,y:bounds.y+top,width:Math.max(0,right-left),height:Math.max(0,bottom-top),top:bounds.y+top,left:bounds.x+left,right:bounds.x+right,bottom:bounds.y+bottom};
     }
-    const value = safeValue(element);
-    const clickControl=['BUTTON','A','AREA','SUMMARY'].includes(element.tagName) || hyperlink(element) ||
+    return box;
+  }
+  // Brief 20's three kinds of a target, for its facts and its fingerprint alike.
+  function clickControl(element) {
+    return ['BUTTON','A','AREA','SUMMARY'].includes(element.tagName) || hyperlink(element) ||
       html(element,HTMLInputElement,'input') && ['button','submit','image','checkbox','radio','range','color','file','reset'].includes(element.type) ||
       (element.getAttribute('role')||'').toLowerCase().split(/\s+/).some(role=>['button','link','menuitem','menuitemcheckbox','menuitemradio','checkbox','radio','switch','option','tab','treeitem'].includes(role));
+  }
+  const editableTarget=element=>!clickControl(element) && (html(element,HTMLInputElement,'input') && !['button','submit','image','checkbox','radio','file','hidden'].includes(element.type) || html(element,HTMLTextAreaElement,'textarea') || element.isContentEditable);
+  const searchTarget=element=>element.type === 'search' || element.getAttribute('role') === 'searchbox';
+  const submitsForm=element=>!!element.form && (element.type === 'submit' || element.type === 'image');
+  function targetFacts(element) {
+    const box = elementBox(element);
+    const value = safeValue(element);
     const dialog=element.closest('dialog,[role=dialog],[role=alertdialog]');
     const page_dialog=dialog ? {element:id(dialog),kind:role(dialog),text:text(dialog).replace(/\s+/g,' ').trim(),button:name(element),fields:[...dialog.querySelectorAll('input,textarea,select,[contenteditable]')].map(field)} : null;
     return {element: id(element), role: role(element), page_dialog, name: name(element), label:element.labels?.length?[...element.labels].map(node=>text(node,true)).join(' ').replace(/\s+/g,' ').trim():name(element), title: element.getAttribute('title') || '', ...value,
@@ -572,8 +670,8 @@
       ...(implicitSubmitter(element) ? {implicit_submitter:id(implicitSubmitter(element))}:{}),
       href: hyperlinkAddress(element),
       ...(hyperlink(element)?{browsing_target:browsingTarget(element,'target')}:{}),
-      editable: !clickControl && (html(element,HTMLInputElement,'input') && !['button','submit','image','checkbox','radio','file','hidden'].includes(element.type) || html(element,HTMLTextAreaElement,'textarea') || element.isContentEditable),
-      search: element.type === 'search' || element.getAttribute('role') === 'searchbox', submit: !!element.form && (element.type === 'submit' || element.type === 'image'),
+      editable: editableTarget(element), ...(withheldButtonText(element)?{name_withheld:true}:{}),
+      search: searchTarget(element), submit: submitsForm(element),
       states: {checked: !!element.checked, selected: !!element.selected, disabled: !!element.disabled, required: !!element.required, invalid: element.getAttribute('aria-invalid') === 'true', expanded: element.getAttribute('aria-expanded')},
       box: {x:box.x,y:box.y,width:box.width,height:box.height}, onscreen: box.bottom > 0 && box.right > 0 && box.top < innerHeight && box.left < innerWidth && box.width > 0 && box.height > 0};
   }
@@ -616,8 +714,8 @@
       }
     }
     function visit(node,space='normal',visible=true){
-      if(node.nodeType===Node.TEXT_NODE){if(visible&&(!node.parentElement||!password(node.parentElement)))append(node.textContent,space);return;}
-      if(!(isElement(node))||password(node)||['SCRIPT','STYLE','NOSCRIPT','INPUT','SELECT'].includes(node.tagName))return;
+      if(node.nodeType===Node.TEXT_NODE){if(visible&&(!node.parentElement||!insideWithheldButton(node.parentElement)&&!password(node.parentElement)))append(node.textContent,space);return;}
+      if(!(isElement(node))||insideWithheldButton(node)||password(node)||['SCRIPT','STYLE','NOSCRIPT','INPUT','SELECT'].includes(node.tagName))return;
       const style=getComputedStyle(node);
       if(style.display==='none')return;
       visible=style.visibility!=='hidden'&&style.visibility!=='collapse';
@@ -685,6 +783,11 @@
     for(let node=actual;node;node=node.parentElement || node.getRootNode().host)if(node===element)return true;
     return false;
   }
+  function viewDigest(rows) {
+    // Compare the same repaired row facts for an internal recheck without sending the rows.
+    const encoded = JSON.stringify(rows, (key, value) => typeof value === 'string' ? wellFormed(value) : value);
+    return sha256((fingerprintEncoder ??= new TextEncoder()).encode(encoded));
+  }
   function snapshot(elementId) {
     const element = elementId ? elements.get(elementId) : null;
     if (elementId && (!element || !element.isConnected)) throw Error('stale_reference: element is gone; read again');
@@ -693,7 +796,7 @@
       const facts = targetFacts(node);
       // Native controls already went through safeValue; their child text is not a fallback name.
       if (facts.role === 'generic' && !node.isContentEditable && !['INPUT','TEXTAREA','SELECT','BUTTON'].includes(node.tagName)) {
-        if(password(node))return null;
+        if(insideWithheldButton(node)||password(node))return null;
         const own=[...node.childNodes].filter(child=>child.nodeType===Node.TEXT_NODE).map(child=>child.textContent).join(' ').replace(/\s+/g,' ').trim();
         if(!own || password(node) || node.hidden || getComputedStyle(node).display==='none' || getComputedStyle(node).visibility==='hidden')return null;
         facts.role='text';facts.name=own;
@@ -702,8 +805,10 @@
       return {...facts, text: ['textbox','combobox','button','link','iframe'].includes(facts.role) ? '' : text(node).replace(/\s+/g, ' ').trim()};
     }).filter(Boolean);
     const editable = nodes.filter(node => node.matches('input,textarea,select,[contenteditable]') && !['hidden','button','submit','reset','image','file'].includes(node.type)).map(field);
-    return {document: documentId, revision, url: location.href, origin:globalThis.origin, title: document.title, scroll: {x:scrollX,y:scrollY}, rows,
-      target: element ? targetFacts(element) : null, form: element ? formFacts(element.form || (element.tagName === 'FORM' ? element : null), implicitSubmitter(element) || element) : null,
+    // Brief 28a, item 2: `facts` also says which reader instance numbered the
+    // element, and gives the target's fingerprint beside its facts.
+    return {document: documentId, reader: readerInstance, revision, url: location.href, origin:globalThis.origin, title: document.title, scroll: {x:scrollX,y:scrollY}, view_digest: viewDigest(rows),
+      target: element ? targetFacts(element) : null, ...(element ? {fingerprint: fingerprint(element)} : {}), form: element ? formFacts(element.form || (element.tagName === 'FORM' ? element : null), implicitSubmitter(element) || element) : null,
       editable, typed_fields:typedFields(), compose:element?composeText(element,nodes):null, selected_files:nodes.filter(node=>html(node,HTMLInputElement,'input')&&node.type==='file').map(field), embeds:nodes.filter(node=>node.tagName==='IFRAME').map(embedding), item: element ? itemText(element) : '', item_fields:element?itemFields(element,nodes):[], adapter: adapterRead(nodes, element), trace: traces.splice(0)};
   }
   function adapterRead(nodes, target) {
@@ -753,7 +858,9 @@
   const typist=node=>{const marks=guard.typedBy?.(node);return marks?.claude&&!marks.owner&&marks.release===guard.typingReleases&&guard.typingUnconfirmed?.(node)===false?'Claude':'the owner';};
   function reloadState(){
     const fields=[];let claudeOnly=true;
-    const add=(label,node)=>{const by=typist(node);if(by!=='Claude')claudeOnly=false;fields.push(label+' (typed by '+by+')');};
+    // Each field as data, never as one text (brief 28a, item 5b): its
+    // description is page text and travels apart from whose typing it is.
+    const add=(label,node)=>{const by=typist(node);if(by!=='Claude')claudeOnly=false;fields.push({description:label,by:by==='Claude'?'claude':'owner'});};
     // The guard has listened since before page scripts in a watched document,
     // unless a release left a gap; only then is "no input since load" known.
     // After that gap (a release and a retake of the same document without a
@@ -811,7 +918,7 @@
       else if (message.command === 'finish_input') { guard.finish(message.generation,message.dispatch_nonce).then(()=>reply({ok:true,data:{finished:true}})); return true; }
       else if (message.command === 'resume') { if(message.generation!==controlGeneration)throw Error('stale_reference: control ended'); value=guard.resume(message.hold,message.operation,message.element,message.form); }
       else if (message.command === 'set_control') { controlGeneration=message.generation;guard.control?.(message.generation); value={controlled:true}; }
-      else if (['focus','select','check','stage_file','install_file'].includes(message.command) && message.generation !== controlGeneration) throw Error('stale_reference: control ended');
+      else if (['focus','select','check','stage_file','install_file','reveal'].includes(message.command) && message.generation !== controlGeneration) throw Error('stale_reference: control ended');
       if (message.command === 'install_file') {
         const staged=files.get(message.token),element=elements.get(message.element);
         if(!staged?.ready || !element?.isConnected || element.type !== 'file')throw Error('stale_reference: upload field or staged bytes changed');
@@ -838,11 +945,25 @@
       else if (message.command === 'dispose') {value={disposed:true,restored:guard.dispose(),document:documentId}; }
       else if (['set_control','arm','resume'].includes(message.command)) {}
       else if (message.command === 'hit') value={hit:hit(elements.get(message.element),message.x,message.y)};
+      else if (message.command === 'reveal') {
+        // Brief 28a, item 5 ("On screen first"): inside the armed hold, a
+        // pointer input's target whose centre isn't on screen is scrolled to
+        // the centre at once. Brief 20's facts read and hit test follow.
+        const element=elements.get(message.element);
+        if(!element?.isConnected)throw Error('stale_reference: read again');
+        if(password(element))throw Error('owner_signin: password fields belong to the owner');
+        const box=elementBox(element),x=box.x+box.width/2,y=box.y+box.height/2,shown=box.width>0&&box.height>0&&x>=0&&y>=0&&x<innerWidth&&y<innerHeight;
+        if(!shown)(mappedImage(element)||element).scrollIntoView({block:'center',inline:'center',behavior:'instant'});
+        value={revealed:!shown};
+      }
       else if(message.command==='observe'){
         const node=elements.get(message.element);
         const actual=node?.isConnected?safeValue(node):{},observed=typeof actual.value==='string'?{value:actual.value.slice(0,2048),value_more:Math.max(0,actual.value.length-2048)}:Array.isArray(actual.value)?{value:actual.value.slice(0,3),value_more:Math.max(0,actual.value.length-3)}:actual;
         const clipboard=guard.clipboard?.();
-        value={url:location.href,title:document.title,...(clipboard?{clipboard}:{}),notices:all().filter(element=>element.matches('[role=status],[role=alert],dialog[open],[role=dialog],[role=alertdialog]')).slice(0,5).map(element=>text(element).slice(0,2048)),change:node?.isConnected?{element:id(node),name:name(node),checked:!!node.checked,selected:!!node.selected,...observed}: {element_present:false}};
+        // Brief 28a, item 2: the fingerprint of the element acted on, with the
+        // document and reader instance that numbered it, so the service moves
+        // the fingerprint only for that element.
+        value={url:location.href,title:document.title,...(clipboard?{clipboard}:{}),notices:all().filter(element=>element.matches('[role=status],[role=alert],dialog[open],[role=dialog],[role=alertdialog]')).slice(0,5).map(element=>text(element).slice(0,2048)),change:node?.isConnected?{element:id(node),name:name(node),checked:!!node.checked,selected:!!node.selected,...observed,document:documentId,reader:readerInstance,fingerprint:fingerprint(node)}: {element_present:false}};
         if(clipboard)guard.clipboard(true);
       }
       else if (message.command === 'reload_state') value=reloadState();
@@ -857,7 +978,7 @@
       else if (message.command === 'focus') {
         const element = elements.get(message.element);
         if (!element?.isConnected) throw Error('stale_reference: read again');
-        if (password(element)) throw Error('owner_signin: password fields belong to the owner');
+        if (password(element)||unreadOptions(element)) throw Error('owner_signin: password fields belong to the owner');
         // A fill or a key would overwrite what Claude can't see.
         if (typedField(element)&&unknownHistory(element)) throw Error('owner_signin: the tool may not read this field, so it does not type into it either; the owner types here himself');
         element.focus();
@@ -867,7 +988,7 @@
         value = {focused:true};
       } else if (message.command === 'select' || message.command === 'check') {
         const element = elements.get(message.element);
-        if (!element?.isConnected || password(element)) throw Error('stale_reference: read again');
+        if (!element?.isConnected || password(element)||unreadOptions(element)) throw Error('stale_reference: read again');
         guard.direct(message.element);
         if (message.command === 'select') {
           if(!(html(element,HTMLSelectElement,'select')) || element.matches(':disabled'))throw Error('refused: choose an enabled native select control');

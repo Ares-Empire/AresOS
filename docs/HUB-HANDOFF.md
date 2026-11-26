@@ -6,20 +6,25 @@ Written Fri 2026-11-20 13:50 by `linux-hub` (Claude Opus 5.5), before a clear at
 
 ## Resume here
 
-Updated Mon 2026-11-23 10:45 (by `date`) by `linux-hub`. R29 is cut around 27 Nov from whatever is on main then (`linux-aresos` sends a cut line a day ahead).
+Written Mon 2026-11-23 18:41 (by `date`) by `linux-hub`. **The hub is stopped on the owner's word (via `mac-capacity`, Mon ~18:20): start nothing, Claude or Codex, until he says when and how much.** Nothing of the hub is running: no Codex job, no agent and no scheduled check-in.
 
 1. **On main since R28:**
-   - B327 (try-out fixes, `4dd5288b`);
-   - B328a (the world keeps the pointer, `92cf365a`);
-   - B328 (two look-around prototypes behind `look = classic | click | edge`, `17211fb1`);
-   - the design note `docs/design/HOME-OUTSIDE.md` with home styles (this PR).
-2. **PR150 (B333, open apps and bring back, `aresos-shell/1.3`):** SAFE after six fix rounds; the launch cap now counts systemd's scopes (`reviews/333-open-apps/`). It conflicted with B328's pointer changes; the lead merged main into it by hand, so a small fresh review of that merge and green CI come before the merge.
-3. **Waiting for Codex's reset (Wed ~14:49):**
-   - edge mode's up/down arrows (it can look up but not back down; before the owner's trial);
-   - the admission listing's timeout cut from 5 s to about 1 s (RECHECK-6, nit 6).
-4. **The owner's decisions (2026-11-22):** home styles, with a fresh AresOS starting on a normal picture home (T493); icons dragged freely with an alignment setting (T494); a starter icon column (T498); "switchable" as a guideline, built as a fourth look, "Normal". All of it is in HOME-OUTSIDE.
-5. **Next for the hub:** the owner's trial of the look modes (`hub-try --outputs 2`, after the arrows); HOME-OUTSIDE's package 1 with `linux-aresos` and package 6 (search outside); T364's study for the gates; board T486 (Alt+Tab then Esc leaves the world without keys) and T515 (build and run-hub take the client-test lock).
-6. **Budgets:** the Claude week ran tight (87% on Mon morning); Codex is empty until Wed ~14:49; the API promo is nearly spent until it refills around 29 Nov. Direct pushes to main are refused, so docs travel in PRs.
+   - B327 (try-out fixes);
+   - B328a (the world keeps the pointer);
+   - B328 (the look-around prototypes behind `look = classic | click | edge`, classic by default);
+   - HOME-OUTSIDE revision 2.
+
+   All of it rides R29 (cut about 27 Nov, `linux-aresos`).
+2. **PR150, B333 (open apps and bring back, `aresos-shell/1.3`):** reviewed SAFE, plus a SAFE review of the lead's hand merge of main into it.
+   - **What blocks it:** `ClickToLookClientGameTest`'s native check fails in 2 of 3 runs on the merged branch. The camera doesn't turn on the first motion. Main and 328's own branch are green, and 333 touches no motion path, so the likely cause is moves sent before the pointer lock is live.
+   - **The fix** is ready as a Codex prompt (`~/AresOS-333-fix-7.prompt.txt`): steady the test, add a unit test, fix three comments, run two full passes. Then a targeted recheck and the merge. If R29 is cut first, it rides R30.
+3. **PR171, HOME-OUTSIDE revision 4 (home styles):** the owner's T493, T494 and T498, plus "switchable" as the "Normal" look. Rechecks found one last point, which the lead fixed in `b9febd1b`: a `set` after a failed settings read keeps `home = minecraft`. That fix needs one tiny targeted recheck, then the merge. It is docs only.
+4. **Follow-ups (board T528, T529, T515, T486):**
+   - edge mode's up/down arrows (it can look up but not back down), before the owner's trial;
+   - the admission listing's timeout from 5 s to 1 s;
+   - build and run-hub taking the client-test lock;
+   - Alt+Tab then Esc leaving the world without keys.
+5. **Budgets when this stopped:** the Claude week was at 90%. Codex was empty until Wed ~14:49. The API key is refused until 1 Dec (the org's $200 monthly limit).
 
 ## Where things stand
 

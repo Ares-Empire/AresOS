@@ -23,6 +23,10 @@ const dialogOpenings=new WeakMap();
 const nativeDialogStarts=new Map(),nativeDialogEnds=new Map();
 const preloadTargets=new Map();
 const releasing=new Map(),admissions=new Map();
+// Brief 28a, item 6: whose a tab is follows from who opened it. Claude's are the tabs
+// chrome_open created and those a tab under Claude's control opened; every other tab is
+// the owner's, also while it is taken. Kept for as long as the tab lives.
+const claudeOpened=new Set();
 let stopGeneration=0;
 let badgeUpdates=Promise.resolve();
 const badgedTabs=new Set();
@@ -108,6 +112,11 @@ async function prepareTarget(source,tab=source.tabId,targetId=null){
     // A second refusal, or any other error, ends the admission as before.
     if(!duplicateBreakpoint(error))throw error;
     if(recording)audit({breakpoint_rearmed:{tab,target:targetId,session:source.sessionId||null}});
+    // Brief 28a, item 5a: the disable below may resume a pause whose event is
+    // still on its way, and the re-armed breakpoint keeps that pause's id. No
+    // allowed DevTools method can show that a pause still holds, so the first
+    // install from a pause after this counts as late (see preloadEvent).
+    state.rearmed=true;
     await targetCommand(state,'Debugger.disable');
     await targetCommand(state,'Debugger.enable');
     breakpoint=await targetCommand(state,'Debugger.setBreakpointByUrl',startupBreakpoint());
@@ -213,9 +222,20 @@ async function preloadEvent(source,method,params){
     if(!context.uniqueId)throw Error('refused: startup document identity is unavailable');
     startup={main,isolated:context};
     if(state.documents.has(main.uniqueId))return;
+    // Brief 28a, item 5a: a pause that can't be shown to still hold counts its
+    // document as not watched from its start. Pause events and command replies
+    // travel apart, so a pause the re-arm's Debugger.disable resumed can arrive
+    // late, from the document that is still current, with the re-armed
+    // breakpoint's id: nothing the allowed methods can ask tells it apart from
+    // a live one. So the first install from a pause after a re-arm is `late`:
+    // no document-start mark (the reader shows its typed fields as filled, not
+    // read) and not preloaded (it gets the guarded reload before any input).
+    // Decided before the first await, in the order the pauses arrived; the
+    // next document, after that reload, installs at its start again.
+    const late=state.rearmed===true;state.rearmed=false;
     const [guard,reader,page]=await bundle();
     assertTarget(state);
-    const isolated=await documentCommand('Runtime.evaluate',{contextId:context.id,expression:'if(chrome.runtime.id!=='+JSON.stringify(chrome.runtime.id)+')throw Error("Unrelated isolated world");\n'+guard+'\nglobalThis[Symbol.for("aresos.chrome.document-start.v1")]=true;\n'+reader+'\n;globalThis[Symbol.for("aresos.chrome.guard.v2")].identity()',returnByValue:true,disableBreaks:true});
+    const isolated=await documentCommand('Runtime.evaluate',{contextId:context.id,expression:'if(chrome.runtime.id!=='+JSON.stringify(chrome.runtime.id)+')throw Error("Unrelated isolated world");\n'+guard+(late?'':'\nglobalThis[Symbol.for("aresos.chrome.document-start.v1")]=true;')+'\n'+reader+'\n;globalThis[Symbol.for("aresos.chrome.guard.v2")].identity()',returnByValue:true,disableBreaks:true});
     if(isolated.exceptionDetails||typeof isolated.result?.value!=='string')throw Error('refused: isolated guard did not initialize before page scripts');
     // DOM.resolveNode without an executionContextId resolves in this node's MAIN
     // world. No Runtime subscription, page global or console payload is needed.
@@ -226,7 +246,7 @@ async function preloadEvent(source,method,params){
     const wrapped=await documentCommand('Runtime.callFunctionOn',{objectId:mainNode.object.objectId,functionDeclaration:'function(){return (\n'+page.trim().replace(/;$/, '')+'\n);}',silent:true});
     const mainContext=state.factoryContexts.get(context.auxData.frameId);state.factoryContexts.delete(context.auxData.frameId);
     if(wrapped.exceptionDetails||!wrapped.result?.objectId)throw Error('refused: page wrappers did not initialize before page scripts');
-    const installed={install:'document_start',document:isolated.result.value,frameId:context.auxData.frameId,main:main.uniqueId,isolated:context.uniqueId,cleanup:wrapped.result.objectId,mainContext,relayKey:'data-aresos-'+crypto.randomUUID(),relayValue:crypto.randomUUID(),ready:false};state.documents.set(main.uniqueId,installed);
+    const installed={install:late?'late':'document_start',document:isolated.result.value,frameId:context.auxData.frameId,main:main.uniqueId,isolated:context.uniqueId,cleanup:wrapped.result.objectId,mainContext,relayKey:'data-aresos-'+crypto.randomUUID(),relayValue:crypto.randomUUID(),ready:false};state.documents.set(main.uniqueId,installed);
     assertTarget(state);
     const relay=await documentCommand('Runtime.callFunctionOn',{objectId:installed.cleanup,functionDeclaration:'function(){return this.relay;}'});
     await documentCommand('Runtime.callFunctionOn',{objectId:installed.cleanup,functionDeclaration:'function(key,value){return this.identify(key,value);}',arguments:[{value:installed.relayKey},{value:installed.relayValue}],returnByValue:true});
@@ -258,7 +278,8 @@ async function preloadEvent(source,method,params){
 function installRecord(){
   return [...preloadTargets.values()].filter(state=>controlled.get(state.tab)?.epoch===state.epoch).flatMap(state=>[...state.documents.values()].map(doc=>({tab:state.tab,document:doc.document,install:doc.install,ready:doc.ready===true})));
 }
-function isPreloaded(tab,document){return [...preloadTargets.values()].some(state=>state.tab===tab&&[...state.documents.values()].some(value=>value.ready&&value.document===document));}
+// Watched from its start: installed from a pause that counts (item 5a), and ready.
+function isPreloaded(tab,document){return [...preloadTargets.values()].some(state=>state.tab===tab&&[...state.documents.values()].some(value=>value.ready&&value.install==='document_start'&&value.document===document));}
 function armedDocument(tab,document,nonce){for(const state of preloadTargets.values())if(state.tab===tab)for(const doc of state.documents.values())if(doc.document===document)doc.activeNonce=nonce;}
 function retireNativeDialog(tab,document,token){
   const ended=JSON.stringify([tab,document,token]);nativeDialogEnds.delete(ended);nativeDialogEnds.set(ended,true);
@@ -557,10 +578,24 @@ async function admitTab(tab,generation,opener=null) {
     throw error;
   }
 }
-async function createdTarget({sourceTabId,tabId}){
+// Brief 28a, item 5a (brief 20-popup-race's P3): the popups an input opened
+// are named in its reply, with their admission's outcome. An input watches its
+// tab from its dispatch to the end of its hold; a popup whose opener and frame
+// are the input's, created in that window, is the input's. Admission is as
+// before; only its outcome is carried, through dispatch's result.
+const popupWatches=new Map();
+async function createdTarget({sourceTabId,sourceFrameId,tabId}){
   const parent=controlled.get(sourceTabId);if(!parent)return;
-  try{await take(tabId,{tab:sourceTabId,epoch:parent.epoch});}
-  catch(error){respond({event:'reader_error',error:String(error),tab:tabId});}
+  claudeOpened.add(tabId);
+  const watch=popupWatches.get(sourceTabId),named=watch&&watch.epoch===parent.epoch&&sourceFrameId===watch.frame?{tab:tabId,controlled:'pending'}:null;
+  if(named)watch.popups.push(named);
+  try{await take(tabId,{tab:sourceTabId,epoch:parent.epoch});if(named)named.controlled=true;}
+  catch(error){if(named)named.controlled=false;respond({event:'reader_error',error:String(error),tab:tabId});}
+}
+// What the reply says of each: its number, the outcome when the hold ended,
+// and its address (the service writes it in the short form). Nothing of its content.
+function namedPopups(watch){
+  return Promise.all((watch?.popups||[]).map(async({tab,controlled})=>{let url='';try{const current=await chrome.tabs.get(tab);url=current.url||current.pendingUrl||'';}catch{}return {tab,controlled,url};}));
 }
 async function content(tab, frame, command, parameters={},browserDocument=null,expires=null) {
   const effectful=['focus','select','check','install_file'].includes(command);
@@ -695,29 +730,54 @@ async function reloadIdentity(tab){
 // input's guarded reload, navigate (reload, back, forward or address) and
 // close_tab. It names fields by label, never their values, marks whose typing
 // each is, says whether media is playing, and does nothing unless the call
-// says discard_unsaved=true.
+// says discard_unsaved=true. Labels are page text, so they never enter the
+// error's message (brief 28a, item 5b): the refusal is the bare code, and the
+// report goes beside it as data, bounded, for the service to put under
+// untrusted_content.loss with its own fixed sentence.
+const LOSS_FIELDS=10;
+// Item 3b: descriptions that read the same after item 0's repair (unlabelled
+// fields of one kind among them) get their position among them, counted over
+// every frame in order and before the cut, so no two fields of a report read alike.
+function distinctDescriptions(fields){
+  const totals=new Map(),seen=new Map();
+  for(const field of fields){const key=wellFormed(field.description);totals.set(key,(totals.get(key)||0)+1);}
+  for(const field of fields){
+    const key=wellFormed(field.description),total=totals.get(key);
+    if(total>1){seen.set(key,(seen.get(key)||0)+1);field.description+=' ('+seen.get(key)+' of '+total+')';}
+  }
+  return fields;
+}
+// The report itself, read only: it discards, reloads and dispatches nothing.
+// requireDiscard refuses with it; chrome_take without reload returns it
+// (`loss_report`, brief 28a item 6), so Claude sees what a reload would lose.
+async function discardReport(tab,act,frames,uninspected=0){
+  const fields=[];let media=!!(await chrome.tabs.get(tab)).audible;
+  for(const frame of frames){
+    try{const state=await content(tab,frame.frameId,'reload_state');
+      const own=(state.fields||[]).map(field=>({description:typeof field?.description==='string'&&field.description?field.description:'an undescribed field',by:field?.by==='claude'?'claude':'owner'}));
+      if(state.unsaved&&!own.length)own.push({description:'editable content',by:state.claude_only===true?'claude':'owner'});
+      // Only typing the reader marks as all Claude's is his; anything else may be the owner's.
+      if(state.unsaved&&state.claude_only!==true&&!own.some(field=>field.by==='owner'))for(const field of own)field.by='owner';
+      fields.push(...own);media ||= !!state.playing;}
+    // Navigation uses the fresh-tab exception. A blank popup can hold a draft
+    // at the same address, so closing always needs an inspection or discard.
+    catch(error){if(act==='close'||!(error.readerUnavailable&&frame.frameId===0&&frame.url==='about:blank'))uninspected++;}
+  }
+  const owner_work_present=fields.some(field=>field.by==='owner');
+  return {act,fields:distinctDescriptions(fields).slice(0,LOSS_FIELDS),more_fields:Math.max(0,fields.length-LOSS_FIELDS),frames_uninspected:uninspected,media,owner_work_present};
+}
 async function requireDiscard(tab,command,act,frames,uninspected=0){
   if(command.discard_unsaved===true)return;
-  const fields=[];let playing=!!(await chrome.tabs.get(tab)).audible,ownerTyping=false;
-  for(const frame of frames){
-    try{const state=await content(tab,frame.frameId,'reload_state');fields.push(...(state.fields||[]));if(state.unsaved&&!state.fields?.length)fields.push('editable content');playing ||= state.playing;
-      // Only typing the reader marks as all Claude's is his; anything else may be the owner's.
-      if(state.unsaved&&state.claude_only!==true)ownerTyping=true;}
-    // A tab Claude just opened shows about:blank with no reader; it holds nothing.
-    catch(error){if(!(error.readerUnavailable&&frame.frameId===0&&frame.url==='about:blank'))uninspected++;}
-  }
-  const found=[];
-  if(fields.length)found.push('unsaved typing in '+fields.slice(0,10).join(', ')+(fields.length>10?' and '+(fields.length-10)+' more fields':''));
-  if(uninspected)found.push(uninspected+(uninspected===1?' frame':' frames')+' that could not be inspected and may hold unsaved typing');
-  if(playing)found.push('media that is playing');
-  if(found.length)throw Error('reload_required: '+act+' would lose '+found.join('; and ')+'. Nothing was done. '+(ownerTyping||uninspected||playing?
-    'Tell the owner what would be lost and get his OK in the chat before you repeat with discard_unsaved=true; only typing marked as typed by Claude may be discarded without asking':
-    'All of it is Claude\'s own typing, so it may be discarded without asking: repeat with discard_unsaved=true'));
+  const report=await discardReport(tab,act,frames,uninspected);
+  if(!report.fields.length&&!report.frames_uninspected&&!report.media)return;
+  const error=Error('reload_required');
+  error.loss=report;
+  throw error;
 }
 async function reloadChecked(tab,initial,command){
   const current=await reloadIdentity(tab);
   if(initial&&stable(current)!==stable(initial))throw Error('stale_reference: the document changed before its guarded reload; read again');
-  await requireDiscard(tab,command,'Reloading this tab',current.frames.map(([frameId,,url])=>({frameId,url})));
+  await requireDiscard(tab,command,'reload',current.frames.map(([frameId,,url])=>({frameId,url})));
   const owner=controlled.get(tab),pending={frameId:current.frameId,document:current.frames.find(frame=>frame[0]===0)?.[1]};owner.getReload=pending;
   try{await cdp(tab,'Page.reload',{loaderId:current.loaderId});owner.popupNeedsReload=false;}catch(error){if(owner.getReload===pending)delete owner.getReload;throw error;}
 }
@@ -727,7 +787,7 @@ async function release(tab) {
   if(!original)return {released:tab};
   const children=[...controlled].filter(([child,value])=>child!==tab&&(value.debuggee?.tabId===tab||value.parentTab===tab)).map(([child])=>child);
   if(original){const key=JSON.stringify([tab,original.epoch]);retiredControls.set(key,original);while(retiredControls.size>32)retiredControls.delete(retiredControls.keys().next().value);setTimeout(()=>{if(retiredControls.get(key)===original)retiredControls.delete(key);},900000);}
-  controlled.delete(tab); dialogs.delete(tab);confirmationPlans.delete(tab);
+  controlled.delete(tab); dialogs.delete(tab);confirmationPlans.delete(tab);popupWatches.delete(tab);
   clearTimeout(networkHolds.get(tab)?.timer);networkHolds.delete(tab);
   for(const key of nativeDialogStarts.keys())if(key.startsWith('['+tab+','))nativeDialogStarts.delete(key);
   for(const key of nativeDialogEnds.keys())if(key.startsWith('['+tab+','))nativeDialogEnds.delete(key);
@@ -869,7 +929,8 @@ async function outlineView(tab,expires=null){
   const text=value=>typeof value==='string'?value:'';
   return {session,tab,control:snapshot.control,url:text(snapshot.url),title:text(snapshot.title),...(snapshot.effective_url?{effective_url:snapshot.effective_url}:{}),
     needs_reload:snapshot.needs_reload===true,uncovered:snapshot.uncovered||[],
-    dialog:snapshot.dialog?{kind:text(snapshot.dialog.kind)||'dialog',text:text(snapshot.dialog.text)}:null,frames};
+    dialog:snapshot.dialog?{kind:text(snapshot.dialog.kind)||'dialog',text:text(snapshot.dialog.text),
+      frame:snapshot.dialog.frame,frame_url:snapshot.dialog.frame_url,effective_url:snapshot.dialog.effective_url}:null,frames};
 }
 // Every option of one list field. The reference names the reader's document
 // and instance; only a document an outline has read is asked.
@@ -918,7 +979,7 @@ async function pageState(tab,expires=null){
   if(dialogs.has(tab))return {...base,dialog:true};
   return {...base,dialog:false,document:frames.find(frame=>frame.frameId===0)?.documentId||null,ready,token:await sha256Hex(JSON.stringify(parts))};
 }
-const WITHHELD_FORM='this form holds unread typed text; send it yourself, or reload the tab first with chrome_navigate direction=reload (it reports unsaved text first), then read it again';
+const WITHHELD_FORM='this form holds unread typed text; send it yourself, or reload the tab first using chrome_go with to: reload (it reports unsaved text first), then read it again';
 function refuseWithheldSubmission(snapshot,reference,command){
   const frame=snapshot.frames.find(frame=>frame.frame===reference.frame),target=frame?.target;
   const verb=command.input?.verb,key=command.input?.key?.split('+').at(-1);
@@ -942,10 +1003,10 @@ function binding(facts, reference, kind, adapter) {
     adapter:adapter ? frame.adapter:null,dialog:facts.dialog};
 }
 const stable = value => JSON.stringify(value, function(key,value) { return value && !Array.isArray(value) && typeof value === 'object' ? Object.fromEntries(Object.entries(value).sort(([a],[b])=>a.localeCompare(b))) : value; });
-async function pointer(tab,snapshot,reference,target){
+async function pointer(tab,snapshot,reference,target,expires=null){
   let x=target.box.x+target.box.width/2,y=target.box.y+target.box.height/2;
   let child=snapshot.frames.find(frame=>frame.frame===reference.frame);
-  if(!(await content(tab,child.frame,'hit',{element:target.element,x,y})).hit)throw Error('stale_reference: another element covers the target');
+  if(!(await content(tab,child.frame,'hit',{element:target.element,x,y},null,expires)).hit)throw Error('stale_reference: another element covers the target');
   while(child.parent>=0){
     const parent=snapshot.frames.find(frame=>frame.frame===child.parent);
     if(!parent)throw Error('refused: parent frame is excluded');
@@ -956,7 +1017,7 @@ async function pointer(tab,snapshot,reference,target){
     if(!embed?.aligned || !embed.width || !embed.height)throw Error('refused: frame geometry cannot be established safely');
     x=embed.box.x+(x+embed.borderX)*embed.box.width/embed.width;
     y=embed.box.y+(y+embed.borderY)*embed.box.height/embed.height;
-    if(!(await content(tab,parent.frame,'hit',{element:embed.element,x,y})).hit)throw Error('stale_reference: parent frame is covered or moved');
+    if(!(await content(tab,parent.frame,'hit',{element:embed.element,x,y},null,expires)).hit)throw Error('stale_reference: parent frame is covered or moved');
     child=parent;
   }
   return {x,y};
@@ -988,14 +1049,7 @@ async function collection(command) {
     let items;
     if(command.name==='downloads')items=await chrome.downloads.search({limit:10001,query:command.text?[command.text]:[]});
     else if(command.name==='history')items=await chrome.history.search({text:command.text||'',startTime:0,maxResults:10001});
-    else if(command.name==='bookmarks')items=await chrome.bookmarks.search(command.text||{});
-    else {
-      const focused=new Set((await chrome.windows.getAll()).filter(window=>window.focused).map(window=>window.id));
-      // audible and muted are Chrome's own tab flags, the same `audible` the
-      // discard report reads, so Claude can see sound before closing or
-      // navigating a tab and a run can tell the flag apart from the report.
-      items=(await chrome.tabs.query({})).map(tab=>({tab:tab.id,window:tab.windowId,index:tab.index,active:tab.active,focused:focused.has(tab.windowId),title:tab.title,url:tab.url,controlled:controlled.has(tab.id)&&(controlled.get(tab.id).virtualGroup||tab.groupId===groupId),cleanup_pending:releasing.has(tab.id),audible:tab.audible===true,muted:tab.mutedInfo?.muted===true}));
-    }
+    else items=await chrome.bookmarks.search(command.text||{});
     if(items.length>10000 || JSON.stringify(items).length>8*1024*1024)throw Error('refused: this complete list exceeds the 10000-item or 8 MiB snapshot bound; narrow the search');
     const now=Date.now();record={id:crypto.randomUUID(),key,items,time:now,created:now};
     for(const [id,value]of listSnapshots)if(now-value.time>=300000 || now-value.created>=1800000)listSnapshots.delete(id);
@@ -1005,8 +1059,47 @@ async function collection(command) {
   const end=Math.min(record.items.length,offset+(command.limit||5));
   return {session,items:record.items.slice(offset,end),total:record.items.length,cursor:end<record.items.length?record.id+':'+end:null};
 }
+// Brief 28a, item 6: every tab of every normal window, and of the popup windows,
+// at once, with what chrome_tabs shows and what its `seen` record keeps: the
+// top document (Chrome's id; none for a tab asleep) and the full address. The
+// service writes the list and its addresses; nothing of a page is read here.
+const TABS_LIMIT=10000;
+async function everyTab(){
+  const windows=(await chrome.windows.getAll({populate:true,windowTypes:['normal','popup']})).filter(window=>['normal','popup'].includes(window.type));
+  if(windows.reduce((count,window)=>count+(window.tabs||[]).length,0)>TABS_LIMIT)throw Error('refused: more than 10000 tabs; close some first');
+  const tabs=[];
+  for(const window of windows)for(const tab of [...window.tabs||[]].sort((first,second)=>first.index-second.index)){
+    let document=null;
+    if(!tab.discarded)try{document=(await chrome.webNavigation.getFrame({tabId:tab.id,frameId:0}))?.documentId||null;}catch{}
+    const owner=controlled.get(tab.id);
+    tabs.push({tab:tab.id,window:window.id,popup:window.type==='popup',front:window.focused===true,active:tab.active===true,index:tab.index,
+      pinned:tab.pinned===true,audible:tab.audible===true,muted:tab.mutedInfo?.muted===true,asleep:tab.discarded===true,
+      title:typeof tab.title==='string'?tab.title:'',url:typeof tab.url==='string'?tab.url:'',document,
+      group:!!owner&&(owner.virtualGroup||tab.groupId===groupId),whose:claudeOpened.has(tab.id)?'claude':owner?'taken':'his'});
+  }
+  return {session,tabs};
+}
+// The tab still shows the page the list showed: its address, and its top
+// document unless it was asleep then. Checked before take attaches, moves,
+// reads or changes anything.
+const SEEN_CHANGED='stale_reference: this tab shows another page than the list did; list the tabs again';
+async function stillSeen(tab,seen){
+  if(!seen||typeof seen.url!=='string'||!(seen.document===null||typeof seen.document==='string'))throw Error(SEEN_CHANGED);
+  let current;try{current=await chrome.tabs.get(tab);}catch{throw Error(SEEN_CHANGED);}
+  if(current.url!==seen.url)throw Error(SEEN_CHANGED);
+  if(seen.document!==null){
+    let top=null;try{top=await chrome.webNavigation.getFrame({tabId:tab,frameId:0});}catch{}
+    if(!top||top.documentId!==seen.document)throw Error(SEEN_CHANGED);
+  }
+}
+// chrome_show: the tab shows in its window and that window comes to the front, for the owner to look.
+async function showTab(tab){
+  let current;try{current=await chrome.tabs.get(tab);}catch{throw Error('refused: no tab has this number; list the tabs');}
+  await chrome.tabs.update(tab,{active:true});await chrome.windows.update(current.windowId,{focused:true});
+  return {shown:tab,window:current.windowId};
+}
 // `expires` is the end of the command's time (brief 28, item 4), or null for a
-// command without one, which runs as before. Only the read's waits use it.
+// command without one, which runs as before.
 async function dispatch(command,expires=null) {
   const tab = command.tab ?? command.reference?.tab;
   const reference = command.reference;
@@ -1026,13 +1119,15 @@ async function dispatch(command,expires=null) {
   }
   if(command.name==='queued_steps')return stepStates(tab).flatMap(current=>[...current.steps?.values()||[]]).slice(0,513);
   if(!excludedHosts)throw Error('refused: owner-only excluded-sites setting is unavailable');
-  if (['tabs','downloads','history','bookmarks'].includes(command.name))return collection(command);
-  if (command.name === 'take_tab') return take(tab);
+  if(command.name==='tabs')return everyTab();
+  if(command.name==='show')return showTab(tab);
+  if (['downloads','history','bookmarks'].includes(command.name))return collection(command);
+  if (command.name === 'take_tab') { if(command.seen!==undefined)await stillSeen(tab,command.seen); return take(tab); }
   if (command.name === 'release_tab') return release(tab);
   if (command.name === 'stop') return stop();
   if (command.name === 'open') {
     safeURL(command.url);
-    effectStarted=true;const created=await chrome.tabs.create({url:'about:blank'});
+    effectStarted=true;const created=await chrome.tabs.create({url:'about:blank'});claudeOpened.add(created.id);
     let current;
     for(let attempt=0;attempt<100;attempt++){current=await chrome.tabs.get(created.id);if(current.url)break;await new Promise(resolve=>setTimeout(resolve,20));}
     if(current?.url!=='about:blank')throw Error('unknown: the new private blank tab was not established; inspect tabs before opening again');
@@ -1125,19 +1220,33 @@ async function dispatch(command,expires=null) {
     }
     return {offset:stage.size};
   }
-  await requireTab(tab);dispatchEpoch=controlled.get(tab).epoch;
+  if(command.name==='close_tab'){
+    if(!claudeOpened.has(tab))throw Error('refused: only Claude-opened tabs can be closed');
+    const current=controlled.has(tab)?await requireTab(tab):await chrome.tabs.get(tab);
+    safeURL(current.url);
+    const frames=await chrome.webNavigation.getAllFrames({tabId:tab})||[];
+    await requireDiscard(tab,command,'close',frames,frames.length?0:1);
+    await release(tab);await chrome.tabs.remove(tab);return {closed:tab};
+  }
+  await requireTab(tab,['input','resume'].includes(command.name)?expires:null);dispatchEpoch=controlled.get(tab).epoch;
+  // Brief 28a, item 6: what the first input's guarded reload (prepare_control
+  // below) would lose, from the same frames and checks, without doing it.
+  if(command.name==='loss_report'){
+    const current=await facts(tab);
+    if(!current.needs_reload)return {reload_due:false};
+    return {reload_due:true,loss:await discardReport(tab,'first_input',current.frames.map(frame=>({frameId:frame.frame,url:frame.url})),current.uncovered?.length||0)};
+  }
   if(command.name==='prepare_control'){
     const current=await facts(tab);
     if(!current.needs_reload)return {ready:true};
     const initial=await reloadIdentity(tab);
     // Frames the reader couldn't cover count as possibly unsaved.
-    await requireDiscard(tab,command,'The guarded reload before this first input',current.frames.map(frame=>({frameId:frame.frame,url:frame.url})),current.uncovered?.length||0);
+    await requireDiscard(tab,command,'first_input',current.frames.map(frame=>({frameId:frame.frame,url:frame.url})),current.uncovered?.length||0);
     await reloadChecked(tab,initial,command);
     return {reloaded:true,message:'The taken tab reloaded to install its page guard before page scripts. Every old reference is stale; read again.'};
   }
-  if (command.name === 'close_tab') { await requireDiscard(tab,command,'Closing this tab',await chrome.webNavigation.getAllFrames({tabId:tab})||[]); await release(tab); await chrome.tabs.remove(tab); return {closed:tab}; }
   if (command.name === 'navigate') {
-    if (command.url) { safeURL(command.url);await requireDiscard(tab,command,'Navigating this tab away',await chrome.webNavigation.getAllFrames({tabId:tab})||[]);const navigated=await cdp(tab,'Page.navigate',{url:command.url});rememberGet(tab,navigated?.loaderId); }
+    if (command.url) { safeURL(command.url);await requireDiscard(tab,command,'navigate',await chrome.webNavigation.getAllFrames({tabId:tab})||[]);const navigated=await cdp(tab,'Page.navigate',{url:command.url});rememberGet(tab,navigated?.loaderId); }
     // Same unsaved-typing and playing-media report as the first input's reload.
     else if (command.direction === 'reload') await reloadChecked(tab,null,command);
     else {
@@ -1145,13 +1254,13 @@ async function dispatch(command,expires=null) {
       const entry = history.entries[history.currentIndex + (command.direction === 'back' ? -1:1)];
       if (!entry) throw Error('refused: no history entry in that direction');
       safeURL(entry.url);if(entry.transitionType==='form_submit')throw Error('refused: a form-loaded history entry may resubmit; open its address fresh in a Claude tab');
-      await requireDiscard(tab,command,command.direction==='back'?'Going back in this tab':'Going forward in this tab',await chrome.webNavigation.getAllFrames({tabId:tab})||[]);
+      await requireDiscard(tab,command,command.direction==='back'?'back':'forward',await chrome.webNavigation.getAllFrames({tabId:tab})||[]);
       await cdp(tab,'Page.navigateToHistoryEntry',{entryId:entry.id});
     }
     return {navigated:true,page:await observation(tab)};
   }
   if (command.name !== 'input' && command.name !== 'resume') throw Error('permission_denied: unknown fixed command');
-  let snapshot = await facts(tab,reference);
+  let snapshot = await facts(tab,reference,false,expires);
   refuseWithheldSubmission(snapshot,reference,command);
   if(snapshot.needs_reload)throw Error('stale_reference: the taken document needs its guarded reload before input; read and prepare again');
   if (command.binding && stable(wellFormed(binding(snapshot,reference,command.kind,command.adapter))) !== stable(command.binding)) throw Error('stale_approval: page changed; prepare again');
@@ -1167,13 +1276,13 @@ async function dispatch(command,expires=null) {
   const inputNonce=crypto.randomUUID();controlled.get(tab).inputNonce=inputNonce;
   const owner=controlled.get(tab);owner.hold={nonce:inputNonce,until:Date.now()+POLICY.holdMs,inFlight:true,hasAllowance:command.approved===true,config:{...POLICY,blockedHosts:excludedHosts,conservative:command.conservative,defaultBlock}};
   await holdDefaults(tab,inputNonce);
-  const armed=[];let noChange=false;
+  const armed=[];let noChange=false,watch=null;
   try{
   for(const other of snapshot.frames){
     assertControl(tab);
-    await content(tab,other.frame,'set_control',{generation:dispatchEpoch});
+    await content(tab,other.frame,'set_control',{generation:dispatchEpoch},null,expires);
     armed.push(other);
-    await content(tab,other.frame,'arm',{config:{...POLICY,blockedHosts:excludedHosts,conservative:command.conservative,defaultBlock},target:other.frame===reference.frame ? target.element:null,form:other.frame===reference.frame ? frame.form?.element:null,operation:command.approved && other.frame===reference.frame ? command.operation:null,generation:dispatchEpoch,dispatch_nonce:inputNonce,key_input:other.frame===reference.frame?keyInput:null,primary_submission:!!command.primary_submission && other.frame===reference.frame,implicit:other.frame===reference.frame&&command.input?.verb==='press'&&command.input.key.split('+').at(-1)==='Enter'?target.implicit_submitter:null,approved_form:command.approved&&other.frame===reference.frame?frame.form:null});
+    await content(tab,other.frame,'arm',{config:{...POLICY,blockedHosts:excludedHosts,conservative:command.conservative,defaultBlock},target:other.frame===reference.frame ? target.element:null,form:other.frame===reference.frame ? frame.form?.element:null,operation:command.approved && other.frame===reference.frame ? command.operation:null,generation:dispatchEpoch,dispatch_nonce:inputNonce,key_input:other.frame===reference.frame?keyInput:null,primary_submission:!!command.primary_submission && other.frame===reference.frame,implicit:other.frame===reference.frame&&command.input?.verb==='press'&&command.input.key.split('+').at(-1)==='Enter'?target.implicit_submitter:null,approved_form:command.approved&&other.frame===reference.frame?frame.form:null},null,expires);
     armedDocument(tab,other.document,inputNonce);
   }
   // Native pointer input must address the selected tab in headed Chrome.
@@ -1183,16 +1292,24 @@ async function dispatch(command,expires=null) {
     assertControl(tab);const selected=await chrome.tabs.get(tab);assertControl(tab);
     if(!selected.active){effectStarted=true;await chrome.tabs.update(tab,{active:true});}
   }
+  // Brief 28a, item 5 ("On screen first"): the target of a pointer input is
+  // scrolled into view by its reader, here inside the armed hold, so what the
+  // page does on that scroll is held like after any input. The last facts
+  // read, the binding comparison and brief 20's hit test follow and decide.
+  // A scroll is no input: a refusal after it still dispatched nothing.
+  if(command.name==='input'&&!target.password&&(['click','scroll'].includes(command.input.verb)||command.input.verb==='check'&&target.states.checked!==command.input.checked)){
+    assertControl(tab);await content(tab,reference.frame,'reveal',{element:reference.element,generation:dispatchEpoch},null,expires);
+  }
   if(recording&&command.fixture_arm_delay){respond({event:'fixture_arm_wait',operation:command.operation});await new Promise(resolve=>setTimeout(resolve,command.fixture_arm_delay));}
   // Arming other frames may take time. Compare again at the actual input boundary.
-  snapshot=await facts(tab,reference);
+  snapshot=await facts(tab,reference,false,expires);
   refuseWithheldSubmission(snapshot,reference,command);
   if(command.binding&&stable(wellFormed(binding(snapshot,reference,command.kind,command.adapter)))!==stable(command.binding))throw Error('stale_approval: page changed during frame setup; prepare again');
   for(const added of snapshot.frames){
     if(armed.some(frame=>frame.frame===added.frame&&frame.document===added.document))continue;
     if(!isPreloaded(tab,added.document))throw Error('refused: a new frame has no document-start guard');
-    armed.push(added);await content(tab,added.frame,'set_control',{generation:dispatchEpoch});
-    await content(tab,added.frame,'arm',{generation:dispatchEpoch,dispatch_nonce:inputNonce,config:owner.hold.config});
+    armed.push(added);await content(tab,added.frame,'set_control',{generation:dispatchEpoch},null,expires);
+    await content(tab,added.frame,'arm',{generation:dispatchEpoch,dispatch_nonce:inputNonce,config:owner.hold.config},null,expires);
     armedDocument(tab,added.document,inputNonce);
   }
   const coverage=await chrome.webNavigation.getAllFrames({tabId:tab})||[];
@@ -1201,13 +1318,20 @@ async function dispatch(command,expires=null) {
   frame=snapshot.frames.find(frame=>frame.frame===reference.frame);target=frame.target;
   safeDestination(frame,command);
   assertControl(tab);
+  // Brief 28a, item 5 ("Time"): the last thing before the dispatch, after the
+  // arming, the reveal and the last comparison. A command whose time is up
+  // dispatches nothing and answers `expired`; the finally below releases the
+  // armed hold as after any refusal. After this point nothing is cut short.
+  checkInputTime(expires);
+  watch={epoch:dispatchEpoch,frame:reference.frame,popups:[]};popupWatches.set(tab,watch);
   if (command.name === 'resume') { effectStarted=true; await content(tab,reference.frame,'resume',{hold:command.hold,operation:command.operation,generation:dispatchEpoch,element:reference.element,form:frame.form?.element}); }
   else {
     const input = command.input;
     if (target.password) throw Error('owner_signin: password fields belong to the owner');
     if (input.verb === 'click' || input.verb === 'check' && target.states.checked!==input.checked) {
       if (target.href && !target.href.startsWith('javascript:')) safeURL(target.href);
-      const {x,y}=await pointer(tab,snapshot,reference,target);
+      const {x,y}=await pointer(tab,snapshot,reference,target,expires);
+      checkInputTime(expires);
       await cdp(tab,'Input.dispatchMouseEvent',{type:'mousePressed',x,y,button:'left',clickCount:1});
       await cdp(tab,'Input.dispatchMouseEvent',{type:'mouseReleased',x,y,button:'left',clickCount:1});
     } else if (input.verb === 'fill' || input.verb === 'press') {
@@ -1234,10 +1358,20 @@ async function dispatch(command,expires=null) {
       }
       await content(tab,reference.frame,input.verb,{element:reference.element,...input,value});
     }
-    else if (input.verb === 'scroll') {const point=await pointer(tab,snapshot,reference,target);await cdp(tab,'Input.dispatchMouseEvent',{type:'mouseWheel',...point,deltaX:input.x,deltaY:input.y});}
+    else if (input.verb === 'scroll') {
+      const point=await pointer(tab,snapshot,reference,target,expires);
+      checkInputTime(expires);
+      await cdp(tab,'Input.dispatchMouseEvent',{type:'mouseWheel',...point,deltaX:input.x,deltaY:input.y});
+    }
     else throw Error('permission_denied: unsupported input');
   }
   assertControl(tab);
+  }catch(error){
+    // Only setup waits carry the deadline. Tab selection can set effectStarted
+    // during setup, but it did not dispatch the requested input.
+    if(expires!==null&&error.message===EXPIRED)error=inputExpired();
+    if(error.notDispatched===true&&popupWatches.get(tab)===watch)popupWatches.delete(tab);
+    throw error;
   }finally{
     owner.uncertainFinish=await finishFrames(tab,armed,dispatchEpoch,inputNonce);
     for(const {state,context}of owner.hold?.inherited||[]){if(dialogs.has(tab))break;try{await Promise.allSettled([...state.installing||[]]);await targetCommand(state,'Runtime.evaluate',{contextId:context.id,expression:'globalThis[Symbol.for("aresos.chrome.guard.v2")].finish('+JSON.stringify(dispatchEpoch)+','+JSON.stringify(inputNonce)+')',awaitPromise:true,disableBreaks:true,returnByValue:true});}catch{owner.uncertainFinish=true;}}
@@ -1245,11 +1379,13 @@ async function dispatch(command,expires=null) {
   }
   const uncertain_finish=owner.uncertainFinish;
   const steps=await collectSteps(tab,dispatchEpoch);
+  if(popupWatches.get(tab)===watch)popupWatches.delete(tab);
+  const popups=await namedPopups(watch);
   if(recording && command.fixture_cut==='after-input'){
     await new Promise((resolve,reject)=>{fixtureBarriers.set(command.operation,{tab,resolve,reject});respond({event:'fixture_after_input',operation:command.operation});});
   }
   const confirmation=confirmationPlans.get(tab);confirmationPlans.delete(tab);
-  return {checked:!!command.binding,dispatched:!noChange,no_change:noChange,steps,dialog:await readyDialog(tab),uncertain_finish,confirmations:confirmation?.matched || [],page:await observation(tab,reference,dispatchEpoch)};
+  return {checked:!!command.binding,dispatched:!noChange,no_change:noChange,steps,dialog:await readyDialog(tab),uncertain_finish,confirmations:confirmation?.matched || [],page:await observation(tab,reference,dispatchEpoch),...(popups.length?{popups}:{})};
 }
 // Brief 28, item 4: a command of the new read carries the milliseconds it has
 // left (time_left_ms). Its time ends that long after it arrives. When it reaches
@@ -1260,6 +1396,11 @@ async function dispatch(command,expires=null) {
 // in the service's bridge: that command is refused unrun, in its turn
 // (`invalid_input`), never run without a time.
 const EXPIRED='expired: the time of this command ran out before it finished';
+// Nothing reached the page: the input's own time check ran before its dispatch
+// (selecting the tab and the reveal are no input), so it answers `expired`.
+const EXPIRED_INPUT='expired: the time of this input ran out before its dispatch; nothing was dispatched';
+function inputExpired(){const error=Error(EXPIRED_INPUT);error.notDispatched=true;return error;}
+function checkInputTime(expires){if(expires!==null&&performance.now()>=expires)throw inputExpired();}
 const INVALID_TIME='invalid_input: time_left_ms must be a whole number of milliseconds, 0 or more; the command was not run';
 const expired=error=>String(error?.message).startsWith('expired:');
 const validTime=message=>!Object.hasOwn(message,'time_left_ms')||Number.isSafeInteger(message.time_left_ms)&&message.time_left_ms>=0;
@@ -1275,7 +1416,7 @@ function enqueue(message){
     if(expires!==null&&performance.now()>=expires){audit({command:message.command?.name,phase:'expired'});respond({id:message.id,ok:false,error:'expired: the time of this command ran out while it waited in the queue; it was not started'});return;}
     effectStarted=false;dispatchEpoch=null;audit({command:message.command?.name,phase:'begin'});
     try { respond({id:message.id,ok:true,data:await dispatch(message.command,expires)}); }
-    catch(error) { respond({id:message.id,ok:false,error:effectStarted ? 'unknown: Input may have started; inspect status and the page, never retry. '+String(error.message):String(error.message)}); }
+    catch(error) { respond({id:message.id,ok:false,error:effectStarted&&error.notDispatched!==true ? 'unknown: Input may have started; inspect status and the page, never retry. '+String(error.message):String(error.message),...(error.loss&&!effectStarted?{loss:error.loss}:{})}); }
   });
 }
 async function connect() {
@@ -1340,7 +1481,7 @@ chrome.tabs.onUpdated.addListener(async(tab,change)=>{
   if(previous.virtualGroup?current.windowId!==previous.window:current.groupId!==groupId){release(tab);return;}
   if(change.url)try{safeURL(current.url);}catch{release(tab);}
 });
-function removedTab(tab){if(controlled.has(tab))release(tab);for(const state of preloadTargets.values())if(state.tab===tab)destroyedTarget(state);for(const map of [documentMethods,currentDocuments,formLoadedDocuments])for(const key of map.keys())if(key.startsWith('['+tab+','))map.delete(key);}
+function removedTab(tab){claudeOpened.delete(tab);if(controlled.has(tab))release(tab);for(const state of preloadTargets.values())if(state.tab===tab)destroyedTarget(state);for(const map of [documentMethods,currentDocuments,formLoadedDocuments])for(const key of map.keys())if(key.startsWith('['+tab+','))map.delete(key);}
 chrome.tabs.onRemoved.addListener(removedTab);
 chrome.webNavigation.onCreatedNavigationTarget.addListener(createdTarget);
 // Passive, exact-document method metadata only: no headers, bodies or interception.

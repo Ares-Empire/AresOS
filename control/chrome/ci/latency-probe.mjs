@@ -13,7 +13,7 @@ export function samplesFor(runtime){
   if(runtime==='current')return LATENCY_SAMPLES;
   assert.equal(runtime,TARGETS.baseline,'unknown latency runtime');return OLD_RUNTIME_SAMPLES;
 }
-export async function latencyProbe({call,target,nav,eventually,getTab,out='/out',runtime=process.env.LATENCY_BASELINE||'current'}){
+export async function latencyProbe({call,target,eventually,getTab,out='/out',runtime=process.env.LATENCY_BASELINE||'current'}){
   const samples=samplesFor(runtime);
   assert(Number.isInteger(samples)&&samples>=20,'latency sample count');
   const rows=[];

@@ -558,7 +558,9 @@ class Proof:
 
     def connected(self):
         result = self.tool('tabs')
-        return bool(result.get('ok') and result['data']['items'])
+        data = result.get('data', {})
+        return bool(result.get('ok') and data.get('seen') and data.get('total', 0) > 0
+                    and data.get('untrusted_content', {}).get('list', '').strip())
 
     def unavailable(self):
         result = self.tool('tabs')

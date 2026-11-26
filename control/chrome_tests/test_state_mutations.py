@@ -40,7 +40,7 @@ class Mutations(unittest.TestCase):
              'test_state_fixes.StateFixes.test_s5_clean_stopped_submission_has_no_interruption_warning'),
             ('S5 startup','aresos_control/recovery.py',[("if not persist and notice.get('app')=='chrome':","if False:"),("if current.get('state') in {'done','failed'}:","if False:")],
              'test_state_crashes.CrashCuts.test_s11_actual_process_cuts_before_and_after_input_keep_every_committed_view'),
-            ('S6 lost queue','aresos_control/chrome/adapter.py',[("            self.reconcile_checks(facts,queued)","            pass")],
+            ('S6 lost queue','aresos_control/chrome/adapter.py',[("            self.reconcile_checks({'tab': tab}, queued)","            pass")],
              'test_state_fixes.StateFixes.test_s6_lost_queue_resolves_native_check_and_preserves_uncertain_occurrence'),
             ('S6 stale queue returns','aresos_control/chrome/adapter.py',[("                if source.get('resumable') is False:","                if False:")],
              'test_state_fixes.StateFixes.test_s6_a_stale_step_cannot_be_prepared_if_the_same_queue_entry_returns'),
@@ -62,7 +62,10 @@ class Mutations(unittest.TestCase):
              'test_state_oracle.Oracle.test_s11_r1_missing_warning_and_extra_live_interruption_both_fail'),
             ('S11 journal read close','aresos_control/chrome/committed.py',[("                self.store.observations.storage(exc,generic=True)","                raise")],
              'test_state_exhaustion.Exhaustion.test_s11_persistent_write_exhaustion_retains_exact_committed_disclosure'),
-            ('S12 dialog','aresos_control/chrome/adapter.py',[("'tree':tree[offset:end],'dialog':visible(facts.get('dialog'))}","'tree':tree[offset:end]},'dialog':visible(facts.get('dialog'))")],
+            ('S12 dialog','aresos_control/chrome/view.py',[
+                ('"untrusted_content": {**header(self.view), "outline": "" if end is None else text[self.start:end]}}',
+                 '"untrusted_content": {**{key: value for key, value in header(self.view).items() if key != "dialog"}, '
+                 '"outline": "" if end is None else text[self.start:end]}, "dialog": header(self.view)["dialog"]}')],
              'test_state_fixes.StateFixes.test_s12_every_page_text_copy_is_inside_untrusted_content'),
             ('S12 stages','aresos_control/engine.py',[("        elif op['app']=='chrome':\n            outcome={'untrusted_content':visible(outcome)}\n",'')],
              'test_state_fixes.StateFixes.test_s12_every_page_text_copy_is_inside_untrusted_content'),

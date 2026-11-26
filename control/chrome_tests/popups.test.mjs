@@ -50,7 +50,6 @@ function browser({race='late',answer=extension,records=null,attach='after-naviga
   };
   const byId=id=>[...popups.values()].find(popup=>popup.id===id);
   const url=popup=>popup.loaded?popupChild(popup.id,popup.mode):popup.start?new URL(popupOpenURL(popup.id,popup.mode),opener.url).href:'';
-  const tree=rows=>({untrusted_content:{tree:rows.map(row=>JSON.stringify(row)).join('\n')}});
   const harness={
     getTab:()=>7,setTab:()=>{},
     check:async(name,run)=>{if(name===ROWS)await run();},
@@ -60,20 +59,24 @@ function browser({race='late',answer=extension,records=null,attach='after-naviga
     fixture:{arrivals,hold:id=>{holds.set(id,true);return ()=>{holds.delete(id);const popup=byId(id);if(popup?.waiting)gate(popup);};}},
     boundary:{size:()=>log.length,since:offset=>{looks++;for(const popup of popups.values())if(popup.start&&!popup.admitted&&looks>=2)admit(popup);return log.slice(offset);}},
     popupEvidence:async id=>({window:'native-'+id,X:0,Y:0,WIDTH:620,HEIGHT:480}),
-    popupControl:async command=>{
+    popupControl:async (command,id)=>{
+      if(command==='close-popup'){
+        assert.equal(id,'popup-typed-late');assert.ok(byId(id));popups.delete(byId(id).tab);return;
+      }
       assert.equal(command,'state');
       const installs=[...popups.values()].filter(popup=>popup.controlled&&popup.loaded).flatMap(popup=>[...(popup.start?[{tab:popup.tab,document:popup.start,install:'late',ready:false}]:[]),{tab:popup.tab,document:popup.document,install:popup.path,ready:popup.path==='document_start'}]);
       return {installs:records?records(installs,popups):installs};
     },
     ownerOpenPopup:async(tab,{id,mode})=>{assert.equal(tab,7);opener.controlled=false;const popup=open(id,mode,false);return {tab:popup.tab,url:url(popup),controlled:false};},
     approval:async(result,id)=>{assert.ok(result.approval);arrive(id);arrive('flow-'+id);},
+    read:async tab=>{
+      if(tab===7)return [{expected:{name:'Open window'},reference:{tab,document:'opener'}}];
+      const popup=popups.get(tab);assert.ok(popup.loaded&&popup.controlled,'read a loaded controlled popup');
+      return [{expected:{name:'Continue'},reference:{tab,document:popup.document}}];
+    },
+    selectedTarget:async row=>row,
     call:async(name,args={})=>{
       if(name==='tabs')return {items:[{tab:7,window:1,url:opener.url,controlled:opener.controlled},...[...popups.values()].map(popup=>({tab:popup.tab,window:popup.tab,url:url(popup),controlled:popup.controlled}))]};
-      if(name==='read'){
-        if(args.tab===7)return tree([{expected:{name:'Open window'},reference:{tab:7,document:'opener'}}]);
-        const popup=popups.get(args.tab);assert.ok(popup.loaded&&popup.controlled,'read a loaded controlled popup');
-        return tree([{expected:{name:'Continue'},reference:{tab:popup.tab,document:popup.document}}]);
-      }
       if(name==='click'){
         if(args.reference.tab===7){assert.equal(opener.controlled,true);open(opener.page.id,opener.page.mode,true);return {};}
         return {approval:{operation:'fixture'}};

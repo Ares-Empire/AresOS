@@ -615,6 +615,117 @@
       "rule": "new median <= 1.10 x old median + 50 ms",
       "allowed_milliseconds": 126.8,
       "passed": true
+    },
+    {
+      "run_id": "44463920809",
+      "sha": "a2ad7c7d7954f971f0d7f8c71d9bd8dccbef7f24",
+      "row": "F1: the first read",
+      "runs": 5,
+      "old": {
+        "task": "f1_first_read",
+        "tool": "chrome_old_read",
+        "calls": 1,
+        "milliseconds": 141.6,
+        "p95_milliseconds": 195.9,
+        "milliseconds_per_run": [
+          70.6,
+          89.4,
+          141.6,
+          164.3,
+          195.9
+        ]
+      },
+      "new": {
+        "task": "outline_f1_first_read",
+        "tool": "chrome_read",
+        "calls": 1,
+        "milliseconds": 176.8,
+        "p95_milliseconds": 266.0,
+        "milliseconds_per_run": [
+          80.0,
+          104.1,
+          176.8,
+          225.3,
+          266.0
+        ]
+      },
+      "rule": "new median <= 1.10 x old median + 50 ms",
+      "allowed_milliseconds": 205.8,
+      "passed": true
+    },
+    {
+      "run_id": "44463920809",
+      "sha": "a2ad7c7d7954f971f0d7f8c71d9bd8dccbef7f24",
+      "row": "F5: a free click that changes part of the page",
+      "runs": 5,
+      "old": {
+        "task": "f5_free_click",
+        "tool": "chrome_old_click, chrome_old_read",
+        "calls": 2,
+        "milliseconds": 749.8,
+        "p95_milliseconds": 859.5,
+        "milliseconds_per_run": [
+          600.5,
+          641.1,
+          749.8,
+          793.8,
+          859.5
+        ]
+      },
+      "new": {
+        "task": "act_f5_free_click",
+        "tool": "chrome_do",
+        "calls": 1,
+        "milliseconds": 666.1,
+        "p95_milliseconds": 714.1,
+        "milliseconds_per_run": [
+          596.3,
+          616.6,
+          666.1,
+          686.0,
+          714.1
+        ]
+      },
+      "rule": "new median <= 1.10 x old median + 50 ms",
+      "allowed_milliseconds": 874.8,
+      "passed": true
+    },
+    {
+      "run_id": "44463920809",
+      "sha": "a2ad7c7d7954f971f0d7f8c71d9bd8dccbef7f24",
+      "row": "F4: six fills and the click on Save, up to the question",
+      "runs": 5,
+      "old": {
+        "task": "f4_old_to_question",
+        "tool": "chrome_old_fill_form, chrome_old_find, chrome_old_click",
+        "calls": 3,
+        "milliseconds": 4671.4,
+        "p95_milliseconds": 4882.4,
+        "milliseconds_per_run": [
+          4494.7,
+          4578.5,
+          4671.4,
+          4765.6,
+          4882.4
+        ]
+      },
+      "new": {
+        "task": "act_f4_to_question",
+        "tool": "chrome_do",
+        "calls": 1,
+        "milliseconds": 4340.9,
+        "p95_milliseconds": 4388.8,
+        "milliseconds_per_run": [
+          4254.5,
+          4307.1,
+          4340.9,
+          4352.1,
+          4388.8
+        ]
+      },
+      "rule": "new median <= 1.10 x old median + 50 ms",
+      "allowed_milliseconds": 5188.5,
+      "passed": true
     }
   ]
 }

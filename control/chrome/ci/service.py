@@ -53,6 +53,15 @@ from aresos_control.chrome.sites import KINDS
 original_kind_scope=KINDS['gmail_send']['scope']
 original_request=daemon.engine.request
 def request(value,admin=False):
+    if admin and value.get('method')=='fixture_observe':
+        observation=value.get('observe')
+        if observation=='audit':
+            rows=[{key:row[key] for key in ('seq','action','summary','operation_id')}
+                  for row in daemon.engine.store.iter_audit() if row['action']=='chrome_take_tab']
+            return {'ok':True,'data':rows}
+        if observation in {'tabs','page'}:
+            arguments={'tab':value['tab']} if observation=='page' else {}
+            return {'ok':True,'data':bridge.call('fixture_observe_'+observation,**arguments)}
     kind=Path('/run/aresos-tools/fixture-kind')
     if kind.exists():
         mode=kind.read_text();kind.unlink()

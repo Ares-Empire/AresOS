@@ -245,23 +245,28 @@ class Runs(unittest.TestCase):
 
 
 class WithTheView(unittest.TestCase):
-    PAGE = [node(1, "main"),
-            node(2, "textbox", 1, name="Notes", value="n" * 500),
-            node(3, "link", 1, name="Docs", text=["Docs"], href=SITE + "/docs/reset/abc?code=sesame#top", title="Opens here"),
-            node(4, "checkbox", 1, name="Mine", states=["checked", "required"])]
+    PAGE = [node(1, "main", fingerprint="1" * 32),
+            node(2, "textbox", 1, name="Notes", value="n" * 500, fingerprint="2" * 32),
+            node(3, "link", 1, name="Docs", text=["Docs"], href=SITE + "/docs/reset/abc?code=sesame#top", title="Opens here",
+                 fingerprint="3" * 32),
+            node(4, "checkbox", 1, name="Mine", states=["checked", "required"], fingerprint="4" * 32)]
 
     def test_the_fingerprint_is_kept_apart_from_the_line_claude_saw(self):
+        # Brief 28a, item 2: the table keeps the reader's digest of each element
+        # (which hashes the whole value and the full address: fingerprint.test.mjs),
+        # never anything made from the line, which may cut the one and leave out the other.
         table = references()
         outline = read(table, view(self.PAGE))
         field, link, box = (table.resolve(reference, 412) for reference in ("kqtvm2", "kqtvm3", "kqtvm4"))
         self.assertEqual(field.line, 'textbox "Notes" = "%s"%s+305 kqtvm2' % ("n" * 195, "…"))
         self.assertIn(field.line, outline)
-        self.assertEqual(field.fingerprint["value"], "n" * 500)            # whole, though the line cut it
         self.assertEqual(link.line, 'link "Docs" kqtvm3')
-        self.assertEqual(link.fingerprint["href"], SITE + "/docs/reset/abc?code=sesame#top")  # full, though no line shows it
-        self.assertEqual((link.fingerprint["role"], link.fingerprint["name"], link.fingerprint["title"]), ("link", "Docs", "Opens here"))
-        self.assertEqual(box.fingerprint["states"], ["checked"])
+        self.assertEqual((field.fingerprint, link.fingerprint, box.fingerprint), ("2" * 32, "3" * 32, "4" * 32))
         self.assertNotIn("sesame", outline)
+        # A reader without fingerprints (before brief 28a): readable, but nothing to act on.
+        bare = references()
+        read(bare, view([{key: value for key, value in item.items() if key != "fingerprint"} for item in self.PAGE]))
+        self.assertIsNone(bare.resolve("kqtvm2", 412).fingerprint)
 
     def test_a_reference_is_marked_as_shown_only_once_its_page_was_returned(self):
         table, shown = references(), view(self.PAGE)

@@ -5,6 +5,15 @@
   "source_head": "760903b5",
   "meaning": "Optimized timing reference from a diagnostic-only run; not acceptance evidence",
   "summary_program_sha256": "1a250d4728cb55e0fc3983711fef3f2be1217ae5a97c08aa489ce50922bb4dad",
+  "navigate_measurement": {
+    "measurement_run": "44705819383",
+    "source_head": "c2a20dcb",
+    "chrome": "Google Chrome 158.0.8127.36",
+    "build": "3b1c544ab9e0a1607afd4146fd4aadb1a62e1ca45d0ec80fb3834313866b1a12",
+    "summary_program_sha256": "1381d254dbfcaa62ee48ac8d38f5942c776d77062affa343245ff398b60defeb",
+    "samples": "positions 0 to 19 of each history phase, the reference's own positions, of the run's 60 per call",
+    "meaning": "Only navigate (current runtime, both profiles, every history phase) comes from this run: chrome_go waits for the page to arrive and be quiet (linux-tools, 2026-11-20, package 28a step 4). Every other call, and the old runtime, stay as measured in the run above."
+  },
   "profiles": {
     "plain": {
       "privacy": "plain",
@@ -2756,18 +2765,23 @@
           "navigate": {
             "client_total": {
               "samples": 20,
-              "median_ms": 34.890825000001314,
-              "p95_ms": 49.83282500000132
+              "median_ms": 310.70034699999997,
+              "p95_ms": 319.40767300000016
             },
             "extension_total": {
               "samples": 20,
-              "median_ms": 18.350000000020373,
-              "p95_ms": 21.5
+              "median_ms": 45.399999999965075,
+              "p95_ms": 53.5
             },
             "bridge_round_trip": {
               "samples": 20,
-              "median_ms": 22.94340500002079,
-              "p95_ms": 25.037964999995665
+              "median_ms": 56.51848900004097,
+              "p95_ms": 64.74944100000357
+            },
+            "frame_facts": {
+              "samples": 20,
+              "median_ms": 3.700000000069849,
+              "p95_ms": 4.299999999930151
             },
             "clipboard_hooks": {
               "samples": 20,
@@ -2776,28 +2790,38 @@
             },
             "page_observation": {
               "samples": 20,
-              "median_ms": 11.299999999988358,
-              "p95_ms": 14.700000000011642
+              "median_ms": 13.350000000034925,
+              "p95_ms": 17.199999999953434
             },
             "service_total": {
               "samples": 20,
-              "median_ms": 34.11468449999688,
-              "p95_ms": 49.103367999975944
+              "median_ms": 309.8584864999907,
+              "p95_ms": 318.6251969999603
             },
             "service_without_bridge": {
               "samples": 20,
-              "median_ms": 10.348321999970267,
-              "p95_ms": 16.493065999981127
+              "median_ms": 253.5329444999661,
+              "p95_ms": 254.02388299983159
+            },
+            "store_write": {
+              "samples": 20,
+              "median_ms": 1.5282680000723303,
+              "p95_ms": 1.6766040000675275
+            },
+            "journal_fsync": {
+              "samples": 20,
+              "median_ms": 0.004656500038890954,
+              "p95_ms": 0.0054759999557063566
             },
             "daemon_expiry_inside_sample": {
-              "samples": 19,
-              "median_ms": 0.27703999998607287,
-              "p95_ms": 0.32689599999002894
+              "samples": 20,
+              "median_ms": 0.13387199999215227,
+              "p95_ms": 0.17696899999464222
             },
             "client_outside_service": {
               "samples": 20,
-              "median_ms": 0.7918220000068459,
-              "p95_ms": 1.166084999994382
+              "median_ms": 0.9025929999702385,
+              "p95_ms": 0.9657290000141074
             }
           },
           "read": {
@@ -3166,18 +3190,23 @@
             "navigate": {
               "client_total": {
                 "samples": 20,
-                "median_ms": 34.890825000001314,
-                "p95_ms": 49.83282500000132
+                "median_ms": 310.70034699999997,
+                "p95_ms": 319.40767300000016
               },
               "extension_total": {
                 "samples": 20,
-                "median_ms": 18.350000000020373,
-                "p95_ms": 21.5
+                "median_ms": 45.399999999965075,
+                "p95_ms": 53.5
               },
               "bridge_round_trip": {
                 "samples": 20,
-                "median_ms": 22.94340500002079,
-                "p95_ms": 25.037964999995665
+                "median_ms": 56.51848900004097,
+                "p95_ms": 64.74944100000357
+              },
+              "frame_facts": {
+                "samples": 20,
+                "median_ms": 3.700000000069849,
+                "p95_ms": 4.299999999930151
               },
               "clipboard_hooks": {
                 "samples": 20,
@@ -3186,28 +3215,38 @@
               },
               "page_observation": {
                 "samples": 20,
-                "median_ms": 11.299999999988358,
-                "p95_ms": 14.700000000011642
+                "median_ms": 13.350000000034925,
+                "p95_ms": 17.199999999953434
               },
               "service_total": {
                 "samples": 20,
-                "median_ms": 34.11468449999688,
-                "p95_ms": 49.103367999975944
+                "median_ms": 309.8584864999907,
+                "p95_ms": 318.6251969999603
               },
               "service_without_bridge": {
                 "samples": 20,
-                "median_ms": 10.348321999970267,
-                "p95_ms": 16.493065999981127
+                "median_ms": 253.5329444999661,
+                "p95_ms": 254.02388299983159
+              },
+              "store_write": {
+                "samples": 20,
+                "median_ms": 1.5282680000723303,
+                "p95_ms": 1.6766040000675275
+              },
+              "journal_fsync": {
+                "samples": 20,
+                "median_ms": 0.004656500038890954,
+                "p95_ms": 0.0054759999557063566
               },
               "daemon_expiry_inside_sample": {
-                "samples": 19,
-                "median_ms": 0.27703999998607287,
-                "p95_ms": 0.32689599999002894
+                "samples": 20,
+                "median_ms": 0.13387199999215227,
+                "p95_ms": 0.17696899999464222
               },
               "client_outside_service": {
                 "samples": 20,
-                "median_ms": 0.7918220000068459,
-                "p95_ms": 1.166084999994382
+                "median_ms": 0.9025929999702385,
+                "p95_ms": 0.9657290000141074
               }
             },
             "read": {
@@ -3560,18 +3599,23 @@
             "navigate": {
               "client_total": {
                 "samples": 20,
-                "median_ms": 38.29162250000081,
-                "p95_ms": 43.46769499999937
+                "median_ms": 312.641340999995,
+                "p95_ms": 316.9054069999838
               },
               "extension_total": {
                 "samples": 20,
-                "median_ms": 18.15000000000873,
-                "p95_ms": 20.699999999982538
+                "median_ms": 43.05000000016298,
+                "p95_ms": 47.800000000046566
               },
               "bridge_round_trip": {
                 "samples": 20,
-                "median_ms": 22.00727900000743,
-                "p95_ms": 23.924657999970123
+                "median_ms": 53.76436499989268,
+                "p95_ms": 58.507015000259344
+              },
+              "frame_facts": {
+                "samples": 20,
+                "median_ms": 3.650000000023283,
+                "p95_ms": 4.199999999953434
               },
               "clipboard_hooks": {
                 "samples": 20,
@@ -3580,23 +3624,38 @@
               },
               "page_observation": {
                 "samples": 20,
-                "median_ms": 11.05000000000291,
-                "p95_ms": 13.5
+                "median_ms": 11.300000000046566,
+                "p95_ms": 12.699999999953434
               },
               "service_total": {
                 "samples": 20,
-                "median_ms": 37.41854550001733,
-                "p95_ms": 42.62119099999495
+                "median_ms": 311.87708449994034,
+                "p95_ms": 316.14647399999285
               },
               "service_without_bridge": {
                 "samples": 20,
-                "median_ms": 14.998311000013587,
-                "p95_ms": 20.10974300000612
+                "median_ms": 258.03857599987623,
+                "p95_ms": 258.5643180000261
+              },
+              "store_write": {
+                "samples": 20,
+                "median_ms": 1.3592990000006466,
+                "p95_ms": 1.6931299999214389
+              },
+              "journal_fsync": {
+                "samples": 20,
+                "median_ms": 0.0041959999066421005,
+                "p95_ms": 0.005301999863149831
+              },
+              "daemon_expiry_inside_sample": {
+                "samples": 20,
+                "median_ms": 0.13862649996099208,
+                "p95_ms": 0.18710300003021985
               },
               "client_outside_service": {
                 "samples": 20,
-                "median_ms": 0.8811719999966954,
-                "p95_ms": 1.121681999999737
+                "median_ms": 0.8331395000104749,
+                "p95_ms": 0.9835850000845312
               }
             },
             "read": {
@@ -3944,43 +4003,63 @@
             "navigate": {
               "client_total": {
                 "samples": 20,
-                "median_ms": 52.84264649999386,
-                "p95_ms": 54.79993000000832
+                "median_ms": 328.2507615000068,
+                "p95_ms": 330.70692299999064
               },
               "extension_total": {
                 "samples": 20,
-                "median_ms": 17.700000000040745,
-                "p95_ms": 19.20000000006985
+                "median_ms": 43.050000000104774,
+                "p95_ms": 44.79999999993015
               },
               "bridge_round_trip": {
                 "samples": 20,
-                "median_ms": 22.606931499979055,
-                "p95_ms": 23.98737299995446
+                "median_ms": 53.168778999975075,
+                "p95_ms": 55.44857900019906
+              },
+              "frame_facts": {
+                "samples": 20,
+                "median_ms": 3.6000000000349246,
+                "p95_ms": 3.900000000023283
               },
               "clipboard_hooks": {
                 "samples": 20,
                 "median_ms": 0.0,
-                "p95_ms": 0.0
+                "p95_ms": 0.09999999997671694
               },
               "page_observation": {
                 "samples": 20,
-                "median_ms": 10.650000000023283,
-                "p95_ms": 12.0
+                "median_ms": 10.79999999993015,
+                "p95_ms": 12.300000000046566
               },
               "service_total": {
                 "samples": 20,
-                "median_ms": 50.495152499991036,
-                "p95_ms": 52.606853000042975
+                "median_ms": 327.3833354999738,
+                "p95_ms": 329.93527000007816
               },
               "service_without_bridge": {
                 "samples": 20,
-                "median_ms": 27.571072500023774,
-                "p95_ms": 30.13351199990666
+                "median_ms": 274.2146419997198,
+                "p95_ms": 275.00430400004916
+              },
+              "store_write": {
+                "samples": 20,
+                "median_ms": 1.5335980000372729,
+                "p95_ms": 1.6975360000515138
+              },
+              "journal_fsync": {
+                "samples": 20,
+                "median_ms": 0.0044724998815581785,
+                "p95_ms": 0.005573000180447707
+              },
+              "daemon_expiry_inside_sample": {
+                "samples": 20,
+                "median_ms": 0.16073999995569466,
+                "p95_ms": 0.18822799995632522
               },
               "client_outside_service": {
                 "samples": 20,
-                "median_ms": 2.2894859999855726,
-                "p95_ms": 2.912018000035914
+                "median_ms": 0.8207855000050586,
+                "p95_ms": 1.1865330000264294
               }
             },
             "read": {
@@ -5640,48 +5719,63 @@
           "navigate": {
             "client_total": {
               "samples": 20,
-              "median_ms": 41.553398000000016,
-              "p95_ms": 78.65789800000493
+              "median_ms": 315.94968849999987,
+              "p95_ms": 333.76058999999987
             },
             "extension_total": {
               "samples": 20,
-              "median_ms": 22.89999999999418,
-              "p95_ms": 27.09999999999127
+              "median_ms": 50.200000000040745,
+              "p95_ms": 66.99999999994179
             },
             "bridge_round_trip": {
               "samples": 20,
-              "median_ms": 26.652674999986914,
-              "p95_ms": 34.005707000005714
+              "median_ms": 61.89729149994605,
+              "p95_ms": 79.79558599998882
+            },
+            "frame_facts": {
+              "samples": 20,
+              "median_ms": 3.9500000000116415,
+              "p95_ms": 4.400000000023283
             },
             "clipboard_hooks": {
               "samples": 20,
               "median_ms": 0.0,
-              "p95_ms": 0.0
+              "p95_ms": 0.09999999997671694
             },
             "page_observation": {
               "samples": 20,
-              "median_ms": 14.099999999998545,
-              "p95_ms": 17.0
+              "median_ms": 13.550000000017462,
+              "p95_ms": 16.0
             },
             "service_total": {
               "samples": 20,
-              "median_ms": 40.75834700000769,
-              "p95_ms": 77.88359500000297
+              "median_ms": 315.0166069999898,
+              "p95_ms": 332.9164439999772
             },
             "service_without_bridge": {
               "samples": 20,
-              "median_ms": 12.183703500021181,
-              "p95_ms": 43.072579000011046
+              "median_ms": 253.14950800006386,
+              "p95_ms": 254.11122100001649
+            },
+            "store_write": {
+              "samples": 20,
+              "median_ms": 1.4667285000200536,
+              "p95_ms": 1.718197999991844
+            },
+            "journal_fsync": {
+              "samples": 20,
+              "median_ms": 0.004847500036930796,
+              "p95_ms": 0.03169799998659073
             },
             "daemon_expiry_inside_sample": {
               "samples": 20,
-              "median_ms": 0.22199149999124757,
-              "p95_ms": 0.5826760000076092
+              "median_ms": 0.12869500002921086,
+              "p95_ms": 0.16465900000639522
             },
             "client_outside_service": {
               "samples": 20,
-              "median_ms": 0.8490085000059366,
-              "p95_ms": 2.2439339999963295
+              "median_ms": 0.9002645000045959,
+              "p95_ms": 1.1926090000238219
             }
           },
           "read": {
@@ -6055,48 +6149,63 @@
             "navigate": {
               "client_total": {
                 "samples": 20,
-                "median_ms": 41.553398000000016,
-                "p95_ms": 78.65789800000493
+                "median_ms": 315.94968849999987,
+                "p95_ms": 333.76058999999987
               },
               "extension_total": {
                 "samples": 20,
-                "median_ms": 22.89999999999418,
-                "p95_ms": 27.09999999999127
+                "median_ms": 50.200000000040745,
+                "p95_ms": 66.99999999994179
               },
               "bridge_round_trip": {
                 "samples": 20,
-                "median_ms": 26.652674999986914,
-                "p95_ms": 34.005707000005714
+                "median_ms": 61.89729149994605,
+                "p95_ms": 79.79558599998882
+              },
+              "frame_facts": {
+                "samples": 20,
+                "median_ms": 3.9500000000116415,
+                "p95_ms": 4.400000000023283
               },
               "clipboard_hooks": {
                 "samples": 20,
                 "median_ms": 0.0,
-                "p95_ms": 0.0
+                "p95_ms": 0.09999999997671694
               },
               "page_observation": {
                 "samples": 20,
-                "median_ms": 14.099999999998545,
-                "p95_ms": 17.0
+                "median_ms": 13.550000000017462,
+                "p95_ms": 16.0
               },
               "service_total": {
                 "samples": 20,
-                "median_ms": 40.75834700000769,
-                "p95_ms": 77.88359500000297
+                "median_ms": 315.0166069999898,
+                "p95_ms": 332.9164439999772
               },
               "service_without_bridge": {
                 "samples": 20,
-                "median_ms": 12.183703500021181,
-                "p95_ms": 43.072579000011046
+                "median_ms": 253.14950800006386,
+                "p95_ms": 254.11122100001649
+              },
+              "store_write": {
+                "samples": 20,
+                "median_ms": 1.4667285000200536,
+                "p95_ms": 1.718197999991844
+              },
+              "journal_fsync": {
+                "samples": 20,
+                "median_ms": 0.004847500036930796,
+                "p95_ms": 0.03169799998659073
               },
               "daemon_expiry_inside_sample": {
                 "samples": 20,
-                "median_ms": 0.22199149999124757,
-                "p95_ms": 0.5826760000076092
+                "median_ms": 0.12869500002921086,
+                "p95_ms": 0.16465900000639522
               },
               "client_outside_service": {
                 "samples": 20,
-                "median_ms": 0.8490085000059366,
-                "p95_ms": 2.2439339999963295
+                "median_ms": 0.9002645000045959,
+                "p95_ms": 1.1926090000238219
               }
             },
             "read": {
@@ -6449,43 +6558,63 @@
             "navigate": {
               "client_total": {
                 "samples": 20,
-                "median_ms": 42.59162650000508,
-                "p95_ms": 60.09569400000328
+                "median_ms": 318.5716079999838,
+                "p95_ms": 320.4667269999918
               },
               "extension_total": {
                 "samples": 20,
-                "median_ms": 20.60000000000582,
-                "p95_ms": 22.89999999999418
+                "median_ms": 47.59999999991851,
+                "p95_ms": 49.09999999997672
               },
               "bridge_round_trip": {
                 "samples": 20,
-                "median_ms": 25.944318499995234,
-                "p95_ms": 28.2044150000047
+                "median_ms": 60.23953400023174,
+                "p95_ms": 61.687802999927044
+              },
+              "frame_facts": {
+                "samples": 20,
+                "median_ms": 3.9999999999417923,
+                "p95_ms": 4.299999999930151
               },
               "clipboard_hooks": {
                 "samples": 20,
                 "median_ms": 0.0,
-                "p95_ms": 0.0
+                "p95_ms": 0.09999999997671694
               },
               "page_observation": {
                 "samples": 20,
-                "median_ms": 11.900000000008731,
-                "p95_ms": 14.60000000000582
+                "median_ms": 11.900000000023283,
+                "p95_ms": 14.199999999953434
               },
               "service_total": {
                 "samples": 20,
-                "median_ms": 41.84894200000144,
-                "p95_ms": 59.34243900000524
+                "median_ms": 317.7095540000323,
+                "p95_ms": 319.66586900000493
               },
               "service_without_bridge": {
                 "samples": 20,
-                "median_ms": 16.504464999997026,
-                "p95_ms": 31.499611000015193
+                "median_ms": 257.55533250008966,
+                "p95_ms": 258.0705359998774
+              },
+              "store_write": {
+                "samples": 20,
+                "median_ms": 1.4588954999794623,
+                "p95_ms": 1.722769000025437
+              },
+              "journal_fsync": {
+                "samples": 20,
+                "median_ms": 0.0045920000388832705,
+                "p95_ms": 0.005532000045604946
+              },
+              "daemon_expiry_inside_sample": {
+                "samples": 20,
+                "median_ms": 0.13335799997094,
+                "p95_ms": 0.1771459999417857
               },
               "client_outside_service": {
                 "samples": 20,
-                "median_ms": 0.7871994999928802,
-                "p95_ms": 1.0388929999835455
+                "median_ms": 0.8696754999723453,
+                "p95_ms": 1.0143199999783974
               }
             },
             "read": {
@@ -6838,18 +6967,23 @@
             "navigate": {
               "client_total": {
                 "samples": 20,
-                "median_ms": 54.78093350000563,
-                "p95_ms": 60.30502099999285
+                "median_ms": 332.8100705000106,
+                "p95_ms": 334.31370300002163
               },
               "extension_total": {
                 "samples": 20,
-                "median_ms": 20.300000000017462,
-                "p95_ms": 22.70000000001164
+                "median_ms": 45.84999999997672,
+                "p95_ms": 47.59999999997672
               },
               "bridge_round_trip": {
                 "samples": 20,
-                "median_ms": 23.925848000004635,
-                "p95_ms": 28.399609999979702
+                "median_ms": 56.65960950000226,
+                "p95_ms": 59.25252200017894
+              },
+              "frame_facts": {
+                "samples": 20,
+                "median_ms": 3.8999999999068677,
+                "p95_ms": 4.099999999976717
               },
               "clipboard_hooks": {
                 "samples": 20,
@@ -6858,23 +6992,38 @@
               },
               "page_observation": {
                 "samples": 20,
-                "median_ms": 11.849999999991269,
-                "p95_ms": 13.5
+                "median_ms": 12.0,
+                "p95_ms": 13.300000000046566
               },
               "service_total": {
                 "samples": 20,
-                "median_ms": 52.51183349999167,
-                "p95_ms": 58.039468000004035
+                "median_ms": 331.87546699997483,
+                "p95_ms": 333.47410399994715
               },
               "service_without_bridge": {
                 "samples": 20,
-                "median_ms": 28.753521000012938,
-                "p95_ms": 29.861532000012403
+                "median_ms": 274.39410400006636,
+                "p95_ms": 275.6320930000129
+              },
+              "store_write": {
+                "samples": 20,
+                "median_ms": 1.6380659999413183,
+                "p95_ms": 1.7331659998944815
+              },
+              "journal_fsync": {
+                "samples": 20,
+                "median_ms": 0.00486749996753133,
+                "p95_ms": 0.006383000027199159
+              },
+              "daemon_expiry_inside_sample": {
+                "samples": 20,
+                "median_ms": 0.13755700001638616,
+                "p95_ms": 0.16673700008595915
               },
               "client_outside_service": {
                 "samples": 20,
-                "median_ms": 2.0590969999955178,
-                "p95_ms": 2.626310999993848
+                "median_ms": 0.8469659999122996,
+                "p95_ms": 1.0578090000090015
               }
             },
             "read": {

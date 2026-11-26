@@ -22,6 +22,23 @@ export function ownerUI({call,currentTab,window,eventually,exec=execFileSync}){
   }
   return {
     select,
+    async open(url){
+      const before=new Set();let cursor;
+      do{const page=await call('tabs',{limit:10,...(cursor?{cursor}:{})});page.items.forEach(row=>before.add(row.tab));cursor=page.cursor;}while(cursor);
+      await select(currentTab());
+      exec('xdotool',['key','--clearmodifiers','ctrl+t','ctrl+l']);
+      exec('xdotool',['type','--clearmodifiers','--delay','1',url]);
+      exec('xdotool',['key','--clearmodifiers','Delete','Return']);
+      return eventually(async()=>{
+        let cursor;
+        do{
+          const page=await call('tabs',{limit:10,...(cursor?{cursor}:{})});
+          const row=page.items.find(row=>!before.has(row.tab)&&row.active&&row.focused&&row.url===url);
+          if(row)return row.tab;
+          cursor=page.cursor;
+        }while(cursor);
+      },'owner opened a new native tab at the exact address');
+    },
     // A row that opens its own tab names it here; the driver's current tab is
     // only the default (run 43584711126: the owner played in the driver's tab
     // while the row closed the one it had opened).
@@ -50,6 +67,11 @@ export function ownerUI({call,currentTab,window,eventually,exec=execFileSync}){
       assert.ok(Number.isInteger(replacement),'open must return the replacement tab in untrusted_content');
       await select(tab);exec('xdotool',['key','--clearmodifiers','ctrl+w']);
       await eventually(async()=>!await tabInfo(tab),'owner closes opener');return replacement;
+    },
+    async close(tab){
+      await select(tab);
+      exec('xdotool',['key','--clearmodifiers','ctrl+w']);
+      await eventually(async()=>!await tabInfo(tab),'owner closes the exact tab');
     },
     async popupWindow(id){
       assert.match(id,/^[a-z0-9-]+$/);let previous;

@@ -2,7 +2,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {instrumentLatencyBackground,instrumentLatencyReader} from './latency-instrument.mjs';
+import {instrumentInputBoundary} from './input-boundary.mjs';
 import {instrumentOwnerGuard} from './owner-evidence.mjs';
+import {instrumentFixtureObserver} from './harness-observer.mjs';
 import {generateKeyPairSync} from 'node:crypto';
 import {packageExtension} from '../packaging/pack.mjs';
 if(process.platform !== 'linux' || process.env.GITHUB_ACTIONS !== 'true' || !fs.existsSync('/.dockerenv'))throw Error('CI Linux container only');
@@ -57,8 +59,10 @@ async function content(tab, frame, command, parameters={},browserDocument=null,e
     background=exactly(background,'chrome.tabs.sendMessage(tab,{command,...parameters},','fixtureSendMessage(tab,{command,...parameters},');
     background=exactly(background,'try { respond({id:message.id,ok:true,data:await dispatch(message.command,expires)}); }','try { const data=await dispatch(message.command,expires);await fixtureReplyDelay(message);respond({id:message.id,ok:true,data}); }');
   }
+  if(process.env.ACT_INPUT_BOUNDARY==='true')background=instrumentInputBoundary(background,exactly);
   // The latency pair's historical runtime (ab7aba92) gets this file too; its dispatch takes no time.
   const dispatchStart=['async function dispatch(command,expires=null) {','async function dispatch(command) {'].find(text=>background.includes(text));
+  background=instrumentFixtureObserver(background,dispatchStart,exactly,process.env.CHROME_FIXTURE_OBSERVER==='true');
   fs.writeFileSync(extension+'/background.js',exactly(background,dispatchStart, dispatchStart+`
     if(command.name==='fixture_network_restart'){
       const tab=command.tab;await stop();
@@ -67,6 +71,7 @@ async function content(tab, frame, command, parameters={},browserDocument=null,e
     }
     if(command.name==='fixture_hold_reader'&&typeof fixtureHolds==='object'){fixtureHolds.reader.set(command.tab,{ms:command.ms,until:Date.now()+command.duration,commands:command.commands||null});return {held:command.tab};}
     if(command.name==='fixture_hold_reply'&&typeof fixtureHolds==='object'){fixtureHolds.reply={name:command.command,tab:command.tab,ms:command.ms};return {held:command.tab};}
+    if(command.name==='fixture_mute_tab'&&typeof fixtureHolds==='object'){const tab=await chrome.tabs.update(command.tab,{muted:true});return {muted:tab.mutedInfo?.muted===true};}
   `));
 }
 const result=packageExtension(extension,'/workspace/.work/20-package',pair.privateKey.export({type:'pkcs8',format:'pem'}));
