@@ -152,7 +152,7 @@ class DiscoveredLifecycleTest(DiscoveredBase):
 
     def test_early_clean_exit_waits_for_a_resident_instances_window(self):
         self.open()
-        self.helper_.processes[shell.DESKTOP, 'o-1'].code = 0
+        self.launch_for(self.helper_, shell.DESKTOP, 'o-1').process.code = 0
         self.helper_.tick()
         self.assertEqual(self.state(), 'starting')
         self.scope_pass(self.helper_)  # the short-lived second launch's scope is gone
@@ -161,14 +161,14 @@ class DiscoveredLifecycleTest(DiscoveredBase):
 
     def test_nonzero_early_exit_is_still_a_launch_failure(self):
         self.open()
-        self.helper_.processes[shell.DESKTOP, 'o-1'].code = 2
+        self.launch_for(self.helper_, shell.DESKTOP, 'o-1').process.code = 2
         self.helper_.tick()
         self.assertEqual(self.state(), 'failed')
         self.assertEqual(self.helper_.journal.entries[shell.DESKTOP, 'o-1']['error'], 'launch_failed')
 
     def test_live_and_unknown_scopes_never_time_out_but_gone_handover_is_bounded(self):
         self.open()
-        process = self.helper_.processes[shell.DESKTOP, 'o-1']
+        process = self.launch_for(self.helper_, shell.DESKTOP, 'o-1').process
         unit = self.helper_.journal.entries[shell.DESKTOP, 'o-1']['unit']
         self.active_units.add(unit)
         for status in ('proxy alive', 'scope alive', 'scope unknown'):
@@ -189,7 +189,7 @@ class DiscoveredLifecycleTest(DiscoveredBase):
 
     def test_close_means_no_window_even_while_scope_runs_and_second_start_brings_it_back(self):
         self.open('discord')
-        process = self.helper_.processes[shell.DESKTOP, 'o-1']
+        process = self.launch_for(self.helper_, shell.DESKTOP, 'o-1').process
         unit = self.helper_.journal.entries[shell.DESKTOP, 'o-1']['unit']
         self.active_units.add(unit)
         self.window(2, 'discord', active=True)
@@ -202,7 +202,7 @@ class DiscoveredLifecycleTest(DiscoveredBase):
         self.assertIn(unit, self.helper_.watched_units())
         self.focus(1)
         second = self.open('discord', 'o-2')
-        self.helper_.processes[shell.DESKTOP, 'o-2'].code = 0
+        self.launch_for(self.helper_, shell.DESKTOP, 'o-2').process.code = 0
         self.helper_.tick()
         self.assertEqual(self.state('o-2'), 'starting')
         self.window(3, 'discord', active=True)
@@ -221,7 +221,7 @@ class DiscoveredLifecycleTest(DiscoveredBase):
         self.close(2)
         self.close(3)
         self.focus(4)  # the orphan dialog retains its discovered parent even at a later done
-        self.assertEqual(self.helper_.handles[shell.DESKTOP, 'o-1'], {4})
+        self.assertEqual(self.launch_for(self.helper_, shell.DESKTOP, 'o-1').handles, {4})
         self.assertEqual(self.state(), 'focused')
         self.expire_close()
         self.assertEqual(self.activations, [])
@@ -270,7 +270,7 @@ class DiscoveredLifecycleTest(DiscoveredBase):
         self.window(2, 'lunarclient', active=True)
         self.now[0] += 1
         self.open(request_id='o-2')
-        self.helper_.processes[shell.DESKTOP, 'o-2'].code = 0
+        self.launch_for(self.helper_, shell.DESKTOP, 'o-2').process.code = 0
         self.helper_.tick()
         self.focus(2)
         self.assertEqual(self.state('o-2'), 'focused')
@@ -281,7 +281,7 @@ class DiscoveredLifecycleTest(DiscoveredBase):
     def test_clean_handover_without_tracking_settles_instead_of_guessing_a_failure(self):
         helper = self.start(tracked=False, journal=os.path.join(self.folder.name, 'untracked.json'))
         self.open()
-        helper.processes[shell.DESKTOP, 'o-1'].code = 0
+        self.launch_for(helper, shell.DESKTOP, 'o-1').process.code = 0
         helper.tick()
         self.assertEqual(self.state(), 'starting')
         self.assertTrue(helper.journal.entries[shell.DESKTOP, 'o-1']['settled'])
@@ -341,13 +341,13 @@ class UnclaimedWindowTest(DiscoveredBase):
         self.windows.done(2)
         self.helper_.windows_changed()
         self.assertEqual(self.windows.toplevels[2].owner, 'notepad')
-        self.assertNotIn((shell.DESKTOP, 'o-1'), self.helper_.handles)
+        self.assertEqual(self.launch_for(self.helper_, shell.DESKTOP, 'o-1').handles, set())
         self.expire_close()
         self.assertEqual(self.activations, [])
 
     def test_a_failed_launch_cannot_infer_an_unrelated_window(self):
         self.open()
-        self.helper_.processes[shell.DESKTOP, 'o-1'].code = 2
+        self.launch_for(self.helper_, shell.DESKTOP, 'o-1').process.code = 2
         self.helper_.tick()
         self.window(2, 'java-other')
         self.assertIsNone(self.windows.toplevels[2].owner)
@@ -393,7 +393,7 @@ class UnclaimedWindowTest(DiscoveredBase):
 
     def test_unknown_or_gone_scopes_cannot_claim_a_new_window(self):
         self.open()
-        self.helper_.processes[shell.DESKTOP, 'o-1'].code = 0
+        self.launch_for(self.helper_, shell.DESKTOP, 'o-1').process.code = 0
         self.helper_.tick()
         self.scope_answer = (1, '')
         self.scope_pass(self.helper_)
@@ -406,7 +406,7 @@ class UnclaimedWindowTest(DiscoveredBase):
 
     def test_scopes_decide_no_owner_and_scope_death_never_closes_a_real_window(self):
         self.open()
-        self.helper_.processes[shell.DESKTOP, 'o-1'].code = 0
+        self.launch_for(self.helper_, shell.DESKTOP, 'o-1').process.code = 0
         self.helper_.tick()
         unit = self.helper_.journal.entries[shell.DESKTOP, 'o-1']['unit']
         self.active_units.add(unit)
@@ -437,7 +437,7 @@ class UnclaimedWindowTest(DiscoveredBase):
         windows.done(9)
         helper = self.start(windows=windows)
         self.assertEqual(helper.windows.toplevels[9].owner, 'lunarclient')
-        self.assertEqual(helper.handles[shell.DESKTOP, 'o-1'], {9})
+        self.assertEqual(self.launch_for(helper, shell.DESKTOP, 'o-1').handles, {9})
         self.assertEqual(self.state(), 'focused')
         self.assertEqual(self.popen.call_count, 1)
 
@@ -489,7 +489,7 @@ class DiscoveredSplitReadTest(DiscoveredBase):
                     self.expire_close()
                     self.assertEqual(self.activations, [])
                     self.assertEqual(self.state(), 'focused')
-                    self.assertEqual(helper.handles[shell.DESKTOP, 'o-1'], {self.GAME})
+                    self.assertEqual(self.launch_for(helper, shell.DESKTOP, 'o-1').handles, {self.GAME})
                     self.assertEqual(self.conn.events('shell_focus')[before:], [])
                     self.close(self.GAME)
                     self.expire_close()

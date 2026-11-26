@@ -1,5 +1,6 @@
 package dev.aresos.client;
 
+import dev.aresos.AresOs;
 import dev.aresos.focus.PointerRules;
 import dev.aresos.item.AppItems;
 import dev.aresos.shell.ShellClient;
@@ -34,19 +35,22 @@ public final class HomePointer {
             return true;
         }
         if (!HomeScreen.freePointer(client) || client.gui.screen() != null || client.gui.overlay() != null) return false;
-        // Package 328c: with look = edge and the world in front, the free pointer's clicks go on to Minecraft.
+        // With look = edge and the world in front, clicks outside the app shortcuts go on to Minecraft.
         boolean worldActs = !HomeScreen.ignoresMouse(client);
         if (action != GLFW.GLFW_PRESS) return !worldActs;
         int slot = hoveredSlot(client);
-        var click = PointerRules.click(true, button == GLFW.GLFW_MOUSE_BUTTON_LEFT, slot >= 0, worldActs);
+        var shell = AresOs.shell();
+        var click = PointerRules.click(true, button == GLFW.GLFW_MOUSE_BUTTON_LEFT,
+                button == GLFW.GLFW_MOUSE_BUTTON_RIGHT, slot >= 0, shell != null && shell.canActivateApps(), worldActs);
         if (click == PointerRules.Click.VANILLA) return false;
         swallowedButtons |= bit;
-        if (click == PointerRules.Click.OPEN_APP) {
+        if (click == PointerRules.Click.OPEN_APP || click == PointerRules.Click.NEW_WINDOW) {
             // labwc activates the desktop on mouse-down. Its helper event can arrive on either side of this callback.
             appClick = foregroundFrames == 0;
             foregroundFrames = 0;
             long sequence = ++launchSequence;
-            AresOsClient.launchFromPointer(client.player.getInventory().getItem(slot).get(AppItems.APP_ID), () -> {
+            AresOsClient.launchFromPointer(client.player.getInventory().getItem(slot).get(AppItems.APP_ID),
+                    click == PointerRules.Click.NEW_WINDOW, () -> {
                 // The helper may coalesce the very brief desktop activation and leave the app focused throughout.
                 // Once this app is focused, a later Alt+Tab to the world must not be mistaken for the old click.
                 if (sequence == launchSequence) appClick = false;

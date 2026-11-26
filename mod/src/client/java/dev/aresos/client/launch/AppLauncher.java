@@ -27,4 +27,8 @@ public interface AppLauncher {
     default CompletionStage<String> launchOnWorldScreen(AppDefinition app) {
         return launchTracked(app);
     }
+
+    default CompletionStage<String> launchNewWindow(AppDefinition app) {
+        return launchTracked(app);
+    }
 }

@@ -28,17 +28,22 @@ public final class LinuxAppLauncher implements AppLauncher {
 
     /** The request ID lets a failure reported after the launch counted as done find this launch again. */
     @Override public CompletionStage<String> launchTracked(AppDefinition app) {
-        return open(app, null);
+        return open(app, null, true);
     }
 
     @Override public CompletionStage<String> launchOnWorldScreen(AppDefinition app) {
-        return open(app, ShellClient.SCREEN_WORLD);
+        return open(app, ShellClient.SCREEN_WORLD, true);
     }
 
-    private CompletionStage<String> open(AppDefinition app, String screen) {
+    @Override public CompletionStage<String> launchNewWindow(AppDefinition app) {
+        return open(app, null, false);
+    }
+
+    private CompletionStage<String> open(AppDefinition app, String screen, boolean bringBack) {
         var client = shell.get();
         if (client == null) return launch(List.<String>of()).thenApply(ignored -> null);
-        return client.open(app.id(), screen).thenApply(ShellClient.Launch::requestId);
+        return (bringBack ? client.activate(app.id(), screen) : client.open(app.id(), screen))
+                .thenApply(ShellClient.Launch::requestId);
     }
 
     /** Why a launch failed, in a few words for the action bar. */

@@ -20,9 +20,9 @@ import java.util.List;
  *
  * <p>Nothing here captures or lets go. Every grab finds the pointer free ({@link HomeScreen#freePointer}) and is refused
  * at the head of {@code grabMouse}, as behind an app in package 56. A click on the world goes on through vanilla's own
- * button handling after that refused grab, so it acts on what the crosshair aims at ({@link #clicksAct}). Package 56
- * still decides first: a primary click on an app slot opens the app, and while an app is in front the world ignores
- * the mouse (the press only brings the world to the front).
+ * button handling after that refused grab, so it acts on what the crosshair aims at ({@link #clicksAct}). App slot
+ * shortcuts take priority. A primary click opens or brings back the app, and a secondary click opens a new window
+ * when the helper offers {@code activate_app}. While an app is in front, other presses only bring the world forward.
  */
 public final class EdgeLook {
     /** {@code Entity.turn} counts in the mouse's units of 0.15 degrees. */

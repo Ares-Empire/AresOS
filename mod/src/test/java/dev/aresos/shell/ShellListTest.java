@@ -98,8 +98,8 @@ class ShellListTest {
     @Test void aOneOneHelperAgreesOnMinorOneAndEveryLaterMessageSaysSo() throws Exception {
         connect();
         var hello = helper.received("hello").getFirst();
-        assertEquals("aresos-shell/1.2", hello.get("protocol").getAsString());
-        assertEquals(2, hello.get("minor").getAsInt());
+        assertEquals("aresos-shell/1.3", hello.get("protocol").getAsString());
+        assertEquals(3, hello.get("minor").getAsInt());
         var offered = hello.getAsJsonArray("capabilities").asList().stream().map(JsonElement::getAsString).toList();
         assertTrue(offered.containsAll(List.of("app_details", "apps_changed", "list_paging")), offered.toString());
         assertEquals(List.of("list_apps", "open_app"),
@@ -107,7 +107,7 @@ class ShellListTest {
         client.world("AresOS");
         FakeHelper.await(() -> !helper.received("world_ready").isEmpty(), "world_ready");
         for (var message : helper.received)
-            assertEquals(message == hello ? "aresos-shell/1.2" : "aresos-shell/1.1", message.get("protocol").getAsString());
+            assertEquals(message == hello ? "aresos-shell/1.3" : "aresos-shell/1.1", message.get("protocol").getAsString());
         assertTrue(client.detailed());
         // The default entries carry no 1.1 field: nothing is known about them, which is not the same as 1.0.
         assertEquals(new ShellClient.App("terminal", "Terminal", true, null, SystemInfo.UNKNOWN), client.apps().getFirst());
@@ -130,7 +130,7 @@ class ShellListTest {
             return reply;
         };
         connect();
-        assertEquals("aresos-shell/1.2", helper.received("hello").getFirst().get("protocol").getAsString());
+        assertEquals("aresos-shell/1.3", helper.received("hello").getFirst().get("protocol").getAsString());
         assertFalse(client.detailed());
         assertEquals(List.of(new ShellClient.App("terminal", "Terminal", true, null)), client.apps());
         helper.event("apps_changed", Map.of("revision", "r2"));
@@ -466,12 +466,14 @@ class ShellListTest {
         assertEquals(helloExample.keySet(), hello.keySet());
         for (String same : List.of("op", "major", "requires"))
             assertEquals(helloExample.get(same), hello.get(same), same);
-        assertEquals("aresos-shell/1.2", hello.get("protocol").getAsString());
-        assertEquals(2, hello.get("minor").getAsInt());
+        assertEquals("aresos-shell/1.3", hello.get("protocol").getAsString());
+        assertEquals(3, hello.get("minor").getAsInt());
         var capabilities = helloExample.getAsJsonArray("capabilities");
         // The 1.2 additions the client offers on top of the 1.1 example: the home, and Super's search (package 53d).
         capabilities.add("home_state");
         capabilities.add("shell_search");
+        capabilities.add("apps_state");
+        capabilities.add("activate_app");
         assertEquals(capabilities, hello.get("capabilities"));
         var requests = helper.received("list_apps");
         assertEquals(2, requests.size());

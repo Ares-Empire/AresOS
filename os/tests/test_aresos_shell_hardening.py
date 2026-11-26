@@ -352,8 +352,8 @@ class DesktopLinkTest(HardeningBase):
         self.assertEqual(set(catalogue.apps), {'good'})
         self.assertEqual(fdopen.call_count, 1)
         self.assertEqual(len(logs.output), 1)
-        self.assertIn('evil.desktop', logs.output[0])
-        self.assertIn('outside its folders', logs.output[0])
+        self.assertIn('desktop entry skipped (ValueError', logs.output[0])
+        self.assertNotIn('evil.desktop', logs.output[0])
 
     def test_links_inside_the_application_folders_are_followed(self):
         target = self.write(self.folders[4] / 'nested/real.program', Name='Linked')
