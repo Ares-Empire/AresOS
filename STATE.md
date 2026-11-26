@@ -16,7 +16,7 @@
 - `linux-desktop` — B321 Deskflow image integration, the look and window components and the desktop-side pieces of B332.
 - `linux-tools` — Control, Chrome capability packages 28/28a/28b, the R29 Chrome first-use handoff and owner trial.
 - `linux-laptop-home` — B334a hosted test bench and later B334 tiers, plus package 53's trial after 23c.
-- `linux-hub` — Minecraft home and mod, B333 open-app marks and activation, B332 home styles, B328 prototype trial and T364 sleeping-world study.
+- `linux-hub` — Minecraft home and mod (B333 and B343 merged for R29), the R30 pieces outside the game with `linux-desktop` (HOME-OUTSIDE), B328 prototype trial and T364 sleeping-world study.
 
 ## Owner decisions in force
 
