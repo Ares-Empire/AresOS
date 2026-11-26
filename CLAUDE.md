@@ -13,7 +13,7 @@ The workflow is nametbd's Codex-era workflow (branch `archive/codex-era-workflow
 
 - **Owner (the user):** holds the vision and makes the calls under "Owner decides" below.
 - **Claude (me):** planner, orchestrator and integrator. I cut the design into small packages, write the briefs, launch Codex, check its work, merge, and keep the docs true.
-- **Codex:** the builder. One Codex job per package or package step (`codex-job`, see `~/aresync/TOOLS.md`), in its own git worktree. It builds, tests, and opens a PR. It never merges.
+- **Codex:** the builder. One headless `codex exec` run per package, in its own git worktree. It builds, tests, and opens a PR. It never merges. Elsewhere Codex workers now run as `codex-job` (`~/aresync/TOOLS.md`); AresOS switches once codex-job has passed its Linux test run on the laptop (board, topic capacity). Until then the recipes in `docs/WORKFLOW.md` and `docs/REVIEW.md` stay as they are.
 
 **Claude agents may build packages too** (owner, 2026-11-09: "we could work with claude agents too", to use his Claude allowance). They get the same brief, worktree, branch and AGENTS.md rules as Codex. Pick Codex or a Claude agent per package by fit and remaining allowance. Claude agents run on Opus by default. For a hard AresOS task or a problem that resists normal attempts, use Fable 5.2 (owner, 2026-11-09: "in the dev of an own OS I could imagine hard tasks"). Design work (how something looks, feels or is laid out) runs on Fable agents (owner, 2026-11-13: "if you do actual design work use fable agents").
 
@@ -26,7 +26,7 @@ I only build things myself when writing the brief would cost more than doing it 
 
 ## Orienting at session start
 
-1. **Live state first:** `git log --oneline -10`, `git worktree list`, `gh pr list`, and whether any Codex run I launched is still going (`codex-job list --all --running` where codex-job is in use; a raw `codex exec` fallback run logs to `~/AresOS-<id>.log`, each fix round to its own log; `turn.completed` in the newest one means done).
+1. **Live state first:** `git log --oneline -10`, `git worktree list`, `gh pr list`, and whether any Codex run I launched is still going (each run logs to `../AresOS-<id>.log`; `turn.completed` in it means done).
 2. **Then `STATE.md`** (where we are and what comes next) and **`HANDOFF.md`** (where the last session stopped and how to resume). Then only the docs the task touches (map below).
 3. **Treat docs as claims:** anything a doc says about the current state is unverified until the live check agrees. Update `STATE.md` when a PR merges or a decision lands.
 
@@ -96,7 +96,7 @@ Pick the model for each job by what does that job best, never by habit or a fixe
 
 Starting efforts: builds and councils `xhigh` (`max` before irreversible steps), reviews `high`.
 
-- Always pass `-m` and the effort explicitly (`--effort` in `codex-job`). The Codex config default is an older model.
+- Always pass `-m` and `-c model_reasoning_effort=...` explicitly. The Codex config default is an older model.
 - Keep Codex current with `npm install -g @openai/codex@latest` (0.163.0 on 2026-10-21).
 - Never use Spark.
 - ChatGPT Pro runs until 2026-11-21. On a rate limit, back off; don't retry in a loop.

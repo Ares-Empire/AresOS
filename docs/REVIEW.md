@@ -10,15 +10,13 @@ A review covers exactly the commit it looked at. Anything pushed later isn't cov
 
 ## Package review (every package)
 
-After Codex opens a PR, one fresh reviewer checks it: a new read-only `codex-job` (never a continued build job). Its report is its answer. On the AresOS laptop, use the raw `codex exec` fallback in `~/aresync/TOOLS.md` instead (read-only, `-o` to a scratch file, moved into place when it finished nonempty) until codex-job's Linux test run has passed; the same goes for councils below.
+After Codex opens a PR, one fresh reviewer checks it. It runs in a read-only sandbox, and `-o` saves its answer:
 
 ```bash
-WT=~/AresOS-NN-slug
-codex-job start aresos-bNN-review -C "$WT" -m "$REVIEW_MODEL" --effort high -s read-only --wait \
-  --prompt "You review PR #N of AresOS. Read AGENTS.md, briefs/NN-slug.md and reviews/NN-slug/REPORT.md, then the diff (git diff main...HEAD). Find what is wrong, missing compared to the brief, or will break in the game. Look hardest for things that fail silently: tests pass, but the game behaves wrong. For each finding give severity (blocking / should-fix / nit), where it is, why it matters, and the fix. End with one line: SAFE or CHANGES-NEEDED."
+codex exec -m "$REVIEW_MODEL" -c model_reasoning_effort="high" -s read-only \
+  -C ~/AresOS-NN-slug -o ~/AresOS-NN-slug/reviews/NN-slug/REVIEW.md \
+  "You review PR #N of AresOS. Read AGENTS.md, briefs/NN-slug.md and reviews/NN-slug/REPORT.md, then the diff (git diff main...HEAD). Find what is wrong, missing compared to the brief, or will break in the game. Look hardest for things that fail silently: tests pass, but the game behaves wrong. For each finding give severity (blocking / should-fix / nit), where it is, why it matters, and the fix. End with one line: SAFE or CHANGES-NEEDED."
 ```
-
-Once its wait exits 0, save turn 1 as `$WT/reviews/NN-slug/REVIEW.md` (TOOLS.md → "Saving a report"). For each re-check of fixes, continue the same review job and save that turn (`codex-job status` shows its number) as the next `REVIEW-N.md`.
 
 - Blocking findings become a short follow-up brief, and Codex fixes them on the same branch.
 - The reviewer then checks only those fixes plus anything they touched. It doesn't start a fresh hunt.
@@ -71,9 +69,9 @@ A council is several fresh Codex reviewers. Each has a different role, and they 
 ### How Claude runs one
 
 1. Write `reviews/councils/<date>-<topic>/QUESTION.md`: what is being reviewed, which files to read, and what decision depends on it.
-2. Start one read-only `codex-job` per role, in parallel (`COUNCIL_MODEL`, xhigh, label `aresos-council-<yymmdd>-<topic>-<role>`, each with `--wait` in its own background command), and once every member has finished, save each answer as `<folder>/<role>.md` (TOOLS.md → "Saving a report"). The prompt:
+2. Launch one `codex exec` per role, in parallel (`COUNCIL_MODEL`, xhigh, read-only, `-o <folder>/<role>.md`), with this prompt:
    > You are the <ROLE> member of an AresOS design council. Read QUESTION.md in <folder> and the files it lists. Review independently; you will not see the other members' answers. Report only real gaps, most severe first. For each: the gap in one line, a concrete scenario where it breaks, the impact, the fix, and the test or check that would catch it. Do not edit any files.
-3. When all members are done, start the chair as a new job (`COUNCIL_MODEL`, xhigh, read-only) and save its report as `<folder>/VERDICT.md`:
+3. When all members are done, launch the chair (`COUNCIL_MODEL`, xhigh, `-o <folder>/VERDICT.md`):
    > You chair an AresOS design council. Read QUESTION.md and every member file in <folder>. Merge duplicates, drop anything without a concrete scenario, settle disagreements by the evidence rather than by counting votes, and rank by severity. End with one line: GAPS-FOUND (n) or CLEAN.
 4. Bring the verdict to the owner in plain language.
 

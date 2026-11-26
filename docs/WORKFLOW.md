@@ -12,14 +12,15 @@ Work one package at a time. Run up to about three at once only when they touch d
    - Can what it hands Codex actually produce the result it promises?
 
    For risky or foundational packages, run a council on the brief first (`docs/REVIEW.md`).
-3. **Launch (Claude).** Commit the brief to `main`, create the worktree, and start Codex as a `codex-job` in the background (`run_in_background`; `--wait` wakes Claude when the run ends):
+3. **Launch (Claude).** Commit the brief to `main`, create the worktree, and start Codex in the background (`run_in_background`, so the harness reports when it exits):
    ```bash
-   WT=~/AresOS-NN-slug
-   git -C ~/AresOS worktree add -b pkg/NN-slug "$WT" main &&
-   codex-job start aresos-bNN-build -C "$WT" -m "$BUILD_MODEL" --effort xhigh -s danger-full-access --wait \
-     --prompt "Read AGENTS.md and briefs/NN-slug.md, then execute the brief fully. Push the branch and open a PR. Do not merge."
+   git -C ~/AresOS worktree add -b pkg/NN-slug ~/AresOS-NN-slug main
+   cd ~/AresOS-NN-slug && codex exec -m "$BUILD_MODEL" -c model_reasoning_effort="xhigh" \
+     -s danger-full-access --json -o ../AresOS-NN-slug.last.md \
+     "Read AGENTS.md and briefs/NN-slug.md, then execute the brief fully. Push the branch and open a PR. Do not merge." \
+     > ../AresOS-NN-slug.log 2>&1
    ```
-   `$BUILD_MODEL` is the model picked for this package (`CLAUDE.md`, "Codex models"). Steering, stopping and fix rounds (`codex-job continue`): `~/aresync/TOOLS.md` → codex-job. On the AresOS laptop, use the `codex exec` fallback there until codex-job's Linux test run has passed.
+   `$BUILD_MODEL` is the model picked for this package (`CLAUDE.md`, "Codex models").
 4. **Review (fresh reviewer).** An independent Codex context or Claude agent checks the PR against the brief. See "Package review" in `docs/REVIEW.md`.
 5. **Integrate (Claude).** This is not a second full review. Claude:
    - confirms the PR head is the commit that was reviewed
@@ -51,7 +52,7 @@ Work one package at a time. Run up to about three at once only when they touch d
 - `briefs/`: frozen briefs. A changed plan is a new brief, not an edit to one Codex already ran.
 - `reviews/NN-slug/`: the Codex report, reviews and screenshots.
 - `reviews/councils/<date>-<topic>/`: council question, member reports and the chair's verdict.
-- Codex job records stay outside the repo (`codex-job status`, `logs`, `report`); fallback `codex exec` logs sit next to the worktree.
+- `codex exec` logs stay outside the repo, next to the worktree.
 
 ## On the AresOS laptop
 
