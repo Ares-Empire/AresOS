@@ -170,9 +170,8 @@ He didn't test memory. Ask him when the memory work needs his apps open.
 - **Reviews:**
   - Every reviewer prompt states the safety bar (decision 24): fix real harm, and put low-harm edge cases under Known limits.
   - A brief or design note gets one Claude review, then one Codex review, then the build.
-- **Running Codex:** `codex exec -m <model> -c model_reasoning_effort=<e> -s <sandbox> --json -o <last.md> "<prompt>" > ../AresOS-<id>.log 2>&1 < /dev/null`.
-  - Reviews run read-only and write `reviews/NN-*/REVIEW-N.md`.
-  - Codex needs stdin closed.
+- **Running Codex:** as a `codex-job` (`~/aresync/TOOLS.md`, which also has the raw `codex exec` fallback for the laptop until codex-job's Linux run passes).
+  - Reviews run read-only; their report is saved as `reviews/NN-*/REVIEW-N.md`.
 - **Client tests:** one at a time machine-wide (`mod/dev/client-test.sh`, the lock at `~/.cache/aresos-dev/client-test.lock`). Since 47 they keep the NVIDIA card awake only for the run.
 
 ## Known limits left open (low harm)
