@@ -26,7 +26,7 @@ I only build things myself when writing the brief would cost more than doing it 
 
 ## Orienting at session start
 
-1. **Live state first:** `git log --oneline -10`, `git worktree list`, `gh pr list`, and whether any Codex run I launched is still going (`codex-job list --all --running` where codex-job is in use; a raw `codex exec` fallback run logs to `../AresOS-<id>.log`, where `turn.completed` means done).
+1. **Live state first:** `git log --oneline -10`, `git worktree list`, `gh pr list`, and whether any Codex run I launched is still going (`codex-job list --all --running` where codex-job is in use; a raw `codex exec` fallback run logs to `~/AresOS-<id>.log`, each fix round to its own log; `turn.completed` in the newest one means done).
 2. **Then `STATE.md`** (where we are and what comes next) and **`HANDOFF.md`** (where the last session stopped and how to resume). Then only the docs the task touches (map below).
 3. **Treat docs as claims:** anything a doc says about the current state is unverified until the live check agrees. Update `STATE.md` when a PR merges or a decision lands.
 
