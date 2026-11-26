@@ -17,7 +17,7 @@ Each mod command started with at least 6 GiB available and zero other Gradle bui
 
 - Each build recorded 365 unit cases, six platform skips and zero failures. The original second build attempt exited 143 during unit tests after all 106 server game tests passed. The Gradle daemon logged `client disconnection detected, canceling the build`. The full retry passed with the same code and test settings.
 - Both full client runs used the headless two-output labwc/Xwayland session on the RTX 4060. They verified recovery below level while the cursor was at the topmost pixel, both pitch limits while held, both arrows together in and out of the band, and steady pitch with the inventory open. They printed `343: Down beat the top band, Up and Down reached the pitch limits, and both left the band in control`, `328c edge-turning checks passed` and `333 open app checks passed`.
-- The second-pass screenshots show the ground at the lower pitch limit with Down held and the sky at the upper limit with Up held. The cursor position is asserted through the game test's input. [Down at the top edge](screenshots/343-down-at-top-edge.png) · [Up at the upper limit](screenshots/343-up-at-upper-limit.png)
+- The second-pass screenshots show the ground at the lower pitch limit with Down held and the sky at the upper limit with Up held. The cursor is placed on the top edge through the game test's synthetic mouse input; the recovery check reads the pitch only (REVIEW-1 nit, Known limits). [Down at the top edge](screenshots/343-down-at-top-edge.png) · [Up at the upper limit](screenshots/343-up-at-upper-limit.png)
 - `TMPDIR="$PWD/.work/343-edge-tilt" PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s os/tests -p 'test_aresos_shell_views.py'` printed `Ran 35 tests in 1.819s` and `OK` on the corrected fixture. The first run printed `FAILED (failures=1)` because the watcher fixture supplied no scopes. The corrected test gives the watcher an explicit fake scope, asserts a one-second timeout for view and desktop admissions and checks that the watcher keeps `SCOPE_TIMEOUT` and returns `UNKNOWN`. This was the only OS test module run.
 - Restored 67 tracked screenshots and removed 25 generated untracked screenshots from other packages. Package 333 still generated `0105_333-hotbar-app-marks.png`. `git diff --check` passed. `.work/` contains no files over 500 MB.
 - The first push's local privacy hook reported that its public-terms file was missing or empty, so it skipped that check.
@@ -39,6 +39,8 @@ Each mod command started with at least 6 GiB available and zero other Gradle bui
 
 - A custom binding on an arrow can act alongside edge turning during gameplay, as already possible with Left and Right. The shipped mappings leave the arrows free.
 - The one-second limit applies per listing. Queued admissions can still add their waits together while the user manager is stalled.
+- On a heavily loaded laptop, a scope listing slower than one second now refuses a view's launch with `journal_full` where it used to wait. The desktop's launch still goes ahead, and a retry works (`linux-aresos`'s os/ read).
+- The client test's recovery check reads the pitch alone, not the cursor's position during the hold; a cursor move off the top band during it could also let it pass. The unit tests pin the rule itself (REVIEW-1 nit).
 
 ## Open questions
 
