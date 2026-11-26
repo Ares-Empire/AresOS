@@ -20,7 +20,7 @@ STAGED_SITES = '/var/lib/aresos-r29-rehearsal-sites.json'
 SYNTHETIC_SITES = r28.SITES_LIST.encode() + b'\n'
 PLACEHOLDER = b'{"format":0,"hosts":[]}'
 SITE_METADATA = dict(regular=True, owner=[0, 250], mode='0640')
-REFUSALS = dict.fromkeys(('tabs', 'read', 'open', 'take_tab'), 'chrome_settings_unavailable')
+REFUSALS = dict.fromkeys(('tabs', 'read', 'open', 'take'), 'chrome_settings_unavailable')
 THEMES = {'28': r28.THEME, '29': 'AresOS'}
 PRISM_MIME = 'x-scheme-handler/prismlauncher'
 PRISM_DESKTOP = 'org.prismlauncher.PrismLauncher.desktop'

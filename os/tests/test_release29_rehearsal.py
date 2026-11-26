@@ -601,6 +601,7 @@ class Release29Session(Release28Session):
         elif words[:2] == ['/usr/bin/aresos', 'chrome']:
             self.expect(command[:4] == ['runuser', '-u', 'ares', '--'] and kw['cwd'] == '/var/home/ares')
             if self.Path(probes.SITES).read_bytes() == probes.PLACEHOLDER:
+                self.expect(words[2] in ('tabs', 'read', 'open', 'take'))
                 code = 'chrome_settings_unavailable'
                 if self.fault == 'gate-reached-page' and words[2] == 'open':
                     import urllib.request
@@ -613,7 +614,7 @@ class Release29Session(Release28Session):
                 status, stdout = 1, json.dumps(dict(ok=False, error=dict(code=code)))
             else:
                 self.expect(words[2] == 'tabs')
-                stdout = '{"ok":true,"data":{"items":[]}}'
+                stdout = '{"ok":true,"data":{"seen":"fixture","total":0,"untrusted_content":{"list":""}}}'
         elif words[:3] == ['/usr/bin/systemctl', '--user', 'stop']:
             self.expect(words[3:] == ['app-aresos-browser-r29-probe.scope'])
         elif pathlib.Path(words[0]) == self.Path('/usr/bin/openssl'):
@@ -983,7 +984,11 @@ class CandidateRouteTest(unittest.TestCase):
             self.assertEqual(staged['sha256'], walk.sha256(probes.SYNTHETIC_SITES))
             self.assertEqual(saved['previous-28-sites-hash']['sha256'], staged['sha256'])
             self.assertEqual(saved['release-29-sites-placeholder']['sha256'], walk.sha256(probes.PLACEHOLDER))
-            self.assertEqual(saved['release-29-chrome-first-use']['refusals'], probes.REFUSALS)
+            refusals = dict.fromkeys(('tabs', 'read', 'open', 'take'), 'chrome_settings_unavailable')
+            self.assertEqual(saved['release-29-chrome-first-use']['refusals'], refusals)
+            self.assertEqual(set(saved['release-29-chrome-first-use']['calls']), set(refusals))
+            self.assertEqual(saved['release-29-deployment-walk']['chrome_first_use'],
+                             dict(refusals=refusals, page_server_hits=0))
             self.assertTrue(saved['release-29-chrome-first-use']['opened'])
             self.assertEqual(saved['release-29-chrome-first-use']['page_server_hits'], 0)
             self.assertEqual(model.session.tee_calls, 1)

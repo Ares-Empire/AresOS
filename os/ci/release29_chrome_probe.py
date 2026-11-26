@@ -89,7 +89,8 @@ def run(out, live, staged, expected, refusals, placeholder, contents):
                     assert response.status == 200 and response.read() == b'<title>R29 rehearsal</title>'
                 assert pages.arrivals == ['/ready']
                 pages.arrivals.clear()
-                calls = {'tabs': {}, 'read': {'tab': 1}, 'open': {'url': address + '/closed'}, 'take_tab': {'tab': 1}}
+                # A closed gate cannot issue the seen token used in normal takes.
+                calls = {'tabs': {}, 'read': {'tab': 1}, 'open': {'url': address + '/closed'}, 'take': {'tab': 1}}
                 for verb, arguments in calls.items():
                     result = cli(daily_command, verb, arguments)
                     out['calls'][verb] = result

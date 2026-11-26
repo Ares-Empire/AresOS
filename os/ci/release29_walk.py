@@ -567,7 +567,7 @@ def complete_candidate(vm, audit, password, hashed, route, release, qualifying, 
             updated = confirm(vm, guest, console, stage, lines, 'Update', candidate['reference'], first, candidate)
             r28.home_unchanged(update['home'], r28.home(guest, stage, vm, write_saves=True), prism_started=True)
             probes.session(guest, stage, vm, '29')
-            probes.first_use(guest, stage, vm, update['sites'])
+            first_use = probes.first_use(guest, stage, vm, update['sites'])
             probes.control(guest, stage, vm, expected_sites=update['sites'])
             previous = console.run('previous', 'r29-previous')
             assert 'Previous AresOS queued for the next start ' + release in vm.result_lines(previous)
@@ -618,6 +618,7 @@ def complete_candidate(vm, audit, password, hashed, route, release, qualifying, 
         booted=d29, retired=route['new_digest'], identities=retained, home_preserved=True,
         confirmations=[updated, returned, forwarded], protected_disk_audits=True,
         chrome_sites_sha256=update['sites'], control_checks=list(probes.SERVICE_CHECKS + probes.CHROME_CHECKS),
+        chrome_first_use={key: first_use[key] for key in ('refusals', 'page_server_hits')},
         game_scope_passed=True))
     assert first_start_passed, 'STOP: R29 did not boot on the first unattended start'
 
