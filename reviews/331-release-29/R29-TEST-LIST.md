@@ -5,9 +5,21 @@
 Use this after the owner has installed R29. Work alongside normal use. Start with the quiet checks and collect the visible ones together when the owner is free. The owner's own observations and this pass both feed R30.
 
 - Keep findings only in `~/AresOS-R29-FINDINGS.md`, local and uncommitted. Fix nothing. Use one line per test with **pass**, **fail**, **skipped (why)** or **needs the owner**. Add one entry per finding: test ID, what you did, what you expected, what you saw, **blocks / annoying / cosmetic**, and an evidence path or a few lines of output. Link an observation from a second test rather than counting it twice.
-- Budget about **1–3% of the Claude week**. One short pass, bounded output, `grep` or `tail` for logs. Use no subagents except for the local agent discovery/message tests. Stop a failed test after recording the evidence. Mark tests awaiting a normal login, shutdown or the owner’s time and finish the handoff in this sitting. A config match is evidence for a config test. A visual or hardware test needs an observation.
+- **Run it in batches.** Budget about **1–3% of the Claude week** for the whole pass. One long session would reread its growing history at every step and blow that, so a coordinating session only starts the batches below, one at a time, each as a fresh agent, and collects their results. Each batch's handoff is short: this file's path, its test IDs, the guardrails below and the findings file. Each batch appends to `~/AresOS-R29-FINDINGS.md`. If a batch hits something that blocks the tests after it, it records that and stops, and the coordinator decides whether the next batch can still run.
+
+  | Batch | Area | Tests |
+  | --- | --- | --- |
+  | 1 | Installed system and release | R29-T01–T15 |
+  | 2 | Claude Code and the session tools | R29-T16–T30 |
+  | 3 | Installed commands, Chrome and Control | R29-T31–T42 |
+  | 4 | Windows, keys and indicators | R29-T43–T58 |
+  | 5 | The home, apps and the R28 findings | R29-T59–T71 |
+  | 6 | Look modes and the guardian | R29-T72–T78 |
+  | 7 | Deskflow and the Mac (only if R29 ships it, otherwise mark them skipped) | R29-T79–T89 |
+
+  Batch 1 goes first: if R29 isn't the running image, the pass stops there. Within a batch, keep output bounded and read logs with `grep` or `tail`. Use no further subagents except the two disposable sessions of the messaging tests. Stop a failed test after recording the evidence. Mark tests awaiting a normal login, shutdown or the owner’s time and finish the handoff in this sitting. A config match is evidence for a config test. A visual or hardware test needs an observation.
 - **must** covers an R29 change or release promise. **should** covers everyday use. **could** is optional. **the owner** means wait for the indicated action or OK. **outside** means an external service, account or device is involved. Use Bash as the daily user with `set -o pipefail`. Mark missing evidence explicitly. For grouped checks, record each case and count the ID once. An observed mismatch fails. Pass only when all required cases were observed. Paths starting with `~` refer to that user's home.
-- At the end, count the four statuses (their sum should equal the number of IDs) and findings by severity. Send **linux-hub** and **mac-capacity** the local findings path and counts only. These are the owner’s own Claude sessions. This handoff and discovery/messages between the two disposable sessions are internal and need no OK. Keep screenshots, credentials, pairing codes, account names and page contents out of messages.
+- At the end, the coordinator counts the four statuses (their sum should equal the number of IDs) and findings by severity. Send **linux-hub** and **mac-capacity** the local findings path and counts only. These are the owner’s own Claude sessions. This handoff and discovery/messages between the two disposable sessions are internal and need no OK. Keep screenshots, credentials, pairing codes, account names and page contents out of messages.
 
 ## Guardrails
 
