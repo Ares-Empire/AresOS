@@ -67,7 +67,7 @@ Only the laptop can share its keyboard and mouse with the Mac for now. With shar
 | You could break the home’s blocks by mistake. | Live mode protects them. |
 | The bar stayed hidden behind a full-screen app. | The bar over apps comes later. |
 | You wanted to look around without holding a button. | Try click and edge look and see which feels better. |
-| You wanted a picture instead of the world to save memory. | The picture home and world-off switch are still open. Memory use still needs measuring. |
+| You wanted a picture instead of the world to save memory. | **Partly.** For building, a session can switch the world off and on (see above). The picture home and a proper switch with a menu of your apps are still open. The test pass measures the memory it frees. |
 
 ## For a later sitting
 
