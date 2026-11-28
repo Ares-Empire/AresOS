@@ -18,7 +18,7 @@ UI_SOURCE_MAP_SHA256 = '9c3f8f28461619452bc89d966fcc944bd8ef9a39d4cc073275faccd6
 # (run 42933781975 stopped when this list lacked it), package 22c's reorder
 # probe and rehearsal are two more, 22d and 42 (release-28) two others. Package 13's keyboard rehearsal shares the
 # untrusted console and the keyboard diagnostics.
-OWNER_VM_PACKAGES = ('14', '16', '27', '22c', '22d', '42')
+OWNER_VM_PACKAGES = ('14', '16', '27', '22c', '22d', '42', '331')
 KEYBOARD_PACKAGES = ('13',) + OWNER_VM_PACKAGES
 
 

@@ -1,0 +1,9 @@
+CHANGES-NEEDED
+
+1. **Must-fix — The guardian audit rejects a correct image.** `os/ci/release_diff.py:1926` compares raw JSON bytes. The expected guardian row puts `sources` before the three state fields (`os/ci/release_diff.py:1723`), while the image’s audit writer emits it after them (`os/tests/audit.py:91`). The fixture serializes the classifier’s own constant, so it misses the mismatch (`os/tests/test_release29.py:214`). Compare canonical JSON while preserving exact fields, types, and row order, and add a fixture from the audit writer.
+
+2. **Should-fix — The source guard skips Git-ignored files that the build can copy.** `os/ci/release_diff.py:1792` uses `--exclude-standard`, while `os/Containerfile:35` and `os/Containerfile:52` copy the working-tree config into the image. For example, `.gitignore:21` hides `os/config/var/log/dnf5.log`. If present, that file could overwrite the generated log and receive its existing reason (`os/ci/release_diff.py:1730`). Check ignored files in the local inputs that the build copies.
+
+3. **Known limit — Step 2’s labwc stop is explicit and unconditional.** `os/ci/release_diff.py:2052` stops R29 even when the affected payload paths are absent from both inventories. The independent RPM inventory and loaded-byte comparison remain assigned to step 2 (`briefs/331-release-29.md:214`).
+
+4. **Known limit — Verification at `1767cf17` was read-only.** The R27/R28 profile definitions and recorded results are intact, and the historical lock fixtures use `released()` or the recorded source (`os/ci/release_diff.py:2119`, `os/tests/test_release27.py:33`, `os/tests/test_release28.py:133`). R29 has near-miss tests for missing paths, metadata, unmasking, and source drift. `git diff --check` passed. The R29, R28, and R27 suites ran 12, 94, and 41 tests, with 5, 73, and 19 read-only temp-directory errors respectively (`os/tests/test_release29.py:166`, `os/tests/test_release28.py:727`, `os/tests/test_release27.py:1354`).

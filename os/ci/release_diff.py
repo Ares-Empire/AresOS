@@ -1,4 +1,4 @@
-"""Releases 27 and 28: compare the full rebuild with the release before it; explain every difference.
+"""Releases 27–29: compare the full rebuild with the release before it; explain every difference.
 
 Release 27 (package 27): release 13 is release 6's image plus two keyboard
 files. Release 27 rebuilds the reviewed Containerfile on the same pinned base.
@@ -17,6 +17,7 @@ import collections
 import fnmatch
 import gzip
 import hashlib
+import io
 import json
 import os
 import pathlib
@@ -28,8 +29,10 @@ import struct
 import subprocess
 import tarfile
 import tempfile
+import types
 import urllib.request
 import xml.etree.ElementTree as ET
+import zipfile
 
 import image_diff
 
@@ -574,19 +577,19 @@ def control_accounts(name, old, new):
     return accounts_explained(name, strip(a), strip(b))
 
 
-def control_install_map():
+def control_install_map(source='.'):
     """Recompute the build's supported install map, without pip, downloads or privileges."""
     with tempfile.TemporaryDirectory() as folder:
         root = pathlib.Path(folder) / 'root'
         subprocess.run(['bash', 'os/build.sh', 'control-tree', 'os', 'control', str(root)],
-                       check=True, capture_output=True, text=True, timeout=120)
+                       cwd=source, check=True, capture_output=True, text=True, timeout=120)
         return json.loads((root / CONTROL_RECORD).read_text())
 
 
-def control_wheels(record):
+def control_wheels(record, requirements=pathlib.Path('control/requirements.lock')):
     normal = lambda name: re.sub(r'[-_.]+', '-', name).lower()
     lock, current = {}, None
-    for line in pathlib.Path('control/requirements.lock').read_text().splitlines():
+    for line in requirements.read_text().splitlines():
         if found := re.fullmatch(r'([A-Za-z0-9._-]+)==(\S+) \\', line):
             current = normal(found[1]), found[2]
             assert current not in lock, 'duplicate Control requirement'
@@ -603,22 +606,29 @@ def control_wheels(record):
                and '/' not in w['file'] and w['file'].endswith('.whl') for w in wheels), 'Control wheel pin differs'
 
 
-def control_inventory(root, revision):
+def control_inventory(root, revision, *, expected=None, requirements=None, extension_files=None):
     """Part A's exact install map and locked vendor record. check-image.sh also derives vendor bytes from wheels.
 
     Hold the record to this checkout and require the whole of every Control folder to match, including absent
     entries: a missing path never enters the diff. Every changed path still needs its own rule.
     """
     record = json.loads((root / CONTROL_RECORD).read_text())
-    expected = control_install_map()
-    assert set(record) == set(expected) | {'source_revision', 'wheels', 'vendor'}, 'Control record fields'
+    expected = control_install_map() if expected is None else expected
+    fields = {'source_revision', 'wheels', 'vendor'}
+    if extension_files is not None:
+        fields.add('chrome_extension')
+    assert set(record) == set(expected) | fields, 'Control record fields'
     assert re.fullmatch('[0-9a-f]{40}', revision) and record['source_revision'] == revision, 'Control source revision'
     assert json.dumps({key: record[key] for key in expected}, sort_keys=True) == json.dumps(expected, sort_keys=True), \
         'Control install map differs from checkout'
-    control_wheels(record)
+    if requirements is None:
+        control_wheels(record)
+    else:
+        control_wheels(record, requirements)
     vendor = record['vendor']
     assert isinstance(vendor, dict) and '/usr/lib/aresos-control/vendor' in vendor, 'Control vendor missing'
     rows = {**record['files'], **{p: dict(mode=m, sha256=None) for p, m in record['directories'].items()}}
+    rows.update(extension_files or {})
     for path, row in vendor.items():
         assert path in ('/usr/lib/aresos-control', '/usr/lib/aresos-control/vendor') or path.startswith('/usr/lib/aresos-control/vendor/'), \
             'Control vendor neighbour: ' + path
@@ -640,7 +650,8 @@ def control_inventory(root, revision):
             meta = entry(root, str(parent))
             assert meta and meta['kind'] == stat.S_IFDIR and root_owned(meta, 0o755) and not meta['xattrs'], 'Control parent: ' + str(parent)
         typed[rel] = now
-    for top in CONTROL_ROOTS:
+    bundle_roots = ('usr/share/aresos/chrome',) if extension_files is not None else ()
+    for top in (*CONTROL_ROOTS, *bundle_roots):
         actual = {top, *(p.relative_to(root).as_posix() for p in (root / top).rglob('*'))}
         assert actual == {p for p in typed if p == top or p.startswith(top + '/')}, 'Control extra or missing paths: ' + top
     for path, target in record['links'].items():
@@ -666,6 +677,25 @@ def rpm_files(output):
             record[key] = int(record[key])
         files.setdefault(record.pop('path')[1:], []).append(record)
     return files
+
+
+def rpm_file_matches(records, after):
+    """Verify non-ghost RPM records against the mounted image inventory."""
+    if not records or after is None or after['uid'] or after['gid'] or after['xattrs'] \
+            or after['kind'] not in (stat.S_IFREG, stat.S_IFDIR, stat.S_IFLNK):
+        return False
+    if after['kind'] != stat.S_IFLNK and after['mode'] & 0o7022:
+        return False
+    for record in records:
+        if record['flags'] & RPMFILE_GHOST or (record['user'], record['group']) != ('root', 'root') \
+                or record['caps'] not in ('', '(none)') or record['mode'] != after['kind'] | after['mode']:
+            return False
+        if after['kind'] == stat.S_IFREG and (record['algorithm'], record['digest'], record['size']) \
+                != (RPM_SHA256, after['sha256'], after['bytes']):
+            return False
+        if after['kind'] == stat.S_IFLNK and record['target'] != after['target']:
+            return False
+    return True
 
 
 def jar_pin_only(before, after):
@@ -744,13 +774,13 @@ def blob(commit, path):
         return None
 
 
-def source_changes(base, head='HEAD'):
+def source_changes(base, head='HEAD', *, sources=IMAGE_SOURCES, exceptions=BRANCH_SOURCE_CHANGES):
     """({path: reason}, [path]): the image sources that differ between main's `base` and `head`. A change
-    BRANCH_SOURCE_CHANGES names and allows is listed with its reason; every other one differs."""
-    names = git('diff', '-z', '--name-only', '--no-renames', base, head, '--', *IMAGE_SOURCES, text=True).split('\0')
+    allowed by the profile's exceptions is listed with its reason."""
+    names = git('diff', '-z', '--name-only', '--no-renames', base, head, '--', *sources, text=True).split('\0')
     allowed, differing = {}, []
     for path in sorted(name for name in names if name):
-        reason, allows = BRANCH_SOURCE_CHANGES.get(path, (None, None))
+        reason, allows = exceptions.get(path, (None, None))
         # Equal JSON bytes cannot explain changing a regular file into a link or making it executable.
         old_entry = git('ls-tree', base, '--', path, text=True).split()[:2]
         new_entry = git('ls-tree', head, '--', path, text=True).split()[:2]
@@ -1419,7 +1449,7 @@ class Classifier28:
             return ('build', "package 23: path of Prism's pinned bundle, including its type, mode, target and bytes")
         return None
 
-    def alternatives(self):
+    def alternatives(self, *, existing=False):
         """{group: (public links, selected targets)} matching the independent reviewed mapping.
 
         Check both links of every chain, including paths absent from both image inventories.
@@ -1431,12 +1461,12 @@ class Classifier28:
             for path in sorted(folder.iterdir()) if folder.is_dir() else ():
                 rel = ALTERNATIVES_ADMIN + path.name
                 record = entry(self.new_root, rel)
-                if entry(self.old_root, rel) is not None or not record or record['kind'] != stat.S_IFREG \
+                if (not existing and entry(self.old_root, rel) is not None) or not record or record['kind'] != stat.S_IFREG \
                         or not root_owned(record, 0o644) or record['xattrs']:
                     continue
                 parsed = alternatives_admin(path.read_bytes())
                 if not parsed or path.name in parsed['links'].values() or any(
-                        target not in self.owned['new'] for choice in parsed['choices']
+                        not self.alternative_payload(target, existing) for choice in parsed['choices']
                         for target in choice['targets'].values() if target):
                     continue
                 links = {public: name or path.name for public, name in parsed['links'].items()}
@@ -1457,6 +1487,13 @@ class Classifier28:
                         self.groups[path.name] = (links, targets)
                         break
         return self.groups
+
+    def alternative_payload(self, target, existing):
+        if not existing:
+            return target in self.owned['new']
+        # R29's Java is already installed. The locked scriptlets name the same payload targets.
+        row = entry(self.new_root, target[1:])
+        return row is not None and row['kind'] in (stat.S_IFREG, stat.S_IFDIR, stat.S_IFLNK)
 
     def alternative_target(self, name, target):
         return self.alternative_link(ALTERNATIVES + name, target)
@@ -1534,10 +1571,11 @@ class Classifier28:
             self.schema_rebuild = rebuild_schemas(self.policy['new_image'])
         return self.schema_rebuild
 
-    def image_folder(self, rel):
-        """True when rel and each folder above it are folders (not links) in the new image."""
+    def image_folder(self, rel, *, root=None):
+        """True when rel and every parent are directories in the selected image."""
+        root = self.new_root if root is None else root
         parts = rel.split('/')
-        return all((place := entry(self.new_root, '/'.join(parts[:depth]))) is not None and place['kind'] == stat.S_IFDIR
+        return all((place := entry(root, '/'.join(parts[:depth]))) is not None and place['kind'] == stat.S_IFDIR
                    for depth in range(1, len(parts) + 1))
 
     def font_folder(self, folder):
@@ -1589,21 +1627,7 @@ class Classifier28:
         no %ghost, root's, its kind and mode, its link target, its size and SHA-256, no file capability; and no
         extended attribute, nothing setuid, setgid, sticky or group- or world-writable."""
         records = [record for record in self.policy['records'].get(rel, []) if not record['flags'] & RPMFILE_GHOST]
-        if not records or after is None or after['uid'] or after['gid'] or after['xattrs'] \
-                or after['kind'] not in (stat.S_IFREG, stat.S_IFDIR, stat.S_IFLNK):
-            return False
-        if after['kind'] != stat.S_IFLNK and after['mode'] & 0o7022:
-            return False
-        for record in records:
-            if record['flags'] & RPMFILE_GHOST or (record['user'], record['group']) != ('root', 'root') \
-                    or record['caps'] not in ('', '(none)') or record['mode'] != after['kind'] | after['mode']:
-                return False
-            if after['kind'] == stat.S_IFREG and (record['algorithm'], record['digest'], record['size']) \
-                    != (RPM_SHA256, after['sha256'], after['bytes']):
-                return False
-            if after['kind'] == stat.S_IFLNK and record['target'] != after['target']:
-                return False
-        return True
+        return rpm_file_matches(records, after)
 
     def package_rule(self, rel, before, after):
         if after is not None and self.package_file(rel, after):
@@ -1690,6 +1714,875 @@ class Classifier28:
                     rc_xml=rc_xml_changes(old_rc, new_rc) if old_rc and new_rc else None), problems
 
 
+PREVIOUS_29 = 'os/manifest/releases/28.json'
+PREVIOUS_SOURCE_29 = '7d5fbbf2c7f7c5b4d41dd707a9407e6401a4d062'
+IMAGE_SOURCES_29 = IMAGE_SOURCES + ('os/labwc', 'os/gh.lock.json')
+# The build.sh fix was shipped in R28 and is on main. Only the jar pin can change on this branch.
+BRANCH_SOURCE_CHANGES_29 = {'os/minecraft/desktop.lock.json': BRANCH_SOURCE_CHANGES['os/minecraft/desktop.lock.json']}
+CHMOD_0755_29 = CHMOD_0755_28  # The same configure chmod line. New scripts use their Git mode.
+GTK_LAYER_29 = 'gtk4-layer-shell-1.3.0-1.fc44.x86_64'
+LABWC_FEDORA_29 = 'labwc-0.9.6-1.fc44.x86_64'
+LABWC_LOCK_29 = 'os/labwc/labwc.lock.json'
+LABWC_STAGE_29 = 'os/labwc/stage.py'
+LABWC_ELF_29 = 'os/labwc/loaded_image.py'
+LABWC_INPUT_MODES_29 = {LABWC_LOCK_29: '100644', LABWC_STAGE_29: '100644', LABWC_ELF_29: '100755'}
+LABWC_BINS_29 = ('/usr/bin/labnag', '/usr/bin/labwc')
+LABWC_ID_DIR = 'usr/lib/.build-id'
+LABWC_VARYING_SECTIONS_29 = ('.note.gnu.build-id', '.gnu_debuglink', '.gnu_debugdata')
+LABWC_FEDORA_IDS_29 = {
+    '/usr/bin/labnag': 'ecbdf3ff0423bb879b79912f84b3e5f06f8786fd',
+    '/usr/bin/labwc': '6e61cec6435d39a5126a1ec7b1bd109152327f8b',
+}
+# The 60 fixed paths from 311's comparison with Fedora. Fedora's two build-ID
+# links and their two parent directories complete the stock RPM's 64-path list.
+LABWC_FIXED_PATHS_29 = frozenset("""
+usr/bin/lab-sensible-terminal
+usr/bin/labnag
+usr/bin/labwc
+usr/lib/.build-id
+usr/share/doc/labwc
+usr/share/doc/labwc/NEWS.md
+usr/share/doc/labwc/README
+usr/share/doc/labwc/autostart
+usr/share/doc/labwc/environment
+usr/share/doc/labwc/menu.xml
+usr/share/doc/labwc/rc.xml
+usr/share/doc/labwc/rc.xml.all
+usr/share/doc/labwc/shutdown
+usr/share/doc/labwc/themerc
+usr/share/licenses/labwc
+usr/share/licenses/labwc/LICENSE
+usr/share/locale/ar/LC_MESSAGES/labwc.mo
+usr/share/locale/ca/LC_MESSAGES/labwc.mo
+usr/share/locale/cs/LC_MESSAGES/labwc.mo
+usr/share/locale/da/LC_MESSAGES/labwc.mo
+usr/share/locale/de/LC_MESSAGES/labwc.mo
+usr/share/locale/el/LC_MESSAGES/labwc.mo
+usr/share/locale/es/LC_MESSAGES/labwc.mo
+usr/share/locale/et/LC_MESSAGES/labwc.mo
+usr/share/locale/eu/LC_MESSAGES/labwc.mo
+usr/share/locale/fa/LC_MESSAGES/labwc.mo
+usr/share/locale/fi/LC_MESSAGES/labwc.mo
+usr/share/locale/fr/LC_MESSAGES/labwc.mo
+usr/share/locale/gl/LC_MESSAGES/labwc.mo
+usr/share/locale/he/LC_MESSAGES/labwc.mo
+usr/share/locale/hr/LC_MESSAGES/labwc.mo
+usr/share/locale/hu/LC_MESSAGES/labwc.mo
+usr/share/locale/id/LC_MESSAGES/labwc.mo
+usr/share/locale/it/LC_MESSAGES/labwc.mo
+usr/share/locale/ja/LC_MESSAGES/labwc.mo
+usr/share/locale/ka/LC_MESSAGES/labwc.mo
+usr/share/locale/kk/LC_MESSAGES/labwc.mo
+usr/share/locale/ko/LC_MESSAGES/labwc.mo
+usr/share/locale/lt/LC_MESSAGES/labwc.mo
+usr/share/locale/ms/LC_MESSAGES/labwc.mo
+usr/share/locale/nl/LC_MESSAGES/labwc.mo
+usr/share/locale/pa/LC_MESSAGES/labwc.mo
+usr/share/locale/pl/LC_MESSAGES/labwc.mo
+usr/share/locale/pt/LC_MESSAGES/labwc.mo
+usr/share/locale/pt_BR/LC_MESSAGES/labwc.mo
+usr/share/locale/ru/LC_MESSAGES/labwc.mo
+usr/share/locale/sk/LC_MESSAGES/labwc.mo
+usr/share/locale/sv/LC_MESSAGES/labwc.mo
+usr/share/locale/tr/LC_MESSAGES/labwc.mo
+usr/share/locale/uk/LC_MESSAGES/labwc.mo
+usr/share/locale/vi/LC_MESSAGES/labwc.mo
+usr/share/locale/zh_CN/LC_MESSAGES/labwc.mo
+usr/share/locale/zh_TW/LC_MESSAGES/labwc.mo
+usr/share/man/man1/labnag.1.gz
+usr/share/man/man1/labwc.1.gz
+usr/share/man/man5/labwc-actions.5.gz
+usr/share/man/man5/labwc-config.5.gz
+usr/share/man/man5/labwc-menu.5.gz
+usr/share/man/man5/labwc-theme.5.gz
+usr/share/xdg-desktop-portal/labwc-portals.conf
+""".split())
+PACKAGE_REASONS_29 = {
+    'gtk4-layer-shell': 'B323 (#135): GTK 4 layer shells and the Gtk4LayerShell typelib for the indicator and laptop home',
+    'labwc': '311 (#119) and B323 (#135): pinned pointer-lock backport replaces Fedora labwc in the packages layer',
+}
+MANIFEST = 'usr/share/aresos/manifest/'
+GH_LOCK_29 = 'os/gh.lock.json'
+GH_KEY_29 = 'os/keys/github-cli-rpm.pub'
+GH_INPUTS_29 = (GH_LOCK_29, GH_KEY_29)
+GH_RECORD_29 = MANIFEST + 'gh.lock.json'
+GH_BINARY_29 = 'usr/bin/gh'
+GH_LICENCE_29 = 'usr/share/licenses/gh/LICENSE'
+CHROME_BUNDLE_29 = 'usr/share/aresos/chrome'
+CHROME_CODE_29 = 'usr/libexec/aresos-control/chrome'
+CHROME_SITES_29 = 'var/lib/aresos-control/chrome-excluded-sites.json'
+CHROME_READ_29 = '28 (#72, 11d22cd4)'
+CHROME_ACT_29 = '28a (#116, db7ad4bf)'
+CHROME_LATE_29 = f'{CHROME_READ_29} and {CHROME_ACT_29}'
+CHROME_BUILD_29 = 'f00a8cf72e2b88ba7a19a7e0224343e8fe2bc9923fff7e353d04c71fabc24ba0'
+ASK_RULES_29 = 'control/settings/ask-rules.json'
+CHROME_SOURCE_CHANGES_29 = {
+    'aresos_control/chrome/adapter.py': (CHROME_LATE_29, 'serve the compact read and consolidated action tools'),
+    'aresos_control/chrome/address.py': (CHROME_READ_29, 'render the page address in the read outline'),
+    'aresos_control/chrome/bridge.py': (CHROME_LATE_29, 'pass read deadlines and action results across the browser bridge'),
+    'aresos_control/chrome/credentials.py': (CHROME_READ_29, 'keep credentials out of the page view'),
+    'aresos_control/chrome/deadline.py': (CHROME_LATE_29, 'carry the shared time budget through reads and actions'),
+    'aresos_control/chrome/definitions.py': (CHROME_LATE_29, 'define the compact read and renamed and consolidated Chrome tools'),
+    'aresos_control/chrome/descriptions.py': (CHROME_ACT_29, 'describe the new tool fields to the caller'),
+    'aresos_control/chrome/doing.py': (CHROME_ACT_29, 'run ordered do steps and report the resulting changes'),
+    'aresos_control/chrome/going.py': (CHROME_ACT_29, 'handle go navigation and report its outcome'),
+    'aresos_control/chrome/loss.py': (CHROME_ACT_29, 'report lost references as untrusted page data'),
+    'aresos_control/chrome/nodes.py': (CHROME_LATE_29, 'normalize page nodes for reading and acting'),
+    'aresos_control/chrome/projection.py': (CHROME_ACT_29, 'project operation results into the compact tool replies'),
+    'aresos_control/chrome/references.py': (CHROME_LATE_29, 'assign short page references and resolve them for actions'),
+    'aresos_control/chrome/tablist.py': (CHROME_ACT_29, 'render the tab list and its seen token for take'),
+    'aresos_control/chrome/view.py': (CHROME_LATE_29, 'render compact outlines and changes to the page view'),
+    'aresos_control/common.py': (CHROME_ACT_29, 'carry structured untrusted content beside a refusal'),
+    'aresos_control/daemon.py': (CHROME_ACT_29, 'preserve that untrusted content in the daemon error envelope'),
+    'aresos_control/definitions.py': (CHROME_ACT_29, 'declare Chrome loss errors and update MCP discovery instructions'),
+    'aresos_control/engine.py': (CHROME_LATE_29, 'start the read deadline at admission and forward untrusted refusal data'),
+    'generated/chrome-tools.json': (CHROME_ACT_29, 'regenerate the Chrome catalogue for the changed tool schemas'),
+    'generated/chrome-instructions.txt': (CHROME_ACT_29, 'regenerate MCP instructions for the leaner Chrome tool surface'),
+    'generated/cli-help.txt': (CHROME_ACT_29, 'regenerate CLI help for the renamed and consolidated Chrome tools'),
+}
+CONTROL_CHANGES_29 = {
+    **{'usr/libexec/aresos-control/' + path: f'{package}: control/{path} to {reason}'
+       for path, (package, reason) in CHROME_SOURCE_CHANGES_29.items()},
+    'usr/libexec/aresos-control/aresos_control/chrome/exclusions.py':
+        '18c-b (#76): read the first-boot exclusion list from /var/lib and refuse Chrome calls until setup',
+    CHROME_CODE_29 + '/build-id.json':
+        f'18c-b (#76), {CHROME_LATE_29}: control/chrome/build.py hashes the updated installed inputs for CONTROL_CHROME_BUILD',
+    CHROME_CODE_29 + '/host': '18c-b (#76): native messaging executable wrapper named in native-host.json',
+    CHROME_CODE_29 + '/native_host.py': '18c-b (#76): native messaging relay to the local Control service',
+    CHROME_BUNDLE_29: '18c-b (#76): parent directory of the per-build Chrome extension and manifests',
+    CHROME_BUNDLE_29 + '/extension.crx':
+        f'18c-b (#76), {CHROME_LATE_29}: pack.py signs reader.js and background.js with the rest of the exact extension payload',
+    CHROME_BUNDLE_29 + '/native-host.json':
+        '18c-b (#76): pack.py renders the native-host.json template with this CRX public key’s extension ID as the allowed origin',
+    CHROME_BUNDLE_29 + '/policy.json':
+        '18c-b (#76): pack.py renders the policy.json template to force-install and pin this CRX public key’s extension ID',
+    CHROME_BUNDLE_29 + '/update.xml':
+        '18c-b (#76): pack.py renders the update.xml template with this CRX public key’s extension ID and manifest version',
+    'etc/opt/chrome/policies/managed/aresos.json': '18c-b (#76): managed policy link to the build policy under /usr/share',
+    'etc/opt/chrome/native-messaging-hosts/org.aresos.chrome.json':
+        '18c-b (#76): native host link to the build manifest under /usr/share',
+    'usr/share/polkit-1/actions/org.aresos.control.chrome-loosen.policy':
+        '18c-b (#76): require administrator authentication for Chrome rule loosening',
+    'usr/lib/tmpfiles.d/aresos-control-chrome.conf':
+        '18c-b (#76): create the closed format-0 exclusion list at first boot and retain existing contents',
+    CONTROL_RECORD: f'18c-b (#76), {CHROME_LATE_29}: os/build.sh records the exact install map, source revision, '
+                    'managed links, chrome_build and chrome_extension (including the per-build extension ID), and gh lock',
+}
+CHROME_LINK_PARENTS_29 = {
+    'etc/opt', 'etc/opt/chrome', 'etc/opt/chrome/policies', 'etc/opt/chrome/policies/managed',
+    'etc/opt/chrome/native-messaging-hosts',
+}
+LABWC_RECORD = MANIFEST + 'labwc.lock.json'
+UPDATERS = MANIFEST + 'updaters.json'
+MOD_RECORD = MANIFEST + 'aresos-mod.json'
+MOD_JAR = MINECRAFT + '/mods/aresos.jar'
+DESKTOP_LOCK = MINECRAFT + '/desktop.lock.json'
+GUARDIAN_UNIT = 'usr/lib/systemd/system/aresos-guardian.service'
+GUARDIAN_DROPIN = 'usr/lib/systemd/system/session-.scope.d/50-aresos-guardian.conf'
+GUARDIAN_LINK = ('etc/systemd/system/graphical.target.wants/aresos-guardian.service', '/' + GUARDIAN_UNIT)
+GUARDIAN_AUDIT = dict(scope='system', name='aresos-guardian.service', state='enabled', suspicious=False,
+                      commands=['ExecStart=/usr/bin/true', 'ExecStop=/usr/libexec/aresos-desktop stop --reason shutdown'],
+                      sources=['/' + GUARDIAN_UNIT], active_state=None, load_state=None, sub_state=None)
+GENERATED_29 = {
+    **{path: 'dnf5 transaction history (locked RPM install and same-layer labwc swap)'
+       for path, _ in GENERATED_28 if path.startswith('usr/lib/sysimage/libdnf5/')},
+    **{path: reason for path, reason in GENERATED_28 if path.endswith('/countme')},
+    'var/log/dnf5.log': 'dnf5 log for the locked RPM install and same-layer labwc swap',
+    'etc/ld.so.cache': 'ldconfig adds the gtk4-layer-shell library to its linker cache',
+    'var/cache/ldconfig/aux-cache': 'ldconfig refreshes its auxiliary cache of library metadata after the RPM transaction',
+    RPM_DATABASE: 'rpm database for the gtk4-layer-shell install and labwc replacement, with the full package list compared separately',
+}
+LOOK_FILES_29 = {'usr/share/aresos/look/look.json'} | {
+    f'usr/share/aresos/look/sprites/{name}.png' for name in (
+        'microphone-off-unavailable', 'microphone-off', 'microphone-unavailable', 'microphone', 'plate', 'slot',
+        'speaker-muted-unavailable', 'speaker-muted', 'speaker-unavailable', 'speaker', 'step-limit',
+        'step-lit', 'step-muted', 'step-part', 'step-unlit', 'sun-unavailable', 'sun')}
+LOOK_29 = 'usr/share/aresos/look'
+FRAME_CELLS_29 = {f'{button}{hover}-{state}.png'
+                  for button in ('menu', 'iconify', 'max', 'max_toggled', 'close', 'shade', 'shade_toggled', 'desk', 'desk_toggled')
+                  for hover in ('', '_hover') for state in ('active', 'inactive')}
+FRAME_THEME_29 = 'usr/share/themes/AresOS/labwc'
+FRAME_SPRITES_29 = LOOK_29 + '/sprites/frame'
+# B329 at b720da42 pins these complete file sets in os/ci/image-checks.sh.
+FRAME_THEME_PIN_29 = '1edd49859255bde9a1c8f4ba779d92010ad38bde0f591507a3b29bbee17d916e'
+LOOK_PIN_29 = 'f4c4a0f201d30e5cafddd278eb8f69d0f40d61e1efa12ede8a7bb7f5735baabd'
+PRISM_ENTRY_29 = 'usr/share/applications/org.prismlauncher.PrismLauncher.desktop'
+MIME_DEFAULTS_29 = 'usr/share/applications/aresos-mimeapps.list'
+# These files describe the reviewed B329 (b720da42) and B330 (a7fb7cfe) changes.
+# A later cut that changes the same paths needs to review the additional delta.
+CONFIG_PINS_29 = {
+    RC_XML: '71eb1f8b99e487b1cd966b0ccb0815a133a66c861895e065c4657c367c085029',
+    MIME_DEFAULTS_29: '87a333df18b94fd7e8219b4c0f3dbd32002dbe578dd31ec0fbe5bca44620becc',
+    PRISM_ENTRY_29: '1bd08f214ddac6223b32525a7473cdf0099976483d203a207001aa56f32fead6',
+}
+FONT_REASONS_29 = {
+    'Jersey10-Regular.ttf': 'B320 (#131): Jersey 10 indicator font',
+    'OFL-Jersey10.txt': 'B320 (#131): licence for the Jersey 10 font',
+    'JetBrainsMono-Variable.ttf': 'B323 (#135): JetBrains Mono font for the laptop home',
+    'OFL-JetBrainsMono.txt': 'B323 (#135): licence for the JetBrains Mono font',
+}
+CONFIG_REASONS_29 = {
+    GH_LICENCE_29: '18c-b (#76): GitHub CLI licence from os/config, with its SHA-256 in os/gh.lock.json',
+    PRISM_ENTRY_29: 'B330 (#140): hidden upstream desktop ID passes browser callback URLs to Prism through %U',
+    MIME_DEFAULTS_29: 'B330 (#140): set the AresOS session default for x-scheme-handler/prismlauncher',
+    GUARDIAN_UNIT: '25 (#125): graphical-target guardian asks the supervisor to save the world on planned stops, within its deadline',
+    GUARDIAN_DROPIN: '25 (#125): all login scopes stop after the guardian, giving it time to finish the save',
+    'usr/libexec/aresos-desktop': '25 (#125): supervise planned-stop saves, close deadlines, and restart of the Minecraft home',
+    'usr/libexec/aresos-desktop-java': '25 (#125): forward only the supervisor-supplied lifecycle channel to the mod',
+    'usr/libexec/aresos-cover': '25 (#125): black cover on every output while the guardian saves the world',
+    'usr/libexec/aresos-shell': '25, 56, 53c, 53d and #134: planned-stop and view IPC, focus and search, stale cursor invalidation and bounded view launch checks',
+    'usr/libexec/aresos-laptop-home': '53c and 53f (#114 and #120): native GTK 4 and Cairo laptop-home executable, awaiting 23c launch wiring',
+    'usr/share/aresos/desktop-view.bashrc': '25 (#125): offer the supervisor restart command in the desktop message window',
+    RC_XML: ('B320 (#131): six media and brightness bindings use aresos-level. 25 (#125): borderless always-on-top black save cover. '
+             'B329 (#143): AresOS theme, focused-output switcher, Shift+Alt+Tab reverse, title-bar scroll no-ops '
+             'and default mouse bindings with three Root press no-ops'),
+    'usr/libexec/aresos-level': 'B320 (#131): volume up also unmutes and brightness down stops at 1% of the backlight maximum',
+    'usr/libexec/aresos-indicator': 'B320 (#131): displays brightness, volume and microphone state using a non-focusing layer shell',
+    'usr/libexec/aresos-settings': 'B320 (#131): reads the indicator settings and look pack',
+    **dict.fromkeys(LOOK_FILES_29, 'B320 (#131): indicator look pack (layout, colours and sprites)'),
+    LOOK_29 + '/look.json': 'B320 (#131) and B329 (#143): Look A indicator layout and colours with the frame layout and cell map',
+    FRAME_THEME_29 + '/themerc': 'B329 (#143): labwc Look A frame, title and switcher colours and metrics',
+    **{f'{FRAME_THEME_29}/{cell}': f'B329 (#143): Look A labwc window button {cell} at 48 × 40'
+       for cell in FRAME_CELLS_29},
+    **{f'{FRAME_SPRITES_29}/{cell}': f'B329 (#143): Look A source window button {cell} at 24 × 20'
+       for cell in FRAME_CELLS_29},
+    **{'usr/share/fonts/aresos/' + name: reason for name, reason in FONT_REASONS_29.items()},
+}
+CONFIG_DIRECTORIES_29 = {
+    'usr/share/aresos/look': 'B320 (#131): parent directory of the indicator look pack',
+    'usr/share/aresos/look/sprites': 'B320 (#131): directory of indicator sprites',
+    'usr/lib/systemd/system/session-.scope.d': '25 (#125): parent directory for the login-scope ordering drop-in',
+    'usr/share/themes/AresOS': 'B329 (#143): AresOS theme directory selected by labwc rc.xml',
+    FRAME_THEME_29: 'B329 (#143): AresOS labwc theme directory with themerc and window buttons',
+    FRAME_SPRITES_29: 'B329 (#143): Look A native frame cells referenced by look.json',
+    'usr/share/licenses/gh': '18c-b (#76): parent directory of the checked-in GitHub CLI licence',
+}
+JAR_REASON_29 = (
+    '56 (#117) and 53d (#121): free-pointer and hotbar behaviour, faster flight and world search IPC. '
+    '327 (#142, 4dd5288b): home onboarding, Live protection, menu, New home and Terminal artwork. '
+    '328a (#148, 92cf365a): keep the pointer in the active world and stop click-through. '
+    '328 (#166, 17211fb1): click-to-look and edge-turn prototypes in the pinned mod jar')
+NEW_EXECUTABLES_29 = {'usr/libexec/' + name for name in ('aresos-level', 'aresos-indicator', 'aresos-settings', 'aresos-laptop-home')}
+
+
+def changed_build_context29():
+    """Local differences that COPY . can take from the os/ context."""
+    # Without --exclude-standard, ls-files includes ignored and ordinary untracked paths.
+    untracked = git('ls-files', '-z', '--others', '--', 'os', text=True)
+    edited = git('diff', '-z', '--name-only', '--no-renames', 'HEAD', '--', 'os', text=True)
+    paths = {path.rstrip('/') for path in (untracked + edited).split('\0') if path}
+    if not paths:
+        return []
+    exclusions = []
+    excludes_bench_tests = False
+    for line in git_bytes('HEAD', 'os/.containerignore').decode('utf-8-sig').splitlines():
+        rule = line.strip()
+        if not rule or rule.startswith('#'):
+            continue
+        if rule == 'tests/test_bench_*':
+            excludes_bench_tests = True
+            continue
+        # Every other reviewed rule is a literal path. Unknown patterns fail closed.
+        if any(char in rule for char in '*?[]!\\'):
+            return sorted(paths)
+        path = posixpath.normpath(rule.lstrip('/'))
+        if path != '.':
+            exclusions.append('os/' + path)
+    return sorted(path for path in paths
+                  if not (excludes_bench_tests and path.startswith('os/tests/test_bench_'))
+                  and not any(path == rule or path.startswith(rule + '/') for rule in exclusions))
+
+
+def verify_source29(previous, main_base):
+    """Bind R28's historical inputs and R29's checkout to the source commits used by the two builds."""
+    allowed, differing = source_changes(main_base, sources=IMAGE_SOURCES_29, exceptions=BRANCH_SOURCE_CHANGES_29)
+    main = dict(merge_base=main_base, branch_changes=allowed, differing=differing)
+    problems = []
+    if differing:
+        problems.append(f"image sources differ from main at the merge base {main_base}: " + ', '.join(differing))
+    try:
+        old_trees = {row['path']: row['tree'] for row in previous['source_trees']}
+        assert previous['source_commit'] == PREVIOUS_SOURCE_29
+        assert previous['control']['source_revision'] == PREVIOUS_SOURCE_29
+        assert len(old_trees) == len(previous['source_trees']) and old_trees.keys() == set(IMAGE_SOURCES)
+        assert all(git('rev-parse', f'{PREVIOUS_SOURCE_29}:{path}', text=True, stderr=subprocess.PIPE).strip() == oid
+                   for path, oid in old_trees.items())
+    except (AssertionError, KeyError, subprocess.CalledProcessError):
+        problems.append('release 28 source is missing or does not match its recorded image inputs')
+    paths = set(git('ls-tree', '--name-only', 'HEAD', *IMAGE_SOURCES_29, text=True).splitlines())
+    missing = sorted(set(IMAGE_SOURCES_29) - paths)
+    if missing:
+        problems.append('image sources missing from HEAD: ' + ', '.join(missing))
+    labwc_inputs = {}
+    for line in git('ls-tree', 'HEAD', '--', *LABWC_INPUT_MODES_29, text=True).splitlines():
+        info, path = line.split('\t')
+        mode, kind, oid = info.split()
+        if kind == 'blob' and mode == LABWC_INPUT_MODES_29[path]:
+            labwc_inputs[path] = dict(mode=mode, blob=oid)
+    main['labwc_inputs'] = labwc_inputs
+    bad_inputs = LABWC_INPUT_MODES_29.keys() - labwc_inputs.keys()
+    if bad_inputs:
+        problems.append('labwc inputs missing or of the wrong Git type or mode: ' + ', '.join(sorted(bad_inputs)))
+    gh_inputs = {}
+    for line in git('ls-tree', 'HEAD', '--', *GH_INPUTS_29, text=True).splitlines():
+        info, path = line.split('\t')
+        mode, kind, oid = info.split()
+        if kind == 'blob' and mode == '100644':
+            gh_inputs[path] = dict(mode=mode, blob=oid)
+    main['gh_inputs'] = gh_inputs
+    if gh_inputs.keys() != set(GH_INPUTS_29):
+        problems.append('gh lock or signing key missing or of the wrong Git type or mode')
+    dirty = git('diff', '--name-only', 'HEAD', '--', *IMAGE_SOURCES_29, text=True).splitlines()
+    dirty += git('ls-files', '--others', '--exclude-standard', '--', *IMAGE_SOURCES_29, text=True).splitlines()
+    if dirty:
+        problems.append('image sources differ from HEAD in the checkout: ' + ', '.join(sorted(set(dirty))))
+    # The mod and Control come from a Git archive. COPY . reads the local os/ directory.
+    context = changed_build_context29() if 'os/.containerignore' not in missing else []
+    if context:
+        problems.append('local changes in the os/ build context. Restore or move these paths before rebuilding: '
+                        + ', '.join(context))
+    if os.environ.get('GITHUB_SHA') != git('rev-parse', 'HEAD', text=True).strip():
+        problems.append('the run source revision is not this checkout')
+    return main, problems
+
+
+def package_diff29(old, new, old_lock, new_lock, labwc):
+    """Apply the local RPM swap to the effective lock without changing the Fedora download lock."""
+    replacement = labwc['nevra']  # Already validated by the bound labwc stage.
+    assert labwc['replaces'] == LABWC_FEDORA_29 and replacement not in new_lock, 'STOP: unexpected labwc lock'
+    for lock in (old_lock, new_lock):
+        assert lock.count(LABWC_FEDORA_29) == 1, 'STOP: expected one Fedora labwc in the download lock'
+    effective = [nevra for nevra in new_lock if nevra != LABWC_FEDORA_29] + [replacement]
+    assert new_lock.count(GTK_LAYER_29) == 1 and [nevra for nevra in new_lock if nevra != GTK_LAYER_29] == old_lock, \
+        'STOP: unexpected R29 download lock delta'
+    rows, added, removed = package_diff(old, new, old_lock, effective, PACKAGE_REASONS_29)
+    assert removed == [LABWC_FEDORA_29], 'STOP: R29 must remove exactly Fedora labwc'
+    assert {nevra for nevra, name in old.items() if name == 'labwc'} == {LABWC_FEDORA_29} and \
+        {nevra for nevra, name in new.items() if name == 'labwc'} == {replacement}, 'STOP: unexpected labwc inventory'
+    assert new.get(GTK_LAYER_29) == 'gtk4-layer-shell', 'STOP: unexpected GTK layer-shell RPM name'
+    assert all('gh' not in names.values() for names in (old, new)), 'STOP: gh must stay outside the installed RPM set'
+    return rows, added, removed
+
+
+def config_tree(commit):
+    lines = git('ls-tree', '-rz', commit, '--', 'os/config', text=True).split('\0')
+    result = {}
+    for line in filter(None, lines):
+        info, path = line.split('\t', 1)
+        result[path.removeprefix('os/config/')] = info.split()
+    return result
+
+
+def plain_file(value, mode):
+    return value is not None and value['kind'] == stat.S_IFREG and root_owned(value, mode) and not value['xattrs']
+
+
+def plain_directory(value):
+    return value is not None and value['kind'] == stat.S_IFDIR and root_owned(value, 0o755) and not value['xattrs']
+
+
+def exact_link(value, target):
+    return value is not None and value['kind'] == stat.S_IFLNK and root_owned(value, 0o777) \
+        and not value['xattrs'] and value['target'] == target
+
+
+def labwc_module(revision, path):
+    # The checked Git blob is the input even if a local bytecode cache exists.
+    source = git_bytes(revision, path)
+    module = types.ModuleType(pathlib.PurePosixPath(path).stem)
+    exec(compile(source, path, 'exec'), module.__dict__)
+    return module, source
+
+
+def control_source29(revision, destination, chrome=False):
+    """Replay the install map from the exact source trees used for that image."""
+    paths = ['os/build.sh', 'os/config/usr/lib/sysusers.d/aresos.conf', 'control']
+    if chrome:
+        paths.append(GH_LOCK_29)
+    archive = git('archive', revision, '--', *paths)
+    with tarfile.open(fileobj=io.BytesIO(archive)) as sources:
+        sources.extractall(destination, filter='data')
+
+
+LABWC_NORMALIZE_29 = """import json, sys
+stage = {'__name__': 'labwc_stage'}
+exec(compile(sys.argv[1], 'os/labwc/stage.py', 'exec'), stage)
+print(json.dumps({path: stage['normalized_sha256'](path) for path in sys.argv[2:]}))
+"""
+
+
+def labwc_payload29(image, root, inventory, nevra, elf, *, stock):
+    """Read the installed RPM and bind its two build-ID links to the actual ELF notes."""
+    binaries = {}
+    for path in LABWC_BINS_29:
+        rel = path[1:]
+        assert plain_file(inventory.get(rel), 0o755), 'missing or different executable metadata: ' + path
+        data = (root / rel).read_bytes()
+        headers, _ = elf.program_headers(data)
+        notes = [note for kind, offset, size, alignment in headers if kind == elf.PT_NOTE
+                 for note in elf.build_id_descriptors(data, offset, size, alignment)]
+        assert len(notes) == 1 and notes[0][1] == 20, 'expected one 20-byte GNU build ID: ' + path
+        offset, size = notes[0]
+        build_id = data[offset:offset + size].hex()
+        if stock:
+            assert build_id == LABWC_FEDORA_IDS_29[path], 'build ID differs from Fedora labwc: ' + path
+        link = f'{LABWC_ID_DIR}/{build_id[:2]}/{build_id[2:]}'
+        assert exact_link(inventory.get(link), '../../../../' + rel), 'missing or different build-ID link: /' + link
+        binaries[path] = dict(build_id=build_id, link='/' + link, sha256=inventory[rel]['sha256'])
+
+    links = {row['link'][1:] for row in binaries.values()}
+    # Two distinct links can share the same two-digit prefix directory.
+    folders = {posixpath.dirname(path) for path in links}
+    expected = LABWC_FIXED_PATHS_29 | links | folders
+    rpm = ('podman', 'run', '--pull=never', '--network=none', '--read-only', '--rm',
+           '--entrypoint=/usr/bin/rpm', image)
+    paths = image_diff.command(*rpm, '-ql', nevra).splitlines()
+    records = rpm_files(image_diff.command(*rpm, '-q', '--qf', RPM_FILE_FORMAT, nevra))
+    assert len(paths) == len(expected) and {'/' + rel for rel in expected} == set(paths) and expected == records.keys(), \
+        'RPM file list differs from the reviewed labwc inventory'
+    for rel, rows in sorted(records.items()):
+        assert len(rows) == 1 and rpm_file_matches(rows, inventory.get(rel)), \
+            'missing or different non-ghost RPM file: /' + rel
+    for rel in folders | {LABWC_ID_DIR}:
+        value = inventory[rel]
+        assert value['kind'] == stat.S_IFDIR and root_owned(value, 0o755), 'different build-ID directory: /' + rel
+    return dict(paths=sorted(paths), binaries=binaries), records, links, folders
+
+
+def compare_labwc29(images, roots, inventories, revision, labwc, stage_source):
+    """Validate both installed payloads before allowing any path changes for the swap."""
+    evidence = dict(replaces=labwc['replaces'], nevra=labwc['nevra'], varying_sections=list(LABWC_VARYING_SECTIONS_29))
+    allowed = {}
+    elf, _ = labwc_module(revision, LABWC_ELF_29)
+    side = 'old'
+    try:
+        records, links, folders = {}, {}, {}
+        for side, nevra in (('old', labwc['replaces']), ('new', labwc['nevra'])):
+            verify = evidence[side + '_rpm_verify'] = rpm_verify(images[side], [nevra])
+            assert not verify['exit_code'] and not verify['line_count'], 'rpm verification failed or produced unexpected output'
+            evidence[side], records[side], links[side], folders[side] = labwc_payload29(
+                images[side], roots[side], inventories[side], nevra, elf, stock=side == 'old')
+
+        side = 'comparison'
+        old, new = inventories['old'], inventories['new']
+        differing = sorted(rel for rel in LABWC_FIXED_PATHS_29.difference(path[1:] for path in LABWC_BINS_29)
+                           if old[rel] != new[rel] or records['old'][rel] != records['new'][rel])
+        assert not differing, 'changed bytes or metadata outside the two binaries: ' + ', '.join(differing)
+        assert not (links['old'] & new.keys() or links['new'] & old.keys()), \
+            'build-ID link occurs in both images'
+
+        side = 'new'
+        # Run the same normalizer as the build with the image's Fedora objcopy.
+        # Only objcopy's temporary copy is writable.
+        normalized = json.loads(image_diff.command(
+            'podman', 'run', '--pull=never', '--network=none', '--read-only', '--tmpfs', '/tmp', '--rm',
+            '--env=PATH=/usr/bin:/bin', '--entrypoint=/usr/bin/python3', images['new'],
+            '-I', '-c', LABWC_NORMALIZE_29, stage_source.decode(), *LABWC_BINS_29))
+        loaded = {path: elf.loaded_sha256(roots['new'] / path[1:]) for path in LABWC_BINS_29}
+        evidence['normalized_sha256'], evidence['loaded_sha256'] = normalized, loaded
+        for kind, values in (('normalized_sha256', normalized), ('loaded_sha256', loaded)):
+            assert values == labwc[kind], f'{kind} differs from the lock: {values!r}'
+
+        allowed.update({path[1:]: 'Installed binary matches the normalized and loaded-image pins' for path in LABWC_BINS_29})
+        for side, other in (('old', 'new'), ('new', 'old')):
+            allowed.update(dict.fromkeys(links[side], 'Link name and target match the installed binary GNU build ID'))
+            allowed.update(dict.fromkeys(folders[side] - inventories[other].keys(), 'Parent of an exact RPM build-ID link'))
+    except (AssertionError, elf.LoadedImageRefused, OSError, ValueError, subprocess.CalledProcessError) as error:
+        evidence['error'] = f'labwc {side}: {error}'
+    return allowed, evidence
+
+
+class Classifier29(Classifier28):
+    """R28 is the baseline. Reuse its validators without reusing its reasons for changing the image."""
+
+    def __init__(self, roots, packages, owned, policy):
+        self.old_root, self.new_root, self.base_root = map(pathlib.Path, roots)
+        self.packages, self.owned, self.policy = packages, owned, policy
+        self.revisions = dict(old=PREVIOUS_SOURCE_29, new=os.environ['GITHUB_SHA'])
+        self.config_trees = {side: config_tree(commit) for side, commit in self.revisions.items()}
+        old, new = self.config_trees['old'], self.config_trees['new']
+        self.config = {rel for rel in old.keys() | new.keys() if old.get(rel) != new.get(rel)}
+        self.config_hashes = {
+            side: {rel: hashlib.sha256(git_bytes(self.revisions[side], 'os/config/' + rel)).hexdigest()
+                   for rel in self.config & tree.keys() if tree[rel][0] in ('100644', '100755')}
+            for side, tree in self.config_trees.items()
+        }
+        self.locks = {side: git_bytes(revision, 'os/minecraft/desktop.lock.json')
+                      for side, revision in self.revisions.items()}
+        self.mod_pins = {side: next(mod['sha256'] for mod in json.loads(raw)['mods']
+                                   if mod['file'] == 'aresos.jar' and 'url' not in mod)
+                         for side, raw in self.locks.items()}
+        self.prism_pin = json.loads(self.locks['new'])['prism']['sha256']
+        self.prism = self.groups = self.schema_rebuild = self.control = self.control_error = None
+        self.control_evidence = {}
+        self.gh_lock_bytes = git_bytes(self.revisions['new'], GH_LOCK_29)
+        self.gh_lock = json.loads(self.gh_lock_bytes)
+        self.font_caches = []
+        alternatives = json.loads(git_bytes(PREVIOUS_SOURCE_29, ALTERNATIVES_MANIFEST_28))
+        self.expected_alternatives = alternatives['groups']
+        assert alternatives['package'] in json.loads(git_bytes(PREVIOUS_SOURCE_29, 'os/packages.lock.json'))['packages'] \
+            and all(alternatives['package']['nevra'] in installed for installed in packages.values()), \
+            'STOP: existing Java package differs from the R28 alternatives pin'
+
+    def classify(self, rel, before, after):
+        for rule in (self.config_rule, self.manifest_rule, self.build_rule, self.package_rule, self.generated_rule):
+            found = rule(rel, before, after)
+            if found:
+                return found
+        return None
+
+    def matching_config(self, side, rel, value):
+        git_entry = self.config_trees[side].get(rel)
+        if git_entry is None:
+            return value is None
+        if side == 'new' and rel in NEW_EXECUTABLES_29 and git_entry[0] != '100755':
+            return False
+        forced = CHMOD_0755_28 if side == 'old' else self.policy['executables']
+        mode = CONFIG_MODES.get(rel, 0o755 if git_entry[0] == '100755' or rel in forced else 0o644)
+        digest = self.config_hashes[side].get(rel)
+        if side == 'new' and digest != CONFIG_PINS_29.get(rel, digest):
+            return False
+        return plain_file(value, mode) and value['sha256'] == digest
+
+    def config_rule(self, rel, before, after):
+        if rel in self.config:
+            reason = CONFIG_REASONS_29.get(rel)
+            if reason and after is not None and self.matching_config('old', rel, before) \
+                    and self.matching_config('new', rel, after):
+                return 'config', reason
+        elif before is None and rel in CONFIG_DIRECTORIES_29 and plain_directory(after):
+            return 'config', CONFIG_DIRECTORIES_29[rel]
+        return None
+
+    def frame_evidence(self):
+        inventory = self.policy['inventory']
+        evidence = {}
+        for label, directory, paths, dirs, pin in (
+            ('look', LOOK_29, LOOK_FILES_29 | {f'{FRAME_SPRITES_29}/{cell}' for cell in FRAME_CELLS_29},
+             {LOOK_29, LOOK_29 + '/sprites', FRAME_SPRITES_29}, LOOK_PIN_29),
+            ('frame', FRAME_THEME_29, {f'{FRAME_THEME_29}/{name}' for name in FRAME_CELLS_29 | {'themerc'}},
+             {FRAME_THEME_29}, FRAME_THEME_PIN_29),
+        ):
+            present = {path for path in inventory if path == directory or path.startswith(directory + '/')}
+            exact = present == paths | dirs and all(plain_directory(inventory[path]) for path in dirs) \
+                and all(plain_file(inventory[path], 0o644) for path in paths)
+            rows = (f"{inventory[path]['sha256']}  {path.removeprefix(directory + '/')}" for path in sorted(paths))
+            digest = hashlib.sha256('\n'.join(rows).encode()).hexdigest() if exact else None
+            evidence[label] = dict(image=digest, image_checks=pin, equal=digest == pin)
+        return evidence
+
+    def alternatives(self):
+        return super().alternatives(existing=True)
+
+    def control_entries(self):
+        if self.control is None:
+            try:
+                self.control = self.compare_control()
+            except (AssertionError, ValueError, KeyError, TypeError, OSError, IndexError, ImportError,
+                    ET.ParseError, tarfile.TarError, zipfile.BadZipFile, subprocess.SubprocessError) as error:
+                self.control, self.control_error = {}, str(error)
+        return self.control
+
+    def compare_control(self):
+        from control import chrome_image
+        from cryptography.exceptions import InvalidSignature
+
+        old, new = (json.loads(self.read(side, CONTROL_RECORD)) for side in ('old', 'new'))
+        assert git_bytes(self.revisions['new'], ASK_RULES_29) == git_bytes('11d22cd4^', ASK_RULES_29), \
+            'Chrome 28/28a ask-rules.json differs from pre-28 bytes'
+        assert new['chrome_build'] == CHROME_BUILD_29, 'Chrome build differs from the reviewed 28/28a inputs'
+        assert old['requirements_lock'] == new['requirements_lock'], '18c-b leaves the Control wheel lock unchanged'
+        assert old['wheels'] == new['wheels'] and old['vendor'] == new['vendor'], 'Control vendor differs from R28'
+        inventory = self.policy['inventory']
+        assert all(plain_directory(inventory.get(path)) for path in CHROME_LINK_PARENTS_29), 'Chrome link parent metadata'
+        assert CHROME_SITES_29 not in inventory and 'var/lib/aresos-control' not in inventory, 'Chrome sites state in image'
+        bundle = new['chrome_extension']
+        with tempfile.TemporaryDirectory() as folder:
+            source = pathlib.Path(folder)
+            typed = {}
+            for side, root, record in (('old', self.old_root, old), ('new', self.new_root, new)):
+                revision = self.revisions[side]
+                tree = source / side
+                tree.mkdir()
+                control_source29(revision, tree, chrome=side == 'new')
+                expected = control_install_map(tree)
+                extension_files = None
+                if side == 'new':
+                    chrome_image.compare(record, expected, tree / 'control')
+                    assert all(plain_file(inventory.get(f'{CHROME_BUNDLE_29}/{name}'), 0o644)
+                               for name in chrome_image.NAMES), 'Chrome bundle file metadata'
+                    data = {name: self.read('new', f'{CHROME_BUNDLE_29}/{name}') for name in chrome_image.NAMES}
+                    try:
+                        chrome_image.bundle_content(data, bundle)
+                    except InvalidSignature as error:
+                        raise AssertionError('invalid Chrome CRX signature') from error
+                    extension_files = bundle['files']
+                typed[side] = control_inventory(root, revision, expected=expected,
+                                                requirements=tree / 'control/requirements.lock',
+                                                extension_files=extension_files)
+        before, after = typed['old'], typed['new']
+        changed = {path for path in before.keys() | after.keys() if before.get(path) != after.get(path)}
+        assert changed == CONTROL_CHANGES_29.keys() and changed <= after.keys(), \
+            'Control delta differs from the 18c-b and 28/28a handoffs: ' + ', '.join(sorted(changed ^ CONTROL_CHANGES_29.keys()))
+        self.control_evidence = dict(chrome_build=new['chrome_build'], chrome_extension=bundle, gh=new['gh'],
+                                     install_changes=sorted(changed), ask_rules_unchanged=True,
+                                     wheels_unchanged=True, vendor_unchanged=True)
+        return {path: after[path] for path in changed}
+
+    def gh_problems(self, new):
+        pin = self.gh_lock
+        payload = pin['payload_paths']
+        problems = []
+        if len(payload) != 240 or len(set(payload)) != 240 or '/' + GH_BINARY_29 not in payload:
+            problems.append('18c-b gh lock does not list the exact-size RPM payload and binary')
+        unexpected = sorted(path for path in payload if path != '/' + GH_BINARY_29 and path[1:] in new)
+        if unexpected:
+            problems.append('18c-b gh RPM payload outside the one extracted binary: ' + ', '.join(unexpected))
+        key = pin['signing_key']
+        if key['file'] != GH_KEY_29.removeprefix('os/') or \
+                hashlib.sha256(git_bytes(self.revisions['new'], GH_KEY_29)).hexdigest() != key['sha256']:
+            problems.append('18c-b gh signing key differs from its lock')
+        licence = new.get(GH_LICENCE_29)
+        if not plain_file(licence, 0o644) or licence['sha256'] != pin['license_sha256']:
+            problems.append('18c-b gh licence differs from its lock')
+        parents = {str(parent) for rel in (GH_BINARY_29, GH_LICENCE_29, GH_RECORD_29)
+                   for parent in pathlib.PurePosixPath(rel).parents if str(parent) != '.'}
+        if not all(plain_directory(new.get(path)) for path in parents):
+            problems.append('18c-b gh install parent metadata differs')
+        return problems
+
+    def audit_rows(self):
+        def unique_fields(pairs):
+            fields = dict(pairs)
+            if len(fields) != len(pairs):
+                raise ValueError('duplicate updater audit field')
+            return fields
+
+        old, new = (self.read(side, UPDATERS) for side in ('old', 'new'))
+        # The image audit enumerates unit-specific drop-ins. The session-.scope prefix is a systemd
+        # ordering rule, but its path does not appear in the offline audit's source rows.
+        rows = audit_changes(old, new, lambda *_: False, GUARDIAN_AUDIT)
+        if rows:
+            try:
+                before, after = (json.loads(raw, object_pairs_hook=unique_fields) for raw in (old, new))
+            except ValueError:
+                return None
+            expected = sorted([*before, GUARDIAN_AUDIT], key=lambda row: (row['scope'], row['name']))
+            prior_rows = {json.dumps(row, sort_keys=True) for row in before}
+            if all(json.dumps(row, sort_keys=True) in prior_rows for row in (CONTROL_AUDIT, CONSOLE_KEYMAP_AUDIT)) \
+                    and json.dumps(after, sort_keys=True) == json.dumps(expected, sort_keys=True):
+                return [dict(rows[0], reason=CONFIG_REASONS_29[GUARDIAN_UNIT])]
+        return None
+
+    def manifest_matches(self, side, rel, value):
+        if rel == LABWC_RECORD and side == 'old':
+            return value is None
+        if rel in (GH_BINARY_29, GH_RECORD_29):
+            if side == 'old':
+                return value is None
+            mode, sha256 = (0o755, self.gh_lock['binary_sha256']) if rel == GH_BINARY_29 else (
+                0o644, hashlib.sha256(self.gh_lock_bytes).hexdigest())
+            return plain_file(value, mode) and value['sha256'] == sha256
+        if not plain_file(value, 0o644):
+            return False
+        if rel == MOD_JAR:
+            return value['sha256'] == self.mod_pins[side]
+        try:
+            raw = self.read(side, rel)
+            revision = self.revisions[side]
+            if rel == MANIFEST + 'packages.lock.json':
+                expected = json.loads(git_bytes(revision, 'os/packages.lock.json'))
+                return raw == (json.dumps(expected, indent=2) + '\n').encode()
+            if rel == MANIFEST + 'packages.txt':
+                return raw == ('\n'.join(sorted(self.packages[side])) + '\n').encode()
+            if rel == LABWC_RECORD:
+                return raw == git_bytes(revision, LABWC_LOCK_29)
+            if rel == DESKTOP_LOCK:
+                return raw == self.locks[side]
+            if rel == MOD_RECORD:
+                pin = self.mod_pins[side]
+                expected = dict(sha256=pin, source_revision=revision, pinned_sha256=pin)
+                return raw == (json.dumps(expected, indent=2) + '\n').encode()
+        except (TypeError, ValueError):
+            return False
+        return False
+
+    MANIFEST_REASONS = {
+        MANIFEST + 'packages.lock.json': 'B323 (#135): the download lock adds gtk4-layer-shell and still pins Fedora labwc as the swap input',
+        MANIFEST + 'packages.txt': 'B323 (#135) and 311 (#119): records gtk4-layer-shell and the final labwc NEVRA after the swap',
+        LABWC_RECORD: '311 (#119) and B323 (#135): installed labwc stage lock, exactly the build input',
+        MOD_RECORD: JAR_REASON_29 + '. The mod record binds the jar pin to the build revision',
+        MOD_JAR: JAR_REASON_29,
+        DESKTOP_LOCK: 'Package 23: desktop inputs stay pinned. The release cut renews the AresOS mod SHA-256',
+        GH_BINARY_29: '18c-b (#76): only /usr/bin/gh extracted from the signature-checked RPM pinned in os/gh.lock.json',
+        GH_RECORD_29: '18c-b (#76): exact copy of the gh RPM, signing key, payload, binary and licence pins in os/gh.lock.json',
+    }
+
+    def manifest_rule(self, rel, before, after):
+        if rel in self.MANIFEST_REASONS and self.manifest_matches('old', rel, before) \
+                and self.manifest_matches('new', rel, after):
+            return 'build' if rel in (MOD_JAR, GH_BINARY_29) else 'manifest', self.MANIFEST_REASONS[rel]
+        if rel in CONTROL_CHANGES_29 and rel in self.control_entries():
+            return 'control', CONTROL_CHANGES_29[rel]
+        if rel in CHROME_LINK_PARENTS_29 and before is None and plain_directory(after) and self.control_entries():
+            return 'control', '18c-b (#76): root-owned parent of a managed Chrome policy or host link'
+        if rel == UPDATERS and all(plain_file(value, 0o644) for value in (before, after)) and self.audit_rows():
+            return 'manifest', '25 (#125): updater audit adds the enabled guardian with its exact start and save commands'
+        return None
+
+    def build_rule(self, rel, before, after):
+        if rel == GUARDIAN_LINK[0] and before is None and exact_link(after, GUARDIAN_LINK[1]) \
+                and self.matching_config('new', GUARDIAN_UNIT, self.policy['inventory'].get(GUARDIAN_UNIT)):
+            return 'build', '25 (#125): systemctl enable links graphical.target to the planned-stop guardian'
+        if rel.startswith(FONT_CACHES):
+            return self.font_cache_rule(rel, before, after)
+        if rel in ('etc/shadow', 'etc/shadow-') and self.shadow_change(rel, before, after):
+            return 'build', 'Existing account creation dates refreshed by systemd-sysusers, including the existing Control account'
+        return None
+
+    def shadow_change(self, rel, before, after):
+        # The only changing field is the numeric creation day. Keep locked passwords and all other fields.
+        if not (before and after and before['mode'] in (0o000, 0o600, 0o640)
+                and all(plain_file(value, before['mode']) for value in (before, after))):
+            return False
+        try:
+            old, new = ([line.split(':') for line in self.read(side, rel).decode().splitlines(keepends=True)]
+                        for side in ('old', 'new'))
+        except (AttributeError, UnicodeDecodeError):
+            return False
+        return len(old) == len(new) and all(a == b or (
+            len(a) == len(b) == 9 and a[2].isdigit() and b[2].isdigit() and a[:2] + a[3:] == b[:2] + b[3:])
+            for a, b in zip(old, new))
+
+    def font_pair(self, root, rel, folder=None):
+        match = re.fullmatch(r'([0-9a-f]{32})-(le64|le32d4)\.cache-([0-9]+)', rel.removeprefix(FONT_CACHES))
+        if not match:
+            return None
+        digest, _, version = match.groups()
+        for layout in FONT_CACHE_LAYOUTS:
+            path = f'{FONT_CACHES}{digest}-{layout}.cache-{version}'
+            if not plain_file(entry(root, path), 0o644):
+                return None
+            try:
+                actual_version, actual_folder = font_cache((root / path).read_bytes(), layout)
+            except (ValueError, OSError):
+                return None
+            if str(actual_version) != version or (folder is not None and actual_folder != folder):
+                return None
+            folder = actual_folder
+        if hashlib.md5(folder.encode(), usedforsecurity=False).hexdigest() != digest:
+            return None
+        return folder
+
+    def font_cache_rule(self, rel, before, after):
+        if not plain_file(before, 0o644) or not plain_file(after, 0o644):
+            return None
+        folder = self.font_pair(self.new_root, rel)
+        kind = self.font_folder(folder) if folder else None
+        if not kind or self.font_pair(self.old_root, rel, folder) != folder:
+            return None
+        old_folder = folder[1:]
+        if kind == 'link':
+            target = entry(self.old_root, old_folder)['target']
+            old_folder = posixpath.normpath(posixpath.join(posixpath.dirname(folder), target))[1:]
+        if not self.image_folder(old_folder, root=self.old_root):
+            return None
+        self.font_caches.append(dict(path=rel, folder=folder, folder_kind=kind, change='rebuilt',
+                                     format=rel.rsplit('-', 2)[-2].split('.')[0]))
+        return 'build', 'B320 and B323: fc-cache --system-only --really-force regenerated both cache formats after adding Jersey 10 and JetBrains Mono'
+
+    def package_rule(self, rel, before, after):
+        labwc = self.policy['labwc_paths'].get(rel)
+        if labwc:
+            return 'package', PACKAGE_REASONS_29['labwc'] + '. ' + labwc
+        if before is None and self.package_file(rel, after):
+            return 'package', PACKAGE_REASONS_29['gtk4-layer-shell'] + '. File matches the RPM record'
+        return None
+
+    def generated_rule(self, rel, before, after):
+        mode = 0o600 if rel == 'var/cache/ldconfig/aux-cache' else 0o644
+        if rel in GENERATED_29 and all(plain_file(value, mode) for value in (before, after)):
+            return 'generated', GENERATED_29[rel]
+        return None
+
+    def extra(self):
+        old, new = self.policy['old_inventory'], self.policy['inventory']
+        # Even an identical or missing path can violate an independently required install.
+        labwc = self.policy['labwc_evidence']
+        problems = [labwc['error']] if 'error' in labwc else []
+        for rel in sorted(self.config | CONFIG_REASONS_29.keys()):
+            if rel not in self.config or rel not in CONFIG_REASONS_29 or not all(
+                    self.matching_config(side, rel, inv.get(rel)) for side, inv in (('old', old), ('new', new))):
+                problems.append('missing, retained or different os/config input: ' + rel)
+        for rel in CONFIG_DIRECTORIES_29:
+            if rel in old or not plain_directory(new.get(rel)):
+                problems.append('new config directory missing or different: ' + rel)
+        for rel in self.MANIFEST_REASONS:
+            if not all(self.manifest_matches(side, rel, inv.get(rel)) for side, inv in (('old', old), ('new', new))):
+                problems.append('pinned input or image record missing or different: ' + rel)
+        if old.get(GUARDIAN_LINK[0]) is not None or not exact_link(new.get(GUARDIAN_LINK[0]), GUARDIAN_LINK[1]):
+            problems.append('guardian enable link missing or different')
+        for rel, target in (CONSOLE_KEYMAP_LINK, DESKTOP_COMMAND, PRISM_COMMAND):
+            if not exact_link(new.get(rel), target):
+                problems.append('existing image link missing or different: ' + rel)
+        rows = self.audit_rows()
+        if rows is None or not all(plain_file(inv.get(UPDATERS), 0o644) for inv in (old, new)):
+            problems.append('guardian updater audit row missing or different, or existing rows changed')
+        rpm = self.policy['records']
+        payload = {rel for rel, records in rpm.items() if any(not record['flags'] & RPMFILE_GHOST for record in records)}
+        invalid = sorted(rel for rel in payload if not self.package_file(rel, new.get(rel)))
+        if invalid or not payload or set(rpm) != {path[1:] for path in self.owned['gtk']}:
+            problems.append('GTK layer-shell RPM inventory missing or different: ' + ', '.join(invalid))
+        try:
+            prism_ok = plain_file(new.get(PRISM_FILES), 0o644) and self.prism_files()
+        except (UnicodeDecodeError, OSError):
+            prism_ok = False
+        if not prism_ok:
+            problems.append('Prism bundle differs from the complete typed inventory or independently pinned file list')
+        if not plain_file(new.get(SCHEMAS), 0o644) or not self.rebuilt_schemas()['matches']:
+            problems.append('compiled schemas differ from deterministic rebuild with the image compiler and schema directory')
+        missing = sorted(self.expected_alternatives.keys() - self.alternatives().keys())
+        if missing:
+            problems.append('alternatives groups missing or different from the reviewed mapping: ' + ', '.join(missing))
+        try:
+            crown = crown_digest(self.new_root / CROWN) if self.image_folder(CROWN) else None
+        except OSError:
+            crown = None
+        pin = crown_pin()
+        if crown != pin:
+            problems.append('the Ares-Crown theme differs from its image-checks.sh pin')
+        frame = self.frame_evidence()
+        if not all(row['equal'] for row in frame.values()):
+            problems.append('B329 frame or look pack differs from its image-checks.sh inventory and pin')
+        font_dir = '/usr/share/fonts/aresos'
+        digest = hashlib.md5(font_dir.encode(), usedforsecurity=False).hexdigest()
+        if any(not self.image_folder(font_dir[1:], root=root)
+               or self.font_pair(root, f'{FONT_CACHES}{digest}-le64.cache-9', font_dir) != font_dir
+               for root in (self.old_root, self.new_root)):
+            problems.append('AresOS system font caches missing or different in either format')
+        if not self.control_entries():
+            problems.append('Control install differs from R28 or its validated install record: ' + str(self.control_error))
+        problems.extend(self.gh_problems(new))
+        for rel in (path for path in CONTROL_ACCOUNTS if not path.endswith('-')):
+            for side in ('old', 'new'):
+                try:
+                    raw = self.read(side, rel)
+                    if raw is not None and control_account_row(rel, raw) and control_accounts(rel, raw, raw):
+                        continue
+                except (UnicodeDecodeError, IndexError):
+                    pass
+                problems.append(f'Control UID/GID 250 account record missing or different in {side}: {rel}')
+        old_rc, new_rc = self.read('old', RC_XML), self.read('new', RC_XML)
+        rc = rc_xml_changes(old_rc, new_rc) if all(self.matching_config(side, RC_XML, inv.get(RC_XML))
+            for side, inv in (('old', old), ('new', new))) else None
+        return dict(control=dict(previous_revision=self.revisions['old'], source_revision=self.revisions['new'],
+                                 error=self.control_error, **self.control_evidence),
+                    schema_rebuild=self.rebuilt_schemas(),
+                    font_caches=sorted(self.font_caches, key=lambda row: row['path']), updaters=rows,
+                    alternatives={name: dict(sorted(targets.items())) for name, (_, targets) in sorted(self.alternatives().items())},
+                    theme=dict(image=crown, image_checks=pin, equal=crown == pin, **frame), rc_xml=rc, labwc=labwc), problems
+
+
 RELEASES = {
     '27': dict(previous=PREVIOUS, previous_release='13', previous_source=PREVIOUS_SOURCE, reasons=PACKAGE_REASONS,
                classifier=Classifier, executables=CHMOD_0755, previous_chrome=False, main_sources=False, package_files=False,
@@ -1698,6 +2591,9 @@ RELEASES = {
                classifier=Classifier28, executables=CHMOD_0755_28, previous_chrome=True, unmasked=set(),
                # Release 28 (review 1 of package 42): its sources are main's (S2); its added packages' files are
                # checked against their rpm database (S5).
+               main_sources=True, package_files=True),
+    '29': dict(previous=PREVIOUS_29, previous_release='28', previous_source=PREVIOUS_SOURCE_29, reasons=PACKAGE_REASONS_29,
+               classifier=Classifier29, executables=CHMOD_0755_29, previous_chrome=True, unmasked=set(),
                main_sources=True, package_files=True),
 }
 
@@ -1738,7 +2634,7 @@ def rpm_verify(image, nevras):
 
 
 def main(tools, run=None, release='27', evidence='evidence/image-diff'):
-    """Compare the release before `release` (13 for 27, 27 for 28) with localhost/aresos:ci; write evidence/image-diff."""
+    """Compare a rebuild with its recorded predecessor and write the image diff evidence."""
     profile = RELEASES[release]
     before_release, source = profile['previous_release'], profile['previous_source']
     from build_tools import validate
@@ -1749,6 +2645,13 @@ def main(tools, run=None, release='27', evidence='evidence/image-diff'):
     main_base = main_merge_base() if profile['main_sources'] else None
     previous = json.loads(pathlib.Path(profile['previous']).read_text())
     base_reference = json.loads(pathlib.Path('os/manifest/base.json').read_text())['reference']
+    if release == '29':
+        main_sources, problems = verify_source29(previous, main_base)
+        if problems:
+            stopped = dict(status='stopped', release=release, previous=previous['reference'], previous_source=source,
+                           main=main_sources, problems=problems)
+            (evidence / 'result.json').write_text(json.dumps(stopped, indent=2) + '\n')
+            raise AssertionError('STOP: ' + '; '.join(problems))
     assert previous['base'] == base_reference, f'STOP: release {before_release} was built on another base'
     images = dict(old=previous['reference'], new=NEW, base=base_reference)
     mounts, roots, packages, names = [], {}, {}, {}
@@ -1761,16 +2664,41 @@ def main(tools, run=None, release='27', evidence='evidence/image-diff'):
                 rows = command('podman', 'run', '--pull=never', '--network=none', '--read-only', '--rm',
                                '--entrypoint=/usr/bin/rpm', image, '-qa', '--qf', '%{NEVRA}\t%{NAME}\n').splitlines()
                 names[name] = dict(row.split('\t') for row in rows)
+                if release == '29':
+                    assert len(names[name]) == len(rows), 'STOP: duplicate installed RPM NEVRA'
                 packages[name] = sorted(names[name])
-        old_lock = [p['nevra'] for p in json.loads(git_bytes(source, 'os/packages.lock.json'))['packages']]
-        new_lock = [p['nevra'] for p in json.loads(pathlib.Path('os/packages.lock.json').read_text())['packages']]
-        new_lock.append(json.loads(pathlib.Path('os/google-chrome.lock.json').read_text())['nevra'])
+        old_entries = json.loads(git_bytes(source, 'os/packages.lock.json'))['packages']
+        if release == '29':
+            revision = os.environ['GITHUB_SHA']
+            new_entries = json.loads(git_bytes(revision, 'os/packages.lock.json'))['packages']
+            chrome = git_bytes(revision, 'os/google-chrome.lock.json')
+        else:
+            new_entries = json.loads(pathlib.Path('os/packages.lock.json').read_text())['packages']
+            chrome = pathlib.Path('os/google-chrome.lock.json').read_bytes()
+        old_lock = [p['nevra'] for p in old_entries]
+        new_lock = [p['nevra'] for p in new_entries] + [json.loads(chrome)['nevra']]
         image_lock = json.loads((roots['old'] / 'usr/share/aresos/manifest/packages.lock.json').read_text())
         assert [p['nevra'] for p in image_lock['packages']] == old_lock, f'STOP: release {before_release} lock differs from its source'
         if profile['previous_chrome']:
             # Release 27 already carries Chrome from its pin: only a renewed pin would add or remove it.
             old_lock.append(json.loads(git_bytes(source, 'os/google-chrome.lock.json'))['nevra'])
-        package_rows, added, removed = package_diff(names['old'], names['new'], old_lock, new_lock, profile['reasons'])
+        if release == '29':
+            stage, stage_source = labwc_module(revision, LABWC_STAGE_29)
+            try:
+                labwc = stage.validate_lock(json.loads(git_bytes(revision, LABWC_LOCK_29)))['result']
+                assert stage.VARYING_SECTIONS == LABWC_VARYING_SECTIONS_29 and stage.PINNED_BINARIES == LABWC_BINS_29, \
+                    'labwc stage differs from the reviewed sections or binaries'
+                assert [row for row in new_entries if row['nevra'] != GTK_LAYER_29] == old_entries, \
+                    'R29 download lock changes existing RPM pins'
+                package_rows, added, removed = package_diff29(names['old'], names['new'], old_lock, new_lock, labwc)
+            except (AssertionError, KeyError, TypeError, ValueError, stage.Refusal) as error:
+                problem = str(error).removeprefix('STOP: ')
+                stopped = dict(status='stopped', release=release, previous=images['old'], previous_source=source,
+                               main=main_sources, problems=[problem])
+                (evidence / 'result.json').write_text(json.dumps(stopped, indent=2) + '\n')
+                raise AssertionError('STOP: ' + problem) from error
+        else:
+            package_rows, added, removed = package_diff(names['old'], names['new'], old_lock, new_lock, profile['reasons'])
         (evidence / 'packages.json').write_text(json.dumps(dict(old=packages['old'], new=packages['new'], changes=package_rows), indent=2) + '\n')
 
         def owned(image, nevras):
@@ -1779,11 +2707,15 @@ def main(tools, run=None, release='27', evidence='evidence/image-diff'):
             output = command('podman', 'run', '--pull=never', '--network=none', '--read-only', '--rm',
                              '--entrypoint=/usr/bin/rpm', image, '-ql', *nevras)
             return {line for line in output.splitlines() if line.startswith('/')}
-        ownership = dict(old=owned(images['old'], removed), new=owned(images['new'], added))
+        ownership = {} if release == '29' else dict(old=owned(images['old'], removed), new=owned(images['new'], added))
         records = {}
         if profile['package_files'] and added:
+            checked = added
+            if release == '29':
+                checked = [GTK_LAYER_29]
+                ownership['gtk'] = owned(images['new'], checked)
             records = rpm_files(command('podman', 'run', '--pull=never', '--network=none', '--read-only', '--rm',
-                                        '--entrypoint=/usr/bin/rpm', images['new'], '-q', '--qf', RPM_FILE_FORMAT, *added))
+                                        '--entrypoint=/usr/bin/rpm', images['new'], '-q', '--qf', RPM_FILE_FORMAT, *checked))
 
         inventories = {}
         for name in ('old', 'new'):
@@ -1798,14 +2730,19 @@ def main(tools, run=None, release='27', evidence='evidence/image-diff'):
             return {line.strip() for name in ('masked-system-units.txt', 'masked-user-units.txt')
                     for line in (root / 'usr/share/aresos/policy' / name).read_text().splitlines() if line.strip()}
         unmasked = masked(roots['old']) - masked(roots['new'])
-        assert unmasked <= profile['unmasked'], \
-            'STOP: unreviewed unit unmasked: ' + repr(sorted(unmasked))
+        if release != '29':
+            assert unmasked <= profile['unmasked'], \
+                'STOP: unreviewed unit unmasked: ' + repr(sorted(unmasked))
         children = lambda rel: any(p.startswith(rel + '/') for p in old)
         policy = dict(unmasked=unmasked, executables=profile['executables'], old_has_children=children, inventory=new,
                       main_base=main_base, records=records)
-        if release == '28':
+        if release in ('28', '29'):
             policy.update(new_image=images['new'], prism_inventory=prism_inventory(
                 json.loads(pathlib.Path('os/minecraft/desktop.lock.json').read_text())['prism']))
+        if release == '29':
+            policy['old_inventory'] = old
+            policy['labwc_paths'], policy['labwc_evidence'] = compare_labwc29(
+                images, roots, inventories, revision, labwc, stage_source)
         classifier = profile['classifier']((roots['old'], roots['new'], roots['base']), packages, ownership, policy)
         details, unexplained = {}, []
         for rel in changed:
@@ -1821,6 +2758,8 @@ def main(tools, run=None, release='27', evidence='evidence/image-diff'):
         units = {rel: dict(rule=row['rule'], reason=row.get('reason')) for rel, row in details.items()
                  if re.search(r'(^|/)systemd/', rel)}
         problems = []
+        if release == '29' and unmasked:
+            problems.append('unreviewed unit unmasked: ' + repr(sorted(unmasked)))
         if any(row['rule'] == 'generated' for row in units.values()):
             problems.append('a unit changed only as a generated file')
         counts = {}
@@ -1833,7 +2772,9 @@ def main(tools, run=None, release='27', evidence='evidence/image-diff'):
             extra, found = classifier.extra()
             extra = dict(release=release, **extra)
             problems.extend(found)
-        if profile['main_sources']:
+        if release == '29':
+            extra['main'] = main_sources
+        elif profile['main_sources']:
             # Everything that rides is main's (brief 42): the image's sources on this commit equal main's at the
             # merge base, except what BRANCH_SOURCE_CHANGES allows this branch.
             allowed, differing = source_changes(main_base)
@@ -1841,7 +2782,7 @@ def main(tools, run=None, release='27', evidence='evidence/image-diff'):
             if differing:
                 problems.append(f'image sources differ from main at the merge base {main_base}: ' + ', '.join(differing))
         if profile['package_files']:
-            extra['rpm_verify'] = rpm_verify(images['new'], added)
+            extra['rpm_verify'] = rpm_verify(images['new'], [GTK_LAYER_29] if release == '29' else added)
             if extra['rpm_verify'] and (extra['rpm_verify']['exit_code'] != 0 or extra['rpm_verify']['line_count']):
                 problems.append('rpm verification of the added packages failed or produced unexpected output')
 
@@ -1854,6 +2795,9 @@ def main(tools, run=None, release='27', evidence='evidence/image-diff'):
             problems.append(f'release {release} base ancestry differs')
         old_config, new_config = (dict(c['config']) for c in configs)
         old_labels, new_labels = old_config.pop('Labels'), new_config.pop('Labels')
+        if release == '29' and (old_labels.get('org.opencontainers.image.revision') != source
+                                or old_labels.get('org.opencontainers.image.source') != 'https://github.com/Ares-Empire/AresOS'):
+            problems.append(f'release {before_release} source labels differ from its record')
         runtime = {k: dict(before=old_config.get(k), after=new_config.get(k)) for k in sorted(old_config.keys() | new_config.keys())
                    if old_config.get(k) != new_config.get(k)}
         if runtime:

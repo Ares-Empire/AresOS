@@ -21,11 +21,12 @@ import owner_vm
 from guest_shell import syntax
 
 BASE = 'sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151'
-# The pinned ISO's own image, as rehearsal 3 (run 44644689353) read it from the ISO's store.
-ISO_IMAGE = 'sha256:49ded650b432c2943bb940cedc91950ad150b7c73a7f2bb12e08a34590446e82'
-ISO_INDEX = [dict(id='55abf2647a0b2fe75d3642804e90551d0d98ff2b2e42b96d6e2dc895a2a43505', digest=ISO_IMAGE,
-                  names=['ghcr.io/ublue-os/bazzite-nvidia-open:stable'], layer='e3035b8c4ede')]
-# That run's payload check: the live shell's OSC 3008 sequence directly before the digest.
+# The pinned ISO's own image, read from its store on 2026-11-26.
+ISO_IMAGE = 'sha256:98a6a6a31670cbfa005866c6d6de2e768409dd7cb9db25f324b20cc55294fb89'
+ISO_INDEX = [dict(id='b69d47e20c1ea5a924ecb5cf3b345ac9e727927a68ec218b906738e65a0e3a23', digest=ISO_IMAGE,
+                  names=['ghcr.io/ublue-os/bazzite-nvidia-open:stable'],
+                  layer='9420e433a95bb31f537f6b5ec8231b0011b978c39223f9d25e3f751c64eef870')]
+# R28 rehearsal 3 (44644689353) printed an OSC 3008 sequence directly before the payload digest.
 PAYLOAD = ('\x1b[?2004hARESOS_ROOT> \x1b[?2004l\r\r\n\x1b]3008;start=00000000-0000-0000-0000-000000000000;type=command;'
            'user=root;hostname=localhost-live;pid=2960;cwd=/root\x1b\\{}\r\n\r\nARESOS_CMD_DONE:0\r\n')
 

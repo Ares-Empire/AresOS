@@ -92,21 +92,21 @@ def job_steps(job, world):
             yield step, dict(environment, **{k: base.workflow_text(v, world) for k, v in step.get('env', {}).items()})
 
 
-def install_control_fixture(root):
+def install_control_fixture(root, source=ROOT, revision='a' * 40):
     """The real install map plus a synthetic, locked wheel record; never install pip packages on this host."""
     result = subprocess.run(['bash', 'os/build.sh', 'control-tree', 'os', 'control', str(root)],
-                            cwd=ROOT, capture_output=True, text=True, check=True)
+                            cwd=source, capture_output=True, text=True, check=True)
     record = json.loads((root / rd.CONTROL_RECORD).read_text())
     from test_control_image import lock_pins
     wheels = [dict(name=name, version=version, file=f'{name}-{version}-py3-none-any.whl', sha256=digests[0])
-              for (name, version), digests in lock_pins().items()]
+              for (name, version), digests in lock_pins(source / 'control/requirements.lock').items()]
     vendor = root / 'usr/lib/aresos-control/vendor'
     vendor.mkdir(parents=True)
     (vendor / 'fixture.py').write_text('# synthetic wheel file\n')
     paths = [vendor.parent, vendor, vendor / 'fixture.py']
     for path in paths:
         path.chmod(0o755 if path.is_dir() else 0o644)
-    record.update(source_revision='a' * 40, wheels=wheels, vendor={
+    record.update(source_revision=revision, wheels=wheels, vendor={
         '/' + p.relative_to(root).as_posix(): dict(mode=f'{stat.S_IMODE(p.stat().st_mode):04o}',
             sha256=None if p.is_dir() else rd.file_sha256(p)) for p in paths})
     (root / rd.CONTROL_RECORD).write_text(json.dumps(record))
@@ -2005,7 +2005,7 @@ class Guard42Test(unittest.TestCase):
         with patch.dict(guard.PACKAGES['42']['dispatch_caps'], {'publish-28': 1}), \
                 self.assertRaisesRegex(AssertionError, 'STOP: the ledger allows no publish'):
             self.run_main('publish-ci', 'publish-28', today)
-        self.assertEqual(guard.PUBLISH_KINDS, ('release-13', 'release-27', 'publish-28'))
+        self.assertEqual(guard.PUBLISH_KINDS, ('release-13', 'release-27', 'publish-28', 'publish-29'))
 
     def test_the_opened_gate_passes_one_publish_and_only_the_publishing_kind(self):
         # Step 5 raised both caps to 1 (board #388): the release_28 dispatch passes its job's guard and publish.sh's.
@@ -2057,7 +2057,8 @@ class ReleaseBuildGateTest(unittest.TestCase):
                        GITHUB_EVENT_NAME='workflow_dispatch')
 
     def test_both_kinds_build_release_28_against_release_27(self):
-        self.assertEqual(build_tools.RELEASE_MODES, {'release-27': '27', 'publish-28': '28', 'dry-run-28': '28'})
+        self.assertEqual(build_tools.RELEASE_MODES, {'release-27': '27', 'publish-28': '28', 'dry-run-28': '28',
+                                                     'publish-29': '29', 'dry-run-29': '29'})
         self.assertEqual(build_tools.RELEASE_BUILDS['28']['previous'], rd.PREVIOUS_28)
         self.assertEqual(build_tools.RELEASE_BUILDS['27']['previous'], rd.PREVIOUS)
         tools = {name: sys.executable for name in build_tools.NAMES}

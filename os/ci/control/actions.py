@@ -965,7 +965,7 @@ def owner_sessions():
     return found
 
 
-def desktop_with_service_failed(failed):
+def desktop_with_service_failed(failed, diagnostics):
     """Agreed change 6 (REVIEW-A1 #1): with the service failed, the desktop session comes up as usual. The boot's
     greetd session is ended as a logout ends it (all of ares's processes, his runtime folder and his user manager;
     the checks' own runuser processes aren't his sessions); then greetd starts the auto-login once more, as at boot,
@@ -994,7 +994,7 @@ def desktop_with_service_failed(failed):
     GREETD_RUNFILE.unlink(missing_ok=True)
     ok(run(['systemctl', 'start', 'greetd.service'], timeout=120))
     terminal = checks.wait_session()
-    desktop = checks.desktop_session()
+    desktop = checks.desktop_session(diagnostics=diagnostics)
     after = owner_sessions()
     new_sessions = sorted(session for session, values in after.items() if values.get('Service') == 'greetd')
     assert new_sessions and not set(new_sessions) & set(boot_sessions), ('not a new desktop session', before, after)
@@ -1092,7 +1092,7 @@ def ordinary(request):
         # Agreed change 6: armed before a fresh session starts, then the desktop session comes up as usual. A failure
         # here is the check's, but the sessions still run, so the run shows the rest.
         try:
-            probes['desktop_with_service_failed'] = desktop_with_service_failed(service[first])
+            probes['desktop_with_service_failed'] = desktop_with_service_failed(service[first], probes)
         except Exception:
             errors.append('the desktop session with the service failed: ' + traceback.format_exc())
 

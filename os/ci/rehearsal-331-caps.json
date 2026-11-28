@@ -1,0 +1,14 @@
+{
+  "minute_cap": 990,
+  "full_cap": 0,
+  "part_b_cap": 0,
+  "dispatch_caps": {
+    "dry-run-29": 0,
+    "publish-29": 0,
+    "resolve": 0,
+    "checks": 5,
+    "release-29-baseline": 3,
+    "release-29": 0
+  },
+  "publish_cap": 0
+}

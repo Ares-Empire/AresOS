@@ -273,23 +273,28 @@ def real_commit(head, standin, source='.', *, allow_deferred=False):
 class Walk(tools_local.Walk):
     """22d's dialog driver over this walk's stand-in origin: `main` at the stand-in for 634e1237 first."""
 
-    def __init__(self, vm, guest, ares_password, standin):
-        super().__init__(vm, guest, ares_password, standin, 'announced', standin['fingerprint'])
+    def __init__(self, vm, guest, ares_password, standin, *, bootstrap=None):
+        super().__init__(vm, guest, ares_password, standin, 'announced', standin['fingerprint'], bootstrap=bootstrap)
         self.compared = []
 
-    def setup(self, stage):
+    def upload_bundle(self, stage):
         guest, data = self.guest, base64.b64encode(self.standin['bundle'].read_bytes()).decode()
         guest.command(stage + '-bundle-begin', 'set -e; rm -f /run/aresos-standin.b64; : > /run/aresos-standin.b64')
         size = 48000
         for index in range(0, len(data), size):
             guest.command(stage + '-bundle-' + str(index // size), 'set -e; printf %s ' + data[index:index + size] + ' >> /run/aresos-standin.b64')
         digest = hashlib.sha256(self.standin['bundle'].read_bytes()).hexdigest()
-        first, checkout, origin = self.standin['commits']['v4'], self.bootstrap.CHECKOUT, tools_local.GUEST_ORIGIN
-        ares = tools_local.AS_ARES
-        guest.command(stage + '-origin', '\n'.join([
+        guest.command(stage + '-bundle-verified', '\n'.join([
             'set -e', 'cd /var/home/ares', 'base64 -d /run/aresos-standin.b64 > /run/aresos-standin.bundle; rm /run/aresos-standin.b64',
             'test "$(sha256sum < /run/aresos-standin.bundle)" = ' + shlex.quote(digest + '  -'),
-            'chmod 0644 /run/aresos-standin.bundle',
+            'chmod 0644 /run/aresos-standin.bundle']))
+
+    def setup(self, stage):
+        self.upload_bundle(stage)
+        first, checkout, origin = self.standin['commits']['v4'], self.bootstrap.CHECKOUT, tools_local.GUEST_ORIGIN
+        ares = tools_local.AS_ARES
+        self.guest.command(stage + '-origin', '\n'.join([
+            'set -e', 'cd /var/home/ares',
             ares + 'git clone --quiet --bare /run/aresos-standin.bundle ' + origin,
             ares + 'git -C ' + origin + ' update-ref refs/heads/main ' + first,
             ares + 'git -C ' + origin + ' symbolic-ref HEAD refs/heads/main',
@@ -328,7 +333,7 @@ out.update(labwc_argv=argv,rc=str(rc))
 out['theme']=ET.parse(rc).getroot().findtext('theme/name') if rc.is_file() else None
 out['themerc']=pathlib.Path('/usr/share/themes/'+str(out['theme'])+'/labwc/themerc').is_file()
 fonts={}
-for pattern in ('Space Grotesk','Space Grotesk:bold'):
+for pattern in @FONTS@:
     done=subprocess.run(AS_ARES+['/usr/bin/fc-match','-f','%{file}',pattern],capture_output=True,text=True)
     fonts[pattern]=done.stdout if done.returncode==0 else 'exit '+str(done.returncode)
 out['fonts']=fonts
@@ -456,7 +461,7 @@ required=@REQUIRED@
 reader=''' + repr('''import hashlib,json,os,pathlib,stat,sys
 ''' + HOME_SNAPSHOT + '''
 root=pathlib.Path(sys.argv[1])
-required,links,image_targets=json.loads(sys.argv[2])
+required,links,image_targets,world,write_saves=json.loads(sys.argv[2])
 for name,target in links.items():
     p=root/name
     assert p.is_symlink() and os.readlink(p)==target, 'Incorrect instance link: '+name
@@ -469,10 +474,25 @@ for name in required:
     else: p.read_bytes()
 apps=root/'minecraft/config/aresos/apps.json'
 assert os.access(apps,os.R_OK|os.W_OK), 'apps.json is not readable/writable as ares'
-worlds=snapshot((root/'minecraft/saves').resolve(strict=True),check_access=True)
-print(json.dumps(dict(uid=os.getuid(),apps=hashlib.sha256(apps.read_bytes()).hexdigest(),worlds=worlds)))
+saves=(root/'minecraft/saves').resolve(strict=True)
+worlds=snapshot(saves,check_access=True)
+result=dict(uid=os.getuid(),apps=hashlib.sha256(apps.read_bytes()).hexdigest(),worlds=worlds)
+if write_saves:
+    probe=saves/world/'.aresos-rehearsal-write-probe'
+    payload=b'AresOS rehearsal save write'
+    # Exclusive creation ensures cleanup only removes a file this probe created.
+    stream=probe.open('xb')
+    try:
+        with stream:
+            stream.write(payload)
+        assert probe.read_bytes()==payload, 'Saved-world write probe readback differs'
+    finally:
+        probe.unlink()
+    result['saves_writable']=True
+print(json.dumps(result))
 ''') + r'''
-read=subprocess.run(@AS_ARES@+['python3','-c',reader,str(instance),json.dumps([required,links,@IMAGE_TARGETS@])],capture_output=True,text=True)
+read=subprocess.run(@AS_ARES@+['python3','-c',reader,str(instance),json.dumps([required,links,@IMAGE_TARGETS@,@WORLD@,@WRITE_SAVES@])],
+    capture_output=True,text=True)
 accessible=json.loads(read.stdout) if read.returncode==0 else dict(error=read.stderr[-600:])
 print(json.dumps(dict(instance=instance.is_dir(),files=len(rows),tree=hashlib.sha256(json.dumps(rows).encode()).hexdigest(),
     entries=rows,stable=stable,mutable=mutable,accessible=accessible,worlds=worlds,
@@ -488,16 +508,20 @@ AS_ARES=@AS_ARES@
 lock=json.loads(pathlib.Path('/usr/share/aresos/minecraft/desktop.lock.json').read_text())
 instance='/var/home/ares/.local/share/PrismLauncher/instances/'+lock['instance']
 pause='/tmp/aresos-release28-jvm.paused'
-def status():
+recoveries={}
+def status(phase):
     done=subprocess.run(AS_ARES+['/usr/libexec/aresos-desktop','status'],capture_output=True,text=True)
-    return json.loads(done.stdout) if done.returncode==0 else dict(error=done.stderr[-400:])
+    state=json.loads(done.stdout) if done.returncode==0 else dict(error=done.stderr[-400:])
+    if @WATCH_RECOVERY@ and (evidence:=recovery_evidence(state)):
+        recoveries[phase]=dict(reason=state.get('reason'),evidence=evidence)
+    return state
 wrapper=subprocess.Popen(AS_ARES+['INST_ID='+lock['instance'],'INST_DIR='+instance,'/usr/libexec/aresos-desktop-java',lock['java']['path'],
     '-XX:+UnlockDiagnosticVMOptions','-XX:+PauseAtStartup','-XX:PauseAtStartupFile='+pause,'-version'],
     cwd=instance+'/minecraft',stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
 state={}
 for n in range(120):
-    state=status()
-    if state.get('jvm_pid') or wrapper.poll() is not None: break
+    state=status('before')
+    if recoveries or state.get('jvm_pid') or wrapper.poll() is not None: break
     time.sleep(.5)
 out=dict(state_before=state)
 jvm=state.get('jvm_pid')
@@ -515,7 +539,8 @@ except subprocess.TimeoutExpired:
 out['wrapper_exit']=wrapper.returncode
 out['wrapper_output']=output.decode(errors='replace')[-1000:]
 time.sleep(2)
-out['state_after']=status()
+out['state_after']=status('after')
+if recoveries: out['recoveries']=recoveries
 print(json.dumps(out))
 '''
 
@@ -528,21 +553,39 @@ def receipt_setting(receipt):
         'STOP: host walk Control setting differs from the VM driver'
 
 
-# The release checker is bound by the host receipt and passed through its documented stdin interface.
-CONTROL = '''import json, subprocess
-checked=subprocess.run(['/usr/bin/python3','-I','-',*@CHECKS@],input=@CHECKER@,capture_output=True,text=True,timeout=150)
+LOGIN_REQUIREMENTS = ('Requires', 'Requisite', 'BindsTo')
+LOGIN_GRAPH = '''
 roots=['greetd.service','systemd-user-sessions.service']
 graph={}
 pending=list(roots)
+properties=[arg for key in ('Id','LoadState',*edges) for arg in ('-p',key)]
 while pending:
     name=pending.pop(0)
     if name in graph: continue
     assert len(graph)<1024, 'login dependency graph too large'
-    shown=subprocess.run(['systemctl','show','-p','Id','-p','LoadState','-p','After','-p','Requires','-p','Requisite','-p','BindsTo','--',name],capture_output=True,text=True,timeout=30)
+    shown=subprocess.run(['systemctl','show',*properties,'--',name],capture_output=True,text=True,timeout=30)
     row=dict(line.split('=',1) for line in shown.stdout.splitlines() if '=' in line)
     graph[name]=dict(status=shown.returncode,properties=row,stderr=shown.stderr)
-    pending.extend(dep for key in ('After','Requires','Requisite','BindsTo') for dep in row.get(key,'').split() if dep not in graph)
-print(json.dumps(dict(release_checks=dict(status=checked.returncode,stdout=checked.stdout,stderr=checked.stderr),login=dict(roots=roots,graph=graph))))
+    pending.extend(dep for key in edges for dep in row.get(key,'').split() if dep not in graph)
+login=dict(roots=roots,graph=graph)
+'''
+
+
+def login_dependencies(include_wants):
+    return ('After', 'Wants', *LOGIN_REQUIREMENTS) if include_wants else ('After', *LOGIN_REQUIREMENTS)
+
+
+def login_graph(*, include_wants=False):
+    return 'edges=' + repr(login_dependencies(include_wants)) + LOGIN_GRAPH
+
+
+# The release checker is bound by the host receipt and passed through its documented stdin interface.
+CHECK_CONTROL = '''import json, subprocess
+checked=subprocess.run(['/usr/bin/python3','-I','-',*@CHECKS@],input=@CHECKER@,capture_output=True,text=True,timeout=150)
+release_checks=dict(status=checked.returncode,stdout=checked.stdout,stderr=checked.stderr)
+'''
+CONTROL = CHECK_CONTROL + login_graph() + '''
+print(json.dumps(dict(release_checks=release_checks,login=login)))
 '''
 
 
@@ -559,6 +602,13 @@ def control(guest, stage, vm):
     results = json.loads(lines[0])
     assert set(results) == set(CONTROL_CHECKS) \
         and all(row['ok'] is True for row in results.values()), 'STOP: Control checks missing or failed'
+    validate_control_service(results)
+    login = value['login']
+    validate_login(login)
+    return dict(checks=results, login=login, checker_sha256=hashlib.sha256(source.encode()).hexdigest())
+
+
+def validate_control_service(results):
     user = results['service_user']['value']
     assert (user['uid'], user['gid'], user['group_gid']) == (250, 250, 250) \
         and user['users_with_250'] == user['groups_with_250'] == ['aresos-tools'], 'STOP: Control account differs'
@@ -577,9 +627,12 @@ def control(guest, stage, vm):
     for name, row in folders['folders'].items():
         assert row['exists'] is True and row['directory'] is True and row['link'] is False and row['uid'] == 1001 \
             and row['mode'] == '0700', 'STOP: Control daily folder metadata differs: ' + name
-    login = value['login']
+
+
+def validate_login(login, *, strict_requirements=False, include_wants=False):
     assert login['roots'] == ['greetd.service', 'systemd-user-sessions.service'], 'STOP: missing login roots'
     graph = login['graph']
+    edges = login_dependencies(include_wants)
     pending, seen, masked_units, required = list(login['roots']), set(), set(), set()
     while pending:
         name = pending.pop()
@@ -590,25 +643,27 @@ def control(guest, stage, vm):
         row = graph[name]
         properties = row['properties']
         assert properties.get('Id') and properties['Id'] != 'aresos-toold.service', 'STOP: login dependency query failed or names Control'
-        dependencies = [dep for key in ('After', 'Requires', 'Requisite', 'BindsTo') for dep in properties.get(key, '').split()]
-        # Optional After= units (for example home.mount on an Atomic image) can be absent. They cannot delay
+        dependencies = [dep for key in edges for dep in properties.get(key, '').split()]
+        # Optional After= or Wants= units can be absent. They cannot delay
         # login; a missing root or an unreadable graph still stops the walk.
         absent = properties.get('LoadState') == 'not-found' and name not in login['roots'] and not dependencies
-        # A masked unit never starts, so as an ordering-only reference it cannot delay login: the stock base
+        # A masked unit never starts, so a soft reference to it cannot delay login: the stock base
         # masks systemd-remount-fs.service (rehearsal 4, run 44729393652; the laptop's release 27 too). Its own
         # ordering is still followed, so Control behind it still stops the walk; a masked login root, or a
         # masked unit another login unit requires (which would keep that unit from starting), stops it.
         masked = properties.get('LoadState') == 'masked' and name not in login['roots']
         if masked:
             masked_units.add(name)
-        required.update(dep for key in ('Requires', 'Requisite', 'BindsTo') for dep in properties.get(key, '').split())
+        required.update(dep for key in LOGIN_REQUIREMENTS for dep in properties.get(key, '').split())
         assert (row['status'] == 0 and (properties.get('LoadState') == 'loaded' or masked)) \
             or (absent and row['status'] in (0, 1)), 'STOP: login dependency query failed: ' + name
         pending.extend(dependencies)
     assert set(graph) == seen, 'STOP: login graph has unvisited entries'
     assert not masked_units & required, 'STOP: login dependency query failed: a login unit requires masked ' \
         + ', '.join(sorted(masked_units & required))
-    return dict(checks=results, login=login, checker_sha256=hashlib.sha256(source.encode()).hexdigest())
+    if strict_requirements:
+        missing = sorted(name for name in required if graph[name]['properties'].get('LoadState') == 'not-found')
+        assert not missing, 'STOP: login requires missing units: ' + ', '.join(missing)
 
 
 def sites_hash(guest, stage):
@@ -626,7 +681,8 @@ def write_sites(guest, stage):
 
 def session(guest, stage, vm):
     """B.3's session checks on release 28."""
-    value = guest.capture_json(stage + '-session', vm.sw.framed('python3 -c ' + shlex.quote(program(SESSION, as_ares=AS_ARES))))
+    value = guest.capture_json(stage + '-session', vm.sw.framed('python3 -c ' + shlex.quote(
+        program(SESSION, as_ares=AS_ARES, fonts=('Space Grotesk', 'Space Grotesk:bold')))))
     vm.td.save(stage + '-session', value)
     assert value['labwc'] == 1, 'STOP: his labwc session is not running'
     assert value['theme'] == THEME and value['themerc'], "STOP: package 31's Ares-Crown is not labwc's theme: " + str(value['theme'])
@@ -634,11 +690,12 @@ def session(guest, stage, vm):
     return value
 
 
-def home(guest, stage, vm, plant=False, *, image_targets=True):
+def home(guest, stage, vm, plant=False, *, image_targets=True, write_saves=False):
     value = guest.capture_json(stage + '-home', vm.sw.framed('python3 -c ' + shlex.quote(
         program(HOME, instance=INSTANCE, apps=APPS, plant=plant, config=APPS_CONFIG, as_ares=AS_ARES,
                 mutable_dirs=MUTABLE_DIRS, mutable_keys=MUTABLE_INI_KEYS, required=REQUIRED_INSTANCE,
-                links=INSTANCE_LINKS, image_targets=image_targets, world=WORLD, world_files=WORLD_FILES))))
+                links=INSTANCE_LINKS, image_targets=image_targets, world=WORLD, world_files=WORLD_FILES,
+                write_saves=write_saves))))
     vm.td.save(stage + '-home', value)
     assert value['instance'] and value['apps'], "STOP: the home screen's instance or apps.json is missing at " + stage
     assert value['apps_config'] == APPS_CONFIG, 'STOP: apps.json is not the representative schema-4 configuration'
@@ -650,6 +707,8 @@ def home(guest, stage, vm, plant=False, *, image_targets=True):
         'STOP: saved-world ownership changed from ares'
     assert value['accessible'].get('worlds') == value['worlds'], \
         'STOP: saved-world data is inaccessible as ares: ' + str(value['accessible'])
+    if write_saves:
+        assert value['accessible'].get('saves_writable') is True, 'STOP: saved-world write was not verified at ' + stage
     return value
 
 
@@ -665,14 +724,23 @@ def home_unchanged(before, after, *, prism_started=False):
                 'STOP: mutable instance metadata changed: ' + name
 
 
-def no_foot(console, guest, stage, vm):
+def no_foot(console, guest, stage, vm, *, reopen=None):
     """The lead's note: `at check` with no foot of ares STOPs with FOOT_STOP; then the Terminal app's foot again."""
-    ended = guest.capture_json(stage + '-end-foot', vm.sw.framed('python3 -c ' + shlex.quote(END_FOOT)))
-    vm.td.save(stage + '-end-foot', ended)
-    assert ended['left'] == 0, 'STOP: a foot of ares is still running'
+    ended = end_foot(guest, stage, vm)
     stopped = console.run('check', stage + '-no-foot-check', expect_stop=True)
     assert FOOT_STOP in str(stopped['error']), 'STOP: check without foot did not stop with ' + FOOT_STOP + ': ' + str(stopped['error'])
     assert not any(row.get('mutation') for row in stopped['trace']), 'STOP: the stopped check changed something'
+    return dict(ended=ended['ended'], stop=str(stopped['error']), terminal=(reopen or open_terminal)(guest, stage, vm))
+
+
+def end_foot(guest, stage, vm):
+    ended = guest.capture_json(stage + '-end-foot', vm.sw.framed('python3 -c ' + shlex.quote(END_FOOT)))
+    vm.td.save(stage + '-end-foot', ended)
+    assert ended['left'] == 0, 'STOP: a foot of ares is still running'
+    return ended
+
+
+def open_terminal(guest, stage, vm):
     # His guide opens the Terminal app on his desktop: back to tty1 and his active session first.
     guest.keys(['ctrl', 'alt', 'f1'])
     guest.command(stage + '-terminal-desktop', 'set -e; for n in {1..60}; do if test "$(cat /sys/class/tty/tty0/active)" = tty1; then exit 0; fi; sleep 1; done; exit 1')
@@ -685,12 +753,16 @@ def no_foot(console, guest, stage, vm):
     assert opened['home'] is True, "STOP: the desktop supervisor's HOME is not his home"
     assert opened['foot'] >= 1, 'STOP: the Terminal app did not open a foot'
     assert opened['running'] >= 1, "STOP: the Terminal app's foot exited at once: " + opened['log'][-500:]
-    return dict(ended=ended['ended'], stop=str(stopped['error']), terminal=opened)
+    return opened
 
 
-def game_scope(guest, stage, vm):
-    value = guest.capture_json(stage + '-game-scope', vm.sw.framed('python3 -c ' + shlex.quote(program(JVM, as_ares=AS_ARES))))
+def game_scope(guest, stage, vm, *, recovery_source=''):
+    source = recovery_source + program(JVM, as_ares=AS_ARES, watch_recovery=bool(recovery_source))
+    value = guest.capture_json(stage + '-game-scope', vm.sw.framed('python3 -c ' + shlex.quote(source)))
     vm.td.save(stage + '-game-scope', value)
+    for phase, recovery in value.get('recoveries', {}).items():
+        assert phase == 'after' and recovery['reason'] == 'killed', \
+            f"STOP: desktop recovery during the game scope probe at {stage} ({recovery['reason']})"
     assert value.get('in_scope') is True and value.get('memory_high') == MEMORY_HIGH, \
         "STOP: the JVM is not in its game scope with 23d's memory.high: " + json.dumps({k: value.get(k) for k in ('unit', 'cgroup', 'memory_high')})
     assert value['wrapper_exit'] == 128 + 9, 'STOP: the game scope was not ended'
@@ -707,32 +779,27 @@ def facts_27(vm):
     return record
 
 
-def rehearsal(vm, audit, media, password, hashed, ares_password, version_2, record, *, allow_deferred=False):
-    """The walk in the module docstring. vm: the running owner_vm module; record: release 28's record (bytes)."""
+def stage_update(vm, audit, media, password, hashed, ares_password, version_2, release_27, release_28,
+                 standin, *, commands=None, bootstrap=None, prepare_sites=False):
+    """Reach R27, install the reviewed v4 and v5 bundles, and stage R28 on the same disposable disks."""
     td, Console = vm.td, vm.Console
-    head = os.environ['GITHUB_SHA']
-    release_27 = facts_27(vm)
-    r27, r28 = release_27['reference'], json.loads(record)['reference']
-    standin = standin_origin(td.WORK / 'stand-in-28', record)
+    r27, r28 = release_27, release_28
     fingerprint = standin['fingerprint']
-    real = real_commit(head, standin, allow_deferred=allow_deferred)
-    announced_rows = [dict(standin=standin['commits'][key], real=V4_COMMIT if key == 'v4' else head if real['equal'] else None,
-                           bound={path: standin['hashes'][key][path] for path in BOUND}, guide=standin['hashes'][key][GUIDE],
-                           fingerprint=TOOLS_V4 if key == 'v4' else fingerprint, version=4 if key == 'v4' else TOOLS_VERSION)
-                      for key in ('v4', 'announced')]
-    route = vm.laptop_update(audit, media, password, hashed, bundle=(version_2, vm.TOOLS_V2), target=r27)
+    stick_commands = (commands[1], commands[2]) if commands else None
+    route = vm.laptop_update(audit, media, password, hashed, bundle=(version_2, vm.TOOLS_V2), target=r27,
+                             historical_commands=stick_commands)
     stock, stock_digest = route['stock'], route['stock_digest']
     d13, d27, d28 = route['old_digest'], route['new_digest'], r28.split('@')[1]
-    bootstrap = vm.bundle_module('bootstrap')
+    bootstrap = bootstrap or vm.bundle_module('bootstrap')
     routine_action = bootstrap.ACTIONS['tools-routine']
     entries = dict(folder='tools-folder', routine='tools-routine')
-    sites, controls = None, {}
+    sites = None
     guest = td.start_installed(password, hashed, 'release-27')
     try:
-        console, identities = vm.confirmed_update(guest, password, route)
+        console, identities = vm.confirmed_update(guest, password, route, commands=commands[2] if commands else None)
         console.passwd(ares_password, 'release-27-ares-password')
         Console(guest, 'tty4').ares_sudo(ares_password, 'release-27-ares-sudo')
-        walk = Walk(vm, guest, ares_password, standin)
+        walk = Walk(vm, guest, ares_password, standin, bootstrap=bootstrap)
         walk.setup('r28-setup')
         start = walk.state('r28-start')
         assert start['entry'] == 'tools-' + vm.TOOLS_V2 + '/at' and (start['journal'] is None or start['journal']['phase'] == 'complete'), \
@@ -778,31 +845,65 @@ def rehearsal(vm, audit, media, password, hashed, ares_password, version_2, reco
                     receipt=dict(source=receipt['source'], caller=receipt['caller'], previous_version=4))
 
         # B.2 (Chrome browser side only): the made-up sites list.
-        if CHROME_RIDES:
+        if prepare_sites:
             sites = write_sites(guest, 'r28-before-update')
 
         # B.3: the console's update box.
+        if commands:
+            console.commands = commands[5]
         console.select()
         update = console.run('update', 'r28-update')
         assert 'Signed exact release staged ' + r28 in vm.result_lines(update), 'STOP: release 28 was not staged'
-        vm.deployment_shape(vm.kb.deployment_snapshot(guest, 'r28-update-staged'), stock, [d28, d27, d13, stock_digest], staged=True)
+        staged, running = vm.deployment_shape(vm.kb.deployment_snapshot(guest, 'r28-update-staged'),
+                                              stock, [d28, d27, d13, stock_digest], staged=True)
+        assert running == d27 and staged[d27] == identities[d27], 'STOP: R27 changed while staging R28'
         console.run('title', 'r28-update-title')
         console.run('reboot', 'r28-update-reboot')
     finally:
         vm.finish(guest, audit, 'release-27')
 
+    return route, staged, walk, sites
+
+
+def confirm_boot(vm, guest, password, route, reference, *, commands=None, before_check=None):
+    """Check the first R28 boot and confirm its exact update through the console."""
+    digest = reference.split('@')[1]
+    identities, booted = vm.deployment_shape(vm.kb.deployment_snapshot(guest, 'release-28'), route['stock'],
+                                             [digest, route['new_digest'], route['stock_digest']])
+    assert booted == digest, 'STOP: release 28 did not start'
+    vm.keyboard(guest, 'release-28', 'de')
+    console = vm.Console(guest, commands=commands)
+    console.login(password, 'release-28')
+    console.become_root(password, 'release-28')
+    if before_check is not None:
+        before_check(guest, 'release-28', vm)
+    checked = console.run('check', 'release-28-check')
+    titled = console.run('title', 'release-28-title')
+    assert 'Update to ' + reference + ' confirmed after the restart' in vm.result_lines(checked, titled), 'STOP: update not confirmed'
+    return console, identities
+
+
+def rehearsal(vm, audit, media, password, hashed, ares_password, version_2, record, *, allow_deferred=False):
+    """The walk in the module docstring. vm: the running owner_vm module; record: release 28's record (bytes)."""
+    td, Console = vm.td, vm.Console
+    head = os.environ['GITHUB_SHA']
+    release_27 = facts_27(vm)
+    r27, r28 = release_27['reference'], json.loads(record)['reference']
+    standin = standin_origin(td.WORK / 'stand-in-28', record)
+    fingerprint = standin['fingerprint']
+    real = real_commit(head, standin, allow_deferred=allow_deferred)
+    announced_rows = [dict(standin=standin['commits'][key], real=V4_COMMIT if key == 'v4' else head if real['equal'] else None,
+                           bound={path: standin['hashes'][key][path] for path in BOUND}, guide=standin['hashes'][key][GUIDE],
+                           fingerprint=TOOLS_V4 if key == 'v4' else fingerprint, version=4 if key == 'v4' else TOOLS_VERSION)
+                      for key in ('v4', 'announced')]
+    route, _, walk, sites = stage_update(vm, audit, media, password, hashed, ares_password, version_2, r27, r28, standin,
+                                         prepare_sites=CHROME_RIDES)
+    stock, stock_digest = route['stock'], route['stock_digest']
+    d27, d28 = route['new_digest'], r28.split('@')[1]
+    controls = {}
     guest = td.start_installed(password, hashed, 'release-28')
     try:
-        # Package 22's JUDGMENT-CALL 1: the update removed release 13 at its shutdown, nothing else.
-        identities, booted = vm.deployment_shape(vm.kb.deployment_snapshot(guest, 'release-28'), stock, [d28, d27, stock_digest])
-        assert booted == d28, 'STOP: release 28 did not start'
-        vm.keyboard(guest, 'release-28', 'de')
-        console = Console(guest)
-        console.login(password, 'release-28')
-        console.become_root(password, 'release-28')
-        checked = console.run('check', 'release-28-check')
-        titled = console.run('title', 'release-28-title')
-        assert 'Update to ' + r28 + ' confirmed after the restart' in vm.result_lines(checked, titled), 'STOP: update not confirmed'
+        console, identities = confirm_boot(vm, guest, password, route, r28)
         rules = vm.release_rules(guest, 'release-28')
         seen = session(guest, 'release-28', vm)
         if CONTROL_RIDES:

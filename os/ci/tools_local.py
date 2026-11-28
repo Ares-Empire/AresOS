@@ -395,10 +395,10 @@ class Walk:
     """The tools-local walk's stages in his desktop session, over package 22c's harness (vm: owner_vm)."""
     R1_SECONDS = 30  # The guide's 10 minutes, shortened: what is tested is who is signalled, not the wait.
 
-    def __init__(self, vm, guest, ares_password, standin, head, head_tools):
+    def __init__(self, vm, guest, ares_password, standin, head, head_tools, *, bootstrap=None):
         self.vm, self.guest, self.ares_password = vm, guest, ares_password
         self.standin, self.head_commit, self.head_tools = standin, head, head_tools
-        self.bootstrap = vm.bundle_module('bootstrap')
+        self.bootstrap = bootstrap or vm.bundle_module('bootstrap')
         self.dialogs, self.stages = [], []
         self.keyrings = None
         self.before = {}  # stage -> the screenshot taken just before its launcher was typed

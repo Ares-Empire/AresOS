@@ -3,11 +3,16 @@ import pathlib
 import tempfile
 import unittest
 import ast
+import contextlib
 import hashlib
+import io
 import json
+import sys
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 import test_owner_tools as common
+
+sys.path.insert(0, str(common.ROOT / 'os/ci'))
 import owner_vm as vm
 
 
@@ -41,10 +46,32 @@ class ResetTest(unittest.TestCase):
 
     def test_wrong_reason_or_guest_origin_never_passes(self):
         for reason,triggered in [('guest-reset',True),('host-qmp-quit',False),('host-qmp-system-reset',True)]:
-            with self.subTest(reason=reason,guest=triggered),patch.object(vm.owner_xhci,'checkpoint'):
+            with self.subTest(reason=reason,guest=triggered), \
+                    tempfile.TemporaryDirectory(dir=common.ROOT/'os/tests') as directory, \
+                    patch.object(vm.owner_xhci,'checkpoint'):
+                evidence = pathlib.Path(directory) / 'evidence' / 'two-disk'
+                self.assertFalse(evidence.exists())
                 g=self.guest(reason,triggered)
-                with self.assertRaises(AssertionError):g.hard_reset('trial')
+                with patch.object(vm.td, 'EVIDENCE', evidence), self.assertRaisesRegex(AssertionError, reason):
+                    g.hard_reset('trial')
                 g.writes.assert_not_called()
+                self.assertTrue((evidence / 'trial-shutdown-console.txt').is_file())
+
+    def test_shutdown_console_write_error_preserves_reset_result(self):
+        with tempfile.TemporaryDirectory(dir=common.ROOT/'os/tests') as directory, \
+                patch.object(vm.td, 'EVIDENCE', pathlib.Path(directory)), patch.object(vm.owner_xhci, 'checkpoint'), \
+                contextlib.redirect_stderr(io.StringIO()) as stderr:
+            (pathlib.Path(directory) / 'trial-shutdown-console.txt').mkdir()
+            rejected = self.guest('guest-reset', True)
+            with self.assertRaisesRegex(AssertionError, 'guest-reset'):
+                rejected.hard_reset('trial')
+            rejected.writes.assert_not_called()
+
+            accepted = self.guest()
+            accepted.hard_reset('trial')
+            self.assertTrue(accepted.stopped_events_verified)
+            accepted.writes.assert_called_once_with('trial')
+            self.assertIn('shutdown console evidence', stderr.getvalue())
 
     def test_attached_tools_refuses_before_qmp_reset(self):
         g=self.guest();g.media_absent.side_effect=AssertionError('stick attached')

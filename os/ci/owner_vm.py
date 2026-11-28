@@ -149,7 +149,8 @@ class Guest(td.Guest):
         self.xhci_context = dict(stage=getattr(self, 'boot_purpose', self.mode), since_usec=0,
             attached=False, needed=self.mode == 'live' or getattr(self, 'boot_purpose', '') == 'tools-stock',
             removals=[])
-        super().__init__(*args, **kwargs)
+        # Package 331's preflight removes host auth before the guest uses the job token at login.
+        super().__init__(*args, legacy_registry_auth=os.environ.get('REHEARSAL_PACKAGE') != '331', **kwargs)
         # The CPU has never run. Set carrier before even the firmware starts.
         self.monitor.command('set_link', {'name': 'owner-net', 'up': self.network_up})
         self.monitor.command('cont')
@@ -193,10 +194,14 @@ class Guest(td.Guest):
                 boot_stall(self, getattr(self, 'boot_purpose', self.mode))
             raise
         self.owner_signed_in = True
+        if self.mode == 'installed' and os.environ.get('REHEARSAL_PACKAGE') == '331':
+            import release29_probes
+            release29_probes.installed_hostname(self, self.boot_purpose, sys.modules[__name__])
         self.keyboard_device()
         owner_xhci.checkpoint(self, 'boot-' + str(self.boot_number) + '-begin')
         if not self.network_up:
             self.assert_offline('stock-offline-login')
+        self.owner_login_complete = True
 
     def login_live(self):
         super().login_live()
@@ -297,7 +302,13 @@ PY'''))
                 self.webui_socket.close()
                 self.webui_socket = None
         finally:
-            super().close(stage)
+            try:
+                super().close(stage)
+            finally:
+                # start_guest owns cleanup if the installed guest never reaches the walk.
+                if os.environ.get('REHEARSAL_PACKAGE') == '331' and self.mode == 'installed' \
+                        and not getattr(self, 'owner_login_complete', False) and sys.exc_info()[0] and self.audit is not None:
+                    self.audit.check(stage, self)
 
 
 def vcpu_ticks(monitor, proc=pathlib.Path('/proc')):
@@ -821,7 +832,7 @@ class Console:
         td.save(stage + '-hidden-completed', dict(status='passed', completion_uses_echo=False,
             foreground_shell=True, input_epoch=epoch, token_recorded=False))
 
-    def run(self, name, stage, inputs=(), password=None, expect_stop=False, token_chunks=False, record=None):
+    def run(self, name, stage, inputs=(), password=None, expect_stop=False, token_chunks=False, record=None, allow_stop=False):
         owner_xhci.checkpoint(self.guest, stage + '-begin')
         self.select()
         self.prompt(stage + '-ready')
@@ -862,11 +873,12 @@ class Console:
         # Save before checking acceptance: an unexpected STOP is the evidence
         # needed to diagnose the failure, not an excuse to lose its record.
         td.save(stage + '-owner-diagnostics', result)
-        assert result['status'] == ('stopped' if expect_stop else 'passed'), 'Owner command failed: ' + stage
+        expected = ('passed', 'stopped') if allow_stop else ('stopped',) if expect_stop else ('passed',)
+        assert result['status'] in expected, 'Owner command failed: ' + stage
         owner_xhci.checkpoint(self.guest, stage + '-completed')
         self.prompt(stage + '-completed')
         self.guest.screenshot_safe = True
-        if not expect_stop:
+        if result['status'] == 'passed':
             self.guest.screenshot(stage + '-owner-pass')
         td.save(stage + '-command', dict(command=self.commands[name], physical=True, status=result['status'], profile=self.guest.owner_layout))
         if hidden_input and name=='login':
@@ -1043,8 +1055,10 @@ def finish(guest, audit, stage):
                 and not getattr(guest, 'stopped_events_verified', False):
             guest.poweroff(stage)
     finally:
-        guest.close(stage)
-        audit.check(stage, guest)
+        try:
+            guest.close(stage)
+        finally:
+            audit.check(stage, guest)
 
 
 def common_boot(guest, stage, profile, password, stock, release, ares=False):
@@ -1530,7 +1544,7 @@ def owner_scripts(guest, stage, commit=None, homebrew_stage='aresos'):
     return policy, hashes[0]
 
 
-def laptop_update(audit, media, password, hashed, bundle=None, target=None):
+def laptop_update(audit, media, password, hashed, bundle=None, target=None, *, historical_commands=None):
     """The laptop's history up to the restart into the new release (package 27's route, unchanged).
 
     Steps 4 to 6 with the laptop's 15f tools, then step 8 on release 13: the newer tools through the
@@ -1549,7 +1563,8 @@ def laptop_update(audit, media, password, hashed, bundle=None, target=None):
                          .read_text())['releases']
     assert [r['reference'] for r in history[-2:]] == [old, new] and history[-1]['daily_wheel'] is True
     # Steps 4 to 6 as on 2026-11-08/09, with the laptop's own tools.
-    stock, brew = prepare_and_switch(audit, media, password, hashed, old, laptop_commands())
+    first_commands = historical_commands[0] if historical_commands else laptop_commands()
+    stock, brew = prepare_and_switch(audit, media, password, hashed, old, first_commands)
     stock_digest = stock['container-image-reference-digest']
     if bundle is None:
         media.replace('update-windows-copy')
@@ -1559,7 +1574,8 @@ def laptop_update(audit, media, password, hashed, bundle=None, target=None):
         media.replace('update-windows-copy', source=bundle[0])
         assert media.fingerprint == bundle[1]
         # As laptop_commands(): only the fingerprint line of the bootstrap differs between bundles.
-        commands = dict(COMMANDS, install=bundle_module('bootstrap').command(bundle[1]))
+        commands = (historical_commands[1] if historical_commands else
+                    dict(COMMANDS, install=bundle_module('bootstrap').command(bundle[1])))
     guest = td.start_installed(password, hashed, 'release-13')
     try:
         snapshot = kb.deployment_snapshot(guest, 'release-13')
@@ -1567,7 +1583,7 @@ def laptop_update(audit, media, password, hashed, bundle=None, target=None):
         assert sw.booted_digest(snapshot['bootc']) == old_digest
         first = {d['container-image-reference-digest']: ke.key(d) for d in snapshot['rpm']['deployments']}
         keyboard(guest, 'release-13', 'de')
-        console = Console(guest, commands=laptop_commands())
+        console = Console(guest, commands=first_commands)
         console.login(password, 'release-13')
         console.become_root(password, 'release-13')
         console.run('check', 'release-13-check')
@@ -1598,7 +1614,7 @@ def laptop_update(audit, media, password, hashed, bundle=None, target=None):
                 brew=brew, first=first)
 
 
-def confirmed_update(guest, password, route):
+def confirmed_update(guest, password, route, *, commands=None):
     """The new release's first start: the reviewed list, then `check` and `title` confirm the update.
 
     Returns the root console on tty3 and the three deployments' identities by digest.
@@ -1608,7 +1624,7 @@ def confirmed_update(guest, password, route):
     assert booted == route['new_digest'] and identities[route['old_digest']] == route['first'][route['old_digest']], \
         'STOP: the update did not boot the new release'
     keyboard(guest, 'release-27', 'de')
-    console = Console(guest)
+    console = Console(guest, commands=commands)
     console.login(password, 'release-27')
     console.become_root(password, 'release-27')
     checked = console.run('check', 'release-27-check')
@@ -2297,7 +2313,7 @@ def bound_sources(walk_sources, package='27', before='16'):
 def main():
     global PROBE_MEDIA
     mode, = sys.argv[1:]
-    assert mode in ('probe', 'owner-tools', 'update', 'reorder-probe', 'ways-back', 'tools-local', 'release-28')
+    assert mode in ('probe', 'owner-tools', 'update', 'reorder-probe', 'ways-back', 'tools-local', 'release-28', 'release-29')
     from owner_media import require_runner
     require_runner()
     package=os.environ['REHEARSAL_PACKAGE']
@@ -2306,9 +2322,17 @@ def main():
     assert (package=='22c') == (mode in ('reorder-probe', 'ways-back')), 'STOP: the reorder probe and the ways-back rehearsal are package 22c only'
     assert (package=='22d') == (mode=='tools-local'), 'STOP: the tools-local rehearsal is package 22d only'
     assert (package=='42') == (mode=='release-28'), 'STOP: the release-28 rehearsal is package 42 only'
+    assert (package=='331') == (mode=='release-29'), 'STOP: the release-29 rehearsal is package 331 only'
     authorization = json.loads(pathlib.Path('evidence/'+package+'-dispatch-authorization.json').read_text())
     assert authorization['allowance'] == package and authorization['native']['status'] == 'passed'
     assert authorization['native']['sha'] == os.environ['GITHUB_SHA']
+    if package == '331':
+        import registry_auth
+        dispatch = dict(mode=os.environ['REHEARSAL_MODE'], **registry_auth.baseline_run())
+        assert authorization['dispatch'] == dispatch, 'STOP: stale R29 dispatch receipt'
+        model = authorization['model']
+        assert model['status'] == 'passed' and model['sha'] == os.environ['GITHUB_SHA'] and \
+            model['run'] == authorization['native']['run'], 'STOP: R29 same-head model receipt differs'
     from owner_capabilities import CHECKS
     capabilities = json.loads(pathlib.Path('evidence/14-host-capabilities.json').read_text())
     assert capabilities['status'] == 'passed' and capabilities['sha'] == os.environ['GITHUB_SHA']
@@ -2319,10 +2343,15 @@ def main():
     walk_path={'16':'os/manifest/ci/16/host-walk.json','27':'os/manifest/ci/27/host-walk.json',
                '22c':'os/manifest/ci/22c/host-walk.json','22d':'os/manifest/ci/22d/host-walk.json',
                '42':'os/manifest/ci/42/host-walk.json'}.get(package,'os/manifest/ci/14/host-walk/result.json')
+    if mode == 'release-29':
+        import release29_walk
+        walk_path = release29_walk.HOST_WALK_RECEIPT
     walk = json.loads(pathlib.Path(walk_path).read_text())
     assert walk['status'] == 'passed' and walk['stick_across_reboot'] is False
     assert isinstance(walk['sources'], list) and walk['sources']
     assert len({row['path'] for row in walk['sources']}) == len(walk['sources']), 'Duplicate host source'
+    if mode == 'release-29':
+        release29_walk.check_host_receipt(walk)
     for row in walk['sources']:
         assert list(row) == ['sha256', 'path'], 'Host source must put hash before path'
         assert hashlib.sha256(pathlib.Path(row['path']).read_bytes()).hexdigest() == row['sha256'], 'Host walk is stale'
@@ -2341,6 +2370,15 @@ def main():
         release28_walk.receipt_setting(walk)
         # Package 42's rehearsal rebinds package 22d's tables (its record step, after a pass).
         td.save('42-bound-sources', bound_sources(walk['sources'], '42', '22d'))
+    if mode == 'release-29':
+        qualifying = os.environ['REHEARSAL_MODE'] == 'release-29'
+        baseline = release29_walk.prepare(sys.modules[__name__], qualifying=qualifying)
+        candidate = None
+        if qualifying:
+            release = registry_auth.r29_candidate()
+            candidate_proof = release29_walk.read_json(registry_auth.CANDIDATE_REGISTRY)
+            registry_auth.check_candidate_registry(candidate_proof, release, registry_auth.baseline_run())
+            candidate = release29_walk.prepare_candidate(sys.modules[__name__], baseline, os.environ['GITHUB_SHA'])
     sw.WORK, sw.EVIDENCE = td.WORK, td.EVIDENCE
     td.Guest = sw.Guest = Guest
     Guest.order = 'protected-second'
@@ -2349,7 +2387,7 @@ def main():
         with (td.WORK / name).open('wb') as output:
             subprocess.run(['bsdtar', '-xOf', str(td.WORK / td.LIVE['filename']), 'images/pxeboot/' + name], stdout=output, check=True)
     media = Media()
-    if mode in ('update', 'reorder-probe', 'ways-back', 'tools-local', 'release-28'):
+    if mode in ('update', 'reorder-probe', 'ways-back', 'tools-local', 'release-28', 'release-29'):
         media.create(source=laptop_payload(td.WORK / 'laptop-tools'))
     else:
         media.create()
@@ -2419,6 +2457,23 @@ def main():
                                          laptop_payload(td.WORK / 'tools-version-2', TOOLS_V2_COMMIT, TOOLS_V2), record.read_bytes())
             finally:
                 del ares_password
+        elif mode == 'release-29':
+            daily_password = ''.join(secrets.choice(ARES_LETTERS) for _ in range(24))
+            print(f'::add-mask::{daily_password}', flush=True)
+            try:
+                release29_walk.rehearsal(sys.modules[__name__], audit, media, password, hashed, daily_password,
+                    laptop_payload(td.WORK / 'tools-version-2', TOOLS_V2_COMMIT, TOOLS_V2), baseline, qualifying=candidate)
+                if candidate is not None:
+                    deployment = release29_walk.read_json(td.EVIDENCE / 'release-29-deployment-walk.json')
+                    digest = release['reference'].split('@')[1]
+                    assert deployment['status'] == 'passed' and deployment['first_booted'] == deployment['booted'] == digest
+                    assert deployment['protected_disk_audits'] is True
+                    td.save('331-bound-sources', bound_sources(walk['sources'], '331', '42'))
+                    td.save('release-29-qualification', dict(status='passed', **registry_auth.baseline_run(),
+                        registry=candidate_proof, historical_registry=baseline.registry, equality=candidate.equality,
+                        checks=authorization['model'], deployment=deployment))
+            finally:
+                del daily_password
         else:
             qualification(audit, media, password, hashed)
     finally:

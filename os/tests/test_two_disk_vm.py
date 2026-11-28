@@ -7,7 +7,7 @@ import sys
 import tempfile
 import unittest
 import zipfile
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / 'ci'))
 import two_disk_vm as vm
@@ -16,6 +16,12 @@ from prepare_two_disks import verify_loop
 
 
 class TwoDiskHarnessTest(unittest.TestCase):
+    def test_save_creates_evidence_directory(self):
+        evidence = self.directory / 'evidence' / 'two-disk'
+        with patch.object(vm, 'EVIDENCE', evidence):
+            vm.save('fixture', {'status': 'passed'})
+        self.assertEqual(json.loads((evidence / 'fixture.json').read_text()), {'status': 'passed'})
+
     def test_real_retained_vars_first_stock_uses_default_and_later_linux_records_bootnext(self):
         root = pathlib.Path(__file__).resolve().parents[2] / 'os/manifest/ci/11k/full-5/two-disk'
         shutil.copyfile(root / 'stock-before-windows-vars.fd', self.directory / 'vars.fd')
@@ -283,10 +289,52 @@ class TwoDiskHarnessTest(unittest.TestCase):
     def test_host_shutdown_cannot_be_accepted_as_orderly_guest_shutdown(self):
         guest = object.__new__(vm.Guest)
         guest.monitor = Mock(events=[dict(event='SHUTDOWN', data=dict(guest=False, reason='host-signal'))])
+        guest.transcript, guest.authentication_started, guest.secrets = '', True, []
         guest.writes = Mock()
-        with self.assertRaises(AssertionError):
+        with patch.object(vm, 'EVIDENCE', self.directory), self.assertRaises(AssertionError):
             guest.finish_shutdown('fixture', 'guest-shutdown')
         guest.writes.assert_not_called()
+
+    def test_shutdown_timeout_saves_redacted_console(self):
+        guest = object.__new__(vm.Guest)
+        guest.monitor = Mock(events=[])
+        guest.console = Mock()
+        guest.console.recv.return_value = b'shutting down fixture-secret\n'
+        guest.replies = Mock()
+        guest.replies.feed.return_value = b''
+        guest.transcript, guest.authentication_started, guest.secrets = '', True, ['fixture-secret']
+        with patch.object(vm, 'EVIDENCE', self.directory), patch.object(vm.time, 'monotonic', side_effect=[0, 1, 181]), \
+                self.assertRaisesRegex(AssertionError, 'did not shut down'):
+            guest.finish_shutdown('fixture-timeout', 'guest-shutdown')
+        output = (self.directory / 'fixture-timeout-shutdown-console.txt').read_text()
+        self.assertIn('shutting down', output)
+        self.assertNotIn('fixture-secret', output)
+        guest.monitor.command.assert_not_called()
+
+    def test_windows_marker_runs_offline_audit_after_marker_or_close_failure(self):
+        complete = ('ARESOS_WINDOWS_MARKER BootCurrent=0000\n'
+                    '\\EFI\\Microsoft\\Boot\\bootmgfw.efi fixture-guid\nMARKER_BOOT_COMPLETE\n')
+        for failure, baseline in (('timeout', False), ('assertion', True), ('close', False)):
+            with self.subTest(failure=failure):
+                guest = Mock()
+                audit = Mock(disk=dict(gpt=dict(partitions=[dict(guid='fixture-guid')])))
+                sequence = Mock()
+                sequence.attach_mock(guest.close, 'close')
+                sequence.attach_mock(audit.check, 'audit')
+                output = complete if failure != 'assertion' else complete.replace('BootCurrent=0000', 'BootCurrent=0001')
+                (self.directory / 'marker-debug.txt').write_text(output)
+                errors = dict(timeout='Guest did not shut down before its deadline', assertion='BootCurrent=0001',
+                              close='fixture close error')
+                if failure == 'timeout':
+                    guest.finish_shutdown.side_effect = AssertionError(errors[failure])
+                if failure == 'close':
+                    guest.close.side_effect = RuntimeError(errors[failure])
+                with patch.object(vm, 'Guest', return_value=guest), \
+                        patch.multiple(vm, WORK=self.directory, EVIDENCE=self.directory), \
+                        self.assertRaisesRegex(RuntimeError if failure == 'close' else AssertionError, errors[failure]):
+                    vm.marker(audit, 'fixture-marker', baseline=baseline)
+                self.assertEqual(sequence.mock_calls, [
+                    call.close('fixture-marker'), call.audit('fixture-marker', guest, establish_nvram=baseline)])
 
     def failure_guest(self, query):
         guest = object.__new__(vm.Guest)

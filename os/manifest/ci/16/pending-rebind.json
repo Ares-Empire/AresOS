@@ -6,6 +6,12 @@
     "42 record: rehearsal 8 (44836654799) qualified a61a393c; INSTALL-STATUS's signed-update row",
     "42 merge retains main's newer VM and desktop supervisor",
     "42 final look: INSTALL-STATUS's R28 summary says rehearsed, and test_owner_path pins it",
+    "T475: INSTALL-STATUS records the laptop on R28 (R13 earlier, R27 previous, R28 on the laptop); test_owner_path and test_owner_equality follow the new labels",
+    "T475 REVIEW-1: R28 published 2026-11-19; tools version 4 on the laptop 2026-11-17 to 2026-11-21, version 5 since",
+    "331 step 3 historical walk through confirmed R28 with the released v5 tools and read-only baseline input checks.",
+    "331 REVIEW-4: the package 331 owner guest skips the legacy host auth lookup.",
+    "331 step 3 slice B: bind the R29 candidate update and recovery driver and shutdown evidence.",
+    "331 REVIEW-5 records first-boot qualification, audits failed Windows markers and checks writes to planted saves.",
     "18c-b step 4: the Chrome VM pass (control_vm.py chrome, check-build.sh control-chrome-pass), its actions and test-layer pieces (probe, hand-loaded extension, bundles B and C), the polkit probe, C1, C2 and C6's first use with its reboot.",
     "18c-b step 4: os-image.yml gains the Control Chrome VM pass step (25 minutes) in check-build's control mode; the job's control limit 131 to 156.",
     "18c-b step 4, round 2: the Chrome pass waits for his session (app helper, polkit agent) after each boot; a check's PASS line sits on its last step.",
@@ -13,18 +19,29 @@
     "18c-b step 4, round 4: a PASS line on a keys step no longer stops the Chrome pass; a stand-in guest runs the whole sequence in os/tests.",
     "18c-b step 6b: main merged after release 28 (package 42); os-image.yml keeps package 42's permissions comment with 18c-b's control limit 156; check-build.sh keeps the guardian boots and the Chrome pass.",
     "18c-b step 6b checks fix: release 28's rehearsal selects the service checks explicitly; the stand-in checks and passes their arguments; the Chrome signature imports are local to that check and the build's gh hash check uses python3 -B.",
-    "T475: INSTALL-STATUS records the laptop on R28 (R13 earlier, R27 previous, R28 on the laptop); test_owner_path and test_owner_equality follow the new labels",
-    "T475 REVIEW-1: R28 published 2026-11-19; tools version 4 on the laptop 2026-11-17 to 2026-11-21, version 5 since",
     "18c-b review round: main merged after R29's image package (B323) and T475; both sides' notes kept, the waiting files recomputed from the merged checkout.",
     "18c-b Chrome start diagnostics: failed Chrome actions return their start log and launch result",
+    "331 step 4: merge main through 18c-b and retain both sets of pending notes.",
+    "331 step 4: bind qualifying session, Chrome first-use and rollback probes and preserve the historical route scans.",
+    "331 REVIEW-7: follow Wants in the login graph and require every host walk source row.",
+    "331 step 5 first slice: bind the guarded R29 selectors and closed publish and rehearsal caps.",
+    "331 REVIEW-8: bind the split publish authorization, combined checks reservation, rejected titles and opt-in Wants traversal.",
+    "331 step 5 second slice: bind the reviewed hosted R29 runner, registry and ledger sources.",
+    "331 REVIEW-10: bind qualification to the named publish artifact and require the exact R29 runner for both walk modes.",
+    "331: refresh bindings for the fresh evidence directory fix and reset regression.",
+    "Package 331 merges main through package 328 and refreshes the late-package review bindings.",
+    "Package 331 checks the merged Chrome, frame, Prism and mod deltas, extends the image context guard and refreshes the host walk.",
     "334a adds the hosted bench dispatch and release exclusions in os-image.yml and check-build.sh. Keep these in the next source rebind.",
     "334a review round 1 tightens bench mode exclusions and checks the dispatched release ledger before image work.",
-    "334a review round 2 makes the four release isolation checks fail closed on every CI and bench path."
+    "334a review round 2 makes the four release isolation checks fail closed on every CI and bench path.",
+    "331 step 6b: merge the hosted bench and Chrome 28/28a with the guarded R29 modes and both sets of notes.",
+    "331 step 6b: bind the Chrome first-use gate, guest hostname, and desktop recovery evidence.",
+    "331: requalified the rehearsal-only live ISO after the upstream replacement on 2026-11-25 (062c93ac, 9102135296 bytes, embedded stock 98a6a6a3)"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
     {
-      "sha256": "87bd02b4c8a022ad3bfbf743304501f69107fdcebeb75138055c4206338b9b16",
+      "sha256": "1aa8db4571bb5a727352ef3a277b748ab32b54a434b0a9a23878e11a9e8082f9",
       "path": ".github/workflows/os-image.yml"
     },
     {
@@ -32,8 +49,56 @@
       "path": "os/ci/control/release_checks.py"
     },
     {
-      "sha256": "873a08321e9709d278bdd28c2858f857ea9b0f8ff4509c39fb297681ab839ae3",
+      "sha256": "66bad9047e3697fbc5b0524b88f4228fa4b4c7cc01a7c3693b3a14c29d0d5b4f",
+      "path": "os/ci/installer_webui.py"
+    },
+    {
+      "sha256": "db293141b5271f8cdb968fe450db53436f9066c5c14fd1c4725ee20f61ccdb72",
+      "path": "os/ci/owner_capabilities.py"
+    },
+    {
+      "sha256": "a03f590420e5e70081b0fc91ee7625a0c80a255c8b83d2d51d8dedd6f959a229",
+      "path": "os/ci/owner_counter_kernel.py"
+    },
+    {
+      "sha256": "9abfd0a7f2e49ae72c64c8893b73f26bc780b466c2be18e899cb9b930bbc6fc6",
+      "path": "os/ci/owner_devices.py"
+    },
+    {
+      "sha256": "aa8051cc594b81ac94c5641bd43427961c2f76d8e9e3f1afa30242dc879d4948",
+      "path": "os/ci/owner_media.py"
+    },
+    {
+      "sha256": "850aa758207e509708a2960203562941a0efd96ef95ffb7f3570ce3f52956884",
+      "path": "os/ci/owner_vm.py"
+    },
+    {
+      "sha256": "6cec088531d59fb60d78d779417755c12ac2e90a2b3eabd98d7bbd6029c73efc",
+      "path": "os/ci/registry_auth.py"
+    },
+    {
+      "sha256": "e04207eed18463f0ab3e2fe06332aec15e75a506b304d29dec17a3b2cb0bc455",
+      "path": "os/ci/rehearsal-packages.json"
+    },
+    {
+      "sha256": "e08363f9a06308de25dde78d922c77878875672ec5755f01b95d781175f8b816",
+      "path": "os/ci/rehearsal_guard.py"
+    },
+    {
+      "sha256": "e5d3332e7da0f6a7860db3e8e9f196e4e4a8ec8437114f0100d322df4c8c6e61",
       "path": "os/ci/release28_walk.py"
+    },
+    {
+      "sha256": "51a956e82522d2a0c4ef8bd526a83546bd22094e15741766d4a994ea78a67d15",
+      "path": "os/ci/tools_local.py"
+    },
+    {
+      "sha256": "b721fed040d984efd91865e467b029c14c67dcfcb841107e9856aaec3895ea55",
+      "path": "os/ci/two_disk_vm.py"
+    },
+    {
+      "sha256": "5ea271b2dbc196cde2b30f0f93eb26891173ba6d6da910d0d867eadec152597d",
+      "path": "os/ci/verify_release.py"
     },
     {
       "sha256": "b9af8f7a4fe4a43db15f2d27b181ed442a9f86a90b47c0577a6183efb48117c4",
@@ -44,6 +109,14 @@
       "path": "os/config/usr/libexec/aresos-desktop"
     },
     {
+      "sha256": "cf0067a533f5040893407cf36bd01b13692176f73706ca780d4a73ccb977a857",
+      "path": "os/manifest/installer-isos.json"
+    },
+    {
+      "sha256": "7172613c5998a2f53f2632cb66586e8db514f079a0e2205912336b71371bebbe",
+      "path": "os/tests/test_ci_step_environment.py"
+    },
+    {
       "sha256": "23c4da91d08619ef8b1c37ca8f25c16f7dd9ba82e8135dd6c754f561c62050a4",
       "path": "os/tests/test_owner_equality.py"
     },
@@ -52,8 +125,20 @@
       "path": "os/tests/test_owner_path.py"
     },
     {
-      "sha256": "ebe736a65ba06f29bc049e87b4a78455a8a9a3decd5f9c07a34a00e2df1ce118",
+      "sha256": "d378230f3e11d2d79741c7894439897c1ed34833c1f7a0a73015b8b2b4d1b043",
+      "path": "os/tests/test_owner_reset.py"
+    },
+    {
+      "sha256": "cf1122fa5fb65611ba4a79c292782ed5caf11ba9df3d07194ff15f96f8435839",
+      "path": "os/tests/test_owner_staged_release.py"
+    },
+    {
+      "sha256": "77ae2abf2285df0f0e5a222535b5bb3608afe8293fe8bb1d6f597a082a284c3e",
       "path": "os/tests/test_owner_walk.py"
+    },
+    {
+      "sha256": "8bf96befdf4e2526742ee284fbf68f3f20aa4803b5c1cad588b4f0855c9b5dec",
+      "path": "os/tests/test_release28_rehearsal.py"
     }
   ],
   "unwalked_commands": [],

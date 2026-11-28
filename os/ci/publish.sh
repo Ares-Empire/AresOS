@@ -13,9 +13,21 @@ case "$GITHUB_REF_NAME" in
     pkg/13-keyboard-layout) release=13 ;;
     pkg/27-first-update-release) release=27 ;;
     pkg/42-release-28) release=28 ;;
+    pkg/331-release-29)
+        test "${GITHUB_ACTIONS-}" = true
+        test "$GITHUB_REF" = refs/heads/pkg/331-release-29
+        test "${REHEARSAL_PACKAGE-}" = 331
+        test "${REHEARSAL_MODE-}" = publish-29
+        test "${GITHUB_JOB-}" = release-29
+        release=29
+        ;;
     *) echo "Refusing to publish from $GITHUB_REF_NAME" >&2; exit 1 ;;
 esac
 python3 os/ci/rehearsal_guard.py publish-ci 0
+if [[ $release == 29 ]]; then
+    echo 'STOP: R29 requires the reviewed cut and prospective shipment checks before publishing' >&2
+    exit 1
+fi
 test "$(jq -r .status evidence/image-diff/result.json)" = passed
 image=ghcr.io/ares-empire/aresos
 tag="$release-$GITHUB_SHA"

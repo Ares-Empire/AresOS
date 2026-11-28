@@ -12,7 +12,8 @@ CHECKS = {'active_session', 'helper_health'}
 KINDS = {'status', 'shot', 'journal', 'exec', 'wait', 'expect', 'reboot'}
 MAX_STEPS = 32
 MAX_SCRIPT = 32 * 1024
-BOOLEAN_CONFLICTS = ('release_13', 'release_27', 'release_28', 'dry_run_28', 'checks_only', 'full_model')
+BOOLEAN_CONFLICTS = ('release_13', 'release_27', 'release_28', 'dry_run_28', 'release_29', 'dry_run_29',
+                     'checks_only', 'full_model')
 STRING_CONFLICTS = ('rehearsal', 'switch_from_run', 'probe_run')
 LEDGER = pathlib.Path(__file__).resolve().parents[1] / 'rehearsal-packages.json'
 

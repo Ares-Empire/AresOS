@@ -22,7 +22,9 @@ JOBS = WORKFLOW['jobs']
 BRANCH = 'pkg/334a-bench-hosted'
 BENCH_SCRIPT = 'reviews/334a-bench-hosted/bench/session-health.json'
 WORLD = dict(UPDATE_INPUTS, **{'github.ref_name': BRANCH, 'inputs.rehearsal': '', 'inputs.full_model': False,
-                             'inputs.check_build': 'bench', 'needs.image.result': 'skipped'})
+                             'inputs.check_build': 'bench', 'needs.image.result': 'skipped',
+                             'needs.checks-29-authorize.result': 'skipped', 'needs.release-29-authorize.result': 'skipped'})
+R29_BRANCH = 'pkg/331-release-29'
 
 
 def enabled(step, world, *, status='success'):
@@ -44,6 +46,7 @@ class BenchDispatchTest(unittest.TestCase):
         inputs = {'check_build': 'bench', 'release_13': 'false', 'switch_from_run': ''}
         validate_dispatch({'inputs': inputs}, 'bench')
         for key, value in [('release_13', 'true'), ('release_27', True), ('release_28', True), ('dry_run_28', True),
+                           ('release_29', True), ('dry_run_29', True),
                            ('checks_only', True), ('full_model', 'true'), ('rehearsal', 'probe'),
                            ('probe_run', '123'), ('switch_from_run', 'false')]:
             with self.subTest(key=key), self.assertRaisesRegex(ValueError, 'exclusive'):
@@ -85,7 +88,8 @@ class BenchDispatchTest(unittest.TestCase):
             for rehearsal in rehearsals:
                 with self.subTest(branch=branch, rehearsal=rehearsal):
                     dispatch = {'github.ref_name': branch, 'inputs.rehearsal': rehearsal}
-                    self.assertIn('rehearsal', jobs(**dispatch, **{'inputs.check_build': ''}))
+                    job = 'release-29-rehearsal' if branch == R29_BRANCH else 'rehearsal'
+                    self.assertIn(job, jobs(**dispatch, **{'inputs.check_build': ''}))
                     self.assertEqual(jobs(**dispatch), set())
         # A prior successful image is another path into the switch job.
         self.assertEqual(jobs(**{'needs.image.result': 'success'}), {'check-build'})
@@ -99,16 +103,13 @@ class BenchDispatchTest(unittest.TestCase):
         self.assertEqual(steps.index(guard), 2)
         self.assertFalse(guard.get('continue-on-error'))
         self.assertFalse(enabled(guard, dict(WORLD, **{'inputs.check_build': 'resolve'})))
-        managed = ['pkg/42-release-28', 'pkg/331-release-29']
+        managed = ['pkg/42-release-28', R29_BRANCH]
         with tempfile.TemporaryDirectory(dir=ROOT) as folder:
-            # R29 holds its ledger entry on its own branch before integration.
             checkout = pathlib.Path(folder)
             script = checkout / 'os/ci/bench/script.py'
             script.parent.mkdir(parents=True)
             script.write_bytes((ROOT / script.relative_to(checkout)).read_bytes())
-            ledger = json.loads(LEDGER.read_bytes())
-            ledger['331'] = {'branch': managed[-1]}
-            (script.parents[1] / LEDGER.name).write_text(json.dumps(ledger))
+            (script.parents[1] / LEDGER.name).write_bytes(LEDGER.read_bytes())
             for ref in managed:
                 with self.subTest(ref=ref):
                     world = dict(WORLD, **{'github.ref_name': ref})
@@ -124,9 +125,12 @@ class BenchDispatchTest(unittest.TestCase):
                     self.assertEqual(result.stderr, 'Bench dispatch refused on a ledger-managed ref\n')
 
     def test_client_checks_target_ledger_before_submit(self):
-        ref = 'pkg/331-release-29'
+        ref = 'pkg/target-ledger-only'
         ledger = json.dumps({'331': {'branch': ref}}).encode()
         with patch.object(client.subprocess, 'run') as run, patch.object(client, 'urlopen') as read:
+            with self.assertRaisesRegex(LedgerRef, 'ledger-managed'):
+                client.submit(R29_BRANCH, BENCH_SCRIPT)
+            read.assert_not_called()
             read.return_value.__enter__.return_value.read.return_value = ledger
             with self.assertRaisesRegex(LedgerRef, 'ledger-managed'):
                 client.submit(ref, BENCH_SCRIPT)

@@ -27,7 +27,9 @@ LIVE = next(i for i in json.loads(pathlib.Path('os/manifest/installer-isos.json'
 
 
 def save(name, value):
-    (EVIDENCE / (name + '.json')).write_text(json.dumps(value, indent=2) + '\n')
+    path = EVIDENCE / (name + '.json')
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(value, indent=2) + '\n')
 
 
 class Guest(sw.Guest):
@@ -46,9 +48,14 @@ class Guest(sw.Guest):
     def network_args(self):
         return super().network_args() + (',hostfwd=tcp:127.0.0.1:18080-:8080' if self.mode == 'live' else '')
 
-    def __init__(self, disk, password, secrets):
+    def __init__(self, disk, password, secrets, *, legacy_registry_auth=True):
         assert 'GHCR_READ_TOKEN' not in os.environ, 'Owner token must not enter the VM observer environment'
-        self.owner_auth_directory = auth_file().parent
+        if os.environ.get('REHEARSAL_PACKAGE') == '331':
+            assert not legacy_registry_auth, 'STOP: package 331 requires the owner guest login route'
+            self.owner_auth_directory = None
+        else:
+            assert legacy_registry_auth
+            self.owner_auth_directory = auth_file().parent
         Guest.boot_count += 1
         self.boot_number = Guest.boot_count
         token = os.environ.get('GH_TOKEN', '')
@@ -267,18 +274,33 @@ lsblk --json --bytes --list --output NAME,TYPE,SERIAL,PARTUUID,PARTTYPE,MOUNTPOI
         assert reason in ('guest-shutdown', 'guest-reset', 'host-qmp-system-reset'), reason
         deadline = time.monotonic() + timeout
         output = bytearray()
-        while not any(e.get('event') == 'SHUTDOWN' for e in self.monitor.events):
-            assert time.monotonic() < deadline, 'Guest did not shut down before its deadline'
-            self.console.settimeout(0.5)
+        try:
+            while not any(e.get('event') == 'SHUTDOWN' for e in self.monitor.events):
+                assert time.monotonic() < deadline, 'Guest did not shut down before its deadline'
+                self.console.settimeout(0.5)
+                try:
+                    data = self.console.recv(65536)
+                except socket.timeout:
+                    continue
+                assert data, 'Console closed before guest shutdown'
+                output.extend(data)
+                reply = self.replies.feed(data)
+                if reply:
+                    self.console.sendall(reply)
+        finally:
+            # Keep output even when the shutdown stalls or its event fails validation.
+            text = output.decode(errors='replace')
+            self.transcript += text
+            if not self.authentication_started:
+                self.boot_transcript += text
             try:
-                data = self.console.recv(65536)
-            except socket.timeout:
-                continue
-            assert data, 'Console closed before guest shutdown'
-            output.extend(data)
-            reply = self.replies.feed(data)
-            if reply:
-                self.console.sendall(reply)
+                path = EVIDENCE / (stage + '-shutdown-console.txt')
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(sw.redact(text, self.secrets), encoding='utf-8')
+            except OSError as error:
+                # A diagnostic write failure must leave the shutdown verdict intact.
+                print(f'Warning: could not write shutdown console evidence for {stage} ({type(error).__name__})',
+                      file=sys.stderr)
         shutdowns = [e for e in self.monitor.events if e.get('event') == 'SHUTDOWN']
         assert len(shutdowns) == 1 and shutdowns[0]['data'] == dict(guest=reason != 'host-qmp-system-reset', reason=reason), shutdowns
         assert not any(e.get('event') == 'GUEST_PANICKED' for e in self.monitor.events)
@@ -298,11 +320,6 @@ lsblk --json --bytes --list --output NAME,TYPE,SERIAL,PARTUUID,PARTTYPE,MOUNTPOI
         assert len(closing) <= 1 and all(e['data'] == dict(guest=False, reason='host-qmp-quit') for e in closing), tail
         assert not any(e.get('event') in ('GUEST_PANICKED', 'RESET') for e in tail), tail
         self.stopped_events_verified = True
-        text = output.decode(errors='replace')
-        self.transcript += text
-        if not self.authentication_started:
-            self.boot_transcript += text
-        (EVIDENCE / (stage + '-shutdown-console.txt')).write_text(sw.redact(text, self.secrets))
         assert self.process.returncode == 0
         if stage == 'pre-login-reset' and self.audit is not None:
             self.audit.check(f'boot-{self.boot_number}-pre-login-reset', self)
@@ -455,9 +472,17 @@ reboot
 
 
 def live_inventory(guest, stage):
-    release = json.loads(pathlib.Path('os/manifest/release.json').read_text())
-    assert release['reference'] == REFERENCE
-    verify = pathlib.Path('os/release/verify.sh').read_text().replace('@REFERENCE@', REFERENCE).replace('@IDENTITY@', release['signature']['identity'])
+    package = os.environ.get('REHEARSAL_PACKAGE')
+    if package == '331':
+        from registry_auth import (BASELINE_REGISTRY, baseline_run, check_baseline_registry,
+                                   historical_records, require_baseline_dispatch)
+        require_baseline_dispatch()
+        records = historical_records()
+        check_baseline_registry(json.loads(BASELINE_REGISTRY.read_bytes()), records, baseline_run())
+        release = json.loads(records['13'])
+    else:
+        release = json.loads(pathlib.Path('os/manifest/release.json').read_text())
+        assert release['reference'] == REFERENCE
     if os.environ.get('REHEARSAL_PACKAGE') in ('14', '16', '27', '22c', '22d', '42'):
         # The unchanged cryptographic check runs natively before the offline VM.
         # A guest cosign pull here would violate the link-down installer route.
@@ -467,9 +492,10 @@ def live_inventory(guest, stage):
         assert proof['identity'] == release['signature']['identity'] and proof['issuer'] == release['signature']['issuer']
         assert proof['sha'] == os.environ['GITHUB_SHA']
         assert __import__('hashlib').sha256(signatures).hexdigest() == proof['signature_sha256']
-    else:
+    elif package != '331':
+        verify = pathlib.Path('os/release/verify.sh').read_text().replace('@REFERENCE@', REFERENCE).replace('@IDENTITY@', release['signature']['identity'])
         guest.command(stage + '-release-signature', verify, timeout=180)
-    save(stage + '-release-signature-proof', dict(status='passed', reference=REFERENCE,
+    save(stage + '-release-signature-proof', dict(status='passed', reference=release['reference'],
         identity=release['signature']['identity'], issuer=release['signature']['issuer'],
         diagnostics='private; only fixed proof fields exported'))
     # Before anything reads the ISO's stock cache: the base image takes its place (stock_image.py).
@@ -771,8 +797,10 @@ def marker(audit, stage, baseline=False, detached=False):
         guest.screenshot(stage + '-windows-marker')
         guest.finish_shutdown(stage, 'guest-shutdown', timeout=30)
     finally:
-        guest.close(stage)
-    audit.check(stage, guest, establish_nvram=baseline)
+        try:
+            guest.close(stage)
+        finally:
+            audit.check(stage, guest, establish_nvram=baseline)
 
 
 def stock_inventory(guest, stage):

@@ -30,6 +30,7 @@ import test_release27 as base
 import test_tools_local_wiring as local
 import test_ways_back_probe as wb
 from test_owner_staged_release import condition
+from test_release28 import run_name
 
 BRANCH = 'pkg/42-release-28'
 MODE = 'release-28'
@@ -107,8 +108,7 @@ class DispatchTest(unittest.TestCase):
         expression = re.fullmatch(r'\$\{\{(.*)\}\}', WORKFLOW['env']['REHEARSAL_PACKAGE'].strip())[1]
         self.assertEqual(base.workflow_expression(expression, inputs()), '42')
         # The run's title (the guard counts it by title) is the ledger's.
-        self.assertTrue(WORKFLOW['run-name'].startswith("${{ inputs.rehearsal && format('Two-disk rehearsal ({0})', inputs.rehearsal) || "))
-        self.assertEqual('Two-disk rehearsal ({0})'.format(MODE), LEDGER['titles'][MODE])
+        self.assertEqual(run_name(inputs()), LEDGER['titles'][MODE])
 
     def test_the_mode_runs_the_rehearsal_job_on_its_branch_and_nothing_else_runs_there(self):
         on_branch = {'github.ref_name': BRANCH}

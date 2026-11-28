@@ -617,6 +617,9 @@ class Release28Session:
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(data)
 
+    def probe_modules(self, modules, allowed):
+        """Let a later release supply its additional guest interfaces."""
+
     def execute(self, script, *, uid=0, argv=(), allow_exit=False):
         import builtins, io, subprocess, xml.etree.ElementTree as ET
 
@@ -641,6 +644,7 @@ class Release28Session:
             xml=SimpleNamespace(etree=SimpleNamespace(ElementTree=SimpleNamespace(
                 parse=lambda p: ET.ElementTree(ET.fromstring(p.read_text()))))))
         allowed = {'hashlib', 'json', 'stat', 're'}
+        self.probe_modules(modules, allowed)
 
         def imports(name, globals=None, locals=None, fromlist=(), level=0):
             key = 'xml' if name == 'xml.etree.ElementTree' else name
@@ -846,14 +850,17 @@ def historical_checkout(folder, commit):
 
 
 def walk(ps2=False, route='qualification', control=False, faults=()):
-    assert route in ('qualification', 'update', 'reorder-probe', 'ways-back', 'tools-local', 'release-28')
-    laptop = route in ('update', 'reorder-probe', 'ways-back', 'tools-local', 'release-28')
-    dialogs = route in ('tools-local', 'release-28')
+    assert route in ('qualification', 'update', 'reorder-probe', 'ways-back', 'tools-local', 'release-28', 'release-29')
+    laptop = route in ('update', 'reorder-probe', 'ways-back', 'tools-local', 'release-28', 'release-29')
+    baseline = route == 'release-29'
+    r28_route = route in ('release-28', 'release-29')
+    dialogs = route in ('tools-local', 'release-28', 'release-29')
     stages = dict(qualification=QUALIFICATION_STAGES, update=UPDATE_STAGES)
     stages['reorder-probe'] = PROBE_STAGES
     stages['ways-back'] = WAYS_BACK_STAGES
     stages['tools-local'] = TOOLS_LOCAL_STAGES
     stages['release-28'] = RELEASE28_STAGES
+    stages['release-29'] = RELEASE28_STAGES[:6]
     owner_words = {command: name for name, command in vm.COMMANDS.items()}
     oracle = [None]
     # The walk's own /var/lib/ares entry (InstalledTools): which toolset is installed, and the
@@ -876,10 +883,10 @@ def walk(ps2=False, route='qualification', control=False, faults=()):
     pinned, pair, staged, queued, rolled = (retained(n) for n in ('after-pin', 'aresos', 'after-switch-staged', 'after-rollback-queued', 'rollback'))
     old_reference = json.loads((ROOT / 'os/manifest/releases/13.json').read_text())['reference']
     new_reference = json.loads(R27_RECORD.read_text())['reference']
-    if route == 'release-28':
+    if r28_route:
         record_28 = release28_record()
     updates = update_states(pair, new_reference)
-    if route == 'release-28':
+    if r28_route:
         updates.update(release28_states(pair, new_reference, json.loads(record_28)['reference']))
         r28_session = Release28Session(control, faults)
     stock = copy.deepcopy(pinned['rpm']['deployments'][0])
@@ -890,7 +897,7 @@ def walk(ps2=False, route='qualification', control=False, faults=()):
     class Guest:
         def __init__(self, stage, menu=False):
             self.stage, self.owner_layout = stage, 'de'
-            if route == 'release-28': r28_session.boot(stage)
+            if r28_route: r28_session.boot(stage)
             # A probe start: the first row, unless the menu is shown and waits for its choice.
             self.menu = menu
             if disk is not None and stage not in UPDATE_STAGES and not menu:
@@ -923,7 +930,7 @@ def walk(ps2=False, route='qualification', control=False, faults=()):
             commands.append((name, source))
             if dialogs:
                 local.command(name, source)
-            if route == 'release-28':
+            if r28_route:
                 said = r28_session.command(name, source)
                 if said is not None:
                     return said
@@ -1071,7 +1078,30 @@ def walk(ps2=False, route='qualification', control=False, faults=()):
             if disk is not None and name.endswith('-bls-entries'): return disk.inventory()
             if dialogs and local.answers(name):
                 return local.answer(self, name)
-            if route == 'release-28':
+            if baseline and name == 'release-28-baseline-tools':
+                from release29_walk import PAYLOAD, TOOLS_V5, TOOLS_V5_COMMIT
+                from release28_walk import git
+                home = r28_session.Path('/var/lib/ares')
+                home.mkdir(parents=True)
+                folder = home / ('tools-' + TOOLS_V5)
+                (home / 'at').symlink_to(folder.name + '/at')
+                assert local.machine['entry'] == folder.name + '/at'
+                for path in git('ls-tree', '-r', '--name-only', TOOLS_V5_COMMIT, PAYLOAD).decode().splitlines():
+                    target = folder / path.removeprefix(PAYLOAD + '/')
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.write_bytes(vm.git_blob(TOOLS_V5_COMMIT, path))
+                journal = dict(local.machine['journal'])
+                if 'open_tools' in faults:
+                    journal['phase'] = 'publish'
+                (home / 'tools-update-intent.json').write_text(json.dumps(journal))
+                if 'bad_v5' in faults:
+                    (folder / 'SHA256SUMS').write_bytes(b'changed fixture')
+                if 'pending_outcome' in faults:
+                    (home / 'records').mkdir()
+                    (home / 'records' / 'outcome-pending.json').write_text('{}')
+                words = shlex.split(source)
+                return json.loads(r28_session.execute(words[words.index('python3') + 2]))
+            if r28_route:
                 seen = r28_session.capture(name, source)
                 if seen is not None:
                     return seen
@@ -1158,7 +1188,7 @@ def walk(ps2=False, route='qualification', control=False, faults=()):
             assert args['hold-time'] == 30
             assert all(k['type'] == 'qcode' for k in args['keys'])
             keys = [k['data'] for k in args['keys']]
-            if route == 'release-28' and keys in (['ctrl', 'alt', 'f1'], ['ctrl', 'alt', 'f3']):
+            if r28_route and keys in (['ctrl', 'alt', 'f1'], ['ctrl', 'alt', 'f3']):
                 # vt_stays_tty3: the switch back to his desktop does not happen (rehearsal 7 opened foot there).
                 if not ('vt_stays_tty3' in faults and keys[-1] == 'f1'):
                     r28_session.vt = 'tty' + keys[-1][1:]
@@ -1248,7 +1278,7 @@ def walk(ps2=False, route='qualification', control=False, faults=()):
                 return
             else:
                 # Package 22c's and 22d's routes copy version 2 from history; the update rehearsal copied its checkout's payload.
-                assert self.fingerprint == vm.LAPTOP_TOOLS and (source is not None) == (route in ('reorder-probe', 'ways-back', 'tools-local', 'release-28'))
+                assert self.fingerprint == vm.LAPTOP_TOOLS and (source is not None) == (route in ('reorder-probe', 'ways-back', 'tools-local', 'release-28', 'release-29'))
             if source is None:
                 self.fingerprint = vm.bundle_module('bundle').check(pathlib.Path('os/owner-tools/payload'))
             else:
@@ -1277,6 +1307,19 @@ def walk(ps2=False, route='qualification', control=False, faults=()):
             return disk.snapshot()
         if disk is not None and (stage == 'release-27' or guest.stage not in UPDATE_STAGES[:4] and stage.startswith(('walk-', 'menu-', 'after-menu-'))):
             return disk.snapshot()
+        if baseline and stage == 'release-28-confirmed':
+            result = copy.deepcopy(updates['release-28'])
+            fault = {
+                'busy_transaction': lambda: result['rpm'].update(transaction=['fixture']),
+                'unpin_stock': lambda: result['rpm']['deployments'][-1].update(pinned=False),
+                'changed_r27': lambda: result['rpm']['deployments'][1].update(serial=99),
+                'kept_r13': lambda: result['rpm']['deployments'].insert(2, pair['rpm']['deployments'][0]),
+                'wrong_bootc_digest': lambda: result['bootc']['status']['booted']['image'].update(imageDigest='sha256:' + 'ab' * 32),
+            }
+            for name in faults:
+                if name in fault:
+                    fault[name]()
+            return result
         if laptop and stage in updates: return updates[stage]
         if route == 'update' and stage == 'previous-13-after-refusal': return updates['previous-13']
         if stage == 'offline-first-stock': return first
@@ -1287,7 +1330,7 @@ def walk(ps2=False, route='qualification', control=False, faults=()):
         return pair
 
     with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as temporary, contextlib.ExitStack() as stack:
-        if route == 'release-28': stack.callback(r28_session.close)
+        if r28_route: stack.callback(r28_session.close)
         if ps2:
             from test_owner_ps2 import kernel_result,journal
             original_run=subprocess.run
@@ -1347,7 +1390,7 @@ def walk(ps2=False, route='qualification', control=False, faults=()):
             tools_local.rehearsal(vm, audit, media, 'yz-/!ü0123456789abcdef', 'SYNTHETIC-HASH', 'abcdefghijklmnopqrstuvwx',
                                   version_2)
             result = json.loads((pathlib.Path(temporary) / 'tools-local-rehearsal-result.json').read_text())
-        elif route == 'release-28':
+        elif r28_route:
             import release28_walk
             head = subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', 'HEAD'], text=True).strip()
             stack.enter_context(patch.dict(os.environ, GITHUB_SHA=head))
@@ -1357,9 +1400,21 @@ def walk(ps2=False, route='qualification', control=False, faults=()):
             local.known(release28_walk.TOOLS_V4, 4)
             local.known(release28_walk.announced(record_28)['fingerprint'], release28_walk.TOOLS_VERSION)
             version_2 = vm.laptop_payload(pathlib.Path(temporary) / 'tools-version-2', vm.TOOLS_V2_COMMIT, vm.TOOLS_V2)
-            release28_walk.rehearsal(vm, audit, media, 'yz-/!ü0123456789abcdef', 'SYNTHETIC-HASH', 'abcdefghijklmnopqrstuvwx',
-                                     version_2, record_28, allow_deferred=True)
-            result = json.loads((pathlib.Path(temporary) / 'release-28-rehearsal-result.json').read_text())
+            if baseline:
+                import release29_walk
+                from test_release29_rehearsal import ENV, prepare_fixture
+                stack.enter_context(patch.dict(os.environ, ENV))
+                prepared = prepare_fixture(pathlib.Path(temporary), stack)
+                # Prove that the route consumes pinned inputs even when the checkout points to another release.
+                stack.enter_context(patch.object(vm, 'COMMANDS', {'install': 'wrong checkout commands'}))
+                release29_walk.rehearsal(vm, audit, media, 'yz-/!ü0123456789abcdef', 'SYNTHETIC-HASH', 'abcdefghijklmnopqrstuvwx',
+                                         version_2, prepared)
+                result = release29_walk.read_json(release29_walk.BASELINE_RECEIPT)
+                release29_walk.check_receipt(vm, result)
+            else:
+                release28_walk.rehearsal(vm, audit, media, 'yz-/!ü0123456789abcdef', 'SYNTHETIC-HASH', 'abcdefghijklmnopqrstuvwx',
+                                         version_2, record_28, allow_deferred=True)
+                result = json.loads((pathlib.Path(temporary) / 'release-28-rehearsal-result.json').read_text())
         elif route == 'ways-back':
             oracle[0] = Oracle(stack, disk, old_reference, new_reference)
             vm.ways_back_rehearsal(audit, media, 'yz-/!ü0123456789abcdef', 'SYNTHETIC-HASH', 'abcdefghijklmnopqrstuvwx',
@@ -1392,9 +1447,39 @@ def walk(ps2=False, route='qualification', control=False, faults=()):
     assert checks.index('tools-stock-hotplug') < checks.index('tools-stock-detach') < checks.index('tools-stock-reboot-tools-absent')
     return dict(stages=visits, commands=commands, typed=typed, visible_blocks=visible_blocks, checks=checks, markers=markers,
         physical_cases=physical_cases, result=result, disk=disk, tool_readers=tool_readers, local=local,
-        session=r28_session if route == 'release-28' else None,
+        session=r28_session if r28_route else None,
         prompt_waits=sorted(prompt_waits), fresh_idle_answers=idle_answers, resyncs=events,
         hidden_reads=hidden_reads, hidden_shapes=hidden_shapes, wait_shapes=wait_shapes)
+
+
+class Release29BaselineTest(unittest.TestCase):
+    def test_historical_route_finishes_on_r28_with_v5(self):
+        walked = walk(route='release-29')
+        self.assertEqual(walked['stages'], RELEASE28_STAGES[:6])
+        self.assertEqual([row['tools_version'] for row in walked['local'].installs], [4, 5])
+        receipt = walked['result']
+        self.assertEqual(receipt['booted'], json.loads(release28_record())['reference'])
+        self.assertEqual([row['version'] for row in receipt['tools']], [1, 2, 4, 5])
+        self.assertTrue(receipt['protected_disk_audits'])
+        self.assertTrue(receipt['stock_pinned'])
+        self.assertTrue(receipt['transaction_idle'])
+        self.assertFalse(receipt['outcome_pending'])
+        self.assertTrue(receipt['r13_retired'])
+
+    def test_invalid_confirmed_state_stops_at_the_baseline(self):
+        cases = {
+            'busy_transaction': 'deployment transaction is active',
+            'unpin_stock': 'corrected stock identity or pin lost',
+            'changed_r27': 'retained R27 or pinned stock identity changed',
+            'kept_r13': 'unexpected deployment list',
+            'wrong_bootc_digest': 'bootc disagrees',
+            'bad_v5': 'installed tools differ',
+            'open_tools': 'change remains open',
+            'pending_outcome': 'change remains open',
+        }
+        for fault, error in cases.items():
+            with self.subTest(fault=fault), self.assertRaisesRegex(AssertionError, error):
+                walk(route='release-29', faults=[fault])
 
 
 class Release28ProbeTest(unittest.TestCase):
