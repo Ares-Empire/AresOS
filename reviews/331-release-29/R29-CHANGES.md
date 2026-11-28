@@ -42,6 +42,7 @@ Only the laptop can share its keyboard and mouse with the Mac for now. With shar
 
 - On a planned shutdown, AresOS asks Minecraft to save and waits for confirmation. It tries to hold off lid-triggered sleep during the save. With only the world open, the screen may go black. If time runs out, shutdown can continue and the log records that the save was unconfirmed.
 - The recovery window’s `restart` command waits for a confirmed save before closing and restarting Minecraft.
+- For building, a Claude session can switch the world off to free memory and back on: `aresos-desktop stop` saves and closes Minecraft, and `aresos-desktop retry` brings your home back. While it is off the screen is black with a small “Minecraft was closed” window, and you open apps from Terminal or Alt+Tab. The world comes back at your next login. A proper switch with a menu of your apps is planned for after R29.
 - When released, the signed update will keep the same base system and leave R28 available to go back to. The installer rehearsal has already reached R28.
 - The desktop can hold the pointer for sharing in either build. Sending shortcuts to the Mac comes with the Deskflow build.
 - The laptop keeps its computer name. The update rehearsal checks that it survives restarts so Chrome can reopen its profile.
