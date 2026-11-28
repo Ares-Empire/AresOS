@@ -1,0 +1,15 @@
+2026-11-21T18:18:09.194395Z  INFO aresos_input_portal::wayland::state: the screens changed: 2 now zone_set=2
+2026-11-21T18:18:09.394547Z  INFO aresos_input_portal::wayland::state: Wayland barrier thread ready, 2 screen(s) in the snapshot
+2026-11-21T18:18:09.394672Z  INFO aresos_input_portal: screen HEADLESS-2: 1280x720 at (0, 0) scale 1 Normal
+2026-11-21T18:18:09.394718Z  INFO aresos_input_portal: screen HEADLESS-1: 1280x720 at (1280, 0) scale 1 Normal
+2026-11-21T18:18:09.399516Z  INFO aresos_input_portal: org.freedesktop.impl.portal.desktop.aresos-input ready at /org/freedesktop/portal/desktop; idle watchdog disabled
+2026-11-21T18:18:09.415529Z  INFO aresos_input_portal::wayland::state: the screens changed: 1 now zone_set=3
+Io error: Broken pipe (os error 32)
+2026-11-21T18:18:10.275738Z  WARN aresos_input_portal::wayland: Wayland barrier thread failed: Wayland dispatch failed: other error during loop operation: underlying IO error: Broken pipe (os error 32): underlying IO error: Broken pipe (os error 32): Broken pipe (os error 32)
+2026-11-21T18:18:10.275778Z  WARN aresos_input_portal::portal: the Wayland connection ended: closing every session and stopping
+2026-11-21T18:18:10.275808Z  WARN aresos_input_portal::wayland: Wayland thread is gone, dropping a command
+2026-11-21T18:18:10.275817Z  WARN aresos_input_portal::wayland: Wayland thread is gone, dropping a command
+2026-11-21T18:18:10.275846Z  INFO aresos_input_portal: shutting down
+2026-11-21T18:18:10.275867Z  WARN aresos_input_portal::wayland: Wayland thread is gone, dropping a command
+2026-11-21T18:18:10.275875Z  WARN aresos_input_portal::wayland: Wayland thread is gone, dropping a command
+Error: the Wayland connection ended

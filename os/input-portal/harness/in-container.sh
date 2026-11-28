@@ -1,5 +1,5 @@
 #!/usr/bin/bash
-# Package 316's harness, inside its container (harness/run.sh starts it). Checks that the container is cut off
+# Package 316's harness (and 321's checks), inside its container (harness/run.sh starts it). Checks that the container is cut off
 # from the host, makes the scratch session folders, installs the backend into the container's own /usr and
 # hands over to driver.py. stdout is the evidence archive; everything readable goes to stderr.
 set -uo pipefail
@@ -55,30 +55,94 @@ export XDG_CONFIG_HOME=$HOME/.config XDG_DATA_HOME=$HOME/.local/share XDG_CACHE_
     XDG_STATE_HOME=$HOME/.local/state
 mkdir -p "$XDG_CONFIG_HOME/labwc" "$XDG_DATA_HOME" "$XDG_CACHE_HOME" "$XDG_STATE_HOME"
 
-# The exact chord package (c) will bind, and nothing else.
+# labwc's bindings (brief 321, "What to build" 6). The two marked allowWhenInhibited are the only ones that may run
+# while the backend's capture surface holds the keyboard: the way out, and the recovery terminal with the way out as
+# its first action (/harness/binding stands in for the terminal). The others are the image's own unmarked kinds
+# (close, the window switcher, media keys, a lone Super that acts on release) and two mouse bindings that apply in
+# every context, so also over the capture surface. Step 3 gives the image's rc.xml the same two marks.
 cat > "$XDG_CONFIG_HOME/labwc/rc.xml" <<'XML'
 <?xml version="1.0"?>
 <labwc_config>
   <keyboard>
-    <keybind key="W-S-Escape">
+    <keybind key="W-S-Escape" allowWhenInhibited="yes">
       <action name="Execute" command="/usr/libexec/aresos-input-portal --release" />
     </keybind>
+    <keybind key="W-C-Escape" allowWhenInhibited="yes">
+      <action name="Execute" command="sh -c '/usr/libexec/aresos-input-portal --release; exec /harness/binding recovery-terminal'" />
+    </keybind>
+    <keybind key="A-F4"><action name="Close" /></keybind>
+    <keybind key="A-Tab"><action name="NextWindow" /></keybind>
+    <keybind key="XF86AudioRaiseVolume"><action name="Execute" command="/harness/binding volume-up" /></keybind>
+    <keybind key="XF86AudioMute"><action name="Execute" command="/harness/binding mute" /></keybind>
+    <keybind key="XF86MonBrightnessUp"><action name="Execute" command="/harness/binding brightness-up" /></keybind>
+    <keybind key="Super_L" onRelease="yes"><action name="Execute" command="/harness/binding lone-super" /></keybind>
   </keyboard>
+  <mouse>
+    <default />
+    <context name="All">
+      <mousebind button="A-Middle" action="Press"><action name="Execute" command="/harness/binding mouse-press" /></mousebind>
+      <mousebind direction="A-Down" action="Scroll"><action name="Execute" command="/harness/binding mouse-scroll" /></mousebind>
+    </context>
+  </mouse>
 </labwc_config>
 XML
 cp "$XDG_CONFIG_HOME/labwc/rc.xml" "$EV/labwc-rc.xml"
+# What the test bindings run: one line per run, and a new Wayland window for recovery.
+cat > /harness/binding <<'SH'
+#!/usr/bin/bash
+echo "$1" >> /evidence/bindings.log
+if [ "$1" = recovery-terminal ]; then
+    echo "$$" > /harness/recovery-window.pid
+    exec /opt/harness/bin/wl-harness window >> /evidence/recovery-window.log 2>&1
+fi
+SH
+chmod 0755 /harness/binding
+: > "$EV/bindings.log"
 
 # The backend and its allow-list, where the image will have them: in this container's own /usr.
 install -D -m 0755 /harness/backend/aresos-input-portal /usr/libexec/aresos-input-portal
+# These stand-ins are installed only in the isolated harness. The unguarded control uses the same executable.
+install -m 0755 /usr/bin/sleep /usr/bin/deskflow-core
+cat > /usr/libexec/aresos-deskflow <<'PY'
+#!/usr/bin/python3 -I
+import fcntl
+import os
+from pathlib import Path
+import subprocess
+
+def identity(pid):
+    fields = Path(f'/proc/{pid}/stat').read_text().rpartition(') ')[2].split()
+    return f'{pid} {fields[19]}\n'
+
+root = Path(os.environ['XDG_RUNTIME_DIR'])
+with (root / 'aresos-deskflow.lock').open('w') as lock:
+    fcntl.flock(lock, fcntl.LOCK_EX)
+    record = root / 'aresos-deskflow.pid'
+    pending = record.with_suffix('.tmp')
+    os.umask(0o077)
+    with subprocess.Popen(['/usr/bin/deskflow-core', '45']) as core:
+        pending.write_text(identity(os.getpid()) + identity(core.pid))
+        pending.replace(record)
+        core.wait()
+    record.unlink()
+PY
+chmod 0755 /usr/libexec/aresos-deskflow
+install -D -m 0644 -t "$XDG_DATA_HOME/dbus-1/services" /harness/backend/*.service
 install -d -m 0755 /usr/share/aresos/input-portal
 printf '# the harness\norg.aresos.harness\n' > /usr/share/aresos/input-portal/allowed-apps
 chmod 0644 /usr/share/aresos/input-portal/allowed-apps
+# The sharing switch (brief 321), on, as the owner's password leaves it: root's file in root's folders, where
+# the image's helper writes it. Every test but the switch's own runs with it on.
+install -d -m 0755 /etc/aresos /etc/aresos/input-portal
+printf 'on\n' > /etc/aresos/input-portal/sharing
+chmod 0644 /etc/aresos/input-portal/sharing
 
 {
     rpm -q labwc
     sha256sum /opt/harness/rpm/*.rpm
     sha256sum /usr/libexec/aresos-input-portal
     rpm -q wlroots0.19 libei dbus-daemon wl-clipboard wlr-randr
+    stat -c '%A %u:%g %n' / /etc /etc/aresos /etc/aresos/input-portal /etc/aresos/input-portal/sharing
 } > "$EV/versions.txt" 2>&1
 cat "$EV/versions.txt"
 

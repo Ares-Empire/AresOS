@@ -2989,10 +2989,13 @@ class ImageBuildTest(unittest.TestCase):
         stages = [line.split() for line in containerfile.splitlines() if line.startswith('FROM ')]
         base = json.loads((ROOT / 'os/manifest/base.json').read_text())['reference']
         labwc_base = json.loads((ROOT / 'os/labwc/labwc.lock.json').read_text())['base']['reference']
+        portal_toolchain = (ROOT / 'os/input-portal/toolchain.env').read_text()
+        portal_builder, = re.findall(r'^BUILDER_IMAGE=(\S+)$', portal_toolchain, re.M)
         # The workflow checks the first FROM against the pinned base; it stays first.
         self.assertEqual(stages, [['FROM', base, 'AS', 'source'],
                                   ['FROM', self.BUILDER, 'AS', 'mod'], ['FROM', base, 'AS', 'labwc-inputs'],
-                                  ['FROM', labwc_base, 'AS', 'labwc'], ['FROM', base, 'AS', 'packages'],
+                                  ['FROM', labwc_base, 'AS', 'labwc'],
+                                  ['FROM', portal_builder, 'AS', 'input-portal'], ['FROM', base, 'AS', 'packages'],
                                   ['FROM', 'packages', 'AS', 'aresos']])
         source_stage = containerfile.split(' AS source\n', 1)[1].split('\nFROM ', 1)[0]
         self.assertIn('RUN bash /tmp/aresos-mod/build.sh source "$ARESOS_SOURCE_REVISION" /source', source_stage)
@@ -3002,6 +3005,9 @@ class ImageBuildTest(unittest.TestCase):
                          ['COPY build.sh /tmp/aresos-mod/build.sh',
                           'COPY --from=source /source/mod /tmp/aresos-mod/mod',
                           'RUN bash /tmp/aresos-mod/build.sh mod /tmp/aresos-mod/mod /out "$ARESOS_SOURCE_REVISION"'])
+        portal_stage = containerfile.split(' AS input-portal\n', 1)[1].split('\nFROM ', 1)[0]
+        self.assertEqual(portal_stage.splitlines(),
+                         ['COPY --from=source /source/os/input-portal/ /src/', 'RUN bash /src/build.sh /src /out'])
         final = containerfile.split('FROM packages AS aresos', 1)[1]
         copy = final.index('COPY --from=mod /out/aresos.jar /tmp/aresos/minecraft/aresos.jar')
         self.assertLess(copy, final.index('build.sh configure'))
@@ -3076,7 +3082,7 @@ class ImageBuildTest(unittest.TestCase):
             self.assertIn('curl: command not found', fetch.stderr)
 
     @unittest.skipUnless(LINUX, 'runs build.sh with a stand-in for the network')
-    def test_the_source_stage_fetches_the_named_commit_and_keeps_only_mod_and_control(self):
+    def test_the_source_stage_fetches_only_build_inputs_from_the_named_commit(self):
         with tempfile.TemporaryDirectory() as folder:
             root = pathlib.Path(folder)
             revision = 'ab' * 20
@@ -3086,6 +3092,12 @@ class ImageBuildTest(unittest.TestCase):
             (tree / 'mod/gradlew').chmod(0o755)
             (tree / 'os').mkdir()
             (tree / 'os/unrelated').write_text('not extracted')
+            portal = tree / 'os/input-portal'
+            for directory in ('data', 'src', 'dev', 'harness'):
+                (portal / directory).mkdir(parents=True)
+                (portal / directory / 'sample').touch()
+            for name in ('build.sh', 'toolchain.env', 'Cargo.toml', 'Cargo.lock', 'LICENSE', 'README.md'):
+                (portal / name).touch()
             # Package 18c: control/ comes from the same fetch; docs/control/ is not it.
             (tree / 'control/aresos_control').mkdir(parents=True)
             (tree / 'control/launch.py').write_text('launcher')
@@ -3108,7 +3120,12 @@ class ImageBuildTest(unittest.TestCase):
                              ['-fsSL', '--proto', '=https', '--tlsv1.2', '--retry', '3', '-o',
                               (root / 'curl-args').read_text().split()[7],
                               f'https://codeload.github.com/Ares-Empire/AresOS/tar.gz/{revision}'])
-            self.assertEqual(sorted(p.name for p in (root / 'out').iterdir()), ['control', 'mod'])
+            self.assertEqual(sorted(p.name for p in (root / 'out').iterdir()), ['control', 'mod', 'os'])
+            self.assertEqual(sorted(str(p.relative_to(root / 'out/os')) for p in (root / 'out/os').rglob('*')),
+                             ['input-portal', 'input-portal/Cargo.lock', 'input-portal/Cargo.toml',
+                              'input-portal/LICENSE', 'input-portal/build.sh', 'input-portal/data',
+                              'input-portal/data/sample', 'input-portal/src', 'input-portal/src/sample',
+                              'input-portal/toolchain.env'])
             self.assertEqual(sorted(str(p.relative_to(root / 'out/control')) for p in (root / 'out/control').rglob('*')),
                              ['aresos_control', 'aresos_control/cli.py', 'launch.py'])
             self.assertTrue(os.access(root / 'out/mod/gradlew', os.X_OK))
@@ -3338,9 +3355,12 @@ class ModJarPinTest(unittest.TestCase):
     def test_a_release_is_the_default_and_only_the_job_that_cannot_publish_throws_away(self):
         import yaml
         containerfile = (ROOT / 'os/Containerfile').read_text()
-        final = containerfile.split('FROM packages AS aresos\n', 1)[1]
+        packages, final = containerfile.split('FROM packages AS aresos\n', 1)
+        packages = packages.rsplit(' AS packages\n', 1)[1]
+        self.assertIn('ARG ARESOS_BUILD_KIND=release\n', packages)
+        self.assertIn('build.sh packages "$ARESOS_BUILD_KIND"', packages)
         self.assertIn('\nARG ARESOS_BUILD_KIND=release\n', final)
-        self.assertEqual(containerfile.count('ARESOS_BUILD_KIND='), 1, 'declared once, in the stage that configures')
+        self.assertEqual(containerfile.count('ARESOS_BUILD_KIND='), 2, 'only the packages and final stages choose the kind')
         workflow = (ROOT / '.github/workflows/os-image.yml').read_text()
         jobs = yaml.load(workflow, Loader=yaml.BaseLoader)['jobs']
         # Read-only: no write permission and no id-token, so it cannot push or sign. actions and packages read are
@@ -3489,13 +3509,14 @@ class SessionFilesTest(unittest.TestCase):
     def test_autostart_runs_the_supervisor_instead_of_a_terminal(self):
         lines = [l for l in (CONFIG / 'usr/share/aresos/labwc/autostart').read_text().splitlines()
                  if l and not l.startswith('#')]
-        self.assertEqual(lines, ['/usr/libexec/kf6/polkit-kde-authentication-agent-1 &',
+        self.assertEqual(lines, ['/usr/bin/dbus-update-activation-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP',
+                                 '/usr/libexec/kf6/polkit-kde-authentication-agent-1 &',
+                                 '/usr/libexec/aresos-deskflow-login &',
                                  '/usr/libexec/aresos-desktop session &'])
 
     def test_recovery_terminal_shortcut_is_kept(self):
         rc = (CONFIG / 'usr/share/aresos/labwc/rc.xml').read_text()
-        self.assertIn('<keybind key="W-C-Escape"><action name="Execute" command="/usr/bin/aresos-terminal --recovery" />',
-                      rc)
+        self.assertIn('<keybind key="W-C-Escape" allowWhenInhibited="yes">', rc)
         self.assertIn('<windowRule identifier="aresos-desktop" serverDecoration="no"><action name="Maximize" />', rc)
         # Package 40: the desktop stays below every app window. Never skipTaskbar: the helper tracks the desktop by
         # its foreign-toplevel handle.
@@ -3504,14 +3525,13 @@ class SessionFilesTest(unittest.TestCase):
         self.assertNotIn('skipTaskbar', rc)
 
     def test_the_recovery_shortcut_also_ends_the_cover(self):
-        # Package 23b, PLAN-GAP 2: the terminal first (every check that reads the keybind's first action still
-        # finds it), then the supervisor's hide-cover, by absolute path like the session's other commands.
+        # Release finishes before the terminal starts. A separate action hides the cover.
         import xml.etree.ElementTree as ET
         root = ET.parse(CONFIG / 'usr/share/aresos/labwc/rc.xml').getroot()
         binds = [bind for bind in root.iter('keybind') if bind.get('key') == 'W-C-Escape']
         self.assertEqual(len(binds), 1)
         self.assertEqual([(action.get('name'), action.get('command')) for action in binds[0]],
-                         [('Execute', '/usr/bin/aresos-terminal --recovery'),
+                         [('Execute', "/usr/bin/sh -c '/usr/libexec/aresos-input-portal --release; exec /usr/bin/aresos-terminal --recovery'"),
                           ('Execute', '/usr/libexec/aresos-desktop hide-cover')])
         self.assertTrue(os.access(CONFIG / 'usr/libexec/aresos-desktop', os.X_OK))
 

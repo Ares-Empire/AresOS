@@ -10,10 +10,16 @@ if [[ $mode == bench || $mode == bench-pass ]]; then
         exit 2
     fi
 fi
+if [[ $mode == deskflow || $mode == deskflow-pass ]]; then
+    if [[ ${GITHUB_ACTIONS-}/${RUNNER_ENVIRONMENT-}/${GITHUB_JOB-} != true/github-hosted/check-build ]]; then
+        echo 'Deskflow requires the hosted check-build job' >&2
+        exit 2
+    fi
+fi
 base=$(jq -r .reference os/manifest/base.json)
 mkdir -p evidence
 case $mode in
-    resolve)
+    resolve|resolve-deskflow-stable)
         # Package 311: what labwc's build needs today, found on its own locked fedora:44. check-resolve.sh turns
         # this into a candidate lock. A failure here is reported there and does not stop the other resolutions.
         labwc_base=$(jq -r .base.reference os/labwc/labwc.lock.json)
@@ -25,11 +31,11 @@ case $mode in
         # Inventory and resolve inside the pinned base only; no build.
         sudo podman pull "$base"
         sudo podman run --rm --network=host -v "$PWD/os:/tmp/aresos:ro" -v "$PWD/evidence:/evidence" \
-            --entrypoint /usr/bin/bash "$base" /tmp/aresos/ci/check-resolve.sh
+            --entrypoint /usr/bin/bash "$base" /tmp/aresos/ci/check-resolve.sh "$mode"
         # Package 23: the mod jar must build to the same bytes twice.
         bash os/ci/build-mod.sh --twice
         ;;
-    bench|control|build)
+    bench|control|deskflow|build)
         # check_build=control (package 18c, B2) builds and checks the same image,
         # then puts the Control test layer on top of the CI layer and makes its
         # disk; the workflow's next step boots it (control-pass, below). Its
@@ -68,7 +74,11 @@ case $mode in
         bash os/ci/check-image.sh localhost/aresos:check "$kind"
         python3 -B os/ci/control/chrome_image.py build-log evidence/image/checks.txt evidence/build.log \
             | tee evidence/image/control-chrome-build-log.txt
-        if [[ $mode == bench ]]; then
+        if [[ $mode == deskflow ]]; then
+            read -r portal_pin _ < os/manifest/input-portal.sha256
+            grep -Fx "INPUT_PORTAL_INSTALLED $portal_pin" evidence/image/checks.txt
+            echo "DESKFLOW_BACKEND_PIN_MATCHED $portal_pin"
+        elif [[ $mode == bench ]]; then
             bash os/ci/bench/build.sh
             exit 0
         fi
@@ -82,6 +92,10 @@ case $mode in
         if [[ $mode == control ]]; then
             bash os/ci/control/runner.sh layer
             disk_image=localhost/aresos:control
+        elif [[ $mode == deskflow ]]; then
+            sudo podman build --format=oci --tag localhost/aresos:deskflow --file os/ci/deskflow/Containerfile . \
+                2>&1 | tee evidence/deskflow-layer.log
+            disk_image=localhost/aresos:deskflow
         fi
         python3 os/ci/prepare-disk.py
         mkdir -p vm-work/output
@@ -94,6 +108,8 @@ case $mode in
         sudo chmod -R a+rX vm-work/output
         if [[ $mode == control ]]; then
             echo CHECK_BUILD_CONTROL_DISK_READY
+        elif [[ $mode == deskflow ]]; then
+            echo CHECK_BUILD_DESKFLOW_DISK_READY
         else
             sudo -E env ARESOS_VM_PASS=1 python3 os/ci/vm.py
             grep -q ARESOS_ACTIVE_SESSION_POLKIT_PASSED evidence/vm-pass-1/policy-result.json
@@ -125,8 +141,13 @@ case $mode in
         sudo -E python3 os/ci/control/control_vm.py chrome
         echo CHECK_BUILD_CONTROL_CHROME_PASSED
         ;;
+    deskflow-pass)
+        test -d vm-work/output
+        sudo -E python3 -B os/ci/deskflow/deskflow_vm.py
+        echo CHECK_BUILD_DESKFLOW_PASSED
+        ;;
     *)
-        echo "Unknown check-build mode: '$mode' (expected resolve, build, bench, bench-pass, control, control-pass or control-chrome-pass)" >&2
+        echo "Unknown check-build mode: '$mode' (expected resolve, resolve-deskflow-stable, build, bench, bench-pass, control, control-pass, control-chrome-pass, deskflow or deskflow-pass)" >&2
         exit 2
         ;;
 esac

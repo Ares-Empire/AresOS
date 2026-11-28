@@ -5,6 +5,7 @@ use super::heads::{HeadsHandler, HeadsState};
 use super::{place, Edge, PlacedBarrier, WaylandCmd, WaylandEvent};
 use crate::eis_server::{EisCommand, EisHandle, SharedKeymap};
 use crate::screens::{screens_from_heads, SharedScreens};
+use crate::sharing::Gate;
 use anyhow::{Context, Result};
 use smithay_client_toolkit::{
     compositor::{CompositorHandler, CompositorState, Region},
@@ -28,12 +29,16 @@ use smithay_client_toolkit::{
     },
     shm::{slot::SlotPool, Shm, ShmHandler},
 };
+use std::sync::{
+    atomic::{AtomicU64, Ordering},
+    Arc,
+};
 use tokio::sync::mpsc;
 use tracing::{debug, info, warn};
 use wayland_client::{
     globals::registry_queue_init,
     protocol::{
-        wl_buffer, wl_keyboard, wl_output, wl_pointer, wl_seat, wl_shm, wl_surface,
+        wl_buffer, wl_callback, wl_keyboard, wl_output, wl_pointer, wl_seat, wl_shm, wl_surface,
     },
     Connection, QueueHandle,
 };
@@ -155,7 +160,6 @@ struct AppState {
     relative_pointer: Option<zwp_relative_pointer_v1::ZwpRelativePointerV1>,
     keyboard: Option<wl_keyboard::WlKeyboard>,
     keymap: SharedKeymap,
-    modifiers: Modifiers,
     last_enter_serial: u32,
     /// The compositor's heads, and the snapshot of the screens built from them.
     heads: HeadsState,
@@ -163,14 +167,18 @@ struct AppState {
     surfaces: Vec<BarrierSurface>,
     /// The session whose barriers `surfaces` are.
     armed_for: Option<Armed>,
-    /// The number the next crossing gets.
-    next_crossing: u64,
+    /// Where the next crossing's number comes from: shared by every worker of
+    /// the process, so a number is never used twice when a worker is started
+    /// again (a late notice of an earlier worker can't name a later crossing).
+    crossings: Arc<AtomicU64>,
     capture: Option<Capture>,
     /// Absent when the compositor does not advertise `ext-data-control`, which
     /// costs the clipboard but nothing else.
     clipboard: Option<ClipboardState>,
     /// How long a capture may see no input at all before it is force-released.
     idle_timeout: std::time::Duration,
+    /// Closed while sharing is off: nothing captured is handed on.
+    gate: Gate,
     event_tx: mpsc::UnboundedSender<WaylandEvent>,
     exit: bool,
 }
@@ -203,6 +211,7 @@ impl AppState {
             "the screens changed: {} now",
             snapshot.screens.len()
         );
+        debug!(zone_set = snapshot.zone_set, screens = ?snapshot.screens, "screen geometry");
         self.end_capture(None);
         self.disarm();
         let _ = self.event_tx.send(WaylandEvent::OutputsChanged);
@@ -429,8 +438,7 @@ impl AppState {
         // like the pointer really left.
         pointer.set_cursor(self.last_enter_serial, None, 0, 0);
 
-        let crossing = self.next_crossing;
-        self.next_crossing += 1;
+        let crossing = self.crossings.fetch_add(1, Ordering::Relaxed);
         // Where it was crossed is the cursor's position and stays out of the log.
         info!(barrier = barrier_id, "barrier crossed, asking the compositor for the grab");
         self.capture = Some(Capture {
@@ -508,7 +516,7 @@ impl AppState {
     /// End a capture that nobody asked to end, and tell the portal if it knew
     /// of it. Every loss takes this one path: the compositor dropping the lock,
     /// closing the surface, taking the pointer or the keyboard focus away, the
-    /// watchdog, the escape chord, and a grab that never came.
+    /// watchdog, and a grab that never came.
     fn lose_capture(&mut self, why: &str) {
         let Some(ended) = self.end_capture(None) else {
             return;
@@ -603,7 +611,14 @@ impl AppState {
     }
 
     /// Route one event to the client, buffering if EIS is not attached yet.
+    ///
+    /// Nothing goes on, and nothing is buffered, while the gate is closed: the
+    /// portal closes it the moment it reads that sharing is off, before its
+    /// `EndCapture` has reached this thread.
     fn forward(&mut self, cmd: EisCommand) {
+        if !self.gate.is_open() {
+            return;
+        }
         let Some(capture) = &mut self.capture else {
             return;
         };
@@ -640,16 +655,6 @@ impl AppState {
 
     fn forward_frame(&mut self) {
         self.forward(EisCommand::Frame);
-    }
-
-    /// Best-effort keyboard escape.
-    ///
-    /// Do not rely on this: niri handles compositor bindings before clients see
-    /// them, so a combination it claims never arrives here. It is a convenience
-    /// for the cases it does work in, not a safety mechanism — the watchdog and
-    /// the `ForceRelease` D-Bus method are the ones that always work.
-    fn is_panic_key(&self, event: &KeyEvent) -> bool {
-        self.modifiers.ctrl && self.modifiers.alt && event.keysym == Keysym::Escape
     }
 
     /// Force-release a capture that has gone quiet.
@@ -1081,11 +1086,9 @@ impl KeyboardHandler for AppState {
         if self.capture.is_none() {
             return;
         }
-        if self.is_panic_key(&event) {
-            // Not named here: no key name belongs in the log, this one included.
-            self.lose_capture("the built-in escape chord was pressed");
-            return;
-        }
+        // No key ends the capture here: every key goes to the other machine,
+        // Ctrl+Alt+Escape (upstream's built-in chord) included. The way out is
+        // the compositor's own binding, which runs `--release` (brief 321).
         self.forward(EisCommand::Key {
             keycode: event.raw_code,
             press: true,
@@ -1130,11 +1133,12 @@ impl KeyboardHandler for AppState {
         _: &QueueHandle<Self>,
         _: &wl_keyboard::WlKeyboard,
         _: u32,
-        modifiers: Modifiers,
+        _: Modifiers,
         _: RawModifiers,
         _: u32,
     ) {
-        self.modifiers = modifiers;
+        // Nothing here reads the modifier state: the keys themselves are
+        // forwarded, and the other machine keeps its own.
     }
 
     fn update_keymap(
@@ -1195,6 +1199,27 @@ impl ProvidesRegistryState for AppState {
     registry_handlers![OutputState, SeatState];
 }
 
+/// The user data of a `wl_display.sync` callback: who to tell when it is done.
+struct SyncDone(std::sync::Mutex<Option<tokio::sync::oneshot::Sender<()>>>);
+
+impl<D> smithay_client_toolkit::dispatch2::Dispatch2<wl_callback::WlCallback, D> for SyncDone {
+    fn event(
+        &self,
+        _: &mut D,
+        _: &wl_callback::WlCallback,
+        event: wl_callback::Event,
+        _: &Connection,
+        _: &QueueHandle<D>,
+    ) {
+        if let wl_callback::Event::Done { .. } = event {
+            if let Some(done) = self.0.lock().ok().and_then(|mut done| done.take()) {
+                // The asker may have given up waiting; nothing to do then.
+                let _ = done.send(());
+            }
+        }
+    }
+}
+
 delegate_registry!(AppState);
 // sctk 0.21 replaced the per-protocol delegate macros with one blanket impl.
 smithay_client_toolkit::delegate_dispatch2!(AppState);
@@ -1205,9 +1230,15 @@ pub fn run(
     keymap: SharedKeymap,
     idle_timeout: std::time::Duration,
     screens: SharedScreens,
-    ready: &std::sync::mpsc::Sender<Result<()>>,
+    gate: Gate,
+    switch: crate::sharing::Switch,
+    crossings: Arc<AtomicU64>,
+    ready: &mut Option<tokio::sync::oneshot::Sender<Result<()>>>,
 ) -> Result<()> {
     let conn = Connection::connect_to_env().context("failed to connect to the Wayland display")?;
+    if let Err(off) = switch.read() {
+        anyhow::bail!("sharing turned off while connecting to Wayland: {off}");
+    }
     let (globals, event_queue) =
         registry_queue_init(&conn).context("failed to initialise the Wayland registry")?;
     let qh: QueueHandle<AppState> = event_queue.handle();
@@ -1243,16 +1274,16 @@ pub fn run(
         relative_pointer: None,
         keyboard: None,
         keymap,
-        modifiers: Modifiers::default(),
         last_enter_serial: 0,
         heads,
         screens,
         surfaces: Vec::new(),
         armed_for: None,
-        next_crossing: 1,
+        crossings,
         capture: None,
         clipboard,
         idle_timeout,
+        gate,
         event_tx,
         exit: false,
     };
@@ -1269,8 +1300,13 @@ pub fn run(
     let cmd_conn = conn.clone();
     handle
         .insert_source(cmd_rx, move |event, (), state: &mut AppState| {
-            let calloop::channel::Event::Msg(cmd) = event else {
-                return;
+            let cmd = match event {
+                calloop::channel::Event::Msg(cmd) => cmd,
+                // Every handle is gone: nobody can send `Shutdown` any more.
+                calloop::channel::Event::Closed => {
+                    state.exit = true;
+                    return;
+                }
             };
             match cmd {
                 WaylandCmd::Arm {
@@ -1325,6 +1361,12 @@ pub fn run(
                         let _ = cmd_conn.flush();
                     }
                 }
+                WaylandCmd::Sync { done } => {
+                    // Queued behind every request the commands before it made;
+                    // the compositor answers `done` only after it has handled them.
+                    cmd_conn.display().sync(&cmd_qh, SyncDone(std::sync::Mutex::new(Some(done))));
+                    let _ = cmd_conn.flush();
+                }
                 WaylandCmd::Shutdown => state.exit = true,
             }
         })
@@ -1353,7 +1395,9 @@ pub fn run(
         "Wayland barrier thread ready, {} screen(s) in the snapshot",
         state.screens.current().screens.len()
     );
-    let _ = ready.send(Ok(()));
+    if let Some(ready) = ready.take() {
+        let _ = ready.send(Ok(()));
+    }
 
     while !state.exit {
         // The dispatch timeout doubles as the tick for the watchdog and for a

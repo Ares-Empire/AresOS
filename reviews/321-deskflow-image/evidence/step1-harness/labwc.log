@@ -1,0 +1,3 @@
+released 1 capture(s)
+labwc: types/wlr_output_management_v1.c:777: head_send_state: Assertion `found' failed.
+labwc: types/wlr_output_management_v1.c:777: head_send_state: Assertion `found' failed.

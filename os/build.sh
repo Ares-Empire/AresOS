@@ -5,7 +5,7 @@ set -euo pipefail
 # in two of the Containerfile's stages that every image build runs (and
 # os/ci/build-mod.sh, which sets or renews the pin, builds the same two):
 #   source  in the pinned base (it has curl): fetch that commit, keep only mod/
-#           (and control/ for package 18c's control mode below)
+#           (and the inputs for Control and the input portal)
 #   mod     in the digest-pinned JDK, which has no curl or wget: Gradle only
 # minecraft/builder-tools.txt lists what the JDK image has; the tests run the
 # mod mode with exactly those tools. The image's configure step accepts the
@@ -24,10 +24,14 @@ if [[ $1 == source ]]; then
     curl -fsSL --proto '=https' --tlsv1.2 --retry 3 -o "$work/source.tar.gz" \
         "https://codeload.github.com/Ares-Empire/AresOS/tar.gz/$revision"
     mkdir -p "$out"
-    # Package 18c: the same fetch keeps control/ too, named exactly (docs/control/ is not it).
-    tar -xzf "$work/source.tar.gz" -C "$out" --strip-components=1 --wildcards '*/mod/*' "AresOS-$revision/control"
+    # Neither the portal harness nor its development scripts are builder inputs.
+    root="AresOS-$revision"
+    tar -xzf "$work/source.tar.gz" -C "$out" --strip-components=1 --no-wildcards \
+        "$root/mod" "$root/control" \
+        "$root/os/input-portal/"{build.sh,toolchain.env,Cargo.toml,Cargo.lock,LICENSE,data,src}
     test -x "$out/mod/gradlew"
     test -f "$out/control/launch.py"
+    test -f "$out/os/input-portal/Cargo.lock"
     echo "MOD_SOURCE $revision $(sha256sum "$work/source.tar.gz" | cut -d' ' -f1)"
     rm -rf "$work"
     exit 0
@@ -346,6 +350,8 @@ PY
 fi
 
 if [[ $1 == packages ]]; then
+    source /tmp/aresos/deskflow-rpm.sh
+    deskflow_repos "${2:-release}"
     mkdir -p /usr/share/aresos/manifest /tmp/ares-rpms /tmp/ares-chrome
     rpm -qa --qf '%{NEVRA}\n' | sort > /tmp/base-packages.txt
     mapfile -t packages < <(python3 - <<'PY'
@@ -355,9 +361,8 @@ assert lock['packages'], 'An exact package lock is required'
 print('\n'.join(p['nevra'] for p in lock['packages']))
 PY
     )
-    dnf5 --disable-repo='*' --enable-repo=fedora --enable-repo=updates \
-        --setopt=install_weak_deps=False --setopt=skip_if_unavailable=False --setopt=gpgcheck=True \
-        download --resolve --destdir=/tmp/ares-rpms "${packages[@]}"
+    dnf5 "${fedora_repos[@]}" download --resolve --destdir=/tmp/ares-rpms "${packages[@]}"
+    check_deskflow_rpm /tmp/ares-rpms
     python3 - <<'PY'
 import hashlib, json, pathlib, subprocess
 packages = []
@@ -399,8 +404,18 @@ PY
     printf '# AresOS: Chrome updates arrive with AresOS releases, not from a repository.\nrepo_add_once="false"\nrepo_reenable_on_distupgrade="false"\n' \
         > /etc/default/google-chrome
     mkdir -p /var/opt
+    # Fedora's Deskflow entry opens the stock window and its own core (Exec=deskflow), past the guarded
+    # launcher. RPM leaves that one file out for this install (it records it as net shared, so rpm -V stays
+    # clean), and the image's entry with the same desktop ID takes its place from config/ (brief 321).
+    deskflow_entry=/usr/share/applications/org.deskflow.deskflow.desktop
+    test -z "$(rpm --eval '%{?_netsharedpath}')"
+    printf '%%_netsharedpath %s\n' "$deskflow_entry" > /etc/rpm/macros.aresos-deskflow-entry
     dnf5 --disable-repo='*' --setopt=install_weak_deps=False --setopt=localpkg_gpgcheck=True install -y \
         /tmp/ares-rpms/*.rpm /tmp/ares-chrome/google-chrome.rpm
+    rm /etc/rpm/macros.aresos-deskflow-entry
+    test ! -e "$deskflow_entry"
+    test "$(rpm -q --qf '[%{FILESTATES:fstate}|%{FILENAMES}\n]' deskflow | grep -c '^net shared|')" = 1
+    rpm -q --qf '[%{FILESTATES:fstate}|%{FILENAMES}\n]' deskflow | grep -Fxq "net shared|$deskflow_entry"
     # The key was needed only to verify this RPM; the image trusts no new key.
     rpmkeys --list | sort > /tmp/ares-chrome/keys-imported.txt
     while read -r fingerprint rest; do

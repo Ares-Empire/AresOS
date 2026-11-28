@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<labwc_config>
+  <keyboard>
+    <keybind key="W-S-Escape">
+      <action name="Execute" command="/usr/libexec/aresos-input-portal --release" />
+    </keybind>
+  </keyboard>
+</labwc_config>

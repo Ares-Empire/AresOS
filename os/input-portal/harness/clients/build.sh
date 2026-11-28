@@ -13,6 +13,7 @@ for xml in "$protocols/stable/xdg-shell/xdg-shell.xml" \
     "$protocols/unstable/pointer-constraints/pointer-constraints-unstable-v1.xml" \
     "$protocols/unstable/relative-pointer/relative-pointer-unstable-v1.xml" \
     /usr/share/wlr-protocols/unstable/wlr-virtual-pointer-unstable-v1.xml \
+    /usr/share/wlr-protocols/unstable/wlr-layer-shell-unstable-v1.xml \
     /usr/share/wlr-protocols/unstable/wlr-output-management-unstable-v1.xml \
     "$src/virtual-keyboard-unstable-v1.xml"; do
     name=$(basename "$xml" .xml)
@@ -26,7 +27,7 @@ gcc -std=c11 -O1 -Wall -Werror -I"$gen" -o "$out/wl-harness" "$src/wl-harness.c"
 gcc -std=c11 -O1 -Wall -Werror -o "$out/eis-receiver" "$src/eis-receiver.c" $(pkg-config --cflags --libs libei-1.0)
 rm -rf -- "$gen"
 
-# The RPM's name and the bytes the loader maps, against the lock: this labwc is 311's, patch included.
+# The RPM's name and the bytes the loader maps, against the lock: this labwc is the stage's, both patches included.
 python3 -I - "$lock" <<'PY'
 import json
 import subprocess

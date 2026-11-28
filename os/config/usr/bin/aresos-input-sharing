@@ -1,0 +1,44 @@
+#!/usr/bin/python3 -I
+import runpy
+import subprocess
+import sys
+
+HELPER = '/usr/libexec/aresos-input-sharing-set'
+PORTAL = '/usr/libexec/aresos-input-portal'
+DIALOG = ['/usr/bin/kdialog', '--title', 'Mouse and keyboard sharing']
+
+
+def change(verb):
+    result = subprocess.run(['/usr/bin/pkexec', '--disable-internal-agent', HELPER, verb])
+    if result.returncode == 0 and verb == 'off':
+        return subprocess.run([PORTAL, '--revoke']).returncode
+    return result.returncode
+
+
+def main(args):
+    if args in (['on'], ['off']):
+        return change(args[0])
+    if args and args != ['status']:
+        print('Usage: aresos-input-sharing [status|on|off]', file=sys.stderr)
+        return 2
+
+    sharing_on = runpy.run_path(HELPER)['sharing_on']
+    if args:
+        print('on' if sharing_on() else 'off')
+        return 0
+    while True:
+        if sharing_on():
+            text = 'Sharing is on. Super+Shift+Escape brings the mouse back at any time.'
+            verb, label = 'off', 'Turn off'
+        else:
+            text = "Sharing is off. Deskflow can't use this laptop's mouse, keyboard or clipboard."
+            verb, label = 'on', 'Turn on'
+        if subprocess.run([*DIALOG, '--yes-label', label, '--no-label', 'Close', '--yesno', text]).returncode:
+            return 0
+        status = change(verb)
+        if status and status != 126:  # The owner dismissed the password prompt.
+            subprocess.run([*DIALOG, '--error', f'Could not turn sharing {verb}.'])
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv[1:]))

@@ -90,6 +90,16 @@ pub struct DeviceData {
     pending: Arc<Mutex<Option<ExtDataControlOfferV1>>>,
 }
 
+/// The requests that give up a claim. Spelled out as data so the rule can be
+/// tested without a compositor: there is deliberately no request that touches the
+/// seat's selection (`set_selection(None)`), which could hit another client's.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ReleaseRequest {
+    DestroyOwnSource,
+}
+
+const RELEASE_REQUESTS: &[ReleaseRequest] = &[ReleaseRequest::DestroyOwnSource];
+
 pub struct ClipboardState {
     manager: ExtDataControlManagerV1,
     device: Option<ExtDataControlDeviceV1>,
@@ -197,14 +207,21 @@ impl ClipboardState {
     }
 
     /// Give up a claim made by [`Self::claim`].
+    ///
+    /// Only the portal's own source is destroyed; the seat's selection is not
+    /// unset (REVIEW-3, finding 3). The compositor clears the selection when the
+    /// source that holds it is destroyed, and leaves it alone when a local copy
+    /// has already replaced it. Unsetting it here would erase such a copy made in
+    /// the instant before the backend has dispatched its `cancelled`.
     pub fn release(&mut self) {
         let Some(source) = self.source.take() else {
             return;
         };
-        if let Some(device) = &self.device {
-            device.set_selection(None);
+        for request in RELEASE_REQUESTS {
+            match request {
+                ReleaseRequest::DestroyOwnSource => source.destroy(),
+            }
         }
-        source.destroy();
         debug!("released the clipboard claim");
     }
 
@@ -362,5 +379,18 @@ where
             }
             _ => {}
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ReleaseRequest, RELEASE_REQUESTS};
+
+    #[test]
+    fn giving_up_a_claim_destroys_only_the_portal_s_own_source() {
+        // One request, on the portal's own object. A request on the device
+        // (`set_selection(None)`) would clear whatever the seat holds then,
+        // which can already be a local copy the owner just made.
+        assert_eq!(RELEASE_REQUESTS, [ReleaseRequest::DestroyOwnSource]);
     }
 }

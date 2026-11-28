@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Mouse and keyboard sharing
+Comment=Control whether Deskflow can share this laptop's input and clipboard
+Icon=input-keyboard
+Exec=/usr/bin/aresos-input-sharing
+TryExec=/usr/bin/aresos-input-sharing
+Terminal=false
+Categories=Settings;

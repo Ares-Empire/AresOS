@@ -17,6 +17,7 @@ use reis::{
     PendingRequestResult,
 };
 use std::{
+    collections::BTreeSet,
     os::fd::{AsFd, OwnedFd},
     os::unix::net::UnixStream,
     sync::{Arc, RwLock},
@@ -24,6 +25,8 @@ use std::{
 };
 use tokio::{io::unix::AsyncFd, sync::mpsc};
 use tracing::{debug, info, warn};
+
+use crate::sharing::Gate;
 
 /// Everything the capture side can ask the EIS connection to emit.
 #[derive(Clone)]
@@ -134,6 +137,7 @@ struct Devices {
     keyboard: Option<reis::request::Device>,
     pointer: Option<reis::request::Device>,
     emulating: bool,
+    pressed_keys: BTreeSet<u32>,
     /// The seat the receiver bound, and which devices (pointer, keyboard) it may
     /// have there: kept so the devices can be made again when the screens change.
     seat: Option<reis::request::Seat>,
@@ -194,10 +198,16 @@ impl Devices {
             device.remove();
         }
         self.emulating = false;
+        self.pressed_keys.clear();
         self.ensure(conn, sequence, keymap, region);
     }
 
-    fn apply(&mut self, cmd: &EisCommand, started: Instant) {
+    /// `sharing` is the gate (`sharing.rs`) as it is now: closed, no input goes
+    /// out even inside a capture run.
+    fn apply(&mut self, cmd: &EisCommand, started: Instant, sharing: bool) {
+        if !input_allowed(self.emulating && sharing, cmd) {
+            return;
+        }
         match cmd {
             EisCommand::StartEmulating { sequence } => {
                 if self.emulating {
@@ -214,6 +224,20 @@ impl Devices {
             EisCommand::StopEmulating => {
                 if !self.emulating {
                     return;
+                }
+                // The Deskflow receiver doesn't release keys on StopEmulating. The
+                // compositor takes the release chord's key-up events after giving
+                // the keyboard back, so close the client's frame while it still
+                // has the emulated keyboard. Off already closed the forwarding gate.
+                let pressed = std::mem::take(&mut self.pressed_keys);
+                if sharing && !pressed.is_empty()
+                    && let Some(device) = &self.keyboard
+                    && let Some(keyboard) = device.interface::<eis::Keyboard>()
+                {
+                    for key in pressed {
+                        keyboard.key(key, eis::keyboard::KeyState::Released);
+                    }
+                    device.frame(u64::try_from(started.elapsed().as_micros()).unwrap_or(u64::MAX));
                 }
                 for dev in [self.pointer.as_ref(), self.keyboard.as_ref()]
                     .into_iter()
@@ -281,6 +305,11 @@ impl Devices {
                     .as_ref()
                     .and_then(reis::request::Device::interface::<eis::Keyboard>)
                 {
+                    if *press {
+                        self.pressed_keys.insert(*keycode);
+                    } else {
+                        self.pressed_keys.remove(keycode);
+                    }
                     k.key(
                         *keycode,
                         if *press {
@@ -306,6 +335,34 @@ impl Devices {
     }
 }
 
+/// Whether `cmd` may be written to the receiver while its devices are (or are
+/// not) `emulating`. Input goes out only inside a capture run, between
+/// `StartEmulating` and `StopEmulating` (REVIEW-3, finding 1).
+///
+/// When the portal ends a run (another session armed, `Release`, the way out),
+/// it stops emulation here at once but the Wayland thread's teardown is queued
+/// behind it: a key or button that thread handles in between still arrives on
+/// this channel, after the client was told `Deactivated`. It is dropped here.
+/// The next run's first keys are not: the portal sends `StartEmulating` on this
+/// channel before it sends `AttachEis` to the Wayland thread, and that thread
+/// writes what it held for the crossing only once `AttachEis` has come, so
+/// those keys always come after the `StartEmulating` that lets them through.
+fn input_allowed(emulating: bool, cmd: &EisCommand) -> bool {
+    match cmd {
+        EisCommand::Motion { .. }
+        | EisCommand::Button { .. }
+        | EisCommand::Scroll { .. }
+        | EisCommand::ScrollDiscrete { .. }
+        | EisCommand::ScrollStop
+        | EisCommand::Key { .. }
+        | EisCommand::Frame => emulating,
+        EisCommand::StartEmulating { .. }
+        | EisCommand::StopEmulating
+        | EisCommand::SetRegion(_)
+        | EisCommand::Close => true,
+    }
+}
+
 /// The compositor's current xkb keymap, shared with the Wayland thread.
 ///
 /// Devices are created when the client binds a seat, which can happen before or
@@ -325,6 +382,9 @@ pub type SharedKeymap = Arc<RwLock<Option<String>>>;
 ///
 /// `capabilities` is what the session was granted (`CAP_*` bits). The seat
 /// offers that and no more, whatever the receiver asks to bind.
+///
+/// `gate` is read before every input event is written: when sharing goes off,
+/// nothing more goes out, also what is already queued on this channel.
 pub fn spawn(
     socket: UnixStream,
     label: String,
@@ -332,6 +392,7 @@ pub fn spawn(
     closed_tx: mpsc::UnboundedSender<(String, u32)>,
     region: Option<Region>,
     capabilities: u32,
+    gate: Gate,
 ) -> Result<EisHandle> {
     static NEXT_ID: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(1);
 
@@ -340,7 +401,7 @@ pub fn spawn(
     let id = NEXT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
     tokio::spawn(async move {
-        if let Err(err) = run(context, rx, &label, &keymap, region, capabilities).await {
+        if let Err(err) = run(context, rx, &label, &keymap, region, capabilities, &gate).await {
             warn!(session = %label, "EIS connection ended: {err:#}");
         } else {
             info!(session = %label, "EIS connection closed");
@@ -375,6 +436,7 @@ async fn run(
     keymap: &SharedKeymap,
     mut region: Option<Region>,
     capabilities: u32,
+    gate: &Gate,
 ) -> Result<()> {
     let started = Instant::now();
     // SAFETY: the context keeps its socket open for as long as any clone of it
@@ -416,7 +478,7 @@ async fn run(
                 // client has not bound a seat yet and there is nothing to emit on.
                 Some(cmd) => {
                     if connected.is_some() {
-                        devices.apply(&cmd, started);
+                        devices.apply(&cmd, started, gate.is_open());
                         let _ = context.flush();
                     }
                 }
@@ -661,6 +723,79 @@ mod tests {
         assert_eq!(bound_devices(both, DeviceCapability::Button | DeviceCapability::Scroll), (false, false));
         // Granted the pointer, binding the keyboard: neither.
         assert_eq!(bound_devices(CAP_POINTER, DeviceCapability::Keyboard.into()), (false, false));
+    }
+
+    #[test]
+    fn input_reaches_the_receiver_only_inside_a_capture_run() {
+        let started = Instant::now();
+        let mut devices = Devices::default();
+        let input = [
+            EisCommand::Key { keycode: 30, press: true },
+            EisCommand::Button { button: 272, press: true },
+            EisCommand::Motion { dx: 1.0, dy: 1.0 },
+            EisCommand::Scroll { dx: 0.0, dy: 1.0 },
+            EisCommand::ScrollDiscrete { dx: 0, dy: 120 },
+            EisCommand::ScrollStop,
+            EisCommand::Frame,
+        ];
+        let passes = |devices: &Devices| -> Vec<bool> {
+            input.iter().map(|cmd| input_allowed(devices.emulating, cmd)).collect()
+        };
+
+        // Before any capture nothing goes out.
+        assert!(passes(&devices).iter().all(|passes| !passes));
+
+        // Session A's capture.
+        devices.apply(&EisCommand::StartEmulating { sequence: 1 }, started, true);
+        assert!(passes(&devices).iter().all(|passes| *passes));
+
+        // Session B arms: the portal stops A's run. A key the Wayland thread
+        // handled before its queued teardown arrives after that and is dropped.
+        devices.apply(&EisCommand::StopEmulating, started, true);
+        assert!(passes(&devices).iter().all(|passes| !passes));
+
+        // A's next capture: its first keys follow its StartEmulating and go out.
+        devices.apply(&EisCommand::StartEmulating { sequence: 2 }, started, true);
+        assert!(passes(&devices).iter().all(|passes| *passes));
+
+        // The commands that manage the run are never held back.
+        for control in [
+            EisCommand::StartEmulating { sequence: 3 },
+            EisCommand::StopEmulating,
+            EisCommand::SetRegion(None),
+            EisCommand::Close,
+        ] {
+            assert!(input_allowed(false, &control), "{control:?}");
+        }
+    }
+
+    #[test]
+    fn a_closed_gate_drops_input_even_inside_a_capture_run() {
+        let started = Instant::now();
+        let mut devices = Devices::default();
+        // A capture run is going, with sharing on.
+        devices.apply(&EisCommand::StartEmulating { sequence: 1 }, started, true);
+        assert!(devices.emulating);
+        // Sharing goes off: the gate closes before the portal's StopEmulating
+        // and Close have come through this channel. Every input command that is
+        // still queued is dropped where it would be written.
+        let gate = Gate::default();
+        assert!(!gate.is_open());
+        for cmd in [
+            EisCommand::Key { keycode: 30, press: true },
+            EisCommand::Button { button: 272, press: false },
+            EisCommand::Motion { dx: 1.0, dy: 1.0 },
+            EisCommand::Scroll { dx: 0.0, dy: 1.0 },
+            EisCommand::ScrollDiscrete { dx: 0, dy: 120 },
+            EisCommand::ScrollStop,
+            EisCommand::Frame,
+        ] {
+            assert!(!input_allowed(devices.emulating && gate.is_open(), &cmd), "{cmd:?}");
+            assert!(input_allowed(devices.emulating && !gate.is_open(), &cmd), "{cmd:?} with the gate open");
+        }
+        // The run's own commands still pass, so the teardown can stop it.
+        devices.apply(&EisCommand::StopEmulating, started, gate.is_open());
+        assert!(!devices.emulating);
     }
 
     #[test]

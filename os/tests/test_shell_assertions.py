@@ -189,6 +189,16 @@ bootc() { echo TRANSACTION_MUST_NOT_RUN; }
                 if 'staged' in state or 'rollback_queued' in state:
                     self.assertIn('pending deployment before switch', result.stderr)
 
+    def test_deskflow_image_guard_rejects_a_silent_rpm_verify_failure(self):
+        source = (ROOT / 'ci/image-checks.sh').read_text()
+        _, _, after_entry_check = source.partition('cmp "$sharing_source/applications/org.deskflow.deskflow.desktop" "$deskflow_entry"\n')
+        guard = after_entry_check.splitlines()[0]
+        for status in (0, 42):
+            with self.subTest(status=status):
+                result = self.bash(f'set -euo pipefail\nrpm() {{ return {status}; }}\n{guard}\necho VERIFIED\n')
+                self.assertEqual(result.returncode, status)
+                self.assertEqual(result.stdout, 'VERIFIED\n' if status == 0 else '')
+
     def test_stock_and_rollback_guard_refuses_daily_account(self):
         source = (ROOT / 'release/stock-session.sh').read_text()
         result = self.bash("getent() { echo 'ares:x:1001:1001::/home/ares:/bin/bash'; }\n" + source)

@@ -183,9 +183,10 @@ class DiscoveryTest(DiscoveryBase):
         with self.assertLogs(shell.LOG, level='WARNING') as logs:
             apps, _ = self.catalogue(registry=REGISTRY)
         self.assertEqual(len(apps), shell.MAX_APPS)
-        self.assertTrue({'browser', 'terminal', 'notepad'} <= set(apps))
-        self.assertEqual(set(apps) - {'browser', 'terminal', 'notepad'},
-                         {f'program{n:03d}' for n in range(shell.MAX_APPS - 3)})
+        reviewed = {'browser', 'terminal', 'notepad', 'org-deskflow-deskflow'}
+        self.assertTrue(reviewed <= set(apps))
+        self.assertEqual(set(apps) - reviewed,
+                         {f'program{n:03d}' for n in range(shell.MAX_APPS - len(reviewed))})
         self.assertEqual(len(logs.output), 1)
         self.assertIn('MAX_APPS=256', logs.output[0])
 
@@ -318,7 +319,7 @@ class IDsAndRegistryTest(DiscoveryBase):
             self.write(filename)
         with self.assertLogs(shell.LOG, level='WARNING') as logs:
             apps, _ = self.catalogue(registry=REGISTRY)
-        self.assertEqual(set(apps), {'browser', 'terminal', 'notepad'})
+        self.assertEqual(set(apps), {'browser', 'terminal', 'notepad', 'org-deskflow-deskflow'})
         self.assertTrue(all(not app.discovered for app in apps.values()))
         self.assertEqual(apps['browser'].argv, ('/usr/bin/google-chrome',))
         self.assertEqual(shell.resolve(apps['browser'], self.executables.__contains__)[2], 'not_installed')
@@ -515,7 +516,8 @@ class CompatibilityTest(Base):
         conn = self.connect(helper)
         listing = self.request(helper, conn, 'list_apps')
         self.assertEqual(listing['revision'], shell.load_registry(str(REGISTRY))[1])
-        self.assertEqual({app['id'] for app in listing['apps']}, {'browser', 'terminal', 'notepad'})
+        self.assertEqual({app['id'] for app in listing['apps']},
+                         {'browser', 'terminal', 'notepad', 'org-deskflow-deskflow'})
         self.assertTrue(all(set(app) == {'id', 'name', 'available', 'reason'} for app in listing['apps']))
         reply = self.request(helper, conn, 'open_app', 'discover-1', app_id='lunarclient')
         self.assertEqual(reply['error'], 'unknown_app')

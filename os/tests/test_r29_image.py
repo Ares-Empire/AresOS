@@ -17,12 +17,12 @@ class ResolveRequestsTest(unittest.TestCase):
         inventory = script.split('section packages\n', 1)[1].split('section filesystem', 1)[0]
         transaction = script.split('section transaction-preview\n', 1)[1].split('section available', 1)[0]
         available = script.split('section available\n', 1)[1].split('section existing-lock-availability', 1)[0]
-        candidate = script.split('names=()\n', 1)[1].split('download --resolve', 1)[0]
+        candidate = script.split('names=()\n', 1)[1].split('resolve_deskflow_candidate', 1)[0]
         self.assertRegex(inventory, r'rpm -q [^\n]*\bgtk4-layer-shell\b')
         self.assertRegex(transaction, r'install --assumeno [^\n]*\bgtk4-layer-shell\b')
         self.assertRegex(available, r'repoquery [^\n]*\bgtk4-layer-shell\b')
         self.assertIn('names+=(gtk4-layer-shell.x86_64)', candidate)
-        self.assertIn('download --resolve --destdir=/tmp/ares-rpms "${names[@]}"', script)
+        self.assertIn('resolve_deskflow_candidate "$mode" /tmp/ares-rpms "${names[@]}"', script)
 
 
 class JetBrainsMonoTest(unittest.TestCase):
@@ -114,12 +114,20 @@ class DriverManifestCheckTest(unittest.TestCase):
 
 
 class PackageLockTest(unittest.TestCase):
-    """Step 2: the lock is resolve run 44912634031's candidate, which adds only the x86_64 layer library."""
+    """The R29 candidate plus the two RPMs reviewed for B321."""
     RUN = OS.parent / 'reviews/323-r29-image/runs/resolve-44912634031/candidate-packages.lock.json'
 
     def test_the_lock_is_the_resolved_candidate_in_its_order(self):
         lock = json.loads((OS / 'packages.lock.json').read_text())
-        self.assertEqual(lock, json.loads(self.RUN.read_text()))
+        expected = json.loads(self.RUN.read_text())
+        expected['packages'].extend([
+            {'nevra': 'deskflow-1.27.0-1.fc44.x86_64',
+             'sha256': '21a404d8bd0488fdc7ec635ed26447d623b132dc4ae3d12e5f944991ab76484b'},
+            {'nevra': 'libportal-0.10.0-1.fc44.x86_64',
+             'sha256': 'bd56170a54a8b8a397fb06c7ad4b07b3cae480449d6fdbb471973941f75031cb'},
+        ])
+        expected['packages'].sort(key=lambda package: package['nevra'])
+        self.assertEqual(lock, expected)
 
     def test_only_the_x86_64_layer_library_is_pinned(self):
         pinned = [p for p in json.loads((OS / 'packages.lock.json').read_text())['packages']

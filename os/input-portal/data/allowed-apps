@@ -1,4 +1,1 @@
-# The applications that may capture the keyboard, the pointer and the clipboard
-# through aresos-input-portal: one exact application ID per line, nothing else.
-# An application that is not listed here is refused, and so is the empty ID.
-# Installed as /usr/share/aresos/input-portal/allowed-apps, owned by root.
+org.deskflow.deskflow

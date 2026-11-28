@@ -1,0 +1,32 @@
+#!/usr/bin/python3 -I
+"""CI-only sharing commands in the real greetd session, where polkit sees an active seat."""
+import json
+import os
+from pathlib import Path
+import subprocess
+import time
+
+root = Path(os.environ['XDG_RUNTIME_DIR'])
+request, answer = root / 'deskflow-ci-switch-request', root / 'deskflow-ci-switch-answer'
+parent = os.getppid()
+while os.getppid() == parent:
+    try:
+        data = json.loads(request.read_text())
+    except FileNotFoundError:
+        time.sleep(0.1)
+        continue
+    request.unlink()
+    args = data['args']
+    if args in [['on'], ['off']]:
+        command = ['/usr/bin/aresos-input-sharing', *args]
+    else:
+        command = ['/usr/bin/pkexec', '--disable-internal-agent', '/usr/libexec/aresos-input-sharing-set', *args]
+    try:
+        result = subprocess.run(command, env=dict(os.environ, **data['display']),
+                                stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=80)
+        report = dict(code=result.returncode, stdout=result.stdout, stderr=result.stderr)
+    except subprocess.TimeoutExpired:
+        report = dict(code=None, stdout='', stderr='sharing command timed out')
+    temporary = answer.with_suffix('.tmp')
+    temporary.write_text(json.dumps(report))
+    temporary.replace(answer)

@@ -113,7 +113,7 @@ class TerminalShellTest(unittest.TestCase):
         wrapper = (CONFIG / 'usr/bin/aresos-terminal').read_text()
         rc = ET.parse(CONFIG / 'usr/share/aresos/labwc/rc.xml').getroot()
         binds = {b.get('key'): b.find('action').get('command') for b in rc.iter('keybind')}
-        self.assertEqual(binds['W-C-Escape'], '/usr/bin/aresos-terminal --recovery')
+        self.assertEqual(binds['W-C-Escape'], "/usr/bin/sh -c '/usr/libexec/aresos-input-portal --release; exec /usr/bin/aresos-terminal --recovery'")
         # Package 23: the session starts the desktop supervisor, which opens a terminal only to say what to do;
         # Super+Ctrl+Escape still opens the recovery terminal at any time.
         self.assertIn('/usr/libexec/aresos-desktop session &',
@@ -251,9 +251,9 @@ class StartupPathTest(unittest.TestCase):
         self.assertIn("SYSTEMD_RUN = '/usr/bin/systemd-run'", helper)
         self.assertIn("SYSTEMCTL = '/usr/bin/systemctl'", helper)
         apps = {path.stem: json.loads(path.read_text()) for path in (CONFIG / 'usr/share/aresos/apps').glob('*.json')}
-        self.assertEqual(set(apps), {'browser', 'notepad', 'terminal'})
+        self.assertEqual(set(apps), {'browser', 'org-deskflow-deskflow', 'notepad', 'terminal'})
         for app in apps.values():
-            self.assertTrue(app['argv'][0].startswith('/usr/bin/'), app)
+            self.assertTrue(app['argv'][0].startswith(('/usr/bin/', '/usr/libexec/')), app)
         self.assertEqual(apps['terminal']['argv'], ['/usr/bin/foot', '--app-id=aresos.terminal', '/usr/bin/bash',
                                                     '--rcfile', '/usr/share/aresos/bashrc', '-i'])
 
@@ -441,7 +441,9 @@ class DesktopDefaultsTest(unittest.TestCase):
     def test_polkit_agent_starts_before_the_desktop(self):
         lines = [l for l in (CONFIG / 'usr/share/aresos/labwc/autostart').read_text().splitlines()
                  if l and not l.startswith('#')]
-        self.assertEqual(lines, ['/usr/libexec/kf6/polkit-kde-authentication-agent-1 &',
+        self.assertEqual(lines, ['/usr/bin/dbus-update-activation-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP',
+                                 '/usr/libexec/kf6/polkit-kde-authentication-agent-1 &',
+                                 '/usr/libexec/aresos-deskflow-login &',
                                  '/usr/libexec/aresos-desktop session &'])
 
     def test_links_open_in_chrome_unless_the_user_chooses_otherwise(self):

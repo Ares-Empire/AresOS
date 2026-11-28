@@ -13,9 +13,11 @@
 # touches the session of whoever runs it: no sudo, no install outside the container, no portal configuration.
 # The container has a time limit, and cleanup removes only that one container.
 #
-# The image is built from LABWC_IMAGE (default localhost/aresos-labwc:311e): the `labwc` stage of
-# os/Containerfile, whose /out holds package 311's RPM. Build it with
-#   podman --cgroup-manager=cgroupfs build --target labwc --format=oci --tag localhost/aresos-labwc:311e --file os/Containerfile os
+# The image is built from LABWC_IMAGE (default localhost/aresos-labwc:321c): the `labwc` stage of
+# os/Containerfile, whose /out holds the RPM with both patches (311's and 321's). Build it with
+#   podman --cgroup-manager=cgroupfs build --target labwc --format=oci --tag localhost/aresos-labwc:321c --file os/Containerfile os
+# HARNESS_IMAGE (default localhost/aresos-input-portal-harness:321c) names the harness image, for a run on another
+# labwc: the image's build refuses a labwc that is not the lock's, so that also needs that labwc's own lock.
 set -euo pipefail
 
 die() {
@@ -30,8 +32,8 @@ usage() {
 
 here=$(realpath -e -- "$(dirname -- "$0")")
 repo=$(realpath -e -- "$here/../../..")
-labwc_image=${LABWC_IMAGE:-localhost/aresos-labwc:311e}
-image=localhost/aresos-input-portal-harness:316
+labwc_image=${LABWC_IMAGE:-localhost/aresos-labwc:321c}
+image=${HARNESS_IMAGE:-localhost/aresos-input-portal-harness:321c}
 
 work=$(mktemp -d)
 name=aresos-input-portal-harness-$$
@@ -59,9 +61,11 @@ run_tests() {
     [ -z "$(ls -A -- "$evidence")" ] || die "the evidence dir $2 is not empty"
     podman image exists "$image" || build_image
 
-    mkdir -p "$work/stage/backend"
+    mkdir -p "$work/stage/backend" "$work/stage/labwc"
     cp -- "$here/in-container.sh" "$here/driver.py" "$work/stage/"
     cp -- "$backend/aresos-input-portal" "$work/stage/backend/"
+    cp -- "$backend"/data/*.service "$work/stage/backend/"
+    cp -- "$repo/os/labwc/"{stage.py,loaded_image.py,labwc.lock.json} "$work/stage/labwc/"
 
     # --network=none: no route out, and a network namespace of its own, which is also what keeps the host's
     # abstract sockets (X11, a bus) out of reach. No -v, no --device, no --env: nothing of the host goes in.
@@ -72,6 +76,7 @@ run_tests() {
             "$image" bash -euc '
                 mkdir /harness
                 tar -xf - -C /harness --no-same-owner
+                python3 -I /harness/labwc/stage.py check-installed /harness/labwc >&2
                 exec bash /harness/in-container.sh' > "$work/evidence.tar" || status=$?
 
     # The archive comes from the container: accept plain files and folders only.

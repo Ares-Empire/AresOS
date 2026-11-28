@@ -1109,7 +1109,10 @@ class ContainerfileTest(unittest.TestCase):
                          ['COPY --from=source /source/control /tmp/aresos/control'])
         self.assertFalse((ROOT / 'os/control').exists(), 'the os/ build context must not carry a second control/')
         build = (ROOT / 'os/build.sh').read_text()
-        self.assertIn('"AresOS-$revision/control"', build.split('if [[ $1 == source ]]', 1)[1].split('\nfi\n', 1)[0])
+        source = build.split('if [[ $1 == source ]]', 1)[1].split('\nfi\n', 1)[0]
+        self.assertIn('root="AresOS-$revision"', source)
+        extract = source.split('tar -xzf ', 1)[1].split('\n    test ', 1)[0]
+        self.assertIn('"$root/control"', extract)
 
 
 

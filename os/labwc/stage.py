@@ -1,10 +1,12 @@
 #!/usr/bin/python3
-"""Package 311: Fedora's labwc rebuilt with one patch, from exact inputs (labwc.lock.json).
+"""Package 311: Fedora's labwc rebuilt with its patches, from exact inputs (labwc.lock.json). Package 321 (step 1c)
+added the second patch: the lock lists the patches in the order they are applied.
 
   stage.py fetch <lock folder> <inputs>             labwc-inputs stage: download every input and check it
   stage.py build <lock folder> <inputs> <out>       labwc stage, on the locked fedora:44: the RPM and nothing else,
                                                     once its binaries match the lock's normalized and loaded pins
   stage.py install <rpm folder> <lock folder>       packages stage: our RPM replaces Fedora's labwc
+  stage.py check-installed <lock folder>           check the installed binaries against both pins
   stage.py resolve <lock folder> <resolved> <out>   check_build=resolve: a candidate from resolve-download.sh's folder
 
 fedora:44 has no Python, so the pinned AresOS base fetches the inputs and install-inputs.sh installs them before
@@ -34,7 +36,8 @@ NEVRA = re.compile(r'[A-Za-z0-9._+-]+-(?:[0-9]+:)?[A-Za-z0-9._+~^]+-[A-Za-z0-9._
 RELEASE_LINE = 'Release:    %autorelease\n'
 SOURCE_LINE = 'Source:     %{forgesource}\n'
 # The braces matter: %autorelease takes the rest of its line as arguments.
-RELEASE_EDIT = 'Release:    %{autorelease}.aresos1\n'
+# One tag for one set of patches: aresos1 was 311's single patch, aresos2 adds 321's (no bindings for the capture layer).
+RELEASE_EDIT = 'Release:    %{autorelease}.aresos2\n'
 DIST = '.fc44'
 # labwc links this library: the headers it builds against must be the build the image runs.
 WLROOTS, WLROOTS_DEVEL = 'wlroots0.19', 'wlroots0.19-devel'
@@ -46,7 +49,7 @@ PINNED_BINARIES = ('/usr/bin/labnag', '/usr/bin/labwc')
 PIN_KINDS = ('normalized_sha256', 'loaded_sha256')
 LOADED_IMAGE = 'loaded_image.py'
 PIN_RENEWAL = ('LABWC_PINS_KEPT a candidate keeps the lock\'s result.normalized_sha256 and result.loaded_sha256, and no '
-               'build ever writes either. After a change to the patch or the locked build environment, run podman build '
+               'build ever writes either. After a change to a patch or the locked build environment, run podman build '
                '--no-cache --target labwc twice: each run prints LABWC_NORMALIZED and LABWC_LOADED lines and stops with '
                'LABWC_REFUSED. If both runs print the same hashes, review the change and write them into '
                'result.normalized_sha256 and result.loaded_sha256 by hand.')
@@ -109,10 +112,10 @@ def validate_lock(lock):
         if not condition:
             raise Refusal(f'{LOCK_NAME}: {message}')
 
-    need(isinstance(lock, dict) and set(lock) == {'base', 'source', 'patch', 'result', 'build_dependencies'},
-         'expected exactly base, source, patch, result and build_dependencies')
-    base, source, patch, result, dependencies = (lock['base'], lock['source'], lock['patch'], lock['result'],
-                                                 lock['build_dependencies'])
+    need(isinstance(lock, dict) and set(lock) == {'base', 'source', 'patches', 'result', 'build_dependencies'},
+         'expected exactly base, source, patches, result and build_dependencies')
+    base, source, patches, result, dependencies = (lock['base'], lock['source'], lock['patches'], lock['result'],
+                                                   lock['build_dependencies'])
     need(isinstance(base, dict) and set(base) == {'reference', 'packages'}, 'base needs exactly reference and packages')
     need(isinstance(base['reference'], str) and BASE_REFERENCE.fullmatch(base['reference']),
          'base.reference must be fedora pinned by digest')
@@ -124,13 +127,18 @@ def validate_lock(lock):
     need(isinstance(source['url'], str) and source['url'].startswith(KOJI) and source['url'].endswith('.src.rpm'),
          'source.url must be a source package on kojipkgs.fedoraproject.org')
     need(isinstance(source['sha256'], str) and SHA256.fullmatch(source['sha256']), 'source.sha256 is not a SHA-256')
-    need(isinstance(patch, dict) and set(patch) == {'file', 'sha256'}, 'patch needs exactly file and sha256')
-    need(isinstance(patch['file'], str) and re.fullmatch(r'[0-9A-Za-z][0-9A-Za-z.-]*\.patch', patch['file']),
-         'patch.file must be a plain .patch file name')
-    need(isinstance(patch['sha256'], str) and SHA256.fullmatch(patch['sha256']), 'patch.sha256 is not a SHA-256')
+    need(isinstance(patches, list) and patches, 'patches must list every patch, in the order they are applied')
+    for patch in patches:
+        need(isinstance(patch, dict) and set(patch) == {'file', 'sha256'}, 'each patch needs exactly file and sha256')
+        need(isinstance(patch['file'], str) and re.fullmatch(r'[0-9A-Za-z][0-9A-Za-z.-]*\.patch', patch['file']),
+             'patch.file must be a plain .patch file name')
+        need(isinstance(patch['sha256'], str) and SHA256.fullmatch(patch['sha256']), 'patch.sha256 is not a SHA-256')
+    files = [patch['file'] for patch in patches]
+    # The file names carry the order (0001-, 0002-): a lock that lists them otherwise would apply them otherwise.
+    need(files == sorted(set(files)), 'patches must be in the order of their file names, without repeats')
     need(isinstance(result, dict) and set(result) == {'nevra', 'replaces', *PIN_KINDS},
          'result needs exactly nevra, replaces, normalized_sha256 and loaded_sha256')
-    need(result['nevra'] == 'labwc-0.9.6-1.fc44.aresos1.x86_64', 'result.nevra is not the reviewed build')
+    need(result['nevra'] == 'labwc-0.9.6-1.fc44.aresos2.x86_64', 'result.nevra is not the reviewed build')
     need(result['replaces'] == 'labwc-0.9.6-1.fc44.x86_64', "result.replaces is not Fedora's labwc")
     for kind in PIN_KINDS:
         pins = result[kind]
@@ -200,12 +208,19 @@ def require_locked_base(lock, lock_folder):
         raise Refusal(f'the labwc stage must be built from the locked {locked}, {CONTAINERFILE} says {found}')
 
 
-def check_patch(lock, lock_folder):
-    patch = pathlib.Path(lock_folder) / lock['patch']['file']
-    if not patch.is_file():
-        raise Refusal(f'the patch {patch.name} is missing')
-    require_sha256(patch, lock['patch']['sha256'], 'the patch')
-    return patch
+def check_patches(lock, lock_folder):
+    """The locked patch files, in the order they are applied. No other .patch file may lie beside them."""
+    found = []
+    for entry in lock['patches']:
+        patch = pathlib.Path(lock_folder) / entry['file']
+        if not patch.is_file():
+            raise Refusal(f'the patch {patch.name} is missing')
+        require_sha256(patch, entry['sha256'], f'the patch {patch.name}')
+        found.append(patch)
+    stray = sorted({path.name for path in pathlib.Path(lock_folder).glob('*.patch')} - {patch.name for patch in found})
+    if stray:
+        raise Refusal(f'the patches {stray} are not in the lock: a patch is either locked and applied or not here')
+    return found
 
 
 def fetch_inputs(lock_folder, inputs):
@@ -213,7 +228,7 @@ def fetch_inputs(lock_folder, inputs):
     lock_folder, inputs = pathlib.Path(lock_folder), pathlib.Path(inputs)
     lock = load_lock(lock_folder)
     require_locked_base(lock, lock_folder)
-    check_patch(lock, lock_folder)
+    check_patches(lock, lock_folder)
     require_same_wlroots(lock, image_wlroots(lock_folder))
     (inputs / 'rpms').mkdir(parents=True)
     fetch(lock['source']['url'], inputs / SOURCE_FILE)
@@ -249,13 +264,14 @@ def require_environment(lock):
                       f'missing {sorted(expected - actual)}')
 
 
-def edit_spec(spec, patch_name):
-    """The smallest edit of Fedora's spec: the release suffix and one Patch line."""
+def edit_spec(spec, patch_names):
+    """The smallest edit of Fedora's spec: the release suffix and one Patch line for each patch, in order."""
     text = spec.read_text()
     for line in (RELEASE_LINE, SOURCE_LINE):
         if text.count(line) != 1:
             raise Refusal(f"Fedora's spec does not have exactly one line {line.strip()!r}")
-    text = text.replace(RELEASE_LINE, RELEASE_EDIT).replace(SOURCE_LINE, f'{SOURCE_LINE}Patch0:     {patch_name}\n')
+    patch_lines = ''.join(f'Patch{number}:     {name}\n' for number, name in enumerate(patch_names))
+    text = text.replace(RELEASE_LINE, RELEASE_EDIT).replace(SOURCE_LINE, f'{SOURCE_LINE}{patch_lines}')
     spec.write_text(text)
 
 
@@ -300,21 +316,19 @@ def unpack_pinned_binaries(rpm, folder):
         raise Refusal(f'the payload of {pathlib.Path(rpm).name} cannot be unpacked: {detail}')
 
 
-def require_pinned_binaries(rpm, lock):
-    """The code in this RPM is the reviewed code: its sections and the bytes the loader maps both match the lock."""
+def require_binary_pins(root, lock, source):
+    """Check the ELF sections and the bytes the loader maps against the lock."""
     image = loaded_image_module()
     normalized, loaded = {}, {}
-    with tempfile.TemporaryDirectory(prefix='aresos-labwc-payload-') as folder:
-        unpack_pinned_binaries(rpm, folder)
-        for path in PINNED_BINARIES:
-            binary = pathlib.Path(folder) / path.lstrip('/')
-            if binary.is_symlink() or not binary.is_file():
-                raise Refusal(f'the RPM holds no file {path}')
-            normalized[path] = normalized_sha256(binary)
-            try:
-                loaded[path] = image.loaded_sha256(binary)
-            except image.LoadedImageRefused as refusal:
-                raise Refusal(f'the loaded image of {path} cannot be pinned: {refusal}') from refusal
+    for path in PINNED_BINARIES:
+        binary = pathlib.Path(root) / path.lstrip('/')
+        if binary.is_symlink() or not binary.is_file():
+            raise Refusal(f'{source} holds no file {path}')
+        normalized[path] = normalized_sha256(binary)
+        try:
+            loaded[path] = image.loaded_sha256(binary)
+        except image.LoadedImageRefused as refusal:
+            raise Refusal(f'the loaded image of {path} cannot be pinned: {refusal}') from refusal
     for path in PINNED_BINARIES:
         print(f'LABWC_NORMALIZED {path} {normalized[path]}', flush=True)
     for path in PINNED_BINARIES:
@@ -330,10 +344,20 @@ def require_pinned_binaries(rpm, lock):
         raise Refusal('; '.join(wrong))
 
 
+def require_pinned_binaries(rpm, lock):
+    with tempfile.TemporaryDirectory(prefix='aresos-labwc-payload-') as folder:
+        unpack_pinned_binaries(rpm, folder)
+        require_binary_pins(folder, lock, 'the RPM')
+
+
+def check_installed(lock_folder):
+    require_binary_pins('/', load_lock(lock_folder), 'the image')
+
+
 def build(lock_folder, inputs, out):
     lock_folder, inputs, out = pathlib.Path(lock_folder), pathlib.Path(inputs), pathlib.Path(out)
     lock = load_lock(lock_folder)
-    patch = check_patch(lock, lock_folder)
+    patches = check_patches(lock, lock_folder)
     source = inputs / SOURCE_FILE
     if not source.is_file():
         raise Refusal(f'the source package is missing from {inputs}')
@@ -350,9 +374,10 @@ def build(lock_folder, inputs, out):
     work = pathlib.Path(tempfile.mkdtemp(prefix='aresos-labwc-'))
     top = work / 'rpmbuild'
     subprocess.run(['rpm', '--define', f'_topdir {top}', '--nosignature', '-i', str(source)], check=True)
-    shutil.copyfile(patch, top / 'SOURCES' / patch.name)
+    for patch in patches:
+        shutil.copyfile(patch, top / 'SOURCES' / patch.name)
     spec = top / 'SPECS/labwc.spec'
-    edit_spec(spec, patch.name)
+    edit_spec(spec, [patch.name for patch in patches])
     subprocess.run(['rpmbuild', '-bb', '--define', f'_topdir {top}', '--define', f'dist {DIST}', str(spec)], check=True)
 
     nevra = lock['result']['nevra']
@@ -480,7 +505,8 @@ def resolve(lock_folder, resolved, out):
 
 
 def main(argv):
-    commands = {'fetch': (fetch_inputs, 2), 'build': (build, 3), 'install': (install, 2), 'resolve': (resolve, 3)}
+    commands = {'fetch': (fetch_inputs, 2), 'build': (build, 3), 'install': (install, 2),
+                'check-installed': (check_installed, 1), 'resolve': (resolve, 3)}
     if len(argv) < 2 or argv[1] not in commands or len(argv) != commands[argv[1]][1] + 2:
         print(__doc__, file=sys.stderr)
         return 2

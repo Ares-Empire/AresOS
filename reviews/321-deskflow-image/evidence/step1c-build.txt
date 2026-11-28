@@ -1,0 +1,60 @@
+Step 1c, what was run (2026-11-21). Commits: labwc fc81fccf, image check 0ae53900, backend and harness aa56738d.
+
+== The labwc stage: podman --cgroup-manager=cgroupfs build --no-cache --target labwc --format=oci --tag localhost/aresos-labwc:321c --file os/Containerfile os
+Builds 1 and 2: the tree of fc81fccf with aresos1's four pins still in the lock. Each applied both patches, printed
+these lines and stopped (the same lines in both logs):
+  LABWC_NORMALIZED /usr/bin/labnag b8958beab24f41e21cbdf2e052d45c93cf95454a2c06c11bd03578c12c049505
+  LABWC_NORMALIZED /usr/bin/labwc 93d6d36f91442438131843ddbfca4d050052038256509c129f88ce1756a9e0cb
+  LABWC_LOADED /usr/bin/labnag 5538d4c5a6989c2c4ec826c76c1e7901ea0b4fc8f4bcc5e7e76472480d7bff49
+  LABWC_LOADED /usr/bin/labwc 52cd76e644e8cec4922959648e4096e5fbcc4643b0d8db8d8fa335cee709a402
+  LABWC_REFUSED the normalized SHA-256 of /usr/bin/labnag is b8958beab24f41e21cbdf2e052d45c93cf95454a2c06c11bd03578c12c049505, the lock says 7c6896e938198e7922105e01b52118e2bfd75d16c431ea9c9a615127b7cc1f6d; /usr/bin/labwc is 93d6d36f91442438131843ddbfca4d050052038256509c129f88ce1756a9e0cb, the lock says 89cd0e901a5cc9f6a7df0d6337d38d817a753318cbdca8b8e620a7cfc0dd71c4; the loaded SHA-256 of /usr/bin/labnag is 5538d4c5a6989c2c4ec826c76c1e7901ea0b4fc8f4bcc5e7e76472480d7bff49, the lock says 789da84fb23e482434c84e300d1a95c90f5cec5ffc1b9a156d2f6b5cdcff47d2; /usr/bin/labwc is 52cd76e644e8cec4922959648e4096e5fbcc4643b0d8db8d8fa335cee709a402, the lock says 92b42d5f5174a91adab883a3f6196500483ac08e37adff7928568284d70422f2
+Build 3: the tree of fc81fccf (those four hashes written into the lock by hand):
+  LABWC_INPUTS 306 build dependencies
+  + /usr/bin/patch -p1 -s --fuzz=0 --no-backup-if-mismatch -f
+  + /usr/bin/patch -p1 -s --fuzz=0 --no-backup-if-mismatch -f
+  LABWC_NORMALIZED /usr/bin/labnag b8958beab24f41e21cbdf2e052d45c93cf95454a2c06c11bd03578c12c049505
+  LABWC_NORMALIZED /usr/bin/labwc 93d6d36f91442438131843ddbfca4d050052038256509c129f88ce1756a9e0cb
+  LABWC_LOADED /usr/bin/labnag 5538d4c5a6989c2c4ec826c76c1e7901ea0b4fc8f4bcc5e7e76472480d7bff49
+  LABWC_LOADED /usr/bin/labwc 52cd76e644e8cec4922959648e4096e5fbcc4643b0d8db8d8fa335cee709a402
+  LABWC_BUILT labwc-0.9.6-1.fc44.aresos2.x86_64 ee6257dbbeff0bf07e9205cf02a2cb4e1da9568e8d6c6f16c1c15e57c243055c
+  Successfully tagged localhost/aresos-labwc:321c
+  real	10m35.376s
+
+== python3 -B -m unittest discover -s os/tests -p test_labwc_stage.py
+  Ran 131 tests in 12.092s: OK (126 before)
+== python3 -B -m unittest discover -s os/tests -p test_shell_assertions.py
+  Ran 9 tests in 2.538s: OK
+
+== The image check's new lines, tried on the binaries of both RPMs (grep -aFq, as os/ci/image-checks.sh does)
+  aresos1 /usr/bin/labwc: lacks allowWhenInhibited, lacks aresos-input-barrier
+  aresos2 /usr/bin/labwc: has allowWhenInhibited, has aresos-input-barrier
+  (the whole of image-checks.sh runs only in the hosted check build)
+
+== os/input-portal/dev/container.sh build <dir>, without --cache, on the tree of commit aa56738d
+   Compiling aresos-input-portal v0.1.0 (/src)
+    Finished `release` profile [optimized] target(s) in 52.41s
+   Compiling aresos-input-portal v0.1.0 (/src)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 26.50s
+test result: ok. 98 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.02s
+compiler warnings: 0
+INPUT_PORTAL_BUILT aresos-input-portal 569d2a26582cc85eefbda463db32765a50419380c748fa0b32e5ac941177c0b4
+
+== os/input-portal/harness/run.sh run on that binary, localhost/aresos-labwc:321c, localhost/aresos-input-portal-harness:321c
+  HARNESS_LABWC /usr/bin/labnag loaded_sha256 5538d4c5a6989c2c4ec826c76c1e7901ea0b4fc8f4bcc5e7e76472480d7bff49 matches the lock
+  HARNESS_LABWC /usr/bin/labwc loaded_sha256 52cd76e644e8cec4922959648e4096e5fbcc4643b0d8db8d8fa335cee709a402 matches the lock
+  HARNESS_LABWC_RPM ee6257dbbeff0bf07e9205cf02a2cb4e1da9568e8d6c6f16c1c15e57c243055c  /opt/harness/rpm/labwc-0.9.6-1.fc44.aresos2.x86_64.rpm
+  run 1 (step1c-harness/): SUMMARY 129 passed, 0 failed, exit 0
+  run 2 (the same PASS lines): SUMMARY 129 passed, 0 failed, exit 0
+
+== The control: the same driver, rc.xml and binary on localhost/aresos-labwc:311e (aresos1, R29's labwc, without the second
+patch), in a harness image built against aresos1's lock and removed after (step1c-harness-control-aresos1/)
+  SUMMARY 120 passed, 9 failed, exit 1
+  FAIL test10 during a capture Alt+F4 closes nothing and reaches the client, and the next key reaches the client too
+  FAIL test10 during a capture Alt+Tab starts no window switcher: Tab and then Down reach the client, and the next key reaches the client too
+  FAIL test10 during a capture a lone Super runs nothing and reaches the client, and the next key reaches the client too
+  FAIL test10 during a capture the volume, mute and brightness keys run nothing and reach the client, and the next key reaches the client too
+  FAIL test10 during a capture the mouse bindings run nothing: Alt+Middle and Alt+scroll reach the client, and the next key reaches the client too
+  FAIL test10 the capture held through all of them: no Deactivated, and the local window got nothing
+  FAIL test10 a lone Super held as the capture starts runs no release action, and the next key reaches the client
+  FAIL test10 a volume key held as the capture starts repeats nothing during it, and the next key reaches the client
+  FAIL test10 under a layer surface with the capture surface's namespace the same keys and buttons run nothing, and the keys reach that surface

@@ -139,13 +139,13 @@ def entry(app_id, **changes):
 class RegistryTest(Base):
     def test_shipped_entries_are_reviewed_launch_definitions(self):
         apps, revision = shell.load_registry(str(REGISTRY))
-        self.assertEqual(set(apps), {'terminal', 'notepad', 'browser'})
+        self.assertEqual(set(apps), {'terminal', 'notepad', 'browser', 'org-deskflow-deskflow'})
         self.assertRegex(revision, r'^[0-9a-f]{16}$')
         for path in REGISTRY.glob('*.json'):
             app = shell.parse_entry(json.loads(path.read_text()))
             self.assertEqual(path.stem, app.id)
             self.assertIsNone(app.invalid)
-            self.assertTrue(app.argv[0].startswith('/usr/bin/'))
+            self.assertTrue(app.argv[0].startswith(('/usr/bin/', '/usr/libexec/')))
         # A plain terminal with his daily PATH and ~/.bashrc: the session keeps the system PATH (package 21).
         self.assertEqual(apps['terminal'].argv, ('/usr/bin/foot', '--app-id=aresos.terminal', '/usr/bin/bash',
                                                  '--rcfile', '/usr/share/aresos/bashrc', '-i'))
@@ -457,6 +457,14 @@ class LaunchTest(Base):
     def test_unit_names_escape_dashes(self):
         app = shell.App('my-app', 'My App', ('/usr/bin/x',))
         self.assertEqual(shell.ScopeLauncher.unit(app, 'ab12'), 'app-aresos-my\\x2dapp-ab12.scope')
+
+    def test_only_the_reviewed_deskflow_entry_gets_the_desktop_id_scope(self):
+        app = shell.App('org-deskflow-deskflow', 'Deskflow', ('/usr/libexec/aresos-deskflow',), source='image')
+        self.assertEqual(shell.ScopeLauncher.unit(app, 'ab12'), 'app-aresos-org.deskflow.deskflow-ab12.scope')
+        for other in (shell.dataclasses.replace(app, source='flatpak-system'),
+                      shell.dataclasses.replace(app, argv=('/usr/bin/deskflow',))):
+            self.assertEqual(shell.ScopeLauncher.unit(other, 'ab12'), r'app-aresos-org\x2ddeskflow\x2ddeskflow-ab12.scope')
+        self.assertEqual(app.id, 'org-deskflow-deskflow')
 
     def test_duplicate_request_ids_return_the_same_result_and_launch_once(self):
         helper = self.helper()
@@ -1561,7 +1569,8 @@ class ServerTest(Base):
                            'instance': INSTANCE, 'nonce': NONCE})
         self.assertTrue(self.receive(server, client)['ok'])
         self.line(client, {'id': 'l-1', 'op': 'list_apps'})
-        self.assertEqual({row['id'] for row in self.receive(server, client)['apps']}, {'terminal', 'notepad', 'browser'})
+        self.assertEqual({row['id'] for row in self.receive(server, client)['apps']},
+                         {'terminal', 'notepad', 'browser', 'org-deskflow-deskflow'})
         with self.assertRaises(SystemExit):
             shell.Server(path, self.helper())
 

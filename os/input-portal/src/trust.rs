@@ -175,12 +175,10 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn the_shipped_file_allows_nobody() {
-        // `data/allowed-apps` as the package ships it: comments only.
-        let list = AllowList::parse(include_str!("../data/allowed-apps"));
-        assert_eq!(list, AllowList::default());
-        assert!(!list.allows(""));
-        assert!(!list.allows("#"));
+    fn the_shipped_file_allows_only_deskflow() {
+        let shipped = include_str!("../data/allowed-apps");
+        assert_eq!(shipped, "org.deskflow.deskflow\n");
+        assert!(AllowList::parse(shipped).allows("org.deskflow.deskflow"));
     }
 
     #[test]

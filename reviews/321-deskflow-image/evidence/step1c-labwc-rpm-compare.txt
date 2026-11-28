@@ -1,0 +1,46 @@
+Step 1c: the labwc RPM before and after the second patch, compared in a throwaway container of the labwc stage image.
+old = /out of localhost/aresos-labwc:311e (aresos1, 311's patch alone; its two binaries are the pins of the lock on main)
+new = /out of localhost/aresos-labwc:321c (aresos2, both patches, the third build of step 1c)
+Sections were compared with objcopy -O binary --only-section, one by one.
+
+old: labwc-0.9.6-1.fc44.aresos1.x86_64 rpm sha256 8f9f4ea2ab3163ee2a760624cd10d7ceb105a3c84f1d980ed73cbea7aba565c6
+new: labwc-0.9.6-1.fc44.aresos2.x86_64 rpm sha256 ee6257dbbeff0bf07e9205cf02a2cb4e1da9568e8d6c6f16c1c15e57c243055c
+files only in one RPM, or with other bytes (paths):
+4,5c4,5
+< ./usr/lib/.build-id/63/595d9255da51f2bcb9b8f59e59ff6ecf10db9e
+< ./usr/lib/.build-id/69/01d0de85431669c745529b44e4609093da68c5
+---
+> ./usr/lib/.build-id/4e/46d30e5243b40985688cde0b2a087c124bba75
+> ./usr/lib/.build-id/9a/8907a60010a3ace2f35ceb9e59420d2def4f16
+  differs: ./usr/bin/labnag
+  differs: ./usr/bin/labwc
+== usr/bin/labnag: sections whose bytes differ
+  .note.gnu.build-id
+  .note.package
+== usr/bin/labwc: sections whose bytes differ
+  .data
+  .data.rel.ro
+  .dynamic
+  .dynsym
+  .eh_frame
+  .eh_frame_hdr
+  .fini_array
+  .got
+  .init
+  .init_array
+  .note.gnu.build-id
+  .note.package
+  .plt
+  .plt.sec
+  .rela.dyn
+  .rela.plt
+  .relr.dyn
+  .rodata
+  .text
+== labnag .note.package, old then new
+{"type":"rpm","name":"labwc","version":"0.9.6-1.fc44.aresos1","architecture":"x86_64","osCpe":"cpe:/o:fedoraproject:fedora:44"}
+{"type":"rpm","name":"labwc","version":"0.9.6-1.fc44.aresos2","architecture":"x86_64","osCpe":"cpe:/o:fedoraproject:fedora:44"}
+old: 64 paths
+new: 64 paths
+same paths apart from the .build-id links
+(5 .build-id entries in each: the folder, two subfolders and the two links)

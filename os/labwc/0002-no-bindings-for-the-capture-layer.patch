@@ -1,0 +1,202 @@
+From: AresOS
+Subject: [PATCH] no bindings while the input-capture layer holds the keyboard
+
+AresOS: our own change to labwc 0.9.6 (package 321, step 1c), applied after
+0001. Nothing like it is upstream: labwc has no way to switch its bindings off
+for a layer-shell surface (no keyboard-shortcuts-inhibit, and ToggleKeybinds
+works per window).
+
+While aresos-input-portal captures input for another machine (Deskflow), its
+layer-shell surface holds the keyboard exclusively, but labwc still ran its
+own bindings first: Alt+F4 closed a local window, Alt+Tab started the window
+switcher, which then ate keys. With this patch, while a layer surface whose
+namespace is "aresos-input-barrier" has exclusive keyboard focus:
+
+- only keybinds marked allowWhenInhibited="yes" run (a new keybind attribute,
+  modelled on allowWhenLocked); every other key goes to the surface;
+- no mousebind runs: buttons and scroll go to the surface;
+- a keybind pressed before the surface took the keyboard runs no on-release
+  action, and its repeat runs nothing; a drag begun before is dropped;
+- menu and window-switcher keys are not handled;
+- switching the virtual terminal works as before.
+
+seat_bindings_inhibited() is the one test. It reads the state at each event
+and keeps none of its own. Layer surfaces with any other namespace, and all
+windows, keep labwc's bindings as they were. Touch and tablet-tool taps are
+not gated.
+---
+diff --git a/include/config/keybind.h b/include/config/keybind.h
+--- a/include/config/keybind.h
++++ b/include/config/keybind.h
+@@ -20,6 +20,7 @@ struct keybind {
+ 	size_t keycodes_len;
+ 	int keycodes_layout;
+ 	bool allow_when_locked;
++	bool allow_when_inhibited;
+ 	struct wl_list actions;  /* struct action.link */
+ 	struct wl_list link;     /* struct rcxml.keybinds */
+ 	bool on_release;
+diff --git a/include/labwc.h b/include/labwc.h
+--- a/include/labwc.h
++++ b/include/labwc.h
+@@ -384,6 +384,14 @@ void seat_pointer_end_grab(struct seat *seat, struct wlr_surface *surface);
+ void seat_focus_lock_surface(struct seat *seat, struct wlr_surface *surface);
+ 
+ void seat_set_focus_layer(struct seat *seat, struct wlr_layer_surface_v1 *layer);
++
++/*
++ * True while the layer-shell surface that captures input for another machine
++ * holds the keyboard exclusively. Every key and button is then meant for that
++ * machine: only keybinds marked allowWhenInhibited run, no mousebind runs and
++ * no menu or window-switcher key is handled.
++ */
++bool seat_bindings_inhibited(struct seat *seat);
+ void seat_output_layout_changed(struct seat *seat);
+ 
+ /*
+diff --git a/src/config/rcxml.c b/src/config/rcxml.c
+--- a/src/config/rcxml.c
++++ b/src/config/rcxml.c
+@@ -565,6 +565,7 @@ fill_keybind(xmlNode *node)
+ 	lab_xml_get_bool(node, "onRelease", &keybind->on_release);
+ 	lab_xml_get_bool(node, "layoutDependent", &keybind->use_syms_only);
+ 	lab_xml_get_bool(node, "allowWhenLocked", &keybind->allow_when_locked);
++	lab_xml_get_bool(node, "allowWhenInhibited", &keybind->allow_when_inhibited);
+ 
+ 	append_parsed_actions(node, &keybind->actions);
+ }
+diff --git a/src/input/cursor.c b/src/input/cursor.c
+--- a/src/input/cursor.c
++++ b/src/input/cursor.c
+@@ -659,6 +659,10 @@ cursor_process_motion(struct server *server, uint32_t time, double *sx, double *
+ 			 * moving/resizing the wrong view
+ 			 */
+ 			mousebind->pressed_in_context = false;
++			if (seat_bindings_inhibited(seat)) {
++				/* A drag begun before the layer took over */
++				continue;
++			}
+ 			actions_run(seat->pressed.ctx.view, server,
+ 				&mousebind->actions, &seat->pressed.ctx);
+ 		}
+@@ -1025,6 +1029,9 @@ process_release_mousebinding(struct server *server,
+ 	if (server->input_mode == LAB_INPUT_STATE_CYCLE) {
+ 		return;
+ 	}
++	if (seat_bindings_inhibited(&server->seat)) {
++		return;
++	}
+ 
+ 	struct mousebind *mousebind;
+ 	uint32_t modifiers = keyboard_get_all_modifiers(&server->seat);
+@@ -1094,6 +1101,9 @@ process_press_mousebinding(struct server *server, struct cursor_context *ctx,
+ 	if (server->input_mode == LAB_INPUT_STATE_CYCLE) {
+ 		return false;
+ 	}
++	if (seat_bindings_inhibited(&server->seat)) {
++		return false;
++	}
+ 
+ 	struct mousebind *mousebind;
+ 	bool double_click = is_double_click(rc.doubleclick_time, button, ctx);
+@@ -1426,7 +1436,8 @@ process_cursor_axis(struct server *server, enum wl_pointer_axis orientation,
+ 	}
+ 
+ 	bool consumed = false;
+-	if (direction != LAB_DIRECTION_INVALID) {
++	if (direction != LAB_DIRECTION_INVALID
++			&& !seat_bindings_inhibited(&server->seat)) {
+ 		struct mousebind *mousebind;
+ 		wl_list_for_each(mousebind, &rc.mousebinds, link) {
+ 			if (ctx.type == LAB_NODE_CLIENT
+diff --git a/src/input/keyboard.c b/src/input/keyboard.c
+--- a/src/input/keyboard.c
++++ b/src/input/keyboard.c
+@@ -192,10 +192,14 @@ match_keybinding_for_sym(struct server *server, uint32_t modifiers,
+ 		xkb_keysym_t sym, xkb_keycode_t xkb_keycode)
+ {
+ 	struct keybind *keybind;
++	bool inhibited = seat_bindings_inhibited(&server->seat);
+ 	wl_list_for_each(keybind, &rc.keybinds, link) {
+ 		if (modifiers ^ keybind->modifiers) {
+ 			continue;
+ 		}
++		if (inhibited && !keybind->allow_when_inhibited) {
++			continue;
++		}
+ 		if (view_inhibits_actions(server->active_view, &keybind->actions)) {
+ 			continue;
+ 		}
+@@ -488,11 +492,20 @@ handle_compositor_keybindings(struct keyboard *keyboard,
+ 	struct wlr_keyboard *wlr_keyboard = keyboard->wlr_keyboard;
+ 	struct keyinfo keyinfo = get_keyinfo(wlr_keyboard, event->keycode);
+ 	bool locked = seat->server->session_lock_manager->locked;
++	bool inhibited = seat_bindings_inhibited(seat);
+ 
+ 	key_state_set_pressed(event->keycode,
+ 		event->state == WL_KEYBOARD_KEY_STATE_PRESSED);
+ 
+ 	if (event->state == WL_KEYBOARD_KEY_STATE_RELEASED) {
++		if (inhibited && cur_keybind && !cur_keybind->allow_when_inhibited) {
++			/*
++			 * Pressed before the inhibiting layer took the keyboard:
++			 * drop the pending on-release action. The release is
++			 * still kept from clients below, as the press was.
++			 */
++			cur_keybind = NULL;
++		}
+ 		if (cur_keybind && cur_keybind->on_release) {
+ 			key_state_bound_key_remove(event->keycode);
+ 			if (locked && !cur_keybind->allow_when_locked) {
+@@ -513,11 +526,12 @@ handle_compositor_keybindings(struct keyboard *keyboard,
+ 	}
+ 
+ 	/*
+-	 * Ignore labwc keybindings if the session is locked.
++	 * Ignore labwc keybindings if the session is locked, and menu and
++	 * window-switcher keys also while bindings are inhibited.
+ 	 * It's important to do this after key_state_set_pressed() to ensure
+ 	 * _all_ key press/releases are registered
+ 	 */
+-	if (!locked) {
++	if (!locked && !inhibited) {
+ 		if (server->input_mode == LAB_INPUT_STATE_MENU) {
+ 			key_state_store_pressed_key_as_bound(event->keycode);
+ 			handle_menu_keys(server, &keyinfo.translated);
+diff --git a/src/seat.c b/src/seat.c
+--- a/src/seat.c
++++ b/src/seat.c
+@@ -1,6 +1,7 @@
+ // SPDX-License-Identifier: GPL-2.0-only
+ #include <assert.h>
+ #include <stdbool.h>
++#include <string.h>
+ #include <strings.h>
+ #include <wlr/backend/libinput.h>
+ #include <wlr/types/wlr_cursor.h>
+@@ -862,6 +863,25 @@ seat_set_focus_layer(struct seat *seat, struct wlr_layer_surface_v1 *layer)
+ 	seat->focused_layer = layer;
+ }
+ 
++/* The namespace of the capture surface of aresos-input-portal */
++#define LAB_INHIBITING_LAYER_NAMESPACE "aresos-input-barrier"
++
++bool
++seat_bindings_inhibited(struct seat *seat)
++{
++	struct wlr_layer_surface_v1 *layer = seat->focused_layer;
++	/*
++	 * seat->focused_layer is also set when the session lock kept the
++	 * keyboard, so ask the seat who really has it.
++	 */
++	return layer && layer->surface
++		&& layer->surface == seat->seat->keyboard_state.focused_surface
++		&& layer->current.keyboard_interactive
++			== ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE
++		&& layer->namespace
++		&& !strcmp(layer->namespace, LAB_INHIBITING_LAYER_NAMESPACE);
++}
++
+ void
+ seat_output_layout_changed(struct seat *seat)
+ {

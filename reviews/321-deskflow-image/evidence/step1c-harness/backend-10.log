@@ -1,0 +1,49 @@
+2026-11-21T18:17:52.622923Z  INFO aresos_input_portal::wayland::state: the screens changed: 1 now zone_set=2
+2026-11-21T18:17:52.625304Z DEBUG aresos_input_portal::wayland::clipboard: watching the clipboard through ext-data-control
+2026-11-21T18:17:52.626434Z DEBUG aresos_input_portal::wayland::state: captured a 35355 byte xkb keymap from the compositor
+2026-11-21T18:17:52.626446Z DEBUG aresos_input_portal::wayland::state: clipboard selection changed types=5 is_ours=false
+2026-11-21T18:17:52.626452Z  INFO aresos_input_portal::wayland::state: Wayland barrier thread ready, 1 screen(s) in the snapshot
+2026-11-21T18:17:52.626593Z  INFO aresos_input_portal: screen HEADLESS-2: 1280x720 at (0, 0) scale 1 Normal
+2026-11-21T18:17:52.627837Z  INFO aresos_input_portal::portal: sharing is on
+2026-11-21T18:17:52.628169Z  INFO aresos_input_portal: org.freedesktop.impl.portal.desktop.aresos-input ready at /org/freedesktop/portal/desktop; idle watchdog disabled
+2026-11-21T18:17:52.653322Z  INFO aresos_input_portal::portal: session created app_id="org.aresos.harness" session=/org/freedesktop/portal/desktop/session/harness/shortcuts capabilities=0 started=false
+2026-11-21T18:17:52.654527Z  INFO aresos_input_portal::portal: clipboard access requested session=/org/freedesktop/portal/desktop/session/harness/shortcuts
+2026-11-21T18:17:52.655718Z  INFO aresos_input_portal::portal: session started session=/org/freedesktop/portal/desktop/session/harness/shortcuts capabilities=3 clipboard_enabled=true
+2026-11-21T18:17:52.656686Z  INFO aresos_input_portal::portal: handed EIS socket to client session=/org/freedesktop/portal/desktop/session/harness/shortcuts
+2026-11-21T18:17:52.658034Z  INFO aresos_input_portal::eis_server: EIS handshake complete, client is a Receiver context session=/org/freedesktop/portal/desktop/session/harness/shortcuts
+2026-11-21T18:17:52.658169Z DEBUG aresos_input_portal::eis_server: client bound seat with BitFlags<DeviceCapability>(0b110101, Pointer | Keyboard | Scroll | Button) session=/org/freedesktop/portal/desktop/session/harness/shortcuts
+2026-11-21T18:17:52.658189Z DEBUG aresos_input_portal::eis_server: reported device region 1280x720
+2026-11-21T18:17:52.658217Z DEBUG aresos_input_portal::eis_server: reported device region 1280x720
+2026-11-21T18:17:52.658250Z DEBUG aresos_input_portal::eis_server: sent a 35356 byte xkb keymap to the client
+2026-11-21T18:17:52.688901Z DEBUG aresos_input_portal::portal: returning 1 zone(s) zone_set=2
+2026-11-21T18:17:52.690463Z  INFO aresos_input_portal::portal: accepted 1 barrier(s), rejected 0
+2026-11-21T18:17:52.691592Z  INFO aresos_input_portal::portal: capture enabled session=/org/freedesktop/portal/desktop/session/harness/shortcuts barriers=1
+2026-11-21T18:17:52.691657Z  INFO aresos_input_portal::wayland::state: armed 1 barrier surface(s)
+2026-11-21T18:17:52.993808Z  INFO aresos_input_portal::portal: ForceRelease requested
+2026-11-21T18:17:53.055344Z  INFO aresos_input_portal::wayland::state: barrier crossed, asking the compositor for the grab barrier=1
+2026-11-21T18:17:53.055579Z DEBUG aresos_input_portal::wayland::state: the barrier's surface has keyboard focus
+2026-11-21T18:17:53.055604Z DEBUG aresos_input_portal::wayland::state: the compositor granted the pointer lock
+2026-11-21T18:17:53.055609Z  INFO aresos_input_portal::wayland::state: the grab is held, capturing input barrier=1
+2026-11-21T18:17:56.020931Z  INFO aresos_input_portal::portal: ForceRelease requested
+2026-11-21T18:17:56.020983Z  WARN aresos_input_portal::portal: force-released 1 capture(s)
+2026-11-21T18:17:56.020982Z  INFO aresos_input_portal::wayland::state: capture ended, pointer released barrier=1 motions=0 keys=44 buttons=2 scrolls=2 confirmed=true
+2026-11-21T18:17:56.142899Z  INFO aresos_input_portal::wayland::state: barrier crossed, asking the compositor for the grab barrier=1
+2026-11-21T18:17:56.143058Z DEBUG aresos_input_portal::wayland::state: the barrier's surface has keyboard focus
+2026-11-21T18:17:56.143077Z DEBUG aresos_input_portal::wayland::state: the compositor granted the pointer lock
+2026-11-21T18:17:56.143082Z  INFO aresos_input_portal::wayland::state: the grab is held, capturing input barrier=1
+2026-11-21T18:17:56.608309Z  INFO aresos_input_portal::portal: capture released session=/org/freedesktop/portal/desktop/session/harness/shortcuts
+2026-11-21T18:17:56.608515Z  INFO aresos_input_portal::wayland::state: capture ended, pointer released barrier=1 motions=0 keys=2 buttons=0 scrolls=0 confirmed=true
+2026-11-21T18:17:56.608540Z DEBUG aresos_input_portal::wayland::state: tearing down 1 barrier surface(s)
+2026-11-21T18:17:56.608563Z  INFO aresos_input_portal::wayland::state: armed 1 barrier surface(s)
+2026-11-21T18:17:58.454017Z  INFO aresos_input_portal::wayland::state: barrier crossed, asking the compositor for the grab barrier=1
+2026-11-21T18:17:58.454204Z DEBUG aresos_input_portal::wayland::state: the barrier's surface has keyboard focus
+2026-11-21T18:17:58.454223Z DEBUG aresos_input_portal::wayland::state: the compositor granted the pointer lock
+2026-11-21T18:17:58.454228Z  INFO aresos_input_portal::wayland::state: the grab is held, capturing input barrier=1
+2026-11-21T18:18:00.328067Z  INFO aresos_input_portal::portal: capture released session=/org/freedesktop/portal/desktop/session/harness/shortcuts
+2026-11-21T18:18:00.328190Z  INFO aresos_input_portal::wayland::state: capture ended, pointer released barrier=1 motions=0 keys=2 buttons=0 scrolls=0 confirmed=true
+2026-11-21T18:18:00.328219Z DEBUG aresos_input_portal::wayland::state: tearing down 1 barrier surface(s)
+2026-11-21T18:18:00.328254Z  INFO aresos_input_portal::wayland::state: armed 1 barrier surface(s)
+2026-11-21T18:18:00.392202Z  INFO aresos_input_portal::portal: session closed by the portal session=/org/freedesktop/portal/desktop/session/harness/shortcuts
+2026-11-21T18:18:00.392269Z DEBUG aresos_input_portal::wayland::state: tearing down 1 barrier surface(s)
+2026-11-21T18:18:00.392397Z  INFO aresos_input_portal::eis_server: EIS connection closed session=/org/freedesktop/portal/desktop/session/harness/shortcuts
+2026-11-21T18:18:00.393985Z  INFO aresos_input_portal: shutting down

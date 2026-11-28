@@ -1,0 +1,25 @@
+2026-11-21T10:18:12.745263Z  INFO aresos_input_portal::wayland::state: the screens changed: 1 now zone_set=2
+2026-11-21T10:18:12.749103Z DEBUG aresos_input_portal::wayland::clipboard: watching the clipboard through ext-data-control
+2026-11-21T10:18:12.751249Z DEBUG aresos_input_portal::wayland::state: captured a 35355 byte xkb keymap from the compositor
+2026-11-21T10:18:12.751295Z DEBUG aresos_input_portal::wayland::state: clipboard selection changed types=5 is_ours=false
+2026-11-21T10:18:12.751312Z  INFO aresos_input_portal::wayland::state: Wayland barrier thread ready, 1 screen(s) in the snapshot
+2026-11-21T10:18:12.751366Z  INFO aresos_input_portal: screen HEADLESS-2: 1280x720 at (0, 0) scale 1 Normal
+2026-11-21T10:18:12.752554Z  INFO aresos_input_portal::portal: sharing is on
+2026-11-21T10:18:12.752785Z  INFO aresos_input_portal: org.freedesktop.impl.portal.desktop.aresos-input ready at /org/freedesktop/portal/desktop; idle watchdog disabled
+2026-11-21T10:18:12.772468Z  INFO aresos_input_portal::portal: session created app_id="org.aresos.harness" session=/org/freedesktop/portal/desktop/session/harness/chord_backend_stopped capabilities=0 started=false
+2026-11-21T10:18:12.773195Z  INFO aresos_input_portal::portal: clipboard access requested session=/org/freedesktop/portal/desktop/session/harness/chord_backend_stopped
+2026-11-21T10:18:12.773908Z  INFO aresos_input_portal::portal: session started session=/org/freedesktop/portal/desktop/session/harness/chord_backend_stopped capabilities=3 clipboard_enabled=true
+2026-11-21T10:18:12.774530Z  INFO aresos_input_portal::portal: handed EIS socket to client session=/org/freedesktop/portal/desktop/session/harness/chord_backend_stopped
+2026-11-21T10:18:12.776814Z  INFO aresos_input_portal::eis_server: EIS handshake complete, client is a Receiver context session=/org/freedesktop/portal/desktop/session/harness/chord_backend_stopped
+2026-11-21T10:18:12.777093Z DEBUG aresos_input_portal::eis_server: client bound seat with BitFlags<DeviceCapability>(0b110101, Pointer | Keyboard | Scroll | Button) session=/org/freedesktop/portal/desktop/session/harness/chord_backend_stopped
+2026-11-21T10:18:12.777131Z DEBUG aresos_input_portal::eis_server: reported device region 1280x720
+2026-11-21T10:18:12.777183Z DEBUG aresos_input_portal::eis_server: reported device region 1280x720
+2026-11-21T10:18:12.777255Z DEBUG aresos_input_portal::eis_server: sent a 35356 byte xkb keymap to the client
+2026-11-21T10:18:12.806920Z DEBUG aresos_input_portal::portal: returning 1 zone(s) zone_set=2
+2026-11-21T10:18:12.807991Z  INFO aresos_input_portal::portal: accepted 1 barrier(s), rejected 0
+2026-11-21T10:18:12.808600Z  INFO aresos_input_portal::portal: capture enabled session=/org/freedesktop/portal/desktop/session/harness/chord_backend_stopped barriers=1
+2026-11-21T10:18:12.808689Z  INFO aresos_input_portal::wayland::state: armed 1 barrier surface(s)
+2026-11-21T10:18:12.809516Z  INFO aresos_input_portal::wayland::state: barrier crossed, asking the compositor for the grab barrier=1
+2026-11-21T10:18:12.809755Z DEBUG aresos_input_portal::wayland::state: the barrier's surface has keyboard focus
+2026-11-21T10:18:12.809786Z DEBUG aresos_input_portal::wayland::state: the compositor granted the pointer lock
+2026-11-21T10:18:12.809795Z  INFO aresos_input_portal::wayland::state: the grab is held, capturing input barrier=1

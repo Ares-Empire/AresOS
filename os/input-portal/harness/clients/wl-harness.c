@@ -3,6 +3,11 @@
 //   wl-harness window [--lock]
 //                       a full-screen window that prints every input event it receives, one per line
 //                       --lock adds relative motion and a pointer lock; "release" on stdin destroys the lock
+//                       --keep-open only records CLOSE, for repeated binding probes
+//   wl-harness layer NAMESPACE
+//                       a small layer-shell surface on the overlay layer with that namespace, which asks for
+//                       the keyboard exclusively and prints its input events the same way (brief 321, step 1c:
+//                       the shortcuts gate must tell the backend's capture surface from any other layer surface)
 //   wl-harness input pointer|keyboard
 //                       a virtual pointer or a virtual keyboard, driven by lines on stdin:
 //                         abs X Y W H    put the pointer at X,Y of a W by H layout
@@ -32,6 +37,7 @@
 #include "pointer-constraints-unstable-v1-client-protocol.h"
 #include "relative-pointer-unstable-v1-client-protocol.h"
 #include "virtual-keyboard-unstable-v1-client-protocol.h"
+#include "wlr-layer-shell-unstable-v1-client-protocol.h"
 #include "wlr-output-management-unstable-v1-client-protocol.h"
 #include "wlr-virtual-pointer-unstable-v1-client-protocol.h"
 #include "xdg-decoration-unstable-v1-client-protocol.h"
@@ -46,9 +52,11 @@ static struct zxdg_decoration_manager_v1 *decoration_manager;
 static struct zwlr_virtual_pointer_manager_v1 *pointer_manager;
 static struct zwp_virtual_keyboard_manager_v1 *keyboard_manager;
 static struct zwlr_output_manager_v1 *output_manager;
+static struct zwlr_layer_shell_v1 *layer_shell;
 static struct zwp_pointer_constraints_v1 *constraints;
 static struct zwp_relative_pointer_manager_v1 *relative_manager;
 static bool wants_lock;
+static bool keep_open;
 static bool wants_outputs;
 static bool floating;
 static bool closed;
@@ -87,6 +95,8 @@ static void registry_global(void *data, struct wl_registry *registry, uint32_t n
 		pointer_manager = wl_registry_bind(registry, name, &zwlr_virtual_pointer_manager_v1_interface, 1);
 	} else if (!strcmp(interface, zwp_virtual_keyboard_manager_v1_interface.name)) {
 		keyboard_manager = wl_registry_bind(registry, name, &zwp_virtual_keyboard_manager_v1_interface, 1);
+	} else if (!strcmp(interface, zwlr_layer_shell_v1_interface.name)) {
+		layer_shell = wl_registry_bind(registry, name, &zwlr_layer_shell_v1_interface, 1);
 	} else if (wants_lock && !strcmp(interface, zwp_pointer_constraints_v1_interface.name)) {
 		constraints = wl_registry_bind(registry, name, &zwp_pointer_constraints_v1_interface, 1);
 	} else if (wants_lock && !strcmp(interface, zwp_relative_pointer_manager_v1_interface.name)) {
@@ -325,7 +335,7 @@ static void toplevel_configure(void *d, struct xdg_toplevel *t, int32_t w, int32
 static void toplevel_close(void *d, struct xdg_toplevel *t)
 {
 	puts("CLOSE");
-	closed = true;
+	closed = !keep_open;
 }
 
 static const struct xdg_toplevel_listener toplevel_listener = {
@@ -408,6 +418,49 @@ static int run_window(void)
 	}
 	wl_array_release(&configure_states);
 	wl_display_disconnect(display);
+	return 0;
+}
+
+// ---- the layer surface -------------------------------------------------------------------------------------
+
+#define LAYER_SIZE 64
+
+static void layer_configure(void *d, struct zwlr_layer_surface_v1 *layer, uint32_t serial, uint32_t w, uint32_t h)
+{
+	zwlr_layer_surface_v1_ack_configure(layer, serial);
+	attach_buffer(LAYER_SIZE, LAYER_SIZE);
+	wl_surface_commit(surface);
+	printf("CONFIGURED %d %d\n", LAYER_SIZE, LAYER_SIZE);
+}
+
+static void layer_closed(void *d, struct zwlr_layer_surface_v1 *layer)
+{
+	printf("CLOSED\n");
+}
+
+static const struct zwlr_layer_surface_v1_listener layer_listener = {
+	.configure = layer_configure,
+	.closed = layer_closed,
+};
+
+static int run_layer(const char *namespace)
+{
+	if (!compositor || !shm || !seat || !layer_shell) {
+		die("the compositor lacks wl_compositor, wl_shm, wl_seat or zwlr_layer_shell_v1");
+	}
+	setvbuf(stdout, NULL, _IOLBF, 0);
+	wl_seat_add_listener(seat, &seat_listener, NULL);
+	surface = wl_compositor_create_surface(compositor);
+	// No output named: the compositor picks one. Not anchored, so it sits in the middle of that output.
+	struct zwlr_layer_surface_v1 *layer = zwlr_layer_shell_v1_get_layer_surface(layer_shell, surface, NULL,
+		ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY, namespace);
+	zwlr_layer_surface_v1_add_listener(layer, &layer_listener, NULL);
+	zwlr_layer_surface_v1_set_size(layer, LAYER_SIZE, LAYER_SIZE);
+	// 1 is "exclusive" in every version of the protocol: what the backend's capture surface asks for.
+	zwlr_layer_surface_v1_set_keyboard_interactivity(layer, 1);
+	wl_surface_commit(surface);
+	while (wl_display_dispatch(display) >= 0) {
+	}
 	return 0;
 }
 
@@ -494,9 +547,36 @@ static int run_input(bool is_keyboard)
 
 // It sends nothing after the bind and releases nothing: libwayland makes the head and mode objects as they
 // are announced and drops their events.
-static void outputs_head(void *d, struct zwlr_output_manager_v1 *m, struct zwlr_output_head_v1 *head) {}
-static void outputs_done(void *d, struct zwlr_output_manager_v1 *m, uint32_t serial) {}
-static void outputs_finished(void *d, struct zwlr_output_manager_v1 *m) {}
+static bool first_output_list = true;
+
+static int output_head_event(const void *data, void *head, uint32_t opcode,
+	const struct wl_message *message, union wl_argument *args)
+{
+	if (first_output_list && !strcmp(message->name, "name")) {
+		printf("OUTPUT %s\n", args[0].s);
+	}
+	return 0;
+}
+
+static void outputs_head(void *d, struct zwlr_output_manager_v1 *m, struct zwlr_output_head_v1 *head)
+{
+	if (wl_proxy_add_dispatcher((struct wl_proxy *)head, output_head_event, NULL, NULL) < 0) {
+		die("cannot listen for the first output list");
+	}
+}
+
+static void outputs_done(void *d, struct zwlr_output_manager_v1 *m, uint32_t serial)
+{
+	if (first_output_list) {
+		printf("OUTPUTS_READY %u\n", serial);
+		fflush(stdout);
+		first_output_list = false;
+	}
+}
+static void outputs_finished(void *d, struct zwlr_output_manager_v1 *m)
+{
+	die("the compositor ended zwlr_output_manager_v1");
+}
 
 static const struct zwlr_output_manager_v1_listener outputs_listener = {
 	.head = outputs_head,
@@ -521,6 +601,10 @@ static bool parse_window_options(int argc, char **argv)
 		const char *option = argv[i];
 		if (!strcmp(option, "--lock")) {
 			wants_lock = true;
+			continue;
+		}
+		if (!strcmp(option, "--keep-open")) {
+			keep_open = true;
 			continue;
 		}
 		if (++i == argc) {
@@ -561,11 +645,12 @@ static bool parse_window_options(int argc, char **argv)
 int main(int argc, char **argv)
 {
 	bool is_window = argc >= 2 && !strcmp(argv[1], "window") && parse_window_options(argc, argv);
+	bool is_layer = argc == 3 && !strcmp(argv[1], "layer");
 	bool is_input = argc == 3 && !strcmp(argv[1], "input") && (!strcmp(argv[2], "pointer") || !strcmp(argv[2], "keyboard"));
 	wants_outputs = argc == 2 && !strcmp(argv[1], "outputs");
-	if (!is_window && !is_input && !wants_outputs) {
-		fprintf(stderr, "usage: wl-harness window [--lock] [--app-id ID] [--title TITLE] [--size WxH]"
-			" [--colour '#rrggbb'] | wl-harness input pointer|keyboard | wl-harness outputs\n");
+	if (!is_window && !is_layer && !is_input && !wants_outputs) {
+		fprintf(stderr, "usage: wl-harness window [--lock] [--keep-open] [--app-id ID] [--title TITLE] [--size WxH]"
+			" [--colour '#rrggbb'] | wl-harness layer NAMESPACE | wl-harness input pointer|keyboard | wl-harness outputs\n");
 		return 2;
 	}
 	display = wl_display_connect(NULL);
@@ -579,6 +664,9 @@ int main(int argc, char **argv)
 	}
 	if (wants_outputs) {
 		return run_outputs();
+	}
+	if (is_layer) {
+		return run_layer(argv[2]);
 	}
 	return is_window ? run_window() : run_input(!strcmp(argv[2], "keyboard"));
 }

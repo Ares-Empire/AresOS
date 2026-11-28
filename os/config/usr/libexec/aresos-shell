@@ -2452,7 +2452,11 @@ class ScopeLauncher:
     @staticmethod
     def unit(app, launch_id):
         # systemd's desktop naming: app-<launcher>-<application id>-<random>.scope
-        return f'app-aresos-{unit_escape(app.id)}-{launch_id}.scope'
+        name = app.id
+        if (app.source == 'image' and app.id == 'org-deskflow-deskflow'
+                and app.argv == ('/usr/libexec/aresos-deskflow',)):
+            name = 'org.deskflow.deskflow'
+        return f'app-aresos-{unit_escape(name)}-{launch_id}.scope'
 
     def command(self, app, argv, launch_id):
         # systemd-run expands ${NAME} in the command by default; the parsed Exec words must arrive unchanged.

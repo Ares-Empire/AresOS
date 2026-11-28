@@ -1,0 +1,7 @@
+#!/usr/bin/bash
+# Preserve the real session and its D-Bus activation while keeping the labwc
+# and backend stdout/stderr from the test boot available to the CI channel.
+set -eu
+umask 077
+/usr/libexec/aresos-ci/deskflow-session-agent &
+exec /usr/bin/aresos-session >>"${XDG_RUNTIME_DIR:?}/deskflow-ci-session.log" 2>&1
